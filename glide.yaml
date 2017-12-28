@@ -1,0 +1,10 @@
+package: gitlab.com/privategrity/server
+import: 
+- package: gitlab.com/privategrity/crypto 
+  version: master
+  repo: https://gitlab.com/privategrity/crypto.git
+  vcs: git
+- package: gitlab.com/privategrity/comms
+  version: master
+  repo: https://gitlab.com/privategrity/comms.git
+  vcs: git
