@@ -34,6 +34,11 @@ before_script:
   - chmod 700 ~/.ssh
 
   ##
+  ## Add SSH key for gitlab.com
+  ##
+  - ssh-keyscan -t rsa server_ip > ~/.ssh/known_hosts
+
+  ##
   ## Go Setup
   ##
   - go version || echo "Go executable not found."
