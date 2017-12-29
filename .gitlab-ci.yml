@@ -36,7 +36,7 @@ before_script:
   ##
   ## Add SSH key for gitlab.com
   ##
-  - ssh-keyscan -t rsa server_ip > ~/.ssh/known_hosts
+  - ssh-keyscan -t rsa gitlab.com > ~/.ssh/known_hosts
 
   ##
   ## Go Setup
