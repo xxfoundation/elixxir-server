@@ -29,7 +29,36 @@ var G *cyclic.Int // Global Generator
 // The Rounds map is a mapping of session identifiers to round structures
 var Rounds map[string]*round
 
-// Constructor for the round struct. This makes empty lists of a set size
-func NewRound(batchSize int64) *round {
-	return nil
+// NewRound constructs an empty round for a given batch size, with all
+// numbers being initialized to 0.
+func NewRound(batchSize uint64) *round {
+	NR := round{
+		R: make([]*cyclic.Int, batchSize),
+		S: make([]*cyclic.Int, batchSize),
+		T: make([]*cyclic.Int, batchSize),
+		V: make([]*cyclic.Int, batchSize),
+		U: make([]*cyclic.Int, batchSize),
+		G: cyclic.NewInt(0),
+		Permutations: make([]uint64, batchSize),
+		Y_R: make([]*cyclic.Int, batchSize),
+		Y_S: make([]*cyclic.Int, batchSize),
+		Y_T: make([]*cyclic.Int, batchSize),
+		Y_V: make([]*cyclic.Int, batchSize),
+		Y_U: make([]*cyclic.Int, batchSize) }
+
+	for i := uint64(0); i < batchSize; i++ {
+		NR.R[i] = cyclic.NewInt(0)
+		NR.S[i] = cyclic.NewInt(0)
+		NR.T[i] = cyclic.NewInt(0)
+		NR.V[i] = cyclic.NewInt(0)
+		NR.U[i] = cyclic.NewInt(0)
+
+		NR.Y_R[i] = cyclic.NewInt(0)
+		NR.Y_S[i] = cyclic.NewInt(0)
+		NR.Y_T[i] = cyclic.NewInt(0)
+		NR.Y_V[i] = cyclic.NewInt(0)
+		NR.Y_U[i] = cyclic.NewInt(0)
+	}
+
+	return &NR
 }
