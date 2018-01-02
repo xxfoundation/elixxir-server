@@ -14,6 +14,7 @@ type round struct {
 	Permutations []uint64 // Permutation array, messages at index i become
 	                      // messages at index Permutations[i]
 	G *cyclic.Int // Global Cypher Key
+	Z *cyclic.Int // This node's Cypher Key
 	// Private keys for the above
 	Y_R []*cyclic.Int
 	Y_S []*cyclic.Int
@@ -23,7 +24,6 @@ type round struct {
 }
 
 // Keys for Homomorphic operations
-var Z *cyclic.Int // Node Cypher key
 var G *cyclic.Int // Global Generator
 
 // The Rounds map is a mapping of session identifiers to round structures
@@ -89,6 +89,7 @@ func NewRound(batchSize uint64) *round {
 		V: make([]*cyclic.Int, batchSize),
 		U: make([]*cyclic.Int, batchSize),
 		G: cyclic.NewInt(0),
+		Z: cyclic.NewInt(0),
 		Permutations: make([]uint64, batchSize),
 		Y_R: make([]*cyclic.Int, batchSize),
 		Y_S: make([]*cyclic.Int, batchSize),
@@ -97,6 +98,7 @@ func NewRound(batchSize uint64) *round {
 		Y_U: make([]*cyclic.Int, batchSize) }
 
 	NR.G.SetBytes(Max4192BitInt)
+	NR.Z.SetBytes(Max4192BitInt)
 
 	for i := uint64(0); i < batchSize; i++ {
 		NR.R[i] = cyclic.NewInt(0)
