@@ -1,7 +1,7 @@
 package globals
 
 import (
-	"gitlab.com/privategrity/cyclic/int"
+	"gitlab.com/privategrity/crypto/cyclic"
 )
 
 // The round struct contains the keys and permutations for a given message batch
@@ -28,3 +28,8 @@ var G *cyclic.Int // Global Generator
 
 // The Rounds map is a mapping of session identifiers to round structures
 var Rounds map[string]*round
+
+// Constructor for the round struct. This makes empty lists of a set size
+func NewRound(batchSize int64) *round {
+	return nil
+}
