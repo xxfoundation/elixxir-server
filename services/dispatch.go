@@ -10,10 +10,10 @@ type Message struct {
 	Data []*cyclic.Int
 }
 
-//DispatchControler is the struct which is used to externally control the dispatcher
-//To send data do DispatchControler.InChannel <- Data
-//To Receive Data do data DispatchControler.OutChannel -> Data
-//To force kill the dispatcher do
+// DispatchControler is the struct which is used to externally control the dispatcher
+// To send data do DispatchControler.InChannel <- Data
+// To Receive Data do data DispatchControler.OutChannel -> Data
+// To force kill the dispatcher do DispatchControler.QuitChannel <- true
 type DispatchControler struct {
 	noCopy noCopy
 
@@ -22,16 +22,19 @@ type DispatchControler struct {
 	QuitChannel chan<- bool
 }
 
-//Cryptop is the interface which contains the cryptop
-type Cryptop interface {
+// Cryptop is the interface which contains the cryptop
+// In contains the input message, out contains the output message,
+// saved data are params passed by the server,
+// and perm is the permutation used (if any)
+type CryptographicOperation interface {
 	run(in, out *Message, saved []*cyclic.Int, perm *[]uint64) *Message
 }
 
-//Private struct containing the control data in the cryptop
+//Private struct containing the control data in the cryptopl
 type dispatch struct {
 	noCopy noCopy
 
-	cry       Cryptop
+	cryptop   CryptographicOperation
 	batchSize uint64
 	saved     *[][]*cyclic.Int
 	outMem    *[]*Message
@@ -57,9 +60,9 @@ func (d *dispatch) dispatcher() {
 
 			//if there is a dedicated output buffer use that, otherwise use the input buffer for output
 			if d.outMem == nil {
-				out = d.cry.run(in, in, (*d.saved)[in.Slot], d.perm)
+				out = d.cryptop.run(in, in, (*d.saved)[in.Slot], d.perm)
 			} else {
-				out = d.cry.run(in, (*d.outMem)[in.Slot], (*d.saved)[in.Slot], d.perm)
+				out = d.cryptop.run(in, (*d.outMem)[in.Slot], (*d.saved)[in.Slot], d.perm)
 			}
 
 			d.outChannel <- out
@@ -73,8 +76,15 @@ func (d *dispatch) dispatcher() {
 
 }
 
-//DispatchCryptop creates the dispatcher and returns its control structure.
-func DispatchCryptop(cry Cryptop, batchSize uint64, outMessage *[]*Message, saved *[][]*cyclic.Int, perm *[]uint64, chIn, chOut chan *Message) (*DispatchControler, error) {
+// DispatchCryptop creates the dispatcher and returns its control structure.
+// cryptop is the operation the dispatch will do
+// batchSize is how many times to do the operation
+// outMessage is an array for the cryptop output.  set to nil to use the input.
+// saved is data from the server to be used in the operation
+// perm is the permutation, set to nil if unused
+// chIn and chOut are the input and output channels, set to nil and the
+// dispatcher will generate its own.
+func DispatchCryptop(cryptop CryptographicOperation, batchSize uint64, outMessage *[]*Message, saved *[][]*cyclic.Int, perm *[]uint64, chIn, chOut chan *Message) (*DispatchControler, error) {
 
 	//Make sure if they want a buffered output that it is formatted correctly
 	if uint64(len(*saved)) < batchSize {
@@ -96,7 +106,7 @@ func DispatchCryptop(cry Cryptop, batchSize uint64, outMessage *[]*Message, save
 	chQuit := make(chan bool, 1)
 
 	//Creates the internal dispatch structure
-	d := &dispatch{cry: cry, batchSize: batchSize, saved: saved, outMem: outMessage, perm: perm,
+	d := &dispatch{cryptop: cryptop, batchSize: batchSize, saved: saved, outMem: outMessage, perm: perm,
 		inChannel: chIn, outChannel: chOut, quit: chQuit, slotCntr: 0}
 
 	//runs the dispatcher
