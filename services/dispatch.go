@@ -39,9 +39,9 @@ type dispatch struct {
 	saved      *[][]*cyclic.Int
 	outMessage *[]*Message
 
-	inChannel  <-chan *Message
-	outChannel chan<- *Message
-	quit       <-chan bool
+	inChannel  chan *Message
+	outChannel chan *Message
+	quit       chan bool
 
 	batchCntr uint64
 }
@@ -51,7 +51,9 @@ func (d *dispatch) dispatcher() {
 
 	var out *Message
 
-	for d.batchCntr < d.batchSize {
+	q := false
+
+	for (d.batchCntr < d.batchSize) && !q {
 
 		//either process the next piece of data or quit
 		select {
@@ -67,10 +69,14 @@ func (d *dispatch) dispatcher() {
 
 			d.batchCntr++
 		case <-d.quit:
-			return
+			q = true
 		}
 
 	}
+
+	close(d.inChannel)
+	close(d.outChannel)
+	close(d.quit)
 
 }
 

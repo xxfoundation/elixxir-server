@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"testing"
 )
