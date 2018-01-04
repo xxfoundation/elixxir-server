@@ -5,14 +5,14 @@ import (
 )
 
 // The round struct contains the keys and permutations for a given message batch
-type round struct {
-	R []*cyclic.Int // First unpermuted internode message key
-	S []*cyclic.Int // Permuted internode messag key
-	T []*cyclic.Int // Second unpermuted internode message key
-	V []*cyclic.Int // Unpermuted internode recipient key
-	U []*cyclic.Int // Permuted *cyclic.Internode receipient key
-	Permutations []uint64 // Permutation array, messages at index i become
-	                      // messages at index Permutations[i]
+type Round struct {
+	R            []*cyclic.Int // First unpermuted internode message key
+	S            []*cyclic.Int // Permuted internode messag key
+	T            []*cyclic.Int // Second unpermuted internode message key
+	V            []*cyclic.Int // Unpermuted internode recipient key
+	U            []*cyclic.Int // Permuted *cyclic.Internode receipient key
+	Permutations []uint64      // Permutation array, messages at index i become
+	// messages at index Permutations[i]
 	G *cyclic.Int // Global Cypher Key
 	Z *cyclic.Int // This node's Cypher Key
 	// Private keys for the above
@@ -21,19 +21,20 @@ type round struct {
 	Y_T []*cyclic.Int
 	Y_V []*cyclic.Int
 	Y_U []*cyclic.Int
+
+	BatchSize uint64
 }
 
 // Keys for Homomorphic operations
 var G *cyclic.Int // Global Generator
 
 // The Rounds map is a mapping of session identifiers to round structures
-var Rounds map[string]*round
+var Rounds map[string]*Round
 
-
-var TestArray = [2]float32 {.03, .02}
+var TestArray = [2]float32{.03, .02}
 
 // Max 4192 Bit cyclic Int, used for initialization (524 bytes)
-var Max4192BitInt = []byte {
+var Max4192BitInt = []byte{
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -77,25 +78,26 @@ var Max4192BitInt = []byte {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
-func NewRound(batchSize uint64) *round {
-	NR := round{
-		R: make([]*cyclic.Int, batchSize),
-		S: make([]*cyclic.Int, batchSize),
-		T: make([]*cyclic.Int, batchSize),
-		V: make([]*cyclic.Int, batchSize),
-		U: make([]*cyclic.Int, batchSize),
-		G: cyclic.NewInt(0),
-		Z: cyclic.NewInt(0),
+func NewRound(batchSize uint64) *Round {
+	NR := Round{
+		R:            make([]*cyclic.Int, batchSize),
+		S:            make([]*cyclic.Int, batchSize),
+		T:            make([]*cyclic.Int, batchSize),
+		V:            make([]*cyclic.Int, batchSize),
+		U:            make([]*cyclic.Int, batchSize),
+		G:            cyclic.NewInt(0),
+		Z:            cyclic.NewInt(0),
 		Permutations: make([]uint64, batchSize),
-		Y_R: make([]*cyclic.Int, batchSize),
-		Y_S: make([]*cyclic.Int, batchSize),
-		Y_T: make([]*cyclic.Int, batchSize),
-		Y_V: make([]*cyclic.Int, batchSize),
-		Y_U: make([]*cyclic.Int, batchSize) }
+		Y_R:          make([]*cyclic.Int, batchSize),
+		Y_S:          make([]*cyclic.Int, batchSize),
+		Y_T:          make([]*cyclic.Int, batchSize),
+		Y_V:          make([]*cyclic.Int, batchSize),
+		Y_U:          make([]*cyclic.Int, batchSize),
+		BatchSize:    batchSize}
 
 	NR.G.SetBytes(Max4192BitInt)
 	NR.Z.SetBytes(Max4192BitInt)
