@@ -22,6 +22,7 @@ var rootCmd = &cobra.Command{
 	Short: "Runs a server node for cMix anonymous communication platform",
 	Long: `The server provides a full cMix node for distributed anonymous
 communications.`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		server.Run()
 	},
