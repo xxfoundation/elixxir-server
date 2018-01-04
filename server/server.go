@@ -13,5 +13,6 @@ func Run() {
 // StartServer reads configuration options and starts the cMix server
 func StartServer() {
 	viper.Debug()
+	fmt.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
 	Run()
 }

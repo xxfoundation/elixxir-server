@@ -66,7 +66,7 @@ func initConfig() {
 		}
 
 		// Search config in home directory with name "server" (without extension).
-		viper.AddConfigPath(home + ".privategrity")
+		viper.AddConfigPath(home + "/.privategrity")
 		viper.SetConfigName("server")
 	}
 
