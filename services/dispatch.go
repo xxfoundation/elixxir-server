@@ -25,7 +25,6 @@ type DispatchControler struct {
 // Cryptop is the interface which contains the cryptop
 // In contains the input message, out contains the output message,
 // saved data are params passed by the server,
-// and perm is the permutation used (if any)
 type CryptographicOperation interface {
 	run(in, out *Message, saved *[]*cyclic.Int) *Message
 }
@@ -85,7 +84,6 @@ func (d *dispatch) dispatcher() {
 // batchSize is how many times to do the operation
 // outMessage is an array for the cryptop output.
 // saved is data from the server to be used in the operation
-// perm is the permutation, set to nil if unused
 // chIn and chOut are the input and output channels, set to nil and the
 // dispatcher will generate its own.
 func DispatchCryptop(cryptop CryptographicOperation, batchSize uint64, outMessage *[]*Message, saved *[][]*cyclic.Int, chIn, chOut chan *Message) (*DispatchControler, error) {
