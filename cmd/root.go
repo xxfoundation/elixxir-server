@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		server.Run()
+		server.StartServer()
 	},
 }
 
