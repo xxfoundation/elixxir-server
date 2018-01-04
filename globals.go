@@ -29,7 +29,7 @@ type Round struct {
 var G *cyclic.Int // Global Generator
 
 // The Rounds map is a mapping of session identifiers to round structures
-var Rounds map[string]*round
+var Rounds map[string]*Round
 
 var TestArray = [2]float32{.03, .02}
 
@@ -83,7 +83,7 @@ var Max4192BitInt = []byte{
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
 func NewRound(batchSize uint64) *round {
-	NR := round{
+	NR := Round{
 		R:            make([]*cyclic.Int, batchSize),
 		S:            make([]*cyclic.Int, batchSize),
 		T:            make([]*cyclic.Int, batchSize),
