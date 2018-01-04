@@ -11,6 +11,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gitlab.com/privategrity/server/server"
 )
 
 var cfgFile string
@@ -21,9 +22,9 @@ var rootCmd = &cobra.Command{
 	Short: "Runs a server node for cMix anonymous communication platform",
 	Long: `The server provides a full cMix node for distributed anonymous
 communications.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		server.Run()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags
