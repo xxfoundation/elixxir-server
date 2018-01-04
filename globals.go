@@ -82,7 +82,7 @@ var Max4192BitInt = []byte{
 
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
-func NewRound(batchSize uint64) *round {
+func NewRound(batchSize uint64) *Round {
 	NR := Round{
 		R:            make([]*cyclic.Int, batchSize),
 		S:            make([]*cyclic.Int, batchSize),
