@@ -2,7 +2,7 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"server/server"
+	"gitlab.com/privategrity/server/server"
 	"testing"
 )
 
