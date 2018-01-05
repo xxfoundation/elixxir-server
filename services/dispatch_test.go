@@ -8,14 +8,14 @@ import (
 
 type testCryptop struct{}
 
-func (cry testCryptop) run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message {
+func (cry testCryptop) Run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message {
 
 	out.Data[0] = out.Data[0].Add(in.Data[0], (*saved)[0])
 
 	return out
 }
 
-func (cry testCryptop) build(g *cyclic.Group, face interface{}) *DispatchBuilder {
+func (cry testCryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 
 	round := face.(*server.Round)
 
