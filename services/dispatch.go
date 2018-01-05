@@ -58,11 +58,11 @@ type CryptographicOperation interface {
 	// in is the data coming in to be operated on
 	// out is the result of the operation, it is also returned
 	// saved is the data saved on the node which is used in the operation
-	run(in, out *Message, saved *[]*cyclic.Int) *Message
+	run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message
 
 	// Build is used to generate the data which is used in run.
 	// takes an empty interface
-	build(face interface{}) *DispatchBuilder
+	build(g *cyclic.Group, face interface{}) *DispatchBuilder
 }
 
 // Contains the data required to configure the dispatcher and to exicute "run"
@@ -73,6 +73,8 @@ type DispatchBuilder struct {
 	Saved *[][]*cyclic.Int
 	// buffer of messages which will be used to store the results
 	OutMessage *[]*Message
+	//Group to use to exicute operations
+	group *cyclic.Group
 }
 
 // Private struct containing the control data in the cryptop
@@ -98,11 +100,7 @@ type dispatch struct {
 //Function which actually does the dispatching
 func (d *dispatch) dispatcher() {
 
-	var out *Message
-
 	q := false
-
-	runcounter := 0
 
 	for (d.batchCntr < d.DispatchBuilder.BatchSize) && !q {
 
@@ -111,12 +109,14 @@ func (d *dispatch) dispatcher() {
 		case in := <-d.inChannel:
 			//recieved message
 
-			out = (*d.DispatchBuilder.OutMessage)[in.Slot]
+			out := (*d.DispatchBuilder.OutMessage)[in.Slot]
 
 			save := &(*d.DispatchBuilder.Saved)[in.Slot]
 
+			g := d.DispatchBuilder.group
+
 			//process message using the cryptop
-			out = d.cryptop.run(in, out, save)
+			out = d.cryptop.run(g, in, out, save)
 
 			//send the result
 			d.outChannel <- out
@@ -126,8 +126,6 @@ func (d *dispatch) dispatcher() {
 			//kill the dispatcher
 			q = true
 		}
-
-		runcounter++
 
 	}
 
@@ -143,9 +141,9 @@ func (d *dispatch) dispatcher() {
 // round is a pointer to the round object the dispatcher is in
 // chIn and chOut are the input and output channels, set to nil and the
 //  dispatcher will generate its own.
-func DispatchCryptop(cryptop CryptographicOperation, chIn, chOut chan *Message, face interface{}) *DispatchControler {
+func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Message, face interface{}) *DispatchControler {
 
-	db := cryptop.build(face)
+	db := cryptop.build(g, face)
 
 	//Creates a channel for input if none is provided
 	if chIn == nil {
