@@ -58,11 +58,11 @@ type CryptographicOperation interface {
 	// in is the data coming in to be operated on
 	// out is the result of the operation, it is also returned
 	// saved is the data saved on the node which is used in the operation
-	run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message
+	Run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message
 
 	// Build is used to generate the data which is used in run.
 	// takes an empty interface
-	build(g *cyclic.Group, face interface{}) *DispatchBuilder
+	Build(g *cyclic.Group, face interface{}) *DispatchBuilder
 }
 
 // Contains the data required to configure the dispatcher and to exicute "run"
@@ -116,7 +116,7 @@ func (d *dispatch) dispatcher() {
 			g := d.DispatchBuilder.group
 
 			//process message using the cryptop
-			out = d.cryptop.run(g, in, out, save)
+			out = d.cryptop.Run(g, in, out, save)
 
 			//send the result
 			d.outChannel <- out
@@ -143,7 +143,7 @@ func (d *dispatch) dispatcher() {
 //  dispatcher will generate its own.
 func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Message, face interface{}) *DispatchControler {
 
-	db := cryptop.build(g, face)
+	db := cryptop.Build(g, face)
 
 	//Creates a channel for input if none is provided
 	if chIn == nil {
