@@ -13,7 +13,7 @@ func TestNewRound(t *testing.T) {
 	actual = NewRound(size)
 
 	zero := cyclic.NewInt(0)
-	zero.SetBytes(Max4192BitInt)
+	zero.SetBytes(cyclic.Max4kBitInt)
 
 	if zero.Cmp(actual.G) != 0 {
 		t.Errorf("Round G is not set to Max4192BitInt")

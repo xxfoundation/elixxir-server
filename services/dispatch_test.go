@@ -2,6 +2,7 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"server/server"
 	"testing"
 )
 
@@ -14,39 +15,54 @@ func (cry testCryptop) run(in, out *Message, saved *[]*cyclic.Int) *Message {
 	return out
 }
 
+func (cry testCryptop) build(face interface{}) *DispatchBuilder {
+
+	round := face.(*server.Round)
+
+	om := make([]*Message, round.BatchSize)
+
+	i := uint64(0)
+	for i < round.BatchSize {
+		om[i] = NewMessage(i, 1, nil)
+		i++
+	}
+
+	var sav [][]*cyclic.Int
+
+	i = uint64(0)
+	for i < round.BatchSize {
+		sav = append(sav, []*cyclic.Int{round.R[i]})
+		i++
+	}
+
+	db := DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om}
+
+	return &db
+}
+
 func TestDispatchCryptop(t *testing.T) {
 
 	test := 4
 	pass := 0
 
-	var im []*Message
-
 	bs := uint64(4)
+
+	round := server.NewRound(bs)
+
+	var im []*Message
 
 	i := uint64(0)
 	for i < bs {
 		im = append(im, &Message{uint64(i), []*cyclic.Int{cyclic.NewInt(int64(i + 1))}})
+		round.R[i] = cyclic.NewInt(int64(2 * (i + 1)))
 		i++
-	}
-
-	var om []*Message
-
-	i = 0
-	for i < bs {
-		om = append(om, &Message{uint64(i), []*cyclic.Int{cyclic.NewInt(int64(0))}})
-		i++
-	}
-
-	saved := &[][]*cyclic.Int{
-		[]*cyclic.Int{cyclic.NewInt(2)}, []*cyclic.Int{cyclic.NewInt(4)},
-		[]*cyclic.Int{cyclic.NewInt(6)}, []*cyclic.Int{cyclic.NewInt(8)},
 	}
 
 	result := []*cyclic.Int{
 		cyclic.NewInt(3), cyclic.NewInt(6), cyclic.NewInt(9), cyclic.NewInt(12),
 	}
 
-	dc, _ := DispatchCryptop(testCryptop{}, bs, &om, saved, nil, nil)
+	dc := DispatchCryptop(testCryptop{}, nil, nil, round)
 
 	i = 0
 	for i < bs {
