@@ -8,14 +8,14 @@ import (
 
 type testCryptop struct{}
 
-func (cry testCryptop) run(in, out *Message, saved *[]*cyclic.Int) *Message {
+func (cry testCryptop) run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message {
 
 	out.Data[0] = out.Data[0].Add(in.Data[0], (*saved)[0])
 
 	return out
 }
 
-func (cry testCryptop) build(face interface{}) *DispatchBuilder {
+func (cry testCryptop) build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 
 	round := face.(*server.Round)
 
@@ -35,7 +35,7 @@ func (cry testCryptop) build(face interface{}) *DispatchBuilder {
 		i++
 	}
 
-	db := DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om}
+	db := DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, group: g}
 
 	return &db
 }
@@ -62,7 +62,11 @@ func TestDispatchCryptop(t *testing.T) {
 		cyclic.NewInt(3), cyclic.NewInt(6), cyclic.NewInt(9), cyclic.NewInt(12),
 	}
 
-	dc := DispatchCryptop(testCryptop{}, nil, nil, round)
+	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+
+	g := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), gen)
+
+	dc := DispatchCryptop(&g, testCryptop{}, nil, nil, round)
 
 	i = 0
 	for i < bs {
