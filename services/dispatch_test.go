@@ -35,7 +35,7 @@ func (cry testCryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder
 		i++
 	}
 
-	db := DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, group: g}
+	db := DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
 
 	return &db
 }
