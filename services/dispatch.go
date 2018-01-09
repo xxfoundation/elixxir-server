@@ -74,7 +74,7 @@ type DispatchBuilder struct {
 	// buffer of messages which will be used to store the results
 	OutMessage *[]*Message
 	//Group to use to exicute operations
-	group *cyclic.Group
+	G *cyclic.Group
 }
 
 // Private struct containing the control data in the cryptop
@@ -113,7 +113,7 @@ func (d *dispatch) dispatcher() {
 
 			save := &(*d.DispatchBuilder.Saved)[in.Slot]
 
-			g := d.DispatchBuilder.group
+			g := d.DispatchBuilder.G
 
 			//process message using the cryptop
 			out = d.cryptop.Run(g, in, out, save)
