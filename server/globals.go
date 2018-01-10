@@ -28,6 +28,9 @@ type Round struct {
 // Keys for Homomorphic operations
 var G *cyclic.Int // Global Generator
 
+//Group that all operations are done within
+var Grp *cyclic.Group
+
 // The Rounds map is a mapping of session identifiers to round structures
 var Rounds map[string]*Round
 
