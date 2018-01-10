@@ -6,6 +6,8 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
+// Implements the Generation phase, which generates random keys for R, S, T, U,
+// V, Y_R, Y_S, Y_T, Y_U, Y_V, and Z
 type PrecompGeneration struct{}
 
 func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
@@ -13,15 +15,16 @@ func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.
 	//get round from the empty interface
 	round := face.(*server.Round)
 
+	/*CRYPTOGRAPHIC OPERATION BEGIN*/
+	precompGenBuildCrypt(g, round)
+	/*CRYPTOGRAPHIC OPERATION END*/
+
+	//Allocate Memory for output
 	om := make([]*services.Message, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = services.NewMessage(i, 1, nil)
-		//make each permutation slot hold its index
-		round.Permutations[i] = i
+		om[i] = services.NewMessage(round.Permutations[i], 1, nil)
 	}
-
-	cyclic.Shuffle(&round.Permutations)
 
 	var sav [][]*cyclic.Int
 
@@ -49,4 +52,13 @@ func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, sav
 
 	return out
 
+}
+
+//Implements crytoraphic component of build
+func precompGenBuildCrypt(g *cyclic.Group, round *server.Round) {
+	//Make the Permutation
+	cyclic.Shuffle(&round.Permutations)
+
+	//Generate the Global Cypher Key
+	g.Gen(round.Z)
 }

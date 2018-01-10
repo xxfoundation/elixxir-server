@@ -79,6 +79,8 @@ func NewRound(batchSize uint64) *Round {
 		NR.Y_T[i].SetBytes(cyclic.Max4kBitInt)
 		NR.Y_V[i].SetBytes(cyclic.Max4kBitInt)
 		NR.Y_U[i].SetBytes(cyclic.Max4kBitInt)
+
+		NR.Permutations[i] = i
 	}
 
 	return &NR

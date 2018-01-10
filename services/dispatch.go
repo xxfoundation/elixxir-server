@@ -36,12 +36,12 @@ func Width(m *Message) uint64 {
 	return uint64(len((*m).Data))
 }
 
-// DispatchControler is the struct which is used to externally control
+// DispatchController is the struct which is used to externally control
 //  the dispatcher
-// To send data do DispatchControler.InChannel <- Data
-// To receive do Data <- DispatchControler.OutChannel
-// To force kill the dispatcher do DispatchControler.QuitChannel <- true
-type DispatchControler struct {
+// To send data do DispatchController.InChannel <- Data
+// To receive do Data <- DispatchController.OutChannel
+// To force kill the dispatcher do DispatchController.QuitChannel <- true
+type DispatchController struct {
 	noCopy noCopy
 
 	// Channel which is used to send messages to process
@@ -141,7 +141,7 @@ func (d *dispatch) dispatcher() {
 // round is a pointer to the round object the dispatcher is in
 // chIn and chOut are the input and output channels, set to nil and the
 //  dispatcher will generate its own.
-func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Message, face interface{}) *DispatchControler {
+func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Message, face interface{}) *DispatchController {
 
 	db := cryptop.Build(g, face)
 
@@ -168,7 +168,7 @@ func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOu
 	go d.dispatcher()
 
 	//creates the  dispatch control structure
-	dc := &DispatchControler{InChannel: chIn, OutChannel: chOut, QuitChannel: chQuit}
+	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, QuitChannel: chQuit}
 
 	return dc
 

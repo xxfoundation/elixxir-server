@@ -9,7 +9,7 @@ import (
 
 func TestPrecompGeneration(t *testing.T) {
 
-	test := 4
+	test := 100
 	pass := 0
 
 	bs := uint64(100)
