@@ -9,7 +9,7 @@ import (
 
 func TestPrecompGeneration(t *testing.T) {
 
-	test := 100
+	test := 101
 	pass := 0
 
 	bs := uint64(100)
@@ -36,14 +36,22 @@ func TestPrecompGeneration(t *testing.T) {
 		dc.InChannel <- im[i]
 		rtn := <-dc.OutChannel
 
-		rtn.Slot = uint64(0)
-
 		if !validRound(round, defaultInt, i) {
-			t.Errorf("Test of PrecompGeneration failed at index: %v ", i)
+			t.Errorf("Test of PrecompGeneration's random generation failed at index: %v ", i)
+		} else if round.Permutations[i] == i {
+			t.Errorf("Test of PrecompGeneration's shuffle failed at index: %v ", i)
+		} else if rtn.Slot != i {
+			t.Errorf("Test of PrecompGeneration's output index failed at index: %v", i)
 		} else {
 			pass++
 		}
 
+	}
+
+	if round.Z.Cmp(defaultInt) == 0 {
+		t.Errorf("Test of PrecompGeneration's random generation of the Global Cypher Key failed")
+	} else {
+		pass++
 	}
 
 	println("PrecompGeneration", pass, "out of", test, "tests passed.")
