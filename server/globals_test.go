@@ -42,8 +42,8 @@ func TestNewRound(t *testing.T) {
 		if zero.Cmp(actual.U[i]) != 0 {
 			t.Errorf("Round U[%d] is not set to Max4192BitInt", i)
 		}
-		if actual.Permutations[i] != 0 {
-			t.Errorf("Round Permutations[%d] is not set to Max4192BitInt", i)
+		if actual.Permutations[i] != i {
+			t.Errorf("Round Permutations[%d] is not set to its own permutation", i)
 		}
 		if zero.Cmp(actual.Y_R[i]) != 0 {
 			t.Errorf("Round Y_R[%d] is not set to Max4192BitInt", i)
