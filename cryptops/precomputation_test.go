@@ -9,7 +9,7 @@ import (
 
 func TestPrecompGeneration(t *testing.T) {
 
-	test := 101
+	test := 102
 	pass := 0
 
 	bs := uint64(100)
@@ -31,6 +31,8 @@ func TestPrecompGeneration(t *testing.T) {
 
 	dc := services.DispatchCryptop(&g, PrecompGeneration{}, nil, nil, round)
 
+	roundcnt := 0
+
 	for i := uint64(0); i < bs; i++ {
 
 		dc.InChannel <- im[i]
@@ -38,18 +40,26 @@ func TestPrecompGeneration(t *testing.T) {
 
 		if !validRound(round, defaultInt, i) {
 			t.Errorf("Test of PrecompGeneration's random generation failed at index: %v ", i)
-		} else if round.Permutations[i] == i {
-			t.Errorf("Test of PrecompGeneration's shuffle failed at index: %v ", i)
 		} else if rtn.Slot != i {
 			t.Errorf("Test of PrecompGeneration's output index failed at index: %v", i)
 		} else {
 			pass++
 		}
 
+		if round.Permutations[i] == i {
+			roundcnt++
+		}
+
 	}
 
 	if round.Z.Cmp(defaultInt) == 0 {
 		t.Errorf("Test of PrecompGeneration's random generation of the Global Cypher Key failed")
+	} else {
+		pass++
+	}
+
+	if roundcnt > 20 {
+		t.Errorf("Test of PrecompGeneration's shuffle failed")
 	} else {
 		pass++
 	}
