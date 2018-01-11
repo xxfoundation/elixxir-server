@@ -11,6 +11,11 @@ type Round struct {
 	T            []*cyclic.Int // Second unpermuted internode message key
 	V            []*cyclic.Int // Unpermuted internode recipient key
 	U            []*cyclic.Int // Permuted *cyclic.Internode receipient key
+	R_INV        []*cyclic.Int // First Inverse unpermuted internode message key
+	S_INV        []*cyclic.Int // Permuted Inverse internode message key
+	T_INV        []*cyclic.Int // Second Inverse unpermuted internode message key
+	V_INV        []*cyclic.Int // Unpermuted Inverse internode recipient key
+	U_INV        []*cyclic.Int // Permuted Inverse *cyclic.Internode receipient key
 	Permutations []uint64      // Permutation array, messages at index i become
 	// messages at index Permutations[i]
 	G *cyclic.Int // Global Cypher Key
@@ -40,20 +45,30 @@ var TestArray = [2]float32{.03, .02}
 // numbers being initialized to 0.
 func NewRound(batchSize uint64) *Round {
 	NR := Round{
-		R:            make([]*cyclic.Int, batchSize),
-		S:            make([]*cyclic.Int, batchSize),
-		T:            make([]*cyclic.Int, batchSize),
-		V:            make([]*cyclic.Int, batchSize),
-		U:            make([]*cyclic.Int, batchSize),
-		G:            cyclic.NewInt(0),
-		Z:            cyclic.NewInt(0),
+		R: make([]*cyclic.Int, batchSize),
+		S: make([]*cyclic.Int, batchSize),
+		T: make([]*cyclic.Int, batchSize),
+		V: make([]*cyclic.Int, batchSize),
+		U: make([]*cyclic.Int, batchSize),
+
+		R_INV: make([]*cyclic.Int, batchSize),
+		S_INV: make([]*cyclic.Int, batchSize),
+		T_INV: make([]*cyclic.Int, batchSize),
+		V_INV: make([]*cyclic.Int, batchSize),
+		U_INV: make([]*cyclic.Int, batchSize),
+
+		G: cyclic.NewInt(0),
+		Z: cyclic.NewInt(0),
+
 		Permutations: make([]uint64, batchSize),
-		Y_R:          make([]*cyclic.Int, batchSize),
-		Y_S:          make([]*cyclic.Int, batchSize),
-		Y_T:          make([]*cyclic.Int, batchSize),
-		Y_V:          make([]*cyclic.Int, batchSize),
-		Y_U:          make([]*cyclic.Int, batchSize),
-		BatchSize:    batchSize}
+
+		Y_R: make([]*cyclic.Int, batchSize),
+		Y_S: make([]*cyclic.Int, batchSize),
+		Y_T: make([]*cyclic.Int, batchSize),
+		Y_V: make([]*cyclic.Int, batchSize),
+		Y_U: make([]*cyclic.Int, batchSize),
+
+		BatchSize: batchSize}
 
 	NR.G.SetBytes(cyclic.Max4kBitInt)
 	NR.Z.SetBytes(cyclic.Max4kBitInt)
@@ -64,6 +79,12 @@ func NewRound(batchSize uint64) *Round {
 		NR.T[i] = cyclic.NewInt(0)
 		NR.V[i] = cyclic.NewInt(0)
 		NR.U[i] = cyclic.NewInt(0)
+
+		NR.R_INV[i] = cyclic.NewInt(0)
+		NR.S_INV[i] = cyclic.NewInt(0)
+		NR.T_INV[i] = cyclic.NewInt(0)
+		NR.V_INV[i] = cyclic.NewInt(0)
+		NR.U_INV[i] = cyclic.NewInt(0)
 
 		NR.Y_R[i] = cyclic.NewInt(0)
 		NR.Y_S[i] = cyclic.NewInt(0)

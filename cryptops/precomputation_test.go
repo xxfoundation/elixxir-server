@@ -79,6 +79,16 @@ func validRound(round *server.Round, cmped *cyclic.Int, i uint64) bool {
 		return false
 	} else if round.V[i].Cmp(cmped) == 0 {
 		return false
+	} else if round.R_INV[i].Cmp(cmped) == 0 {
+		return false
+	} else if round.S_INV[i].Cmp(cmped) == 0 {
+		return false
+	} else if round.T_INV[i].Cmp(cmped) == 0 {
+		return false
+	} else if round.U_INV[i].Cmp(cmped) == 0 {
+		return false
+	} else if round.V_INV[i].Cmp(cmped) == 0 {
+		return false
 	} else if round.Y_R[i].Cmp(cmped) == 0 {
 		return false
 	} else if round.Y_S[i].Cmp(cmped) == 0 {
