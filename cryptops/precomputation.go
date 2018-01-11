@@ -120,28 +120,33 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 
 func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
 
-	//NOTE: In/Out index 2 used for temporary computation
-
 	// Obtain T^-1, Y_T, and g
 	T_INV, Y_T, serverG, roundG := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
 
+	// Obtain input values
+	msgInput, cypherInput := in.Data[0], in.Data[1]
+
+	// Set output vars
+	// NOTE: In/Out index 2 used for temporary computation
+	msgOutput, cypherOutput, tmp := out.Data[0], out.Data[1], out.Data[2]
+
 	// Calculate g^(Y_T) into temp index of out.Data
-	g.Exp(serverG, Y_T, out.Data[2])
+	g.Exp(serverG, Y_T, tmp)
 
 	// Calculate T^-1 * g^(Y_T) into temp index of out.Data
-	g.Mul(T_INV, out.Data[2], out.Data[2])
+	g.Mul(T_INV, tmp, tmp)
 
-	// Multiply message output of permute phase or previous encrypt phase in index 0 of in.Data
-	// with encrypted second unpermuted message keys into index 0 of out.Data
-	g.Mul(in.Data[0], out.Data[2], out.Data[0])
+	// Multiply message output of permute phase or previous encrypt phase
+	// in msgInput with encrypted second unpermuted message keys into msgOutput
+	g.Mul(msgInput, tmp, msgOutput)
 
 	// Calculate g^((piZ) * Y_T) into temp index of out.Data
 	// roundG = g^(piZ), so raise roundG to Y_T
-	g.Exp(roundG, Y_T, out.Data[2])
+	g.Exp(roundG, Y_T, tmp)
 
-	// Multiply cypher text output of permute phase or previous encrypt phase in index 1 of in.Data
-	// with encrypted second unpermuted message key private key into index 1 of out.Data
-	g.Mul(in.Data[1], out.Data[2], out.Data[1])
+	// Multiply cypher text output of permute phase or previous encrypt phase
+	// in cypherInput with encrypted second unpermuted message key private key into cypherOutput
+	g.Mul(cypherInput, tmp, cypherOutput)
 
 	return out
 
