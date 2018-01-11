@@ -44,17 +44,6 @@ func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.
 
 }
 
-func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
-	//generate random values for all keys
-
-	for i := uint64(0); i < uint64(len(*saved)); i++ {
-		g.Gen((*saved)[i])
-	}
-
-	return out
-
-}
-
 //Implements cryptographic component of build
 func precompGenBuildCrypt(g *cyclic.Group, round *server.Round) {
 	//Make the Permutation
@@ -95,5 +84,57 @@ func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, sav
 	g.Gen(Y_V)
 
 	return out
+}
 
+// Decrypt phase: transform first unpermuted internode keys and partial cipher tests into the data that the permute phase needs
+type PrecompDecrypt struct{}
+
+// in.Data[0]: first unpermuted internode message key from previous node
+// in.Data[1]: first unpermuted internode recipient ID key from previous node
+// in.Data[2]: partial cipher test for first unpermuted internode message key from previous node
+// in.Data[3]: partial cipher test for first unpermuted internode recipient ID key from previous node
+// each out datum corresponds to the in datum, with the required data from this node combined as specified
+func (self PrecompDecrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
+	R_INV := (*saved)[0]
+	Y_R := (*saved)[1]
+	U_INV := (*saved)[2]
+	Y_U := (*saved)[3]
+	globalCypherKey := (*saved)[4]
+	globalHomomorphicGenerator := (*saved)[5]
+
+	// first operation
+	g.Mul(in.Data[0], R_INV, out.Data[0])
+	exponentiatedKey := cyclic.NewInt(0)
+	g.Exp(globalHomomorphicGenerator, Y_R, exponentiatedKey)
+	g.Mul(out.Data[0], exponentiatedKey, out.Data[0])
+
+	//second operation
+	g.Mul(in.Data[1], U_INV, out.Data[1])
+	g.Exp((*saved)[5], Y_U, exponentiatedKey)
+	g.Mul(out.Data[1], exponentiatedKey, out.Data[1])
+
+	//third operation
+	g.Exp(globalCypherKey, Y_R, exponentiatedKey)
+	g.Mul(in.Data[2], exponentiatedKey, out.Data[2])
+
+	// fourth operation
+	g.Exp(globalCypherKey, Y_U, exponentiatedKey)
+	g.Mul(in.Data[3], exponentiatedKey, out.Data[3])
+
+	return out
+}
+
+func (self PrecompDecrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+	round := face.(*server.Round)
+	batchSize := round.BatchSize
+	outMessage := make([]*services.Message, batchSize)
+	keysForMessages := make([][]*cyclic.Int, batchSize)
+
+	for i := uint64(0); i < batchSize; i++ {
+		outMessage[i] = services.NewMessage(i, 1, nil)
+		keysForThisMessage := []*cyclic.Int{round.R_INV[i], round.Y_R[i], round.U_INV[i], round.Y_U[i], round.G, server.G}
+		keysForMessages = append(keysForMessages, keysForThisMessage)
+	}
+
+	return &services.DispatchBuilder{BatchSize: batchSize, Saved: &keysForMessages, OutMessage: &outMessage, G: g}
 }
