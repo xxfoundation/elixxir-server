@@ -86,3 +86,63 @@ func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, sav
 	return out
 
 }
+
+// Implements the Encrypt phase
+type PrecompEncrypt struct{}
+
+func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+
+	//get round from the empty interface
+	round := face.(*server.Round)
+
+	//Allocate Memory for output
+	om := make([]*services.Message, round.BatchSize)
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		om[i] = services.NewMessage(i, 1, nil)
+	}
+
+	var sav [][]*cyclic.Int
+
+	//Link the keys for randomization
+	for i := uint64(0); i < round.BatchSize; i++ {
+		roundSlc := []*cyclic.Int{
+			round.T_INV[i], round.Y_T[i], server.G, round.G,
+		}
+		sav = append(sav, roundSlc)
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
+
+	return &db
+
+}
+
+func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
+
+	//NOTE: In/Out index 2 used for temporary computation
+
+	// Obtain T^-1, Y_T, and g
+	T_INV, Y_T, serverG, roundG := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
+
+	// Calculate g^(Y_T) into temp index of out.Data
+	g.Exp(serverG, Y_T, out.Data[2])
+
+	// Calculate T^-1 * g^(Y_T) into temp index of out.Data
+	g.Mul(T_INV, out.Data[2], out.Data[2])
+
+	// Multiply message output of permute phase or previous encrypt phase in index 0 of in.Data
+	// with encrypted second unpermuted message keys into index 0 of out.Data
+	g.Mul(in.Data[0], out.Data[2], out.Data[0])
+
+	// Calculate g^((piZ) * Y_T) into temp index of out.Data
+	// roundG = g^(piZ), so raise roundG to Y_T
+	g.Exp(roundG, Y_T, out.Data[2])
+
+	// Multiply cypher text output of permute phase or previous encrypt phase in index 1 of in.Data
+	// with encrypted second unpermuted message key private key into index 1 of out.Data
+	g.Mul(in.Data[1], out.Data[2], out.Data[1])
+
+	return out
+
+}
