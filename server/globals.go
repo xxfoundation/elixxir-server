@@ -97,6 +97,12 @@ func NewRound(batchSize uint64) *Round {
 		NR.T[i].SetBytes(cyclic.Max4kBitInt)
 		NR.V[i].SetBytes(cyclic.Max4kBitInt)
 		NR.U[i].SetBytes(cyclic.Max4kBitInt)
+		
+		NR.R_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.S_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.T_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.V_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.U_INV[i].SetBytes(cyclic.Max4kBitInt)
 
 		NR.Y_R[i].SetBytes(cyclic.Max4kBitInt)
 		NR.Y_S[i].SetBytes(cyclic.Max4kBitInt)
