@@ -7,7 +7,7 @@ import (
 // The round struct contains the keys and permutations for a given message batch
 type Round struct {
 	R            []*cyclic.Int // First unpermuted internode message key
-	S            []*cyclic.Int // Permuted internode messag key
+	S            []*cyclic.Int // Permuted internode message key
 	T            []*cyclic.Int // Second unpermuted internode message key
 	V            []*cyclic.Int // Unpermuted internode recipient key
 	U            []*cyclic.Int // Permuted *cyclic.Internode receipient key

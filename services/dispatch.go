@@ -12,7 +12,7 @@ type Message struct {
 	Data []*cyclic.Int
 }
 
-// Creates a new mesage with a datasize of the given width filled with
+// Creates a new message with a datasize of the given width filled with
 // globals.Max4192BitInt
 func NewMessage(slot, width uint64, val *cyclic.Int) *Message {
 	ml := make([]*cyclic.Int, width)
@@ -46,7 +46,7 @@ type DispatchController struct {
 
 	// Channel which is used to send messages to process
 	InChannel chan<- *Message
-	// Channel which is used to recieve the results of processing
+	// Channel which is used to receive the results of processing
 	OutChannel <-chan *Message
 	// Channel which is used to send a kill command
 	QuitChannel chan<- bool
@@ -54,7 +54,7 @@ type DispatchController struct {
 
 // Cryptop is the interface which contains the cryptop
 type CryptographicOperation interface {
-	// Run is the function which exicutes the cryptogrphic operation
+	// Run is the function which executes the cryptogrphic operation
 	// in is the data coming in to be operated on
 	// out is the result of the operation, it is also returned
 	// saved is the data saved on the node which is used in the operation
@@ -65,7 +65,7 @@ type CryptographicOperation interface {
 	Build(g *cyclic.Group, face interface{}) *DispatchBuilder
 }
 
-// Contains the data required to configure the dispatcher and to exicute "run"
+// Contains the data required to configure the dispatcher and to execute "run"
 type DispatchBuilder struct {
 	// Size of the batch the cryptop is to be run on
 	BatchSize uint64
@@ -73,7 +73,7 @@ type DispatchBuilder struct {
 	Saved *[][]*cyclic.Int
 	// buffer of messages which will be used to store the results
 	OutMessage *[]*Message
-	//Group to use to exicute operations
+	//Group to use to execute operations
 	G *cyclic.Group
 }
 
@@ -86,11 +86,11 @@ type dispatch struct {
 	// Embeded struct containing the data used to run the cryptop
 	DispatchBuilder
 
-	// Channel used to recieve data to be processed
+	// Channel used to receive data to be processed
 	inChannel chan *Message
 	// Channel used to send data to be processed
 	outChannel chan *Message
-	// Channel used to recieve kill commands
+	// Channel used to receive kill commands
 	quit chan bool
 
 	//Counter of how many messages have been processed
@@ -107,7 +107,7 @@ func (d *dispatch) dispatcher() {
 		//either process the next piece of data or quit
 		select {
 		case in := <-d.inChannel:
-			//recieved message
+			//received message
 
 			out := (*d.DispatchBuilder.OutMessage)[in.Slot]
 
