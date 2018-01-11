@@ -7,7 +7,7 @@ import (
 // The round struct contains the keys and permutations for a given message batch
 type Round struct {
 	R            []*cyclic.Int // First unpermuted internode message key
-	S            []*cyclic.Int // Permuted internode messag key
+	S            []*cyclic.Int // Permuted internode message key
 	T            []*cyclic.Int // Second unpermuted internode message key
 	V            []*cyclic.Int // Unpermuted internode recipient key
 	U            []*cyclic.Int // Permuted *cyclic.Internode receipient key
@@ -27,6 +27,9 @@ type Round struct {
 
 // Keys for Homomorphic operations
 var G *cyclic.Int // Global Generator
+
+//Group that all operations are done within
+var Grp *cyclic.Group
 
 // The Rounds map is a mapping of session identifiers to round structures
 var Rounds map[string]*Round
@@ -79,6 +82,8 @@ func NewRound(batchSize uint64) *Round {
 		NR.Y_T[i].SetBytes(cyclic.Max4kBitInt)
 		NR.Y_V[i].SetBytes(cyclic.Max4kBitInt)
 		NR.Y_U[i].SetBytes(cyclic.Max4kBitInt)
+
+		NR.Permutations[i] = i
 	}
 
 	return &NR
