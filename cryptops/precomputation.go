@@ -104,7 +104,7 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 
 	var sav [][]*cyclic.Int
 
-	//Link the keys for randomization
+	//Link the keys for encryption
 	for i := uint64(0); i < round.BatchSize; i++ {
 		roundSlc := []*cyclic.Int{
 			round.T_INV[i], round.Y_T[i], server.G, round.G,
@@ -121,7 +121,7 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
 
 	// Obtain T^-1, Y_T, and g
-	T_INV, Y_T, serverG, roundG := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
+	T_INV, Y_T, serverG, globalCypherKey := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
 
 	// Obtain input values
 	msgInput, cypherInput := in.Data[0], in.Data[1]
@@ -129,6 +129,18 @@ func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved 
 	// Set output vars
 	// NOTE: In/Out index 2 used for temporary computation
 	msgOutput, cypherOutput, tmp := out.Data[0], out.Data[1], out.Data[2]
+
+	// Separate operations into helper function for testing
+	encryptRunHelper(g, T_INV, Y_T, serverG, globalCypherKey, msgInput, cypherInput, msgOutput, cypherOutput, tmp)
+
+	return out
+
+}
+
+func encryptRunHelper(g *cyclic.Group, T_INV, Y_T, serverG,
+	globalCypherKey, msgInput, cypherInput,
+	msgOutput, cypherOutput, tmp *cyclic.Int) {
+	// Helper function for PrecompEncrypt Run
 
 	// Calculate g^(Y_T) into temp index of out.Data
 	g.Exp(serverG, Y_T, tmp)
@@ -142,12 +154,9 @@ func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved 
 
 	// Calculate g^((piZ) * Y_T) into temp index of out.Data
 	// roundG = g^(piZ), so raise roundG to Y_T
-	g.Exp(roundG, Y_T, tmp)
+	g.Exp(globalCypherKey, Y_T, tmp)
 
 	// Multiply cypher text output of permute phase or previous encrypt phase
 	// in cypherInput with encrypted second unpermuted message key private key into cypherOutput
 	g.Mul(cypherInput, tmp, cypherOutput)
-
-	return out
-
 }
