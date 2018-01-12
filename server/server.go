@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
 
@@ -11,8 +12,12 @@ func Run() {
 }
 
 // StartServer reads configuration options and starts the cMix server
+// Create directory ".privategrity"
 func StartServer() {
 	viper.Debug()
-	fmt.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
+	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
+	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
+	jww.ERROR.Println("Logger works!")
+	jww.INFO.Println("Verbose works!")
 	Run()
 }
