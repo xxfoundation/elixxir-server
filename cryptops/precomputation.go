@@ -94,7 +94,7 @@ type PrecompDecrypt struct{}
 // in.Data[2]: partial cipher test for first unpermuted internode message key from previous node
 // in.Data[3]: partial cipher test for first unpermuted internode recipient ID key from previous node
 // Each out datum corresponds to the in datum, with the required data from this node combined as specified
-// Therefore, out must be of length 4
+// Therefore, out must be of width 4
 func (self PrecompDecrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
 	R_INV := (*saved)[0]
 	Y_R := (*saved)[1]
