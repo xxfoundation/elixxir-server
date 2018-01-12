@@ -86,16 +86,21 @@ func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, sav
 	return out
 }
 
-// Decrypt phase: transform first unpermuted internode keys and partial cipher tests into the data that the permute phase needs
+// Decrypt phase: transform first unpermuted internode keys and partial cipher
+// tests into the data that the permute phase needs
 type PrecompDecrypt struct{}
 
 // in.Data[0]: first unpermuted internode message key from previous node
 // in.Data[1]: first unpermuted internode recipient ID key from previous node
-// in.Data[2]: partial cipher test for first unpermuted internode message key from previous node
-// in.Data[3]: partial cipher test for first unpermuted internode recipient ID key from previous node
-// Each out datum corresponds to the in datum, with the required data from this node combined as specified
-// Therefore, out must be of width 4
-func (self PrecompDecrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
+// in.Data[2]: partial cipher test for first unpermuted internode message key
+//             from previous node
+// in.Data[3]: partial cipher test for first unpermuted internode recipient
+//             ID key from previous node
+// Each out datum corresponds to the in datum, with the required data from
+// this node combined as specified Therefore, out must be of width 4
+func (self PrecompDecrypt) Run(g *cyclic.Group, in, out *services.Message,
+	saved *[]*cyclic.Int) *services.Message {
+
 	R_INV := (*saved)[0]
 	Y_R := (*saved)[1]
 	U_INV := (*saved)[2]
@@ -125,7 +130,8 @@ func (self PrecompDecrypt) Run(g *cyclic.Group, in, out *services.Message, saved
 	return out
 }
 
-func (self PrecompDecrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (self PrecompDecrypt) Build(group *cyclic.Group,
+	face interface{}) *services.DispatchBuilder {
 	round := face.(*server.Round)
 	batchSize := round.BatchSize
 	outMessage := make([]*services.Message, batchSize)
@@ -134,9 +140,14 @@ func (self PrecompDecrypt) Build(g *cyclic.Group, face interface{}) *services.Di
 	for i := uint64(0); i < batchSize; i++ {
 		outMessage[i] = services.NewMessage(i, 4, nil)
 
-		keysForThisMessage := []*cyclic.Int{round.R_INV[i], round.Y_R[i], round.U_INV[i], round.Y_U[i], round.G, server.G}
+		keysForThisMessage := []*cyclic.Int{
+			round.R_INV[i], round.Y_R[i], round.U_INV[i],
+			round.Y_U[i], round.G, server.G}
+
 		keysForMessages = append(keysForMessages, keysForThisMessage)
 	}
 
-	return &services.DispatchBuilder{BatchSize: batchSize, Saved: &keysForMessages, OutMessage: &outMessage, G: g}
+	return &services.DispatchBuilder{
+		BatchSize: batchSize, Saved: &keysForMessages,
+		OutMessage: &outMessage, G: g}
 }
