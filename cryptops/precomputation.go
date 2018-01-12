@@ -99,7 +99,7 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 	om := make([]*services.Message, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = services.NewMessage(i, 1, nil)
+		om[i] = services.NewMessage(i, 3, nil)
 	}
 
 	var sav [][]*cyclic.Int
