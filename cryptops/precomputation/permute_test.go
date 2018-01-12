@@ -1,4 +1,4 @@
-package cryptops
+package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
