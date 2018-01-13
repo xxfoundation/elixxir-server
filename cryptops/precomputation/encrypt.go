@@ -1,0 +1,82 @@
+// Implements the Precomputation Encrypt phase
+
+package precomputation
+
+import (
+	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/services"
+)
+
+type PrecompEncrypt struct{}
+
+func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+
+	//get round from the empty interface
+	round := face.(*server.Round)
+
+	//Allocate Memory for output
+	om := make([]*services.Message, round.BatchSize)
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		om[i] = services.NewMessage(i, 3, nil)
+	}
+
+	var sav [][]*cyclic.Int
+
+	//Link the keys for encryption
+	for i := uint64(0); i < round.BatchSize; i++ {
+		roundSlc := []*cyclic.Int{
+			round.T_INV[i], round.Y_T[i], server.G, round.G,
+		}
+		sav = append(sav, roundSlc)
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
+
+	return &db
+
+}
+
+func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
+
+	// Obtain T^-1, Y_T, and g
+	T_INV, Y_T, serverG, globalCypherKey := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
+
+	// Obtain input values
+	msgInput, cypherInput := in.Data[0], in.Data[1]
+
+	// Set output vars
+	// NOTE: In/Out index 2 used for temporary computation
+	msgOutput, cypherOutput, tmp := out.Data[0], out.Data[1], out.Data[2]
+
+	// Separate operations into helper function for testing
+	encryptRunHelper(g, T_INV, Y_T, serverG, globalCypherKey, msgInput, cypherInput, msgOutput, cypherOutput, tmp)
+
+	return out
+
+}
+
+func encryptRunHelper(g *cyclic.Group, T_INV, Y_T, serverG,
+	globalCypherKey, msgInput, cypherInput,
+	msgOutput, cypherOutput, tmp *cyclic.Int) {
+	// Helper function for PrecompEncrypt Run
+
+	// Calculate g^(Y_T) into temp index of out.Data
+	g.Exp(serverG, Y_T, tmp)
+
+	// Calculate T^-1 * g^(Y_T) into temp index of out.Data
+	g.Mul(T_INV, tmp, tmp)
+
+	// Multiply message output of permute phase or previous encrypt phase
+	// in msgInput with encrypted second unpermuted message keys into msgOutput
+	g.Mul(msgInput, tmp, msgOutput)
+
+	// Calculate g^((piZ) * Y_T) into temp index of out.Data
+	// roundG = g^(piZ), so raise roundG to Y_T
+	g.Exp(globalCypherKey, Y_T, tmp)
+
+	// Multiply cypher text output of permute phase or previous encrypt phase
+	// in cypherInput with encrypted second unpermuted message key private key into cypherOutput
+	g.Mul(cypherInput, tmp, cypherOutput)
+}
