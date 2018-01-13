@@ -28,21 +28,21 @@ func (self PrecompDecrypt) Run(g *cyclic.Group, in, out *services.Message,
 	globalCypherKey := (*saved)[4]
 	globalHomomorphicGenerator := (*saved)[5]
 
-	self.combineFirstUnpermutedInternodeKeys(g, in.Data[0], Y_R, R_INV,
+	combineFirstUnpermutedInternodeKeys(g, in.Data[0], Y_R, R_INV,
 		globalHomomorphicGenerator, out.Data[0])
-	self.combineFirstUnpermutedInternodeKeys(g, in.Data[1], Y_U, U_INV,
+	combineFirstUnpermutedInternodeKeys(g, in.Data[1], Y_U, U_INV,
 		globalHomomorphicGenerator, out.Data[1])
 
-	self.combinePartialCipherTests(g, in.Data[2], Y_R, globalCypherKey,
+	combinePartialCipherTests(g, in.Data[2], Y_R, globalCypherKey,
 		out.Data[2])
-	self.combinePartialCipherTests(g, in.Data[3], Y_U, globalCypherKey,
+	combinePartialCipherTests(g, in.Data[3], Y_U, globalCypherKey,
 		out.Data[3])
 
 	return out
 }
 
 // cryptographic function
-func (self PrecompDecrypt) combineFirstUnpermutedInternodeKeys(
+func combineFirstUnpermutedInternodeKeys(
 	g *cyclic.Group, firstUnpermutedInternodeKey, privateKey,
 	publicKeyInverse, globalHomomorphicGenerator, result *cyclic.Int) {
 
@@ -52,7 +52,7 @@ func (self PrecompDecrypt) combineFirstUnpermutedInternodeKeys(
 }
 
 // cryptographic function
-func (self PrecompDecrypt) combinePartialCipherTests(
+func combinePartialCipherTests(
 	g *cyclic.Group, partialCipherTest, privateKey, globalCypherKey,
 	result *cyclic.Int) {
 
