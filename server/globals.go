@@ -18,8 +18,9 @@ type Round struct {
 	U_INV        []*cyclic.Int // Permuted Inverse *cyclic.Internode receipient key
 	Permutations []uint64      // Permutation array, messages at index i become
 	// messages at index Permutations[i]
-	G *cyclic.Int // Global Cypher Key
-	Z *cyclic.Int // This node's Cypher Key
+	G    *cyclic.Int // Global Cypher Key
+	Z    *cyclic.Int // This node's Cypher Key
+	PI_Z *cyclic.Int // Product of every node's cypher key
 	// Private keys for the above
 	Y_R []*cyclic.Int
 	Y_S []*cyclic.Int
@@ -57,8 +58,9 @@ func NewRound(batchSize uint64) *Round {
 		V_INV: make([]*cyclic.Int, batchSize),
 		U_INV: make([]*cyclic.Int, batchSize),
 
-		G: cyclic.NewInt(0),
-		Z: cyclic.NewInt(0),
+		G:    cyclic.NewInt(0),
+		Z:    cyclic.NewInt(0),
+		PI_Z: cyclic.NewInt(0),
 
 		Permutations: make([]uint64, batchSize),
 
@@ -72,6 +74,7 @@ func NewRound(batchSize uint64) *Round {
 
 	NR.G.SetBytes(cyclic.Max4kBitInt)
 	NR.Z.SetBytes(cyclic.Max4kBitInt)
+	NR.PI_Z.SetBytes(cyclic.Max4kBitInt)
 
 	for i := uint64(0); i < batchSize; i++ {
 		NR.R[i] = cyclic.NewInt(0)
@@ -97,7 +100,7 @@ func NewRound(batchSize uint64) *Round {
 		NR.T[i].SetBytes(cyclic.Max4kBitInt)
 		NR.V[i].SetBytes(cyclic.Max4kBitInt)
 		NR.U[i].SetBytes(cyclic.Max4kBitInt)
-		
+
 		NR.R_INV[i].SetBytes(cyclic.Max4kBitInt)
 		NR.S_INV[i].SetBytes(cyclic.Max4kBitInt)
 		NR.T_INV[i].SetBytes(cyclic.Max4kBitInt)

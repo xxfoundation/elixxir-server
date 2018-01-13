@@ -46,12 +46,13 @@ func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved 
 	// Obtain input values
 	msgInput, cypherInput := in.Data[0], in.Data[1]
 
-	// Set output vars
-	// NOTE: In/Out index 2 used for temporary computation
-	msgOutput, cypherOutput, tmp := out.Data[0], out.Data[1], out.Data[2]
+	// Set output vars for the encrypted message key and message cypher text
+	// NOTE: Out index 2 used for temporary computation
+	encryptedMessageKey, messageCypherText, tmp := out.Data[0], out.Data[1], out.Data[2]
 
 	// Separate operations into helper function for testing
-	encryptRunHelper(g, T_INV, Y_T, serverG, globalCypherKey, msgInput, cypherInput, msgOutput, cypherOutput, tmp)
+	encryptRunHelper(g, T_INV, Y_T, serverG, globalCypherKey, msgInput,
+		cypherInput, encryptedMessageKey, messageCypherText, tmp)
 
 	return out
 
@@ -59,7 +60,7 @@ func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved 
 
 func encryptRunHelper(g *cyclic.Group, T_INV, Y_T, serverG,
 	globalCypherKey, msgInput, cypherInput,
-	msgOutput, cypherOutput, tmp *cyclic.Int) {
+	encryptedMessageKey, messageCypherText, tmp *cyclic.Int) {
 	// Helper function for PrecompEncrypt Run
 
 	// Calculate g^(Y_T) into temp index of out.Data
@@ -70,7 +71,7 @@ func encryptRunHelper(g *cyclic.Group, T_INV, Y_T, serverG,
 
 	// Multiply message output of permute phase or previous encrypt phase
 	// in msgInput with encrypted second unpermuted message keys into msgOutput
-	g.Mul(msgInput, tmp, msgOutput)
+	g.Mul(msgInput, tmp, encryptedMessageKey)
 
 	// Calculate g^((piZ) * Y_T) into temp index of out.Data
 	// roundG = g^(piZ), so raise roundG to Y_T
@@ -78,5 +79,6 @@ func encryptRunHelper(g *cyclic.Group, T_INV, Y_T, serverG,
 
 	// Multiply cypher text output of permute phase or previous encrypt phase
 	// in cypherInput with encrypted second unpermuted message key private key into cypherOutput
-	g.Mul(cypherInput, tmp, cypherOutput)
+	g.Mul(cypherInput, tmp, messageCypherText)
+
 }
