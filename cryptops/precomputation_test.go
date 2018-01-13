@@ -158,8 +158,8 @@ func TestPrecompDecrypt(t *testing.T) {
 				thisTestOK = false
 				t.Error("PrecompDecrypt: actual != expected",
 					"in test case", i, "index", j)
-				t.Error("Actual was", actual.Data[j],
-					"and expected was", expected[i][j])
+				t.Error("Actual was", actual.Data[j].Text(10),
+					"; expected was", expected[i][j].Text(10))
 			}
 		}
 

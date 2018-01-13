@@ -108,26 +108,36 @@ func (self PrecompDecrypt) Run(g *cyclic.Group, in, out *services.Message,
 	globalCypherKey := (*saved)[4]
 	globalHomomorphicGenerator := (*saved)[5]
 
-	// first operation
-	g.Mul(in.Data[0], R_INV, out.Data[0])
-	exponentiatedKey := cyclic.NewInt(0)
-	g.Exp(globalHomomorphicGenerator, Y_R, exponentiatedKey)
-	g.Mul(out.Data[0], exponentiatedKey, out.Data[0])
+	self.combineFirstUnpermutedInternodeKeys(g, in.Data[0], Y_R, R_INV,
+		globalHomomorphicGenerator, out.Data[0])
+	self.combineFirstUnpermutedInternodeKeys(g, in.Data[1], Y_U, U_INV,
+		globalHomomorphicGenerator, out.Data[1])
 
-	//second operation
-	g.Mul(in.Data[1], U_INV, out.Data[1])
-	g.Exp(globalHomomorphicGenerator, Y_U, exponentiatedKey)
-	g.Mul(out.Data[1], exponentiatedKey, out.Data[1])
-
-	//third operation
-	g.Exp(globalCypherKey, Y_R, exponentiatedKey)
-	g.Mul(in.Data[2], exponentiatedKey, out.Data[2])
-
-	// fourth operation
-	g.Exp(globalCypherKey, Y_U, exponentiatedKey)
-	g.Mul(in.Data[3], exponentiatedKey, out.Data[3])
+	self.combinePartialCipherTests(g, in.Data[2], Y_R, globalCypherKey,
+		out.Data[2])
+	self.combinePartialCipherTests(g, in.Data[3], Y_U, globalCypherKey,
+		out.Data[3])
 
 	return out
+}
+
+// cryptographic function
+func (self PrecompDecrypt) combineFirstUnpermutedInternodeKeys(
+	g *cyclic.Group, firstUnpermutedInternodeKey, privateKey,
+	publicKeyInverse, globalHomomorphicGenerator, result *cyclic.Int) {
+
+	g.Exp(globalHomomorphicGenerator, privateKey, result)
+	g.Mul(publicKeyInverse, result, result)
+	g.Mul(firstUnpermutedInternodeKey, result, result)
+}
+
+// cryptographic function
+func (self PrecompDecrypt) combinePartialCipherTests(
+	g *cyclic.Group, partialCipherTest, privateKey, globalCypherKey,
+	result *cyclic.Int) {
+
+	g.Exp(globalCypherKey, privateKey, result)
+	g.Mul(partialCipherTest, result, result)
 }
 
 func (self PrecompDecrypt) Build(group *cyclic.Group,
@@ -149,5 +159,5 @@ func (self PrecompDecrypt) Build(group *cyclic.Group,
 
 	return &services.DispatchBuilder{
 		BatchSize: batchSize, Saved: &keysForMessages,
-		OutMessage: &outMessage, G: g}
+		OutMessage: &outMessage, G: group}
 }
