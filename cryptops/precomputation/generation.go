@@ -44,7 +44,7 @@ func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.
 
 }
 
-//Implements crytoraphic component of build
+//Implements cryptographic component of build
 func precompGenBuildCrypt(g *cyclic.Group, round *server.Round) {
 	//Make the Permutation
 	cyclic.Shuffle(&round.Permutations)
@@ -84,5 +84,4 @@ func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, sav
 	g.Gen(Y_V)
 
 	return out
-
 }
