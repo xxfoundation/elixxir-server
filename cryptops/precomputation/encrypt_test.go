@@ -50,9 +50,9 @@ func TestPrecompEncrypt(t *testing.T) {
 	round.T_INV[2] = cyclic.NewInt(11)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(79), cyclic.NewInt(25), cyclic.NewInt(33)},
-		{cyclic.NewInt(90), cyclic.NewInt(88), cyclic.NewInt(37)},
-		{cyclic.NewInt(32), cyclic.NewInt(35), cyclic.NewInt(70)},
+		{cyclic.NewInt(79), cyclic.NewInt(25)},
+		{cyclic.NewInt(90), cyclic.NewInt(88)},
+		{cyclic.NewInt(32), cyclic.NewInt(35)},
 	}
 
 	dc := services.DispatchCryptop(&g, PrecompEncrypt{}, nil, nil, round)
@@ -65,7 +65,7 @@ func TestPrecompEncrypt(t *testing.T) {
 
 		valid := true
 
-		for j := 0; j < 3; j++ {
+		for j := 0; j < 2; j++ {
 			valid = valid && (expectedVal[j].Cmp(actual.Data[j]) == 0)
 		}
 

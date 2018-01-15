@@ -19,7 +19,7 @@ func (gen PrecompStrip) Build(g *cyclic.Group, face interface{}) *services.Dispa
 	om := make([]*services.Message, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = services.NewMessage(i, 3, nil)
+		om[i] = services.NewMessage(i, 2, nil)
 	}
 
 	sav := make([][]*cyclic.Int, round.BatchSize)
@@ -38,8 +38,8 @@ func (gen PrecompStrip) Run(g *cyclic.Group, in, out *services.Message, saved *[
 	recipientGlobalPrivateKey, encryptedRecipientKey := in.Data[2], in.Data[3]
 
 	// Set output vars for the Message and Recipient Keys
-	// NOTE: Out index 2 used for temporary computation
-	messageKey, recipientKey, tmp := out.Data[0], out.Data[1], out.Data[2]
+	// NOTE: Out index 1 used for temporary computation
+	messageKey, recipientKey, tmp := out.Data[0], out.Data[1], out.Data[1]
 
 	// Separate operations into helper function for testing
 	stripRunHelper(g, messageGlobalPrivateKey, encryptedMessageKey,

@@ -19,7 +19,7 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 	om := make([]*services.Message, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = services.NewMessage(i, 3, nil)
+		om[i] = services.NewMessage(i, 2, nil)
 	}
 
 	var sav [][]*cyclic.Int
@@ -47,8 +47,8 @@ func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved 
 	msgInput, cypherInput := in.Data[0], in.Data[1]
 
 	// Set output vars for the encrypted message key and message cypher text
-	// NOTE: Out index 2 used for temporary computation
-	encryptedMessageKey, messageCypherText, tmp := out.Data[0], out.Data[1], out.Data[2]
+	// NOTE: Out index 1 used for temporary computation
+	encryptedMessageKey, messageCypherText, tmp := out.Data[0], out.Data[1], out.Data[1]
 
 	// Separate operations into helper function for testing
 	encryptRunHelper(g, T_INV, Y_T, serverG, globalCypherKey, msgInput,

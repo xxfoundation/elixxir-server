@@ -39,9 +39,9 @@ func TestPrecompStrip(t *testing.T) {
 	}})
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(34), cyclic.NewInt(56), cyclic.NewInt(69)},
-		{cyclic.NewInt(75), cyclic.NewInt(44), cyclic.NewInt(38)},
-		{cyclic.NewInt(79), cyclic.NewInt(23), cyclic.NewInt(10)},
+		{cyclic.NewInt(34), cyclic.NewInt(56)},
+		{cyclic.NewInt(75), cyclic.NewInt(44)},
+		{cyclic.NewInt(79), cyclic.NewInt(23)},
 	}
 
 	dc := services.DispatchCryptop(&g, PrecompStrip{}, nil, nil, round)
@@ -54,7 +54,7 @@ func TestPrecompStrip(t *testing.T) {
 
 		valid := true
 
-		for j := 0; j < 3; j++ {
+		for j := 0; j < 2; j++ {
 			valid = valid && (expectedVal[j].Cmp(actual.Data[j]) == 0)
 		}
 
