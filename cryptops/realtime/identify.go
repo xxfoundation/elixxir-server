@@ -21,7 +21,7 @@ func (self RealTimeIdentify) Build(group *cyclic.Group,
 	for i, _ := range outMessages {
 		outMessages[i] = services.NewMessage(uint64(i), 4, nil)
 		identifyMessageKeys[i] = []*cyclic.Int{
-			round.Last[i].RecipientPrecomputation}
+			round.LastNode.RecipientPrecomputation[i]}
 	}
 
 	return &services.DispatchBuilder{
