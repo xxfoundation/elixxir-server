@@ -122,7 +122,8 @@ func NewRound(batchSize uint64) *Round {
 
 		NR.Permutations[i] = i
 
-		NR.Last = nil
+		NR.LastNode.MessagePrecomputation = nil
+		NR.LastNode.RecipientPrecomputation = nil
 	}
 
 	return &NR
