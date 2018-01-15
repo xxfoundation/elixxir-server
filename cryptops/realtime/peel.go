@@ -23,7 +23,7 @@ func (self RealTimePeel) Build(group *cyclic.Group,
 		// NOTE: This seems wrong but I'm not sure how we fix it. FIXME when we link
 		//       everything up.
 		peelMessageKeys[i] = []*cyclic.Int{
-			round.Last[i].MessagePrecomputation}
+			round.LastNode.MessagePrecomputation[i]}
 	}
 
 	return &services.DispatchBuilder{
