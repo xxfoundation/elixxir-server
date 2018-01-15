@@ -6,9 +6,9 @@ import (
 
 type LastNodeRound struct {
 	// Message Decryption key, AKA PiRST_Inv
-	MessagePrecomputation []*cyclic.Int
+	MessagePrecomputation *cyclic.Int
 	// Recipient ID Decryption Key, AKA PiUV_Inv
-	RecipientPrecomputation []*cyclic.Int
+	RecipientPrecomputation *cyclic.Int
 }
 
 // The round struct contains the keys and permutations for a given message batch
