@@ -22,7 +22,9 @@ func (gen PrecompStrip) Build(g *cyclic.Group, face interface{}) *services.Dispa
 		om[i] = services.NewMessage(i, 3, nil)
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: nil, OutMessage: &om, G: g}
+	sav := make([][]*cyclic.Int, round.BatchSize)
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
 
 	return &db
 
