@@ -23,7 +23,7 @@ func (self RealTimePeel) Build(group *cyclic.Group,
 		// NOTE: This seems wrong but I'm not sure how we fix it. FIXME when we link
 		//       everything up.
 		peelMessageKeys[i] = []*cyclic.Int{
-			round.R_INV[i], round.S_INV[i], round.T_INV[i]}
+			round.Last[i].MessagePrecomputation}
 	}
 
 	return &services.DispatchBuilder{
@@ -35,11 +35,11 @@ func (self RealTimePeel) Build(group *cyclic.Group,
 
 func (self RealTimePeel) Run(g *cyclic.Group, in, out *services.Message,
 	saved *[]*cyclic.Int) *services.Message {
-	R_Inv, S_Inv, T_Inv := (*saved)[0], (*saved)[1], (*saved)[2]
+	MessagePrecomputation := (*saved)[0]
 	EncryptedMessage := in.Data[0]
 	DecryptedMessage := out.Data[0]
 
-	Peel(g, EncryptedMessage, DecryptedMessage, R_Inv, S_Inv, T_Inv)
+	Peel(g, EncryptedMessage, DecryptedMessage, MessagePrecomputation)
 
 	return out
 }
@@ -49,8 +49,6 @@ func (self RealTimePeel) Run(g *cyclic.Group, in, out *services.Message,
 // remove all R, S, and T encryptions. Note that Peel should only be run
 // on the final node in a cMix cluster.
 func Peel(g *cyclic.Group, EncryptedMessage, DecryptedMessage,
-	R_Inv, S_Inv, T_Inv *cyclic.Int) {
-	g.Mul(EncryptedMessage, R_Inv, DecryptedMessage)
-	g.Mul(DecryptedMessage, S_Inv, DecryptedMessage)
-	g.Mul(DecryptedMessage, T_Inv, DecryptedMessage)
+	MessagePrecomputation *cyclic.Int) {
+	g.Mul(EncryptedMessage, MessagePrecomputation, DecryptedMessage)
 }
