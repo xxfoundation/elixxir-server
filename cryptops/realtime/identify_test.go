@@ -17,7 +17,7 @@ func TestIdentify(t *testing.T) {
 	EncryptedRecipient := cyclic.NewInt(42)
 	DecryptedRecipient := cyclic.NewInt(0)
 
-	ExpectedOutput := cyclic.NewInt(41) // 42*42 mod 43 => 41
+	ExpectedOutput := cyclic.NewInt(1) // 42*42 mod 43 => 1
 
 	Identify(&g, EncryptedRecipient, DecryptedRecipient, RecipientPrecomp)
 
