@@ -4,6 +4,13 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
+type LastNode struct {
+	// Message Decryption key, AKA PiRST_Inv
+	MessagePrecomputation []*cyclic.Int
+	// Recipient ID Decryption Key, AKA PiUV_Inv
+	RecipientPrecomputation []*cyclic.Int
+}
+
 // The round struct contains the keys and permutations for a given message batch
 type Round struct {
 	R            []*cyclic.Int // First unpermuted internode message key
@@ -26,6 +33,9 @@ type Round struct {
 	Y_T []*cyclic.Int
 	Y_V []*cyclic.Int
 	Y_U []*cyclic.Int
+
+	// Variables only carried by the last node
+	LastNode
 
 	BatchSize uint64
 }
@@ -111,6 +121,9 @@ func NewRound(batchSize uint64) *Round {
 		NR.Y_U[i].SetBytes(cyclic.Max4kBitInt)
 
 		NR.Permutations[i] = i
+
+		NR.LastNode.MessagePrecomputation = nil
+		NR.LastNode.RecipientPrecomputation = nil
 	}
 
 	return &NR
