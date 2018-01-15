@@ -42,7 +42,7 @@ func (perm PrecompPermute) Build(g *cyclic.Group, face interface{}) *services.Di
 func precompPermuteBuildCrypt(round *server.Round, om *[]*services.Message) {
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		(*om)[i] = services.NewMessage(25, 4, nil)
+		(*om)[i] = services.NewMessage(round.Permutations[i], 4, nil)
 	}
 
 }
