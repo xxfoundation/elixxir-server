@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestPrecompGeneration(t *testing.T) {
 
 	bs := uint64(100)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	defaultInt := cyclic.NewInt(0)
 	defaultInt.SetBytes(cyclic.Max4kBitInt)
@@ -25,11 +25,11 @@ func TestPrecompGeneration(t *testing.T) {
 		im = append(im, &services.Message{uint64(i), []*cyclic.Int{cyclic.NewInt(int64(0))}})
 	}
 
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	g := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), gen)
+	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(23), rng)
 
-	dc := services.DispatchCryptop(&g, PrecompGeneration{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, PrecompGeneration{}, nil, nil, round)
 
 	roundcnt := 0
 
@@ -68,7 +68,7 @@ func TestPrecompGeneration(t *testing.T) {
 
 }
 
-func validRound(round *server.Round, cmped *cyclic.Int, i uint64) bool {
+func validRound(round *node.Round, cmped *cyclic.Int, i uint64) bool {
 	if round.R[i].Cmp(cmped) == 0 {
 		return false
 	} else if round.S[i].Cmp(cmped) == 0 {

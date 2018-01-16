@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -15,13 +15,13 @@ func TestPrecompStrip(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	var im []*services.Message
 
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	g := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), gen)
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(29), rng)
 
 	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
 		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(13)),
@@ -44,7 +44,7 @@ func TestPrecompStrip(t *testing.T) {
 		{cyclic.NewInt(79), cyclic.NewInt(23)},
 	}
 
-	dc := services.DispatchCryptop(&g, PrecompStrip{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, PrecompStrip{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- im[i]

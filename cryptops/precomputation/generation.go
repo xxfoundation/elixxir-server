@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -13,7 +13,7 @@ type PrecompGeneration struct{}
 func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	//get round from the empty interface
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	/*CRYPTOGRAPHIC OPERATION BEGIN*/
 	precompGenBuildCrypt(g, round)
@@ -45,12 +45,12 @@ func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.
 }
 
 //Implements cryptographic component of build
-func precompGenBuildCrypt(g *cyclic.Group, round *server.Round) {
+func precompGenBuildCrypt(g *cyclic.Group, round *node.Round) {
 	//Make the Permutation
 	cyclic.Shuffle(&round.Permutations)
 
 	//Generate the Global Cypher Key
-	g.Gen(round.Z)
+	g.Random(round.Z)
 }
 
 func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
@@ -65,11 +65,11 @@ func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, sav
 	Y_R, Y_S, Y_T, Y_U, Y_V :=
 		(*saved)[10], (*saved)[11], (*saved)[12], (*saved)[13], (*saved)[14]
 
-	g.Gen(R)
-	g.Gen(S)
-	g.Gen(T)
-	g.Gen(U)
-	g.Gen(V)
+	g.Random(R)
+	g.Random(S)
+	g.Random(T)
+	g.Random(U)
+	g.Random(V)
 
 	g.Inverse(R, R_INV)
 	g.Inverse(S, S_INV)
@@ -77,11 +77,11 @@ func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, sav
 	g.Inverse(U, U_INV)
 	g.Inverse(V, V_INV)
 
-	g.Gen(Y_R)
-	g.Gen(Y_S)
-	g.Gen(Y_T)
-	g.Gen(Y_U)
-	g.Gen(Y_V)
+	g.Random(Y_R)
+	g.Random(Y_S)
+	g.Random(Y_T)
+	g.Random(Y_U)
+	g.Random(Y_V)
 
 	return out
 }

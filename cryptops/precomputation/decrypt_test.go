@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -14,9 +14,10 @@ func TestPrecompDecrypt(t *testing.T) {
 	test := 2
 	pass := 0
 	batchSize := uint64(2)
-	round := server.NewRound(batchSize)
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
-	group := cyclic.NewGroup(cyclic.NewInt(17), cyclic.NewInt(5), gen)
+	round := node.NewRound(batchSize)
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	group := cyclic.NewGroup(cyclic.NewInt(17), cyclic.NewInt(5), cyclic.NewInt(7), rng)
+	node.Grp = &group
 
 	round.R_INV[0] = cyclic.NewInt(5)
 	round.U_INV[0] = cyclic.NewInt(9)
@@ -26,8 +27,7 @@ func TestPrecompDecrypt(t *testing.T) {
 	round.U_INV[1] = cyclic.NewInt(1)
 	round.Y_R[1] = cyclic.NewInt(13)
 	round.Y_U[1] = cyclic.NewInt(6)
-	round.G = cyclic.NewInt(13)
-	server.G = cyclic.NewInt(7)
+	round.CypherPublicKey = cyclic.NewInt(13)
 
 	dispatch := services.DispatchCryptop(
 		&group, PrecompDecrypt{}, nil, nil, round)

@@ -2,7 +2,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -13,7 +13,7 @@ type RealPermute struct{}
 func (perm RealPermute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	//get round from the empty interface
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	//Allocate Memory for output
 	om := make([]*services.Message, round.BatchSize)
@@ -39,7 +39,7 @@ func (perm RealPermute) Build(g *cyclic.Group, face interface{}) *services.Dispa
 }
 
 //Implements cryptographic component of build
-func realPermuteBuildCrypt(round *server.Round, om *[]*services.Message) {
+func realPermuteBuildCrypt(round *node.Round, om *[]*services.Message) {
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		(*om)[i] = services.NewMessage(round.Permutations[i], 2, nil)

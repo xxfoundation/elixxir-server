@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -13,7 +13,7 @@ type PrecompPermute struct{}
 func (perm PrecompPermute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	//get round from the empty interface
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	//Allocate Memory for output
 	om := make([]*services.Message, round.BatchSize)
@@ -27,7 +27,7 @@ func (perm PrecompPermute) Build(g *cyclic.Group, face interface{}) *services.Di
 	//Link the keys for randomization
 	for i := uint64(0); i < round.BatchSize; i++ {
 		roundSlc := []*cyclic.Int{
-			server.G, round.S_INV[i], round.V_INV[i], round.Y_S[i], round.Y_V[i], round.G,
+			node.Grp.G, round.S_INV[i], round.V_INV[i], round.Y_S[i], round.Y_V[i], round.CypherPublicKey,
 		}
 		sav = append(sav, roundSlc)
 	}
@@ -39,7 +39,7 @@ func (perm PrecompPermute) Build(g *cyclic.Group, face interface{}) *services.Di
 }
 
 //Implements cryptographic component of build
-func precompPermuteBuildCrypt(round *server.Round, om *[]*services.Message) {
+func precompPermuteBuildCrypt(round *node.Round, om *[]*services.Message) {
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		(*om)[i] = services.NewMessage(round.Permutations[i], 4, nil)

@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -15,13 +15,13 @@ func TestPrecompShare(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	var im []*services.Message
 
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	g := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), gen)
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
 	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
 		cyclic.NewInt(int64(39))}})
@@ -40,15 +40,13 @@ func TestPrecompShare(t *testing.T) {
 		{cyclic.NewInt(51)},
 	}
 
-	dc := services.DispatchCryptop(&g, PrecompShare{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, PrecompShare{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- im[i]
 		rtn := <-dc.OutChannel
 
 		result := expected[i]
-
-		valid := true
 
 		for j := 0; j < 1; j++ {
 			if result[j].Cmp(rtn.Data[j]) != 0 {
@@ -57,12 +55,6 @@ func TestPrecompShare(t *testing.T) {
 			} else {
 				pass++
 			}
-		}
-
-		if !valid {
-			t.Errorf("Test of PrecompShare's cryptop failed on index: %v", i)
-		} else {
-			pass++
 		}
 
 	}
