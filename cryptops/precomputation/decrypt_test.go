@@ -17,6 +17,7 @@ func TestPrecompDecrypt(t *testing.T) {
 	round := server.NewRound(batchSize)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	group := cyclic.NewGroup(cyclic.NewInt(17), cyclic.NewInt(5), cyclic.NewInt(19), rng)
+	server.Grp = &group
 
 	round.R_INV[0] = cyclic.NewInt(5)
 	round.U_INV[0] = cyclic.NewInt(9)
@@ -27,7 +28,7 @@ func TestPrecompDecrypt(t *testing.T) {
 	round.Y_R[1] = cyclic.NewInt(13)
 	round.Y_U[1] = cyclic.NewInt(6)
 	round.CypherPublicKey = cyclic.NewInt(13)
-	server.G = cyclic.NewInt(7)
+	server.Grp.G = cyclic.NewInt(7)
 
 	dispatch := services.DispatchCryptop(
 		&group, PrecompDecrypt{}, nil, nil, round)

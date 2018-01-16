@@ -27,7 +27,7 @@ func (perm PrecompPermute) Build(g *cyclic.Group, face interface{}) *services.Di
 	//Link the keys for randomization
 	for i := uint64(0); i < round.BatchSize; i++ {
 		roundSlc := []*cyclic.Int{
-			server.G, round.S_INV[i], round.V_INV[i], round.Y_S[i], round.Y_V[i], round.CypherPublicKey,
+			server.Grp.G, round.S_INV[i], round.V_INV[i], round.Y_S[i], round.Y_V[i], round.CypherPublicKey,
 		}
 		sav = append(sav, roundSlc)
 	}

@@ -37,7 +37,7 @@ func TestPrecompPermutation(t *testing.T) {
 		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
 	}})
 
-	server.G = cyclic.NewInt(55)
+	server.Grp.G = cyclic.NewInt(55)
 	round.CypherPublicKey = cyclic.NewInt(30)
 
 	round.Permutations[0] = 1

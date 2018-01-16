@@ -72,7 +72,7 @@ func (self PrecompDecrypt) Build(group *cyclic.Group,
 
 		keysForThisMessage := []*cyclic.Int{
 			round.R_INV[i], round.Y_R[i], round.U_INV[i],
-			round.Y_U[i], round.CypherPublicKey, server.G}
+			round.Y_U[i], round.CypherPublicKey, server.Grp.G}
 
 		keysForMessages = append(keysForMessages, keysForThisMessage)
 	}

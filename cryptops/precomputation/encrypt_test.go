@@ -23,6 +23,8 @@ func TestPrecompEncrypt(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(79), rng)
 
+	server.Grp = &grp
+
 	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
 		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(13)),
 		cyclic.NewInt(int64(41)), cyclic.NewInt(int64(74)),
@@ -38,7 +40,7 @@ func TestPrecompEncrypt(t *testing.T) {
 		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
 	}})
 
-	server.G = cyclic.NewInt(55)
+	server.Grp.G = cyclic.NewInt(55)
 	round.CypherPublicKey = cyclic.NewInt(30)
 
 	round.Y_T[0] = cyclic.NewInt(53)

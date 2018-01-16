@@ -40,9 +40,6 @@ type Round struct {
 	BatchSize uint64
 }
 
-// Keys for Homomorphic operations
-var G *cyclic.Int // Global Generator
-
 //Group that all operations are done within
 var Grp *cyclic.Group
 
