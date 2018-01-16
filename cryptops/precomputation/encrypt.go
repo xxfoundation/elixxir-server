@@ -27,7 +27,7 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 	//Link the keys for encryption
 	for i := uint64(0); i < round.BatchSize; i++ {
 		roundSlc := []*cyclic.Int{
-			round.T_INV[i], round.Y_T[i], server.G, round.G,
+			round.T_INV[i], round.Y_T[i], server.G, round.CypherPublicKey,
 		}
 		sav = append(sav, roundSlc)
 	}

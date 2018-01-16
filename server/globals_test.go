@@ -15,8 +15,8 @@ func TestNewRound(t *testing.T) {
 	zero := cyclic.NewInt(0)
 	zero.SetBytes(cyclic.Max4kBitInt)
 
-	if zero.Cmp(actual.G) != 0 {
-		t.Errorf("Round G is not set to Max4kBitInt")
+	if zero.Cmp(actual.CypherPublicKey) != 0 {
+		t.Errorf("Round CypherPublicKey is not set to Max4kBitInt")
 	}
 	if zero.Cmp(actual.Z) != 0 {
 		t.Errorf("Round Z is not set to Max4kBitInt")

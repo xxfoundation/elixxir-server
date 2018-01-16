@@ -39,7 +39,7 @@ func TestPrecompEncrypt(t *testing.T) {
 	}})
 
 	server.G = cyclic.NewInt(55)
-	round.G = cyclic.NewInt(30)
+	round.CypherPublicKey = cyclic.NewInt(30)
 
 	round.Y_T[0] = cyclic.NewInt(53)
 	round.Y_T[1] = cyclic.NewInt(24)

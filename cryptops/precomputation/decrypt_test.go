@@ -26,7 +26,7 @@ func TestPrecompDecrypt(t *testing.T) {
 	round.U_INV[1] = cyclic.NewInt(1)
 	round.Y_R[1] = cyclic.NewInt(13)
 	round.Y_U[1] = cyclic.NewInt(6)
-	round.G = cyclic.NewInt(13)
+	round.CypherPublicKey = cyclic.NewInt(13)
 	server.G = cyclic.NewInt(7)
 
 	dispatch := services.DispatchCryptop(
