@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestPrecompPermutation(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	var im []*services.Message
 
@@ -37,7 +37,7 @@ func TestPrecompPermutation(t *testing.T) {
 		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
 	}})
 
-	server.Grp.G = cyclic.NewInt(55)
+	node.Grp.G = cyclic.NewInt(55)
 	round.CypherPublicKey = cyclic.NewInt(30)
 
 	round.Permutations[0] = 1

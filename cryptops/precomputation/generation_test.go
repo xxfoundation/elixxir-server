@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestPrecompGeneration(t *testing.T) {
 
 	bs := uint64(100)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	defaultInt := cyclic.NewInt(0)
 	defaultInt.SetBytes(cyclic.Max4kBitInt)
@@ -68,7 +68,7 @@ func TestPrecompGeneration(t *testing.T) {
 
 }
 
-func validRound(round *server.Round, cmped *cyclic.Int, i uint64) bool {
+func validRound(round *node.Round, cmped *cyclic.Int, i uint64) bool {
 	if round.R[i].Cmp(cmped) == 0 {
 		return false
 	} else if round.S[i].Cmp(cmped) == 0 {

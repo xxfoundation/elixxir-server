@@ -2,7 +2,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -12,7 +12,7 @@ type RealtimeEncrypt struct{}
 func (self RealtimeEncrypt) Build(g *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	outMessages := make([]*services.Message, round.BatchSize)
 

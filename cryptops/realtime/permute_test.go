@@ -2,7 +2,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestPrecompPermutation(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	var im []*services.Message
 

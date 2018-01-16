@@ -2,7 +2,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -13,7 +13,7 @@ type RealTimeIdentify struct{}
 // each message.
 func (self RealTimeIdentify) Build(group *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 	batchSize := round.BatchSize
 	outMessages := make([]*services.Message, batchSize)
 	identifyMessageKeys := make([][]*cyclic.Int, batchSize)
@@ -25,10 +25,10 @@ func (self RealTimeIdentify) Build(group *cyclic.Group,
 	}
 
 	return &services.DispatchBuilder{
-		BatchSize: batchSize,
-		Saved: &identifyMessageKeys,
+		BatchSize:  batchSize,
+		Saved:      &identifyMessageKeys,
 		OutMessage: &outMessages,
-		G: group}
+		G:          group}
 }
 
 func (self RealTimeIdentify) Run(g *cyclic.Group, in, out *services.Message,

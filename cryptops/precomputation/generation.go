@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -13,7 +13,7 @@ type PrecompGeneration struct{}
 func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	//get round from the empty interface
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	/*CRYPTOGRAPHIC OPERATION BEGIN*/
 	precompGenBuildCrypt(g, round)
@@ -45,7 +45,7 @@ func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.
 }
 
 //Implements cryptographic component of build
-func precompGenBuildCrypt(g *cyclic.Group, round *server.Round) {
+func precompGenBuildCrypt(g *cyclic.Group, round *node.Round) {
 	//Make the Permutation
 	cyclic.Shuffle(&round.Permutations)
 

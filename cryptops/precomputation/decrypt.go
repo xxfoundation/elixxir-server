@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -62,7 +62,7 @@ func combinePartialCipherTests(
 
 func (self PrecompDecrypt) Build(group *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 	batchSize := round.BatchSize
 	outMessage := make([]*services.Message, batchSize)
 	var keysForMessages [][]*cyclic.Int
@@ -72,7 +72,7 @@ func (self PrecompDecrypt) Build(group *cyclic.Group,
 
 		keysForThisMessage := []*cyclic.Int{
 			round.R_INV[i], round.Y_R[i], round.U_INV[i],
-			round.Y_U[i], round.CypherPublicKey, server.Grp.G}
+			round.Y_U[i], round.CypherPublicKey, node.Grp.G}
 
 		keysForMessages = append(keysForMessages, keysForThisMessage)
 	}

@@ -2,7 +2,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -12,7 +12,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 	test := 2
 	pass := 0
 	batchSize := uint64(2)
-	round := server.NewRound(batchSize)
+	round := node.NewRound(batchSize)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	group := cyclic.NewGroup(cyclic.NewInt(21),
 		cyclic.NewInt(17), cyclic.NewInt(23), rng)

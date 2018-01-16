@@ -2,7 +2,7 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"testing"
 )
 
@@ -17,7 +17,7 @@ func (cry testCryptop) Run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.I
 
 func (cry testCryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	om := make([]*Message, round.BatchSize)
 
@@ -47,7 +47,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 	bs := uint64(4)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	var im []*Message
 
