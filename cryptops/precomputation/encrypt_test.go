@@ -19,9 +19,9 @@ func TestPrecompEncrypt(t *testing.T) {
 
 	var im []*services.Message
 
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	g := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), gen)
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(79), rng)
 
 	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
 		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(13)),
@@ -55,7 +55,7 @@ func TestPrecompEncrypt(t *testing.T) {
 		{cyclic.NewInt(32), cyclic.NewInt(35)},
 	}
 
-	dc := services.DispatchCryptop(&g, PrecompEncrypt{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, PrecompEncrypt{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- im[i]

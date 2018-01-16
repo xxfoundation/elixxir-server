@@ -15,8 +15,8 @@ func TestPrecompDecrypt(t *testing.T) {
 	pass := 0
 	batchSize := uint64(2)
 	round := server.NewRound(batchSize)
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
-	group := cyclic.NewGroup(cyclic.NewInt(17), cyclic.NewInt(5), gen)
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	group := cyclic.NewGroup(cyclic.NewInt(17), cyclic.NewInt(5), cyclic.NewInt(19), rng)
 
 	round.R_INV[0] = cyclic.NewInt(5)
 	round.U_INV[0] = cyclic.NewInt(9)

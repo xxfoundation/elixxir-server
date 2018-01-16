@@ -62,11 +62,11 @@ func TestDispatchCryptop(t *testing.T) {
 		cyclic.NewInt(3), cyclic.NewInt(6), cyclic.NewInt(9), cyclic.NewInt(12),
 	}
 
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	g := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), gen)
+	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12), rng)
 
-	dc := DispatchCryptop(&g, testCryptop{}, nil, nil, round)
+	dc := DispatchCryptop(&grp, testCryptop{}, nil, nil, round)
 
 	i = 0
 	for i < bs {

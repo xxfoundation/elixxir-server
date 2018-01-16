@@ -13,9 +13,9 @@ func TestRealtimeEncrypt(t *testing.T) {
 	pass := 0
 	batchSize := uint64(2)
 	round := server.NewRound(batchSize)
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	group := cyclic.NewGroup(cyclic.NewInt(21),
-		cyclic.NewInt(17), gen)
+		cyclic.NewInt(17), cyclic.NewInt(23), rng)
 
 	round.Z = cyclic.NewInt(9)
 	round.T[0] = cyclic.NewInt(17)
