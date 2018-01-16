@@ -21,7 +21,7 @@ func TestPrecompEncrypt(t *testing.T) {
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(79), rng)
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(55), rng)
 
 	node.Grp = &grp
 
@@ -40,7 +40,6 @@ func TestPrecompEncrypt(t *testing.T) {
 		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
 	}})
 
-	node.Grp.G = cyclic.NewInt(55)
 	round.CypherPublicKey = cyclic.NewInt(30)
 
 	round.Y_T[0] = cyclic.NewInt(53)
