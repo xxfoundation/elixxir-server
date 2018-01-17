@@ -13,15 +13,15 @@ type TransmissionKey struct {
 }
 
 type User struct {
-	id uint64
+	Id uint64
 
-	send    TransmissionKey
-	receive TransmissionKey
+	Send    TransmissionKey
+	Receive TransmissionKey
 
-	address string
+	Address string
 
-	publicKey  *cyclic.Int
-	privateKey *cyclic.Int
+	PublicKey  *cyclic.Int
+	PrivateKey *cyclic.Int
 }
 
 // Deletes a user with the given ID from userRegistry
@@ -36,7 +36,7 @@ func GetUser(id uint64) User {
 
 // Insert given user into userRegistry or update the user if it already exists (Upsert operation)
 func UpsertUser(user User) {
-	userRegistry[user.id] = user
+	userRegistry[user.Id] = user
 }
 
 // Returns a count of the users in userRegistry
