@@ -29,12 +29,17 @@ func DeleteUser(id uint64) {
 	delete(userRegistry, id)
 }
 
-// Returns a count of the users in userRegistry
-func CountUsers() int {
-	return len(userRegistry)
+// Returns a user with the given ID from userRegistry
+func GetUser(id uint64) User {
+	return userRegistry[id]
 }
 
 // Insert given user into userRegistry or update the user if it already exists (Upsert operation)
 func UpsertUser(user User) {
 	userRegistry[user.id] = user
+}
+
+// Returns a count of the users in userRegistry
+func CountUsers() int {
+	return len(userRegistry)
 }
