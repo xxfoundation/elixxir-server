@@ -2,39 +2,17 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"reflect"
 )
 
-// Struct which contains a chunck of cryptographic data to be operated on
-type Message struct {
+// Struct which contains a chunk of cryptographic data to be operated on
+type Message interface {
 	//Slot of the message
-	Slot uint64
-	//Data contained within the message
-	Data []*cyclic.Int
+	Slot() uint64
 }
 
-// Creates a new message with a datasize of the given width filled with
-// globals.Max4192BitInt
-func NewMessage(slot, width uint64, val *cyclic.Int) *Message {
-	ml := make([]*cyclic.Int, width)
-
-	i := uint64(0)
-	for i < width {
-		ml[i] = cyclic.NewInt(0)
-		ml[i].SetBytes(cyclic.Max4kBitInt)
-		if val != nil {
-			ml[i].Set(val)
-		}
-		i++
-
-	}
-
-	return &Message{Slot: slot, Data: ml}
-}
-
-// Width returns the width of the given message
-func Width(m *Message) uint64 {
-	return uint64(len((*m).Data))
-}
+//Holds keys which are used in the operation
+type NodeKeys interface{}
 
 // DispatchController is the struct which is used to externally control
 //  the dispatcher
@@ -54,11 +32,11 @@ type DispatchController struct {
 
 // Cryptop is the interface which contains the cryptop
 type CryptographicOperation interface {
-	// Run is the function which executes the cryptogrphic operation
+	// Run is the function which executes the cryptographic operation
 	// in is the data coming in to be operated on
 	// out is the result of the operation, it is also returned
 	// saved is the data saved on the node which is used in the operation
-	Run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message
+	// Run(g *cyclic.Group, in, out Message, saved NodeKeys) Message
 
 	// Build is used to generate the data which is used in run.
 	// takes an empty interface
@@ -70,9 +48,9 @@ type DispatchBuilder struct {
 	// Size of the batch the cryptop is to be run on
 	BatchSize uint64
 	// Pointers to Data from the server which is to be passed to run
-	Saved *[][]*cyclic.Int
+	Keys *[]NodeKeys
 	// buffer of messages which will be used to store the results
-	OutMessage *[]*Message
+	Output *[]Message
 	//Group to use to execute operations
 	G *cyclic.Group
 }
@@ -81,9 +59,9 @@ type DispatchBuilder struct {
 type dispatch struct {
 	noCopy noCopy
 
-	// Interface containing Crtptographic Operation and its builder
+	// Interface containing Cryptographic Operation and its builder
 	cryptop CryptographicOperation
-	// Embeded struct containing the data used to run the cryptop
+	// Embedded struct containing the data used to run the cryptop
 	DispatchBuilder
 
 	// Channel used to receive data to be processed
@@ -102,6 +80,12 @@ func (d *dispatch) dispatcher() {
 
 	q := false
 
+	runFunc := reflect.ValueOf(d.cryptop).MethodByName("Run")
+
+	inputs := make([]reflect.Value, 4)
+
+	inputs[0] = reflect.ValueOf(d.DispatchBuilder.G)
+
 	for (d.batchCntr < d.DispatchBuilder.BatchSize) && !q {
 
 		//either process the next piece of data or quit
@@ -109,17 +93,17 @@ func (d *dispatch) dispatcher() {
 		case in := <-d.inChannel:
 			//received message
 
-			out := (*d.DispatchBuilder.OutMessage)[in.Slot]
+			out := (*d.DispatchBuilder.Output)[(*in).Slot()]
 
-			save := &(*d.DispatchBuilder.Saved)[in.Slot]
-
-			g := d.DispatchBuilder.G
+			inputs[1] = reflect.ValueOf((*in))
+			inputs[2] = reflect.ValueOf(out)
+			inputs[3] = reflect.ValueOf((*d.DispatchBuilder.Keys)[(*in).Slot()])
 
 			//process message using the cryptop
-			out = d.cryptop.Run(g, in, out, save)
+			runFunc.Call(inputs)
 
 			//send the result
-			d.outChannel <- out
+			d.outChannel <- &out
 
 			d.batchCntr++
 		case <-d.quit:

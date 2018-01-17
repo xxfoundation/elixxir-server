@@ -6,11 +6,27 @@ import (
 	"testing"
 )
 
+type testMessage struct {
+	slot uint64
+
+	A *cyclic.Int
+}
+
+func (tm testMessage) Slot() uint64 {
+	return tm.slot
+}
+
+type testKeys struct {
+	R *cyclic.Int
+}
+
 type testCryptop struct{}
 
-func (cry testCryptop) Run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message {
+func (cry testCryptop) Run(g *cyclic.Group, in, out *testMessage, keys *testKeys) Message {
 
-	out.Data[0] = out.Data[0].Add(in.Data[0], (*saved)[0])
+	out.A.Add(in.A, keys.R)
+
+	keys.R.Set(cyclic.NewInt(15))
 
 	return out
 }
@@ -19,41 +35,37 @@ func (cry testCryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder
 
 	round := face.(*node.Round)
 
-	om := make([]*Message, round.BatchSize)
+	om := make([]Message, round.BatchSize)
 
-	i := uint64(0)
-	for i < round.BatchSize {
-		om[i] = NewMessage(i, 1, nil)
-		i++
+	for i := uint64(0); i < round.BatchSize; i++ {
+		om[i] = &testMessage{slot: i, A: cyclic.NewMaxInt()}
 	}
 
-	var sav [][]*cyclic.Int
+	keys := make([]NodeKeys, round.BatchSize)
 
-	i = uint64(0)
-	for i < round.BatchSize {
-		sav = append(sav, []*cyclic.Int{round.R[i]})
-		i++
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keys[i] = &testKeys{R: round.R[i]}
 	}
 
-	db := DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
+	db := DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
 
 	return &db
 }
 
 func TestDispatchCryptop(t *testing.T) {
 
-	test := 4
+	test := 8
 	pass := 0
 
 	bs := uint64(4)
 
 	round := node.NewRound(bs)
 
-	var im []*Message
+	var im []Message
 
 	i := uint64(0)
 	for i < bs {
-		im = append(im, &Message{uint64(i), []*cyclic.Int{cyclic.NewInt(int64(i + 1))}})
+		im = append(im, &testMessage{slot: uint64(i), A: cyclic.NewInt(int64(i + 1))})
 		round.R[i] = cyclic.NewInt(int64(2 * (i + 1)))
 		i++
 	}
@@ -68,20 +80,26 @@ func TestDispatchCryptop(t *testing.T) {
 
 	dc := DispatchCryptop(&grp, testCryptop{}, nil, nil, round)
 
-	i = 0
-	for i < bs {
+	for i := uint64(0); i < bs; i++ {
+		dc.InChannel <- &im[i]
+		trn := <-dc.OutChannel
 
-		dc.InChannel <- im[i]
-		rtn := <-dc.OutChannel
+		rtn := (*trn).(*testMessage)
 
-		if rtn.Data[0].Cmp(result[i]) != 0 {
+		if rtn.A.Cmp(result[i]) != 0 {
 			t.Errorf("Test of Dispatcher failed at index: %v Expected: %v;",
-				" Actual: %v", i, result[0].Text(10), rtn.Data[0].Text(10))
+				" Actual: %v", i, result[i].Text(10), rtn.A.Text(10))
 		} else {
 			pass++
 		}
 
-		i++
+		if round.R[i].Int64() != 15 {
+			t.Errorf("Test of Dispatcher pass by reference failed at index: %v Expected: %v;",
+				" Actual: %v", i, 15, round.R[i].Text(10))
+		} else {
+			pass++
+		}
+
 	}
 
 	println("Dispatcher", pass, "out of", test, "tests passed.")
