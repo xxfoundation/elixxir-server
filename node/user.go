@@ -26,6 +26,10 @@ type User struct {
 	PublicKey *cyclic.Int
 }
 
+func InitUserRegistry() {
+	userRegistry = make(map[uint64]User)
+}
+
 func NewUser(address string) User {
 	idCounter++
 	return User{Id: idCounter - 1, Address: address,

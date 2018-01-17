@@ -8,7 +8,7 @@ import (
 // surrounding the User struct and the userRegistry map
 func TestUserRegistry(t *testing.T) {
 
-	userRegistry = make(map[uint64]User)
+	InitUserRegistry()
 	testUser := NewUser("Someplace")
 
 	if idCounter != 1 {
