@@ -26,10 +26,12 @@ type User struct {
 	PublicKey *cyclic.Int
 }
 
+// Initializes the userRegistry map
 func InitUserRegistry() {
 	userRegistry = make(map[uint64]User)
 }
 
+// Creates a new User object with default fields and given address
 func NewUser(address string) User {
 	idCounter++
 	return User{Id: idCounter - 1, Address: address,
