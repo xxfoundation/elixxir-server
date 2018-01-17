@@ -26,11 +26,13 @@ type User struct {
 
 // Deletes a user with the given ID from userRegistry
 func DeleteUser(id uint64) {
+	// If key does not exist, do nothing
 	delete(userRegistry, id)
 }
 
 // Returns a user with the given ID from userRegistry
 func GetUser(id uint64) User {
+	// If key does not exist, return nil
 	return userRegistry[id]
 }
 
