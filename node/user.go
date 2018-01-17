@@ -7,6 +7,9 @@ import (
 // Map which acts as a global registry that holds all users
 var userRegistry map[uint64]User
 
+// Sequential counter for user.Id values
+var idCounter uint64 = 0
+
 type ForwardKey struct {
 	BaseKey        *cyclic.Int
 	PartialBaseKey *cyclic.Int
@@ -23,8 +26,9 @@ type User struct {
 	PublicKey *cyclic.Int
 }
 
-func NewUser(id uint64, address string) User {
-	return User{Id: id, Address: address,
+func NewUser(address string) User {
+	idCounter++
+	return User{Id: idCounter - 1, Address: address,
 		Transmission: ForwardKey{BaseKey: cyclic.NewMaxInt(),
 			PartialBaseKey: cyclic.NewMaxInt(), RecursiveKey: cyclic.NewMaxInt()},
 		Reception: ForwardKey{BaseKey: cyclic.NewMaxInt(),

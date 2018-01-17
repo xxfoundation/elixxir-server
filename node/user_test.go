@@ -9,7 +9,11 @@ import (
 func TestUserRegistry(t *testing.T) {
 
 	userRegistry = make(map[uint64]User)
-	testUser := NewUser(uint64(1), "Someplace")
+	testUser := NewUser("Someplace")
+
+	if idCounter != 1 {
+		t.Errorf("NewUser: Expected ID counter to increase when creating a new user!")
+	}
 
 	if CountUsers() != 0 {
 		t.Errorf("CountUsers: Start size of userRegistry not zero!")
