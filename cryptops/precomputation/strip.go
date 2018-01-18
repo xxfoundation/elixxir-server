@@ -4,7 +4,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -13,7 +13,7 @@ type PrecompStrip struct{}
 func (gen PrecompStrip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	//get round from the empty interface
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	//Allocate Memory for output
 	om := make([]*services.Message, round.BatchSize)
@@ -31,10 +31,12 @@ func (gen PrecompStrip) Build(g *cyclic.Group, face interface{}) *services.Dispa
 }
 
 func (gen PrecompStrip) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
+	// The Global Private Keys are Inverted and used to remove the Homomorphic Encryption
+	// from the Encrypted Message Keys and Encrypted Recipient Keys
 
-	// Obtain message cypher text and encrypted message key
+	// Obtain message global private key and encrypted message key
 	messageGlobalPrivateKey, encryptedMessageKey := in.Data[0], in.Data[1]
-	// Obtain recipient cypher text and encrypted recipient key
+	// Obtain recipient global private key and encrypted recipient key
 	recipientGlobalPrivateKey, encryptedRecipientKey := in.Data[2], in.Data[3]
 
 	// Set output vars for the Message and Recipient Keys

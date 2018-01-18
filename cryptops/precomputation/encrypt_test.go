@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -15,13 +15,15 @@ func TestPrecompEncrypt(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := server.NewRound(bs)
+	round := node.NewRound(bs)
 
 	var im []*services.Message
 
-	gen := cyclic.NewGen(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	g := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), gen)
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(55), rng)
+
+	node.Grp = &grp
 
 	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
 		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(13)),
@@ -38,8 +40,7 @@ func TestPrecompEncrypt(t *testing.T) {
 		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
 	}})
 
-	server.G = cyclic.NewInt(55)
-	round.G = cyclic.NewInt(30)
+	round.CypherPublicKey = cyclic.NewInt(30)
 
 	round.Y_T[0] = cyclic.NewInt(53)
 	round.Y_T[1] = cyclic.NewInt(24)
@@ -55,7 +56,7 @@ func TestPrecompEncrypt(t *testing.T) {
 		{cyclic.NewInt(32), cyclic.NewInt(35)},
 	}
 
-	dc := services.DispatchCryptop(&g, PrecompEncrypt{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, PrecompEncrypt{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- im[i]

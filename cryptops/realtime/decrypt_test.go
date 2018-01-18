@@ -1,4 +1,4 @@
-package precomputation
+package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPrecompStrip(t *testing.T) {
+func TestRealTimeDecrypt(t *testing.T) {
 	// NOTE: Does not test correctness
 
 	test := 3
@@ -38,13 +38,21 @@ func TestPrecompStrip(t *testing.T) {
 		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
 	}})
 
+	round.R[0] = cyclic.NewInt(53)
+	round.R[1] = cyclic.NewInt(24)
+	round.R[2] = cyclic.NewInt(61)
+
+	round.U[0] = cyclic.NewInt(52)
+	round.U[1] = cyclic.NewInt(68)
+	round.U[2] = cyclic.NewInt(11)
+
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(34), cyclic.NewInt(56)},
-		{cyclic.NewInt(75), cyclic.NewInt(44)},
-		{cyclic.NewInt(79), cyclic.NewInt(23)},
+		{cyclic.NewInt(8), cyclic.NewInt(42)},
+		{cyclic.NewInt(49), cyclic.NewInt(60)},
+		{cyclic.NewInt(46), cyclic.NewInt(46)},
 	}
 
-	dc := services.DispatchCryptop(&grp, PrecompStrip{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, RealTimeDecrypt{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- im[i]
@@ -59,13 +67,13 @@ func TestPrecompStrip(t *testing.T) {
 		}
 
 		if !valid {
-			t.Errorf("Test of PrecompStrip's cryptop failed on index: %v", i)
+			t.Errorf("Test of RealTimeDecrypt's cryptop failed on index: %v", i)
 		} else {
 			pass++
 		}
 
 	}
 
-	println("PrecompStrip", pass, "out of", test, "tests passed.")
+	println("RealTimeDecrypt", pass, "out of", test, "tests passed.")
 
 }

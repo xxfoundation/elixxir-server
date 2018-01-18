@@ -4,7 +4,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -13,7 +13,7 @@ type PrecompEncrypt struct{}
 func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	//get round from the empty interface
-	round := face.(*server.Round)
+	round := face.(*node.Round)
 
 	//Allocate Memory for output
 	om := make([]*services.Message, round.BatchSize)
@@ -27,7 +27,7 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 	//Link the keys for encryption
 	for i := uint64(0); i < round.BatchSize; i++ {
 		roundSlc := []*cyclic.Int{
-			round.T_INV[i], round.Y_T[i], server.G, round.G,
+			round.T_INV[i], round.Y_T[i], node.Grp.G, round.CypherPublicKey,
 		}
 		sav = append(sav, roundSlc)
 	}
@@ -39,6 +39,8 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 }
 
 func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
+	// Output of the Permute Phase is passed to the first Node which multiplies in its Encrypted
+	// Second Unpermuted Message Keys and the associated Private Keys into the Partial Message Cypher Test.
 
 	// Obtain T^-1, Y_T, and g
 	T_INV, Y_T, serverG, globalCypherKey := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
