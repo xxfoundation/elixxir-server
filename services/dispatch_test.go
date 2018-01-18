@@ -54,7 +54,7 @@ func (cry testCryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder
 
 func TestDispatchCryptop(t *testing.T) {
 
-	test := 8
+	test := 10
 	pass := 0
 
 	bs := uint64(4)
@@ -80,6 +80,12 @@ func TestDispatchCryptop(t *testing.T) {
 
 	dc := DispatchCryptop(&grp, testCryptop{}, nil, nil, round)
 
+	if dc.IsAlive() {
+		pass++
+	} else {
+		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
+	}
+
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- &im[i]
 		trn := <-dc.OutChannel
@@ -100,6 +106,12 @@ func TestDispatchCryptop(t *testing.T) {
 			pass++
 		}
 
+	}
+
+	if !dc.IsAlive() {
+		pass++
+	} else {
+		t.Errorf("IsAlive: Expected dispatch to be dead after channels closed!")
 	}
 
 	println("Dispatcher", pass, "out of", test, "tests passed.")
