@@ -3,6 +3,7 @@ package services
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"reflect"
+	"sync/atomic"
 )
 
 // Struct which contains a chunk of cryptographic data to be operated on
@@ -21,6 +22,8 @@ type NodeKeys interface{}
 // To force kill the dispatcher do DispatchController.QuitChannel <- true
 type DispatchController struct {
 	noCopy noCopy
+	// Pointer to dispatch locker
+	dispatchLocker *uint32
 
 	// Channel which is used to send messages to process
 	InChannel chan<- *Message
@@ -28,6 +31,16 @@ type DispatchController struct {
 	OutChannel <-chan *Message
 	// Channel which is used to send a kill command
 	QuitChannel chan<- bool
+}
+
+// Determines whether the Dispatcher is still running
+func (dc DispatchController) IsAlive() bool {
+	return atomic.LoadUint32(dc.dispatchLocker) == 1
+}
+
+// Sends a Quit signal to the DispatchController
+func (dc DispatchController) Kill() {
+	dc.QuitChannel <- true
 }
 
 // Cryptop is the interface which contains the cryptop
@@ -73,6 +86,10 @@ type dispatch struct {
 
 	//Counter of how many messages have been processed
 	batchCntr uint64
+
+	// Locker for determining whether the dispatcher is still running
+	// 1 = True, 0 = False
+	locker uint32
 }
 
 //Function which actually does the dispatching
@@ -118,6 +135,9 @@ func (d *dispatch) dispatcher() {
 	close(d.outChannel)
 	close(d.quit)
 
+	// Unlock the dispatch locker, indicating the dispatcher is no longer running
+	atomic.CompareAndSwapUint32(&d.locker, 1, 0)
+
 }
 
 // DispatchCryptop creates the dispatcher and returns its control structure.
@@ -146,13 +166,14 @@ func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOu
 
 	//Creates the internal dispatch structure
 	d := &dispatch{cryptop: cryptop, DispatchBuilder: *db,
-		inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0}
+		inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0, locker: 1}
 
 	//runs the dispatcher
 	go d.dispatcher()
 
 	//creates the  dispatch control structure
-	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, QuitChannel: chQuit}
+	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, QuitChannel: chQuit,
+		dispatchLocker: &d.locker}
 
 	return dc
 
