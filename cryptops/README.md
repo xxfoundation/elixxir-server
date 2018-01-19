@@ -174,11 +174,11 @@ When writing your cryptop, put the elements in the file in the following order:
 ``` golang
 type Cryptop struct {}
 type SlotCryptopIn struct {...}
-func (e * SlotCryptopIn) SlotID() uint64 {...}
+func (c * SlotCryptopIn) SlotID() uint64 {...}
 type SlotCryptopOut struct {...}
-func (e * SlotCryptopOut) SlotID() uint64 {...}
+func (c * SlotCryptopOut) SlotID() uint64 {...}
 type KeysCryptop struct {...}
-func (e Cryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {...}
-func (e Cryptop) Run(g * cyclic.Group, in *SlotCryptopIn, out *SlotCryptopOut, keys *KeysCryptop ) Slot {...}
+func (c Cryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {...}
+func (c Cryptop) Run(g * cyclic.Group, in *SlotCryptopIn, out *SlotCryptopOut, keys *KeysCryptop ) Slot {...}
 func buildCryptoCryptop(...) {...}
 ```
