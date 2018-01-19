@@ -12,7 +12,7 @@ import (
 // Seconds Unpermuted Internode Message Keys int the Message Precomputation
 type Encrypt struct{}
 
-// MessageEncrypt is used to pass external data into Encrypt and to
+// SlotEncrypt is used to pass external data into Encrypt and to
 // pass the results out of Encrypt
 type SlotEncrypt struct {
 	//Slot Number of the Data
