@@ -37,7 +37,7 @@ Where `Cryptop` is the name of the Cryptop.  For example, for the Encrypt Phase,
 type SlotEncrypt struct {...}
 ```
  
-If the incoming and outgoing data is identical, both input and output can use the same message structure.
+If the incoming and outgoing data is identical, both input and output can use the same slot structure.
 If that is not true, two Slots must be used.  In that case, add the words In and Out to the end of the Slot names as follows:
 
 ``` golang
@@ -131,12 +131,12 @@ Run Function
 The `Run` Function is not present in the Cryptop interface because it is called via reflection.
 This allows it to be a pure crypto function without and dereferencing or type casing.
 The function must be named `Run`, with the first element a pointer to the group object, 
-the second a pointer to the input message object, the third a pointer to the output message object, 
-and the last a pointer to the key object. It must return the `Message` Interface.
+the second a pointer to the input slot object, the third a pointer to the output slot object, 
+and the last a pointer to the key object. It must return the `services.Slot` Interface.
 For the Encrypt Cryptop, the signature for the `Run` function is as follows:
 
 ``` golang
-func (e Encrypt) Run(g * cyclic.Group, in, out *MessageEncrypt, keys *KeysEncrypt) Message {...}
+func (e Encrypt) Run(g * cyclic.Group, in, out *SlotEncrypt, keys *KeysEncrypt) services.Slot {...}
 ```
  
 `Run` should have no conditional or branching statements inside of it.
@@ -159,7 +159,7 @@ For the Encrypt structure it would look like this:
 
 ``` golang
 // Implements the realtime Encrypt Phase. In this phase the Second Unpermuted 
-// Internode Message Keys are applies as well as the Reception Keys  
+// Internode Slot Keys are applies as well as the Reception Keys  
 type Encrypt struct {}
 ```
 
@@ -176,7 +176,7 @@ type Cryptop struct {}
 type SlotCryptopIn struct {...}
 func (e * SlotCryptopIn) SlotID() uint64 {...}
 type SlotCryptopOut struct {...}
-func (e * SlotCryptopOut) Slot() uint64 {...}
+func (e * SlotCryptopOut) SlotID() uint64 {...}
 type KeysCryptop struct {...}
 func (e Cryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {...}
 func (e Cryptop) Run(g * cyclic.Group, in *SlotCryptopIn, 
