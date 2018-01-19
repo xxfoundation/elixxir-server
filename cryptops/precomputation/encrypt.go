@@ -59,7 +59,7 @@ func (gen Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBu
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysEncrypt{PublicCypherKey: round.CypherPublicKey,
 			T_INV: round.T_INV[i], Y_T: round.Y_T[i]}
-		keys = append(keys, keySlc)
+		keys[i] = keySlc
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
