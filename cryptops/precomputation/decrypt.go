@@ -38,8 +38,6 @@ type KeysDecrypt struct {
 
 	// Public Key for entire round generated in Share Phase
 	PublicCypherKey *cyclic.Int
-	// Global Homomorphic Generator
-	GlobalHomomorphicGenerator *cyclic.Int
 	// Message Public Key Inverse
 	R_INV *cyclic.Int
 	// Message Private Key
@@ -72,8 +70,8 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	// Link the keys for decryption
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysDecrypt{PublicCypherKey: round.CypherPublicKey,
-			GlobalHomomorphicGenerator: node.Grp.G, R_INV: round.R_INV[i],
-			Y_R: round.Y_R[i], U_INV: round.U_INV[i], Y_U: round.Y_U[i]}
+			R_INV: round.R_INV[i], Y_R: round.Y_R[i],
+			U_INV: round.U_INV[i], Y_U: round.Y_U[i]}
 		keys = append(keys, keySlc)
 	}
 
@@ -89,12 +87,12 @@ func (d Decrypt) Run(g *cyclic.Group, in, out *SlotDecrypt, keys *KeysDecrypt) s
 	tmp := cyclic.NewMaxInt()
 
 	// Eq 12.1: Combine First Unpermuted Internode Message Keys
-	g.Exp(keys.GlobalHomomorphicGenerator, keys.Y_R, tmp)
+	g.Exp(g.G, keys.Y_R, tmp)
 	g.Mul(keys.R_INV, tmp, tmp)
 	g.Mul(in.EncryptedMessageKeys, tmp, out.EncryptedMessageKeys)
 
 	// Eq 12.3: Combine First Unpermuted Internode Recipient Keys
-	g.Exp(keys.GlobalHomomorphicGenerator, keys.Y_U, tmp)
+	g.Exp(g.G, keys.Y_U, tmp)
 	g.Mul(keys.U_INV, tmp, tmp)
 	g.Mul(in.EncryptedRecipientIDKeys, tmp, out.EncryptedRecipientIDKeys)
 
