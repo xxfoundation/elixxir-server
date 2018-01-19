@@ -1,8 +1,8 @@
-# Dispatcher Style Guide
+# Cryptops Style Guide
  
 When creating a Cryptop, there are 5 main things that need to be created: the Cryptop Structure, a message structure, 
 a key structure, a `Build` function, and a `Run` function.
-The file precomputation/encrypt.go has been implemented in accordance with this document as an example.
+The file `precomputation/encrypt.go` has been implemented in accordance with this document as an example.
 
 Cryptop Structure
 ---
