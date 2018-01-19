@@ -179,7 +179,6 @@ type SlotCryptopOut struct {...}
 func (e * SlotCryptopOut) SlotID() uint64 {...}
 type KeysCryptop struct {...}
 func (e Cryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {...}
-func (e Cryptop) Run(g * cyclic.Group, in *SlotCryptopIn, 
-out *SlotCryptopOut, keys *KeysCryptop ) Slot {...}
+func (e Cryptop) Run(g * cyclic.Group, in *SlotCryptopIn, out *SlotCryptopOut, keys *KeysCryptop ) Slot {...}
 func buildCryptoCryptop(...) {...}
 ```
