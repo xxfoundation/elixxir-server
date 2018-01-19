@@ -4,6 +4,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/node"
 	"testing"
+	"time"
 )
 
 type testMessage struct {
@@ -115,5 +116,28 @@ func TestDispatchCryptop(t *testing.T) {
 	}
 
 	println("Dispatcher", pass, "out of", test, "tests passed.")
+
+}
+
+func TestDispatchController_IsAlive(t *testing.T) {
+
+	round := node.NewRound(uint64(4))
+
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+
+	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12), rng)
+
+	dc := DispatchCryptop(&grp, testCryptop{}, nil, nil, round)
+
+	if !dc.IsAlive() {
+		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
+	}
+
+	dc.Kill()
+	time.Sleep(100000)
+
+	if dc.IsAlive() {
+		t.Errorf("IsAlive: Expected dispatch to be dead after Kill signal!")
+	}
 
 }

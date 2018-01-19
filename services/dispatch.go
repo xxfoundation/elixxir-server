@@ -38,6 +38,11 @@ func (dc DispatchController) IsAlive() bool {
 	return atomic.LoadUint32(dc.dispatchLocker) == 1
 }
 
+// Sends a Quit signal to the DispatchController
+func (dc DispatchController) Kill() {
+	dc.QuitChannel <- true
+}
+
 // Cryptop is the interface which contains the cryptop
 type CryptographicOperation interface {
 	// Run is the function which executes the cryptographic operation
@@ -82,7 +87,8 @@ type dispatch struct {
 	//Counter of how many messages have been processed
 	batchCntr uint64
 
-	// Boolean locker for determining whether the dispatcher is still running
+	// Locker for determining whether the dispatcher is still running
+	// 1 = True, 0 = False
 	locker uint32
 }
 
