@@ -9,11 +9,12 @@ import (
 )
 
 // Decrypt phase transforms first unpermuted internode keys
-// and partial cipher texts into the data that the permute phase needs
+// and partial cypher texts into the data that the permute phase needs
 type Decrypt struct{}
 
 // SlotDecrypt is used to pass external data into Decrypt and to pass the results out of Decrypt
 type SlotDecrypt struct {
+
 	//Slot Number of the Data
 	slot uint64
 
@@ -34,6 +35,7 @@ func (e *SlotDecrypt) SlotID() uint64 {
 
 // KeysDecrypt holds the keys used by the Decrypt Operation
 type KeysDecrypt struct {
+
 	// Public Key for entire round generated in Share Phase
 	PublicCypherKey *cyclic.Int
 	// Global Homomorphic Generator
