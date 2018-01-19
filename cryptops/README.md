@@ -1,8 +1,10 @@
 # Cryptops Style Guide
  
-When creating a Cryptop, there are 5 main things that need to be created: the Cryptop Structure, a message structure, 
-a key structure, a `Build` function, and a `Run` function.
+When creating a Cryptop, there are 5 main things that need to be created: the Cryptop Structure, a Slot Structure, 
+a Key Structure, a `Build` function, and a `Run` function.
 The file `precomputation/encrypt.go` has been implemented in accordance with this document as an example.
+
+The CMIX Doc refereed to in this Style Guide can be found [here](https://drive.google.com/open?id=1ha8QtUI9Tk_sCIKWN-QE8YHZ7AKofKrV) 
 
 Cryptop Structure
 ---
@@ -18,46 +20,53 @@ type Encrypt struct { }
 Make sure the name is exported by capitalizing the first letter. This is how the Cryptop will be identified. 
 Because it is already in a package named either realtime or precomputation, that designation will be used to identify it.
  
-Message Structure
+Slot Structure
 ---
 
-A message structure is what is used to send data in and out of the Cryptop. It must comply with the Message interface 
-in services.  Most Cryptops use the same message structure for incoming data as for outgoing data, but a few 
-need different ones.  When using only one message structure, name them:
+A Slot Structure is what is used to send data in and out of the Cryptop. It must comply with the `services.Slot` interface 
+in `services/dispatch.go`.  Most Cryptops use the same Slot Structure for incoming data as for outgoing data, but a few 
+need different ones.  When using only one Slot Structure, name it:
  
 ``` go
-type MessageCryptop struct {...}
+type SlotCryptop struct {...}
 ```
  
 Where `Cryptop` is the name of the Cryptop.  For example, for the Encrypt Phase, the name would be:
  
 ``` go
-type MessageEncrypt struct {...}
+type SlotEncrypt struct {...}
 ```
  
 If the incoming and outgoing data is identical, both input and output can use the same message structure.
-If that is not true, two Messages must be used.  In that case, add the words In and Out to the end of the message names.
- 
-#### SLOT
+If that is not true, two Slots must be used.  In that case, add the words In and Out to the end of the Slot names as follows:
 
-The first element in a message structure is always a `uint64` called `slot`. 
-This cannot be read by the dispatcher, so a function called `Slot()` must be used to export the data. 
+``` golang
+type SlotCryptopIn struct {...}
+
+type SlotCryptopOut struct {...}
+```
+ 
+#### SLOTID()
+
+The first element in a Slot structure is always a `uint64` called `slot`. 
+This cannot be read by the dispatcher, so a function called `SlotID()` must be used to export the data. 
 It will just return the slot.  So, for Encrypt, the slot will be implemented as follows:
 
 ``` golang
-type MessageEncrypt struct {
+type SlotEncrypt struct {
    	slot uint64
    	...
 }
    	
-func (e *MessageEncrypt) Slot() uint64 {
+func (e *SlotEncrypt) SlotID() uint64 {
     return (*e).slot
 }
 ```
  
-The rest of the elements in Message should be exported and defined by the I/O definition is the CMIX Document.
-Use the name written in the table (in camel case) for all elements except internode keys and their encryption keys.
-For those, use the letters.
+The Slot object must be passed to the `SlotID()` function by reference for efficiency.
+The rest of the elements in Slot should be exported and defined by the I/O definition is the CMIX Document for the 
+given Phase. Use the name written in the table (in camel case) for all elements except internode keys and their 
+encryption keys. For those, use the letters used in the doc.
  
 Key Structure
 ----
@@ -96,15 +105,15 @@ round := face.(*node.Round)
 ```
  
 After that, all that is done is setup.  In general, look at `dispatch_test.go` for specifics.
-One that that must be mentioned is that there is a special way to build arrays of the messages and keys.
-The arrays need to be made of their interfaces, and then pointers to the structures need to be stored,
-not the structures themselves.  For example, for the messages in encrypt, they are stored as follows:
+It must be mentioned is that there is a special way to build arrays of the Slots and Keys.
+The arrays need to be made of the interface for the types, and then pointers to the structures need to be stored,
+not the structures themselves.  For example, for the slots in encrypt, they are stored as follows:
 
 ``` golang
-om := make(services.[]Message, round.BatchSize)
+om := make([]services.Slot, round.BatchSize)
  
 for i := uint64(0); i < round.BatchSize; i++ {
-   	om[i] = &MessageEncrypt{slot: i, ...}
+   	om[i] = &SlotEncrypt{slot: i, ...}
 }
 ```
  
@@ -133,12 +142,11 @@ func (e Encrypt) Run(g * cyclic.Group, in, out *MessageEncrypt, keys *KeysEncryp
 `Run` should have no conditional or branching statements inside of it.
 It is allowed to allocate temp variables, but they should be named `tmp`.
 If there are more than one, they should be named `tmp1`, `tmp2`, etc.
-Use as few temporary variables as possible.  Do not create temporary variables on their own.
-All mathematical functions used return the variable sent in for the result, so make the input the `Int` allocator and
-make the function equal to the variable name.  For example:
+Use as few temporary variables as possible. Always use `cyclic.NewMaxInt()` to create new temp
+variables. For example:
 
 ``` golang
-tmp := g.Mul(R,Message,cyclic.NewMaxInt())
+tmp := cyclic.NewMaxInt()
 ```
  
 `Run` must return the `out` object.
@@ -165,14 +173,13 @@ When writing your cryptop, put the elements in the file in the following order:
 
 ``` golang
 type Cryptop struct {}
-type MessageCryptopIn struct {...}
-func (e * MessageCryptopIn) Slot() uint64 {...}
-type MessageCryptopOut struct {...}
-func (e * MessageCryptopOut) Slot() uint64 {...}
+type SlotCryptopIn struct {...}
+func (e * SlotCryptopIn) SlotID() uint64 {...}
+type SlotCryptopOut struct {...}
+func (e * SlotCryptopOut) Slot() uint64 {...}
 type KeysCryptop struct {...}
 func (e Cryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {...}
-func (e Cryptop) Run(g * cyclic.Group, in *MessageCryptopIn, 
-out *MessageCryptopOut, keys *KeysCryptop ) Message {...}
+func (e Cryptop) Run(g * cyclic.Group, in *SlotCryptopIn, 
+out *SlotCryptopOut, keys *KeysCryptop ) Slot {...}
 func buildCryptoCryptop(...) {...}
-func cryptop(...) {...}
 ```

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPrecompEncrypt(t *testing.T) {
+func TestEncrypt(t *testing.T) {
 	// NOTE: Does not test correctness
 
 	test := 3
@@ -17,18 +17,16 @@ func TestPrecompEncrypt(t *testing.T) {
 
 	round := node.NewRound(bs)
 
-	var im []*services.Message
-
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(55), rng)
 
 	node.Grp = &grp
 
-	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
-		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(13)),
-		cyclic.NewInt(int64(41)), cyclic.NewInt(int64(74)),
-	}})
+	var im []services.Slot
+
+	im = append(im, &SlotEncrypt{slot: 0, EncryptedMessageKeys: cyclic.NewInt(55),
+		PartialMessageCypherText: cyclic.NewInt(64)})
 
 	im = append(im, &services.Message{uint64(1), []*cyclic.Int{
 		cyclic.NewInt(int64(86)), cyclic.NewInt(int64(87)),

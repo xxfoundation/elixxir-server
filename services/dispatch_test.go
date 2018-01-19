@@ -7,23 +7,23 @@ import (
 	"time"
 )
 
-type testMessage struct {
+type Test struct{}
+
+type SlotTest struct {
 	slot uint64
 
 	A *cyclic.Int
 }
 
-func (tm testMessage) Slot() uint64 {
-	return tm.slot
+func (ts SlotTest) SlotID() uint64 {
+	return ts.slot
 }
 
-type testKeys struct {
+type KeysTest struct {
 	R *cyclic.Int
 }
 
-type testCryptop struct{}
-
-func (cry testCryptop) Run(g *cyclic.Group, in, out *testMessage, keys *testKeys) Message {
+func (cry Test) Run(g *cyclic.Group, in, out *SlotTest, keys *KeysTest) Slot {
 
 	out.A.Add(in.A, keys.R)
 
@@ -32,20 +32,20 @@ func (cry testCryptop) Run(g *cyclic.Group, in, out *testMessage, keys *testKeys
 	return out
 }
 
-func (cry testCryptop) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
+func (cry Test) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 
 	round := face.(*node.Round)
 
-	om := make([]Message, round.BatchSize)
+	om := make([]Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &testMessage{slot: i, A: cyclic.NewMaxInt()}
+		om[i] = &SlotTest{slot: i, A: cyclic.NewMaxInt()}
 	}
 
 	keys := make([]NodeKeys, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keys[i] = &testKeys{R: round.R[i]}
+		keys[i] = &KeysTest{R: round.R[i]}
 	}
 
 	db := DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
@@ -62,11 +62,11 @@ func TestDispatchCryptop(t *testing.T) {
 
 	round := node.NewRound(bs)
 
-	var im []Message
+	var im []Slot
 
 	i := uint64(0)
 	for i < bs {
-		im = append(im, &testMessage{slot: uint64(i), A: cyclic.NewInt(int64(i + 1))})
+		im = append(im, &SlotTest{slot: uint64(i), A: cyclic.NewInt(int64(i + 1))})
 		round.R[i] = cyclic.NewInt(int64(2 * (i + 1)))
 		i++
 	}
@@ -79,7 +79,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12), rng)
 
-	dc := DispatchCryptop(&grp, testCryptop{}, nil, nil, round)
+	dc := DispatchCryptop(&grp, Test{}, nil, nil, round)
 
 	if dc.IsAlive() {
 		pass++
@@ -91,7 +91,7 @@ func TestDispatchCryptop(t *testing.T) {
 		dc.InChannel <- &im[i]
 		trn := <-dc.OutChannel
 
-		rtn := (*trn).(*testMessage)
+		rtn := (*trn).(*SlotTest)
 
 		if rtn.A.Cmp(result[i]) != 0 {
 			t.Errorf("Test of Dispatcher failed at index: %v Expected: %v;",
@@ -127,7 +127,7 @@ func TestDispatchController_IsAlive(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12), rng)
 
-	dc := DispatchCryptop(&grp, testCryptop{}, nil, nil, round)
+	dc := DispatchCryptop(&grp, Test{}, nil, nil, round)
 
 	if !dc.IsAlive() {
 		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
