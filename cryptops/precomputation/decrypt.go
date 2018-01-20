@@ -72,7 +72,7 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		keySlc := &KeysDecrypt{PublicCypherKey: round.CypherPublicKey,
 			R_INV: round.R_INV[i], Y_R: round.Y_R[i],
 			U_INV: round.U_INV[i], Y_U: round.Y_U[i]}
-		keys = append(keys, keySlc)
+		keys[i] = keySlc
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}

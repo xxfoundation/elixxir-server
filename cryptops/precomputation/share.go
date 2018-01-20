@@ -52,7 +52,7 @@ func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	// Link the keys for sharing
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysShare{PrivateCypherKey: round.Z}
-		keys = append(keys, keySlc)
+		keys[i] = keySlc
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
