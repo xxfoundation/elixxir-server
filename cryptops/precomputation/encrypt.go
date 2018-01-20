@@ -8,19 +8,18 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Encrypt implements the Encrypt Phase of the Precomputation.  It adds the
+// Encrypt implements the Encrypt Phase of the Precomputation. It adds the
 // Seconds Unpermuted Internode Message Keys int the Message Precomputation
 type Encrypt struct{}
 
-// SlotEncrypt is used to pass external data into Encrypt and to
-// pass the results out of Encrypt
+// SlotEncrypt is used to pass external data into Encrypt and to pass the results out of Encrypt
 type SlotEncrypt struct {
-	//Slot Number of the Data
+	// Slot Number of the Data
 	slot uint64
 
-	//Partial Precomputation for the Messages
+	// Partial Precomputation for the Messages
 	EncryptedMessageKeys *cyclic.Int
-	//Partial Cypher Text for the Message Precomputation
+	// Partial Cypher Text for the Message Precomputation
 	PartialMessageCypherText *cyclic.Int
 }
 
@@ -40,12 +39,12 @@ type KeysEncrypt struct {
 }
 
 // Allocated memory and arranges key objects for the Precomputation Encrypt Phase
-func (gen Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
-	//get round from the empty interface
+	// Get round from the empty interface
 	round := face.(*node.Round)
 
-	//Allocate Memory for output
+	// Allocate Memory for output
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
@@ -55,7 +54,7 @@ func (gen Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBu
 
 	keys := make([]services.NodeKeys, round.BatchSize)
 
-	//Link the keys for encryption
+	// Link the keys for encryption
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysEncrypt{PublicCypherKey: round.CypherPublicKey,
 			T_INV: round.T_INV[i], Y_T: round.Y_T[i]}
@@ -68,26 +67,24 @@ func (gen Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBu
 
 }
 
+// Output of the Permute Phase is passed to the first Node which multiplies in its Encrypted
+// Second Unpermuted Message Keys and the associated Private Keys into the Partial Message Cypher Test.
 func (e Encrypt) Run(g *cyclic.Group, in, out *SlotEncrypt, keys *KeysEncrypt) services.Slot {
-	// Output of the Permute Phase is passed to the first Node which multiplies in its Encrypted
-	// Second Unpermuted Message Keys and the associated Private Keys into the Partial Message Cypher Test.
 
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-	// Homomorphicly encrypt the Inverse Second Unpermuted Internode Message Key. Eq 11.1
+	// Eq 11.1: Homomorphicly encrypt the Inverse Second Unpermuted Internode Message Key.
 	g.Exp(g.G, keys.Y_T, tmp)
 	g.Mul(keys.T_INV, tmp, tmp)
 
-	// Multiply the encrypted Inverse Second Unpermuted Internode Message Key into
-	// the partial precomputation. Eq 14.5
+	// Eq 14.5: Multiply the encrypted Inverse Second Unpermuted Internode Message Key into the partial precomputation.
 	g.Mul(in.EncryptedMessageKeys, tmp, out.EncryptedMessageKeys)
 
-	// Create the Inverse Second Unpermuted Internode Message Public Key. Eq 11.2
+	// Eq 11.2: Create the Inverse Second Unpermuted Internode Message Public Key.
 	g.Exp(keys.PublicCypherKey, keys.Y_T, tmp)
 
-	// Multiply cypher the Inverse Second Unpermuted Internode Message Public Key
-	// into the Partial Cypher Text
+	// Multiply cypher the Inverse Second Unpermuted Internode Message Public Key into the Partial Cypher Text.
 	g.Mul(in.PartialMessageCypherText, tmp, out.PartialMessageCypherText)
 
 	return out
