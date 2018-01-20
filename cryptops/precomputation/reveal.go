@@ -1,3 +1,5 @@
+// Implements the Precomputation Reveal phase
+
 package precomputation
 
 import (
@@ -6,8 +8,12 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
+// Reveal implements the Reveal phase of the precomputation. It removes the
+// cypher keys from the message and recipient cypher text, revealing the
+// private keys for the round
 type Reveal struct{}
 
+// (r Reveal) Run() uses SlotReveal structs to pass data into and out of Reveal
 type SlotReveal struct {
 	// Slot number
 	slot uint64
@@ -18,11 +24,15 @@ type SlotReveal struct {
 	PartialRecipientCypherText *cyclic.Int
 }
 
+// SlotID() gets the slot number
 func (r *SlotReveal) SlotID() uint64 {
 	return r.slot
 }
 
+// KeysReveal holds the keys used by the Reveal operation
 type KeysReveal struct {
+	// Private cypher key for all messages in the round
+	// Generated in Generation phase
 	PrivateCypherKey *cyclic.Int
 }
 
