@@ -16,7 +16,6 @@ type Decrypt struct{}
 type SlotDecrypt struct {
 	//Slot Number of the Data
 	slot uint64
-
 	// Eq 12.9: First unpermuted internode message key from previous node
 	EncryptedMessageKeys *cyclic.Int
 	// Eq 12.11: First unpermuted internode recipient ID key from previous node
@@ -56,20 +55,26 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotDecrypt{slot: i,
+		om[i] = &SlotDecrypt{
+			slot:                         i,
 			EncryptedMessageKeys:         cyclic.NewMaxInt(),
 			PartialMessageCypherText:     cyclic.NewMaxInt(),
 			EncryptedRecipientIDKeys:     cyclic.NewMaxInt(),
-			PartialRecipientIDCypherText: cyclic.NewMaxInt()}
+			PartialRecipientIDCypherText: cyclic.NewMaxInt(),
+		}
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Link the keys for decryption
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysDecrypt{PublicCypherKey: round.CypherPublicKey,
-			R_INV: round.R_INV[i], Y_R: round.Y_R[i],
-			U_INV: round.U_INV[i], Y_U: round.Y_U[i]}
+		keySlc := &KeysDecrypt{
+			PublicCypherKey: round.CypherPublicKey,
+			R_INV:           round.R_INV[i],
+			Y_R:             round.Y_R[i],
+			U_INV:           round.U_INV[i],
+			Y_U:             round.Y_U[i],
+		}
 		keys[i] = keySlc
 	}
 

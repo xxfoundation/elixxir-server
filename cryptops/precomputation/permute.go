@@ -45,11 +45,13 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotPermute{slot: i,
+		om[i] = &SlotPermute{
+			slot:                         i,
 			EncryptedMessageKeys:         cyclic.NewMaxInt(),
 			EncryptedRecipientIDKeys:     cyclic.NewMaxInt(),
 			PartialMessageCypherText:     cyclic.NewMaxInt(),
-			PartialRecipientIDCypherText: cyclic.NewMaxInt()}
+			PartialRecipientIDCypherText: cyclic.NewMaxInt(),
+		}
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)

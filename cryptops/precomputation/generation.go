@@ -38,7 +38,9 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.Dispatc
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotGeneration{slot: i} // TODO
+		om[i] = &SlotGeneration{
+			slot: i,
+		} // TODO
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
