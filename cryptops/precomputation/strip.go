@@ -1,5 +1,3 @@
-// Implements the Precomputation Strip phase
-
 package precomputation
 
 import (

@@ -1,10 +1,13 @@
+// Package services contains a dispatcher interface and functions which
+// facilitate communication between the different cryptop phases.
 package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
-// Struct which contains a chunck of cryptographic data to be operated on
+// Message is a struct which contains a chunck of cryptographic data to be
+// operated on.
 type Message struct {
 	//Slot of the message
 	Slot uint64
@@ -12,8 +15,8 @@ type Message struct {
 	Data []*cyclic.Int
 }
 
-// Creates a new message with a datasize of the given width filled with
-// globals.Max4192BitInt
+// NewMessage creates a new message with a datasize of the given width
+// filled with globals.Max4192BitInt.
 func NewMessage(slot, width uint64, val *cyclic.Int) *Message {
 	ml := make([]*cyclic.Int, width)
 
@@ -52,7 +55,7 @@ type DispatchController struct {
 	QuitChannel chan<- bool
 }
 
-// Cryptop is the interface which contains the cryptop
+// CryptographicOperation is the interface which contains the cryptop.
 type CryptographicOperation interface {
 	// Run is the function which executes the cryptogrphic operation
 	// in is the data coming in to be operated on
@@ -65,7 +68,8 @@ type CryptographicOperation interface {
 	Build(g *cyclic.Group, face interface{}) *DispatchBuilder
 }
 
-// Contains the data required to configure the dispatcher and to execute "run"
+// DispatchBuilder contains the data required to configure the dispatcher
+// and to execute "run".
 type DispatchBuilder struct {
 	// Size of the batch the cryptop is to be run on
 	BatchSize uint64
@@ -77,7 +81,7 @@ type DispatchBuilder struct {
 	G *cyclic.Group
 }
 
-// Private struct containing the control data in the cryptop
+// dispatch is a private struct containing the control data in the cryptop
 type dispatch struct {
 	noCopy noCopy
 
@@ -97,7 +101,7 @@ type dispatch struct {
 	batchCntr uint64
 }
 
-//Function which actually does the dispatching
+// dispatcher is the function which actually does the dispatching
 func (d *dispatch) dispatcher() {
 
 	q := false

@@ -1,5 +1,19 @@
-// Implements the Realtime Decrypt phase
-
+// Package realtime implements the realtime cryptographic phases of the cMix
+// protocol as detailed in the cMix technical doc. To decrypt messages, the
+// system goes through five phases, which are Decrypt, Permute, Identify,
+// Encrypt, and Peel.
+//
+// The Decrypt phase removes the encryption added by the Client while
+// simultaneously encrypting the message with unpermuted internode keys.
+//
+// The Permute phase mixes the slots, discarding information regarding who
+// the sender is, while encrypting with permuted internode keys.
+//
+// The Identify phase fully decrypts all internode keys from the recipient.
+//
+// The Encrypt phase encrypts for the recipient.
+//
+// The peel phase removes the internode keys.
 package realtime
 
 import (
