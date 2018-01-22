@@ -30,7 +30,7 @@ func (e *SlotEncrypt) SlotID() uint64 {
 // KeysEncrypt holds the keys used by the Encrypt Operation
 type KeysEncrypt struct {
 	// Public Key for entire round generated in Share Phase
-	PublicCypherKey *cyclic.Int
+	CypherPublicKey *cyclic.Int
 	// Inverse Second Unpermuted Internode Message Key
 	T_INV *cyclic.Int
 	// Second Unpermuted Internode Message Private Key
@@ -59,7 +59,7 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	// Link the keys for encryption
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysEncrypt{
-			PublicCypherKey: round.CypherPublicKey,
+			CypherPublicKey: round.CypherPublicKey,
 			T_INV:           round.T_INV[i],
 			Y_T:             round.Y_T[i],
 		}
@@ -87,7 +87,7 @@ func (e Encrypt) Run(g *cyclic.Group, in, out *SlotEncrypt, keys *KeysEncrypt) s
 	g.Mul(in.EncryptedMessageKeys, tmp, out.EncryptedMessageKeys)
 
 	// Eq 11.2: Create the Inverse Second Unpermuted Internode Message Public Key.
-	g.Exp(keys.PublicCypherKey, keys.Y_T, tmp)
+	g.Exp(keys.CypherPublicKey, keys.Y_T, tmp)
 
 	// Multiply cypher the Inverse Second Unpermuted Internode Message Public Key into the Partial Cypher Text.
 	g.Mul(in.PartialMessageCypherText, tmp, out.PartialMessageCypherText)
