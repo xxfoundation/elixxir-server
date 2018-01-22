@@ -59,17 +59,10 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		// Pointers to the Message & Recipient Precomputations
-		msgPrecomp := cyclic.NewMaxInt()
-		recPrecomp := cyclic.NewMaxInt()
-
-		om[i] = &SlotStripOut{slot: i,
-			MessagePrecomputation:   msgPrecomp,
-			RecipientPrecomputation: recPrecomp}
-
 		// Attach LastNode to SlotStripOut
-		round.LastNode.MessagePrecomputation[i] = msgPrecomp
-		round.LastNode.RecipientPrecomputation[i] = recPrecomp
+		om[i] = &SlotStripOut{slot: i,
+			MessagePrecomputation:   round.LastNode.MessagePrecomputation[i],
+			RecipientPrecomputation: round.LastNode.RecipientPrecomputation[i]}
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
