@@ -1,3 +1,9 @@
+// Package precomputation pre-generates all the internode keys so they can be
+// removed during the realtime Peel Phase all at once. This is done under a
+// custom homomorphic encryption scheme (loosely based off elgamal) to ensure
+// the process does not reveal slot information. A detailed description of the
+// homomorphic encryption methodology can be found in the Appendix of the cMix
+// technical doc.
 package precomputation
 
 import (

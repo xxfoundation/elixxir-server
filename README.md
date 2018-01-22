@@ -13,3 +13,12 @@ verbose: "false"
 servers:
 	- 50002
 	- 50003
+
+GODOC GENERATION
+Generate Godocs:
+    - Open terminal and change current directory to your go/src directory
+    - run the command: godoc -http=localhost:8000 -goroot=./gitlab.com/
+        - this starts a local webserver with the godocs
+    - run the command: open http://localhost:8000/pkg/
+        - alternatively open a browser and insert the url manually
+   

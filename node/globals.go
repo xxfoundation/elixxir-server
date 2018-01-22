@@ -4,6 +4,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
+// LastNode contains precomputations held only by the last node
 type LastNode struct {
 	// Message Decryption key, AKA PiRST_Inv
 	MessagePrecomputation []*cyclic.Int
@@ -11,7 +12,7 @@ type LastNode struct {
 	RecipientPrecomputation []*cyclic.Int
 }
 
-// The round struct contains the keys and permutations for a given message batch
+// Round contains the keys and permutations for a given message batch
 type Round struct {
 	R            []*cyclic.Int // First unpermuted internode message key
 	S            []*cyclic.Int // Permuted internode message key
@@ -40,10 +41,10 @@ type Round struct {
 	BatchSize uint64
 }
 
-//Group that all operations are done within
+// Grp is the cyclic group that all operations are done within
 var Grp *cyclic.Group
 
-// The Rounds map is a mapping of session identifiers to round structures
+// Rounds is a mapping of session identifiers to round structures
 var Rounds map[string]*Round
 
 var TestArray = [2]float32{.03, .02}

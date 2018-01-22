@@ -1,3 +1,4 @@
+// Package node contains the initialization and main loop of a cMix server.
 package node
 
 import (
@@ -56,9 +57,6 @@ func Run(servers []string) {
 }
 
 // StartServer reads configuration options and starts the cMix server
-
-// Create directory ".privategrity" in home folder and add
-//     config file "server.yaml"
 func StartServer() {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
@@ -68,7 +66,7 @@ func StartServer() {
 }
 
 // getServers pulls a string slice of server ports from the config file and
-// converts it to an int slice
+// verifies that the ports are valid.
 func getServers() []string {
 	servers := viper.GetStringSlice("servers")
 	if servers == nil {

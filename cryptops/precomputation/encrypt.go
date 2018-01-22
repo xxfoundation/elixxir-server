@@ -1,5 +1,3 @@
-// Implements the Precomputation Encrypt phase
-
 package precomputation
 
 import (
@@ -10,6 +8,8 @@ import (
 
 type PrecompEncrypt struct{}
 
+// Build (PrecompEncrypt) allocates memory and links keys for the Encrypt phase
+// of precomputation.
 func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	//get round from the empty interface
@@ -38,9 +38,14 @@ func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.Dis
 
 }
 
-func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
-	// Output of the Permute Phase is passed to the first Node which multiplies in its Encrypted
-	// Second Unpermuted Message Keys and the associated Private Keys into the Partial Message Cypher Test.
+// Run (PrecompEncrypt) executes the Encrypt phase of precomputation as
+// detailed in the cMix technical document.
+
+// Output of the Permute Phase is passed to the first Node which multiplies
+// in its "Encrypted second unpermuted message keys" and the associated
+// private keys into the Partial Message Cypher Text.
+func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message,
+	saved *[]*cyclic.Int) *services.Message {
 
 	// Obtain T^-1, Y_T, and g
 	T_INV, Y_T, serverG, globalCypherKey := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
@@ -60,10 +65,10 @@ func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message, saved 
 
 }
 
+// Helper function for PrecompEncrypt Run
 func encryptRunHelper(g *cyclic.Group, T_INV, Y_T, serverG,
 	globalCypherKey, msgInput, cypherInput,
 	encryptedMessageKey, messageCypherText, tmp *cyclic.Int) {
-	// Helper function for PrecompEncrypt Run
 
 	// Calculate g^(Y_T) into temp index of out.Data
 	g.Exp(serverG, Y_T, tmp)

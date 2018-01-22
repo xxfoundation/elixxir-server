@@ -1,5 +1,3 @@
-// Implements the Precomputation Share phase
-
 package precomputation
 
 import (
