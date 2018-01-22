@@ -84,6 +84,7 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 }
 
+// Multiplies in own Encrypted Keys and Partial Cypher Texts
 func (d Decrypt) Run(g *cyclic.Group, in, out *SlotDecrypt, keys *KeysDecrypt) services.Slot {
 
 	// Create Temporary variable

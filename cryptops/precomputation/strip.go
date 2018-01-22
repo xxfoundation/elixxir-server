@@ -85,22 +85,23 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 
 }
 
+// Remove Homomorphic Encryption to reveal the Message and Recipient Precomputation
 func (s Strip) Run(g *cyclic.Group, in *SlotStripIn, out *SlotStripOut, keys *KeysStrip) services.Slot {
 
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-	// Invert the round message private key
+	// Eq 16.1: Invert the round message private key
 	g.Inverse(keys.RoundMessagePrivateKey, tmp)
 
-	// Use the inverted round message private key to remove the homomorphic encryption
+	// Eq 16.1: Use the inverted round message private key to remove the homomorphic encryption
 	// from encrypted message key and reveal the message precomputation
 	g.Mul(tmp, in.EncryptedMessageKeys, out.MessagePrecomputation)
 
-	// Invert the round recipient private key
+	// Eq 16.2: Invert the round recipient private key
 	g.Inverse(keys.RoundRecipientPrivateKey, tmp)
 
-	// Use the inverted round recipient private key to remove the homomorphic encryption
+	// Eq 16.2: Use the inverted round recipient private key to remove the homomorphic encryption
 	// from encrypted recipient key and reveal the recipient precomputation
 	g.Mul(tmp, in.EncryptedRecipientKeys, out.RecipientPrecomputation)
 

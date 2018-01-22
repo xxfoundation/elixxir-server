@@ -68,6 +68,7 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 }
 
+// TODO
 func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) services.Slot {
 
 	// Create Temporary variable
