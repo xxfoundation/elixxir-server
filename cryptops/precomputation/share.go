@@ -13,7 +13,6 @@ type Share struct{}
 
 // SlotShare is used to pass external data into Share and to pass the results out of Share
 type SlotShare struct {
-
 	//Slot Number of the Data
 	slot uint64
 
@@ -28,7 +27,6 @@ func (e *SlotShare) SlotID() uint64 {
 
 // KeysShare holds the keys used by the Share Operation
 type KeysShare struct {
-
 	// Private Cypher Key
 	PrivateCypherKey *cyclic.Int
 }
