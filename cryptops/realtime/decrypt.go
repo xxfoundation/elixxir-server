@@ -110,6 +110,9 @@ func (d Decrypt) Run(g *cyclic.Group, in *SlotDecryptIn, out *SlotDecryptOut, ke
 	// Eq 3.3
 	g.Mul(in.EncryptedRecipientID, tmp, out.EncryptedRecipientID)
 
+	// Pass through SenderID
+	out.SenderID = in.SenderID
+
 	return out
 
 }
