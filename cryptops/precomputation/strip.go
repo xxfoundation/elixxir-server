@@ -16,9 +16,9 @@ type Strip struct{}
 type SlotStripIn struct {
 	//Slot Number of the Data
 	slot uint64
-	// Eq 16.1
+	// Encrypted but completed message precomputation
 	EncryptedMessageKeys *cyclic.Int
-	// Eq 16.2
+	// Encrypted but completed recipient precomputation
 	EncryptedRecipientKeys *cyclic.Int
 }
 
@@ -26,9 +26,9 @@ type SlotStripIn struct {
 type SlotStripOut struct {
 	//Slot Number of the Data
 	slot uint64
-	// Eq 16.3
+	// Completed Message Precomputation
 	MessagePrecomputation *cyclic.Int
-	// Eq 16.4
+	// Completed Recipient Precomputation
 	RecipientPrecomputation *cyclic.Int
 }
 
