@@ -13,7 +13,7 @@ type Share struct{}
 
 // SlotShare is used to pass external data into Share and to pass the results out of Share
 type SlotShare struct {
-	//Slot Number of the Data
+	// Slot Number of the Data
 	slot uint64
 	// Eq 10.3: Partial result of raising the global generator to the power of each node's Private Cypher Key
 	PartialRoundPublicCypherKey *cyclic.Int
