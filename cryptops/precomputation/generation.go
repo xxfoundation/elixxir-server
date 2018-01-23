@@ -88,19 +88,22 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.Dispatc
 
 // Generate random values for all keys
 func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration, keys *KeysGeneration) services.Slot {
-
+    
+    //Generates a random value within the group for every internode key
 	g.Random(keys.R)
 	g.Random(keys.S)
 	g.Random(keys.T)
 	g.Random(keys.U)
 	g.Random(keys.V)
-
+    
+    //Generates the inverse keys
 	g.Inverse(keys.R, keys.R_INV)
 	g.Inverse(keys.S, keys.S_INV)
 	g.Inverse(keys.T, keys.T_INV)
 	g.Inverse(keys.U, keys.U_INV)
 	g.Inverse(keys.V, keys.V_INV)
-
+    
+    //Generates a random value within the group for every private key
 	g.Random(keys.Y_R)
 	g.Random(keys.Y_S)
 	g.Random(keys.Y_T)
