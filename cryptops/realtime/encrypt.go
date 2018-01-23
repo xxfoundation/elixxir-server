@@ -9,18 +9,19 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Encrypt phase generates a shared ReceptionKey between that node and the client
+// The Encrypt phase adds in the final internode keys while simultaneously 
+// adding in Reception Keys for the recipient.  
 type Encrypt struct{}
 
 // SlotEncrypt is used to pass external data into Encrypt
 type SlotEncryptIn struct {
-	//Slot Number of the Data
+	// Slot Number of the Data
 	slot uint64
-	// Pass through
+	// ID of the client who will recieve the message (Pass through)
 	RecipientID uint64
-	// Eq 6.6
+	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
 	EncryptedMessage *cyclic.Int
-	// Eq 6.6
+	// Shared Key between the client who recieves the message and the node
 	ReceptionKey *cyclic.Int
 }
 
@@ -28,9 +29,9 @@ type SlotEncryptIn struct {
 type SlotEncryptOut struct {
 	//Slot Number of the Data
 	slot uint64
-	// Pass through
+	// ID of the client who will recieve the message (Pass through)
 	RecipientID uint64
-	// Eq 6.7
+	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
 	EncryptedMessage *cyclic.Int
 }
 
@@ -104,10 +105,9 @@ func (e Encrypt) Run(g *cyclic.Group, in *SlotEncryptIn, out *SlotEncryptOut, ke
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-	// Eq 6.6
+	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted 
+	// Internode Keys into the Encrypted Message
 	g.Mul(in.ReceptionKey, keys.T, tmp)
-
-	// Eq 6.6
 	g.Mul(in.EncryptedMessage, tmp, out.EncryptedMessage)
 
 	// Pass through RecipientID
