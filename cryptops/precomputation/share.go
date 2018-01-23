@@ -13,10 +13,8 @@ type Share struct{}
 
 // SlotShare is used to pass external data into Share and to pass the results out of Share
 type SlotShare struct {
-
-	//Slot Number of the Data
+	// Slot Number of the Data
 	slot uint64
-
 	// Eq 10.3: Partial result of raising the global generator to the power of each node's Private Cypher Key
 	PartialRoundPublicCypherKey *cyclic.Int
 }
@@ -28,7 +26,6 @@ func (e *SlotShare) SlotID() uint64 {
 
 // KeysShare holds the keys used by the Share Operation
 type KeysShare struct {
-
 	// Private Cypher Key
 	PrivateCypherKey *cyclic.Int
 }
@@ -43,15 +40,19 @@ func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotShare{slot: i,
-			PartialRoundPublicCypherKey: cyclic.NewMaxInt()}
+		om[i] = &SlotShare{
+			slot: i,
+			PartialRoundPublicCypherKey: cyclic.NewMaxInt(),
+		}
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Link the keys for sharing
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysShare{PrivateCypherKey: round.Z}
+		keySlc := &KeysShare{
+			PrivateCypherKey: round.Z,
+		}
 		keys[i] = keySlc
 	}
 

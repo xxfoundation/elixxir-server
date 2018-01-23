@@ -9,6 +9,10 @@ type LastNode struct {
 	MessagePrecomputation []*cyclic.Int
 	// Recipient ID Decryption Key, AKA PiUV_Inv
 	RecipientPrecomputation []*cyclic.Int
+	// Round Message Private Key
+	RoundMessagePrivateKey []*cyclic.Int
+	// Round Recipient Private Key
+	RoundRecipientPrivateKey []*cyclic.Int
 }
 
 // The round struct contains the keys and permutations for a given message batch
@@ -99,23 +103,23 @@ func NewRound(batchSize uint64) *Round {
 		NR.Y_V[i] = cyclic.NewInt(0)
 		NR.Y_U[i] = cyclic.NewInt(0)
 
-		NR.R[i].SetBytes(cyclic.Max4kBitInt)
-		NR.S[i].SetBytes(cyclic.Max4kBitInt)
-		NR.T[i].SetBytes(cyclic.Max4kBitInt)
-		NR.V[i].SetBytes(cyclic.Max4kBitInt)
-		NR.U[i].SetBytes(cyclic.Max4kBitInt)
+		NR.R[i] = cyclic.NewMaxInt()
+		NR.S[i] = cyclic.NewMaxInt()
+		NR.T[i] = cyclic.NewMaxInt()
+		NR.V[i] = cyclic.NewMaxInt()
+		NR.U[i] = cyclic.NewMaxInt()
 
-		NR.R_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.S_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.T_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.V_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.U_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.R_INV[i] = cyclic.NewMaxInt()
+		NR.S_INV[i] = cyclic.NewMaxInt()
+		NR.T_INV[i] = cyclic.NewMaxInt()
+		NR.V_INV[i] = cyclic.NewMaxInt()
+		NR.U_INV[i] = cyclic.NewMaxInt()
 
-		NR.Y_R[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_S[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_T[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_V[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_U[i].SetBytes(cyclic.Max4kBitInt)
+		NR.Y_R[i] = cyclic.NewMaxInt()
+		NR.Y_S[i] = cyclic.NewMaxInt()
+		NR.Y_T[i] = cyclic.NewMaxInt()
+		NR.Y_V[i] = cyclic.NewMaxInt()
+		NR.Y_U[i] = cyclic.NewMaxInt()
 
 		NR.Permutations[i] = i
 
