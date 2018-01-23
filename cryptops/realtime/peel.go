@@ -38,7 +38,9 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotPeel{slot: i} // TODO
+		om[i] = &SlotPeel{
+			slot: i,
+		} // TODO
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)

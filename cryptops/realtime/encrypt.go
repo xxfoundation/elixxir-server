@@ -38,7 +38,9 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotEncrypt{slot: i} // TODO
+		om[i] = &SlotEncrypt{
+			slot: i,
+		} // TODO
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
