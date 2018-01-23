@@ -10,20 +10,23 @@ import (
 )
 
 // Decrypt phase completely removes the encryption added by the sending client,
-// but the message does not become decrypted because another internal permutation is added
+// while adding in the First Unpermuted Internode Keys.  Becasue the unpermutted
+// keys are added simultaniously, no entropy is lost.
 type Decrypt struct{}
 
 // SlotDecryptIn is used to pass external data into Decrypt
 type SlotDecryptIn struct {
 	//Slot Number of the Data
 	slot uint64
-	// Pass through
+	// ID of the sending client (Pass through)
 	SenderID uint64
-	// Eq 3.5
+	// Message Encrypted with some Transmission Keys and some First Unpermuted 
+	// Internode Message Keys.
 	EncryptedMessage *cyclic.Int
-	// Eq 3.7
+	// Recipient Encrypted with some Transmission Keys and some Unpermuted 
+	// Internode Recipient Keys.
 	EncryptedRecipientID *cyclic.Int
-	// Eq 3.5/7
+	// Next Ratchet of the sender's Transmission key
 	TransmissionKey *cyclic.Int
 }
 
@@ -31,11 +34,13 @@ type SlotDecryptIn struct {
 type SlotDecryptOut struct {
 	//Slot Number of the Data
 	slot uint64
-	// Pass through
+	// ID of the sending client(Pass through)
 	SenderID uint64
-	// Eq 3.6
+	// Message Encrypted with a Transmission Key removed and a First Unpermuted 
+	// Internode Message Key added.
 	EncryptedMessage *cyclic.Int
-	// Eq 3.8
+	// Recipient Encrypted with a Transmission Key removed and an Unpermuted 
+	// Internode Recipient Key added.
 	EncryptedRecipientID *cyclic.Int
 }
 
@@ -66,9 +71,9 @@ func (e *SlotDecryptOut) SlotID() uint64 {
 
 // KeysDecrypt holds the keys used by the Decrypt Operation
 type KeysDecrypt struct {
-	// Eq 3.5: First Unpermuted Internode Message Key
+	// First Unpermuted Internode Message Key
 	R *cyclic.Int
-	// Eq 3.7: Unpermuted Internode Recipient Key
+	// Unpermuted Internode Recipient Key
 	U *cyclic.Int
 }
 
@@ -114,16 +119,16 @@ func (d Decrypt) Run(g *cyclic.Group, in *SlotDecryptIn, out *SlotDecryptOut, ke
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-	// Eq 3.1
+	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key together 
+	// with with Transmission key before modulo multiplying into the 
+	// EncryptedMessage
 	g.Mul(in.TransmissionKey, keys.R, tmp)
-
-	// Eq 3.1
 	g.Mul(in.EncryptedMessage, tmp, out.EncryptedMessage)
 
-	// Eq 3.3
+	// Eq 3.3: Modulo Multiplies the Unpermuted Internode Recipient Key together 
+	// with with Transmission key before modulo multiplying into the 
+	// EncryptedRecipient
 	g.Mul(in.TransmissionKey, keys.U, tmp)
-
-	// Eq 3.3
 	g.Mul(in.EncryptedRecipientID, tmp, out.EncryptedRecipientID)
 
 	// Pass through SenderID
