@@ -8,14 +8,17 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Peel phase TODO
+// Peel phase removes the Internode Keys by multiplying in the precomputation to the encrypted message
 type Peel struct{}
 
 // SlotPeel is used to pass external data into Peel and to pass the results out of Peel
 type SlotPeel struct {
 	//Slot Number of the Data
 	slot uint64
-	// TODO
+	// Eq 7.1
+	EncryptedMessage *cyclic.Int
+	// Pass through
+	RecipientID *cyclic.Int
 }
 
 // SlotID Returns the Slot number
@@ -25,7 +28,8 @@ func (e *SlotPeel) SlotID() uint64 {
 
 // KeysPeel holds the keys used by the Peel Operation
 type KeysPeel struct {
-	// TODO
+	// Eq 7.1
+	MessagePrecomputation *cyclic.Int
 }
 
 // Allocated memory and arranges key objects for the Realtime Peel Phase
@@ -39,15 +43,19 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotPeel{
-			slot: i,
-		} // TODO
+			slot:             i,
+			EncryptedMessage: cyclic.NewMaxInt(),
+			RecipientID:      cyclic.NewMaxInt(),
+		}
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Link the keys for peeling
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysPeel{} // TODO
+		keySlc := &KeysPeel{
+			MessagePrecomputation: round.MessagePrecomputation[i],
+		}
 		keys[i] = keySlc
 	}
 
@@ -57,13 +65,14 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 
 }
 
-// TODO
+// Removes the Internode Keys by multiplying in the precomputation to the encrypted message
 func (p Peel) Run(g *cyclic.Group, in, out *SlotPeel, keys *KeysPeel) services.Slot {
 
-	// Create Temporary variable
-	// tmp := cyclic.NewMaxInt()
+	// Eq 7.1: Multiply in the precomputation
+	g.Mul(in.EncryptedMessage, keys.MessagePrecomputation, out.EncryptedMessage)
 
-	// TODO
+	// Pass through SenderID
+	out.RecipientID = in.RecipientID
 
 	return out
 
