@@ -8,24 +8,45 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Encrypt phase TODO
+// Encrypt phase generates a shared ReceptionKey between that node and the client
 type Encrypt struct{}
 
-// SlotEncrypt is used to pass external data into Encrypt and to pass the results out of Encrypt
-type SlotEncrypt struct {
+// SlotEncrypt is used to pass external data into Encrypt
+type SlotEncryptIn struct {
 	//Slot Number of the Data
 	slot uint64
-	// TODO
+	// Eq 6.6
+	EncryptedMessage *cyclic.Int
+	// Eq 6.6
+	ReceptionKey *cyclic.Int
+	// Pass through
+	RecipientID *cyclic.Int
+}
+
+// SlotEncryptOut is used to pass  the results out of Encrypt
+type SlotEncryptOut struct {
+	//Slot Number of the Data
+	slot uint64
+	// Eq 6.7
+	EncryptedMessage *cyclic.Int
+	// Pass through
+	RecipientID *cyclic.Int
 }
 
 // SlotID Returns the Slot number
-func (e *SlotEncrypt) SlotID() uint64 {
+func (e *SlotEncryptIn) SlotID() uint64 {
+	return e.slot
+}
+
+// SlotID Returns the Slot number
+func (e *SlotEncryptOut) SlotID() uint64 {
 	return e.slot
 }
 
 // KeysEncrypt holds the keys used by the Encrypt Operation
 type KeysEncrypt struct {
-	// TODO
+	// Eq 6.6: Second Unpermuted Internode Message Key
+	T *cyclic.Int
 }
 
 // Allocated memory and arranges key objects for the Realtime Encrypt Phase
@@ -38,16 +59,20 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotEncrypt{
-			slot: i,
-		} // TODO
+		om[i] = &SlotEncryptOut{
+			slot:             i,
+			EncryptedMessage: cyclic.NewMaxInt(),
+			RecipientID:      cyclic.NewMaxInt(),
+		}
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Link the keys for encryption
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysEncrypt{} // TODO
+		keySlc := &KeysEncrypt{
+			T: round.T[i],
+		}
 		keys[i] = keySlc
 	}
 
@@ -57,13 +82,20 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 }
 
-// TODO
-func (e Encrypt) Run(g *cyclic.Group, in, out *SlotEncrypt, keys *KeysEncrypt) services.Slot {
+// Multiplies in the ReceptionKey and the node’s cypher key
+func (e Encrypt) Run(g *cyclic.Group, in *SlotEncryptIn, out *SlotEncryptOut, keys *KeysEncrypt) services.Slot {
 
 	// Create Temporary variable
-	// tmp := cyclic.NewMaxInt()
+	tmp := cyclic.NewMaxInt()
 
-	// TODO
+	// Eq 6.6
+	g.Mul(in.ReceptionKey, keys.T, tmp)
+
+	// Eq 6.6
+	g.Mul(in.EncryptedMessage, tmp, out.EncryptedMessage)
+
+	// Pass through RecipientID
+	out.RecipientID = in.RecipientID
 
 	return out
 
