@@ -15,9 +15,9 @@ type Peel struct{}
 type SlotPeel struct {
 	//Slot Number of the Data
 	slot uint64
-	// Pass through
+	//ID of the client who will recieve the message (Pass through)
 	RecipientID uint64
-	// Eq 7.1
+	// Permuted Message encrypted by all internode keys and the reception keys
 	EncryptedMessage *cyclic.Int
 }
 
@@ -28,7 +28,7 @@ func (e *SlotPeel) SlotID() uint64 {
 
 // KeysPeel holds the keys used by the Peel Operation
 type KeysPeel struct {
-	// Eq 7.1
+	// All message internode keys multiplied together
 	MessagePrecomputation *cyclic.Int
 }
 
