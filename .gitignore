@@ -1,3 +1,4 @@
 *~
 glide.lock
 vendor/
+.idea/*
