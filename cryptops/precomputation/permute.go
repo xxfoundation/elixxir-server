@@ -8,20 +8,24 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Permute phase permutes the four results of the Decrypt phase and multiplies in own keys
+// Permute phase permutes the message keys, the recipient keys, and their cypher
+// text, while multiplying in its own keys.  
 type Permute struct{}
 
-// SlotPermute is used to pass external data into Permute and to pass the results out of Permute
+// SlotPermute is used to pass external data into Permute and to pass the 
+// results out of Permute
 type SlotPermute struct {
 	//Slot Number of the Data
 	slot uint64
-	// Eq 13.9
+	// All of the first unpermuted internode message keys multiuplied 
+	// together under Homomorphic Encryption
 	EncryptedMessageKeys *cyclic.Int
-	// Eq 13.11
+	// All of the unpermuted internode recipeint keys multiuplied together 
+	// under Homomorphic Encryption
 	EncryptedRecipientIDKeys *cyclic.Int
-	// Eq 13.13
+	// Partial Cypher Text for EncryptedMessageKeys
 	PartialMessageCypherText *cyclic.Int
-	// Eq 13.15
+	// Partial Cypher Text for RecipientIDKeys
 	PartialRecipientIDCypherText *cyclic.Int
 }
 
@@ -89,22 +93,38 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-	// Eq 13.1
+	// Eq 11.1: Encrypt the Permuted Internode Message Key under 
+	// Homomorphic Encryption
 	g.Exp(g.G, keys.Y_S, tmp)
 	g.Mul(keys.S_INV, tmp, tmp)
+	
+	// Eq 13.17: Multiplies the Permuted Internode Message Key under Homomorphic 
+	// Encryption into the Partial Encrypted Message Precomputation
 	g.Mul(in.EncryptedMessageKeys, tmp, out.EncryptedMessageKeys)
 
-	// Eq 13.3
+	// Eq 11.1: Encrypt the Permuted Internode Recipient Key under Homomorphic 
+	// Encryption
 	g.Exp(g.G, keys.Y_V, tmp)
 	g.Mul(keys.V_INV, tmp, tmp)
+	
+	// Eq 13.19: Multiplies the Permuted Internode Recipient Key under 
+	// Homomorphic Encryption into the Parial Encrypted Recipient Precomputation
 	g.Mul(in.EncryptedRecipientIDKeys, tmp, out.EncryptedRecipientIDKeys)
 
-	// Eq 13.5
+	// Eq 11.2: Makes the Patial Cypher Text for the Permuted Internode Message 
+	// Key
 	g.Exp(keys.CypherPublicKey, keys.Y_S, tmp)
+	
+	// Eq 13.21: Multiplies the Patial Cypher Text for the Permuted Internode 
+	// Message Key into the Round Message Partial Cypher Text 
 	g.Mul(in.PartialMessageCypherText, tmp, out.PartialMessageCypherText)
 
-	// Eq 13.7
+	// Eq 11.2: Makes the Patial Cypher Text for the Permuted Internode 
+	// Recipient Key
 	g.Exp(keys.CypherPublicKey, keys.Y_V, tmp)
+	
+	// Eq 13.23 Multiplies the Patial Cypher Text for the Permuted Internode 
+	// Recipient Key into the Round Recipient Partial Cypher Text 
 	g.Mul(in.PartialRecipientIDCypherText, tmp, out.PartialRecipientIDCypherText)
 
 	return out
