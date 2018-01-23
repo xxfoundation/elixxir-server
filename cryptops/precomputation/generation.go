@@ -47,7 +47,7 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.Dispatc
 	// Get round from the empty interface
 	round := face.(*node.Round)
 
-	// Create the permutation and generate a Global Cypher Key
+	// Create the permutation and generate a Private Cypher Key
 	buildCryptoGeneration(g, round)
 
 	// Allocate Memory for output
@@ -123,7 +123,7 @@ func buildCryptoGeneration(g *cyclic.Group, round *node.Round) {
 	// Make the Permutation
 	cyclic.Shuffle(&round.Permutations)
 
-	// Generate the Global Cypher Key
+	// Generate the Private Cypher Key
 	g.Random(round.Z)
 
 }
