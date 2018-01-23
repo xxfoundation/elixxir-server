@@ -54,7 +54,7 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 	// Link the keys for peeling
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysPeel{
-			MessagePrecomputation: round.MessagePrecomputation[i],
+			MessagePrecomputation: round.LastNode.MessagePrecomputation[i],
 		}
 		keys[i] = keySlc
 	}
