@@ -16,26 +16,26 @@ type Decrypt struct{}
 type SlotDecryptIn struct {
 	//Slot Number of the Data
 	slot uint64
+	// Pass through
+	SenderID uint64
 	// Eq 3.5
 	EncryptedMessage *cyclic.Int
 	// Eq 3.7
 	EncryptedRecipientID *cyclic.Int
 	// Eq 3.5/7
 	TransmissionKey *cyclic.Int
-	// Pass through
-	SenderID *cyclic.Int
 }
 
 // SlotDecryptOut is used to pass the results out of Decrypt
 type SlotDecryptOut struct {
 	//Slot Number of the Data
 	slot uint64
+	// Pass through
+	SenderID uint64
 	// Eq 3.6
 	EncryptedMessage *cyclic.Int
 	// Eq 3.8
 	EncryptedRecipientID *cyclic.Int
-	// Pass through
-	SenderID *cyclic.Int
 }
 
 // SlotID Returns the Slot number
@@ -70,7 +70,7 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 			slot:                 i,
 			EncryptedMessage:     cyclic.NewMaxInt(),
 			EncryptedRecipientID: cyclic.NewMaxInt(),
-			SenderID:             cyclic.NewMaxInt(),
+			SenderID:             0,
 		}
 	}
 

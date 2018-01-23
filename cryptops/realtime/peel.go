@@ -15,10 +15,10 @@ type Peel struct{}
 type SlotPeel struct {
 	//Slot Number of the Data
 	slot uint64
+	// Pass through
+	RecipientID uint64
 	// Eq 7.1
 	EncryptedMessage *cyclic.Int
-	// Pass through
-	RecipientID *cyclic.Int
 }
 
 // SlotID Returns the Slot number
@@ -45,7 +45,7 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 		om[i] = &SlotPeel{
 			slot:             i,
 			EncryptedMessage: cyclic.NewMaxInt(),
-			RecipientID:      cyclic.NewMaxInt(),
+			RecipientID:      0,
 		}
 	}
 

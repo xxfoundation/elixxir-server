@@ -15,22 +15,22 @@ type Encrypt struct{}
 type SlotEncryptIn struct {
 	//Slot Number of the Data
 	slot uint64
+	// Pass through
+	RecipientID uint64
 	// Eq 6.6
 	EncryptedMessage *cyclic.Int
 	// Eq 6.6
 	ReceptionKey *cyclic.Int
-	// Pass through
-	RecipientID *cyclic.Int
 }
 
 // SlotEncryptOut is used to pass  the results out of Encrypt
 type SlotEncryptOut struct {
 	//Slot Number of the Data
 	slot uint64
+	// Pass through
+	RecipientID uint64
 	// Eq 6.7
 	EncryptedMessage *cyclic.Int
-	// Pass through
-	RecipientID *cyclic.Int
 }
 
 // SlotID Returns the Slot number
@@ -62,7 +62,7 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		om[i] = &SlotEncryptOut{
 			slot:             i,
 			EncryptedMessage: cyclic.NewMaxInt(),
-			RecipientID:      cyclic.NewMaxInt(),
+			RecipientID:      0,
 		}
 	}
 
