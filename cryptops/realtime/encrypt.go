@@ -4,6 +4,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
@@ -36,6 +37,21 @@ type SlotEncryptOut struct {
 // SlotID Returns the Slot number
 func (e *SlotEncryptIn) SlotID() uint64 {
 	return e.slot
+}
+
+// ID of the user for keygen
+func (e *SlotEncryptIn) UserID() uint64 {
+	return e.RecipientID
+}
+
+// Cyclic int to place the key in
+func (e *SlotEncryptIn) Key() *cyclic.Int {
+	return e.ReceptionKey
+}
+
+// Returns the KeyType
+func (e *SlotEncryptIn) GetKeyType() cryptops.KeyType {
+	return cryptops.RECEPTION
 }
 
 // SlotID Returns the Slot number
