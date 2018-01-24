@@ -37,7 +37,8 @@ type KeysReveal struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Reveal phase
-func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (r Reveal) Build(g *cyclic.Group, face interface{}) (
+	*services.DispatchBuilder) {
 	// The empty interface should be castable to a Round
 	round := face.(*node.Round)
 
@@ -59,7 +60,10 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys: &keys,
+		Output: &om, G: g}
 
 	return &db
 }
