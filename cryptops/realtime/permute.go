@@ -61,17 +61,6 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	return &db
 }
 
-func buildCryptoPermute(round *node.Round, outMessages []services.Slot) {
-	// Prepare the permuted output messages
-	for i := uint64(0); i < round.BatchSize; i++ {
-		outMessages[i] = &SlotPermute{
-			Slot:                 round.Permutations[i],
-			EncryptedMessage:     cyclic.NewMaxInt(),
-			EncryptedRecipientID: cyclic.NewMaxInt(),
-		}
-	}
-}
-
 func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 	keys *KeysPermute) services.Slot {
 	// Input: Encrypted message, from Decrypt Phase
@@ -88,4 +77,15 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 	g.Mul(in.EncryptedRecipientID, keys.V, out.EncryptedRecipientID)
 
 	return out
+}
+
+func buildCryptoPermute(round *node.Round, outMessages []services.Slot) {
+	// Prepare the permuted output messages
+	for i := uint64(0); i < round.BatchSize; i++ {
+		outMessages[i] = &SlotPermute{
+			Slot:                 round.Permutations[i],
+			EncryptedMessage:     cyclic.NewMaxInt(),
+			EncryptedRecipientID: cyclic.NewMaxInt(),
+		}
+	}
 }
