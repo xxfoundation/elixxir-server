@@ -8,7 +8,9 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Permute implements the Permute phase of the realtime phase.
+// The realtime Permute phase blindly permutes, then re-encrypts messages
+// and recipient IDs to prevent other nodes or outside actors from knowing
+// the origin of the messages.
 type Permute struct{}
 
 // (p Permute) Run() uses SlotPermute structs to pass data into and
@@ -61,18 +63,18 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	return &db
 }
 
+// Input: Encrypted message, from Decrypt Phase
+//        Encrypted recipient ID, from Decrypt Phase
+// This phase permutes the message and the recipient ID and encrypts
+// them with their respective permuted internode keys.
 func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 	keys *KeysPermute) services.Slot {
-	// Input: Encrypted message, from Decrypt Phase
-	//        Encrypted recipient ID, from Decrypt Phase
-	// This phase permutes the message and the recipient ID and encrypts
-	// them with their respective permuted internode keys.
 
-	// Multiply the message by its permuted key to make the permutation
+	// Eq 4.10 Multiply the message by its permuted key to make the permutation
 	// secret to the previous node
 	g.Mul(in.EncryptedMessage, keys.S, out.EncryptedMessage)
 
-	// Multiply the recipient ID by its permuted key making the permutation
+	// Eq 4.12 Multiply the recipient ID by its permuted key making the permutation
 	// secret to the previous node
 	g.Mul(in.EncryptedRecipientID, keys.V, out.EncryptedRecipientID)
 

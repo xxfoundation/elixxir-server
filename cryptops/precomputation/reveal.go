@@ -67,19 +67,19 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 	return &db
 }
 
+// Input: Partial message cypher text, from Encrypt Phase
+//        Partial recipient ID cypher text, from Permute Phase
+// This phase removes the homomorphic encryption from these two quantities.
 func (r Reveal) Run(g *cyclic.Group, in, out *SlotReveal,
 	keys *KeysReveal) services.Slot {
-	// Input: Partial message cypher text, from Encrypt Phase
-	//        Partial recipient ID cypher text, from Permute Phase
-	// This phase removes the homomorphic encryption from these two quantities.
 
-	// Root by cypher key to remove one layer of homomorphic encryption
-	// from partially encrypted message cypher text. Eq 15.11
+	// Eq 15.11 Root by cypher key to remove one layer of homomorphic
+	// encryption from partially encrypted message cypher text.
 	g.Root(in.PartialMessageCypherText, keys.Z,
 		out.PartialMessageCypherText)
 
-	// Root by cypher key to remove one layer of homomorphic encryption
-	// from partially encrypted recipient ID cypher text. Eq 15.13
+	// Eq 15.13 Root by cypher key to remove one layer of homomorphic
+	// encryption from partially encrypted recipient ID cypher text.
 	g.Root(in.PartialRecipientCypherText, keys.Z,
 		out.PartialRecipientCypherText)
 
