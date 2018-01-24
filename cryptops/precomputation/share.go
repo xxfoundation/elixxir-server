@@ -14,20 +14,20 @@ type Share struct{}
 // SlotShare is used to pass external data into Share and to pass the results out of Share
 type SlotShare struct {
 	// Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// Eq 10.3: Partial result of raising the global generator to the power of each node's Private Cypher Key
 	PartialRoundPublicCypherKey *cyclic.Int
 }
 
 // SlotID Returns the Slot number
 func (e *SlotShare) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysShare holds the keys used by the Share Operation
 type KeysShare struct {
 	// Private Cypher Key
-	PrivateCypherKey *cyclic.Int
+	Z *cyclic.Int
 }
 
 // Allocated memory and arranges key objects for the Precomputation Share Phase
@@ -41,7 +41,7 @@ func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotShare{
-			slot: i,
+			Slot: i,
 			PartialRoundPublicCypherKey: cyclic.NewMaxInt(),
 		}
 	}
@@ -51,7 +51,7 @@ func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	// Link the keys for sharing
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysShare{
-			PrivateCypherKey: round.Z,
+			Z: round.Z,
 		}
 		keys[i] = keySlc
 	}
@@ -67,7 +67,7 @@ func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 func (s Share) Run(g *cyclic.Group, in, out *SlotShare, keys *KeysShare) services.Slot {
 
 	// Eq 10.4: Raise PartialRoundPublicCypherKey to the power of own Private Cypher Key
-	g.Exp(in.PartialRoundPublicCypherKey, keys.PrivateCypherKey, out.PartialRoundPublicCypherKey)
+	g.Exp(in.PartialRoundPublicCypherKey, keys.Z, out.PartialRoundPublicCypherKey)
 	return out
 
 }
