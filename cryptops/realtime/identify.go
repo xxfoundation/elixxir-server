@@ -17,15 +17,15 @@ type Identify struct{}
 // Identify.
 type SlotIdentify struct {
 	// Slot number
-	slot uint64
+	Slot uint64
 
 	// It isn't encrypted until this phase has run on all the nodes
 	EncryptedRecipientID *cyclic.Int
 }
 
-// SlotID() gets the slot number
+// SlotID() gets the Slot number
 func (i *SlotIdentify) SlotID() uint64 {
-	return i.slot
+	return i.Slot
 }
 
 // KeysIdentify holds the key needed for the realtime Identify phase
@@ -46,7 +46,7 @@ func (i Identify) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotIdentify{slot: i,
+		om[i] = &SlotIdentify{Slot: i,
 			EncryptedRecipientID: cyclic.NewMaxInt(),
 		}
 	}
