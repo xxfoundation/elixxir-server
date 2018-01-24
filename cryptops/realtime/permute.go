@@ -11,7 +11,8 @@ import (
 // Permute implements the Permute phase of the precomputation.
 type Permute struct{}
 
-// (p Permute) Run() uses SlotPermute structs to pass data into and out of Permute
+// (p Permute) Run() uses SlotPermute structs to pass data into and
+// out of Permute
 type SlotPermute struct {
 	// Slot number
 	slot uint64
@@ -34,7 +35,8 @@ type KeysPermute struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Permute phase
-func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (p Permute) Build(g *cyclic.Group, face interface{}) (
+	*services.DispatchBuilder) {
 	// The empty interface should be castable to a Round
 	round := face.(*node.Round)
 
