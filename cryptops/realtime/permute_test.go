@@ -4,13 +4,12 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
-	"gitlab.com/privategrity/server/cryptops/realtime"
 	"testing"
 )
 
 func TestRealTimePermute(t *testing.T) {
 
-	test := 9
+	test := 6
 	pass := 0
 
 	bs := uint64(3)
@@ -24,25 +23,20 @@ func TestRealTimePermute(t *testing.T) {
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
-	im = append(im, &realtime.SlotPermute{
-		Slot: uint64(0),
-		EncryptedMessage: cyclic.NewInt(int64(39)),
+	im = append(im, &SlotPermute{
+		Slot:                 uint64(0),
+		EncryptedMessage:     cyclic.NewInt(int64(39)),
 		EncryptedRecipientID: cyclic.NewInt(int64(13))})
 
-	im = append(im, &realtime.SlotPermute{
-		Slot: uint64(1),
-		EncryptedMessage: cyclic.NewInt(int64(86)),
+	im = append(im, &SlotPermute{
+		Slot:                 uint64(1),
+		EncryptedMessage:     cyclic.NewInt(int64(86)),
 		EncryptedRecipientID: cyclic.NewInt(int64(87))})
 
-	im = append(im, &realtime.SlotPermute{
-		Slot: uint64(2),
-		EncryptedMessage: cyclic.NewInt(int64(39)),
+	im = append(im, &SlotPermute{
+		Slot:                 uint64(2),
+		EncryptedMessage:     cyclic.NewInt(int64(39)),
 		EncryptedRecipientID: cyclic.NewInt(int64(51))})
-
-	// im = append(im, &realtime.SlotPermute{
-	// 	Slot: uint64(3),
-	// 	EncryptedMessage: cyclic.NewInt(int64(91)),
-	// 	EncryptedRecipientID: cyclic.NewInt(int64(73))})
 
 	round.Permutations[0] = 1
 	round.Permutations[1] = 2
@@ -62,18 +56,18 @@ func TestRealTimePermute(t *testing.T) {
 		{cyclic.NewInt(56), cyclic.NewInt(56)},
 	}
 
-	dc := services.DispatchCryptop(&grp, realtime.Permute{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, Permute{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- &im[i]
-		trn := <- dc.OutChannel
+		trn := <-dc.OutChannel
 
-		rtn := (*trn).(*realtime.SlotPermute)
+		rtn := (*trn).(*SlotPermute)
 		result := results[i]
 
 		if result[0].Cmp(rtn.EncryptedMessage) != 0 ||
 			result[1].Cmp(rtn.EncryptedRecipientID) != 0 {
-			t.Errorf("Test of RealPermute's cryptop failed on index: %v" +
+			t.Errorf("Test of RealPermute's cryptop failed on index: %v"+
 				" Expected: %v,%v Received: %v,%v ", i,
 				result[0].Text(10), result[1].Text(10),
 				rtn.EncryptedMessage.Text(10), rtn.EncryptedRecipientID.Text(10))
