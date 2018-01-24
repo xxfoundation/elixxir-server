@@ -15,7 +15,7 @@ type Decrypt struct{}
 // SlotDecrypt is used to pass external data into Decrypt and to pass the results out of Decrypt
 type SlotDecrypt struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// Eq 12.9: First unpermuted internode message key from previous node
 	EncryptedMessageKeys *cyclic.Int
 	// Eq 12.11: First unpermuted internode recipient ID key from previous node
@@ -28,7 +28,7 @@ type SlotDecrypt struct {
 
 // SlotID Returns the Slot number
 func (e *SlotDecrypt) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysDecrypt holds the keys used by the Decrypt Operation
@@ -56,7 +56,7 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotDecrypt{
-			slot:                         i,
+			Slot:                         i,
 			EncryptedMessageKeys:         cyclic.NewMaxInt(),
 			PartialMessageCypherText:     cyclic.NewMaxInt(),
 			EncryptedRecipientIDKeys:     cyclic.NewMaxInt(),

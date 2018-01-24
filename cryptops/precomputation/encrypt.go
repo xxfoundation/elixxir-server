@@ -13,7 +13,7 @@ type Encrypt struct{}
 // SlotEncrypt is used to pass external data into Encrypt and to pass the results out of Encrypt
 type SlotEncrypt struct {
 	// Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// Partial Precomputation for the Messages
 	EncryptedMessageKeys *cyclic.Int
 	// Partial Cypher Text for the Message Precomputation
@@ -22,7 +22,7 @@ type SlotEncrypt struct {
 
 // SlotID Returns the Slot number
 func (e *SlotEncrypt) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysEncrypt holds the keys used by the Encrypt Operation
@@ -46,7 +46,7 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotEncrypt{
-			slot:                     i,
+			Slot:                     i,
 			EncryptedMessageKeys:     cyclic.NewMaxInt(),
 			PartialMessageCypherText: cyclic.NewMaxInt(),
 		}
