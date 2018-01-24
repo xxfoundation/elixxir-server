@@ -55,11 +55,15 @@ func (i Identify) Build(g *cyclic.Group,
 
 	// Prepare the correct keys
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysIdentify{RecipientPrecomputation: round.RecipientPrecomputation[i]}
+		keySlc := &KeysIdentify{
+			RecipientPrecomputation: round.RecipientPrecomputation[i]}
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys: &keys,
+		Output: &om, G: g}
 
 	return &db
 }
@@ -71,7 +75,8 @@ func (i Identify) Run(g *cyclic.Group, in, out *SlotIdentify,
 
 	// Multiply EncryptedRecipientID by the precomputations from the last node
 	// Eq 5.1
-	g.Mul(in.EncryptedRecipientID, keys.RecipientPrecomputation, out.EncryptedRecipientID)
+	g.Mul(in.EncryptedRecipientID, keys.RecipientPrecomputation,
+		out.EncryptedRecipientID)
 
 	return out
 }
