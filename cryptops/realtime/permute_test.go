@@ -39,10 +39,10 @@ func TestRealTimePermute(t *testing.T) {
 		EncryptedMessage: cyclic.NewInt(int64(39)),
 		EncryptedRecipientID: cyclic.NewInt(int64(51))})
 
-	im = append(im, &realtime.SlotPermute{
-		Slot: uint64(2),
-		EncryptedMessage: cyclic.NewInt(int64(91)),
-		EncryptedRecipientID: cyclic.NewInt(int64(73))})
+	// im = append(im, &realtime.SlotPermute{
+	// 	Slot: uint64(3),
+	// 	EncryptedMessage: cyclic.NewInt(int64(91)),
+	// 	EncryptedRecipientID: cyclic.NewInt(int64(73))})
 
 	round.Permutations[0] = 1
 	round.Permutations[1] = 2
