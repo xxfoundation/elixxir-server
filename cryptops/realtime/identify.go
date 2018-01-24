@@ -19,7 +19,7 @@ type SlotIdentify struct {
 	// Slot number
 	Slot uint64
 
-	// It isn't encrypted until this phase has run on all the nodes
+	// It is encrypted until this phase has run on all the nodes
 	EncryptedRecipientID *cyclic.Int
 }
 
@@ -62,19 +62,19 @@ func (i Identify) Build(g *cyclic.Group,
 
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
-		Keys: &keys,
-		Output: &om, G: g}
+		Keys:      &keys,
+		Output:    &om, G: g}
 
 	return &db
 }
 
+// Input: Encrypted Recipient ID, from Permute phase
+// This phase decrypts the recipient ID, identifying the recipient
 func (i Identify) Run(g *cyclic.Group, in, out *SlotIdentify,
 	keys *KeysIdentify) services.Slot {
-	// Input: Encrypted Recipient ID, from Permute phase
-	// This phase decrypts the recipient ID, identifying the recipient
 
-	// Multiply EncryptedRecipientID by the precomputations from the last node
 	// Eq 5.1
+	// Multiply EncryptedRecipientID by the precomputed value
 	g.Mul(in.EncryptedRecipientID, keys.RecipientPrecomputation,
 		out.EncryptedRecipientID)
 
