@@ -35,8 +35,7 @@ type KeysPermute struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Permute phase
-func (p Permute) Build(g *cyclic.Group, face interface{}) (
-	*services.DispatchBuilder) {
+func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 	// The empty interface should be castable to a Round
 	round := face.(*node.Round)
 
@@ -49,7 +48,7 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) (
 		// will put the message and recipient ID in a different slot
 		// when we Run the encryption.
 		om[i] = &SlotPermute{
-			Slot: round.Permutations[i],
+			Slot:                 round.Permutations[i],
 			EncryptedMessage:     cyclic.NewMaxInt(),
 			EncryptedRecipientID: cyclic.NewMaxInt(),
 		}
@@ -86,7 +85,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 	// Multiply the recipient ID by its permuted key making the permutation
 	// secret to the previous node
 	g.Mul(in.EncryptedRecipientID, keys.PermutedInternodeRecipientKey,
-		out.EncryptedMessage)
+		out.EncryptedRecipientID)
 
 	return out
 }
