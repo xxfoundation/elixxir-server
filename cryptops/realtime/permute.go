@@ -15,7 +15,7 @@ type Permute struct{}
 // out of Permute
 type SlotPermute struct {
 	// Slot number
-	slot uint64
+	Slot uint64
 
 	// Encrypted message (permuted to a different slot in Run())
 	EncryptedMessage *cyclic.Int
@@ -25,7 +25,7 @@ type SlotPermute struct {
 
 // SlotID() gets the slot number
 func (p *SlotPermute) SlotID() uint64 {
-	return p.slot
+	return p.Slot
 }
 
 // KeysPermute holds the keys used by the Permute operation
@@ -48,7 +48,8 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) (
 		// permutations that have been precomputed for this round
 		// will put the message and recipient ID in a different slot
 		// when we Run the encryption.
-		om[i] = &SlotPermute{slot: round.Permutations[i],
+		om[i] = &SlotPermute{
+			Slot: round.Permutations[i],
 			EncryptedMessage:     cyclic.NewMaxInt(),
 			EncryptedRecipientID: cyclic.NewMaxInt(),
 		}
