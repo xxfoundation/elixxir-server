@@ -8,17 +8,17 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Reveal phase removes Homomorphic Encryption from the Precomputed Values to reveal the Global Private Key
+// Reveal phase removes Homomorphic Encryption from the Cypher Texts to reveal the Round Private Key
 type Reveal struct{}
 
 // SlotReveal is used to pass external data into Reveal and to pass the results out of Reveal
 type SlotReveal struct {
 	//Slot Number of the Data
 	slot uint64
-	// TODO
-	PartiallyDecryptedMessageCypherTexts *cyclic.Int
-	// TODO
-	PartiallyDecryptedRecipientCypherTexts *cyclic.Int
+	// Partially Decrypted Message Cypher Text
+	MessageCypherText *cyclic.Int
+	// Partially Decrypted Recipient Cypher Text
+	RecipientCypherText *cyclic.Int
 }
 
 // SlotID Returns the Slot number
@@ -43,9 +43,9 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotReveal{
-			slot: i,
-			PartiallyDecryptedMessageCypherTexts:   cyclic.NewMaxInt(),
-			PartiallyDecryptedRecipientCypherTexts: cyclic.NewMaxInt(),
+			slot:                i,
+			MessageCypherText:   cyclic.NewMaxInt(),
+			RecipientCypherText: cyclic.NewMaxInt(),
 		}
 	}
 
@@ -65,13 +65,13 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 
 }
 
-// Root the cypher texts by the Private Cypher Key to reveal the Global Private Key
+// Root the cypher texts by the Private Cypher Key to reveal the Round Private Key
 func (r Reveal) Run(g *cyclic.Group, in, out *SlotReveal, keys *KeysReveal) services.Slot {
 
-	// Eq 15.11: Root PartiallyDecryptedMessageCypherTexts by Private Cypher Key
-	g.Root(in.PartiallyDecryptedMessageCypherTexts, keys.Z, out.PartiallyDecryptedMessageCypherTexts)
-	// Eq 15.13: Root PartiallyDecryptedRecipientCypherTexts by Private Cypher Key
-	g.Root(in.PartiallyDecryptedRecipientCypherTexts, keys.Z, out.PartiallyDecryptedRecipientCypherTexts)
+	// Eq 15.11: Root MessageCypherText by Private Cypher Key
+	g.Root(in.MessageCypherText, keys.Z, out.MessageCypherText)
+	// Eq 15.13: Root RecipientCypherText by Private Cypher Key
+	g.Root(in.RecipientCypherText, keys.Z, out.RecipientCypherText)
 
 	return out
 
