@@ -1,9 +1,5 @@
-// Package precomputation pre-generates all the internode keys so they can be
-// removed during the realtime Peel Phase all at once. This is done under a
-// custom homomorphic encryption scheme (loosely based off elgamal) to ensure
-// the process does not reveal slot information. A detailed description of the
-// homomorphic encryption methodology can be found in the Appendix of the cMix
-// technical doc.
+// Implements the Precomputation Generation phase
+
 package precomputation
 
 import (
@@ -12,82 +8,122 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Implements the Generation phase, which generates random keys for R, S, T, U,
-// V, Y_R, Y_S, Y_T, Y_U, Y_V, and Z
-type PrecompGeneration struct{}
+// Generation phase generates all the keys used in the encryption.
+type Generation struct{}
 
-func (gen PrecompGeneration) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+// SlotGeneration is empty; no data being passed in or out of Generation
+type SlotGeneration struct {
+	//Slot Number of the Data
+	slot uint64
+}
 
-	//get round from the empty interface
+// SlotID Returns the Slot number
+func (e *SlotGeneration) SlotID() uint64 {
+	return e.slot
+}
+
+// KeysGeneration holds the keys used by the Generation Operation
+type KeysGeneration struct {
+	R     *cyclic.Int
+	S     *cyclic.Int
+	T     *cyclic.Int
+	U     *cyclic.Int
+	V     *cyclic.Int
+	R_INV *cyclic.Int
+	S_INV *cyclic.Int
+	T_INV *cyclic.Int
+	U_INV *cyclic.Int
+	V_INV *cyclic.Int
+	Y_R   *cyclic.Int
+	Y_S   *cyclic.Int
+	Y_T   *cyclic.Int
+	Y_U   *cyclic.Int
+	Y_V   *cyclic.Int
+}
+
+// Allocated memory and arranges key objects for the Precomputation Generation Phase
+func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+
+	// Get round from the empty interface
 	round := face.(*node.Round)
 
-	/*CRYPTOGRAPHIC OPERATION BEGIN*/
-	precompGenBuildCrypt(g, round)
-	/*CRYPTOGRAPHIC OPERATION END*/
+	// Create the permutation and generate a Private Cypher Key
+	buildCryptoGeneration(g, round)
 
-	//Allocate Memory for output
-	om := make([]*services.Message, round.BatchSize)
+	// Allocate Memory for output
+	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = services.NewMessage(i, 1, nil)
-	}
-
-	var sav [][]*cyclic.Int
-
-	//Link the keys for randomization
-	for i := uint64(0); i < round.BatchSize; i++ {
-		roundSlc := []*cyclic.Int{
-			round.R[i], round.S[i], round.T[i], round.U[i], round.V[i],
-			round.R_INV[i], round.S_INV[i], round.T_INV[i], round.U_INV[i], round.V_INV[i],
-			round.Y_R[i], round.Y_S[i], round.Y_T[i], round.Y_U[i], round.Y_V[i],
+		om[i] = &SlotGeneration{
+			slot: i,
 		}
-		sav = append(sav, roundSlc)
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
+	keys := make([]services.NodeKeys, round.BatchSize)
+
+	// Link the keys for generation
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keySlc := &KeysGeneration{
+			R:     round.R[i],
+			S:     round.S[i],
+			T:     round.T[i],
+			U:     round.U[i],
+			V:     round.V[i],
+			R_INV: round.R_INV[i],
+			S_INV: round.S_INV[i],
+			T_INV: round.T_INV[i],
+			U_INV: round.U_INV[i],
+			V_INV: round.V_INV[i],
+			Y_R:   round.Y_R[i],
+			Y_S:   round.Y_S[i],
+			Y_T:   round.Y_T[i],
+			Y_U:   round.Y_U[i],
+			Y_V:   round.Y_V[i],
+		}
+		keys[i] = keySlc
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
 
 	return &db
 
 }
 
-//Implements cryptographic component of build
-func precompGenBuildCrypt(g *cyclic.Group, round *node.Round) {
-	//Make the Permutation
-	cyclic.Shuffle(&round.Permutations)
+// Generate random values for all keys
+func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration, keys *KeysGeneration) services.Slot {
 
-	//Generate the Global Cypher Key
-	g.Random(round.Z)
-}
+	// Generates a random value within the group for every internode key
+	g.Random(keys.R)
+	g.Random(keys.S)
+	g.Random(keys.T)
+	g.Random(keys.U)
+	g.Random(keys.V)
 
-func (gen PrecompGeneration) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
-	//generate random values for all keys
+	// Generates the inverse keys
+	g.Inverse(keys.R, keys.R_INV)
+	g.Inverse(keys.S, keys.S_INV)
+	g.Inverse(keys.T, keys.T_INV)
+	g.Inverse(keys.U, keys.U_INV)
+	g.Inverse(keys.V, keys.V_INV)
 
-	R, S, T, U, V :=
-		(*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3], (*saved)[4]
-
-	R_INV, S_INV, T_INV, U_INV, V_INV :=
-		(*saved)[5], (*saved)[6], (*saved)[7], (*saved)[8], (*saved)[9]
-
-	Y_R, Y_S, Y_T, Y_U, Y_V :=
-		(*saved)[10], (*saved)[11], (*saved)[12], (*saved)[13], (*saved)[14]
-
-	g.Random(R)
-	g.Random(S)
-	g.Random(T)
-	g.Random(U)
-	g.Random(V)
-
-	g.Inverse(R, R_INV)
-	g.Inverse(S, S_INV)
-	g.Inverse(T, T_INV)
-	g.Inverse(U, U_INV)
-	g.Inverse(V, V_INV)
-
-	g.Random(Y_R)
-	g.Random(Y_S)
-	g.Random(Y_T)
-	g.Random(Y_U)
-	g.Random(Y_V)
+	// Generates a random value within the group for every private key
+	g.Random(keys.Y_R)
+	g.Random(keys.Y_S)
+	g.Random(keys.Y_T)
+	g.Random(keys.Y_U)
+	g.Random(keys.Y_V)
 
 	return out
+
+}
+
+// Implements cryptographic component of build
+func buildCryptoGeneration(g *cyclic.Group, round *node.Round) {
+
+	// Make the Permutation
+	cyclic.Shuffle(&round.Permutations)
+
+	// Generate the Private Cypher Key
+	g.Random(round.Z)
+
 }

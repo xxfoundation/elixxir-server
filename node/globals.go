@@ -10,6 +10,10 @@ type LastNode struct {
 	MessagePrecomputation []*cyclic.Int
 	// Recipient ID Decryption Key, AKA PiUV_Inv
 	RecipientPrecomputation []*cyclic.Int
+	// Round Message Private Key
+	RoundMessagePrivateKey []*cyclic.Int
+	// Round Recipient Private Key
+	RoundRecipientPrivateKey []*cyclic.Int
 }
 
 // Round contains the keys and permutations for a given message batch

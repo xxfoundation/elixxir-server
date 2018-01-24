@@ -1,60 +1,118 @@
+// Implements the Realtime Encrypt phase
+
 package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 )
 
-// Encrypt phase of realtime operations
-type RealtimeEncrypt struct{}
+// The Encrypt phase adds in the final internode keys while simultaneously 
+// adding in Reception Keys for the recipient.  
+type Encrypt struct{}
 
-func (self RealtimeEncrypt) Build(g *cyclic.Group,
-	face interface{}) *services.DispatchBuilder {
+// SlotEncrypt is used to pass external data into Encrypt
+type SlotEncryptIn struct {
+	// Slot Number of the Data
+	slot uint64
+	// ID of the client who will recieve the message (Pass through)
+	RecipientID uint64
+	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
+	EncryptedMessage *cyclic.Int
+	// Shared Key between the client who recieves the message and the node
+	ReceptionKey *cyclic.Int
+}
 
+// SlotEncryptOut is used to pass  the results out of Encrypt
+type SlotEncryptOut struct {
+	//Slot Number of the Data
+	slot uint64
+	// ID of the client who will recieve the message (Pass through)
+	RecipientID uint64
+	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
+	EncryptedMessage *cyclic.Int
+}
+
+// SlotID Returns the Slot number
+func (e *SlotEncryptIn) SlotID() uint64 {
+	return e.slot
+}
+
+// ID of the user for keygen
+func (e *SlotEncryptIn) UserID() uint64 {
+	return e.RecipientID
+}
+
+// Cyclic int to place the key in
+func (e *SlotEncryptIn) Key() *cyclic.Int {
+	return e.ReceptionKey
+}
+
+// Returns the KeyType
+func (e *SlotEncryptIn) GetKeyType() cryptops.KeyType {
+	return cryptops.RECEPTION
+}
+
+// SlotID Returns the Slot number
+func (e *SlotEncryptOut) SlotID() uint64 {
+	return e.slot
+}
+
+// KeysEncrypt holds the keys used by the Encrypt Operation
+type KeysEncrypt struct {
+	// Eq 6.6: Second Unpermuted Internode Message Key
+	T *cyclic.Int
+}
+
+// Allocated memory and arranges key objects for the Realtime Encrypt Phase
+func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+
+	// Get round from the empty interface
 	round := face.(*node.Round)
 
-	outMessages := make([]*services.Message, round.BatchSize)
-
-	keyCache := make([][]*cyclic.Int, round.BatchSize)
+	// Allocate Memory for output
+	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		outMessages[i] = services.NewMessage(i, 1, nil)
-
-		keys := []*cyclic.Int{
-			round.T[i], round.Z,
+		om[i] = &SlotEncryptOut{
+			slot:             i,
+			EncryptedMessage: cyclic.NewMaxInt(),
+			RecipientID:      0,
 		}
-		keyCache[i] = keys
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize,
-		Saved: &keyCache, OutMessage: &outMessages, G: g}
+	keys := make([]services.NodeKeys, round.BatchSize)
+
+	// Link the keys for encryption
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keySlc := &KeysEncrypt{
+			T: round.T[i],
+		}
+		keys[i] = keySlc
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
 
 	return &db
+
 }
 
-// Cryptographic operation
-func encryptMessage(g *cyclic.Group, permutedCombinedMessageKeys,
-	secondUnpermutedInternodeMessageKey, nodeCipherKey,
-	encryptedMessage *cyclic.Int) {
-	g.Mul(permutedCombinedMessageKeys,
-		secondUnpermutedInternodeMessageKey, encryptedMessage)
-	g.Mul(encryptedMessage, nodeCipherKey, encryptedMessage)
-}
+// Multiplies in the ReceptionKey and the node’s cypher key
+func (e Encrypt) Run(g *cyclic.Group, in *SlotEncryptIn, out *SlotEncryptOut, keys *KeysEncrypt) services.Slot {
 
-func (self RealtimeEncrypt) Run(g *cyclic.Group, in, out *services.Message,
-	saved *[]*cyclic.Int) *services.Message {
+	// Create Temporary variable
+	tmp := cyclic.NewMaxInt()
 
-	// M dot Pi R dot Pi S [w] in the docs for the first node
-	permutedCombinedMessageKeys := (*in).Data[0]
+	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted 
+	// Internode Keys into the Encrypted Message
+	g.Mul(in.ReceptionKey, keys.T, tmp)
+	g.Mul(in.EncryptedMessage, tmp, out.EncryptedMessage)
 
-	secondUnpermutedInternodeMessageKey := (*saved)[0]
-	nodeCipherKey := (*saved)[1]
-
-	encryptedMessage := out.Data[0]
-	encryptMessage(g, permutedCombinedMessageKeys,
-		secondUnpermutedInternodeMessageKey, nodeCipherKey,
-		encryptedMessage)
+	// Pass through RecipientID
+	out.RecipientID = in.RecipientID
 
 	return out
+
 }

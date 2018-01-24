@@ -1,3 +1,5 @@
+// Implements the Realtime Permute phase
+
 package realtime
 
 import (
@@ -6,58 +8,82 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-/*//PERMUTE PHASE////////////////////////////////////////////////////////////*/
+// Permute implements the Permute phase of the precomputation.
+type Permute struct{}
 
-type RealPermute struct{}
+// (p Permute) Run() uses SlotPermute structs to pass data into and out of Permute
+type SlotPermute struct {
+	// Slot number
+	slot uint64
 
-func (perm RealPermute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+	// Encrypted message (permuted to a different slot in Run())
+	EncryptedMessage *cyclic.Int
+	// Encrypted recipient ID (permuted to a different slot in Run())
+	EncryptedRecipientID *cyclic.Int
+}
 
-	//get round from the empty interface
+// SlotID() gets the slot number
+func (p *SlotPermute) SlotID() uint64 {
+	return p.slot
+}
+
+// KeysPermute holds the keys used by the Permute operation
+type KeysPermute struct {
+	PermutedInternodeMessageKey   *cyclic.Int
+	PermutedInternodeRecipientKey *cyclic.Int
+}
+
+// Pre-allocate memory and arrange key objects for Precomputation Permute phase
+func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+	// The empty interface should be castable to a Round
 	round := face.(*node.Round)
 
-	//Allocate Memory for output
-	om := make([]*services.Message, round.BatchSize)
+	// Allocate messages for output
+	om := make([]services.Slot, round.BatchSize)
 
-	/*CRYPTOGRAPHIC OPERATION BEGIN*/
-	realPermuteBuildCrypt(round, &om)
-	/*CRYPTOGRAPHIC OPERATION END*/
-
-	var sav [][]*cyclic.Int
-
-	//Link the keys for randomization
 	for i := uint64(0); i < round.BatchSize; i++ {
-		roundSlc := []*cyclic.Int{
-			round.S[i], round.V[i],
+		// This is where the mixing happens: setting the slot to the
+		// permutations that have been precomputed for this round
+		// will put the message and recipient ID in a different slot
+		// when we Run the encryption.
+		om[i] = &SlotPermute{slot: round.Permutations[i],
+			EncryptedMessage:     cyclic.NewMaxInt(),
+			EncryptedRecipientID: cyclic.NewMaxInt(),
 		}
-		sav = append(sav, roundSlc)
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
+	keys := make([]services.NodeKeys, round.BatchSize)
+
+	// Prepare the correct keys
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keySlc := &KeysPermute{PermutedInternodeMessageKey: round.S[i],
+			PermutedInternodeRecipientKey: round.V[i]}
+
+		keys[i] = keySlc
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys,
+		Output: &om, G: g}
 
 	return &db
-
 }
 
-//Implements cryptographic component of build
-func realPermuteBuildCrypt(round *node.Round, om *[]*services.Message) {
+func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
+	keys *KeysPermute) services.Slot {
+	// Input: Encrypted message, from Decrypt Phase
+	//        Encrypted recipient ID, from Decrypt Phase
+	// This phase permutes the message and the recipient ID and encrypts
+	// them with their respective permuted internode keys.
 
-	for i := uint64(0); i < round.BatchSize; i++ {
-		(*om)[i] = services.NewMessage(round.Permutations[i], 2, nil)
-	}
+	// Multiply the message by its permuted key to make the permutation
+	// secret to the previous node
+	g.Mul(in.EncryptedMessage, keys.PermutedInternodeMessageKey,
+		out.EncryptedMessage)
 
-}
-
-func (perm RealPermute) Run(grp *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
-	S, V := (*saved)[0], (*saved)[1]
-
-	Message, Recipient := in.Data[0], in.Data[1]
-
-	runCrypto(grp, out, S, V, Message, Recipient)
+	// Multiply the recipient ID by its permuted key making the permutation
+	// secret to the previous node
+	g.Mul(in.EncryptedRecipientID, keys.PermutedInternodeRecipientKey,
+		out.EncryptedMessage)
 
 	return out
-}
-
-func runCrypto(grp *cyclic.Group, out *services.Message, S, V, Message, Recipient *cyclic.Int) {
-	grp.Mul(Message, S, out.Data[0])
-	grp.Mul(Recipient, V, out.Data[1])
 }

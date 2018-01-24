@@ -6,65 +6,103 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-type PrecompStrip struct{}
+// Strip phase inverts the Round Private Keys and used to remove the Homomorphic Encryption from
+// the Encrypted Message Keys and the Encrypted Recipient Keys, revealing completed precomputation
+type Strip struct{}
 
-func (gen PrecompStrip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+// SlotStripIn is used to pass external data into Strip
+type SlotStripIn struct {
+	//Slot Number of the Data
+	slot uint64
+	// Encrypted but completed message precomputation
+	EncryptedMessageKeys *cyclic.Int
+	// Encrypted but completed recipient precomputation
+	EncryptedRecipientKeys *cyclic.Int
+}
 
-	//get round from the empty interface
+// SlotStripOut is used to pass the results out of Strip
+type SlotStripOut struct {
+	//Slot Number of the Data
+	slot uint64
+	// Completed Message Precomputation
+	MessagePrecomputation *cyclic.Int
+	// Completed Recipient Precomputation
+	RecipientPrecomputation *cyclic.Int
+}
+
+// SlotID Returns the Slot number of the input
+func (e *SlotStripIn) SlotID() uint64 {
+	return e.slot
+}
+
+// SlotID Returns the Slot number of the output
+func (e *SlotStripOut) SlotID() uint64 {
+	return e.slot
+}
+
+// KeysStrip holds the keys used by the Strip Operation
+type KeysStrip struct {
+	// Eq 16.1
+	RoundMessagePrivateKey *cyclic.Int
+	// Eq 16.2
+	RoundRecipientPrivateKey *cyclic.Int
+}
+
+// Allocated memory and arranges key objects for the Precomputation Strip Phase
+func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+
+	// Get round from the empty interface
 	round := face.(*node.Round)
 
-	//Allocate Memory for output
-	om := make([]*services.Message, round.BatchSize)
+	// Allocate Memory for output
+	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = services.NewMessage(i, 2, nil)
+		// Attach LastNode to SlotStripOut
+		om[i] = &SlotStripOut{
+			slot: i,
+			MessagePrecomputation:   round.LastNode.MessagePrecomputation[i],
+			RecipientPrecomputation: round.LastNode.RecipientPrecomputation[i],
+		}
 	}
 
-	sav := make([][]*cyclic.Int, round.BatchSize)
+	keys := make([]services.NodeKeys, round.BatchSize)
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
+	// Link the keys for stripping
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keySlc := &KeysStrip{
+			RoundMessagePrivateKey:   round.LastNode.RoundMessagePrivateKey[i],
+			RoundRecipientPrivateKey: round.LastNode.RoundRecipientPrivateKey[i],
+		}
+		keys[i] = keySlc
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
 
 	return &db
 
 }
 
-func (gen PrecompStrip) Run(g *cyclic.Group, in, out *services.Message, saved *[]*cyclic.Int) *services.Message {
-	// The Global Private Keys are Inverted and used to remove the Homomorphic Encryption
-	// from the Encrypted Message Keys and Encrypted Recipient Keys
+// Remove Homomorphic Encryption to reveal the Message and Recipient Precomputation
+func (s Strip) Run(g *cyclic.Group, in *SlotStripIn, out *SlotStripOut, keys *KeysStrip) services.Slot {
 
-	// Obtain message global private key and encrypted message key
-	messageGlobalPrivateKey, encryptedMessageKey := in.Data[0], in.Data[1]
-	// Obtain recipient global private key and encrypted recipient key
-	recipientGlobalPrivateKey, encryptedRecipientKey := in.Data[2], in.Data[3]
+	// Create Temporary variable
+	tmp := cyclic.NewMaxInt()
 
-	// Set output vars for the Message and Recipient Keys
-	// NOTE: Out index 1 used for temporary computation
-	messageKey, recipientKey, tmp := out.Data[0], out.Data[1], out.Data[1]
+	// Eq 16.1: Invert the round message private key
+	g.Inverse(keys.RoundMessagePrivateKey, tmp)
 
-	// Separate operations into helper function for testing
-	stripRunHelper(g, messageGlobalPrivateKey, encryptedMessageKey,
-		recipientGlobalPrivateKey, encryptedRecipientKey, messageKey, recipientKey, tmp)
+	// Eq 16.1: Use the inverted round message private key to remove the homomorphic encryption
+	// from encrypted message key and reveal the message precomputation
+	g.Mul(tmp, in.EncryptedMessageKeys, out.MessagePrecomputation)
+
+	// Eq 16.2: Invert the round recipient private key
+	g.Inverse(keys.RoundRecipientPrivateKey, tmp)
+
+	// Eq 16.2: Use the inverted round recipient private key to remove the homomorphic encryption
+	// from encrypted recipient key and reveal the recipient precomputation
+	g.Mul(tmp, in.EncryptedRecipientKeys, out.RecipientPrecomputation)
 
 	return out
-
-}
-
-func stripRunHelper(g *cyclic.Group, messageGlobalPrivateKey, encryptedMessageKey, recipientGlobalPrivateKey,
-	encryptedRecipientKey, messageKey, recipientKey, tmp *cyclic.Int) {
-	// Helper function for Precomp Strip Run
-
-	// Invert the global message private key
-	g.Inverse(messageGlobalPrivateKey, tmp)
-
-	// Use the inverted global message private key to remove the homomorphic encryption
-	// from encrypted message key and reveal the message key
-	g.Mul(tmp, encryptedMessageKey, messageKey)
-
-	// Invert the global recipient private key
-	g.Inverse(recipientGlobalPrivateKey, tmp)
-
-	// Use the inverted global recipient private key to remove the homomorphic encryption
-	// from encrypted recipient key and reveal the recipient key
-	g.Mul(tmp, encryptedRecipientKey, recipientKey)
 
 }

@@ -6,86 +6,90 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-type PrecompEncrypt struct{}
+// Encrypt implements the Encrypt Phase of the Precomputation. It adds the
+// Seconds Unpermuted Internode Message Keys int the Message Precomputation
+type Encrypt struct{}
 
-// Build (PrecompEncrypt) allocates memory and links keys for the Encrypt phase
-// of precomputation.
-func (gen PrecompEncrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+// SlotEncrypt is used to pass external data into Encrypt and to pass the results out of Encrypt
+type SlotEncrypt struct {
+	// Slot Number of the Data
+	slot uint64
+	// Partial Precomputation for the Messages
+	EncryptedMessageKeys *cyclic.Int
+	// Partial Cypher Text for the Message Precomputation
+	PartialMessageCypherText *cyclic.Int
+}
 
-	//get round from the empty interface
+// SlotID Returns the Slot number
+func (e *SlotEncrypt) SlotID() uint64 {
+	return e.slot
+}
+
+// KeysEncrypt holds the keys used by the Encrypt Operation
+type KeysEncrypt struct {
+	// Public Key for entire round generated in Share Phase
+	CypherPublicKey *cyclic.Int
+	// Inverse Second Unpermuted Internode Message Key
+	T_INV *cyclic.Int
+	// Second Unpermuted Internode Message Private Key
+	Y_T *cyclic.Int
+}
+
+// Allocated memory and arranges key objects for the Precomputation Encrypt Phase
+func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+
+	// Get round from the empty interface
 	round := face.(*node.Round)
 
-	//Allocate Memory for output
-	om := make([]*services.Message, round.BatchSize)
+	// Allocate Memory for output
+	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = services.NewMessage(i, 2, nil)
-	}
-
-	var sav [][]*cyclic.Int
-
-	//Link the keys for encryption
-	for i := uint64(0); i < round.BatchSize; i++ {
-		roundSlc := []*cyclic.Int{
-			round.T_INV[i], round.Y_T[i], node.Grp.G, round.CypherPublicKey,
+		om[i] = &SlotEncrypt{
+			slot:                     i,
+			EncryptedMessageKeys:     cyclic.NewMaxInt(),
+			PartialMessageCypherText: cyclic.NewMaxInt(),
 		}
-		sav = append(sav, roundSlc)
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Saved: &sav, OutMessage: &om, G: g}
+	keys := make([]services.NodeKeys, round.BatchSize)
+
+	// Link the keys for encryption
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keySlc := &KeysEncrypt{
+			CypherPublicKey: round.CypherPublicKey,
+			T_INV:           round.T_INV[i],
+			Y_T:             round.Y_T[i],
+		}
+		keys[i] = keySlc
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
 
 	return &db
 
 }
 
-// Run (PrecompEncrypt) executes the Encrypt phase of precomputation as
-// detailed in the cMix technical document.
+// Output of the Permute Phase is passed to the first Node which multiplies in its Encrypted
+// Second Unpermuted Message Keys and the associated Private Keys into the Partial Message Cypher Test.
+func (e Encrypt) Run(g *cyclic.Group, in, out *SlotEncrypt, keys *KeysEncrypt) services.Slot {
 
-// Output of the Permute Phase is passed to the first Node which multiplies
-// in its "Encrypted second unpermuted message keys" and the associated
-// private keys into the Partial Message Cypher Text.
-func (gen PrecompEncrypt) Run(g *cyclic.Group, in, out *services.Message,
-	saved *[]*cyclic.Int) *services.Message {
+	// Create Temporary variable
+	tmp := cyclic.NewMaxInt()
 
-	// Obtain T^-1, Y_T, and g
-	T_INV, Y_T, serverG, globalCypherKey := (*saved)[0], (*saved)[1], (*saved)[2], (*saved)[3]
+	// Eq 11.1: Homomorphicly encrypt the Inverse Second Unpermuted Internode Message Key.
+	g.Exp(g.G, keys.Y_T, tmp)
+	g.Mul(keys.T_INV, tmp, tmp)
 
-	// Obtain input values
-	msgInput, cypherInput := in.Data[0], in.Data[1]
+	// Eq 14.5: Multiply the encrypted Inverse Second Unpermuted Internode Message Key into the partial precomputation.
+	g.Mul(in.EncryptedMessageKeys, tmp, out.EncryptedMessageKeys)
 
-	// Set output vars for the encrypted message key and message cypher text
-	// NOTE: Out index 1 used for temporary computation
-	encryptedMessageKey, messageCypherText, tmp := out.Data[0], out.Data[1], out.Data[1]
+	// Eq 11.2: Create the Inverse Second Unpermuted Internode Message Public Key.
+	g.Exp(keys.CypherPublicKey, keys.Y_T, tmp)
 
-	// Separate operations into helper function for testing
-	encryptRunHelper(g, T_INV, Y_T, serverG, globalCypherKey, msgInput,
-		cypherInput, encryptedMessageKey, messageCypherText, tmp)
+	// Multiply cypher the Inverse Second Unpermuted Internode Message Public Key into the Partial Cypher Text.
+	g.Mul(in.PartialMessageCypherText, tmp, out.PartialMessageCypherText)
 
 	return out
-
-}
-
-// Helper function for PrecompEncrypt Run
-func encryptRunHelper(g *cyclic.Group, T_INV, Y_T, serverG,
-	globalCypherKey, msgInput, cypherInput,
-	encryptedMessageKey, messageCypherText, tmp *cyclic.Int) {
-
-	// Calculate g^(Y_T) into temp index of out.Data
-	g.Exp(serverG, Y_T, tmp)
-
-	// Calculate T^-1 * g^(Y_T) into temp index of out.Data
-	g.Mul(T_INV, tmp, tmp)
-
-	// Multiply message output of permute phase or previous encrypt phase
-	// in msgInput with encrypted second unpermuted message keys into msgOutput
-	g.Mul(msgInput, tmp, encryptedMessageKey)
-
-	// Calculate g^((piZ) * Y_T) into temp index of out.Data
-	// roundG = g^(piZ), so raise roundG to Y_T
-	g.Exp(globalCypherKey, Y_T, tmp)
-
-	// Multiply cypher text output of permute phase or previous encrypt phase
-	// in cypherInput with encrypted second unpermuted message key private key into cypherOutput
-	g.Mul(cypherInput, tmp, messageCypherText)
 
 }

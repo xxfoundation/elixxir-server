@@ -1,3 +1,5 @@
+// Implements the Realtime Identify phase
+
 package realtime
 
 import (
@@ -6,47 +8,70 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-type RealTimeIdentify struct{}
+// Identify implements the Identify phase of the realtime processing.
+// It removes the keys U and V that encrypt the recipient ID, so that we can
+// start sending the ciphertext to the correct recipient.
+type Identify struct{}
 
-// DispatchBuilder to perform the identify operation. This needs to
-// grab the recipient id decryption keys so they can be multipied against
-// each message.
-func (self RealTimeIdentify) Build(group *cyclic.Group,
+// (i Identify) Run() uses SlotIdentify structs to pass data into and out of
+// Identify.
+type SlotIdentify struct {
+	// Slot number
+	slot uint64
+
+	// It isn't encrypted until this phase has run on all the nodes
+	EncryptedRecipientID *cyclic.Int
+}
+
+// SlotID() gets the slot number
+func (i *SlotIdentify) SlotID() uint64 {
+	return i.slot
+}
+
+// KeysIdentify holds the key needed for the realtime Identify phase
+type KeysIdentify struct {
+	// Result of the precomputation for the recipient ID
+	// One of the two results of the precomputation
+	RecipientPrecomputation *cyclic.Int
+}
+
+// Pre-allocate memory and arrange key objects for realtime Identify phase
+func (i Identify) Build(g *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
-	round := face.(*node.Round)
-	batchSize := round.BatchSize
-	outMessages := make([]*services.Message, batchSize)
-	identifyMessageKeys := make([][]*cyclic.Int, batchSize)
 
-	for i, _ := range outMessages {
-		outMessages[i] = services.NewMessage(uint64(i), 4, nil)
-		identifyMessageKeys[i] = []*cyclic.Int{
-			round.LastNode.RecipientPrecomputation[i]}
+	// The empty interface should be castable to a Round
+	round := face.(*node.Round)
+
+	// Allocate messages for output
+	om := make([]services.Slot, round.BatchSize)
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		om[i] = &SlotIdentify{slot: i,
+			EncryptedRecipientID: cyclic.NewMaxInt(),
+		}
 	}
 
-	return &services.DispatchBuilder{
-		BatchSize:  batchSize,
-		Saved:      &identifyMessageKeys,
-		OutMessage: &outMessages,
-		G:          group}
+	keys := make([]services.NodeKeys, round.BatchSize)
+
+	// Prepare the correct keys
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keySlc := &KeysIdentify{RecipientPrecomputation: round.RecipientPrecomputation[i]}
+		keys[i] = keySlc
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+
+	return &db
 }
 
-func (self RealTimeIdentify) Run(g *cyclic.Group, in, out *services.Message,
-	saved *[]*cyclic.Int) *services.Message {
-	RecipientPrecomputation := (*saved)[0]
-	EncryptedRecipient := in.Data[0]
-	DecryptedRecipient := out.Data[0]
+func (i Identify) Run(g *cyclic.Group, in, out *SlotIdentify,
+	keys *KeysIdentify) services.Slot {
+	// Input: Encrypted Recipient ID, from Permute phase
+	// This phase decrypts the recipient ID, identifying the recipient
 
-	Identify(g, EncryptedRecipient, DecryptedRecipient, RecipientPrecomputation)
+	// Multiply EncryptedRecipientID by the precomputations from the last node
+	// Eq 5.1
+	g.Mul(in.EncryptedRecipientID, keys.RecipientPrecomputation, out.EncryptedRecipientID)
 
 	return out
-}
-
-// Identify (run only on the last node) multiplies the product of a
-// sequence of all inverse U and inverse V from all nodes in order to
-// remove all V and U encryptions. Note that identify should only be run
-// on the final node in a cMix cluster.
-func Identify(g *cyclic.Group, EncryptedRecipient, DecryptedRecipient,
-	RecipientPrecomputation *cyclic.Int) {
-	g.Mul(EncryptedRecipient, RecipientPrecomputation, DecryptedRecipient)
 }
