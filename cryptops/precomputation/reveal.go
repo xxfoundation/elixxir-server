@@ -33,12 +33,11 @@ func (r *SlotReveal) SlotID() uint64 {
 type KeysReveal struct {
 	// Private cypher key for all messages in the round
 	// Generated in Generation phase
-	PrivateCypherKey *cyclic.Int
+	Z *cyclic.Int
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Reveal phase
-func (r Reveal) Build(g *cyclic.Group, face interface{}) (
-	*services.DispatchBuilder) {
+func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 	// The empty interface should be castable to a Round
 	round := face.(*node.Round)
 
@@ -56,14 +55,14 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) (
 
 	// Prepare the correct keys
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysReveal{PrivateCypherKey: round.Z}
+		keySlc := &KeysReveal{Z: round.Z}
 		keys[i] = keySlc
 	}
 
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
-		Keys: &keys,
-		Output: &om, G: g}
+		Keys:      &keys,
+		Output:    &om, G: g}
 
 	return &db
 }
@@ -76,12 +75,12 @@ func (r Reveal) Run(g *cyclic.Group, in, out *SlotReveal,
 
 	// Root by cypher key to remove one layer of homomorphic encryption
 	// from partially encrypted message cypher text. Eq 15.11
-	g.Root(in.PartialMessageCypherText, keys.PrivateCypherKey,
+	g.Root(in.PartialMessageCypherText, keys.Z,
 		out.PartialMessageCypherText)
 
 	// Root by cypher key to remove one layer of homomorphic encryption
 	// from partially encrypted recipient ID cypher text. Eq 15.13
-	g.Root(in.PartialRecipientCypherText, keys.PrivateCypherKey,
+	g.Root(in.PartialRecipientCypherText, keys.Z,
 		out.PartialRecipientCypherText)
 
 	return out

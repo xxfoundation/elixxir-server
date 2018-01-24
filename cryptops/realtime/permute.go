@@ -30,8 +30,8 @@ func (p *SlotPermute) SlotID() uint64 {
 
 // KeysPermute holds the keys used by the Permute operation
 type KeysPermute struct {
-	PermutedInternodeMessageKey   *cyclic.Int
-	PermutedInternodeRecipientKey *cyclic.Int
+	S *cyclic.Int
+	V *cyclic.Int
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Permute phase
@@ -58,8 +58,8 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	// Prepare the correct keys
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysPermute{PermutedInternodeMessageKey: round.S[i],
-			PermutedInternodeRecipientKey: round.V[i]}
+		keySlc := &KeysPermute{S: round.S[i],
+			V: round.V[i]}
 
 		keys[i] = keySlc
 	}
@@ -79,13 +79,11 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 
 	// Multiply the message by its permuted key to make the permutation
 	// secret to the previous node
-	g.Mul(in.EncryptedMessage, keys.PermutedInternodeMessageKey,
-		out.EncryptedMessage)
+	g.Mul(in.EncryptedMessage, keys.S, out.EncryptedMessage)
 
 	// Multiply the recipient ID by its permuted key making the permutation
 	// secret to the previous node
-	g.Mul(in.EncryptedRecipientID, keys.PermutedInternodeRecipientKey,
-		out.EncryptedRecipientID)
+	g.Mul(in.EncryptedRecipientID, keys.V, out.EncryptedRecipientID)
 
 	return out
 }
