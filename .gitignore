@@ -6,3 +6,5 @@ vendor/
 .idea/*
 # Ignore local development scripts
 localdev_*
+# Ignore logs
+*.log
