@@ -16,7 +16,7 @@ type Reveal struct{}
 // (r Reveal) Run() uses SlotReveal structs to pass data into and out of Reveal
 type SlotReveal struct {
 	// Slot number
-	slot uint64
+	Slot uint64
 
 	// Partially decrypted message cypher texts
 	PartialMessageCypherText *cyclic.Int
@@ -24,9 +24,9 @@ type SlotReveal struct {
 	PartialRecipientCypherText *cyclic.Int
 }
 
-// SlotID() gets the slot number
+// SlotID() gets the Slot number
 func (r *SlotReveal) SlotID() uint64 {
-	return r.slot
+	return r.Slot
 }
 
 // KeysReveal holds the keys used by the Reveal operation
@@ -37,7 +37,8 @@ type KeysReveal struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Reveal phase
-func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (r Reveal) Build(g *cyclic.Group, face interface{}) (
+	*services.DispatchBuilder) {
 	// The empty interface should be castable to a Round
 	round := face.(*node.Round)
 
@@ -45,7 +46,7 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotReveal{slot: i,
+		om[i] = &SlotReveal{Slot: i,
 			PartialMessageCypherText:   cyclic.NewMaxInt(),
 			PartialRecipientCypherText: cyclic.NewMaxInt(),
 		}
