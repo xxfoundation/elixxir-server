@@ -86,3 +86,79 @@ func TestRealTimePermute(t *testing.T) {
 	println("RealPermute", pass, "out of", test, "tests passed.")
 
 }
+
+func TestRealtimePermuteRun(t *testing.T) {
+	bs := uint64(3)
+
+	var im []*SlotPermute
+	var om []*SlotPermute
+
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
+		cyclic.NewInt(29), rng)
+
+	im = append(im, &SlotPermute{
+		Slot:                 uint64(0),
+		EncryptedMessage:     cyclic.NewInt(int64(39)),
+		EncryptedRecipientID: cyclic.NewInt(int64(13))})
+
+	im = append(im, &SlotPermute{
+		Slot:                 uint64(1),
+		EncryptedMessage:     cyclic.NewInt(int64(86)),
+		EncryptedRecipientID: cyclic.NewInt(int64(87))})
+
+	im = append(im, &SlotPermute{
+		Slot:                 uint64(2),
+		EncryptedMessage:     cyclic.NewInt(int64(39)),
+		EncryptedRecipientID: cyclic.NewInt(int64(51))})
+
+	om = append(om, &SlotPermute{
+		Slot:                 uint64(1),
+		EncryptedMessage:     cyclic.NewInt(int64(0)),
+		EncryptedRecipientID: cyclic.NewInt(int64(0))})
+
+	om = append(om, &SlotPermute{
+		Slot:                 uint64(2),
+		EncryptedMessage:     cyclic.NewInt(int64(0)),
+		EncryptedRecipientID: cyclic.NewInt(int64(0))})
+
+	om = append(om, &SlotPermute{
+		Slot:                 uint64(0),
+		EncryptedMessage:     cyclic.NewInt(int64(0)),
+		EncryptedRecipientID: cyclic.NewInt(int64(0))})
+
+	keys := []KeysPermute{
+		{
+			S: cyclic.NewInt(53),
+			V: cyclic.NewInt(52)},
+		{
+			S: cyclic.NewInt(24),
+			V: cyclic.NewInt(68)},
+		{
+			S: cyclic.NewInt(61),
+			V: cyclic.NewInt(11)},
+	}
+
+	results := [][]*cyclic.Int{
+		{cyclic.NewInt(47), cyclic.NewInt(70)},
+		{cyclic.NewInt(44), cyclic.NewInt(58)},
+		{cyclic.NewInt(56), cyclic.NewInt(56)},
+	}
+
+	permute := Permute{}
+
+	for i := uint64(0); i < bs; i++ {
+		permute.Run(&grp, im[i], om[i], &keys[i])
+	}
+
+	for i := uint64(0); i < bs; i++ {
+		if results[i][0].Cmp(om[i].EncryptedMessage) != 0 ||
+			results[i][1].Cmp(om[i].EncryptedRecipientID) != 0 {
+			t.Errorf("%v - Expected: %v,%v Got: %v,%v",
+				results[i][0].Text(10), results[i][1].Text(10),
+				om[i].EncryptedMessage.Text(10),
+				om[i].EncryptedRecipientID.Text(10))
+		}
+	}
+}
