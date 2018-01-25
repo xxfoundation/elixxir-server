@@ -2,7 +2,6 @@
 package node
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -36,19 +35,16 @@ func Run(servers []string) {
 		time.Sleep(time.Millisecond * 500)
 		c := pb.NewMixMessageServiceClient(conn)
 
-		// Contact the server and print out its response
-		name := "MixMessageService"
-
-		// Say hello, check that we get the correct response
-		ctx, cancel := context.WithTimeout(context.Background(),
-			300*time.Millisecond)
-		r, err := c.SayHello(ctx, &pb.HelloRequest{Name: name})
+		// Send AskOnline Request and check that we get an AskOnlineAck back
+		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+		response, err := c.AskOnline(ctx, &pb.Ping{})
 		if err != nil {
-			jww.ERROR.Printf("Could not greet: %v\n", err)
-		} else if r.Message != "Hello MixMessageService" {
-			jww.ERROR.Printf("Wrong response: %v\n", r.Message)
+			jww.ERROR.Printf("AskOnline: Error received: %s", err)
+		}
+		if !response.IsOnline {
+			jww.ERROR.Printf("AskOnline: Failed to get an online confirmation!")
 		} else {
-			fmt.Printf("Server %v response: %v\n", addr, r.Message)
+			jww.INFO.Printf("AskOnline: %v is online!", addr)
 		}
 		defer cancel()
 	}
