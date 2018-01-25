@@ -2,6 +2,7 @@
 //
 // All rights reserved.
 
+// Package cmd initializes the CLI and config parsers as well as the logger.
 package cmd
 
 import (
@@ -40,6 +41,8 @@ func Execute() {
 	}
 }
 
+// init is the initialization function for Cobra which defines commands
+// and flags.
 func init() {
 	cobra.OnInitialize(initConfig, initLog)
 
@@ -83,11 +86,11 @@ func initConfig() {
 
 }
 
-// Initializes logging thresholds and log path
+// initLog initializes logging thresholds and the log path.
 func initLog() {
 	if viper.Get("logPath") != nil {
 		// If verbose flag set then log more info for debugging
-		if verbose {
+		if verbose || viper.GetBool("verbose") {
 			jww.SetLogThreshold(jww.LevelInfo)
 			jww.SetStdoutThreshold(jww.LevelInfo)
 		}

@@ -17,15 +17,15 @@ type Identify struct{}
 // Identify.
 type SlotIdentify struct {
 	// Slot number
-	slot uint64
+	Slot uint64
 
-	// It isn't encrypted until this phase has run on all the nodes
+	// It is encrypted until this phase has run on all the nodes
 	EncryptedRecipientID *cyclic.Int
 }
 
-// SlotID() gets the slot number
+// SlotID() gets the Slot number
 func (i *SlotIdentify) SlotID() uint64 {
-	return i.slot
+	return i.Slot
 }
 
 // KeysIdentify holds the key needed for the realtime Identify phase
@@ -46,7 +46,7 @@ func (i Identify) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotIdentify{slot: i,
+		om[i] = &SlotIdentify{Slot: i,
 			EncryptedRecipientID: cyclic.NewMaxInt(),
 		}
 	}
@@ -55,23 +55,28 @@ func (i Identify) Build(g *cyclic.Group,
 
 	// Prepare the correct keys
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysIdentify{RecipientPrecomputation: round.RecipientPrecomputation[i]}
+		keySlc := &KeysIdentify{
+			RecipientPrecomputation: round.RecipientPrecomputation[i]}
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys:      &keys,
+		Output:    &om, G: g}
 
 	return &db
 }
 
+// Input: Encrypted Recipient ID, from Permute phase
+// This phase decrypts the recipient ID, identifying the recipient
 func (i Identify) Run(g *cyclic.Group, in, out *SlotIdentify,
 	keys *KeysIdentify) services.Slot {
-	// Input: Encrypted Recipient ID, from Permute phase
-	// This phase decrypts the recipient ID, identifying the recipient
 
-	// Multiply EncryptedRecipientID by the precomputations from the last node
 	// Eq 5.1
-	g.Mul(in.EncryptedRecipientID, keys.RecipientPrecomputation, out.EncryptedRecipientID)
+	// Multiply EncryptedRecipientID by the precomputed value
+	g.Mul(in.EncryptedRecipientID, keys.RecipientPrecomputation,
+		out.EncryptedRecipientID)
 
 	return out
 }

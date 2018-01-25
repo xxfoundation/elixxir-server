@@ -4,6 +4,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
+// LastNode contains precomputations held only by the last node
 type LastNode struct {
 	// Message Decryption key, AKA PiRST_Inv
 	MessagePrecomputation []*cyclic.Int
@@ -15,7 +16,7 @@ type LastNode struct {
 	RoundRecipientPrivateKey []*cyclic.Int
 }
 
-// The round struct contains the keys and permutations for a given message batch
+// Round contains the keys and permutations for a given message batch
 type Round struct {
 	R            []*cyclic.Int // First unpermuted internode message key
 	S            []*cyclic.Int // Permuted internode message key
@@ -44,10 +45,10 @@ type Round struct {
 	BatchSize uint64
 }
 
-//Group that all operations are done within
+// Grp is the cyclic group that all operations are done within
 var Grp *cyclic.Group
 
-// The Rounds map is a mapping of session identifiers to round structures
+// Rounds is a mapping of session identifiers to round structures
 var Rounds map[string]*Round
 
 var TestArray = [2]float32{.03, .02}
@@ -85,24 +86,6 @@ func NewRound(batchSize uint64) *Round {
 	NR.Z.SetBytes(cyclic.Max4kBitInt)
 
 	for i := uint64(0); i < batchSize; i++ {
-		NR.R[i] = cyclic.NewInt(0)
-		NR.S[i] = cyclic.NewInt(0)
-		NR.T[i] = cyclic.NewInt(0)
-		NR.V[i] = cyclic.NewInt(0)
-		NR.U[i] = cyclic.NewInt(0)
-
-		NR.R_INV[i] = cyclic.NewInt(0)
-		NR.S_INV[i] = cyclic.NewInt(0)
-		NR.T_INV[i] = cyclic.NewInt(0)
-		NR.V_INV[i] = cyclic.NewInt(0)
-		NR.U_INV[i] = cyclic.NewInt(0)
-
-		NR.Y_R[i] = cyclic.NewInt(0)
-		NR.Y_S[i] = cyclic.NewInt(0)
-		NR.Y_T[i] = cyclic.NewInt(0)
-		NR.Y_V[i] = cyclic.NewInt(0)
-		NR.Y_U[i] = cyclic.NewInt(0)
-
 		NR.R[i] = cyclic.NewMaxInt()
 		NR.S[i] = cyclic.NewMaxInt()
 		NR.T[i] = cyclic.NewMaxInt()
