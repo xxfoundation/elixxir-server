@@ -1,7 +1,6 @@
 package cryptops
 
 import (
-	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
@@ -211,6 +210,4 @@ func TestGenerateClientKey(t *testing.T) {
 	for i := 0; i < len(users); i++ {
 		node.DeleteUser(users[i].Id)
 	}
-
-	t.Errorf("Test not finished yet")
 }
