@@ -1,3 +1,5 @@
+// Package services contains a dispatcher interface and functions which
+// facilitate communication between the different cryptop phases.
 package services
 
 import (
@@ -56,7 +58,8 @@ type CryptographicOperation interface {
 	Build(g *cyclic.Group, face interface{}) *DispatchBuilder
 }
 
-// Contains the data required to configure the dispatcher and to execute "run"
+// DispatchBuilder contains the data required to configure the dispatcher
+// and to execute "run".
 type DispatchBuilder struct {
 	// Size of the batch the cryptop is to be run on
 	BatchSize uint64
@@ -68,7 +71,7 @@ type DispatchBuilder struct {
 	G *cyclic.Group
 }
 
-// Private struct containing the control data in the cryptop
+// dispatch is a private struct containing the control data in the cryptop
 type dispatch struct {
 	noCopy noCopy
 
@@ -92,7 +95,7 @@ type dispatch struct {
 	locker uint32
 }
 
-//Function which actually does the dispatching
+// dispatcher is the function which actually does the dispatching
 func (d *dispatch) dispatcher() {
 
 	q := false

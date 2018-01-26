@@ -1,5 +1,3 @@
-// Implements the Precomputation Encrypt phase
-
 package precomputation
 
 import (

@@ -8,13 +8,16 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Permute implements the Permute phase of the precomputation.
+// The realtime Permute phase blindly permutes, then re-encrypts messages
+// and recipient IDs to prevent other nodes or outside actors from knowing
+// the origin of the messages.
 type Permute struct{}
 
-// (p Permute) Run() uses SlotPermute structs to pass data into and out of Permute
+// (p Permute) Run() uses SlotPermute structs to pass data into and
+// out of Permute
 type SlotPermute struct {
 	// Slot number
-	slot uint64
+	Slot uint64
 
 	// Encrypted message (permuted to a different slot in Run())
 	EncryptedMessage *cyclic.Int
@@ -24,16 +27,16 @@ type SlotPermute struct {
 
 // SlotID() gets the slot number
 func (p *SlotPermute) SlotID() uint64 {
-	return p.slot
+	return p.Slot
 }
 
 // KeysPermute holds the keys used by the Permute operation
 type KeysPermute struct {
-	PermutedInternodeMessageKey   *cyclic.Int
-	PermutedInternodeRecipientKey *cyclic.Int
+	S *cyclic.Int
+	V *cyclic.Int
 }
 
-// Pre-allocate memory and arrange key objects for Precomputation Permute phase
+// Pre-allocate memory and arrange key objects for Realtime Permute phase
 func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 	// The empty interface should be castable to a Round
 	round := face.(*node.Round)
@@ -41,23 +44,15 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)
 
-	for i := uint64(0); i < round.BatchSize; i++ {
-		// This is where the mixing happens: setting the slot to the
-		// permutations that have been precomputed for this round
-		// will put the message and recipient ID in a different slot
-		// when we Run the encryption.
-		om[i] = &SlotPermute{slot: round.Permutations[i],
-			EncryptedMessage:     cyclic.NewMaxInt(),
-			EncryptedRecipientID: cyclic.NewMaxInt(),
-		}
-	}
+	// BEGIN CRYPTOGRAPHIC PORTION OF BUILD
+	buildCryptoPermute(round, om)
+	// END CRYPTOGRAPHIC PORTION OF BUILD
 
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Prepare the correct keys
 	for i := uint64(0); i < round.BatchSize; i++ {
-		keySlc := &KeysPermute{PermutedInternodeMessageKey: round.S[i],
-			PermutedInternodeRecipientKey: round.V[i]}
+		keySlc := &KeysPermute{S: round.S[i], V: round.V[i]}
 
 		keys[i] = keySlc
 	}
@@ -68,22 +63,31 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	return &db
 }
 
+// Input: Encrypted message, from Decrypt Phase
+//        Encrypted recipient ID, from Decrypt Phase
+// This phase permutes the message and the recipient ID and encrypts
+// them with their respective permuted internode keys.
 func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 	keys *KeysPermute) services.Slot {
-	// Input: Encrypted message, from Decrypt Phase
-	//        Encrypted recipient ID, from Decrypt Phase
-	// This phase permutes the message and the recipient ID and encrypts
-	// them with their respective permuted internode keys.
 
-	// Multiply the message by its permuted key to make the permutation
+	// Eq 4.10 Multiply the message by its permuted key to make the permutation
 	// secret to the previous node
-	g.Mul(in.EncryptedMessage, keys.PermutedInternodeMessageKey,
-		out.EncryptedMessage)
+	g.Mul(in.EncryptedMessage, keys.S, out.EncryptedMessage)
 
-	// Multiply the recipient ID by its permuted key making the permutation
+	// Eq 4.12 Multiply the recipient ID by its permuted key making the permutation
 	// secret to the previous node
-	g.Mul(in.EncryptedRecipientID, keys.PermutedInternodeRecipientKey,
-		out.EncryptedMessage)
+	g.Mul(in.EncryptedRecipientID, keys.V, out.EncryptedRecipientID)
 
 	return out
+}
+
+func buildCryptoPermute(round *node.Round, outMessages []services.Slot) {
+	// Prepare the permuted output messages
+	for i := uint64(0); i < round.BatchSize; i++ {
+		outMessages[i] = &SlotPermute{
+			Slot:                 round.Permutations[i],
+			EncryptedMessage:     cyclic.NewMaxInt(),
+			EncryptedRecipientID: cyclic.NewMaxInt(),
+		}
+	}
 }
