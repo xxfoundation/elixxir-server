@@ -41,8 +41,10 @@ type KeysGeneration struct {
 	Y_V   *cyclic.Int
 }
 
-// Allocated memory and arranges key objects for the Precomputation Generation Phase
-func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+// Allocated memory and arranges key objects for the Precomputation
+// Generation Phase
+func (gen Generation) Build(g *cyclic.Group, face interface{}) (
+	*services.DispatchBuilder) {
 
 	// Get round from the empty interface
 	round := face.(*node.Round)
@@ -83,14 +85,20 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.Dispatc
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys:      &keys,
+		Output:    &om,
+		G:         g,
+	}
 
 	return &db
 
 }
 
 // Generate random values for all keys
-func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration, keys *KeysGeneration) services.Slot {
+func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
+	keys *KeysGeneration) services.Slot {
 
 	// Generates a random value within the group for every internode key
 	g.Random(keys.R)
