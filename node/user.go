@@ -4,11 +4,31 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
-// userRegistry is a map which acts as a global registry that holds all users.
-var userRegistry map[uint64]User
+// Globally initiated UserRegistry
+var Users = newUserRegistry()
 
-// idCounter is a sequential counter for user.Id values.
-var idCounter uint64 = 0
+// Interface for User Registry operations
+type UserRegistry interface {
+	NewUser(address string) *User
+	DeleteUser(id uint64)
+	GetUser(id uint64) *User
+	UpsertUser(user *User)
+	CountUsers() int
+}
+
+// Struct implementing the UserRegistry Interface with an underlying Map
+type UserMap struct {
+	// Map acting as the User Registry containing User -> ID mapping
+	userCollection map[uint64]*User
+	// Increments sequentially for User.id values
+	idCounter uint64
+}
+
+// Creates a new UserRegistry interface
+func newUserRegistry() UserRegistry {
+	// With an underlying UserMap data structure
+	return UserRegistry(&UserMap{userCollection: make(map[uint64]*User), idCounter: 0})
+}
 
 type ForwardKey struct {
 	BaseKey        *cyclic.Int
@@ -26,15 +46,10 @@ type User struct {
 	PublicKey *cyclic.Int
 }
 
-// InitUserRegistry initializes the userRegistry map.
-func InitUserRegistry() {
-	userRegistry = make(map[uint64]User)
-}
-
 // NewUser creates a new User object with default fields and given address.
-func NewUser(address string) User {
-	idCounter++
-	return User{Id: idCounter - 1, Address: address,
+func (m *UserMap) NewUser(address string) *User {
+	m.idCounter++
+	return &User{Id: m.idCounter - 1, Address: address,
 		Transmission: ForwardKey{BaseKey: cyclic.NewMaxInt(),
 			PartialBaseKey: cyclic.NewMaxInt(), RecursiveKey: cyclic.NewMaxInt()},
 		Reception: ForwardKey{BaseKey: cyclic.NewMaxInt(),
@@ -44,24 +59,24 @@ func NewUser(address string) User {
 }
 
 // DeleteUser deletes a user with the given ID from userRegistry.
-func DeleteUser(id uint64) {
+func (m *UserMap) DeleteUser(id uint64) {
 	// If key does not exist, do nothing
-	delete(userRegistry, id)
+	delete(m.userCollection, id)
 }
 
 // GetUser returns a user with the given ID from userRegistry.
-func GetUser(id uint64) User {
+func (m *UserMap) GetUser(id uint64) *User {
 	// If key does not exist, return nil
-	return userRegistry[id]
+	return m.userCollection[id]
 }
 
 // UpsertUser inserts given user into userRegistry or update the user if it
 // already exists (Upsert operation).
-func UpsertUser(user User) {
-	userRegistry[user.Id] = user
+func (m *UserMap) UpsertUser(user *User) {
+	m.userCollection[user.Id] = user
 }
 
 // CountUsers returns a count of the users in userRegistry
-func CountUsers() int {
-	return len(userRegistry)
+func (m *UserMap) CountUsers() int {
+	return len(m.userCollection)
 }
