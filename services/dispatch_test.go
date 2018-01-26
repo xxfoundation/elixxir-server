@@ -141,3 +141,43 @@ func TestDispatchController_IsAlive(t *testing.T) {
 	}
 
 }
+
+
+// Perform an end to end test of the precomputation with batchsize 1,
+// then use it to send the message through a 1-node system to smoke test
+// the cryptographic operations.
+func TestEndToEndCryptops(t *testing.T) {
+
+	// ----- PRECOMPUTATION ----- //
+
+	// GENERATION PHASE
+	// This phase requires us to use pre-cooked crypto values. We run
+	// the step here then overwrite the values that were stored in the
+	// round structure so we still get the same results.
+
+	// SHARE PHASE
+
+	// ENCRYPTION PHASE
+
+	// DECRYPT PHASE
+
+	// PERMUTE PHASE
+
+	// ENCRYPT PHASE
+
+	// REVEAL PHASE
+
+	// STRIP PHASE
+
+	// ----- REALTIME ----- //
+
+	// DECRYPT PHASE
+
+	// PERMUTE PHASE
+
+	// IDENTIFY PHASE
+
+	// ENCRYPT PHASE
+
+	// PEEL PHASE
+}
