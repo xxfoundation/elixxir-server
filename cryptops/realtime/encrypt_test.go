@@ -1,1 +1,90 @@
 package realtime
+
+import (
+	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/services"
+	"testing"
+)
+
+func TestEncrypt(t *testing.T) {
+	// NOTE: Does not test correctness
+
+	test := 6
+	pass := 0
+
+	bs := uint64(3)
+
+	round := node.NewRound(bs)
+
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
+
+	recipientIds := [3]uint64{uint64(5), uint64(7), uint64(9)}
+
+	var im []services.Slot
+
+	im = append(im, &SlotEncryptIn{
+		slot:             uint64(0),
+		RecipientID:      recipientIds[0],
+		EncryptedMessage: cyclic.NewInt(int64(39)),
+		ReceptionKey:     cyclic.NewInt(int64(65))})
+
+	im = append(im, &SlotEncryptIn{
+		slot:             uint64(1),
+		RecipientID:      recipientIds[1],
+		EncryptedMessage: cyclic.NewInt(int64(86)),
+		ReceptionKey:     cyclic.NewInt(int64(44))})
+
+	im = append(im, &SlotEncryptIn{
+		slot:             uint64(2),
+		RecipientID:      recipientIds[2],
+		EncryptedMessage: cyclic.NewInt(int64(66)),
+		ReceptionKey:     cyclic.NewInt(int64(94))})
+
+	// Set the keys
+	round.T[0] = cyclic.NewInt(52)
+	round.T[1] = cyclic.NewInt(68)
+	round.T[2] = cyclic.NewInt(11)
+
+	expected := [][]*cyclic.Int{
+		{cyclic.NewInt(15)},
+		{cyclic.NewInt(65)},
+		{cyclic.NewInt(69)},
+	}
+
+	dc := services.DispatchCryptop(&grp, Encrypt{}, nil, nil, round)
+
+	for i := uint64(0); i < bs; i++ {
+		dc.InChannel <- &(im[i])
+		rtn := <-dc.OutChannel
+
+		result := expected[i]
+
+		rtnXtc := (*rtn).(*SlotEncryptOut)
+
+		// Test EncryptedMessage results
+		for j := 0; j < 1; j++ {
+			if result[j].Cmp(rtnXtc.EncryptedMessage) != 0 {
+				t.Errorf("Test of RealtimeEncrypt's EncryptedMessage output "+
+					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
+					i, j, result[j].Text(10), rtnXtc.EncryptedMessage.Text(10))
+			} else {
+				pass++
+			}
+		}
+
+		// Test RecipientID pass through
+		if recipientIds[i] != rtnXtc.RecipientID {
+			t.Errorf("Test of RealtimeEncrypt's RecipientID ouput failed on index %v.  Expected: %v Received: %v ",
+				i, recipientIds[i], rtnXtc.RecipientID)
+		} else {
+			pass++
+		}
+
+	}
+
+	println("Realtime Encrypt", pass, "out of", test, "tests passed.")
+
+}

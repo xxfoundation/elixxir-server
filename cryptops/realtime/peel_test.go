@@ -10,7 +10,7 @@ import (
 func TestPeel(t *testing.T) {
 	// NOTE: Does not test correctness
 
-	test := 3
+	test := 6
 	pass := 0
 
 	bs := uint64(3)
@@ -21,21 +21,23 @@ func TestPeel(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(27), cyclic.NewInt(97), rng)
 
+	recipientIds := [3]uint64{uint64(5), uint64(7), uint64(9)}
+
 	var im []services.Slot
 
 	im = append(im, &SlotPeel{
 		slot:             uint64(0),
-		RecipientID:      uint64(5),
+		RecipientID:      recipientIds[0],
 		EncryptedMessage: cyclic.NewInt(int64(39))})
 
 	im = append(im, &SlotPeel{
 		slot:             uint64(1),
-		RecipientID:      uint64(3),
+		RecipientID:      recipientIds[1],
 		EncryptedMessage: cyclic.NewInt(int64(86))})
 
 	im = append(im, &SlotPeel{
 		slot:             uint64(2),
-		RecipientID:      uint64(4),
+		RecipientID:      recipientIds[2],
 		EncryptedMessage: cyclic.NewInt(int64(66))})
 
 	// Set the keys
@@ -60,15 +62,24 @@ func TestPeel(t *testing.T) {
 
 		rtnXtc := (*rtn).(*SlotPeel)
 
+		// Test EncryptedMessage results
 		for j := 0; j < 1; j++ {
 			if result[j].Cmp(rtnXtc.EncryptedMessage) != 0 {
-				t.Errorf("Test of RealtimePeel's cryptop failed on index: %v on value: %v.  Expected: %v Received: %v ",
+				t.Errorf("Test of RealtimePeel's EncryptedMessage output "+
+					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
 					i, j, result[j].Text(10), rtnXtc.EncryptedMessage.Text(10))
 			} else {
 				pass++
 			}
 		}
 
+		// Test RecipientID pass through
+		if recipientIds[i] != rtnXtc.RecipientID {
+			t.Errorf("Test of RealtimePeel's RecipientID ouput failed on index %v.  Expected: %v Received: %v ",
+				i, recipientIds[i], rtnXtc.RecipientID)
+		} else {
+			pass++
+		}
 	}
 
 	println("Realtime Peel", pass, "out of", test, "tests passed.")
