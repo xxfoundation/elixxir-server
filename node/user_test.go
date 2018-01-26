@@ -5,7 +5,7 @@ import (
 )
 
 // TestUserRegistry tests the constructors/getters/setters
-// surrounding the User struct and the userRegistry map
+// surrounding the User struct and the UserRegistry interface
 func TestUserRegistry(t *testing.T) {
 
 	testUser := Users.NewUser("Someplace")
@@ -26,7 +26,7 @@ func TestUserRegistry(t *testing.T) {
 
 	Users.DeleteUser(testUser.Id)
 
-	if getUser := Users.GetUser(testUser.Id); getUser.Address != "" {
+	if getUser := Users.GetUser(testUser.Id); getUser != nil {
 		t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
 	}
 

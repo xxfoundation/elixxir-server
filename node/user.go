@@ -36,6 +36,7 @@ type ForwardKey struct {
 	RecursiveKey   *cyclic.Int
 }
 
+// Struct representing a User in the system
 type User struct {
 	Id      uint64
 	Address string
@@ -58,25 +59,25 @@ func (m *UserMap) NewUser(address string) *User {
 	}
 }
 
-// DeleteUser deletes a user with the given ID from userRegistry.
+// DeleteUser deletes a user with the given ID from userCollection.
 func (m *UserMap) DeleteUser(id uint64) {
 	// If key does not exist, do nothing
 	delete(m.userCollection, id)
 }
 
-// GetUser returns a user with the given ID from userRegistry.
+// GetUser returns a user with the given ID from userCollection.
 func (m *UserMap) GetUser(id uint64) *User {
 	// If key does not exist, return nil
 	return m.userCollection[id]
 }
 
-// UpsertUser inserts given user into userRegistry or update the user if it
+// UpsertUser inserts given user into userCollection or update the user if it
 // already exists (Upsert operation).
 func (m *UserMap) UpsertUser(user *User) {
 	m.userCollection[user.Id] = user
 }
 
-// CountUsers returns a count of the users in userRegistry
+// CountUsers returns a count of the users in userCollection
 func (m *UserMap) CountUsers() int {
 	return len(m.userCollection)
 }
