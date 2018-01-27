@@ -7,41 +7,84 @@ import (
 	"testing"
 )
 
-// For now this unit test only tests for regression, not correctness
-func TestRealtimeEncrypt(t *testing.T) {
-	test := 2
+func TestEncrypt(t *testing.T) {
+	// NOTE: Does not test correctness
+
+	test := 6
 	pass := 0
-	batchSize := uint64(2)
-	round := node.NewRound(batchSize)
+
+	bs := uint64(3)
+
+	round := node.NewRound(bs)
+
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	group := cyclic.NewGroup(cyclic.NewInt(21),
-		cyclic.NewInt(17), cyclic.NewInt(23), rng)
 
-	round.Z = cyclic.NewInt(9)
-	round.T[0] = cyclic.NewInt(17)
-	round.T[1] = cyclic.NewInt(14)
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
-	var inMessages []*services.Message
-	inMessages = append(inMessages, &services.Message{
-		uint64(0), []*cyclic.Int{cyclic.NewInt(6)}})
-	inMessages = append(inMessages, &services.Message{
-		uint64(0), []*cyclic.Int{cyclic.NewInt(18)}})
+	recipientIds := [3]uint64{uint64(5), uint64(7), uint64(9)}
 
-	dispatch := services.DispatchCryptop(&group, RealtimeEncrypt{},
-		nil, nil, round)
+	var im []services.Slot
 
-	expected := []*cyclic.Int{cyclic.NewInt(15), cyclic.NewInt(3)}
+	im = append(im, &SlotEncryptIn{
+		slot:             uint64(0),
+		RecipientID:      recipientIds[0],
+		EncryptedMessage: cyclic.NewInt(int64(39)),
+		ReceptionKey:     cyclic.NewInt(int64(65))})
 
-	for i := 0; i < len(inMessages); i++ {
-		dispatch.InChannel <- inMessages[i]
-		actual := <-dispatch.OutChannel
-		if expected[i].Cmp(actual.Data[0]) == 0 {
-			pass++
-		} else {
-			t.Error("Test failed at index", i)
-			t.Error("Actual:", actual.Data[0].Text(10), "expected:", expected[i].Text(10))
-		}
+	im = append(im, &SlotEncryptIn{
+		slot:             uint64(1),
+		RecipientID:      recipientIds[1],
+		EncryptedMessage: cyclic.NewInt(int64(86)),
+		ReceptionKey:     cyclic.NewInt(int64(44))})
+
+	im = append(im, &SlotEncryptIn{
+		slot:             uint64(2),
+		RecipientID:      recipientIds[2],
+		EncryptedMessage: cyclic.NewInt(int64(66)),
+		ReceptionKey:     cyclic.NewInt(int64(94))})
+
+	// Set the keys
+	round.T[0] = cyclic.NewInt(52)
+	round.T[1] = cyclic.NewInt(68)
+	round.T[2] = cyclic.NewInt(11)
+
+	expected := [][]*cyclic.Int{
+		{cyclic.NewInt(15)},
+		{cyclic.NewInt(65)},
+		{cyclic.NewInt(69)},
 	}
 
-	println("RealtimeEncrypt:", pass, "out of", test, "passed")
+	dc := services.DispatchCryptop(&grp, Encrypt{}, nil, nil, round)
+
+	for i := uint64(0); i < bs; i++ {
+		dc.InChannel <- &(im[i])
+		rtn := <-dc.OutChannel
+
+		result := expected[i]
+
+		rtnXtc := (*rtn).(*SlotEncryptOut)
+
+		// Test EncryptedMessage results
+		for j := 0; j < 1; j++ {
+			if result[j].Cmp(rtnXtc.EncryptedMessage) != 0 {
+				t.Errorf("Test of RealtimeEncrypt's EncryptedMessage output "+
+					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
+					i, j, result[j].Text(10), rtnXtc.EncryptedMessage.Text(10))
+			} else {
+				pass++
+			}
+		}
+
+		// Test RecipientID pass through
+		if recipientIds[i] != rtnXtc.RecipientID {
+			t.Errorf("Test of RealtimeEncrypt's RecipientID ouput failed on index %v.  Expected: %v Received: %v ",
+				i, recipientIds[i], rtnXtc.RecipientID)
+		} else {
+			pass++
+		}
+
+	}
+
+	println("Realtime Encrypt", pass, "out of", test, "tests passed.")
+
 }

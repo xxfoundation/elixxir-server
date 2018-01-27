@@ -1,3 +1,5 @@
+// Implements the Realtime Peel phase
+
 package realtime
 
 import (
@@ -6,49 +8,72 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-type RealTimePeel struct{}
+// Peel phase removes the Internode Keys by multiplying in the precomputation to the encrypted message
+type Peel struct{}
 
-// DispatchBuilder to perform the peel operation. This needs to
-// grab the aggregate R, S, and T inverses so they can be multipied against
-// each message.
-func (self RealTimePeel) Build(group *cyclic.Group,
-	face interface{}) *services.DispatchBuilder {
+// SlotPeel is used to pass external data into Peel and to pass the results out of Peel
+type SlotPeel struct {
+	//Slot Number of the Data
+	slot uint64
+	//ID of the client who will recieve the message (Pass through)
+	RecipientID uint64
+	// Permuted Message encrypted by all internode keys and the reception keys
+	EncryptedMessage *cyclic.Int
+}
+
+// SlotID Returns the Slot number
+func (e *SlotPeel) SlotID() uint64 {
+	return e.slot
+}
+
+// KeysPeel holds the keys used by the Peel Operation
+type KeysPeel struct {
+	// All message internode keys multiplied together
+	MessagePrecomputation *cyclic.Int
+}
+
+// Allocated memory and arranges key objects for the Realtime Peel Phase
+func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+
+	// Get round from the empty interface
 	round := face.(*node.Round)
-	batchSize := round.BatchSize
-	outMessages := make([]*services.Message, batchSize)
-	peelMessageKeys := make([][]*cyclic.Int, batchSize)
 
-	for i, _ := range outMessages {
-		outMessages[i] = services.NewMessage(uint64(i), 4, nil)
-		// NOTE: This seems wrong but I'm not sure how we fix it. FIXME when we link
-		//       everything up.
-		peelMessageKeys[i] = []*cyclic.Int{
-			round.LastNode.MessagePrecomputation[i]}
+	// Allocate Memory for output
+	om := make([]services.Slot, round.BatchSize)
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		om[i] = &SlotPeel{
+			slot:             i,
+			EncryptedMessage: cyclic.NewMaxInt(),
+			RecipientID:      0,
+		}
 	}
 
-	return &services.DispatchBuilder{
-		BatchSize:  batchSize,
-		Saved:      &peelMessageKeys,
-		OutMessage: &outMessages,
-		G:          group}
+	keys := make([]services.NodeKeys, round.BatchSize)
+
+	// Link the keys for peeling
+	for i := uint64(0); i < round.BatchSize; i++ {
+		keySlc := &KeysPeel{
+			MessagePrecomputation: round.LastNode.MessagePrecomputation[i],
+		}
+		keys[i] = keySlc
+	}
+
+	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+
+	return &db
+
 }
 
-func (self RealTimePeel) Run(g *cyclic.Group, in, out *services.Message,
-	saved *[]*cyclic.Int) *services.Message {
-	MessagePrecomputation := (*saved)[0]
-	EncryptedMessage := in.Data[0]
-	DecryptedMessage := out.Data[0]
+// Removes the Internode Keys by multiplying in the precomputation to the encrypted message
+func (p Peel) Run(g *cyclic.Group, in, out *SlotPeel, keys *KeysPeel) services.Slot {
 
-	Peel(g, EncryptedMessage, DecryptedMessage, MessagePrecomputation)
+	// Eq 7.1: Multiply in the precomputation
+	g.Mul(in.EncryptedMessage, keys.MessagePrecomputation, out.EncryptedMessage)
+
+	// Pass through SenderID
+	out.RecipientID = in.RecipientID
 
 	return out
-}
 
-// Peel (run only on the last node) multiplies the product of a
-// sequence of all inverse R, S, and T keys from all nodes in order to
-// remove all R, S, and T encryptions. Note that Peel should only be run
-// on the final node in a cMix cluster.
-func Peel(g *cyclic.Group, EncryptedMessage, DecryptedMessage,
-	MessagePrecomputation *cyclic.Int) {
-	g.Mul(EncryptedMessage, MessagePrecomputation, DecryptedMessage)
 }

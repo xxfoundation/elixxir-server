@@ -2,26 +2,86 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-
+	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/services"
 	"testing"
 )
 
-// Smoke test test the peel function
 func TestPeel(t *testing.T) {
-	MessagePrecomp := cyclic.NewInt(41)
+	// NOTE: Does not test correctness
 
-	grp := cyclic.NewGroup(cyclic.NewInt(43), cyclic.NewInt(5), cyclic.NewInt(23),
-		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
+	test := 6
+	pass := 0
 
-	EncryptedMessage := cyclic.NewInt(42)
-	DecryptedMessage := cyclic.NewInt(0)
+	bs := uint64(3)
 
-	ExpectedOutput := cyclic.NewInt(2) // 41*42 mod 43 => 2
+	round := node.NewRound(bs)
 
-	Peel(&grp, EncryptedMessage, DecryptedMessage, MessagePrecomp)
+	rng := cyclic.NewRandom(cyclic.NewInt(5), cyclic.NewInt(1000))
 
-	if DecryptedMessage.Cmp(ExpectedOutput) != 0 {
-		t.Errorf("Expected: %v, Got: %v", ExpectedOutput.Text(10),
-			DecryptedMessage.Text(10))
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(27), cyclic.NewInt(97), rng)
+
+	recipientIds := [3]uint64{uint64(5), uint64(7), uint64(9)}
+
+	var im []services.Slot
+
+	im = append(im, &SlotPeel{
+		slot:             uint64(0),
+		RecipientID:      recipientIds[0],
+		EncryptedMessage: cyclic.NewInt(int64(39))})
+
+	im = append(im, &SlotPeel{
+		slot:             uint64(1),
+		RecipientID:      recipientIds[1],
+		EncryptedMessage: cyclic.NewInt(int64(86))})
+
+	im = append(im, &SlotPeel{
+		slot:             uint64(2),
+		RecipientID:      recipientIds[2],
+		EncryptedMessage: cyclic.NewInt(int64(66))})
+
+	// Set the keys
+	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.MessagePrecomputation[0] = cyclic.NewInt(77)
+	round.LastNode.MessagePrecomputation[1] = cyclic.NewInt(93)
+	round.LastNode.MessagePrecomputation[2] = cyclic.NewInt(47)
+
+	expected := [][]*cyclic.Int{
+		{cyclic.NewInt(74)},
+		{cyclic.NewInt(19)},
+		{cyclic.NewInt(72)},
 	}
+
+	dc := services.DispatchCryptop(&grp, Peel{}, nil, nil, round)
+
+	for i := uint64(0); i < bs; i++ {
+		dc.InChannel <- &(im[i])
+		rtn := <-dc.OutChannel
+
+		result := expected[i]
+
+		rtnXtc := (*rtn).(*SlotPeel)
+
+		// Test EncryptedMessage results
+		for j := 0; j < 1; j++ {
+			if result[j].Cmp(rtnXtc.EncryptedMessage) != 0 {
+				t.Errorf("Test of RealtimePeel's EncryptedMessage output "+
+					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
+					i, j, result[j].Text(10), rtnXtc.EncryptedMessage.Text(10))
+			} else {
+				pass++
+			}
+		}
+
+		// Test RecipientID pass through
+		if recipientIds[i] != rtnXtc.RecipientID {
+			t.Errorf("Test of RealtimePeel's RecipientID ouput failed on index %v.  Expected: %v Received: %v ",
+				i, recipientIds[i], rtnXtc.RecipientID)
+		} else {
+			pass++
+		}
+	}
+
+	println("Realtime Peel", pass, "out of", test, "tests passed.")
+
 }

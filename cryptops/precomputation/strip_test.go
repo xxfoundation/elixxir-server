@@ -7,65 +7,85 @@ import (
 	"testing"
 )
 
-func TestPrecompStrip(t *testing.T) {
-	// NOTE: Does not test correctness
+func TestStrip(t *testing.T) {
+	// NOTE: Does not test correctness.
 
 	test := 3
 	pass := 0
 
-	bs := uint64(3)
+	batchSize := uint64(3)
 
-	round := node.NewRound(bs)
+	round := node.NewRound(batchSize)
 
-	var im []*services.Message
+	rng := cyclic.NewRandom(cyclic.NewInt(2), cyclic.NewInt(2000))
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	group := cyclic.NewGroup(cyclic.NewInt(199), cyclic.NewInt(11),
+		cyclic.NewInt(13), rng)
 
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(29), rng)
+	var inMessages []services.Slot
 
-	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
-		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(13)),
-		cyclic.NewInt(int64(41)), cyclic.NewInt(int64(74)),
-	}})
+	inMessages = append(inMessages, &SlotStripIn{slot: uint64(0),
+		EncryptedMessageKeys:   cyclic.NewInt(39),
+		EncryptedRecipientKeys: cyclic.NewInt(13)})
 
-	im = append(im, &services.Message{uint64(1), []*cyclic.Int{
-		cyclic.NewInt(int64(86)), cyclic.NewInt(int64(87)),
-		cyclic.NewInt(int64(8)), cyclic.NewInt(int64(49)),
-	}})
+	inMessages = append(inMessages, &SlotStripIn{slot: uint64(1),
+		EncryptedMessageKeys:   cyclic.NewInt(86),
+		EncryptedRecipientKeys: cyclic.NewInt(87)})
 
-	im = append(im, &services.Message{uint64(2), []*cyclic.Int{
-		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(51)),
-		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
-	}})
+	inMessages = append(inMessages, &SlotStripIn{slot: uint64(2),
+		EncryptedMessageKeys:   cyclic.NewInt(39),
+		EncryptedRecipientKeys: cyclic.NewInt(51)})
 
-	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(34), cyclic.NewInt(56)},
-		{cyclic.NewInt(75), cyclic.NewInt(44)},
-		{cyclic.NewInt(79), cyclic.NewInt(23)},
+	node.InitLastNode(round)
+	round.LastNode.MessagePrecomputation[0] = cyclic.NewInt(41)
+	round.LastNode.RecipientPrecomputation[0] = cyclic.NewInt(74)
+	round.LastNode.MessagePrecomputation[1] = cyclic.NewInt(8)
+	round.LastNode.RecipientPrecomputation[1] = cyclic.NewInt(49)
+	round.LastNode.MessagePrecomputation[2] = cyclic.NewInt(91)
+	round.LastNode.RecipientPrecomputation[2] = cyclic.NewInt(73)
+
+	expected := []SlotStripOut{
+		SlotStripOut{slot: uint64(0),
+			MessagePrecomputation:   cyclic.NewInt(10),
+			RecipientPrecomputation: cyclic.NewInt(136)},
+		SlotStripOut{slot: uint64(1),
+			MessagePrecomputation:   cyclic.NewInt(119),
+			RecipientPrecomputation: cyclic.NewInt(7)},
+		SlotStripOut{slot: uint64(2),
+			MessagePrecomputation:   cyclic.NewInt(10),
+			RecipientPrecomputation: cyclic.NewInt(59)},
 	}
 
-	dc := services.DispatchCryptop(&grp, PrecompStrip{}, nil, nil, round)
+	dc := services.DispatchCryptop(&group, Strip{}, nil, nil, round)
 
-	for i := uint64(0); i < bs; i++ {
-		dc.InChannel <- im[i]
-		actual := <-dc.OutChannel
+	for i := uint64(0); i < batchSize; i++ {
+		dc.InChannel <- &(inMessages[i])
+		act := <-dc.OutChannel
+		actual := (*act).(*SlotStripOut)
 
-		expectedVal := expected[i]
-
-		valid := true
-
-		for j := 0; j < 2; j++ {
-			valid = valid && (expectedVal[j].Cmp(actual.Data[j]) == 0)
-		}
-
-		if !valid {
-			t.Errorf("Test of PrecompStrip's cryptop failed on index: %v", i)
+		if actual.SlotID() != expected[i].SlotID() {
+			t.Errorf("Test of Precomputation Strip's cryptop failed Slot"+
+				"ID Test on index: %v; Expected: %v; Actual: %v\n", i,
+				expected[i].SlotID(), actual.SlotID())
+		} else if actual.MessagePrecomputation.Cmp(
+			expected[i].MessagePrecomputation) != 0 {
+			t.Errorf("Test of Precomputation Strip's cryptop failed"+
+				" MessagePrecomputation "+
+				"on index: %v; Expected: %v; Actual: %v\n", i,
+				expected[i].MessagePrecomputation.Text(10),
+				actual.MessagePrecomputation.Text(10))
+		} else if actual.RecipientPrecomputation.Cmp(
+			expected[i].RecipientPrecomputation) != 0 {
+			t.Errorf("Test of Precomputation Strip's cryptop failed"+
+				" RecipientPrecomputation "+
+				"on index: %v; Expected: %v; Actual: %v\n", i,
+				expected[i].RecipientPrecomputation.Text(10),
+				actual.RecipientPrecomputation.Text(10))
 		} else {
 			pass++
 		}
-
 	}
 
-	println("PrecompStrip", pass, "out of", test, "tests passed.")
-
+	println("Precomputation Strip", pass, "out of", test, "tests "+
+		"passed.")
 }

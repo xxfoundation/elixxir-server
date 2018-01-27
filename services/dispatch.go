@@ -4,40 +4,18 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"reflect"
+	"sync/atomic"
 )
 
-// Message is a struct which contains a chunck of cryptographic data to be
-// operated on.
-type Message struct {
+// Struct which contains a chunk of cryptographic data to be operated on
+type Slot interface {
 	//Slot of the message
-	Slot uint64
-	//Data contained within the message
-	Data []*cyclic.Int
+	SlotID() uint64
 }
 
-// NewMessage creates a new message with a datasize of the given width
-// filled with globals.Max4192BitInt.
-func NewMessage(slot, width uint64, val *cyclic.Int) *Message {
-	ml := make([]*cyclic.Int, width)
-
-	i := uint64(0)
-	for i < width {
-		ml[i] = cyclic.NewInt(0)
-		ml[i].SetBytes(cyclic.Max4kBitInt)
-		if val != nil {
-			ml[i].Set(val)
-		}
-		i++
-
-	}
-
-	return &Message{Slot: slot, Data: ml}
-}
-
-// Width returns the width of the given message
-func Width(m *Message) uint64 {
-	return uint64(len((*m).Data))
-}
+//Holds keys which are used in the operation
+type NodeKeys interface{}
 
 // DispatchController is the struct which is used to externally control
 //  the dispatcher
@@ -46,22 +24,34 @@ func Width(m *Message) uint64 {
 // To force kill the dispatcher do DispatchController.QuitChannel <- true
 type DispatchController struct {
 	noCopy noCopy
+	// Pointer to dispatch locker
+	dispatchLocker *uint32
 
 	// Channel which is used to send messages to process
-	InChannel chan<- *Message
+	InChannel chan<- *Slot
 	// Channel which is used to receive the results of processing
-	OutChannel <-chan *Message
+	OutChannel <-chan *Slot
 	// Channel which is used to send a kill command
 	QuitChannel chan<- bool
 }
 
-// CryptographicOperation is the interface which contains the cryptop.
+// Determines whether the Dispatcher is still running
+func (dc DispatchController) IsAlive() bool {
+	return atomic.LoadUint32(dc.dispatchLocker) == 1
+}
+
+// Sends a Quit signal to the DispatchController
+func (dc DispatchController) Kill() {
+	dc.QuitChannel <- true
+}
+
+// Cryptop is the interface which contains the cryptop
 type CryptographicOperation interface {
-	// Run is the function which executes the cryptogrphic operation
+	// Run is the function which executes the cryptographic operation
 	// in is the data coming in to be operated on
 	// out is the result of the operation, it is also returned
 	// saved is the data saved on the node which is used in the operation
-	Run(g *cyclic.Group, in, out *Message, saved *[]*cyclic.Int) *Message
+	// Run(g *cyclic.Group, in, out Message, saved NodeKeys) Message
 
 	// Build is used to generate the data which is used in run.
 	// takes an empty interface
@@ -74,9 +64,9 @@ type DispatchBuilder struct {
 	// Size of the batch the cryptop is to be run on
 	BatchSize uint64
 	// Pointers to Data from the server which is to be passed to run
-	Saved *[][]*cyclic.Int
+	Keys *[]NodeKeys
 	// buffer of messages which will be used to store the results
-	OutMessage *[]*Message
+	Output *[]Slot
 	//Group to use to execute operations
 	G *cyclic.Group
 }
@@ -85,26 +75,36 @@ type DispatchBuilder struct {
 type dispatch struct {
 	noCopy noCopy
 
-	// Interface containing Crtptographic Operation and its builder
+	// Interface containing Cryptographic Operation and its builder
 	cryptop CryptographicOperation
-	// Embeded struct containing the data used to run the cryptop
+	// Embedded struct containing the data used to run the cryptop
 	DispatchBuilder
 
 	// Channel used to receive data to be processed
-	inChannel chan *Message
+	inChannel chan *Slot
 	// Channel used to send data to be processed
-	outChannel chan *Message
+	outChannel chan *Slot
 	// Channel used to receive kill commands
 	quit chan bool
 
 	//Counter of how many messages have been processed
 	batchCntr uint64
+
+	// Locker for determining whether the dispatcher is still running
+	// 1 = True, 0 = False
+	locker uint32
 }
 
 // dispatcher is the function which actually does the dispatching
 func (d *dispatch) dispatcher() {
 
 	q := false
+
+	runFunc := reflect.ValueOf(d.cryptop).MethodByName("Run")
+
+	inputs := make([]reflect.Value, 4)
+
+	inputs[0] = reflect.ValueOf(d.DispatchBuilder.G)
 
 	for (d.batchCntr < d.DispatchBuilder.BatchSize) && !q {
 
@@ -113,17 +113,19 @@ func (d *dispatch) dispatcher() {
 		case in := <-d.inChannel:
 			//received message
 
-			out := (*d.DispatchBuilder.OutMessage)[in.Slot]
+			out := (*d.DispatchBuilder.Output)[(*in).SlotID()]
 
-			save := &(*d.DispatchBuilder.Saved)[in.Slot]
-
-			g := d.DispatchBuilder.G
+			inputs[1] = reflect.ValueOf((*in))
+			inputs[2] = reflect.ValueOf(out)
+			inputs[3] = reflect.ValueOf((*d.DispatchBuilder.Keys)[(*in).SlotID()])
 
 			//process message using the cryptop
-			out = d.cryptop.Run(g, in, out, save)
+			returnedValues := runFunc.Call(inputs)
+			a := returnedValues[0].Interface()
+			b := a.(Slot)
 
 			//send the result
-			d.outChannel <- out
+			d.outChannel <- &b
 
 			d.batchCntr++
 		case <-d.quit:
@@ -138,6 +140,9 @@ func (d *dispatch) dispatcher() {
 	close(d.outChannel)
 	close(d.quit)
 
+	// Unlock the dispatch locker, indicating the dispatcher is no longer running
+	atomic.CompareAndSwapUint32(&d.locker, 1, 0)
+
 }
 
 // DispatchCryptop creates the dispatcher and returns its control structure.
@@ -145,18 +150,18 @@ func (d *dispatch) dispatcher() {
 // round is a pointer to the round object the dispatcher is in
 // chIn and chOut are the input and output channels, set to nil and the
 //  dispatcher will generate its own.
-func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Message, face interface{}) *DispatchController {
+func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Slot, face interface{}) *DispatchController {
 
 	db := cryptop.Build(g, face)
 
 	//Creates a channel for input if none is provided
 	if chIn == nil {
-		chIn = make(chan *Message, db.BatchSize)
+		chIn = make(chan *Slot, db.BatchSize)
 	}
 
 	//Creates a channel for output if none is provided
 	if chOut == nil {
-		chOut = make(chan *Message, db.BatchSize)
+		chOut = make(chan *Slot, db.BatchSize)
 	}
 
 	//Creates a channel for force quitting the dispatched operation
@@ -166,13 +171,14 @@ func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOu
 
 	//Creates the internal dispatch structure
 	d := &dispatch{cryptop: cryptop, DispatchBuilder: *db,
-		inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0}
+		inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0, locker: 1}
 
 	//runs the dispatcher
 	go d.dispatcher()
 
 	//creates the  dispatch control structure
-	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, QuitChannel: chQuit}
+	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, QuitChannel: chQuit,
+		dispatchLocker: &d.locker}
 
 	return dc
 

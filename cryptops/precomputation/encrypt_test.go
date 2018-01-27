@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPrecompEncrypt(t *testing.T) {
+func TestEncrypt(t *testing.T) {
 	// NOTE: Does not test correctness
 
 	test := 3
@@ -17,7 +17,7 @@ func TestPrecompEncrypt(t *testing.T) {
 
 	round := node.NewRound(bs)
 
-	var im []*services.Message
+	var im []services.Slot
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
@@ -25,20 +25,20 @@ func TestPrecompEncrypt(t *testing.T) {
 
 	node.Grp = &grp
 
-	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
-		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(13)),
-		cyclic.NewInt(int64(41)), cyclic.NewInt(int64(74)),
-	}})
+	im = append(im, &SlotEncrypt{
+		Slot:                     uint64(0),
+		EncryptedMessageKeys:     cyclic.NewInt(int64(91)),
+		PartialMessageCypherText: cyclic.NewInt(int64(73))})
 
-	im = append(im, &services.Message{uint64(1), []*cyclic.Int{
-		cyclic.NewInt(int64(86)), cyclic.NewInt(int64(87)),
-		cyclic.NewInt(int64(8)), cyclic.NewInt(int64(49)),
-	}})
+	im = append(im, &SlotEncrypt{
+		Slot:                     uint64(1),
+		EncryptedMessageKeys:     cyclic.NewInt(int64(86)),
+		PartialMessageCypherText: cyclic.NewInt(int64(87))})
 
-	im = append(im, &services.Message{uint64(2), []*cyclic.Int{
-		cyclic.NewInt(int64(39)), cyclic.NewInt(int64(51)),
-		cyclic.NewInt(int64(91)), cyclic.NewInt(int64(73)),
-	}})
+	im = append(im, &SlotEncrypt{
+		Slot:                     uint64(2),
+		EncryptedMessageKeys:     cyclic.NewInt(int64(39)),
+		PartialMessageCypherText: cyclic.NewInt(int64(50))})
 
 	round.CypherPublicKey = cyclic.NewInt(30)
 
@@ -51,33 +51,35 @@ func TestPrecompEncrypt(t *testing.T) {
 	round.T_INV[2] = cyclic.NewInt(11)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(79), cyclic.NewInt(25)},
+		{cyclic.NewInt(16), cyclic.NewInt(86)},
 		{cyclic.NewInt(90), cyclic.NewInt(88)},
-		{cyclic.NewInt(32), cyclic.NewInt(35)},
+		{cyclic.NewInt(32), cyclic.NewInt(66)},
 	}
 
-	dc := services.DispatchCryptop(&grp, PrecompEncrypt{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, Encrypt{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
-		dc.InChannel <- im[i]
+		dc.InChannel <- &(im[i])
 		actual := <-dc.OutChannel
+
+		act := (*actual).(*SlotEncrypt)
 
 		expectedVal := expected[i]
 
-		valid := true
-
-		for j := 0; j < 2; j++ {
-			valid = valid && (expectedVal[j].Cmp(actual.Data[j]) == 0)
-		}
-
-		if !valid {
-			t.Errorf("Test of PrecompEncrypt's cryptop failed on index: %v", i)
+		if expectedVal[0].Cmp(act.EncryptedMessageKeys) != 0 {
+			t.Errorf("Test of Precomputation Encrypt's cryptop failed Keys Test on index: %v; "+
+				"Expected: %v, Actual: %v", i, expectedVal[0].Text(10),
+				act.EncryptedMessageKeys.Text(10))
+		} else if expectedVal[1].Cmp(act.PartialMessageCypherText) != 0 {
+			t.Errorf("Test of Precomputation Encrypt's cryptop failed Cypher Text Test on index: %v; "+
+				"Expected: %v, Actual: %v", i, expectedVal[1].Text(10),
+				act.PartialMessageCypherText.Text(10))
 		} else {
 			pass++
 		}
 
 	}
 
-	println("PrecompEncrypt", pass, "out of", test, "tests passed.")
+	println("Precomputation Encrypt", pass, "out of", test, "tests passed.")
 
 }

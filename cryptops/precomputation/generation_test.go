@@ -7,99 +7,101 @@ import (
 	"testing"
 )
 
-func TestPrecompGeneration(t *testing.T) {
+func TestGeneration(t *testing.T) {
+	// NOTE: Does not test correctness.
 
-	test := 102
+	test := 1
 	pass := 0
 
-	bs := uint64(100)
+	batchSize := uint64(4)
 
-	round := node.NewRound(bs)
+	round := node.NewRound(batchSize)
 
-	defaultInt := cyclic.NewInt(0)
-	defaultInt.SetBytes(cyclic.Max4kBitInt)
+	rng := cyclic.NewRandom(cyclic.NewInt(2), cyclic.NewInt(897879897))
 
-	var im []*services.Message
+	group := cyclic.NewGroup(cyclic.NewInt(50581), cyclic.NewInt(11),
+		cyclic.NewInt(13), rng)
 
-	for i := uint64(0); i < bs; i++ {
-		im = append(im, &services.Message{uint64(i), []*cyclic.Int{cyclic.NewInt(int64(0))}})
+	var inMessages []services.Slot
+
+	for i := uint64(0); i < batchSize; i++ {
+		inMessages = append(inMessages, &SlotGeneration{slot: i})
 	}
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	dc := services.DispatchCryptop(&group, Generation{}, nil, nil, round)
 
-	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(23), rng)
-
-	dc := services.DispatchCryptop(&grp, PrecompGeneration{}, nil, nil, round)
-
-	roundcnt := 0
-
-	for i := uint64(0); i < bs; i++ {
-
-		dc.InChannel <- im[i]
-		rtn := <-dc.OutChannel
-
-		if !validRound(round, defaultInt, i) {
-			t.Errorf("Test of PrecompGeneration's random generation failed at index: %v ", i)
-		} else if rtn.Slot != i {
-			t.Errorf("Test of PrecompGeneration's output index failed at index: %v", i)
-		} else {
-			pass++
-		}
-
-		if round.Permutations[i] == i {
-			roundcnt++
-		}
-
+	testOK := true
+	for i := uint64(0); i < batchSize; i++ {
+		dc.InChannel <- &(inMessages[i])
+		_ = <-dc.OutChannel
 	}
-
-	if round.Z.Cmp(defaultInt) == 0 {
-		t.Errorf("Test of PrecompGeneration's random generation of the Global Cypher Key failed")
-	} else {
+	// Only the most basic test of randomness is happening here
+	for i := uint64(0); i < batchSize-1; i++ {
+		if round.R[i].Cmp(round.R[i+1]) == 0 {
+			t.Errorf("Generation generated the same R between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.S[i].Cmp(round.S[i+1]) == 0 {
+			t.Errorf("Generation generated the same S between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.T[i].Cmp(round.T[i+1]) == 0 {
+			t.Errorf("Generation generated the same T between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.U[i].Cmp(round.U[i+1]) == 0 {
+			t.Errorf("Generation generated the same U between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.V[i].Cmp(round.V[i+1]) == 0 {
+			t.Errorf("Generation generated the same V between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.R_INV[i].Cmp(round.R_INV[i+1]) == 0 {
+			t.Errorf("Generation generated the same R_INV between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.S_INV[i].Cmp(round.S_INV[i+1]) == 0 {
+			t.Errorf("Generation generated the same S_INV between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.T_INV[i].Cmp(round.T_INV[i+1]) == 0 {
+			t.Errorf("Generation generated the same T_INV between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.U_INV[i].Cmp(round.U_INV[i+1]) == 0 {
+			t.Errorf("Generation generated the same U_INV between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.V_INV[i].Cmp(round.V_INV[i+1]) == 0 {
+			t.Errorf("Generation generated the same V_INV between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.Y_R[i].Cmp(round.Y_R[i+1]) == 0 {
+			t.Errorf("Generation generated the same Y_R between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.Y_S[i].Cmp(round.Y_S[i+1]) == 0 {
+			t.Errorf("Generation generated the same Y_S between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.Y_T[i].Cmp(round.Y_T[i+1]) == 0 {
+			t.Errorf("Generation generated the same Y_T between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.Y_U[i].Cmp(round.Y_U[i+1]) == 0 {
+			t.Errorf("Generation generated the same Y_U between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+		if round.Y_V[i].Cmp(round.Y_V[i+1]) == 0 {
+			t.Errorf("Generation generated the same Y_V between rounds %d and %d\n", i, i+1)
+			testOK = false
+		}
+	}
+	if testOK {
 		pass++
 	}
 
-	if roundcnt > 20 {
-		t.Errorf("Test of PrecompGeneration's shuffle failed")
-	} else {
-		pass++
-	}
-
-	println("PrecompGeneration", pass, "out of", test, "tests passed.")
-
-}
-
-func validRound(round *node.Round, cmped *cyclic.Int, i uint64) bool {
-	if round.R[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.S[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.T[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.U[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.V[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.R_INV[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.S_INV[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.T_INV[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.U_INV[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.V_INV[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.Y_R[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.Y_S[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.Y_T[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.Y_U[i].Cmp(cmped) == 0 {
-		return false
-	} else if round.Y_V[i].Cmp(cmped) == 0 {
-		return false
-	} else {
-		return true
-	}
+	println("Precomputation Generation", pass, "out of", test, "tests "+
+		"passed.")
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPrecompShare(t *testing.T) {
+func TestShare(t *testing.T) {
 	// NOTE: Does not test correctness
 
 	test := 3
@@ -17,20 +17,23 @@ func TestPrecompShare(t *testing.T) {
 
 	round := node.NewRound(bs)
 
-	var im []*services.Message
-
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
-	im = append(im, &services.Message{uint64(0), []*cyclic.Int{
-		cyclic.NewInt(int64(39))}})
+	var im []services.Slot
 
-	im = append(im, &services.Message{uint64(1), []*cyclic.Int{
-		cyclic.NewInt(int64(86))}})
+	im = append(im, &SlotShare{
+		Slot: uint64(0),
+		PartialRoundPublicCypherKey: cyclic.NewInt(int64(39))})
 
-	im = append(im, &services.Message{uint64(2), []*cyclic.Int{
-		cyclic.NewInt(int64(66))}})
+	im = append(im, &SlotShare{
+		Slot: uint64(1),
+		PartialRoundPublicCypherKey: cyclic.NewInt(int64(86))})
+
+	im = append(im, &SlotShare{
+		Slot: uint64(1),
+		PartialRoundPublicCypherKey: cyclic.NewInt(int64(66))})
 
 	round.Z = cyclic.NewInt(53)
 
@@ -40,18 +43,20 @@ func TestPrecompShare(t *testing.T) {
 		{cyclic.NewInt(51)},
 	}
 
-	dc := services.DispatchCryptop(&grp, PrecompShare{}, nil, nil, round)
+	dc := services.DispatchCryptop(&grp, Share{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
-		dc.InChannel <- im[i]
+		dc.InChannel <- &(im[i])
 		rtn := <-dc.OutChannel
 
 		result := expected[i]
 
+		rtnXtc := (*rtn).(*SlotShare)
+
 		for j := 0; j < 1; j++ {
-			if result[j].Cmp(rtn.Data[j]) != 0 {
+			if result[j].Cmp(rtnXtc.PartialRoundPublicCypherKey) != 0 {
 				t.Errorf("Test of PrecompShare's cryptop failed on index: %v on value: %v.  Expected: %v Received: %v ",
-					i, j, result[j].Text(10), rtn.Data[j].Text(10))
+					i, j, result[j].Text(10), rtnXtc.PartialRoundPublicCypherKey.Text(10))
 			} else {
 				pass++
 			}
@@ -59,6 +64,6 @@ func TestPrecompShare(t *testing.T) {
 
 	}
 
-	println("PrecompShare", pass, "out of", test, "tests passed.")
+	println("Precomputation Share", pass, "out of", test, "tests passed.")
 
 }
