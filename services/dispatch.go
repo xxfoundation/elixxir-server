@@ -120,10 +120,12 @@ func (d *dispatch) dispatcher() {
 			inputs[3] = reflect.ValueOf((*d.DispatchBuilder.Keys)[(*in).SlotID()])
 
 			//process message using the cryptop
-			runFunc.Call(inputs)
+			returnedValues := runFunc.Call(inputs)
+			a := returnedValues[0].Interface()
+			b := a.(Slot)
 
 			//send the result
-			d.outChannel <- &out
+			d.outChannel <- &b
 
 			d.batchCntr++
 		case <-d.quit:
