@@ -28,11 +28,11 @@ type DispatchController struct {
 	dispatchLocker *uint32
 
 	// Channel which is used to send messages to process
-	InChannel chan<- *Slot
+	InChannel chan *Slot
 	// Channel which is used to receive the results of processing
-	OutChannel <-chan *Slot
+	OutChannel chan *Slot
 	// Channel which is used to send a kill command
-	QuitChannel chan<- bool
+	QuitChannel chan bool
 }
 
 // Determines whether the Dispatcher is still running
