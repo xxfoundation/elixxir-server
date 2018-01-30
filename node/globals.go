@@ -102,7 +102,7 @@ func (round *Round) IncrementPhase(p Phase) error {
 		return errors.New("Cannot Increment a Phase in ERROR")
 	}
 
-	round.phase = round.phase + 1
+	round.phase++
 
 	return nil
 }
