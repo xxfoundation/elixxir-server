@@ -4,7 +4,6 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/node"
 	"testing"
-	"time"
 )
 
 type Test struct{}
@@ -133,8 +132,12 @@ func TestDispatchController_IsAlive(t *testing.T) {
 		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
 	}
 
-	dc.Kill()
-	time.Sleep(100000)
+	// Block until the dispatcher is dead
+	// To not block until the dispatcher is dead, just pass nil to dc.Kill.
+	killNotify := make(chan bool)
+	dc.Kill(killNotify)
+	_ = <-killNotify
+	close(killNotify)
 
 	if dc.IsAlive() {
 		t.Errorf("IsAlive: Expected dispatch to be dead after Kill signal!")

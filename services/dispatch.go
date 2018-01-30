@@ -32,7 +32,7 @@ type DispatchController struct {
 	// Channel which is used to receive the results of processing
 	OutChannel <-chan *Slot
 	// Channel which is used to send a kill command
-	QuitChannel chan<- bool
+	QuitChannel chan<- chan bool
 }
 
 // Determines whether the Dispatcher is still running
@@ -41,8 +41,9 @@ func (dc DispatchController) IsAlive() bool {
 }
 
 // Sends a Quit signal to the DispatchController
-func (dc DispatchController) Kill() {
-	dc.QuitChannel <- true
+// To not block until death, pass nil to this function
+func (dc DispatchController) Kill(blockUntilDeath chan bool) {
+	dc.QuitChannel <- blockUntilDeath
 }
 
 // Cryptop is the interface which contains the cryptop
@@ -85,7 +86,7 @@ type dispatch struct {
 	// Channel used to send data to be processed
 	outChannel chan *Slot
 	// Channel used to receive kill commands
-	quit chan bool
+	quit chan (chan bool)
 
 	//Counter of how many messages have been processed
 	batchCntr uint64
@@ -106,6 +107,8 @@ func (d *dispatch) dispatcher() {
 
 	inputs[0] = reflect.ValueOf(d.DispatchBuilder.G)
 
+	var killNotify chan bool
+
 	for (d.batchCntr < d.DispatchBuilder.BatchSize) && !q {
 
 		//either process the next piece of data or quit
@@ -120,15 +123,13 @@ func (d *dispatch) dispatcher() {
 			inputs[3] = reflect.ValueOf((*d.DispatchBuilder.Keys)[(*in).SlotID()])
 
 			//process message using the cryptop
-			returnedValues := runFunc.Call(inputs)
-			a := returnedValues[0].Interface()
-			b := a.(Slot)
+			runFunc.Call(inputs)
 
 			//send the result
-			d.outChannel <- &b
+			d.outChannel <- &out
 
 			d.batchCntr++
-		case <-d.quit:
+		case killNotify = <-d.quit:
 			//kill the dispatcher
 			q = true
 		}
@@ -143,6 +144,10 @@ func (d *dispatch) dispatcher() {
 	// Unlock the dispatch locker, indicating the dispatcher is no longer running
 	atomic.CompareAndSwapUint32(&d.locker, 1, 0)
 
+	// Notify anyone who needs to wait on the dispatcher's death
+	if killNotify != nil {
+		killNotify <- true
+	}
 }
 
 // DispatchCryptop creates the dispatcher and returns its control structure.
@@ -165,7 +170,7 @@ func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOu
 	}
 
 	//Creates a channel for force quitting the dispatched operation
-	chQuit := make(chan bool, 1)
+	chQuit := make(chan chan bool, 1)
 
 	//build the data used to run the cryptop
 
