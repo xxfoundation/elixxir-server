@@ -14,12 +14,12 @@ type Generation struct{}
 // SlotGeneration is empty; no data being passed in or out of Generation
 type SlotGeneration struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 }
 
 // SlotID Returns the Slot number
 func (e *SlotGeneration) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysGeneration holds the keys used by the Generation Operation
@@ -57,7 +57,7 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) (
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotGeneration{
-			slot: i,
+			Slot: i,
 		}
 	}
 
