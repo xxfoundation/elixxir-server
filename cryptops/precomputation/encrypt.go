@@ -21,7 +21,7 @@ type SlotEncrypt struct {
 }
 
 // SlotID Returns the Slot number
-func (e *SlotEncrypt) SlotID() uint64 {
+func (e SlotEncrypt) SlotID() uint64 {
 	return e.Slot
 }
 
