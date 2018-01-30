@@ -2,6 +2,7 @@ package node
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"sync"
 	"testing"
 )
 
@@ -84,6 +85,7 @@ func TestNewRound(t *testing.T) {
 
 func TestGetPhase(t *testing.T) {
 	round := &Round{}
+	round.phaseLock = &sync.Mutex{}
 
 	for p := OFF; p < NUM_PHASES; p++ {
 		round.phase = p
@@ -176,6 +178,7 @@ func TestNewRoundWithPhase(t *testing.T) {
 
 func TestIncrementPhase(t *testing.T) {
 	round := &Round{}
+	round.phaseLock = &sync.Mutex{}
 
 	for p := OFF; p < DONE; p++ {
 		for q := OFF; q < NUM_PHASES; q++ {
@@ -220,6 +223,7 @@ func TestIncrementPhase(t *testing.T) {
 
 func TestError(t *testing.T) {
 	round := &Round{}
+	round.phaseLock = &sync.Mutex{}
 
 	for p := OFF; p < NUM_PHASES; p++ {
 		round.phase = p

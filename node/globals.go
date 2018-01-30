@@ -3,6 +3,7 @@ package node
 import (
 	"errors"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"sync"
 )
 
 // LastNode contains precomputations held only by the last node
@@ -45,7 +46,8 @@ type Round struct {
 
 	BatchSize uint64
 
-	phase Phase
+	phase     Phase
+	phaseLock *sync.Mutex
 }
 
 // Grp is the cyclic group that all operations are done within
@@ -84,32 +86,43 @@ func InitLastNode(round *Round) {
 
 // Returns a copy of the current phase
 func (round *Round) GetPhase() Phase {
-	return round.phase
+	round.phaseLock.Lock()
+	rp := round.phase
+	round.phaseLock.Unlock()
+	return rp
 }
 
 // Increments the phase if the phase can be incremented and was told to
 // increment to the correct phase
 func (round *Round) IncrementPhase(p Phase) error {
-	if (round.phase + 1) != p {
-		return errors.New("Invalid Phase Incrementation; Expected: %v, Received: %v", (round.phase+1).String(), p.String())
-	}
+	round.phaseLock.Lock()
 
 	if round.phase == DONE {
+		round.phaseLock.Unlock()
 		return errors.New("Cannot Increment Phase past DONE")
 	}
 
 	if round.phase == ERROR {
+		round.phaseLock.Unlock()
 		return errors.New("Cannot Increment a Phase in ERROR")
 	}
 
+	if (round.phase + 1) != p {
+		round.phaseLock.Unlock()
+		return errors.New("Invalid Phase Incrementation; Expected: " + (round.phase + 1).String() + ", Received: " + p.String())
+	}
+
 	round.phase++
+	round.phaseLock.Unlock()
 
 	return nil
 }
 
 // Puts the phase into an error state
 func (round *Round) Error() {
+	round.phaseLock.Lock()
 	round.phase = ERROR
+	round.phaseLock.Unlock()
 }
 
 // Unexported underlying function to initialize a new round
@@ -169,6 +182,7 @@ func newRound(batchSize uint64, p Phase) *Round {
 	}
 
 	NR.phase = p
+	NR.phaseLock = &sync.Mutex{}
 
 	return &NR
 }
