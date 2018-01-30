@@ -12,44 +12,54 @@ import (
 
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver"
+	"gitlab.com/privategrity/server/cryptops/precomputation"
+	"gitlab.com/privategrity/server/services"
 )
 
 // Run is the main loop for the cMix server
-func Run(servers []string) {
+func run(servers []string) {
 	for i := range servers {
 		// Start mixservers on localhost port
 		jww.INFO.Printf("Starting server on port %v\n", servers[i])
 		go mixserver.StartServer("localhost:" + servers[i])
 
 	}
+
+	// Check that we can reach all of the servers
+	verifyServersOnline(servers)
+
+	// Create a new round
+	//round := NewRound(5)
+
+	// Precomp Decrypt
+	//dcPrecompDecrypt := services.DispatchCryptop(Grp, precomputation.Decrypt{}, nil, nil, round)
+
+}
+
+// Checks to see if the given servers are online
+func verifyServersOnline(servers []string) {
 	for i := range servers {
 		// Connect to server with gRPC
 		jww.INFO.Printf("Connecting to server on port %v\n", servers[i])
 		addr := "localhost:" + servers[i]
-		conn, err := grpc.Dial(addr, grpc.WithInsecure(),
-			grpc.WithTimeout(time.Second))
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			jww.ERROR.Printf("Failed to connect to server at %v\n", addr)
 		}
-		defer conn.Close()
 		time.Sleep(time.Millisecond * 500)
-		c := pb.NewMixMessageServiceClient(conn)
 
+		c := pb.NewMixMessageServiceClient(conn)
 		// Send AskOnline Request and check that we get an AskOnlineAck back
 		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
-		response, err := c.AskOnline(ctx, &pb.Ping{})
+		_, err = c.AskOnline(ctx, &pb.Ping{})
 		if err != nil {
 			jww.ERROR.Printf("AskOnline: Error received: %s", err)
-		}
-		if !response.IsOnline {
-			jww.ERROR.Printf("AskOnline: Failed to get an online confirmation!")
 		} else {
-			jww.INFO.Printf("AskOnline: %v is online!", addr)
+			jww.INFO.Printf("AskOnline: %v is online!", servers[i])
 		}
-		defer cancel()
+		cancel()
+		conn.Close()
 	}
-	time.Sleep(time.Millisecond * 1000)
-
 }
 
 // StartServer reads configuration options and starts the cMix server
@@ -58,7 +68,7 @@ func StartServer() {
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
 
-	Run(getServers())
+	run(getServers())
 }
 
 // getServers pulls a string slice of server ports from the config file and
