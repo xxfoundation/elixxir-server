@@ -91,7 +91,7 @@ func (round *Round) GetPhase() Phase {
 // increment to the correct phase
 func (round *Round) IncrementPhase(p Phase) error {
 	if (round.phase + 1) != p {
-		return errors.New("Invalid Phase Incrementation; Expected: %v, Received: %v")
+		return errors.New("Invalid Phase Incrementation; Expected: %v, Received: %v", (round.phase+1).String(), p.String())
 	}
 
 	if round.phase == DONE {
