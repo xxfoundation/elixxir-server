@@ -37,14 +37,9 @@ func Run(servers []string) {
 
 		// Send AskOnline Request and check that we get an AskOnlineAck back
 		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
-		response, err := c.AskOnline(ctx, &pb.Ping{})
+		_, err = c.AskOnline(ctx, &pb.Ping{})
 		if err != nil {
 			jww.ERROR.Printf("AskOnline: Error received: %s", err)
-		}
-		if !response.IsOnline {
-			jww.ERROR.Printf("AskOnline: Failed to get an online confirmation!")
-		} else {
-			jww.INFO.Printf("AskOnline: %v is online!", addr)
 		}
 		defer cancel()
 	}
