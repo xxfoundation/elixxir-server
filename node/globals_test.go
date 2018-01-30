@@ -27,7 +27,7 @@ func TestNewRound(t *testing.T) {
 	}
 
 	if actual.GetPhase() != OFF {
-		t.Errorf("Test of NewRound() found Phase is %v instead of OFF", actual.GetPhase())
+		t.Errorf("Test of NewRound() found Phase is %v instead of OFF", actual.GetPhase().String())
 	}
 
 	for i := uint64(0); i < size; i++ {
@@ -118,7 +118,7 @@ func TestNewRoundWithPhase(t *testing.T) {
 		}
 
 		if actual.GetPhase() != p {
-			t.Errorf("Test of NewRoundWithPhase() found Phase is %v instead of %v", actual.GetPhase(), p)
+			t.Errorf("Test of NewRoundWithPhase() found Phase is %v instead of %v", actual.GetPhase().String(), p.String())
 		}
 
 		for i := uint64(0); i < size; i++ {
