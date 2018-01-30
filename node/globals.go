@@ -1,6 +1,7 @@
 package node
 
 import (
+	"errors"
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
@@ -43,6 +44,8 @@ type Round struct {
 	LastNode
 
 	BatchSize uint64
+
+	phase Phase
 }
 
 // Grp is the cyclic group that all operations are done within
@@ -56,6 +59,61 @@ var TestArray = [2]float32{.03, .02}
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
 func NewRound(batchSize uint64) *Round {
+	return newRound(batchSize, OFF)
+}
+
+//Creates a new Round at any phase
+func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
+	return newRound(batchSize, p)
+}
+
+//Creates the lastnode object
+func InitLastNode(round *Round) {
+	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
+		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
+	}
+}
+
+// Returns a copy of the current phase
+func (round *Round) GetPhase() Phase {
+	return round.phase
+}
+
+// Increments the phase if the phase can be incremented and was told to
+// increment to the correct phase
+func (round *Round) IncrementPhase(p Phase) error {
+	if (round.phase + 1) != p {
+		return errors.New("Invalid Phase Incrementation; Expected: %v, Received: %v")
+	}
+
+	if round.phase == DONE {
+		return errors.New("Cannot Increment Phase past DONE")
+	}
+
+	if round.phase == ERROR {
+		return errors.New("Cannot Increment a Phase in ERROR")
+	}
+
+	round.phase = round.phase + 1
+
+	return nil
+}
+
+// Puts the phase into an error state
+func (round *Round) Error() {
+	round.phase = ERROR
+}
+
+// Unexported underlying function to initialize a new round
+func newRound(batchSize uint64, p Phase) *Round {
 	NR := Round{
 		R: make([]*cyclic.Int, batchSize),
 		S: make([]*cyclic.Int, batchSize),
@@ -110,19 +168,7 @@ func NewRound(batchSize uint64) *Round {
 		NR.LastNode.RecipientPrecomputation = nil
 	}
 
+	NR.phase = p
+
 	return &NR
-}
-
-func InitLastNode(round *Round) {
-	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
-
-	for i := uint64(0); i < round.BatchSize; i++ {
-		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
-	}
 }
