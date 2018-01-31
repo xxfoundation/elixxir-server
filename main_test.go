@@ -222,12 +222,11 @@ func TestEndToEndCryptops(t *testing.T) {
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.SlotIdentify)
 	rID,_ := strconv.ParseUint(esTmp.EncryptedRecipientID.Text(10), 10, 64)
-	fmt.Printf("BLAH::::: %s, %s, %s\n\n\n", esTmp.Slot,
-		rID, TmpMsg.Text(10))
 	inputMsgPostID := services.Slot(&realtime.SlotEncryptIn{
 		Slot: esTmp.Slot,
 		RecipientID: rID,
 		EncryptedMessage: TmpMsg,
+		ReceptionKey: cyclic.NewInt(1),
 	})
 
 	// ENCRYPT PHASE
@@ -251,7 +250,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	rtnRT := <-RTPeel.OutChannel
 	esRT := (*rtnRT).(*realtime.SlotPeel)
 
-	fmt.Println("%d, %d, %s",
+	fmt.Println("Final Results: %d, %d, %s",
 		esRT.Slot, esRT.RecipientID,
 		esRT.EncryptedMessage.Text(10))
 
