@@ -31,7 +31,7 @@ type Decrypt struct{}
 // SlotDecryptIn is used to pass external data into Decrypt
 type SlotDecryptIn struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// ID of the sending client (Pass through)
 	SenderID uint64
 	// Message Encrypted with some Transmission Keys and some First Unpermuted 
@@ -47,7 +47,7 @@ type SlotDecryptIn struct {
 // SlotDecryptOut is used to pass the results out of Decrypt
 type SlotDecryptOut struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// ID of the sending client(Pass through)
 	SenderID uint64
 	// Message Encrypted with a Transmission Key removed and a First Unpermuted 
@@ -60,7 +60,7 @@ type SlotDecryptOut struct {
 
 // SlotID Returns the Slot number
 func (e *SlotDecryptIn) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // ID of the user for keygen
@@ -80,7 +80,7 @@ func (e *SlotDecryptIn) GetKeyType() cryptops.KeyType {
 
 // SlotID Returns the Slot number
 func (e *SlotDecryptOut) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysDecrypt holds the keys used by the Decrypt Operation
@@ -102,7 +102,7 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotDecryptOut{
-			slot:                 i,
+			Slot:                 i,
 			EncryptedMessage:     cyclic.NewMaxInt(),
 			EncryptedRecipientID: cyclic.NewMaxInt(),
 			SenderID:             0,

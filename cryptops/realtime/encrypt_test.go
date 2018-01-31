@@ -26,19 +26,19 @@ func TestEncrypt(t *testing.T) {
 	var im []services.Slot
 
 	im = append(im, &SlotEncryptIn{
-		slot:             uint64(0),
+		Slot:             uint64(0),
 		RecipientID:      recipientIds[0],
 		EncryptedMessage: cyclic.NewInt(int64(39)),
 		ReceptionKey:     cyclic.NewInt(int64(65))})
 
 	im = append(im, &SlotEncryptIn{
-		slot:             uint64(1),
+		Slot:             uint64(1),
 		RecipientID:      recipientIds[1],
 		EncryptedMessage: cyclic.NewInt(int64(86)),
 		ReceptionKey:     cyclic.NewInt(int64(44))})
 
 	im = append(im, &SlotEncryptIn{
-		slot:             uint64(2),
+		Slot:             uint64(2),
 		RecipientID:      recipientIds[2],
 		EncryptedMessage: cyclic.NewInt(int64(66)),
 		ReceptionKey:     cyclic.NewInt(int64(94))})

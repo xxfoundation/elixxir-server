@@ -16,7 +16,7 @@ type Encrypt struct{}
 // SlotEncrypt is used to pass external data into Encrypt
 type SlotEncryptIn struct {
 	// Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// ID of the client who will recieve the message (Pass through)
 	RecipientID uint64
 	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
@@ -28,7 +28,7 @@ type SlotEncryptIn struct {
 // SlotEncryptOut is used to pass  the results out of Encrypt
 type SlotEncryptOut struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// ID of the client who will recieve the message (Pass through)
 	RecipientID uint64
 	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
@@ -37,7 +37,7 @@ type SlotEncryptOut struct {
 
 // SlotID Returns the Slot number
 func (e *SlotEncryptIn) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // ID of the user for keygen
@@ -57,7 +57,7 @@ func (e *SlotEncryptIn) GetKeyType() cryptops.KeyType {
 
 // SlotID Returns the Slot number
 func (e *SlotEncryptOut) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysEncrypt holds the keys used by the Encrypt Operation
@@ -77,7 +77,7 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotEncryptOut{
-			slot:             i,
+			Slot:             i,
 			EncryptedMessage: cyclic.NewMaxInt(),
 			RecipientID:      0,
 		}

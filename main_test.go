@@ -5,8 +5,10 @@ import (
 	"gitlab.com/privategrity/server/node"
 	"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 	"fmt"
 	"testing"
+	"strconv"
 )
 
 // Convert the round object into a string we can print
@@ -162,26 +164,96 @@ func TestEndToEndCryptops(t *testing.T) {
 	}(Reveal.OutChannel, Strip.InChannel)
 
 
-	// KICK OFF PRECOMPUTATION
+	// KICK OFF PRECOMPUTATION and save
 	Decrypt.InChannel <- &decMsg
 	rtn := <-Strip.OutChannel
 	es := (*rtn).(*precomputation.SlotStripOut)
 	fmt.Println("%d, %s, %s",
 		es.Slot, es.MessagePrecomputation.Text(10),
 		es.RecipientPrecomputation.Text(10))
+	round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
+	round.LastNode.RecipientPrecomputation[es.Slot] = es.RecipientPrecomputation
 	t.Errorf("What? %+v", rtn)
 
 	// ----- REALTIME ----- //
+	inputMsg := services.Slot(&realtime.SlotDecryptIn{
+		Slot: 0,
+		SenderID: 1,
+		EncryptedMessage: cyclic.NewInt(1),
+		EncryptedRecipientID: cyclic.NewInt(1),
+		TransmissionKey: cyclic.NewInt(1),
+	})
 
 	// DECRYPT PHASE
+	RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
+		nil, nil, round)
 
 	// PERMUTE PHASE
+	RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
+		nil, nil, round)
+
+	go func(in, out chan *services.Slot) {
+		iv := <- in
+		is := (*iv).(*realtime.SlotDecryptOut)
+		ov := services.Slot(&realtime.SlotPermute{
+			Slot: is.Slot,
+			EncryptedMessage: is.EncryptedMessage,
+			EncryptedRecipientID: is.EncryptedRecipientID,
+		})
+		out <- &ov
+	}(RTDecrypt.OutChannel, RTPermute.InChannel)
 
 	// IDENTIFY PHASE
+	RTIdentify := services.DispatchCryptop(&grp, realtime.Identify{},
+		nil, nil, round)
+
+	// FIXME
+	RTDecrypt.InChannel <- &inputMsg
+	rtnPrm := <- RTPermute.OutChannel
+	esPrm := (*rtnPrm).(*realtime.SlotPermute)
+	ovPrm := services.Slot(&realtime.SlotIdentify{
+			Slot: esPrm.Slot,
+			EncryptedRecipientID: esPrm.EncryptedRecipientID,
+	})
+	TmpMsg := esPrm.EncryptedMessage
+
+	// HACK HACK HACK FIXME FIXME
+	RTIdentify.InChannel <- &ovPrm
+	rtnTmp := <-RTIdentify.OutChannel
+	esTmp := (*rtnTmp).(*realtime.SlotIdentify)
+	rID,_ := strconv.ParseUint(esTmp.EncryptedRecipientID.Text(10), 10, 64)
+	fmt.Printf("BLAH::::: %s, %s, %s\n\n\n", esTmp.Slot,
+		rID, TmpMsg.Text(10))
+	inputMsgPostID := services.Slot(&realtime.SlotEncryptIn{
+		Slot: esTmp.Slot,
+		RecipientID: rID,
+		EncryptedMessage: TmpMsg,
+	})
 
 	// ENCRYPT PHASE
+	RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
+		nil, nil, round)
 
 	// PEEL PHASE
+	RTPeel := services.DispatchCryptop(&grp, realtime.Peel{},
+		nil, nil, round)
+
+	go func(in, out chan *services.Slot) {
+		iv := <- in
+		is := realtime.SlotPeel(*((*iv).(*realtime.SlotEncryptOut)))
+		ov := services.Slot(&is)
+		out <- &ov
+	}(RTEncrypt.OutChannel, RTPeel.InChannel)
+
 
 	// KICK OFF RT COMPUTATION
+	RTEncrypt.InChannel <- &inputMsgPostID
+	rtnRT := <-RTPeel.OutChannel
+	esRT := (*rtnRT).(*realtime.SlotPeel)
+
+	fmt.Println("%d, %d, %s",
+		esRT.Slot, esRT.RecipientID,
+		esRT.EncryptedMessage.Text(10))
+
+
 }

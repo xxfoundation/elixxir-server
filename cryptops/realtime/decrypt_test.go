@@ -26,21 +26,21 @@ func TestDecrypt(t *testing.T) {
 	var im []services.Slot
 
 	im = append(im, &SlotDecryptIn{
-		slot:                 uint64(0),
+		Slot:                 uint64(0),
 		SenderID:             senderIds[0],
 		EncryptedMessage:     cyclic.NewInt(int64(39)),
 		TransmissionKey:      cyclic.NewInt(int64(65)),
 		EncryptedRecipientID: cyclic.NewInt(7)})
 
 	im = append(im, &SlotDecryptIn{
-		slot:                 uint64(1),
+		Slot:                 uint64(1),
 		SenderID:             senderIds[1],
 		EncryptedMessage:     cyclic.NewInt(int64(86)),
 		TransmissionKey:      cyclic.NewInt(int64(44)),
 		EncryptedRecipientID: cyclic.NewInt(51)})
 
 	im = append(im, &SlotDecryptIn{
-		slot:                 uint64(2),
+		Slot:                 uint64(2),
 		SenderID:             senderIds[2],
 		EncryptedMessage:     cyclic.NewInt(int64(66)),
 		TransmissionKey:      cyclic.NewInt(int64(94)),

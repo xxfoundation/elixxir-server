@@ -14,7 +14,7 @@ type Peel struct{}
 // SlotPeel is used to pass external data into Peel and to pass the results out of Peel
 type SlotPeel struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	//ID of the client who will recieve the message (Pass through)
 	RecipientID uint64
 	// Permuted Message encrypted by all internode keys and the reception keys
@@ -23,7 +23,7 @@ type SlotPeel struct {
 
 // SlotID Returns the Slot number
 func (e *SlotPeel) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysPeel holds the keys used by the Peel Operation
@@ -43,7 +43,7 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotPeel{
-			slot:             i,
+			Slot:             i,
 			EncryptedMessage: cyclic.NewMaxInt(),
 			RecipientID:      0,
 		}
