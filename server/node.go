@@ -12,11 +12,9 @@ import (
 
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver"
-	//"gitlab.com/privategrity/comms/mixserver/message"
-	//"gitlab.com/privategrity/crypto/cyclic"
-	//"gitlab.com/privategrity/server/cryptops/precomputation"
+	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/node"
-	//"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -40,35 +38,39 @@ func run() {
 	time.Sleep(5 * time.Second)
 }
 
-// TODO
-func (h ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
+// ReceptionHandler for PrecompDecryptMessages
+func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
+	// Iterate through the Slots in the PrecompDecryptMessage
+	for i := 0; i < len(input.Slots); i++ {
+		// Convert input message to equivalent SlotDecrypt
+		in := input.Slots[i]
+		slotDecrypt := &precomputation.SlotDecrypt{
+			Slot:                         in.Slot,
+			EncryptedMessageKeys:         cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
+			EncryptedRecipientIDKeys:     cyclic.NewIntFromBytes(in.EncryptedRecipientIDKeys),
+			PartialMessageCypherText:     cyclic.NewIntFromBytes(in.PartialMessageCypherText),
+			PartialRecipientIDCypherText: cyclic.NewIntFromBytes(in.PartialRecipientIDCypherText),
+		}
+		// Type assert SlotDecrypt to Slot
+		var slot services.Slot = slotDecrypt
 
-	// Convert input message to equivalent SlotDecrypt
-	//slotDecrypt := &precomputation.SlotDecrypt{
-	//	Slot:                         input.Slot,
-	//	EncryptedMessageKeys:         cyclic.NewIntFromBytes(input.EncryptedMessageKeys),
-	//	EncryptedRecipientIDKeys:     cyclic.NewIntFromBytes(input.EncryptedRecipientIDKeys),
-	//	PartialMessageCypherText:     cyclic.NewIntFromBytes(input.PartialMessageCypherText),
-	//	PartialRecipientIDCypherText: cyclic.NewIntFromBytes(input.PartialRecipientIDCypherText),
-	//}
-	// Type assert SlotDecrypt to Slot
-	//var slot services.Slot = slotDecrypt
-
-	// Pass slot as input to Decrypt
-
-	// Get output from Decrypt
-	//output := <-dcPrecompDecrypt.OutChannel
-	// Type assert Slot to SlotDecrypt
-	//out := (*output).(*precomputation.SlotDecrypt)
-
-	//_, err = c.PrecompDecrypt(ctx, &pb.PrecompDecryptMessage{
-	//	Slot:                         out.Slot,
-	//	EncryptedMessageKeys:         out.EncryptedMessageKeys.Bytes(),
-	//	EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys.Bytes(),
-	//	PartialMessageCypherText:     out.PartialMessageCypherText.Bytes(),
-	//	PartialRecipientIDCypherText: out.PartialRecipientIDCypherText.Bytes(),
-	//})
+		// Pass slot as input to Decrypt's channel
+		s.GetChannel(input.RoundID, uint8(node.PRECOMP_DECRYPT)) <- &slot
+	}
 }
+
+// Get output from Decrypt
+//output := <-dcPrecompDecrypt.OutChannel
+// Type assert Slot to SlotDecrypt
+//out := (*output).(*precomputation.SlotDecrypt)
+
+//_, err = c.PrecompDecrypt(ctx, &pb.PrecompDecryptMessage{
+//	Slot:                         out.Slot,
+//	EncryptedMessageKeys:         out.EncryptedMessageKeys.Bytes(),
+//	EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys.Bytes(),
+//	PartialMessageCypherText:     out.PartialMessageCypherText.Bytes(),
+//	PartialRecipientIDCypherText: out.PartialRecipientIDCypherText.Bytes(),
+//})
 
 // Checks to see if the given servers are online TODO something with this
 func verifyServersOnline(servers []string) {
