@@ -48,11 +48,12 @@ type Round struct {
 	// Size of batch
 	BatchSize uint64
 
+	// Phase fields
 	phase     Phase
 	phaseLock *sync.Mutex
 
-	// Array of Channels associated to each Phase of this Round TODO length of array
-	channels []chan<- *services.Slot
+	// Array of Channels associated to each Phase of this Round
+	channels [NUM_PHASES]chan<- *services.Slot
 }
 
 // Grp is the cyclic group that all operations are done within
@@ -86,6 +87,16 @@ func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 	m.mutex.Lock()
 	m.rounds[roundId] = newRound
 	m.mutex.Unlock()
+}
+
+// Get chan for a given chanId in channels array
+func (round *Round) GetChannel(chanId uint8) chan<- *services.Slot {
+	return round.channels[chanId]
+}
+
+// Add chan to channels array with given chanId
+func (round *Round) AddChannel(chanId uint8, newChan chan<- *services.Slot) {
+	round.channels[chanId] = newChan
 }
 
 // NewRound constructs an empty round for a given batch size, with all
