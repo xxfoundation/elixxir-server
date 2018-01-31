@@ -4,6 +4,9 @@ glide.lock
 vendor/
 # Ignore Jetbrains IDE folder
 .idea/*
+# Ignore vim .swp buffers for open files
+.*.swp
+.*.swo
 # Ignore local development scripts
 localdev_*
 # Ignore logs
