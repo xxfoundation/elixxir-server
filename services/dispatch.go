@@ -31,8 +31,8 @@ type DispatchController struct {
 	InChannel chan<- *Slot
 	// Channel which is used to receive the results of processing
 	OutChannel <-chan *Slot
-	// Channel which is used to send a kill command
-	QuitChannel chan<- chan bool
+	// Channel which is used to send and process a kill command
+	quitChannel chan chan bool
 }
 
 // Determines whether the Dispatcher is still running
@@ -41,9 +41,16 @@ func (dc DispatchController) IsAlive() bool {
 }
 
 // Sends a Quit signal to the DispatchController
-// To not block until death, pass nil to this function
-func (dc DispatchController) Kill(blockUntilDeath chan bool) {
-	dc.QuitChannel <- blockUntilDeath
+// Blocks until death if you pass true, doesn't block if you pass false.
+func (dc DispatchController) Kill(blockUntilDeath bool) {
+	if blockUntilDeath {
+		killNotify := make(chan bool)
+		dc.quitChannel <- killNotify
+		_ = <-killNotify
+		close(killNotify)
+	} else {
+		dc.quitChannel <- nil
+	}
 }
 
 // Cryptop is the interface which contains the cryptop
@@ -86,7 +93,7 @@ type dispatch struct {
 	// Channel used to send data to be processed
 	outChannel chan *Slot
 	// Channel used to receive kill commands
-	quit chan (chan bool)
+	quit chan chan bool
 
 	//Counter of how many messages have been processed
 	batchCntr uint64
@@ -98,7 +105,6 @@ type dispatch struct {
 
 // dispatcher is the function which actually does the dispatching
 func (d *dispatch) dispatcher() {
-
 	q := false
 
 	runFunc := reflect.ValueOf(d.cryptop).MethodByName("Run")
@@ -107,9 +113,9 @@ func (d *dispatch) dispatcher() {
 
 	inputs[0] = reflect.ValueOf(d.DispatchBuilder.G)
 
-	var killNotify chan bool
+	var killNotify chan<- bool
 
-	for (d.batchCntr < d.DispatchBuilder.BatchSize) && !q {
+	for d.batchCntr < d.DispatchBuilder.BatchSize && !q {
 
 		//either process the next piece of data or quit
 		select {
@@ -184,7 +190,7 @@ func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOu
 	go d.dispatcher()
 
 	//creates the  dispatch control structure
-	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, QuitChannel: chQuit,
+	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, quitChannel: chQuit,
 		dispatchLocker: &d.locker}
 
 	return dc

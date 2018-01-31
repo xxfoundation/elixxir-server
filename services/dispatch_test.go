@@ -133,11 +133,8 @@ func TestDispatchController_IsAlive(t *testing.T) {
 	}
 
 	// Block until the dispatcher is dead
-	// To not block until the dispatcher is dead, just pass nil to dc.Kill.
-	killNotify := make(chan bool)
-	dc.Kill(killNotify)
-	_ = <-killNotify
-	close(killNotify)
+	// To not block until the dispatcher is dead, pass false to dc.Kill.
+	dc.Kill(true)
 
 	if dc.IsAlive() {
 		t.Errorf("IsAlive: Expected dispatch to be dead after Kill signal!")
