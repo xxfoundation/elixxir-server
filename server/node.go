@@ -18,15 +18,21 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
+// TODO move or remove this probs
 var nextServer string
+
+// Blank struct implementing mixserver.ServerHandler interface TODO put this somewhere lol
+type ServerImpl struct{}
 
 // Run is the main loop for the cMix server
 func run() {
-
+	// TODO literally anything
+	time.Sleep(5 * time.Second)
 }
 
-func precompDecrypt(input pb.PrecompDecryptMessage) {
-	// Create a new round TODO remove I guess
+// TODO
+func (h ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
+	// Create a new round TODO remove at some point I guess
 	round := node.NewRound(5)
 
 	// Create Dispatcher for Decrypt
@@ -34,6 +40,7 @@ func precompDecrypt(input pb.PrecompDecryptMessage) {
 
 	// Convert input message to equivalent SlotDecrypt
 	slotDecrypt := &precomputation.SlotDecrypt{
+		Slot:                         input.Slot,
 		EncryptedMessageKeys:         cyclic.NewIntFromBytes(input.EncryptedMessageKeys),
 		EncryptedRecipientIDKeys:     cyclic.NewIntFromBytes(input.EncryptedRecipientIDKeys),
 		PartialMessageCypherText:     cyclic.NewIntFromBytes(input.PartialMessageCypherText),
@@ -56,12 +63,15 @@ func precompDecrypt(input pb.PrecompDecryptMessage) {
 	if err != nil {
 		jww.ERROR.Printf("Failed to connect to server at %v\n", nextServer)
 	}
+
+	// Prepare to send a message
 	c := pb.NewMixMessageServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
 
 	// Send the PrecompDecrypt message using the Decrypt output
 	_, err = c.PrecompDecrypt(ctx, &pb.PrecompDecryptMessage{
+		Slot:                         out.Slot,
 		EncryptedMessageKeys:         out.EncryptedMessageKeys.Bytes(),
 		EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys.Bytes(),
 		PartialMessageCypherText:     out.PartialMessageCypherText.Bytes(),
@@ -117,7 +127,7 @@ func StartServer(serverIndex int) {
 
 	// Start mix servers on localServer
 	jww.INFO.Printf("Starting server on %v\n", localServer)
-	go mixserver.StartServer(localServer)
+	go mixserver.StartServer(localServer, ServerImpl{})
 
 	// Main loop
 	run()
