@@ -123,11 +123,16 @@ func InitLastNode(round *Round) {
 	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
 	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
 	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RecipientCypherText = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.EncryptedRecipientPrecomputation = make([]*cyclic.Int,
+		round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
 		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
+		round.LastNode.RecipientCypherText[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
 	}
 }

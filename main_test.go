@@ -41,12 +41,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	round.CypherPublicKey = cyclic.NewInt(3)
 
 	// We are the last node, so allocate the arrays for LastNode
-	round.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.RecipientCypherText = make([]*cyclic.Int, round.BatchSize)
-	round.EncryptedRecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
+	node.InitLastNode(round)
 
 	// ----- PRECOMPUTATION ----- //
 
