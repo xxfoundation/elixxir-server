@@ -24,34 +24,34 @@ func TestStrip(t *testing.T) {
 
 	var inMessages []services.Slot
 
-	inMessages = append(inMessages, &SlotStripIn{slot: uint64(0),
-		EncryptedMessageKeys:   cyclic.NewInt(39),
-		EncryptedRecipientKeys: cyclic.NewInt(13)})
+	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(0),
+		RoundMessagePrivateKey:   cyclic.NewInt(39),
+		RoundRecipientPrivateKey: cyclic.NewInt(13)})
 
-	inMessages = append(inMessages, &SlotStripIn{slot: uint64(1),
-		EncryptedMessageKeys:   cyclic.NewInt(86),
-		EncryptedRecipientKeys: cyclic.NewInt(87)})
+	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(1),
+		RoundMessagePrivateKey:   cyclic.NewInt(86),
+		RoundRecipientPrivateKey: cyclic.NewInt(87)})
 
-	inMessages = append(inMessages, &SlotStripIn{slot: uint64(2),
-		EncryptedMessageKeys:   cyclic.NewInt(39),
-		EncryptedRecipientKeys: cyclic.NewInt(51)})
+	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(2),
+		RoundMessagePrivateKey:   cyclic.NewInt(39),
+		RoundRecipientPrivateKey: cyclic.NewInt(51)})
 
 	node.InitLastNode(round)
-	round.LastNode.MessagePrecomputation[0] = cyclic.NewInt(41)
-	round.LastNode.RecipientPrecomputation[0] = cyclic.NewInt(74)
-	round.LastNode.MessagePrecomputation[1] = cyclic.NewInt(8)
-	round.LastNode.RecipientPrecomputation[1] = cyclic.NewInt(49)
-	round.LastNode.MessagePrecomputation[2] = cyclic.NewInt(91)
-	round.LastNode.RecipientPrecomputation[2] = cyclic.NewInt(73)
+	round.LastNode.EncryptedMessagePrecomputation[0] = cyclic.NewInt(41)
+	round.LastNode.EncryptedRecipientPrecomputation[0] = cyclic.NewInt(74)
+	round.LastNode.EncryptedMessagePrecomputation[1] = cyclic.NewInt(8)
+	round.LastNode.EncryptedRecipientPrecomputation[1] = cyclic.NewInt(49)
+	round.LastNode.EncryptedMessagePrecomputation[2] = cyclic.NewInt(91)
+	round.LastNode.EncryptedRecipientPrecomputation[2] = cyclic.NewInt(73)
 
 	expected := []SlotStripOut{
-		SlotStripOut{slot: uint64(0),
+		SlotStripOut{Slot: uint64(0),
 			MessagePrecomputation:   cyclic.NewInt(10),
 			RecipientPrecomputation: cyclic.NewInt(136)},
-		SlotStripOut{slot: uint64(1),
+		SlotStripOut{Slot: uint64(1),
 			MessagePrecomputation:   cyclic.NewInt(119),
 			RecipientPrecomputation: cyclic.NewInt(7)},
-		SlotStripOut{slot: uint64(2),
+		SlotStripOut{Slot: uint64(2),
 			MessagePrecomputation:   cyclic.NewInt(10),
 			RecipientPrecomputation: cyclic.NewInt(59)},
 	}

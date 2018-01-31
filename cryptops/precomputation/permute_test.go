@@ -46,36 +46,36 @@ func TestPermute(t *testing.T) {
 	round.Y_V[2] = cyclic.NewInt(17)
 
 	var inMessages []services.Slot
-	inMessages = append(inMessages, &SlotPermute{slot: uint64(0),
+	inMessages = append(inMessages, &SlotPermute{Slot: uint64(0),
 		EncryptedMessageKeys:         cyclic.NewInt(39),
 		EncryptedRecipientIDKeys:     cyclic.NewInt(13),
 		PartialMessageCypherText:     cyclic.NewInt(41),
 		PartialRecipientIDCypherText: cyclic.NewInt(74)})
 
-	inMessages = append(inMessages, &SlotPermute{slot: uint64(1),
+	inMessages = append(inMessages, &SlotPermute{Slot: uint64(1),
 		EncryptedMessageKeys:         cyclic.NewInt(86),
 		EncryptedRecipientIDKeys:     cyclic.NewInt(87),
 		PartialMessageCypherText:     cyclic.NewInt(8),
 		PartialRecipientIDCypherText: cyclic.NewInt(49)})
 
-	inMessages = append(inMessages, &SlotPermute{slot: uint64(2),
+	inMessages = append(inMessages, &SlotPermute{Slot: uint64(2),
 		EncryptedMessageKeys:         cyclic.NewInt(39),
 		EncryptedRecipientIDKeys:     cyclic.NewInt(51),
 		PartialMessageCypherText:     cyclic.NewInt(91),
 		PartialRecipientIDCypherText: cyclic.NewInt(73)})
 
 	expected := []SlotPermute{
-		SlotPermute{slot: uint64(1),
+		SlotPermute{Slot: uint64(1),
 			EncryptedMessageKeys:         cyclic.NewInt(71),
 			EncryptedRecipientIDKeys:     cyclic.NewInt(60),
 			PartialMessageCypherText:     cyclic.NewInt(44),
 			PartialRecipientIDCypherText: cyclic.NewInt(97)},
-		SlotPermute{slot: uint64(2),
+		SlotPermute{Slot: uint64(2),
 			EncryptedMessageKeys:         cyclic.NewInt(79),
 			EncryptedRecipientIDKeys:     cyclic.NewInt(16),
 			PartialMessageCypherText:     cyclic.NewInt(47),
 			PartialRecipientIDCypherText: cyclic.NewInt(47)},
-		SlotPermute{slot: uint64(0),
+		SlotPermute{Slot: uint64(0),
 			EncryptedMessageKeys:         cyclic.NewInt(78),
 			EncryptedRecipientIDKeys:     cyclic.NewInt(34),
 			PartialMessageCypherText:     cyclic.NewInt(69),
