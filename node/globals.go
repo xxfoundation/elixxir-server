@@ -2,6 +2,8 @@ package node
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/services"
+	"sync"
 )
 
 // LastNode contains precomputations held only by the last node
@@ -42,16 +44,45 @@ type Round struct {
 	// Variables only carried by the last node
 	LastNode
 
+	// Size of batch
 	BatchSize uint64
+
+	// Array of Channels associated to each Phase of this Round TODO length of array
+	channels []chan<- *services.Slot
 }
 
 // Grp is the cyclic group that all operations are done within
 var Grp *cyclic.Group
 
-// Rounds is a mapping of session identifiers to round structures
-var Rounds map[string]*Round
+// Global instance of RoundMap
+var GlobalRoundMap RoundMap
 
-var TestArray = [2]float32{.03, .02}
+// Wrapper struct for a map of String -> Round structs
+type RoundMap struct {
+	// Mapping of session identifiers to round structures
+	rounds map[string]*Round
+	// Mutex for atomic get/add operations
+	mutex sync.Mutex
+}
+
+// Create and return a new RoundMap with initialized fields
+func NewRoundMap() RoundMap {
+	return RoundMap{rounds: make(map[string]*Round)}
+}
+
+// Atomic get *Round for a given roundId in rounds map
+func (m *RoundMap) GetRound(roundId string) *Round {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.rounds[roundId]
+}
+
+// Atomic add *Round to rounds map with given roundId
+func (m *RoundMap) AddRound(roundId string, newRound *Round) {
+	m.mutex.Lock()
+	m.rounds[roundId] = newRound
+	m.mutex.Unlock()
+}
 
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.

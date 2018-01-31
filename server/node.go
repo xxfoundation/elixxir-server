@@ -22,7 +22,15 @@ import (
 var nextServer string
 
 // Blank struct implementing mixserver.ServerHandler interface TODO put this somewhere lol
-type ServerImpl struct{}
+type ServerImpl struct {
+	// Pointer to the global map of RoundID -> Rounds
+	rounds *node.RoundMap
+}
+
+// TODO return type
+func (s ServerImpl) GetChannel(roundId string, chanId int) {
+	//return s.rounds.GetRound(roundId)
+}
 
 // Run is the main loop for the cMix server
 func run() {
@@ -127,7 +135,10 @@ func StartServer(serverIndex int) {
 
 	// Start mix servers on localServer
 	jww.INFO.Printf("Starting server on %v\n", localServer)
-	go mixserver.StartServer(localServer, ServerImpl{})
+	// Initialize GlobalRoundMap
+	node.GlobalRoundMap = node.NewRoundMap()
+	// Kick off Comms server
+	go mixserver.StartServer(localServer, ServerImpl{Rounds: &node.GlobalRoundMap})
 
 	// Main loop
 	run()
