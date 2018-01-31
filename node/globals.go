@@ -19,6 +19,7 @@ type LastNode struct {
 	// Encrypted under homomorphic encryption that later get revealed
 	RecipientCypherText []*cyclic.Int
 	EncryptedRecipientPrecomputation []*cyclic.Int
+	EncryptedMessagePrecomputation []*cyclic.Int
 }
 
 // Round contains the keys and permutations for a given message batch
@@ -126,6 +127,8 @@ func InitLastNode(round *Round) {
 	round.LastNode.RecipientCypherText = make([]*cyclic.Int, round.BatchSize)
 	round.LastNode.EncryptedRecipientPrecomputation = make([]*cyclic.Int,
 		round.BatchSize)
+	round.LastNode.EncryptedMessagePrecomputation = make([]*cyclic.Int,
+		round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
@@ -134,5 +137,6 @@ func InitLastNode(round *Round) {
 		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
 		round.LastNode.RecipientCypherText[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
 	}
 }
