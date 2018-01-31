@@ -116,24 +116,59 @@ func TestEndToEndCryptops(t *testing.T) {
 			EncryptedMessageKeys: pm.EncryptedMessageKeys,
 			PartialMessageCypherText: pm.PartialMessageCypherText,
 		}
+		// Save the results to LastNode, which we don't have to check
+		// because we are the only node
 		i := pm.Slot
-		round.RecipientCypherText[i] = pm.PartialRecipientIDCypherText
-		round.EncryptedRecipientPrecomputation[i] = pm.EncryptedRecipientIDKeys
+		round.LastNode.RecipientCypherText[i] = pm.PartialRecipientIDCypherText
+		round.LastNode.EncryptedRecipientPrecomputation[i] = pm.EncryptedRecipientIDKeys
 		ov := services.Slot(&se)
 		out <- &ov
 	}(Permute.OutChannel, Encrypt.InChannel)
 
 	// REVEAL PHASE
+	Reveal := services.DispatchCryptop(&grp, precomputation.Reveal{},
+		nil, nil, round)
+
+	go func(in, out chan *services.Slot) {
+		iv := <- in
+		pm := (*iv).(*precomputation.SlotEncrypt)
+		i := pm.Slot
+		se := precomputation.SlotReveal{
+			Slot: i,
+			PartialMessageCypherText: pm.PartialMessageCypherText,
+			PartialRecipientCypherText: round.LastNode.RecipientCypherText[i],
+		}
+		// Save the results to LastNode
+		round.LastNode.EncryptedMessagePrecomputation[i] = pm.EncryptedMessageKeys
+		ov := services.Slot(&se)
+		out <- &ov
+	}(Encrypt.OutChannel, Reveal.InChannel)
 
 	// STRIP PHASE
+	Strip := services.DispatchCryptop(&grp, precomputation.Strip{},
+		nil, nil, round)
+
+	go func(in, out chan *services.Slot) {
+		iv := <- in
+		pm := (*iv).(*precomputation.SlotReveal)
+		i := pm.Slot
+		se := precomputation.SlotStripIn{
+			Slot: i,
+			RoundMessagePrivateKey: pm.PartialMessageCypherText,
+			RoundRecipientPrivateKey: pm.PartialRecipientCypherText,
+		}
+		ov := services.Slot(&se)
+		out <- &ov
+	}(Reveal.OutChannel, Strip.InChannel)
+
 
 	// KICK OFF PRECOMPUTATION
 	Decrypt.InChannel <- &decMsg
-	rtn := <-Encrypt.OutChannel
-	es := (*rtn).(*precomputation.SlotEncrypt)
+	rtn := <-Strip.OutChannel
+	es := (*rtn).(*precomputation.SlotStripOut)
 	fmt.Println("%d, %s, %s",
-		es.Slot, es.EncryptedMessageKeys.Text(10),
-		es.PartialMessageCypherText.Text(10))
+		es.Slot, es.MessagePrecomputation.Text(10),
+		es.RecipientPrecomputation.Text(10))
 	t.Errorf("What? %+v", rtn)
 
 	// ----- REALTIME ----- //
