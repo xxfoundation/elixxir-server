@@ -67,39 +67,71 @@ func TestEndToEndCryptops(t *testing.T) {
 	// the override here.
 
 	// SHARE PHASE
-	var shareMsgs []services.Slot
-	for i := uint64(0); i < batchSize; i++ {
-		shareMsgs = append(shareMsgs,
-			precomputation.SlotShare{Slot: i,
-				PartialRoundPublicCypherKey: cyclic.NewInt(1)})
-	}
+	var shareMsg services.Slot
+	shareMsg = &precomputation.SlotShare{Slot: 0,
+				PartialRoundPublicCypherKey: cyclic.NewInt(3)}
 	Share := services.DispatchCryptop(&grp, precomputation.Share{}, nil, nil,
 		round)
+	Share.InChannel <- &shareMsg
+	shareResultSlot := <- Share.OutChannel
+	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
+	round.CypherPublicKey = shareResult.PartialRoundPublicCypherKey
+	t.Errorf("Got: %v", round.CypherPublicKey.Text(10))
 
 	// DECRYPT PHASE
-	Decrypt := services.DispatchCryptop(&grp, precomputation.Decrypt{},
-		Share.OutChannel, nil, round)
-
-	for i := uint64(0); i < batchSize; i++ {
-		Share.InChannel <- &(shareMsgs[i])
-		rtn := Decrypt.OutChannel
-		t.Errorf("What? %v", rtn)
+	var decMsg services.Slot
+	decMsg = &precomputation.SlotDecrypt{
+		Slot: 0,
+		EncryptedMessageKeys:         cyclic.NewInt(1),
+		PartialMessageCypherText:     cyclic.NewInt(1),
+		EncryptedRecipientIDKeys:     cyclic.NewInt(1),
+		PartialRecipientIDCypherText: cyclic.NewInt(1),
 	}
+	Decrypt := services.DispatchCryptop(&grp, precomputation.Decrypt{},
+		nil, nil, round)
 
 	// PERMUTE PHASE
+	Permute := services.DispatchCryptop(&grp, precomputation.Permute{},
+		nil, nil, round)
 
-	// ENCRYPT PHASE
+	go func(in, out chan *services.Slot) {
+		iv := <- in
+		is := precomputation.SlotPermute(*((*iv).(*precomputation.SlotDecrypt)))
+		ov := services.Slot(&is)
+		out <- &ov
+	}(Decrypt.OutChannel, Permute.InChannel)
+
+	// // ENCRYPT PHASE
+	Encrypt := services.DispatchCryptop(&grp, precomputation.Encrypt{},
+		nil, nil, round)
+
+	go func(in, out chan *services.Slot) {
+		iv := <- in
+		pm := (*iv).(*precomputation.SlotPermute)
+		se := precomputation.SlotEncrypt{
+			Slot: pm.Slot,
+			EncryptedMessageKeys: pm.EncryptedMessageKeys,
+			PartialMessageCypherText: pm.PartialMessageCypherText,
+		}
+		i := pm.Slot
+		round.RecipientCypherText[i] = pm.PartialRecipientIDCypherText
+		round.EncryptedRecipientPrecomputation[i] = pm.EncryptedRecipientIDKeys
+		ov := services.Slot(&se)
+		out <- &ov
+	}(Permute.OutChannel, Encrypt.InChannel)
 
 	// REVEAL PHASE
 
 	// STRIP PHASE
 
 	// KICK OFF PRECOMPUTATION
-	for i := uint64(0); i < batchSize; i++ {
-		Share.InChannel <- &(shareMsgs[i])
-		rtn := Decrypt.OutChannel
-		t.Errorf("What? %v", rtn)
-	}
+	Decrypt.InChannel <- &decMsg
+	rtn := <-Encrypt.OutChannel
+	es := (*rtn).(*precomputation.SlotEncrypt)
+	fmt.Println("%d, %s, %s",
+		es.Slot, es.EncryptedMessageKeys.Text(10),
+		es.PartialMessageCypherText.Text(10))
+	t.Errorf("What? %+v", rtn)
 
 	// ----- REALTIME ----- //
 
