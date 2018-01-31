@@ -14,6 +14,11 @@ type LastNode struct {
 	RoundMessagePrivateKey []*cyclic.Int
 	// Round Recipient Private Key
 	RoundRecipientPrivateKey []*cyclic.Int
+
+	// These are technically temp values, representing recipient info
+	// Encrypted under homomorphic encryption that later get revealed
+	RecipientCypherText []*cyclic.Int
+	EncryptedRecipientPrecomputation []*cyclic.Int
 }
 
 // Round contains the keys and permutations for a given message batch
