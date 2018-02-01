@@ -75,20 +75,6 @@ func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
 	return newRound(batchSize, p)
 }
 
-//Creates the lastnode object
-func InitLastNode(round *Round) {
-	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
-
-	for i := uint64(0); i < round.BatchSize; i++ {
-		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
-	}
-}
 
 // Returns a copy of the current phase
 func (round *Round) GetPhase() Phase {
