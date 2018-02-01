@@ -3,7 +3,7 @@ package cryptops
 import (
 	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"strconv"
 	"testing"
@@ -42,7 +42,7 @@ func TestGenerateClientKey(t *testing.T) {
 
 	batchSize := uint64(3)
 
-	round := node.NewRound(batchSize)
+	round := globals.NewRound(batchSize)
 
 	rng := cyclic.NewRandom(cyclic.NewInt(2), cyclic.NewInt(1000))
 
@@ -76,13 +76,13 @@ func TestGenerateClientKey(t *testing.T) {
 	dc := services.DispatchCryptop(&group, GenerateClientKey{}, nil, nil, round)
 
 	// Create user registry, where Run() gets its pair of keys.
-	var users []*node.User
+	var users []*globals.User
 	// Make 1 more user than batchSize so that userID and slotID aren't the
 	// same. This should ensure that userID is used where it should be and
 	// slotID is used where it should be.
 	for i := uint64(0); i < batchSize+1; i++ {
 		userAddress := strconv.FormatUint(i, 10)
-		users = append(users, node.Users.NewUser(userAddress))
+		users = append(users, globals.Users.NewUser(userAddress))
 	}
 
 	users[1].Reception.BaseKey = cyclic.NewIntFromString(
@@ -106,7 +106,7 @@ func TestGenerateClientKey(t *testing.T) {
 		16)
 
 	for i := 0; i < len(users); i++ {
-		node.Users.UpsertUser(users[i])
+		globals.Users.UpsertUser(users[i])
 	}
 
 	var inSlots []services.Slot
@@ -216,6 +216,6 @@ func TestGenerateClientKey(t *testing.T) {
 
 	// Clean up user registry
 	for i := 0; i < len(users); i++ {
-		node.Users.DeleteUser(users[i].Id)
+		globals.Users.DeleteUser(users[i].Id)
 	}
 }

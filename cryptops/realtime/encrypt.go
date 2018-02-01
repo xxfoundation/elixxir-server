@@ -5,12 +5,12 @@ package realtime
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
-// The Encrypt phase adds in the final internode keys while simultaneously 
-// adding in Reception Keys for the recipient.  
+// The Encrypt phase adds in the final internode keys while simultaneously
+// adding in Reception Keys for the recipient.
 type Encrypt struct{}
 
 // SlotEncrypt is used to pass external data into Encrypt
@@ -70,7 +70,7 @@ type KeysEncrypt struct {
 func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Allocate Memory for output
 	om := make([]services.Slot, round.BatchSize)
@@ -105,7 +105,7 @@ func (e Encrypt) Run(g *cyclic.Group, in *SlotEncryptIn, out *SlotEncryptOut, ke
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted 
+	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted
 	// Internode Keys into the Encrypted Message
 	g.Mul(in.ReceptionKey, keys.T, tmp)
 	g.Mul(in.EncryptedMessage, tmp, out.EncryptedMessage)

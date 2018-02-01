@@ -2,7 +2,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestRealTimePermute(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := node.NewRound(bs)
+	round := globals.NewRound(bs)
 
 	var im []services.Slot
 

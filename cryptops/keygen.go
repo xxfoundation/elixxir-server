@@ -4,7 +4,7 @@ package cryptops
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/crypto/forward"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -41,7 +41,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Let's have 65536-bit long keys for now. We can increase or reduce
 	// size as needed after profiling, or perhaps look for a way to reuse
@@ -74,7 +74,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in, out KeySlot,
 	keys *KeysGenerateClientKey) services.Slot {
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
-	user := node.Users.GetUser(in.UserID())
+	user := globals.Users.GetUser(in.UserID())
 
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike

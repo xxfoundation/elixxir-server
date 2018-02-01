@@ -1,5 +1,5 @@
 // Package node contains the initialization and main loop of a cMix server.
-package node
+package globals
 
 import (
 	"strconv"

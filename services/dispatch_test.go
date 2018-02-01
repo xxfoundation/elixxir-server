@@ -2,7 +2,7 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"testing"
 )
 
@@ -33,7 +33,7 @@ func (cry Test) Run(g *cyclic.Group, in, out *SlotTest, keys *KeysTest) Slot {
 
 func (cry Test) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	om := make([]Slot, round.BatchSize)
 
@@ -59,7 +59,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 	bs := uint64(4)
 
-	round := node.NewRound(bs)
+	round := globals.NewRound(bs)
 
 	var im []Slot
 
@@ -120,7 +120,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 func TestDispatchController_IsAlive(t *testing.T) {
 
-	round := node.NewRound(uint64(4))
+	round := globals.NewRound(uint64(4))
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 

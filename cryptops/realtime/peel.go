@@ -4,7 +4,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -36,7 +36,7 @@ type KeysPeel struct {
 func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Allocate Memory for output
 	om := make([]services.Slot, round.BatchSize)
