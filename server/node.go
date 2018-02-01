@@ -18,7 +18,8 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// TODO move or remove this probs
+// Address of the subsequent server in the config file
+// TODO move or remove this probably
 var nextServer string
 
 // Blank struct implementing mixserver.ServerHandler interface TODO put this somewhere lol
