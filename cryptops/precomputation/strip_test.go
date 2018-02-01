@@ -36,7 +36,7 @@ func TestStrip(t *testing.T) {
 		RoundMessagePrivateKey:   cyclic.NewInt(39),
 		RoundRecipientPrivateKey: cyclic.NewInt(51)})
 
-	node.InitLastNode(round)
+	globals.InitLastNode(round)
 	round.LastNode.EncryptedMessagePrecomputation[0] = cyclic.NewInt(41)
 	round.LastNode.EncryptedRecipientPrecomputation[0] = cyclic.NewInt(74)
 	round.LastNode.EncryptedMessagePrecomputation[1] = cyclic.NewInt(8)

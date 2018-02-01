@@ -30,7 +30,7 @@ type DispatchController struct {
 	// Channel which is used to send messages to process
 	InChannel chan *Slot
 	// Channel which is used to receive the results of processing
-	OutChannel <-chan *Slot
+	OutChannel chan *Slot
 	// Channel which is used to send and process a kill command
 	quitChannel chan chan bool
 }

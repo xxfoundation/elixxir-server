@@ -2,7 +2,7 @@ package main
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
@@ -12,7 +12,7 @@ import (
 )
 
 // Convert the round object into a string we can print
-func RoundText(n *node.Round) string {
+func RoundText(n *globals.Round) string {
 	outStr := fmt.Sprintf("\nCypherPublicKey: %s, Z: %s\n",
 		n.CypherPublicKey.Text(10), n.Z.Text(10))
 	outStr += fmt.Sprintf("Permutations: %v\n", n.Permutations)
@@ -39,11 +39,11 @@ func TestEndToEndCryptops(t *testing.T) {
 	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12),
 		rng)
 
-	round := node.NewRound(batchSize)
+	round := globals.NewRound(batchSize)
 	round.CypherPublicKey = cyclic.NewInt(3)
 
 	// We are the last node, so allocate the arrays for LastNode
-	node.InitLastNode(round)
+	globals.InitLastNode(round)
 
 	// ----- PRECOMPUTATION ----- //
 

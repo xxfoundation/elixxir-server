@@ -41,11 +41,6 @@ func Run(servers []string) {
 		if err != nil {
 			jww.ERROR.Printf("AskOnline: Error received: %s", err)
 		}
-		if response != nil {
-			jww.ERROR.Printf("AskOnline: Failed to get an online confirmation!")
-		} else {
-			jww.INFO.Printf("AskOnline: %v is online!", addr)
-		}
 		defer cancel()
 	}
 	time.Sleep(time.Millisecond * 1000)
