@@ -7,11 +7,10 @@ import (
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver"
+	"gitlab.com/privategrity/comms/mixserver/message"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -22,14 +21,14 @@ import (
 // TODO move or remove this probably
 var nextServer string
 
-// Blank struct implementing mixserver.ServerHandler interface TODO put this somewhere lol
+// Blank struct implementing mixserver.ServerHandler interface
 type ServerImpl struct {
 	// Pointer to the global map of RoundID -> Rounds
 	rounds *globals.RoundMap
 }
 
 // Get the respective channel for the given roundId and chanId combination
-func (s ServerImpl) GetChannel(roundId string, chanId uint8) chan<- *services.Slot {
+func (s ServerImpl) GetChannel(roundId string, chanId globals.Phase) chan<- *services.Slot {
 	return s.rounds.GetRound(roundId).GetChannel(chanId)
 }
 
@@ -37,6 +36,22 @@ func (s ServerImpl) GetChannel(roundId string, chanId uint8) chan<- *services.Sl
 func run() {
 	// TODO literally anything
 	time.Sleep(5 * time.Second)
+}
+
+// Kicks off a new round in CMIX
+func NewRound(roundId string, batchSize uint64) {
+	// Create a new Round
+	round := globals.NewRound(batchSize)
+	// Add round to the GlobalRoundMap
+	globals.GlobalRoundMap.AddRound(roundId, round)
+
+	// Create the controller for PrecompDecrypt
+	precompDecryptCntrlr := services.DispatchCryptop(globals.Grp,
+		precomputation.Decrypt{}, nil, nil, round)
+	// Add the InChannel from the controller to round
+	round.AddChannel(globals.PRECOMP_DECRYPT, precompDecryptCntrlr.InChannel)
+	// Kick off PrecompDecryptTransmissionHandler
+	go precompDecryptTransmissionHandler(roundId, batchSize, precompDecryptCntrlr.OutChannel)
 }
 
 // ReceptionHandler for PrecompDecryptMessages
@@ -56,46 +71,50 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 		var slot services.Slot = slotDecrypt
 
 		// Pass slot as input to Decrypt's channel
-		s.GetChannel(input.RoundID, uint8(globals.PRECOMP_DECRYPT)) <- &slot
+		s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT) <- &slot
 	}
 }
 
-// Get output from Decrypt
-//output := <-dcPrecompDecrypt.OutChannel
-// Type assert Slot to SlotDecrypt
-//out := (*output).(*precomputation.SlotDecrypt)
+// TransmissionHandler for PrecompDecryptMessages
+func precompDecryptTransmissionHandler(roundId string, batchSize uint64, outCh chan *services.Slot) {
+	// Get the round BatchSize
+	bs := globals.GlobalRoundMap.GetRound(roundId).BatchSize
 
-//_, err = c.PrecompDecrypt(ctx, &pb.PrecompDecryptMessage{
-//	Slot:                         out.Slot,
-//	EncryptedMessageKeys:         out.EncryptedMessageKeys.Bytes(),
-//	EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys.Bytes(),
-//	PartialMessageCypherText:     out.PartialMessageCypherText.Bytes(),
-//	PartialRecipientIDCypherText: out.PartialRecipientIDCypherText.Bytes(),
-//})
+	// Create the PrecompDecryptMessage
+	msg := &pb.PrecompDecryptMessage{
+		RoundID: roundId,
+		Slots:   make([]*pb.PrecompDecryptSlot, bs),
+	}
 
-// Checks to see if the given servers are online TODO something with this
+	// Iterate over the output channel
+	for i := uint64(0); i < bs; i++ {
+		// Get output from Decrypt TODO
+		output := <-outCh
+		// Type assert Slot to SlotDecrypt
+		out := (*output).(*precomputation.SlotDecrypt)
+		// Convert to PrecompDecryptSlot
+		msgSlot := &pb.PrecompDecryptSlot{
+			Slot:                         out.Slot,
+			EncryptedMessageKeys:         out.EncryptedMessageKeys.Bytes(),
+			EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys.Bytes(),
+			PartialMessageCypherText:     out.PartialMessageCypherText.Bytes(),
+			PartialRecipientIDCypherText: out.PartialRecipientIDCypherText.Bytes(),
+		}
+
+		// Append the PrecompDecryptSlot to the PrecompDecryptMessage
+		msg.Slots = append(msg.Slots, msgSlot)
+	}
+	// Send the completed PrecompDecryptMessage
+	message.SendPrecompDecrypt(nextServer, msg)
+}
+
+// Checks to see if the given servers are online
 func verifyServersOnline(servers []string) {
 	for i := range servers {
-		// Connect to server with gRPC
-		jww.INFO.Printf("Connecting to server on port %v\n", servers[i])
-		addr := "localhost:" + servers[i]
-		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		_, err := message.SendAskOnline(servers[i], &pb.Ping{})
 		if err != nil {
-			jww.ERROR.Printf("Failed to connect to server at %v\n", addr)
+			jww.ERROR.Println("Server %s failed to respond!", servers[i])
 		}
-		time.Sleep(time.Millisecond * 500)
-
-		c := pb.NewMixMessageServiceClient(conn)
-		// Send AskOnline Request and check that we get an AskOnlineAck back
-		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
-		_, err = c.AskOnline(ctx, &pb.Ping{})
-		if err != nil {
-			jww.ERROR.Printf("AskOnline: Error received: %s", err)
-		} else {
-			jww.INFO.Printf("AskOnline: %v is online!", servers[i])
-		}
-		cancel()
-		conn.Close()
 	}
 }
 
@@ -121,6 +140,8 @@ func StartServer(serverIndex int) {
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, ServerImpl{rounds: &globals.GlobalRoundMap})
+	// Kick off a Round TODO
+	NewRound("Test", 5)
 
 	// Main loop
 	run()

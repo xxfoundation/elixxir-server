@@ -90,12 +90,12 @@ func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 }
 
 // Get chan for a given chanId in channels array
-func (round *Round) GetChannel(chanId uint8) chan<- *services.Slot {
+func (round *Round) GetChannel(chanId Phase) chan<- *services.Slot {
 	return round.channels[chanId]
 }
 
 // Add chan to channels array with given chanId
-func (round *Round) AddChannel(chanId uint8, newChan chan<- *services.Slot) {
+func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
 	round.channels[chanId] = newChan
 }
 
