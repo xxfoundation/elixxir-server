@@ -75,6 +75,7 @@ Except for the LastNode operations (e.g., Peel, refer to cMix
 documentation for details), data is typically sent through the nodes
 in a predetermined order starting at "Node 1" and flowing through the
 system to "Node X", where X is the number of nodes in the system (also
+referred to as "LastNode").
 
 In practice, this means that Input channels to the cryptop are fed by
 server handler functions, and Output channels are received by and sent
