@@ -2,7 +2,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -10,7 +10,7 @@ import (
 func TestRealTimeIdentify(t *testing.T) {
 	var im []services.Slot
 	batchSize := uint64(2)
-	round := node.NewRound(batchSize)
+	round := globals.NewRound(batchSize)
 	round.RecipientPrecomputation = make([]*cyclic.Int, batchSize)
 	round.RecipientPrecomputation[0] = cyclic.NewInt(42)
 	round.RecipientPrecomputation[1] = cyclic.NewInt(42)
@@ -19,11 +19,11 @@ func TestRealTimeIdentify(t *testing.T) {
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
 	im = append(im, &SlotIdentify{
-		Slot: 0,
+		Slot:                 0,
 		EncryptedRecipientID: cyclic.NewInt(42)})
 
 	im = append(im, &SlotIdentify{
-		Slot: 1,
+		Slot:                 1,
 		EncryptedRecipientID: cyclic.NewInt(1)})
 
 	ExpectedOutputs := []*cyclic.Int{cyclic.NewInt(1), cyclic.NewInt(42)}
@@ -56,13 +56,12 @@ func TestIdentifyRun(t *testing.T) {
 	// DecryptedRecipient := cyclic.NewInt(0)
 
 	im := SlotIdentify{
-		Slot: 0,
+		Slot:                 0,
 		EncryptedRecipientID: cyclic.NewInt(42)}
 
 	om := SlotIdentify{
-		Slot: 0,
+		Slot:                 0,
 		EncryptedRecipientID: cyclic.NewInt(0)}
-
 
 	ExpectedOutput := cyclic.NewInt(1) // 42*42 mod 43 => 1
 

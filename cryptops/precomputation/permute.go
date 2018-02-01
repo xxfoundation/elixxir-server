@@ -4,7 +4,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -52,7 +52,7 @@ type KeysPermute struct {
 func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Allocate Memory for output
 	om := make([]services.Slot, round.BatchSize)
@@ -135,7 +135,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 }
 
 // Implements cryptographic component of build
-func buildCryptoPermute(round *node.Round, om *[]services.Slot) {
+func buildCryptoPermute(round *globals.Round, om *[]services.Slot) {
 	// Set the slot to the respective permutation
 	for i := uint64(0); i < round.BatchSize; i++ {
 		(*om)[i].(*SlotPermute).slot = round.Permutations[i]

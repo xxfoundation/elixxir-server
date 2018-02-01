@@ -4,7 +4,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -39,7 +39,7 @@ type KeysPermute struct {
 // Pre-allocate memory and arrange key objects for Realtime Permute phase
 func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 	// The empty interface should be castable to a Round
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)
@@ -81,7 +81,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 	return out
 }
 
-func buildCryptoPermute(round *node.Round, outMessages []services.Slot) {
+func buildCryptoPermute(round *globals.Round, outMessages []services.Slot) {
 	// Prepare the permuted output messages
 	for i := uint64(0); i < round.BatchSize; i++ {
 		outMessages[i] = &SlotPermute{

@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/privategrity/server/server"
+	"gitlab.com/privategrity/server/node"
 )
 
 var cfgFile string
@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		server.StartServer(serverIdx)
+		node.StartServer(serverIdx)
 	},
 }
 

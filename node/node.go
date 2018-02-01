@@ -1,5 +1,5 @@
 // Package node contains the initialization and main loop of a cMix server.
-package server
+package node
 
 import (
 	"strconv"
@@ -14,17 +14,18 @@ import (
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
-// TODO move or remove this probs
+// Address of the subsequent server in the config file
+// TODO move or remove this probably
 var nextServer string
 
 // Blank struct implementing mixserver.ServerHandler interface TODO put this somewhere lol
 type ServerImpl struct {
 	// Pointer to the global map of RoundID -> Rounds
-	rounds *node.RoundMap
+	rounds *globals.RoundMap
 }
 
 // Get the respective channel for the given roundId and chanId combination
@@ -55,7 +56,7 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 		var slot services.Slot = slotDecrypt
 
 		// Pass slot as input to Decrypt's channel
-		s.GetChannel(input.RoundID, uint8(node.PRECOMP_DECRYPT)) <- &slot
+		s.GetChannel(input.RoundID, uint8(globals.PRECOMP_DECRYPT)) <- &slot
 	}
 }
 
@@ -117,9 +118,9 @@ func StartServer(serverIndex int) {
 	// Start mix servers on localServer
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap
-	node.GlobalRoundMap = node.NewRoundMap()
+	globals.GlobalRoundMap = globals.NewRoundMap()
 	// Kick off Comms server
-	go mixserver.StartServer(localServer, ServerImpl{rounds: &node.GlobalRoundMap})
+	go mixserver.StartServer(localServer, ServerImpl{rounds: &globals.GlobalRoundMap})
 
 	// Main loop
 	run()
