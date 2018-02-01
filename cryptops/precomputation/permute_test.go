@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -15,7 +15,7 @@ func TestPermute(t *testing.T) {
 
 	batchSize := uint64(3)
 
-	round := node.NewRound(batchSize)
+	round := globals.NewRound(batchSize)
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
@@ -27,7 +27,7 @@ func TestPermute(t *testing.T) {
 	round.Permutations[2] = 0
 
 	round.Z = cyclic.NewInt(30)
-	node.Grp.G = cyclic.NewInt(55)
+	globals.Grp.G = cyclic.NewInt(55)
 
 	round.S_INV[0] = cyclic.NewInt(53)
 	round.S_INV[1] = cyclic.NewInt(24)

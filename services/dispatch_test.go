@@ -2,9 +2,8 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"testing"
-	"time"
 )
 
 type Test struct{}
@@ -34,7 +33,7 @@ func (cry Test) Run(g *cyclic.Group, in, out *SlotTest, keys *KeysTest) Slot {
 
 func (cry Test) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	om := make([]Slot, round.BatchSize)
 
@@ -60,7 +59,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 	bs := uint64(4)
 
-	round := node.NewRound(bs)
+	round := globals.NewRound(bs)
 
 	var im []Slot
 
@@ -121,7 +120,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 func TestDispatchController_IsAlive(t *testing.T) {
 
-	round := node.NewRound(uint64(4))
+	round := globals.NewRound(uint64(4))
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
@@ -133,8 +132,9 @@ func TestDispatchController_IsAlive(t *testing.T) {
 		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
 	}
 
-	dc.Kill()
-	time.Sleep(100000)
+	// Block until the dispatcher is dead
+	// To not block until the dispatcher is dead, pass false to dc.Kill.
+	dc.Kill(true)
 
 	if dc.IsAlive() {
 		t.Errorf("IsAlive: Expected dispatch to be dead after Kill signal!")

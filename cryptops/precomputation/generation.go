@@ -4,7 +4,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -47,7 +47,7 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) (
 	*services.DispatchBuilder) {
 
 	// Get round from the empty interface
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Create the permutation and generate a Private Cypher Key
 	buildCryptoGeneration(g, round)
@@ -126,7 +126,7 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 }
 
 // Implements cryptographic component of build
-func buildCryptoGeneration(g *cyclic.Group, round *node.Round) {
+func buildCryptoGeneration(g *cyclic.Group, round *globals.Round) {
 
 	// Make the Permutation
 	cyclic.Shuffle(&round.Permutations)

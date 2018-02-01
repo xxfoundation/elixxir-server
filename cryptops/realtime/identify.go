@@ -4,7 +4,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -40,7 +40,7 @@ func (i Identify) Build(g *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
 	// The empty interface should be castable to a Round
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)

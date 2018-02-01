@@ -19,7 +19,7 @@ package realtime
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -34,10 +34,10 @@ type SlotDecryptIn struct {
 	Slot uint64
 	// ID of the sending client (Pass through)
 	SenderID uint64
-	// Message Encrypted with some Transmission Keys and some First Unpermuted 
+	// Message Encrypted with some Transmission Keys and some First Unpermuted
 	// Internode Message Keys.
 	EncryptedMessage *cyclic.Int
-	// Recipient Encrypted with some Transmission Keys and some Unpermuted 
+	// Recipient Encrypted with some Transmission Keys and some Unpermuted
 	// Internode Recipient Keys.
 	EncryptedRecipientID *cyclic.Int
 	// Next Ratchet of the sender's Transmission key
@@ -50,10 +50,10 @@ type SlotDecryptOut struct {
 	Slot uint64
 	// ID of the sending client(Pass through)
 	SenderID uint64
-	// Message Encrypted with a Transmission Key removed and a First Unpermuted 
+	// Message Encrypted with a Transmission Key removed and a First Unpermuted
 	// Internode Message Key added.
 	EncryptedMessage *cyclic.Int
-	// Recipient Encrypted with a Transmission Key removed and an Unpermuted 
+	// Recipient Encrypted with a Transmission Key removed and an Unpermuted
 	// Internode Recipient Key added.
 	EncryptedRecipientID *cyclic.Int
 }
@@ -95,7 +95,7 @@ type KeysDecrypt struct {
 func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Allocate Memory for output
 	om := make([]services.Slot, round.BatchSize)
@@ -133,14 +133,14 @@ func (d Decrypt) Run(g *cyclic.Group, in *SlotDecryptIn, out *SlotDecryptOut, ke
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key together 
-	// with with Transmission key before modulo multiplying into the 
+	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key together
+	// with with Transmission key before modulo multiplying into the
 	// EncryptedMessage
 	g.Mul(in.TransmissionKey, keys.R, tmp)
 	g.Mul(in.EncryptedMessage, tmp, out.EncryptedMessage)
 
-	// Eq 3.3: Modulo Multiplies the Unpermuted Internode Recipient Key together 
-	// with with Transmission key before modulo multiplying into the 
+	// Eq 3.3: Modulo Multiplies the Unpermuted Internode Recipient Key together
+	// with with Transmission key before modulo multiplying into the
 	// EncryptedRecipient
 	g.Mul(in.TransmissionKey, keys.U, tmp)
 	g.Mul(in.EncryptedRecipientID, tmp, out.EncryptedRecipientID)

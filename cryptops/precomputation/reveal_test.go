@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -14,7 +14,7 @@ func TestPrecomputationReveal(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := node.NewRound(bs)
+	round := globals.NewRound(bs)
 
 	var im []services.Slot
 
@@ -24,18 +24,18 @@ func TestPrecomputationReveal(t *testing.T) {
 		cyclic.NewInt(29), rng)
 
 	im = append(im, &SlotReveal{
-		Slot:                 uint64(0),
-		PartialMessageCypherText:     cyclic.NewInt(int64(39)),
+		Slot: uint64(0),
+		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(13))})
 
 	im = append(im, &SlotReveal{
-		Slot:                 uint64(1),
-		PartialMessageCypherText:     cyclic.NewInt(int64(86)),
+		Slot: uint64(1),
+		PartialMessageCypherText:   cyclic.NewInt(int64(86)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(87))})
 
 	im = append(im, &SlotReveal{
-		Slot:                 uint64(2),
-		PartialMessageCypherText:     cyclic.NewInt(int64(39)),
+		Slot: uint64(2),
+		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(51))})
 
 	round.Z = cyclic.NewInt(53)
@@ -83,38 +83,38 @@ func TestPrecomputationRevealRun(t *testing.T) {
 		cyclic.NewInt(29), rng)
 
 	im = append(im, &SlotReveal{
-		Slot:                 uint64(0),
-		PartialMessageCypherText:     cyclic.NewInt(int64(39)),
+		Slot: uint64(0),
+		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(13))})
 
 	im = append(im, &SlotReveal{
-		Slot:                 uint64(1),
-		PartialMessageCypherText:     cyclic.NewInt(int64(86)),
+		Slot: uint64(1),
+		PartialMessageCypherText:   cyclic.NewInt(int64(86)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(87))})
 
 	im = append(im, &SlotReveal{
-		Slot:                 uint64(2),
-		PartialMessageCypherText:     cyclic.NewInt(int64(39)),
+		Slot: uint64(2),
+		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(51))})
 
 	om = append(om, &SlotReveal{
-		Slot:                 uint64(1),
-		PartialMessageCypherText:     cyclic.NewInt(int64(0)),
+		Slot: uint64(1),
+		PartialMessageCypherText:   cyclic.NewInt(int64(0)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(0))})
 
 	om = append(om, &SlotReveal{
-		Slot:                 uint64(2),
-		PartialMessageCypherText:     cyclic.NewInt(int64(0)),
+		Slot: uint64(2),
+		PartialMessageCypherText:   cyclic.NewInt(int64(0)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(0))})
 
 	om = append(om, &SlotReveal{
-		Slot:                 uint64(0),
-		PartialMessageCypherText:     cyclic.NewInt(int64(0)),
+		Slot: uint64(0),
+		PartialMessageCypherText:   cyclic.NewInt(int64(0)),
 		PartialRecipientCypherText: cyclic.NewInt(int64(0))})
 
 	key := KeysReveal{
-			Z: cyclic.NewInt(53),
-		}
+		Z: cyclic.NewInt(53),
+	}
 
 	results := [][]*cyclic.Int{
 		{cyclic.NewInt(39), cyclic.NewInt(20)},

@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -15,7 +15,7 @@ func TestGeneration(t *testing.T) {
 
 	batchSize := uint64(4)
 
-	round := node.NewRound(batchSize)
+	round := globals.NewRound(batchSize)
 
 	rng := cyclic.NewRandom(cyclic.NewInt(2), cyclic.NewInt(897879897))
 
