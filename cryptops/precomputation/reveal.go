@@ -4,7 +4,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
 
@@ -37,10 +37,9 @@ type KeysReveal struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Reveal phase
-func (r Reveal) Build(g *cyclic.Group, face interface{}) (
-	*services.DispatchBuilder) {
+func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 	// The empty interface should be castable to a Round
-	round := face.(*node.Round)
+	round := face.(*globals.Round)
 
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)

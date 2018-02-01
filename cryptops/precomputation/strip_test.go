@@ -2,7 +2,7 @@ package precomputation
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/node"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
@@ -15,7 +15,7 @@ func TestStrip(t *testing.T) {
 
 	batchSize := uint64(3)
 
-	round := node.NewRound(batchSize)
+	round := globals.NewRound(batchSize)
 
 	rng := cyclic.NewRandom(cyclic.NewInt(2), cyclic.NewInt(2000))
 
@@ -36,7 +36,7 @@ func TestStrip(t *testing.T) {
 		EncryptedMessageKeys:   cyclic.NewInt(39),
 		EncryptedRecipientKeys: cyclic.NewInt(51)})
 
-	node.InitLastNode(round)
+	globals.InitLastNode(round)
 	round.LastNode.MessagePrecomputation[0] = cyclic.NewInt(41)
 	round.LastNode.RecipientPrecomputation[0] = cyclic.NewInt(74)
 	round.LastNode.MessagePrecomputation[1] = cyclic.NewInt(8)

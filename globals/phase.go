@@ -1,4 +1,4 @@
-package node
+package globals
 
 type Phase uint8
 

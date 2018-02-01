@@ -1,4 +1,4 @@
-package node
+package globals
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
