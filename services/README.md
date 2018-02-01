@@ -1,4 +1,4 @@
-= Dispatcher
+# Dispatcher
 
 The dispatcher provides an interface for running slot-based
 cryptographic operations. These cryptographics operations are run in
@@ -12,7 +12,7 @@ message passing interface to communicate between nodes. The dispatcher
 also allows the operations to be chained in a single-machine context
 for testing and other purposes.
 
-== Basic Operation
+## Basic Operation
 
 The basic usage pattern is:
 
@@ -45,7 +45,7 @@ round data is handled during setup. Internally, the cryptops implement
 `Build` and `Run` functions to manage their operation. More
 information is available from the README in the cryptops folder.
 
-== Chaining Cryptops
+## Chaining Cryptops
 
 Cryptops can be chained as follows:
 
@@ -69,7 +69,7 @@ result <- CryptoVar2.OutChannel
 // Do stuff with output slot object
 ```
 
-== Usage in Practice
+## Usage in Practice
 
 Except for the LastNode operations (e.g., Peel, refer to cMix
 documentation for details), data is typically sent through the nodes
