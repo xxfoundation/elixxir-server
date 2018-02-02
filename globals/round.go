@@ -66,7 +66,7 @@ var GlobalRoundMap RoundMap
 type RoundMap struct {
 	// Mapping of session identifiers to round structures
 	rounds map[string]*Round
-	// Mutex for atomic get/add operations
+	// Mutex for atomic get/add operations (Automatically initiated)
 	mutex sync.Mutex
 }
 
@@ -89,12 +89,12 @@ func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 	m.mutex.Unlock()
 }
 
-// Get chan for a given chanId in channels array
+// Get chan for a given chanId in channels array (Not thread-safe!)
 func (round *Round) GetChannel(chanId Phase) chan<- *services.Slot {
 	return round.channels[chanId]
 }
 
-// Add chan to channels array with given chanId
+// Add chan to channels array with given chanId (Not thread-safe!)
 func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
 	round.channels[chanId] = newChan
 }
