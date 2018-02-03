@@ -13,11 +13,11 @@ import (
 
 // Convert the round object into a string we can print
 func RoundText(g *cyclic.Group, n *globals.Round) string {
-	outStr := fmt.Sprintf("\nPrime: 101, Generator: %s, CypherPublicKey: %s," +
+	outStr := fmt.Sprintf("\tPrime: 101, Generator: %s, CypherPublicKey: %s, " +
 		"Z: %s\n", g.G.Text(10), n.CypherPublicKey.Text(10), n.Z.Text(10))
-	outStr += fmt.Sprintf("Permutations: %v\n", n.Permutations)
-	rfmt := "Round[%d]: \t R(%s, %s, %s) S(%s, %s, %s) T(%s, %s, %s) \n" +
-		"\t\t\t\t\t\t U(%s, %s, %s) V(%s, %s, %s) \n"
+	outStr += fmt.Sprintf("\tPermutations: %v\n", n.Permutations)
+	rfmt := "\tRound[%d]: R(%s, %s, %s) S(%s, %s, %s) T(%s, %s, %s) \n" +
+		"\t\t  U(%s, %s, %s) V(%s, %s, %s) \n"
 	for i := uint64(0); i < n.BatchSize; i++ {
 		outStr += fmt.Sprintf(rfmt, i,
 			n.R[i].Text(10), n.R_INV[i].Text(10), n.Y_R[i].Text(10),
@@ -29,6 +29,11 @@ func RoundText(g *cyclic.Group, n *globals.Round) string {
 	return outStr
 }
 
+// ComputeSingleNodePrecomputation is a helper func to compute what
+// the precomputation should be without any sharing computations for a
+// single node system. In other words, it multiplies the R, S, T
+// keys together for the message precomputation, and it does the same for
+// the U, V keys to make the recipient id precomputation.
 func ComputeSingleNodePrecomputation(g *cyclic.Group, round *globals.Round) (
 	*cyclic.Int, *cyclic.Int) {
 	MP := cyclic.NewInt(1)
@@ -46,6 +51,8 @@ func ComputeSingleNodePrecomputation(g *cyclic.Group, round *globals.Round) (
 
 }
 
+// End to end test of the mathematical functions required to "share" 1
+// key (i.e., R)
 func RootingTest(g *cyclic.Group) {
 
 	K1 := cyclic.NewInt(94)
@@ -89,6 +96,8 @@ func RootingTest(g *cyclic.Group) {
 
 }
 
+// End to end test of the mathematical functions required to "share" 2 keys
+// (i.e., UV)
 func RootingTestDouble(g *cyclic.Group) {
 
 	K1 := cyclic.NewInt(94)
@@ -150,6 +159,8 @@ func RootingTestDouble(g *cyclic.Group) {
 
 }
 
+// End to end test of the mathematical functions required to "share" 3 keys
+// (i.e., RST)
 func RootingTestTriple(g *cyclic.Group) {
 
 	K1 := cyclic.NewInt(26)
@@ -223,7 +234,6 @@ func RootingTestTriple(g *cyclic.Group) {
 
 	fmt.Printf("ROOT TEST TRIPLE:\n  Expected: %s, Result: %s,\n",
 		RSLT.Text(10), K1K2K3.Text(10))
-
 }
 
 // Perform an end to end test of the precomputation with batchsize 1,
@@ -231,12 +241,12 @@ func RootingTestTriple(g *cyclic.Group) {
 // the cryptographic operations.
 func TestEndToEndCryptops(t *testing.T) {
 
+	// Init, we use a small prime to make it easier to run the numbers
+	// when debugging
 	batchSize := uint64(1)
-
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
-
 	round := globals.NewRound(batchSize)
 	round.CypherPublicKey = cyclic.NewInt(3)
 
@@ -250,24 +260,19 @@ func TestEndToEndCryptops(t *testing.T) {
 		nil, nil, round)
 
 	var inMessages []services.Slot
-	for i := uint64(0); i < batchSize; i++ {
-		//NOTE: This slot generation is vestigial and not really used..
-		inMessages = append(inMessages, &precomputation.SlotGeneration{Slot: i})
-	}
+	inMessages = append(inMessages, &precomputation.SlotGeneration{Slot: 0})
 
-	// The following code kicks off the processing for generation, which we
-	// dump to nowhere *because* we have to overwrite it.
-	for i := uint64(0); i < batchSize; i++ {
-		Generation.InChannel <- &(inMessages[i])
-		_ = <-Generation.OutChannel
-	}
+	// Kick off processing for generation. This does allocations we need.
+	Generation.InChannel <- &(inMessages[0])
+	_ = <-Generation.OutChannel
 
+	// These produce useful printouts when the test fails.
 	RootingTest(&grp)
 	RootingTestDouble(&grp)
 	RootingTestTriple(&grp)
 
-	//fmt.Printf("%v", RoundText(&grp, round))
-
+	// Overwrite the generated keys. Note the use of Set to make sure the
+	// pointers remain unchanged.
 	round.Z.Set(cyclic.NewInt(13))
 
 	round.R[0].Set(cyclic.NewInt(35))
@@ -290,11 +295,6 @@ func TestEndToEndCryptops(t *testing.T) {
 	round.V_INV[0].Set(cyclic.NewInt(18))
 	round.Y_V[0].Set(cyclic.NewInt(79))
 
-	// TODO: This phase requires us to use pre-cooked crypto values. We run
-	// the step here then overwrite the values that were stored in the
-	// round structure so we still get the same results. We should perform
-	// the override here.
-
 	// SHARE PHASE
 	var shareMsg services.Slot
 	shareMsg = &precomputation.SlotShare{Slot: 0,
@@ -306,9 +306,13 @@ func TestEndToEndCryptops(t *testing.T) {
 	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
 	round.CypherPublicKey.Set(shareResult.PartialRoundPublicCypherKey)
 
-	t.Errorf("Got: %v", round.CypherPublicKey.Text(10))
-
+	fmt.Printf("SHARE:\n")
 	fmt.Printf("%v", RoundText(&grp, round))
+
+	if shareResult.PartialRoundPublicCypherKey.Cmp(cyclic.NewInt(20)) != 0 {
+		t.Errorf("SHARE failed, expected 20, got %s",
+			shareResult.PartialRoundPublicCypherKey.Text(10))
+	}
 
 	// DECRYPT PHASE
 	var decMsg services.Slot
@@ -336,6 +340,28 @@ func TestEndToEndCryptops(t *testing.T) {
 			is.EncryptedMessageKeys.Text(10), is.EncryptedRecipientIDKeys.Text(10),
 			is.PartialMessageCypherText.Text(10),
 			is.PartialRecipientIDCypherText.Text(10))
+
+		expectedDecrypt := []*cyclic.Int{
+			cyclic.NewInt(32), cyclic.NewInt(35),
+			cyclic.NewInt(30), cyclic.NewInt(45),
+		}
+		if is.EncryptedMessageKeys.Cmp(expectedDecrypt[0]) != 0 {
+			t.Errorf("DECRYPT failed EncryptedMessageKeys. Got: %s Expected: %s",
+				is.EncryptedMessageKeys.Text(10), expectedDecrypt[0].Text(10))
+		}
+		if is.EncryptedRecipientIDKeys.Cmp(expectedDecrypt[1]) != 0 {
+			t.Errorf("DECRYPT failed EncryptedRecipientIDKeys. Got: %s Expected: %s",
+				is.EncryptedRecipientIDKeys.Text(10), expectedDecrypt[1].Text(10))
+		}
+		if is.PartialMessageCypherText.Cmp(expectedDecrypt[2]) != 0 {
+			t.Errorf("DECRYPT failed PartialMessageCypherText. Got: %s Expected: %s",
+				is.PartialMessageCypherText.Text(10), expectedDecrypt[2].Text(10))
+		}
+		if is.PartialRecipientIDCypherText.Cmp(expectedDecrypt[3]) != 0 {
+			t.Errorf("DECRYPT failed PartialRecipientIDCypherText. Got: %s " +
+				"Expected: %s", is.PartialRecipientIDCypherText.Text(10),
+				expectedDecrypt[3].Text(10))
+		}
 
 		ov := services.Slot(&is)
 		out <- &ov
@@ -449,8 +475,8 @@ func TestEndToEndCryptops(t *testing.T) {
 	inputMsg := services.Slot(&realtime.SlotDecryptIn{
 		Slot:                 0,
 		SenderID:             1,
-		EncryptedMessage:     cyclic.NewInt(3),
-		EncryptedRecipientID: cyclic.NewInt(3),
+		EncryptedMessage:     cyclic.NewInt(31),
+		EncryptedRecipientID: cyclic.NewInt(1),
 		TransmissionKey:      cyclic.NewInt(1),
 	})
 
