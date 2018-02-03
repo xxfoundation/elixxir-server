@@ -522,7 +522,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	}
 
 	if RP.Cmp(es.RecipientPrecomputation) != 0 {
-		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
+		t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
 			RP.Text(10), es.RecipientPrecomputation.Text(10))
 	}
 
@@ -552,9 +552,20 @@ func TestEndToEndCryptops(t *testing.T) {
 			EncryptedRecipientID: is.EncryptedRecipientID,
 		})
 
-		fmt.Printf("DECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n",
+		fmt.Printf("RTDECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n",
 			is.EncryptedMessage.Text(10),
 			is.EncryptedRecipientID.Text(10))
+		expectedRTDecrypt := []*cyclic.Int{
+			cyclic.NewInt(75), cyclic.NewInt(72),
+		}
+		if is.EncryptedMessage.Cmp(expectedRTDecrypt[0]) != 0 {
+			t.Errorf("RTDECRYPT failed EncryptedMessage. Got: %s Expected: %s",
+				is.EncryptedMessage.Text(10), expectedRTDecrypt[0].Text(10))
+		}
+		if is.EncryptedRecipientID.Cmp(expectedRTDecrypt[1]) != 0 {
+			t.Errorf("RTDECRYPT failed EncryptedRecipientID. Got: %s Expected: %s",
+				is.EncryptedRecipientID.Text(10), expectedRTDecrypt[1].Text(10))
+		}
 
 		out <- &ov
 	}(RTDecrypt.OutChannel, RTPermute.InChannel)
