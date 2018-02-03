@@ -438,6 +438,18 @@ func TestEndToEndCryptops(t *testing.T) {
 			"PartialMessageCypherText: %s\n", pm.EncryptedMessageKeys.Text(10),
 			pm.PartialMessageCypherText.Text(10))
 
+		expectedEncrypt := []*cyclic.Int{
+			cyclic.NewInt(57), cyclic.NewInt(9),
+		}
+		if pm.EncryptedMessageKeys.Cmp(expectedEncrypt[0]) != 0 {
+			t.Errorf("ENCRYPT failed EncryptedMessageKeys. Got: %s Expected: %s",
+				pm.EncryptedMessageKeys.Text(10), expectedEncrypt[0].Text(10))
+		}
+		if pm.PartialMessageCypherText.Cmp(expectedEncrypt[1]) != 0 {
+			t.Errorf("ENCRYPT failed EncryptedRecipientIDKeys. Got: %s Expected: %s",
+				pm.PartialMessageCypherText.Text(10), expectedEncrypt[1].Text(10))
+		}
+
 		// Save the results to LastNode
 		round.LastNode.EncryptedMessagePrecomputation[i].Set(
 			pm.EncryptedMessageKeys)
@@ -462,6 +474,17 @@ func TestEndToEndCryptops(t *testing.T) {
 		fmt.Printf("REVEAL:\n  RoundMessagePrivateKey: %s, " +
 			"RoundRecipientPrivateKey: %s\n", se.RoundMessagePrivateKey.Text(10),
 			se.RoundRecipientPrivateKey.Text(10))
+		expectedReveal := []*cyclic.Int{
+			cyclic.NewInt(20), cyclic.NewInt(68),
+		}
+		if se.RoundMessagePrivateKey.Cmp(expectedReveal[0]) != 0 {
+			t.Errorf("REVEAL failed RoundMessagePrivateKey. Got: %s Expected: %s",
+				se.RoundMessagePrivateKey.Text(10), expectedReveal[0].Text(10))
+		}
+		if se.RoundRecipientPrivateKey.Cmp(expectedReveal[1]) != 0 {
+			t.Errorf("REVEAL failed RoundRecipientPrivateKey. Got: %s Expected: %s",
+				se.RoundRecipientPrivateKey.Text(10), expectedReveal[1].Text(10))
+		}
 
 		ov := services.Slot(&se)
 		out <- &ov
@@ -478,8 +501,18 @@ func TestEndToEndCryptops(t *testing.T) {
 	fmt.Printf("STRIP:\n  MessagePrecomputation: %s, " +
 		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
 		es.RecipientPrecomputation.Text(10))
+	expectedStrip := []*cyclic.Int{
+		cyclic.NewInt(18), cyclic.NewInt(76),
+	}
+	if es.MessagePrecomputation.Cmp(expectedStrip[0]) != 0 {
+		t.Errorf("STRIP failed MessagePrecomputation. Got: %s Expected: %s",
+			es.MessagePrecomputation.Text(10), expectedStrip[0].Text(10))
+	}
+	if es.RecipientPrecomputation.Cmp(expectedStrip[1]) != 0 {
+		t.Errorf("STRIP failed RecipientPrecomputation. Got: %s Expected: %s",
+			es.RecipientPrecomputation.Text(10), expectedStrip[1].Text(10))
+	}
 
-	t.Errorf("What? %+v", rtn)
 
 	MP, RP := ComputeSingleNodePrecomputation(&grp, round)
 
