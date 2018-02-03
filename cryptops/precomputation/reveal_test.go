@@ -41,9 +41,9 @@ func TestPrecomputationReveal(t *testing.T) {
 	round.Z = cyclic.NewInt(53)
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(39), cyclic.NewInt(20)},
-		{cyclic.NewInt(53), cyclic.NewInt(87)},
-		{cyclic.NewInt(39), cyclic.NewInt(18)},
+		{cyclic.NewInt(60), cyclic.NewInt(77)},
+		{cyclic.NewInt(34), cyclic.NewInt(95)},
+		{cyclic.NewInt(60), cyclic.NewInt(66)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Reveal{}, nil, nil, round)
@@ -117,9 +117,9 @@ func TestPrecomputationRevealRun(t *testing.T) {
 	}
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(39), cyclic.NewInt(20)},
-		{cyclic.NewInt(53), cyclic.NewInt(87)},
-		{cyclic.NewInt(39), cyclic.NewInt(18)},
+		{cyclic.NewInt(60), cyclic.NewInt(77)},
+		{cyclic.NewInt(34), cyclic.NewInt(95)},
+		{cyclic.NewInt(60), cyclic.NewInt(66)},
 	}
 
 	reveal := Reveal{}
