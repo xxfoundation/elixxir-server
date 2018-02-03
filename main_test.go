@@ -13,8 +13,8 @@ import (
 
 // Convert the round object into a string we can print
 func RoundText(g *cyclic.Group, n *globals.Round) string {
-	outStr := fmt.Sprintf("\nPrime: 101, Generator: %s, CypherPublicKey: %s, Z: %s\n",
-		g.G.Text(10), n.CypherPublicKey.Text(10), n.Z.Text(10))
+	outStr := fmt.Sprintf("\nPrime: 101, Generator: %s, CypherPublicKey: %s," +
+		"Z: %s\n", g.G.Text(10), n.CypherPublicKey.Text(10), n.Z.Text(10))
 	outStr += fmt.Sprintf("Permutations: %v\n", n.Permutations)
 	rfmt := "Round[%d]: \t R(%s, %s, %s) S(%s, %s, %s) T(%s, %s, %s) \n" +
 		"\t\t\t\t\t\t U(%s, %s, %s) V(%s, %s, %s) \n"
@@ -29,7 +29,8 @@ func RoundText(g *cyclic.Group, n *globals.Round) string {
 	return outStr
 }
 
-func ComputeSingleNodePrecomputation(g *cyclic.Group, round *globals.Round) (*cyclic.Int, *cyclic.Int) {
+func ComputeSingleNodePrecomputation(g *cyclic.Group, round *globals.Round) (
+	*cyclic.Int, *cyclic.Int) {
 	MP := cyclic.NewInt(1)
 
 	g.Mul(MP, round.R_INV[0], MP)
@@ -68,7 +69,8 @@ func RootingTest(g *cyclic.Group) {
 	g.Exp(g.G, Z, gZ)
 	g.RootCoprime(gZ, Z, RSLT)
 
-	fmt.Printf("GENERATOR:\n  Expected: %s, Result: %s,\n", g.G.Text(10), RSLT.Text(10))
+	fmt.Printf("GENERATOR:\n  Expected: %s, Result: %s,\n",
+		g.G.Text(10), RSLT.Text(10))
 
 	g.Exp(g.G, Y1, gY1)
 	g.Mul(K1, gY1, MSG)
@@ -82,7 +84,8 @@ func RootingTest(g *cyclic.Group) {
 
 	g.Mul(MSG, IVS, RSLT)
 
-	fmt.Printf("ROOT TEST:\n  Expected: %s, Result: %s,\n", gY1.Text(10), gY1c.Text(10))
+	fmt.Printf("ROOT TEST:\n  Expected: %s, Result: %s,\n",
+		gY1.Text(10), gY1c.Text(10))
 
 }
 
@@ -142,7 +145,8 @@ func RootingTestDouble(g *cyclic.Group) {
 
 	g.Mul(K1, K2, K1K2)
 
-	fmt.Printf("ROOT TEST DOUBLE:\n  Expected: %s, Result: %s,\n", RSLT.Text(10), K1K2.Text(10))
+	fmt.Printf("ROOT TEST DOUBLE:\n  Expected: %s, Result: %s,\n",
+		RSLT.Text(10), K1K2.Text(10))
 
 }
 
@@ -217,7 +221,8 @@ func RootingTestTriple(g *cyclic.Group) {
 	g.Mul(K1, K2, K1K2)
 	g.Mul(K1K2, K3, K1K2K3)
 
-	fmt.Printf("ROOT TEST TRIPLE:\n  Expected: %s, Result: %s,\n", RSLT.Text(10), K1K2K3.Text(10))
+	fmt.Printf("ROOT TEST TRIPLE:\n  Expected: %s, Result: %s,\n",
+		RSLT.Text(10), K1K2K3.Text(10))
 
 }
 
@@ -325,9 +330,12 @@ func TestEndToEndCryptops(t *testing.T) {
 		iv := <-in
 		is := precomputation.SlotPermute(*((*iv).(*precomputation.SlotDecrypt)))
 
-		fmt.Printf("DECRYPT:\n  EncryptedMessageKeys: %s, EncryptedRecipientIDKeys: %s,\n"+
-			"  PartialMessageCypherText: %s, PartialRecipientIDCypherText: %s\n", is.EncryptedMessageKeys.Text(10), is.EncryptedRecipientIDKeys.Text(10),
-			is.PartialMessageCypherText.Text(10), is.PartialRecipientIDCypherText.Text(10))
+		fmt.Printf("DECRYPT:\n  EncryptedMessageKeys: %s, " +
+			"EncryptedRecipientIDKeys: %s,\n"+
+			"  PartialMessageCypherText: %s, PartialRecipientIDCypherText: %s\n",
+			is.EncryptedMessageKeys.Text(10), is.EncryptedRecipientIDKeys.Text(10),
+			is.PartialMessageCypherText.Text(10),
+			is.PartialRecipientIDCypherText.Text(10))
 
 		ov := services.Slot(&is)
 		out <- &ov
@@ -346,15 +354,19 @@ func TestEndToEndCryptops(t *testing.T) {
 			PartialMessageCypherText: pm.PartialMessageCypherText,
 		}
 
-		fmt.Printf("PERMUTE:\n  EncryptedMessageKeys: %s, EncryptedRecipientIDKeys: %s,\n"+
-			"  PartialMessageCypherText: %s, PartialRecipientIDCypherText: %s\n", pm.EncryptedMessageKeys.Text(10), pm.EncryptedRecipientIDKeys.Text(10),
-			pm.PartialMessageCypherText.Text(10), pm.PartialRecipientIDCypherText.Text(10))
+		fmt.Printf("PERMUTE:\n  EncryptedMessageKeys: %s, " +
+			"EncryptedRecipientIDKeys: %s,\n"+
+			"  PartialMessageCypherText: %s, PartialRecipientIDCypherText: %s\n",
+			pm.EncryptedMessageKeys.Text(10), pm.EncryptedRecipientIDKeys.Text(10),
+			pm.PartialMessageCypherText.Text(10),
+			pm.PartialRecipientIDCypherText.Text(10))
 
 		// Save the results to LastNode, which we don't have to check
 		// because we are the only node
 		i := pm.Slot
 		round.LastNode.RecipientCypherText[i].Set(pm.PartialRecipientIDCypherText)
-		round.LastNode.EncryptedRecipientPrecomputation[i].Set(pm.EncryptedRecipientIDKeys)
+		round.LastNode.EncryptedRecipientPrecomputation[i].Set(
+			pm.EncryptedRecipientIDKeys)
 
 		ov := services.Slot(&se)
 		out <- &ov
@@ -374,11 +386,13 @@ func TestEndToEndCryptops(t *testing.T) {
 			PartialRecipientCypherText: round.LastNode.RecipientCypherText[i],
 		}
 
-		fmt.Printf("ENCRYPT:\n  EncryptedMessageKeys: %s, PartialMessageCypherText: %s\n", pm.EncryptedMessageKeys.Text(10),
+		fmt.Printf("ENCRYPT:\n  EncryptedMessageKeys: %s, " +
+			"PartialMessageCypherText: %s\n", pm.EncryptedMessageKeys.Text(10),
 			pm.PartialMessageCypherText.Text(10))
 
 		// Save the results to LastNode
-		round.LastNode.EncryptedMessagePrecomputation[i].Set(pm.EncryptedMessageKeys)
+		round.LastNode.EncryptedMessagePrecomputation[i].Set(
+			pm.EncryptedMessageKeys)
 		ov := services.Slot(&se)
 		out <- &ov
 	}(Encrypt.OutChannel, Reveal.InChannel)
@@ -397,7 +411,8 @@ func TestEndToEndCryptops(t *testing.T) {
 			RoundRecipientPrivateKey: pm.PartialRecipientCypherText,
 		}
 
-		fmt.Printf("REVEAL:\n  RoundMessagePrivateKey: %s, RoundRecipientPrivateKey: %s\n", se.RoundMessagePrivateKey.Text(10),
+		fmt.Printf("REVEAL:\n  RoundMessagePrivateKey: %s, " +
+			"RoundRecipientPrivateKey: %s\n", se.RoundMessagePrivateKey.Text(10),
 			se.RoundRecipientPrivateKey.Text(10))
 
 		ov := services.Slot(&se)
@@ -412,7 +427,8 @@ func TestEndToEndCryptops(t *testing.T) {
 	round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
 	round.LastNode.RecipientPrecomputation[es.Slot] = es.RecipientPrecomputation
 
-	fmt.Printf("STRIP:\n  MessagePrecomputation: %s, RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
+	fmt.Printf("STRIP:\n  MessagePrecomputation: %s, " +
+		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
 		es.RecipientPrecomputation.Text(10))
 
 	t.Errorf("What? %+v", rtn)
@@ -420,11 +436,13 @@ func TestEndToEndCryptops(t *testing.T) {
 	MP, RP := ComputeSingleNodePrecomputation(&grp, round)
 
 	if MP.Cmp(es.MessagePrecomputation) != 0 {
-		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n", MP.Text(10), es.MessagePrecomputation.Text(10))
+		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
+			MP.Text(10), es.MessagePrecomputation.Text(10))
 	}
 
 	if RP.Cmp(es.RecipientPrecomputation) != 0 {
-		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n", RP.Text(10), es.RecipientPrecomputation.Text(10))
+		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
+			RP.Text(10), es.RecipientPrecomputation.Text(10))
 	}
 
 	// ----- REALTIME ----- //
@@ -453,7 +471,8 @@ func TestEndToEndCryptops(t *testing.T) {
 			EncryptedRecipientID: is.EncryptedRecipientID,
 		})
 
-		fmt.Printf("DECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n", is.EncryptedMessage.Text(10),
+		fmt.Printf("DECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n",
+			is.EncryptedMessage.Text(10),
 			is.EncryptedRecipientID.Text(10))
 
 		out <- &ov
