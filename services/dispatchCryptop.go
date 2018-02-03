@@ -103,7 +103,9 @@ func (d *dispatch) dispatcher() {
 	}
 
 	//close the channels
-	close(d.inChannel)
+	// FIXME: This prevents double-close when chaining, perhaps senders should
+	//        Always be responsible for closing their channels?
+	//close(d.inChannel)
 	close(d.outChannel)
 	close(d.quit)
 
