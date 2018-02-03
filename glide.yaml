@@ -1,12 +1,12 @@
 package: gitlab.com/privategrity/server
 import:
 - package: gitlab.com/privategrity/crypto
-  version: hotfix/add_coprime
-  repo: https://gitlab.com/privategrity/crypto.git
+  version: master
+  repo: git@gitlab.com:privategrity/crypto
   vcs: git
 - package: gitlab.com/privategrity/comms
   version: 66327c4b
-  repo: https://gitlab.com/privategrity/comms.git
+  repo: git@gitlab.com:privategrity/comms
   vcs: git
 - package: github.com/spf13/cobra
   version: ^0.0.1
