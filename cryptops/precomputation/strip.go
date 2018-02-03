@@ -75,6 +75,7 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 			EncryptedRecipientKeys: round.LastNode.EncryptedRecipientPrecomputation[i],
 		}
 		keys[i] = keySlc
+
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
@@ -95,6 +96,8 @@ func (s Strip) Run(g *cyclic.Group, in *SlotStripIn, out *SlotStripOut, keys *Ke
 	// Eq 16.1: Use the inverted round message private key to remove the homomorphic encryption
 	// from encrypted message key and reveal the message precomputation
 	g.Mul(tmp, keys.EncryptedMessageKeys, out.MessagePrecomputation)
+
+	//fmt.Printf("EncryptedRecipientKeys: %s \n", keys.EncryptedRecipientKeys.Text(10))
 
 	// Eq 16.2: Invert the round recipient private key
 	g.Inverse(in.RoundRecipientPrivateKey, tmp)
