@@ -3,19 +3,18 @@ package globals
 
 import (
 	"strconv"
-	"time"
+	//"time"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-
-	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver"
+	//"golang.org/x/net/context"
+	//"google.golang.org/grpc"
+	//pb "gitlab.com/privategrity/comms/mixmessages"
+	//"gitlab.com/privategrity/comms/mixserver"
 )
 
 // Run is the main loop for the cMix server
-func Run(servers []string) {
+/*func Run(servers []string) {
 	for i := range servers {
 		// Start mixservers on localhost port
 		jww.INFO.Printf("Starting server on port %v\n", servers[i])
@@ -54,7 +53,7 @@ func StartServer() {
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
 
 	Run(getServers())
-}
+}*/
 
 // getServers pulls a string slice of server ports from the config file and
 // verifies that the ports are valid.
