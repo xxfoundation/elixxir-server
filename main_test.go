@@ -387,6 +387,28 @@ func TestEndToEndCryptops(t *testing.T) {
 			pm.PartialMessageCypherText.Text(10),
 			pm.PartialRecipientIDCypherText.Text(10))
 
+		expectedPermute := []*cyclic.Int{
+			cyclic.NewInt(83), cyclic.NewInt(17),
+			cyclic.NewInt(1), cyclic.NewInt(88),
+		}
+		if pm.EncryptedMessageKeys.Cmp(expectedPermute[0]) != 0 {
+			t.Errorf("PERMUTE failed EncryptedMessageKeys. Got: %s Expected: %s",
+				pm.EncryptedMessageKeys.Text(10), expectedPermute[0].Text(10))
+		}
+		if pm.EncryptedRecipientIDKeys.Cmp(expectedPermute[1]) != 0 {
+			t.Errorf("PERMUTE failed EncryptedRecipientIDKeys. Got: %s Expected: %s",
+				pm.EncryptedRecipientIDKeys.Text(10), expectedPermute[1].Text(10))
+		}
+		if pm.PartialMessageCypherText.Cmp(expectedPermute[2]) != 0 {
+			t.Errorf("PERMUTE failed PartialMessageCypherText. Got: %s Expected: %s",
+				pm.PartialMessageCypherText.Text(10), expectedPermute[2].Text(10))
+		}
+		if pm.PartialRecipientIDCypherText.Cmp(expectedPermute[3]) != 0 {
+			t.Errorf("PERMUTE failed PartialRecipientIDCypherText. Got: %s " +
+				"Expected: %s", pm.PartialRecipientIDCypherText.Text(10),
+				expectedPermute[3].Text(10))
+		}
+
 		// Save the results to LastNode, which we don't have to check
 		// because we are the only node
 		i := pm.Slot
