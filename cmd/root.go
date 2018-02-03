@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/privategrity/server/node"
 )
 
 var cfgFile string

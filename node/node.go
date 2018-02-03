@@ -10,6 +10,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/io"
 	"gitlab.com/privategrity/server/services"
+	"gitlab.com/privategrity/server/globals"
 )
 
 // StartServer reads configuration options and starts the cMix server
