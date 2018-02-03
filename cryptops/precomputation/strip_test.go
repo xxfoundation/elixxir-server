@@ -46,14 +46,14 @@ func TestStrip(t *testing.T) {
 
 	expected := []SlotStripOut{
 		SlotStripOut{Slot: uint64(0),
-			MessagePrecomputation:   cyclic.NewInt(10),
-			RecipientPrecomputation: cyclic.NewInt(136)},
+			MessagePrecomputation:   cyclic.NewInt(98),
+			RecipientPrecomputation: cyclic.NewInt(21)},
 		SlotStripOut{Slot: uint64(1),
-			MessagePrecomputation:   cyclic.NewInt(119),
-			RecipientPrecomputation: cyclic.NewInt(7)},
+			MessagePrecomputation:   cyclic.NewInt(51),
+			RecipientPrecomputation: cyclic.NewInt(12)},
 		SlotStripOut{Slot: uint64(2),
-			MessagePrecomputation:   cyclic.NewInt(10),
-			RecipientPrecomputation: cyclic.NewInt(59)},
+			MessagePrecomputation:   cyclic.NewInt(135),
+			RecipientPrecomputation: cyclic.NewInt(138)},
 	}
 
 	dc := services.DispatchCryptop(&group, Strip{}, nil, nil, round)
