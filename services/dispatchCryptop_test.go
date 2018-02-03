@@ -2,7 +2,6 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/globals"
 	"testing"
 )
 
@@ -33,21 +32,23 @@ func (cry Test) Run(g *cyclic.Group, in, out *SlotTest, keys *KeysTest) Slot {
 
 func (cry Test) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 
-	round := face.(*globals.Round)
+	bs := uint64(4)
 
-	om := make([]Slot, round.BatchSize)
+	round := face.([]*cyclic.Int)
 
-	for i := uint64(0); i < round.BatchSize; i++ {
+	om := make([]Slot, bs)
+
+	for i := uint64(0); i < bs; i++ {
 		om[i] = &SlotTest{slot: i, A: cyclic.NewMaxInt()}
 	}
 
-	keys := make([]NodeKeys, round.BatchSize)
+	keys := make([]NodeKeys, bs)
 
-	for i := uint64(0); i < round.BatchSize; i++ {
-		keys[i] = &KeysTest{R: round.R[i]}
+	for i := uint64(0); i < bs; i++ {
+		keys[i] = &KeysTest{R: round[i]}
 	}
 
-	db := DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := DispatchBuilder{BatchSize: bs, Keys: &keys, Output: &om, G: g}
 
 	return &db
 }
@@ -59,14 +60,14 @@ func TestDispatchCryptop(t *testing.T) {
 
 	bs := uint64(4)
 
-	round := globals.NewRound(bs)
+	round := make([]*cyclic.Int, bs)
 
 	var im []Slot
 
 	i := uint64(0)
 	for i < bs {
 		im = append(im, &SlotTest{slot: uint64(i), A: cyclic.NewInt(int64(i + 1))})
-		round.R[i] = cyclic.NewInt(int64(2 * (i + 1)))
+		round[i] = cyclic.NewInt(int64(2 * (i + 1)))
 		i++
 	}
 
@@ -99,9 +100,9 @@ func TestDispatchCryptop(t *testing.T) {
 			pass++
 		}
 
-		if round.R[i].Int64() != 15 {
+		if round[i].Int64() != 15 {
 			t.Errorf("Test of Dispatcher pass by reference failed at index: %v Expected: %v;",
-				" Actual: %v", i, 15, round.R[i].Text(10))
+				" Actual: %v", i, 15, round[i].Text(10))
 		} else {
 			pass++
 		}
@@ -120,7 +121,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 func TestDispatchController_IsAlive(t *testing.T) {
 
-	round := globals.NewRound(uint64(4))
+	round := make([]*cyclic.Int, 4)
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 

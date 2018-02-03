@@ -2,58 +2,41 @@
 package globals
 
 import (
-	"strconv"
-	//"time"
-
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	//"golang.org/x/net/context"
-	//"google.golang.org/grpc"
-	//pb "gitlab.com/privategrity/comms/mixmessages"
-	//"gitlab.com/privategrity/comms/mixserver"
+	"strconv"
+
+	"gitlab.com/privategrity/comms/mixserver"
+	"gitlab.com/privategrity/server/cryptops/precomputation"
+	"gitlab.com/privategrity/server/io"
+	"gitlab.com/privategrity/server/services"
 )
 
-// Run is the main loop for the cMix server
-/*func Run(servers []string) {
-	for i := range servers {
-		// Start mixservers on localhost port
-		jww.INFO.Printf("Starting server on port %v\n", servers[i])
-		go mixserver.StartServer("localhost:" + servers[i])
-
-	}
-	for i := range servers {
-		// Connect to server with gRPC
-		jww.INFO.Printf("Connecting to server on port %v\n", servers[i])
-		addr := "localhost:" + servers[i]
-		conn, err := grpc.Dial(addr, grpc.WithInsecure(),
-			grpc.WithTimeout(time.Second))
-		if err != nil {
-			jww.ERROR.Printf("Failed to connect to server at %v\n", addr)
-		}
-		defer conn.Close()
-		time.Sleep(time.Millisecond * 500)
-		c := pb.NewMixMessageServiceClient(conn)
-
-		// Send AskOnline Request and check that we get an AskOnlineAck back
-		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
-		_, err = c.AskOnline(ctx, &pb.Ping{})
-		if err != nil {
-			jww.ERROR.Printf("AskOnline: Error received: %s", err)
-		}
-		defer cancel()
-	}
-	time.Sleep(time.Millisecond * 1000)
-
-}
-
 // StartServer reads configuration options and starts the cMix server
-func StartServer() {
+func StartServer(serverIndex int) {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
 
-	Run(getServers())
-}*/
+	// Get all servers
+	servers := getServers()
+	// Determine what the next server leap is
+	nextIndex := serverIndex + 1
+	if serverIndex == len(servers)-1 {
+		nextIndex = 0
+	}
+	io.NextServer = "localhost:" + servers[nextIndex]
+	localServer := "localhost:" + servers[serverIndex]
+
+	// Start mix servers on localServer
+	jww.INFO.Printf("Starting server on %v\n", localServer)
+	// Initialize GlobalRoundMap
+	globals.GlobalRoundMap = globals.NewRoundMap()
+	// Kick off Comms server
+	go mixserver.StartServer(localServer, io.ServerImpl{Rounds: &globals.GlobalRoundMap})
+	// Kick off a Round TODO Better parameters
+	NewRound("Test", 5)
+}
 
 // getServers pulls a string slice of server ports from the config file and
 // verifies that the ports are valid.
@@ -80,4 +63,21 @@ func getServers() []string {
 		}
 	}
 	return servers
+}
+
+// Kicks off a new round in CMIX
+func NewRound(roundId string, batchSize uint64) {
+	// Create a new Round
+	round := globals.NewRound(batchSize)
+	// Add round to the GlobalRoundMap
+	globals.GlobalRoundMap.AddRound(roundId, round)
+
+	// Create the controller for PrecompDecrypt
+	precompDecryptCntrlr := services.DispatchCryptop(globals.Grp,
+		precomputation.Decrypt{}, nil, nil, round)
+	// Add the InChannel from the controller to round
+	round.AddChannel(globals.PRECOMP_DECRYPT, precompDecryptCntrlr.InChannel)
+	// Kick off PrecompDecrypt  Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		precompDecryptCntrlr.OutChannel, io.PrecompDecryptHandler{})
 }

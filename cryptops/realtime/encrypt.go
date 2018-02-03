@@ -21,7 +21,7 @@ type SlotEncryptIn struct {
 	RecipientID uint64
 	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
 	EncryptedMessage *cyclic.Int
-	// Shared Key between the client who recieves the message and the node
+	// Shared Key between the client who receives the message and the node
 	ReceptionKey *cyclic.Int
 }
 

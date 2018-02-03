@@ -3,6 +3,7 @@ package globals
 import (
 	"errors"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/services"
 	"sync"
 )
 
@@ -50,19 +51,59 @@ type Round struct {
 	// Variables only carried by the last node
 	LastNode
 
+	// Size of batch
 	BatchSize uint64
 
+	// Phase fields
 	phase     Phase
 	phaseLock *sync.Mutex
+
+	// Array of Channels associated to each Phase of this Round
+	channels [NUM_PHASES]chan<- *services.Slot
 }
 
 // Grp is the cyclic group that all operations are done within
 var Grp *cyclic.Group
 
-// Rounds is a mapping of session identifiers to round structures
-var Rounds map[string]*Round
+// Global instance of RoundMap
+var GlobalRoundMap RoundMap
 
-var TestArray = [2]float32{.03, .02}
+// Wrapper struct for a map of String -> Round structs
+type RoundMap struct {
+	// Mapping of session identifiers to round structures
+	rounds map[string]*Round
+	// Mutex for atomic get/add operations (Automatically initiated)
+	mutex sync.Mutex
+}
+
+// Create and return a new RoundMap with initialized fields
+func NewRoundMap() RoundMap {
+	return RoundMap{rounds: make(map[string]*Round)}
+}
+
+// Atomic get *Round for a given roundId in rounds map
+func (m *RoundMap) GetRound(roundId string) *Round {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.rounds[roundId]
+}
+
+// Atomic add *Round to rounds map with given roundId
+func (m *RoundMap) AddRound(roundId string, newRound *Round) {
+	m.mutex.Lock()
+	m.rounds[roundId] = newRound
+	m.mutex.Unlock()
+}
+
+// Get chan for a given chanId in channels array (Not thread-safe!)
+func (round *Round) GetChannel(chanId Phase) chan<- *services.Slot {
+	return round.channels[chanId]
+}
+
+// Add chan to channels array with given chanId (Not thread-safe!)
+func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
+	round.channels[chanId] = newChan
+}
 
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
