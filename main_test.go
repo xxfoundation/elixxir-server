@@ -574,7 +574,6 @@ func TestEndToEndCryptops(t *testing.T) {
 	RTIdentify := services.DispatchCryptop(&grp, realtime.Identify{},
 		nil, nil, round)
 
-	// FIXME
 	RTDecrypt.InChannel <- &inputMsg
 	rtnPrm := <-RTPermute.OutChannel
 	esPrm := (*rtnPrm).(*realtime.SlotPermute)
@@ -583,8 +582,16 @@ func TestEndToEndCryptops(t *testing.T) {
 		EncryptedRecipientID: esPrm.EncryptedRecipientID,
 	})
 	TmpMsg := esPrm.EncryptedMessage
+	fmt.Printf("RTPERMUTE:\n  EncryptedRecipientID: %s\n",
+		esPrm.EncryptedRecipientID.Text(10))
+	expectedRTPermute := []*cyclic.Int{
+		cyclic.NewInt(4),
+	}
+	if esPrm.EncryptedRecipientID.Cmp(expectedRTPermute[0]) != 0 {
+		t.Errorf("RTPERMUTE failed EncryptedRecipientID. Got: %s Expected: %s",
+			esPrm.EncryptedRecipientID.Text(10), expectedRTPermute[0].Text(10))
+	}
 
-	// HACK HACK HACK FIXME FIXME
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.SlotIdentify)
@@ -595,6 +602,15 @@ func TestEndToEndCryptops(t *testing.T) {
 		EncryptedMessage: TmpMsg,
 		ReceptionKey:     cyclic.NewInt(1),
 	})
+	fmt.Printf("RTIDENTIFY:\n  RecipientID: %s\n",
+		esTmp.EncryptedRecipientID.Text(10))
+	expectedRTIdentify := []*cyclic.Int{
+		cyclic.NewInt(1),
+	}
+	if esTmp.EncryptedRecipientID.Cmp(expectedRTIdentify[0]) != 0 {
+		t.Errorf("RTIDENTIFY failed EncryptedRecipientID. Got: %s Expected: %s",
+			esTmp.EncryptedRecipientID.Text(10), expectedRTIdentify[0].Text(10))
+	}
 
 	// ENCRYPT PHASE
 	RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
@@ -608,6 +624,17 @@ func TestEndToEndCryptops(t *testing.T) {
 		iv := <-in
 		is := realtime.SlotPeel(*((*iv).(*realtime.SlotEncryptOut)))
 		ov := services.Slot(&is)
+
+		fmt.Printf("RTENCRYPT:\n  EncryptedMessage: %s\n",
+			is.EncryptedMessage.Text(10))
+		expectedRTEncrypt := []*cyclic.Int{
+			cyclic.NewInt(41),
+		}
+		if is.EncryptedMessage.Cmp(expectedRTEncrypt[0]) != 0 {
+			t.Errorf("RTENCRYPT failed EncryptedMessage. Got: %s Expected: %s",
+				is.EncryptedMessage.Text(10), expectedRTEncrypt[0].Text(10))
+		}
+
 		out <- &ov
 	}(RTEncrypt.OutChannel, RTPeel.InChannel)
 
@@ -616,8 +643,17 @@ func TestEndToEndCryptops(t *testing.T) {
 	rtnRT := <-RTPeel.OutChannel
 	esRT := (*rtnRT).(*realtime.SlotPeel)
 
-	fmt.Println("Final Results: %d, %d, %s",
+	fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
+		esRT.EncryptedMessage.Text(10))
+	expectedRTPeel := []*cyclic.Int{
+		cyclic.NewInt(31),
+	}
+	if esRT.EncryptedMessage.Cmp(expectedRTPeel[0]) != 0 {
+		t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
+			esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+	}
+
+	fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
 		esRT.Slot, esRT.RecipientID,
 		esRT.EncryptedMessage.Text(10))
-
 }
