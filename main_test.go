@@ -1126,63 +1126,71 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 			RP.Text(10), es.RecipientPrecomputation.Text(10))
 	}
 
-	// // ----- REALTIME ----- //
-	// IntermediateMsgs := make([]*cyclic.Int, 1)
-	// IntermediateMsgs[0] = cyclic.NewInt(0)
+	// ----- REALTIME ----- //
+	IntermediateMsgs := make([]*cyclic.Int, nodeCount)
+	rtdecrypts := make([]*services.ThreadController, nodeCount)
+	rtpermutes := make([]*services.ThreadController, nodeCount)
+	rtencrypts := make([]*services.ThreadController, nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		IntermediateMsgs[i] = cyclic.NewInt(0)
 
-	// N1RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
-	// 	nil, nil, Node1Round)
-	// N2RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
-	// 	nil, nil, Node2Round)
+		rtdecrypts[i] = services.DispatchCryptop(group,
+			realtime.Decrypt{}, nil, nil, rounds[i])
+		if i == 0 {
+			rtpermutes[i] = services.DispatchCryptop(group,
+				realtime.Permute{}, nil, nil, rounds[i])
+		} else {
+			rtpermutes[i] = services.DispatchCryptop(group,
+				realtime.Permute{}, rtpermutes[i-1].OutChannel, nil, rounds[i])
+		}
+		rtencrypts[i] = services.DispatchCryptop(group,
+			realtime.Encrypt{}, nil, nil, rounds[i])
 
-	// N1RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
-	// 	nil, nil, Node1Round)
-	// N2RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
-	// 	N1RTPermute.OutChannel, nil, Node2Round)
+		if i != 0 {
+			go RTEncryptRTEncryptTranslate(rtencrypts[i-1].OutChannel,
+				rtencrypts[i].InChannel)
+			go RTDecryptRTDecryptTranslate(rtdecrypts[i-1].OutChannel,
+				rtdecrypts[i].InChannel)
+		}
+	}
 
-	// N2RTIdentify := services.DispatchCryptop(&grp, realtime.Identify{},
-	// 	nil, nil, Node2Round)
+	LNRTIdentify := services.DispatchCryptop(group,
+		realtime.Identify{}, nil, nil, LastRound)
+	LNRTPeel := services.DispatchCryptop(group,
+		realtime.Peel{}, nil, nil, LastRound)
 
-	// N1RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
-	// 	nil, nil, Node1Round)
-	// N2RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
-	// 	nil, nil, Node2Round)
+	go RTDecryptRTPermuteTranslate(rtdecrypts[nodeCount-1].OutChannel,
+		rtpermutes[0].InChannel)
+	go RTPermuteRTIdentifyTranslate(rtpermutes[nodeCount-1].OutChannel,
+		LNRTIdentify.InChannel, IntermediateMsgs)
+	go RTIdentifyRTEncryptTranslate(LNRTIdentify.OutChannel,
+		rtencrypts[0].InChannel, IntermediateMsgs)
+	go RTEncryptRTPeelTranslate(rtencrypts[nodeCount-1].OutChannel,
+		LNRTPeel.InChannel)
 
-	// N2RTPeel := services.DispatchCryptop(&grp, realtime.Peel{},
-	// 	nil, nil, Node2Round)
+	inputMsg := services.Slot(&realtime.SlotDecryptIn{
+		Slot:                 0,
+		SenderID:             1,
+		EncryptedMessage:     cyclic.NewInt(42), // Meaning of Life
+		EncryptedRecipientID: cyclic.NewInt(1),
+		TransmissionKey:      cyclic.NewInt(1),
+	})
+	rtdecrypts[0].InChannel <- &inputMsg
+	rtnRT := <-LNRTPeel.OutChannel
+	esRT := (*rtnRT).(*realtime.SlotPeel)
+	fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
+		esRT.EncryptedMessage.Text(10))
+	expectedRTPeel := []*cyclic.Int{
+		cyclic.NewInt(42),
+	}
+	if esRT.EncryptedMessage.Cmp(expectedRTPeel[0]) != 0 {
+		t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
+			esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+	}
 
-	// go RTEncryptRTEncryptTranslate(N1RTEncrypt.OutChannel, N2RTEncrypt.InChannel)
-	// go RTDecryptRTDecryptTranslate(N1RTDecrypt.OutChannel, N2RTDecrypt.InChannel)
-	// go RTDecryptRTPermuteTranslate(N2RTDecrypt.OutChannel, N1RTPermute.InChannel)
-	// go RTPermuteRTIdentifyTranslate(N2RTPermute.OutChannel,
-	// 	N2RTIdentify.InChannel, IntermediateMsgs)
-	// go RTIdentifyRTEncryptTranslate(N2RTIdentify.OutChannel,
-	// 	N1RTEncrypt.InChannel, IntermediateMsgs)
-	// go RTEncryptRTPeelTranslate(N2RTEncrypt.OutChannel, N2RTPeel.InChannel)
-
-	// inputMsg := services.Slot(&realtime.SlotDecryptIn{
-	// 	Slot:                 0,
-	// 	SenderID:             1,
-	// 	EncryptedMessage:     cyclic.NewInt(42), // Meaning of Life
-	// 	EncryptedRecipientID: cyclic.NewInt(1),
-	// 	TransmissionKey:      cyclic.NewInt(1),
-	// })
-	// N1RTDecrypt.InChannel <- &inputMsg
-	// rtnRT := <-N2RTPeel.OutChannel
-	// esRT := (*rtnRT).(*realtime.SlotPeel)
-	// fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
-	// 	esRT.EncryptedMessage.Text(10))
-	// expectedRTPeel := []*cyclic.Int{
-	// 	cyclic.NewInt(42),
-	// }
-	// if esRT.EncryptedMessage.Cmp(expectedRTPeel[0]) != 0 {
-	// 	t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
-	// 		esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
-	// }
-
-	// fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-	// 	esRT.Slot, esRT.RecipientID,
-	// 	esRT.EncryptedMessage.Text(10))
+	fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+		esRT.Slot, esRT.RecipientID,
+		esRT.EncryptedMessage.Text(10))
 }
 
 func Test3NodeE2E(t *testing.T) {
