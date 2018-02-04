@@ -7,7 +7,7 @@ import (
 )
 
 // Encrypt implements the Encrypt Phase of the Precomputation. It adds the
-// Seconds Unpermuted Internode Message Keys int the Message Precomputation
+// Seconds Unpermuted Internode Message Keys into the Message Precomputation
 type Encrypt struct{}
 
 // SlotEncrypt is used to pass external data into Encrypt and to pass the results out of Encrypt
@@ -21,7 +21,7 @@ type SlotEncrypt struct {
 }
 
 // SlotID Returns the Slot number
-func (e *SlotEncrypt) SlotID() uint64 {
+func (e SlotEncrypt) SlotID() uint64 {
 	return e.Slot
 }
 

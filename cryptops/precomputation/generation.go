@@ -14,12 +14,12 @@ type Generation struct{}
 // SlotGeneration is empty; no data being passed in or out of Generation
 type SlotGeneration struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 }
 
 // SlotID Returns the Slot number
 func (e *SlotGeneration) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysGeneration holds the keys used by the Generation Operation
@@ -41,7 +41,8 @@ type KeysGeneration struct {
 	Y_V   *cyclic.Int
 }
 
-// Allocated memory and arranges key objects for the Precomputation Generation Phase
+// Allocated memory and arranges key objects for the Precomputation
+// Generation Phase
 func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
@@ -55,7 +56,7 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.Dispatc
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotGeneration{
-			slot: i,
+			Slot: i,
 		}
 	}
 
@@ -83,14 +84,20 @@ func (gen Generation) Build(g *cyclic.Group, face interface{}) *services.Dispatc
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys:      &keys,
+		Output:    &om,
+		G:         g,
+	}
 
 	return &db
 
 }
 
 // Generate random values for all keys
-func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration, keys *KeysGeneration) services.Slot {
+func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
+	keys *KeysGeneration) services.Slot {
 
 	// Generates a random value within the group for every internode key
 	g.Random(keys.R)
@@ -107,11 +114,11 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration, keys *KeysGe
 	g.Inverse(keys.V, keys.V_INV)
 
 	// Generates a random value within the group for every private key
-	g.Random(keys.Y_R)
-	g.Random(keys.Y_S)
-	g.Random(keys.Y_T)
-	g.Random(keys.Y_U)
-	g.Random(keys.Y_V)
+	g.RandomCoprime(keys.Y_R)
+	g.RandomCoprime(keys.Y_S)
+	g.RandomCoprime(keys.Y_T)
+	g.RandomCoprime(keys.Y_U)
+	g.RandomCoprime(keys.Y_V)
 
 	return out
 
@@ -124,6 +131,6 @@ func buildCryptoGeneration(g *cyclic.Group, round *globals.Round) {
 	cyclic.Shuffle(&round.Permutations)
 
 	// Generate the Private Cypher Key
-	g.Random(round.Z)
+	g.RandomCoprime(round.Z)
 
 }

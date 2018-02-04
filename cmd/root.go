@@ -13,11 +13,12 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/privategrity/server/node"
 )
 
 var cfgFile string
 var verbose bool
+var serverIdx int
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -27,7 +28,7 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		globals.StartServer()
+		node.StartServer(serverIdx)
 	},
 }
 
@@ -53,6 +54,8 @@ func init() {
 		"config file (default is $HOME/.privategrity/server.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
+	rootCmd.PersistentFlags().IntVarP(&serverIdx, "index", "i", 0,
+		"Config index to use for local server")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

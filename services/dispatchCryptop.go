@@ -8,50 +8,8 @@ import (
 	"sync/atomic"
 )
 
-// Struct which contains a chunk of cryptographic data to be operated on
-type Slot interface {
-	//Slot of the message
-	SlotID() uint64
-}
-
 //Holds keys which are used in the operation
 type NodeKeys interface{}
-
-// DispatchController is the struct which is used to externally control
-//  the dispatcher
-// To send data do DispatchController.InChannel <- Data
-// To receive do Data <- DispatchController.OutChannel
-// To force kill the dispatcher do DispatchController.QuitChannel <- true
-type DispatchController struct {
-	noCopy noCopy
-	// Pointer to dispatch locker
-	dispatchLocker *uint32
-
-	// Channel which is used to send messages to process
-	InChannel chan<- *Slot
-	// Channel which is used to receive the results of processing
-	OutChannel <-chan *Slot
-	// Channel which is used to send and process a kill command
-	quitChannel chan chan bool
-}
-
-// Determines whether the Dispatcher is still running
-func (dc DispatchController) IsAlive() bool {
-	return atomic.LoadUint32(dc.dispatchLocker) == 1
-}
-
-// Sends a Quit signal to the DispatchController
-// Blocks until death if you pass true, doesn't block if you pass false.
-func (dc DispatchController) Kill(blockUntilDeath bool) {
-	if blockUntilDeath {
-		killNotify := make(chan bool)
-		dc.quitChannel <- killNotify
-		_ = <-killNotify
-		close(killNotify)
-	} else {
-		dc.quitChannel <- nil
-	}
-}
 
 // Cryptop is the interface which contains the cryptop
 type CryptographicOperation interface {
@@ -145,7 +103,9 @@ func (d *dispatch) dispatcher() {
 	}
 
 	//close the channels
-	close(d.inChannel)
+	// FIXME: This prevents double-close when chaining, perhaps senders should
+	//        Always be responsible for closing their channels?
+	//close(d.inChannel)
 	close(d.outChannel)
 	close(d.quit)
 
@@ -163,7 +123,7 @@ func (d *dispatch) dispatcher() {
 // round is a pointer to the round object the dispatcher is in
 // chIn and chOut are the input and output channels, set to nil and the
 //  dispatcher will generate its own.
-func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Slot, face interface{}) *DispatchController {
+func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Slot, face interface{}) *ThreadController {
 
 	db := cryptop.Build(g, face)
 
@@ -190,16 +150,9 @@ func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOu
 	go d.dispatcher()
 
 	//creates the  dispatch control structure
-	dc := &DispatchController{InChannel: chIn, OutChannel: chOut, quitChannel: chQuit,
-		dispatchLocker: &d.locker}
+	dc := &ThreadController{InChannel: chIn, OutChannel: chOut, quitChannel: chQuit,
+		threadLocker: &d.locker}
 
 	return dc
 
 }
-
-// noCopy may be embedded into structs which must not be copied
-// after the first use.
-//
-// See https://github.com/golang/go/issues/8005#issuecomment-190753527
-// for details.
-type noCopy struct{}

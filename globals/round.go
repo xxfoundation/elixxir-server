@@ -3,6 +3,7 @@ package globals
 import (
 	"errors"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/services"
 	"sync"
 )
 
@@ -16,6 +17,12 @@ type LastNode struct {
 	RoundMessagePrivateKey []*cyclic.Int
 	// Round Recipient Private Key
 	RoundRecipientPrivateKey []*cyclic.Int
+
+	// These are technically temp values, representing recipient info
+	// Encrypted under homomorphic encryption that later get revealed
+	RecipientCypherText []*cyclic.Int
+	EncryptedRecipientPrecomputation []*cyclic.Int
+	EncryptedMessagePrecomputation []*cyclic.Int
 }
 
 // Round contains the keys and permutations for a given message batch
@@ -44,19 +51,59 @@ type Round struct {
 	// Variables only carried by the last node
 	LastNode
 
+	// Size of batch
 	BatchSize uint64
 
+	// Phase fields
 	phase     Phase
 	phaseLock *sync.Mutex
+
+	// Array of Channels associated to each Phase of this Round
+	channels [NUM_PHASES]chan<- *services.Slot
 }
 
 // Grp is the cyclic group that all operations are done within
 var Grp *cyclic.Group
 
-// Rounds is a mapping of session identifiers to round structures
-var Rounds map[string]*Round
+// Global instance of RoundMap
+var GlobalRoundMap RoundMap
 
-var TestArray = [2]float32{.03, .02}
+// Wrapper struct for a map of String -> Round structs
+type RoundMap struct {
+	// Mapping of session identifiers to round structures
+	rounds map[string]*Round
+	// Mutex for atomic get/add operations (Automatically initiated)
+	mutex sync.Mutex
+}
+
+// Create and return a new RoundMap with initialized fields
+func NewRoundMap() RoundMap {
+	return RoundMap{rounds: make(map[string]*Round)}
+}
+
+// Atomic get *Round for a given roundId in rounds map
+func (m *RoundMap) GetRound(roundId string) *Round {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.rounds[roundId]
+}
+
+// Atomic add *Round to rounds map with given roundId
+func (m *RoundMap) AddRound(roundId string, newRound *Round) {
+	m.mutex.Lock()
+	m.rounds[roundId] = newRound
+	m.mutex.Unlock()
+}
+
+// Get chan for a given chanId in channels array (Not thread-safe!)
+func (round *Round) GetChannel(chanId Phase) chan<- *services.Slot {
+	return round.channels[chanId]
+}
+
+// Add chan to channels array with given chanId (Not thread-safe!)
+func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
+	round.channels[chanId] = newChan
+}
 
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
@@ -69,20 +116,6 @@ func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
 	return newRound(batchSize, p)
 }
 
-//Creates the lastnode object
-func InitLastNode(round *Round) {
-	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
-
-	for i := uint64(0); i < round.BatchSize; i++ {
-		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
-	}
-}
 
 // Returns a copy of the current phase
 func (round *Round) GetPhase() Phase {
@@ -180,9 +213,30 @@ func newRound(batchSize uint64, p Phase) *Round {
 		NR.LastNode.MessagePrecomputation = nil
 		NR.LastNode.RecipientPrecomputation = nil
 	}
-
 	NR.phase = p
 	NR.phaseLock = &sync.Mutex{}
 
 	return &NR
+}
+
+func InitLastNode(round *Round) {
+	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RecipientCypherText = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.EncryptedRecipientPrecomputation = make([]*cyclic.Int,
+		round.BatchSize)
+	round.LastNode.EncryptedMessagePrecomputation = make([]*cyclic.Int,
+		round.BatchSize)
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
+		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
+		round.LastNode.RecipientCypherText[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
+	}
 }

@@ -2,11 +2,11 @@ package: gitlab.com/privategrity/server
 import:
 - package: gitlab.com/privategrity/crypto
   version: master
-  repo: git@gitlab.com:privategrity/crypto.git
+  repo: git@gitlab.com:privategrity/crypto
   vcs: git
 - package: gitlab.com/privategrity/comms
   version: master
-  repo: git@gitlab.com:privategrity/comms.git
+  repo: git@gitlab.com:privategrity/comms
   vcs: git
 - package: github.com/spf13/cobra
   version: ^0.0.1

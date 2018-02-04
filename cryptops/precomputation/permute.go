@@ -16,7 +16,7 @@ type Permute struct{}
 // results out of Permute
 type SlotPermute struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// All of the first unpermuted internode message keys multiplied
 	// together under Homomorphic Encryption
 	EncryptedMessageKeys *cyclic.Int
@@ -30,8 +30,8 @@ type SlotPermute struct {
 }
 
 // SlotID Returns the Slot number
-func (e *SlotPermute) SlotID() uint64 {
-	return e.slot
+func (e SlotPermute) SlotID() uint64 {
+	return e.Slot
 }
 
 // KeysPermute holds the keys used by the Permute Operation
@@ -59,7 +59,7 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotPermute{
-			slot:                         i,
+			Slot:                         i,
 			EncryptedMessageKeys:         cyclic.NewMaxInt(),
 			EncryptedRecipientIDKeys:     cyclic.NewMaxInt(),
 			PartialMessageCypherText:     cyclic.NewMaxInt(),
@@ -138,6 +138,6 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 func buildCryptoPermute(round *globals.Round, om *[]services.Slot) {
 	// Set the slot to the respective permutation
 	for i := uint64(0); i < round.BatchSize; i++ {
-		(*om)[i].(*SlotPermute).slot = round.Permutations[i]
+		(*om)[i].(*SlotPermute).Slot = round.Permutations[i]
 	}
 }
