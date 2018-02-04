@@ -992,3 +992,204 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		esRT.Slot, esRT.RecipientID,
 		esRT.EncryptedMessage.Text(10))
 }
+
+
+// Perform an end to end test of the precomputation with batchsize 1,
+// then use it to send the message through a 2-node system to smoke test
+// the cryptographic operations.
+func MultiNodeTest(nodeCount int, BatchSize uint64,
+	group *cyclic.Group, keys []*globals.Round, t *testing.T) {
+
+	// Init Round Vars
+	var rounds []*globals.Round
+	var LastRound *globals.Round
+	for i := 0; i < nodeCount; i++ {
+		rounds = append(rounds, globals.NewRound(BatchSize))
+		rounds[i].CypherPublicKey = cyclic.NewInt(0)
+		// Last Node initialization
+		if i == (nodeCount - 1) {
+			globals.InitLastNode(rounds[i])
+			LastRound = rounds[i]
+		}
+	}
+
+	// ----- PRECOMPUTATION ----- //
+	generations := make([]*services.ThreadController, nodeCount)
+	shares := make([]*services.ThreadController, nodeCount)
+	decrypts := make([]*services.ThreadController, nodeCount)
+	permutes := make([]*services.ThreadController, nodeCount)
+	encrypts := make([]*services.ThreadController, nodeCount)
+	reveals := make([]*services.ThreadController, nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		generations[i] = services.DispatchCryptop(group,
+			precomputation.Generation{}, nil, nil, rounds[i])
+
+		if i == 0 {
+			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+				nil, nil, rounds[i])
+			decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+				nil, nil, rounds[i])
+			permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+				nil, nil, rounds[i])
+			encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+				nil, nil, rounds[i])
+			reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+				nil, nil, rounds[i])
+		} else {
+			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+				shares[i-1].OutChannel, nil, rounds[i])
+			decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+				decrypts[i-1].OutChannel, nil, rounds[i])
+			permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+				permutes[i-1].OutChannel, nil, rounds[i])
+			encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+				encrypts[i-1].OutChannel, nil, rounds[i])
+			reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+				reveals[i-1].OutChannel, nil, rounds[i])
+		}
+	}
+
+	LNStrip := services.DispatchCryptop(group, precomputation.Strip{},
+		nil, nil, LastRound)
+
+	go RevealStripTranslate(reveals[nodeCount-1].OutChannel,
+		LNStrip.InChannel)
+	go EncryptRevealTranslate(encrypts[nodeCount-1].OutChannel,
+		reveals[0].InChannel, LastRound)
+	go PermuteEncryptTranslate(permutes[nodeCount-1].OutChannel,
+		encrypts[0].InChannel, LastRound)
+	go DecryptPermuteTranslate(decrypts[nodeCount-1].OutChannel,
+		permutes[0].InChannel)
+
+	// Run Generate
+	genMsg := services.Slot(&precomputation.SlotGeneration{Slot: 0})
+	for i := 0; i < nodeCount; i++ {
+		generations[i].InChannel <- &genMsg
+		_ = <-generations[i].OutChannel
+	}
+
+	fmt.Printf("%d NODE GENERATION RESULTS: \n", nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		fmt.Printf("%v", RoundText(group, rounds[i]))
+	}
+
+	// TODO: Pre-can the keys to use here if necessary.
+
+	// Run Share -- Then save the result to both rounds
+	// Note that the outchannel for N1Share is the input channel for N2share
+	shareMsg := services.Slot(&precomputation.SlotShare{
+		PartialRoundPublicCypherKey: group.G})
+	shares[0].InChannel <- &shareMsg
+	shareResultSlot := <-shares[nodeCount-1].OutChannel
+	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
+	PublicCypherKey := cyclic.NewInt(0)
+	PublicCypherKey.Set(shareResult.PartialRoundPublicCypherKey)
+	for i := 0; i < nodeCount; i++ {
+		rounds[i].CypherPublicKey.Set(PublicCypherKey)
+	}
+
+	fmt.Printf("%d NODE SHARE RESULTS: \n", nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		fmt.Printf("%v", RoundText(group, rounds[i]))
+	}
+
+	// Now finish precomputation
+	decMsg := services.Slot(&precomputation.SlotDecrypt{
+		Slot:                         0,
+		EncryptedMessageKeys:         cyclic.NewInt(1),
+		PartialMessageCypherText:     cyclic.NewInt(1),
+		EncryptedRecipientIDKeys:     cyclic.NewInt(1),
+		PartialRecipientIDCypherText: cyclic.NewInt(1),
+	})
+	decrypts[0].InChannel <- &decMsg
+	rtn := <-LNStrip.OutChannel
+	es := (*rtn).(*precomputation.SlotStripOut)
+
+	LastRound.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
+	LastRound.LastNode.RecipientPrecomputation[es.Slot] =
+		es.RecipientPrecomputation
+
+	fmt.Printf("%d NODE STRIP:\n  MessagePrecomputation: %s, " +
+		"RecipientPrecomputation: %s\n", nodeCount,
+		es.MessagePrecomputation.Text(10),
+		es.RecipientPrecomputation.Text(10))
+
+	// Check precomputation
+	MP, RP := ComputePrecomputation(group, rounds)
+
+	if MP.Cmp(es.MessagePrecomputation) != 0 {
+		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
+			MP.Text(10), es.MessagePrecomputation.Text(10))
+	}
+	if RP.Cmp(es.RecipientPrecomputation) != 0 {
+		t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
+			RP.Text(10), es.RecipientPrecomputation.Text(10))
+	}
+
+	// // ----- REALTIME ----- //
+	// IntermediateMsgs := make([]*cyclic.Int, 1)
+	// IntermediateMsgs[0] = cyclic.NewInt(0)
+
+	// N1RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
+	// 	nil, nil, Node1Round)
+	// N2RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
+	// 	nil, nil, Node2Round)
+
+	// N1RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
+	// 	nil, nil, Node1Round)
+	// N2RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
+	// 	N1RTPermute.OutChannel, nil, Node2Round)
+
+	// N2RTIdentify := services.DispatchCryptop(&grp, realtime.Identify{},
+	// 	nil, nil, Node2Round)
+
+	// N1RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
+	// 	nil, nil, Node1Round)
+	// N2RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
+	// 	nil, nil, Node2Round)
+
+	// N2RTPeel := services.DispatchCryptop(&grp, realtime.Peel{},
+	// 	nil, nil, Node2Round)
+
+	// go RTEncryptRTEncryptTranslate(N1RTEncrypt.OutChannel, N2RTEncrypt.InChannel)
+	// go RTDecryptRTDecryptTranslate(N1RTDecrypt.OutChannel, N2RTDecrypt.InChannel)
+	// go RTDecryptRTPermuteTranslate(N2RTDecrypt.OutChannel, N1RTPermute.InChannel)
+	// go RTPermuteRTIdentifyTranslate(N2RTPermute.OutChannel,
+	// 	N2RTIdentify.InChannel, IntermediateMsgs)
+	// go RTIdentifyRTEncryptTranslate(N2RTIdentify.OutChannel,
+	// 	N1RTEncrypt.InChannel, IntermediateMsgs)
+	// go RTEncryptRTPeelTranslate(N2RTEncrypt.OutChannel, N2RTPeel.InChannel)
+
+	// inputMsg := services.Slot(&realtime.SlotDecryptIn{
+	// 	Slot:                 0,
+	// 	SenderID:             1,
+	// 	EncryptedMessage:     cyclic.NewInt(42), // Meaning of Life
+	// 	EncryptedRecipientID: cyclic.NewInt(1),
+	// 	TransmissionKey:      cyclic.NewInt(1),
+	// })
+	// N1RTDecrypt.InChannel <- &inputMsg
+	// rtnRT := <-N2RTPeel.OutChannel
+	// esRT := (*rtnRT).(*realtime.SlotPeel)
+	// fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
+	// 	esRT.EncryptedMessage.Text(10))
+	// expectedRTPeel := []*cyclic.Int{
+	// 	cyclic.NewInt(42),
+	// }
+	// if esRT.EncryptedMessage.Cmp(expectedRTPeel[0]) != 0 {
+	// 	t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
+	// 		esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+	// }
+
+	// fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+	// 	esRT.Slot, esRT.RecipientID,
+	// 	esRT.EncryptedMessage.Text(10))
+}
+
+func Test3NodeE2E(t *testing.T) {
+	nodeCount := 3
+	BatchSize := uint64(1)
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
+		rng)
+	MultiNodeTest(nodeCount, BatchSize, &grp, nil, t)
+}
