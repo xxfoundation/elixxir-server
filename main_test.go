@@ -757,7 +757,7 @@ func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
 			Slot:                 esPrm.Slot,
 			EncryptedRecipientID: esPrm.EncryptedRecipientID,
 		})
-		fmt.Printf("SLOTE: %d", esPrm.Slot)
+		fmt.Printf("SLOT: %d", esPrm.Slot)
 		outMsgs[esPrm.Slot].Set(esPrm.EncryptedMessage)
 		identify <- &ovPrm
 	}
@@ -998,7 +998,8 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 // then use it to send the message through a 2-node system to smoke test
 // the cryptographic operations.
 func MultiNodeTest(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, keys []*globals.Round, t *testing.T) {
+	group *cyclic.Group, keys []*globals.Round,
+	inputMsgs []realtime.SlotDecryptIn, t *testing.T) {
 
 	// Init Round Vars
 	var rounds []*globals.Round
@@ -1168,29 +1169,29 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	go RTEncryptRTPeelTranslate(rtencrypts[nodeCount-1].OutChannel,
 		LNRTPeel.InChannel)
 
-	inputMsg := services.Slot(&realtime.SlotDecryptIn{
-		Slot:                 0,
-		SenderID:             1,
-		EncryptedMessage:     cyclic.NewInt(42), // Meaning of Life
-		EncryptedRecipientID: cyclic.NewInt(1),
-		TransmissionKey:      cyclic.NewInt(1),
-	})
-	rtdecrypts[0].InChannel <- &inputMsg
-	rtnRT := <-LNRTPeel.OutChannel
-	esRT := (*rtnRT).(*realtime.SlotPeel)
-	fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
-		esRT.EncryptedMessage.Text(10))
-	expectedRTPeel := []*cyclic.Int{
-		cyclic.NewInt(42),
-	}
-	if esRT.EncryptedMessage.Cmp(expectedRTPeel[0]) != 0 {
-		t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
-			esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+	expectedRTPeel := make([]*cyclic.Int, BatchSize)
+	for i := uint64(0); i < BatchSize; i++ {
+		expectedRTPeel[i] = cyclic.NewInt(0)
+		expectedRTPeel[i].Set(inputMsgs[i].EncryptedMessage)
+		in := services.Slot(&inputMsgs[i])
+		rtdecrypts[0].InChannel <- &in
 	}
 
-	fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-		esRT.Slot, esRT.RecipientID,
-		esRT.EncryptedMessage.Text(10))
+	for i := uint64(0); i < BatchSize; i++ {
+		rtnRT := <-LNRTPeel.OutChannel
+		esRT := (*rtnRT).(*realtime.SlotPeel)
+		fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
+			esRT.EncryptedMessage.Text(10))
+
+		if esRT.EncryptedMessage.Cmp(expectedRTPeel[i]) != 0 {
+			t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
+				esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+		}
+
+		fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+			esRT.Slot, esRT.RecipientID,
+			esRT.EncryptedMessage.Text(10))
+	}
 }
 
 func Test3NodeE2E(t *testing.T) {
@@ -1199,5 +1200,34 @@ func Test3NodeE2E(t *testing.T) {
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
-	MultiNodeTest(nodeCount, BatchSize, &grp, nil, t)
+	inputMsgs := make([]realtime.SlotDecryptIn, BatchSize)
+	for i := uint64(0); i < BatchSize; i++ {
+		inputMsgs[i] = realtime.SlotDecryptIn{
+			Slot:                 i,
+			SenderID:             i+1,
+			EncryptedMessage:     cyclic.NewInt(42 + int64(i)), // Meaning of Life
+			EncryptedRecipientID: cyclic.NewInt(1),
+			TransmissionKey:      cyclic.NewInt(1),
+		}
+	}
+	MultiNodeTest(nodeCount, BatchSize, &grp, nil, inputMsgs, t)
+}
+
+func Test1NodePermuteE2E(t *testing.T) {
+	nodeCount := 1
+	BatchSize := uint64(1)
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
+		rng)
+	inputMsgs := make([]realtime.SlotDecryptIn, BatchSize)
+	for i := uint64(0); i < BatchSize; i++ {
+		inputMsgs[i] = realtime.SlotDecryptIn{
+			Slot:                 i,
+			SenderID:             i+1,
+			EncryptedMessage:     cyclic.NewInt(42 + int64(i)), // Meaning of Life
+			EncryptedRecipientID: cyclic.NewInt(1),
+			TransmissionKey:      cyclic.NewInt(1),
+		}
+	}
+	MultiNodeTest(nodeCount, BatchSize, &grp, nil, inputMsgs, t)
 }
