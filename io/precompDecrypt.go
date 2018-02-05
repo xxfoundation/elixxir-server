@@ -53,7 +53,7 @@ func (h PrecompDecryptHandler) Handler(
 		}
 
 		// Append the PrecompDecryptSlot to the PrecompDecryptMessage
-		msg.Slots = append(msg.Slots, msgSlot)
+		msg.Slots[i] = msgSlot
 	}
 	// Send the completed PrecompDecryptMessage
 	message.SendPrecompDecrypt(NextServer, msg)
