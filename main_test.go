@@ -993,26 +993,31 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		esRT.EncryptedMessage.Text(10))
 }
 
+// Helper function to initialize round keys. Useful when you only need to edit 1
+// element (e.g., the Permutation) in the set of keys held in round
+func GenerateRounds(nodeCount int, BatchSize uint64,
+	group *cyclic.Group) ([]*globals.Round) {
+	rounds := make([]*globals.Round, nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		rounds[i] = globals.NewRound(BatchSize)
+		rounds[i].CypherPublicKey = cyclic.NewInt(0)
+		// Last Node initialization
+		if i == (nodeCount - 1) {
+			globals.InitLastNode(rounds[i])
+		}
+	}
+	return rounds
+}
 
 // Perform an end to end test of the precomputation with batchsize 1,
 // then use it to send the message through a 2-node system to smoke test
 // the cryptographic operations.
 func MultiNodeTest(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, keys []*globals.Round,
-	inputMsgs []realtime.SlotDecryptIn, t *testing.T) {
+	group *cyclic.Group, rounds []*globals.Round,
+	inputMsgs []realtime.SlotDecryptIn, expectedOutputs []realtime.SlotPeel,
+	t *testing.T) {
 
-	// Init Round Vars
-	var rounds []*globals.Round
-	var LastRound *globals.Round
-	for i := 0; i < nodeCount; i++ {
-		rounds = append(rounds, globals.NewRound(BatchSize))
-		rounds[i].CypherPublicKey = cyclic.NewInt(0)
-		// Last Node initialization
-		if i == (nodeCount - 1) {
-			globals.InitLastNode(rounds[i])
-			LastRound = rounds[i]
-		}
-	}
+	LastRound := rounds[nodeCount-1]
 
 	// ----- PRECOMPUTATION ----- //
 	generations := make([]*services.ThreadController, nodeCount)
@@ -1075,8 +1080,6 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	for i := 0; i < nodeCount; i++ {
 		fmt.Printf("%v", RoundText(group, rounds[i]))
 	}
-
-	// TODO: Pre-can the keys to use here if necessary.
 
 	// Run Share -- Then save the result to both rounds
 	// Note that the outchannel for N1Share is the input channel for N2share
@@ -1209,6 +1212,7 @@ func Test3NodeE2E(t *testing.T) {
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
 	inputMsgs := make([]realtime.SlotDecryptIn, BatchSize)
+	outputMsgs := make([]realtime.SlotPeel, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.SlotDecryptIn{
 			Slot:                 i,
@@ -1217,17 +1221,24 @@ func Test3NodeE2E(t *testing.T) {
 			EncryptedRecipientID: cyclic.NewInt(1 + int64(i)),
 			TransmissionKey:      cyclic.NewInt(1),
 		}
+		outputMsgs[i] = realtime.SlotPeel{
+			Slot:                 i,
+			RecipientID:          i+1,
+			EncryptedMessage:     cyclic.NewInt(42 + int64(i)), // Meaning of Life
+		}
 	}
-	MultiNodeTest(nodeCount, BatchSize, &grp, nil, inputMsgs, t)
+	rounds := GenerateRounds(nodeCount, BatchSize, &grp)
+	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
 }
 
 func Test1NodePermuteE2E(t *testing.T) {
 	nodeCount := 1
-	BatchSize := uint64(3)
+	BatchSize := uint64(10)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
 	inputMsgs := make([]realtime.SlotDecryptIn, BatchSize)
+	outputMsgs := make([]realtime.SlotPeel, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.SlotDecryptIn{
 			Slot:                 i,
@@ -1236,6 +1247,12 @@ func Test1NodePermuteE2E(t *testing.T) {
 			EncryptedRecipientID: cyclic.NewInt(1 + int64(i)),
 			TransmissionKey:      cyclic.NewInt(1),
 		}
+		outputMsgs[i] = realtime.SlotPeel{
+			Slot:                 i,
+			RecipientID:          i+1,
+			EncryptedMessage:     cyclic.NewInt(42 + int64(i)), // Meaning of Life
+		}
 	}
-	MultiNodeTest(nodeCount, BatchSize, &grp, nil, inputMsgs, t)
+	rounds := GenerateRounds(nodeCount, BatchSize, &grp)
+	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
 }
