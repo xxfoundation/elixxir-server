@@ -57,7 +57,7 @@ func (h PrecompPermuteHandler) Handler(
 		}
 
 		// Append the PrecompPermuteSlot to the PrecompPermuteMessage
-		msg.Slots = append(msg.Slots, msgSlot)
+		msg.Slots[i] = msgSlot
 	}
 	// Send the completed PrecompPermuteMessage
 	message.SendPrecompPermute(NextServer, msg)
