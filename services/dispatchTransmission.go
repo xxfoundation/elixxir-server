@@ -30,35 +30,33 @@ type transmit struct {
 
 func (t *transmit) transmitter(bt BatchTransmission) {
 	q := false
-
 	batchCntr := uint64(0)
-
 	var killNotify chan<- bool
 
+	// Slice of slots to pass on to the TransmissionHandler
 	slots := make([]*Slot, t.batchSize)
 
 	for batchCntr < t.batchSize && !q {
-
-		//either process the next piece of data or quit
-
+		// Either process the next piece of data or quit
 		select {
 		case in := <-t.inChannel:
+			// Append channel input to slots
 			slots[batchCntr] = in
-
 			batchCntr++
 
 		case killNotify = <-t.quit:
-			//kill the dispatcher
+			// Kill the dispatcher
 			q = true
 		}
 
 	}
 
 	if !q {
+		// Call the Handler for the respective cryptop
 		bt.Handler(t.roundId, t.batchSize, slots)
 	}
 
-	//close the channels
+	// Close the channels
 	close(t.inChannel)
 	close(t.quit)
 
@@ -71,21 +69,20 @@ func (t *transmit) transmitter(bt BatchTransmission) {
 	}
 }
 
+// Creates the TransmissionHandler for the given BatchTransmission using the given channel
 func BatchTransmissionDispatch(roundId string, batchSize uint64, inCh chan *Slot, bt BatchTransmission) *ThreadController {
-
-	//Creates a channel for force quitting the dispatched operation
+	// Creates a channel for force quitting the dispatched operation
 	chQuit := make(chan chan bool, 1)
 
-	//Creates the internal dispatch structure
+	// Creates the internal dispatch structure
 	t := &transmit{inChannel: inCh, quit: chQuit, batchSize: batchSize, roundId: roundId, locker: 1}
 
-	//runs the dispatcher
+	// Runs the dispatcher
 	go t.transmitter(bt)
 
-	//creates the  dispatch control structure
+	// Creates the  dispatch control structure
 	dc := &ThreadController{InChannel: inCh, OutChannel: nil, quitChannel: chQuit,
 		threadLocker: &t.locker}
 
 	return dc
-
 }
