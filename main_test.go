@@ -1214,7 +1214,7 @@ func Test3NodeE2E(t *testing.T) {
 			Slot:                 i,
 			SenderID:             i+1,
 			EncryptedMessage:     cyclic.NewInt(42 + int64(i)), // Meaning of Life
-			EncryptedRecipientID: cyclic.NewInt(1),
+			EncryptedRecipientID: cyclic.NewInt(1 + int64(i)),
 			TransmissionKey:      cyclic.NewInt(1),
 		}
 	}
@@ -1233,7 +1233,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 			Slot:                 i,
 			SenderID:             i+1,
 			EncryptedMessage:     cyclic.NewInt(42 + int64(i)), // Meaning of Life
-			EncryptedRecipientID: cyclic.NewInt(1),
+			EncryptedRecipientID: cyclic.NewInt(1 + int64(i)),
 			TransmissionKey:      cyclic.NewInt(1),
 		}
 	}
