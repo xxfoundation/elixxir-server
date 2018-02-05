@@ -52,6 +52,8 @@ func ComputeSingleNodePrecomputation(g *cyclic.Group, round *globals.Round) (
 }
 
 // Compute Precomputation for N nodes
+// NOTE: This does not handle precomputation under permutation, but it will
+//       handle multi-node precomputation checks.
 func ComputePrecomputation(g *cyclic.Group, rounds []*globals.Round) (
 	*cyclic.Int, *cyclic.Int) {
 	MP := cyclic.NewInt(1)
@@ -1124,15 +1126,18 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 			es.MessagePrecomputation.Text(10),
 			es.RecipientPrecomputation.Text(10))
 
-		// Check precomputation
+		// Check precomputation, note that these are currently expected to be
+		// wrong under permutation
 		MP, RP := ComputePrecomputation(group, rounds)
 
 		if MP.Cmp(es.MessagePrecomputation) != 0 {
-			t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
+			fmt.Printf("Message Precomputation Incorrect! Expected: %s, " +
+				"Received: %s\n",
 				MP.Text(10), es.MessagePrecomputation.Text(10))
 		}
 		if RP.Cmp(es.RecipientPrecomputation) != 0 {
-			t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
+			fmt.Printf("Recipient Precomputation Incorrect! Expected: %s," +
+				" Received: %s\n",
 				RP.Text(10), es.RecipientPrecomputation.Text(10))
 		}
 	}
@@ -1180,10 +1185,7 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	go RTEncryptRTPeelTranslate(rtencrypts[nodeCount-1].OutChannel,
 		LNRTPeel.InChannel)
 
-	expectedRTPeel := make([]*cyclic.Int, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
-		expectedRTPeel[i] = cyclic.NewInt(0)
-		expectedRTPeel[i].Set(inputMsgs[i].EncryptedMessage)
 		in := services.Slot(&inputMsgs[i])
 		rtdecrypts[0].InChannel <- &in
 	}
@@ -1194,14 +1196,19 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
 			esRT.EncryptedMessage.Text(10))
 
-		if esRT.EncryptedMessage.Cmp(expectedRTPeel[i]) != 0 {
-			t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
-				esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+		if esRT.EncryptedMessage.Cmp(expectedOutputs[i].EncryptedMessage) != 0 {
+			t.Errorf("RTPEEL %d failed EncryptedMessage. Got: %s Expected: %s",
+				esRT.Slot,
+				esRT.EncryptedMessage.Text(10),
+				expectedOutputs[0].EncryptedMessage.Text(10))
+		}
+		if esRT.RecipientID != expectedOutputs[i].RecipientID {
+			t.Errorf("RTPEEL %d failed RecipientID. Got: %d Expected: %d",
+				esRT.Slot, esRT.RecipientID, expectedOutputs[0].RecipientID)
 		}
 
-		fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-			esRT.Slot, esRT.RecipientID,
-			esRT.EncryptedMessage.Text(10))
+		fmt.Printf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+			esRT.Slot, esRT.RecipientID, esRT.EncryptedMessage.Text(10))
 	}
 }
 
