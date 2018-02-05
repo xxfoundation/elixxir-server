@@ -1063,10 +1063,12 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		permutes[0].InChannel)
 
 	// Run Generate
-	genMsg := services.Slot(&precomputation.SlotGeneration{Slot: 0})
 	for i := 0; i < nodeCount; i++ {
-		generations[i].InChannel <- &genMsg
-		_ = <-generations[i].OutChannel
+		for j := uint64(0); j < BatchSize; j++ {
+			genMsg := services.Slot(&precomputation.SlotGeneration{Slot: j})
+			generations[i].InChannel <- &genMsg
+			_ = <-generations[i].OutChannel
+		}
 	}
 
 	fmt.Printf("%d NODE GENERATION RESULTS: \n", nodeCount)
