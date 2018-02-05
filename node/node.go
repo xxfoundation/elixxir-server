@@ -8,9 +8,10 @@ import (
 
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
+	"gitlab.com/privategrity/server/cryptops/realtime"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
 	"gitlab.com/privategrity/server/services"
-	"gitlab.com/privategrity/server/globals"
 )
 
 // StartServer reads configuration options and starts the cMix server
@@ -78,7 +79,16 @@ func NewRound(roundId string, batchSize uint64) {
 		precomputation.Decrypt{}, nil, nil, round)
 	// Add the InChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_DECRYPT, precompDecryptCntrlr.InChannel)
-	// Kick off PrecompDecrypt  Transmission Handler
+	// Kick off PrecompDecrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		precompDecryptCntrlr.OutChannel, io.PrecompDecryptHandler{})
+
+	// Create the controller for RealtimeDecrypt
+	realtimeDecryptCntrlr := services.DispatchCryptop(globals.Grp,
+		realtime.Decrypt{}, nil, nil, round)
+	// Add the InChannel from the controller to round
+	round.AddChannel(globals.REAL_DECRYPT, realtimeDecryptCntrlr.InChannel)
+	// Kick off RealtimeDecrypt Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		realtimeDecryptCntrlr.OutChannel, io.RealtimeDecryptHandler{})
 }
