@@ -24,15 +24,15 @@ func TestStrip(t *testing.T) {
 
 	var inMessages []services.Slot
 
-	inMessages = append(inMessages, &SlotStripIn{slot: uint64(0),
+	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(0),
 		EncryptedMessageKeys:   cyclic.NewInt(39),
 		EncryptedRecipientKeys: cyclic.NewInt(13)})
 
-	inMessages = append(inMessages, &SlotStripIn{slot: uint64(1),
+	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(1),
 		EncryptedMessageKeys:   cyclic.NewInt(86),
 		EncryptedRecipientKeys: cyclic.NewInt(87)})
 
-	inMessages = append(inMessages, &SlotStripIn{slot: uint64(2),
+	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(2),
 		EncryptedMessageKeys:   cyclic.NewInt(39),
 		EncryptedRecipientKeys: cyclic.NewInt(51)})
 
@@ -45,13 +45,13 @@ func TestStrip(t *testing.T) {
 	round.LastNode.RecipientPrecomputation[2] = cyclic.NewInt(73)
 
 	expected := []SlotStripOut{
-		SlotStripOut{slot: uint64(0),
+		SlotStripOut{Slot: uint64(0),
 			MessagePrecomputation:   cyclic.NewInt(10),
 			RecipientPrecomputation: cyclic.NewInt(136)},
-		SlotStripOut{slot: uint64(1),
+		SlotStripOut{Slot: uint64(1),
 			MessagePrecomputation:   cyclic.NewInt(119),
 			RecipientPrecomputation: cyclic.NewInt(7)},
-		SlotStripOut{slot: uint64(2),
+		SlotStripOut{Slot: uint64(2),
 			MessagePrecomputation:   cyclic.NewInt(10),
 			RecipientPrecomputation: cyclic.NewInt(59)},
 	}

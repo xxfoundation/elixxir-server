@@ -13,7 +13,7 @@ type Strip struct{}
 // SlotStripIn is used to pass external data into Strip
 type SlotStripIn struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// Encrypted but completed message precomputation
 	EncryptedMessageKeys *cyclic.Int
 	// Encrypted but completed recipient precomputation
@@ -23,7 +23,7 @@ type SlotStripIn struct {
 // SlotStripOut is used to pass the results out of Strip
 type SlotStripOut struct {
 	//Slot Number of the Data
-	slot uint64
+	Slot uint64
 	// Completed Message Precomputation
 	MessagePrecomputation *cyclic.Int
 	// Completed Recipient Precomputation
@@ -32,12 +32,12 @@ type SlotStripOut struct {
 
 // SlotID Returns the Slot number of the input
 func (e *SlotStripIn) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // SlotID Returns the Slot number of the output
 func (e *SlotStripOut) SlotID() uint64 {
-	return e.slot
+	return e.Slot
 }
 
 // KeysStrip holds the keys used by the Strip Operation
@@ -60,7 +60,7 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	for i := uint64(0); i < round.BatchSize; i++ {
 		// Attach LastNode to SlotStripOut
 		om[i] = &SlotStripOut{
-			slot: i,
+			Slot: i,
 			MessagePrecomputation:   round.LastNode.MessagePrecomputation[i],
 			RecipientPrecomputation: round.LastNode.RecipientPrecomputation[i],
 		}

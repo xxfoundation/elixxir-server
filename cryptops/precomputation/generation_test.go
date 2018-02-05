@@ -25,7 +25,7 @@ func TestGeneration(t *testing.T) {
 	var inMessages []services.Slot
 
 	for i := uint64(0); i < batchSize; i++ {
-		inMessages = append(inMessages, &SlotGeneration{slot: i})
+		inMessages = append(inMessages, &SlotGeneration{Slot: i})
 	}
 
 	dc := services.DispatchCryptop(&group, Generation{}, nil, nil, round)
