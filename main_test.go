@@ -1097,46 +1097,52 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	}
 
 	// Now finish precomputation
-	decMsg := services.Slot(&precomputation.SlotDecrypt{
-		Slot:                         0,
-		EncryptedMessageKeys:         cyclic.NewInt(1),
-		PartialMessageCypherText:     cyclic.NewInt(1),
-		EncryptedRecipientIDKeys:     cyclic.NewInt(1),
-		PartialRecipientIDCypherText: cyclic.NewInt(1),
-	})
-	decrypts[0].InChannel <- &decMsg
-	rtn := <-LNStrip.OutChannel
-	es := (*rtn).(*precomputation.SlotStripOut)
-
-	LastRound.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
-	LastRound.LastNode.RecipientPrecomputation[es.Slot] =
-		es.RecipientPrecomputation
-
-	fmt.Printf("%d NODE STRIP:\n  MessagePrecomputation: %s, " +
-		"RecipientPrecomputation: %s\n", nodeCount,
-		es.MessagePrecomputation.Text(10),
-		es.RecipientPrecomputation.Text(10))
-
-	// Check precomputation
-	MP, RP := ComputePrecomputation(group, rounds)
-
-	if MP.Cmp(es.MessagePrecomputation) != 0 {
-		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
-			MP.Text(10), es.MessagePrecomputation.Text(10))
+	for i := uint64(0); i < BatchSize; i++ {
+		decMsg := services.Slot(&precomputation.SlotDecrypt{
+			Slot:                         i,
+			EncryptedMessageKeys:         cyclic.NewInt(1),
+			PartialMessageCypherText:     cyclic.NewInt(1),
+			EncryptedRecipientIDKeys:     cyclic.NewInt(1),
+			PartialRecipientIDCypherText: cyclic.NewInt(1),
+		})
+		decrypts[0].InChannel <- &decMsg
 	}
-	if RP.Cmp(es.RecipientPrecomputation) != 0 {
-		t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
-			RP.Text(10), es.RecipientPrecomputation.Text(10))
+
+	for i := uint64(0); i < BatchSize; i++ {
+		rtn := <-LNStrip.OutChannel
+		es := (*rtn).(*precomputation.SlotStripOut)
+
+		LastRound.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
+		LastRound.LastNode.RecipientPrecomputation[es.Slot] =
+			es.RecipientPrecomputation
+
+		fmt.Printf("%d NODE STRIP:\n  MessagePrecomputation: %s, " +
+			"RecipientPrecomputation: %s\n", nodeCount,
+			es.MessagePrecomputation.Text(10),
+			es.RecipientPrecomputation.Text(10))
+
+		// Check precomputation
+		MP, RP := ComputePrecomputation(group, rounds)
+
+		if MP.Cmp(es.MessagePrecomputation) != 0 {
+			t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
+				MP.Text(10), es.MessagePrecomputation.Text(10))
+		}
+		if RP.Cmp(es.RecipientPrecomputation) != 0 {
+			t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
+				RP.Text(10), es.RecipientPrecomputation.Text(10))
+		}
 	}
 
 	// ----- REALTIME ----- //
-	IntermediateMsgs := make([]*cyclic.Int, nodeCount)
+	IntermediateMsgs := make([]*cyclic.Int, BatchSize)
+	for i := uint64(0); i < BatchSize; i++ {
+			IntermediateMsgs[i] = cyclic.NewInt(0)
+	}
 	rtdecrypts := make([]*services.ThreadController, nodeCount)
 	rtpermutes := make([]*services.ThreadController, nodeCount)
 	rtencrypts := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		IntermediateMsgs[i] = cyclic.NewInt(0)
-
 		rtdecrypts[i] = services.DispatchCryptop(group,
 			realtime.Decrypt{}, nil, nil, rounds[i])
 		if i == 0 {
