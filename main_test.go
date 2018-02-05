@@ -1149,16 +1149,22 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	}
 	rtdecrypts := make([]*services.ThreadController, nodeCount)
 	rtpermutes := make([]*services.ThreadController, nodeCount)
+	reorgs := make([]*services.ThreadController, nodeCount)
 	rtencrypts := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
 		rtdecrypts[i] = services.DispatchCryptop(group,
 			realtime.Decrypt{}, nil, nil, rounds[i])
+
 		if i == 0 {
+			reorgs[i] = services.NewSlotReorganizer(nil, nil, int(BatchSize))
 			rtpermutes[i] = services.DispatchCryptop(group,
-				realtime.Permute{}, nil, nil, rounds[i])
+				realtime.Permute{}, nil, reorgs[i].InChannel, rounds[i])
 		} else {
+			reorgs[i] = services.NewSlotReorganizer(rtpermutes[i-1].OutChannel,
+				nil, int(BatchSize))
 			rtpermutes[i] = services.DispatchCryptop(group,
-				realtime.Permute{}, rtpermutes[i-1].OutChannel, nil, rounds[i])
+				realtime.Permute{}, reorgs[i-1].OutChannel, reorgs[i].InChannel,
+				rounds[i])
 		}
 		rtencrypts[i] = services.DispatchCryptop(group,
 			realtime.Encrypt{}, nil, nil, rounds[i])
@@ -1177,8 +1183,8 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		realtime.Peel{}, nil, nil, LastRound)
 
 	go RTDecryptRTPermuteTranslate(rtdecrypts[nodeCount-1].OutChannel,
-		rtpermutes[0].InChannel)
-	go RTPermuteRTIdentifyTranslate(rtpermutes[nodeCount-1].OutChannel,
+		reorgs[0].InChannel)
+	go RTPermuteRTIdentifyTranslate(reorgs[nodeCount-1].OutChannel,
 		LNRTIdentify.InChannel, IntermediateMsgs)
 	go RTIdentifyRTEncryptTranslate(LNRTIdentify.OutChannel,
 		rtencrypts[0].InChannel, IntermediateMsgs)
