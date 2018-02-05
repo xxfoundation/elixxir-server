@@ -59,4 +59,5 @@ func TestReorganizeSlots(t *testing.T) {
 
 	println("Reorganize Slots:", pass, "out of", tests, "passed.")
 
+	tc.Kill(false)
 }
