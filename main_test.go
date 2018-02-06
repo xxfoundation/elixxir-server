@@ -759,7 +759,6 @@ func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
 			Slot:                 esPrm.Slot,
 			EncryptedRecipientID: esPrm.EncryptedRecipientID,
 		})
-		fmt.Printf("SLOT: %d", esPrm.Slot)
 		outMsgs[esPrm.Slot].Set(esPrm.EncryptedMessage)
 		identify <- &ovPrm
 	}
@@ -1008,6 +1007,26 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 			globals.InitLastNode(rounds[i])
 		}
 	}
+
+	// Run the GENERATION step
+	generations := make([]*services.ThreadController, nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		generations[i] = services.DispatchCryptop(group,
+			precomputation.Generation{}, nil, nil, rounds[i])
+	}
+	for i := 0; i < nodeCount; i++ {
+		for j := uint64(0); j < BatchSize; j++ {
+			genMsg := services.Slot(&precomputation.SlotGeneration{Slot: j})
+			generations[i].InChannel <- &genMsg
+			_ = <-generations[i].OutChannel
+		}
+	}
+
+	fmt.Printf("%d NODE GENERATION RESULTS: \n", nodeCount)
+	for i := 0; i < nodeCount; i++ {
+		fmt.Printf("%v", RoundText(group, rounds[i]))
+	}
+
 	return rounds
 }
 
@@ -1022,16 +1041,13 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	LastRound := rounds[nodeCount-1]
 
 	// ----- PRECOMPUTATION ----- //
-	generations := make([]*services.ThreadController, nodeCount)
+
 	shares := make([]*services.ThreadController, nodeCount)
 	decrypts := make([]*services.ThreadController, nodeCount)
 	permutes := make([]*services.ThreadController, nodeCount)
 	encrypts := make([]*services.ThreadController, nodeCount)
 	reveals := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		generations[i] = services.DispatchCryptop(group,
-			precomputation.Generation{}, nil, nil, rounds[i])
-
 		if i == 0 {
 			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
 				nil, nil, rounds[i])
@@ -1068,20 +1084,6 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		encrypts[0].InChannel, LastRound)
 	go DecryptPermuteTranslate(decrypts[nodeCount-1].OutChannel,
 		permutes[0].InChannel)
-
-	// Run Generate
-	for i := 0; i < nodeCount; i++ {
-		for j := uint64(0); j < BatchSize; j++ {
-			genMsg := services.Slot(&precomputation.SlotGeneration{Slot: j})
-			generations[i].InChannel <- &genMsg
-			_ = <-generations[i].OutChannel
-		}
-	}
-
-	fmt.Printf("%d NODE GENERATION RESULTS: \n", nodeCount)
-	for i := 0; i < nodeCount; i++ {
-		fmt.Printf("%v", RoundText(group, rounds[i]))
-	}
 
 	// Run Share -- Then save the result to both rounds
 	// Note that the outchannel for N1Share is the input channel for N2share
@@ -1156,16 +1158,15 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 			realtime.Decrypt{}, nil, nil, rounds[i])
 
 		// NOTE: Permute -> reorg -> Permute -> ... -> reorg -> Identify
+		reorgs[i] = services.NewSlotReorganizer(nil, nil, int(BatchSize))
 		if i == 0 {
 			rtpermutes[i] = services.DispatchCryptop(group,
-				realtime.Permute{}, nil, nil, rounds[i])
+				realtime.Permute{}, nil, reorgs[i].InChannel, rounds[i])
 		} else {
 			rtpermutes[i] = services.DispatchCryptop(group,
-				realtime.Permute{}, reorgs[i-1].OutChannel, nil,
+				realtime.Permute{}, reorgs[i-1].OutChannel, reorgs[i].InChannel,
 				rounds[i])
 		}
-		reorgs[i] = services.NewSlotReorganizer(rtpermutes[i].OutChannel,
-			nil, int(BatchSize))
 		rtencrypts[i] = services.DispatchCryptop(group,
 			realtime.Encrypt{}, nil, nil, rounds[i])
 
@@ -1206,11 +1207,11 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 			t.Errorf("RTPEEL %d failed EncryptedMessage. Got: %s Expected: %s",
 				esRT.Slot,
 				esRT.EncryptedMessage.Text(10),
-				expectedOutputs[0].EncryptedMessage.Text(10))
+				expectedOutputs[i].EncryptedMessage.Text(10))
 		}
 		if esRT.RecipientID != expectedOutputs[i].RecipientID {
 			t.Errorf("RTPEEL %d failed RecipientID. Got: %d Expected: %d",
-				esRT.Slot, esRT.RecipientID, expectedOutputs[0].RecipientID)
+				esRT.Slot, esRT.RecipientID, expectedOutputs[i].RecipientID)
 		}
 
 		fmt.Printf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
@@ -1267,5 +1268,19 @@ func Test1NodePermuteE2E(t *testing.T) {
 		}
 	}
 	rounds := GenerateRounds(nodeCount, BatchSize, &grp)
+	for i := 0; i < nodeCount; i++ {
+		for j := uint64(0); j < BatchSize; j++ {
+			// Shift by 1
+			newj := (j + 1) % BatchSize
+			rounds[i].Permutations[j] = newj
+		}
+		// Now apply  permutations list to outputMsgs
+		newOutMsgs := make([]realtime.SlotPeel, BatchSize)
+		for j := uint64(0); j < BatchSize; j++ {
+			newOutMsgs[rounds[i].Permutations[j]] = outputMsgs[j]
+		}
+		outputMsgs = newOutMsgs
+	}
+
 	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
 }
