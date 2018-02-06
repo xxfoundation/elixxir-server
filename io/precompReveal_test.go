@@ -1,7 +1,6 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
