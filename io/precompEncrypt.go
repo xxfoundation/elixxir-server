@@ -14,6 +14,7 @@ type PrecompEncryptHandler struct{}
 
 // ReceptionHandler for PrecompEncryptMessages
 func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
+	outputChannel := s.GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT)
 	// Iterate through the Slots in the PrecompEncryptMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
@@ -26,7 +27,7 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 				in.PartialMessageCypherText),
 		}
 		// Pass slot as input to Encrypt's channel
-		s.GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT) <- &slot
+		outputChannel <- &slot
 	}
 }
 

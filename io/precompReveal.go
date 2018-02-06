@@ -14,6 +14,7 @@ type PrecompRevealHandler struct{}
 
 // ReceptionHandler for PrecompRevealMessages
 func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
+	outputChannel := s.GetChannel(input.RoundID, globals.PRECOMP_REVEAL)
 	// Iterate through the Slots in the PrecompRevealMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotReveal
@@ -24,7 +25,7 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 				in.PartialMessageCypherText),
 		}
 		// Pass slot as input to Reveal's channel
-		s.GetChannel(input.RoundID, globals.PRECOMP_REVEAL) <- &slot
+		outputChannel <- &slot
 	}
 }
 
