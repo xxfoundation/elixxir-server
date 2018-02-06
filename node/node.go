@@ -78,10 +78,29 @@ func NewRound(roundId string, batchSize uint64) {
 	// Create the controller for PrecompDecrypt
 	precompDecryptController := services.DispatchCryptop(globals.Grp,
 		precomputation.Decrypt{}, nil, nil, round)
+	// Add the InChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_DECRYPT, precompDecryptController.InChannel)
 	// Kick off PrecompDecrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		precompDecryptController.OutChannel, io.PrecompDecryptHandler{})
+
+	// Create the controller for PrecompEncrypt
+	precompEncryptController := services.DispatchCryptop(globals.Grp,
+		precomputation.Encrypt{}, nil, nil, round)
+	// Add the InChannel from the controller to round
+	round.AddChannel(globals.PRECOMP_ENCRYPT, precompEncryptController.InChannel)
+	// Kick off PrecompEncrypt Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		precompEncryptController.OutChannel, io.PrecompEncryptHandler{})
+
+	// Create the controller for PrecompReveal
+	precompRevealController := services.DispatchCryptop(globals.Grp,
+		precomputation.Reveal{}, nil, nil, round)
+	// Add the InChannel from the controller to round
+	round.AddChannel(globals.PRECOMP_REVEAL, precompRevealController.InChannel)
+	// Kick off PrecompReveal Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		precompRevealController.OutChannel, io.PrecompRevealHandler{})
 
 	// Create the dispatch controller for PrecompPermute
 	precompPermuteController := services.DispatchCryptop(globals.Grp,
