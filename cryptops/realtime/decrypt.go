@@ -147,7 +147,6 @@ func (d Decrypt) Run(g *cyclic.Group, in *SlotDecryptIn, out *SlotDecryptOut, ke
 
 	// Pass through SenderID
 	out.SenderID = in.SenderID
-
 	return out
 
 }
