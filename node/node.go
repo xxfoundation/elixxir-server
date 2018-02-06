@@ -7,7 +7,9 @@ import (
 	"strconv"
 
 	"gitlab.com/privategrity/comms/mixserver"
+	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
 	"gitlab.com/privategrity/server/services"
@@ -74,16 +76,13 @@ func NewRound(roundId string, batchSize uint64) {
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
 	// Create the controller for PrecompDecrypt
-	precompDecryptController := services.DispatchCryptop(globals.Grp,
+	precompDecryptCntrlr := services.DispatchCryptop(globals.Grp,
 		precomputation.Decrypt{}, nil, nil, round)
-	// Add the InChannel from the controller to round
-	round.AddChannel(globals.PRECOMP_DECRYPT,
-		precompDecryptController.InChannel)
-	// Kick off PrecompDecrypt  Transmission Handler
+	round.AddChannel(globals.PRECOMP_DECRYPT, precompDecryptCntrlr.InChannel)
+	// Kick off PrecompDecrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
-		precompDecryptController.OutChannel,
-		io.PrecompDecryptHandler{})
-
+		precompDecryptCntrlr.OutChannel, io.PrecompDecryptHandler{})
+		
 	// Create the dispatch controller for PrecompPermute
 	precompPermuteController := services.DispatchCryptop(globals.Grp,
 		precomputation.Permute{}, nil, nil, round)
@@ -97,4 +96,26 @@ func NewRound(roundId string, batchSize uint64) {
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		precompPermuteReorganizer.OutChannel,
 		io.PrecompPermuteHandler{})
+
+	// Create the controller for Keygen
+	keygenCntrlr := services.DispatchCryptop(globals.Grp,
+		cryptops.GenerateClientKey{}, nil, nil, round)
+
+	// Create the controller for RealtimeDecrypt
+	realtimeDecryptCntrlr := services.DispatchCryptop(globals.Grp,
+		realtime.Decrypt{}, keygenCntrlr.OutChannel, nil, round)
+	// Add the InChannel from the keygen controller to round
+	round.AddChannel(globals.REAL_DECRYPT, keygenCntrlr.InChannel)
+	// Kick off RealtimeDecrypt Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		realtimeDecryptCntrlr.OutChannel, io.RealtimeDecryptHandler{})
+
+	// Create the controller for RealtimeEncrypt
+	realtimeEncryptCntrlr := services.DispatchCryptop(globals.Grp,
+		realtime.Encrypt{}, keygenCntrlr.OutChannel, nil, round)
+	// Add the InChannel from the keygen controller to round
+	round.AddChannel(globals.REAL_ENCRYPT, keygenCntrlr.InChannel)
+	// Kick off RealtimeEncrypt Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		realtimeEncryptCntrlr.OutChannel, io.RealtimeEncryptHandler{})
 }
