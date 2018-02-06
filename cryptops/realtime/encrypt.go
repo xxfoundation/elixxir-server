@@ -17,7 +17,7 @@ type Encrypt struct{}
 type SlotEncryptIn struct {
 	// Slot Number of the Data
 	Slot uint64
-	// ID of the client who will recieve the message (Pass through)
+	// ID of the client who will receive the message (Pass through)
 	RecipientID uint64
 	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
 	EncryptedMessage *cyclic.Int
@@ -29,7 +29,7 @@ type SlotEncryptIn struct {
 type SlotEncryptOut struct {
 	//Slot Number of the Data
 	Slot uint64
-	// ID of the client who will recieve the message (Pass through)
+	// ID of the client who will receive the message (Pass through)
 	RecipientID uint64
 	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
 	EncryptedMessage *cyclic.Int

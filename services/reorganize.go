@@ -5,7 +5,7 @@ import (
 )
 
 func NewSlotReorganizer(chIn, chOut chan *Slot,
-	batchSize int) *ThreadController {
+	batchSize uint64) *ThreadController {
 
 	// Create channel for receiving input if none provided
 	if chIn == nil {

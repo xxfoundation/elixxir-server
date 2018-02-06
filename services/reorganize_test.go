@@ -21,10 +21,10 @@ func printListOfSlots(slots []*Slot, t *testing.T) {
 
 func TestReorganizeSlots(t *testing.T) {
 
-	batchSize := 400
+	batchSize := uint64(400)
 	testUints := make([]uint64, batchSize)
 	shuffledTestSlots := make([]*Slot, batchSize)
-	for i := 0; i < batchSize; i++ {
+	for i := uint64(0); i < batchSize; i++ {
 		testUints[i] = uint64(i)
 		slot := (Slot)(&mockSlot{slot: uint64(i)})
 		shuffledTestSlots[i] = &slot
@@ -37,15 +37,15 @@ func TestReorganizeSlots(t *testing.T) {
 		tc := NewSlotReorganizer(nil, nil, batchSize)
 
 		cyclic.Shuffle(&testUints)
-		for i := 0; i < batchSize; i++ {
+		for i := uint64(0); i < batchSize; i++ {
 			tc.InChannel <- shuffledTestSlots[i]
 		}
-		for i := 0; i < batchSize; i++ {
+		for i := uint64(0); i < batchSize; i++ {
 			shuffledTestSlots[i] = <-tc.OutChannel
 		}
 
 		// See if the list is in order
-		for i := 1; i < batchSize; i++ {
+		for i := uint64(1); i < batchSize; i++ {
 			if (*shuffledTestSlots[i]).SlotID() <= (*shuffledTestSlots[i-1]).SlotID() {
 				t.Errorf("Slice of slots was not in order at index %v\n", i-1)
 				printListOfSlots(shuffledTestSlots, t)
@@ -58,5 +58,4 @@ func TestReorganizeSlots(t *testing.T) {
 	}
 
 	println("Reorganize Slots:", pass, "out of", tests, "passed.")
-
 }
