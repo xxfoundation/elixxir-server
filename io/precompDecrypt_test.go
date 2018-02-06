@@ -13,7 +13,7 @@ func TestPrecompDecrypt(t *testing.T) {
 	// Initialize GlobalRoundMap
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	// Kick off comms server
-	localServer := "localhost:5555"
+	localServer := "localhost:5556"
 	go mixserver.StartServer(localServer,
 		ServerImpl{Rounds: &globals.GlobalRoundMap})
 	// Next hop will be back to us
