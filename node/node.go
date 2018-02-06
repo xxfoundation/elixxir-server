@@ -7,7 +7,9 @@ import (
 	"strconv"
 
 	"gitlab.com/privategrity/comms/mixserver"
+	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
 	"gitlab.com/privategrity/server/services"
@@ -99,4 +101,40 @@ func NewRound(roundId string, batchSize uint64) {
 	// Kick off PrecompReveal Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		precompRevealController.OutChannel, io.PrecompRevealHandler{})
+
+	// Create the dispatch controller for PrecompPermute
+	precompPermuteController := services.DispatchCryptop(globals.Grp,
+		precomputation.Permute{}, nil, nil, round)
+	// Hook up the dispatcher's input to the round
+	round.AddChannel(globals.PRECOMP_PERMUTE,
+		precompPermuteController.InChannel)
+	// Create the message reorganizer for PrecompPermute
+	precompPermuteReorganizer := services.NewSlotReorganizer(
+		precompPermuteController.OutChannel, nil, batchSize)
+	// Kick off PrecompPermute Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		precompPermuteReorganizer.OutChannel,
+		io.PrecompPermuteHandler{})
+
+	// Create the controller for Keygen
+	keygenController := services.DispatchCryptop(globals.Grp,
+		cryptops.GenerateClientKey{}, nil, nil, round)
+
+	// Create the controller for RealtimeDecrypt
+	realtimeDecryptController := services.DispatchCryptop(globals.Grp,
+		realtime.Decrypt{}, keygenController.OutChannel, nil, round)
+	// Add the InChannel from the keygen controller to round
+	round.AddChannel(globals.REAL_DECRYPT, keygenController.InChannel)
+	// Kick off RealtimeDecrypt Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		realtimeDecryptController.OutChannel, io.RealtimeDecryptHandler{})
+
+	// Create the controller for RealtimeEncrypt
+	realtimeEncryptController := services.DispatchCryptop(globals.Grp,
+		realtime.Encrypt{}, keygenController.OutChannel, nil, round)
+	// Add the InChannel from the keygen controller to round
+	round.AddChannel(globals.REAL_ENCRYPT, keygenController.InChannel)
+	// Kick off RealtimeEncrypt Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		realtimeEncryptController.OutChannel, io.RealtimeEncryptHandler{})
 }

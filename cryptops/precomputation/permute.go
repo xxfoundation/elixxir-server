@@ -30,7 +30,7 @@ type SlotPermute struct {
 }
 
 // SlotID Returns the Slot number
-func (e SlotPermute) SlotID() uint64 {
+func (e *SlotPermute) SlotID() uint64 {
 	return e.Slot
 }
 
@@ -136,7 +136,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 
 // Implements cryptographic component of build
 func buildCryptoPermute(round *globals.Round, om *[]services.Slot) {
-	// Set the slot to the respective permutation
+	// Set the Slot to the respective permutation
 	for i := uint64(0); i < round.BatchSize; i++ {
 		(*om)[i].(*SlotPermute).Slot = round.Permutations[i]
 	}

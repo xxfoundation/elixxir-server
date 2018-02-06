@@ -8,7 +8,7 @@ import (
 // threads.
 // To send data do ThreadController.InChannel <- Data
 // To receive do Data <- ThreadController.OutChannel
-// To force kill the dispatcher do ThreadController.QuitChannel <- true
+// To force kill the thread controller do ThreadController.Kill(false)
 type ThreadController struct {
 	noCopy noCopy
 	// Pointer to thread locker
