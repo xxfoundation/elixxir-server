@@ -17,6 +17,12 @@ type LastNode struct {
 	RoundMessagePrivateKey []*cyclic.Int
 	// Round Recipient Private Key
 	RoundRecipientPrivateKey []*cyclic.Int
+
+	// These are technically temp values, representing recipient info
+	// Encrypted under homomorphic encryption that later get revealed
+	RecipientCypherText []*cyclic.Int
+	EncryptedRecipientPrecomputation []*cyclic.Int
+	EncryptedMessagePrecomputation []*cyclic.Int
 }
 
 // Round contains the keys and permutations for a given message batch
@@ -110,20 +116,6 @@ func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
 	return newRound(batchSize, p)
 }
 
-//Creates the lastnode object
-func InitLastNode(round *Round) {
-	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
-
-	for i := uint64(0); i < round.BatchSize; i++ {
-		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
-	}
-}
 
 // Returns a copy of the current phase
 func (round *Round) GetPhase() Phase {
@@ -221,9 +213,30 @@ func newRound(batchSize uint64, p Phase) *Round {
 		NR.LastNode.MessagePrecomputation = nil
 		NR.LastNode.RecipientPrecomputation = nil
 	}
-
 	NR.phase = p
 	NR.phaseLock = &sync.Mutex{}
 
 	return &NR
+}
+
+func InitLastNode(round *Round) {
+	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.RecipientCypherText = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.EncryptedRecipientPrecomputation = make([]*cyclic.Int,
+		round.BatchSize)
+	round.LastNode.EncryptedMessagePrecomputation = make([]*cyclic.Int,
+		round.BatchSize)
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
+		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
+		round.LastNode.RecipientCypherText[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
+	}
 }

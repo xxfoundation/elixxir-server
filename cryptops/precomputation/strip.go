@@ -15,9 +15,9 @@ type SlotStripIn struct {
 	//Slot Number of the Data
 	Slot uint64
 	// Encrypted but completed message precomputation
-	EncryptedMessageKeys *cyclic.Int
+	RoundMessagePrivateKey *cyclic.Int
 	// Encrypted but completed recipient precomputation
-	EncryptedRecipientKeys *cyclic.Int
+	RoundRecipientPrivateKey *cyclic.Int
 }
 
 // SlotStripOut is used to pass the results out of Strip
@@ -43,9 +43,9 @@ func (e *SlotStripOut) SlotID() uint64 {
 // KeysStrip holds the keys used by the Strip Operation
 type KeysStrip struct {
 	// Eq 16.1
-	RoundMessagePrivateKey *cyclic.Int
+	EncryptedMessageKeys *cyclic.Int
 	// Eq 16.2
-	RoundRecipientPrivateKey *cyclic.Int
+	EncryptedRecipientKeys *cyclic.Int
 }
 
 // Allocated memory and arranges key objects for the Precomputation Strip Phase
@@ -71,10 +71,11 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	// Link the keys for stripping
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysStrip{
-			RoundMessagePrivateKey:   round.LastNode.RoundMessagePrivateKey[i],
-			RoundRecipientPrivateKey: round.LastNode.RoundRecipientPrivateKey[i],
+			EncryptedMessageKeys:   round.LastNode.EncryptedMessagePrecomputation[i],
+			EncryptedRecipientKeys: round.LastNode.EncryptedRecipientPrecomputation[i],
 		}
 		keys[i] = keySlc
+
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
@@ -90,18 +91,20 @@ func (s Strip) Run(g *cyclic.Group, in *SlotStripIn, out *SlotStripOut, keys *Ke
 	tmp := cyclic.NewMaxInt()
 
 	// Eq 16.1: Invert the round message private key
-	g.Inverse(keys.RoundMessagePrivateKey, tmp)
+	g.Inverse(in.RoundMessagePrivateKey, tmp)
 
 	// Eq 16.1: Use the inverted round message private key to remove the homomorphic encryption
 	// from encrypted message key and reveal the message precomputation
-	g.Mul(tmp, in.EncryptedMessageKeys, out.MessagePrecomputation)
+	g.Mul(tmp, keys.EncryptedMessageKeys, out.MessagePrecomputation)
+
+	//fmt.Printf("EncryptedRecipientKeys: %s \n", keys.EncryptedRecipientKeys.Text(10))
 
 	// Eq 16.2: Invert the round recipient private key
-	g.Inverse(keys.RoundRecipientPrivateKey, tmp)
+	g.Inverse(in.RoundRecipientPrivateKey, tmp)
 
 	// Eq 16.2: Use the inverted round recipient private key to remove the homomorphic encryption
 	// from encrypted recipient key and reveal the recipient precomputation
-	g.Mul(tmp, in.EncryptedRecipientKeys, out.RecipientPrecomputation)
+	g.Mul(tmp, keys.EncryptedRecipientKeys, out.RecipientPrecomputation)
 
 	return out
 

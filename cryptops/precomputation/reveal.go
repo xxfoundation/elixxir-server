@@ -75,12 +75,12 @@ func (r Reveal) Run(g *cyclic.Group, in, out *SlotReveal,
 
 	// Eq 15.11 Root by cypher key to remove one layer of homomorphic
 	// encryption from partially encrypted message cypher text.
-	g.Root(in.PartialMessageCypherText, keys.Z,
+	g.RootCoprime(in.PartialMessageCypherText, keys.Z,
 		out.PartialMessageCypherText)
 
 	// Eq 15.13 Root by cypher key to remove one layer of homomorphic
 	// encryption from partially encrypted recipient ID cypher text.
-	g.Root(in.PartialRecipientCypherText, keys.Z,
+	g.RootCoprime(in.PartialRecipientCypherText, keys.Z,
 		out.PartialRecipientCypherText)
 
 	return out
