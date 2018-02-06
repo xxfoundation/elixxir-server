@@ -19,9 +19,11 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.SlotEncrypt{
-			Slot:                     in.Slot,
-			EncryptedMessageKeys:     cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
-			PartialMessageCypherText: cyclic.NewIntFromBytes(in.PartialMessageCypherText),
+			Slot: in.Slot,
+			EncryptedMessageKeys: cyclic.NewIntFromBytes(
+				in.EncryptedMessageKeys),
+			PartialMessageCypherText: cyclic.NewIntFromBytes(
+				in.PartialMessageCypherText),
 		}
 		// Pass slot as input to Encrypt's channel
 		s.GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT) <- &slot
