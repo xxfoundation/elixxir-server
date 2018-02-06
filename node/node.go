@@ -146,4 +146,18 @@ func NewRound(roundId string, batchSize uint64) {
 	// Kick off RealtimeIdentify Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		realtimeIdentifyController.OutChannel, io.RealtimeIdentifyHandler{})
+
+	// Create the dispatch controller for RealtimePermute
+	realtimePermuteController := services.DispatchCryptop(globals.Grp,
+		realtime.Permute{}, nil, nil, round)
+	// Hook up the dispatcher's input to the round
+	round.AddChannel(globals.REAL_PERMUTE,
+		realtimePermuteController.InChannel)
+	// Create the message reorganizer for PrecompPermute
+	realtimePermuteReorganizer := services.NewSlotReorganizer(
+		realtimePermuteController.OutChannel, nil, batchSize)
+	// Kick off PrecompPermute Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		realtimePermuteReorganizer.OutChannel,
+		io.RealtimePermuteHandler{})
 }
