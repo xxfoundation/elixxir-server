@@ -23,7 +23,7 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 			SenderID:             in.SenderID,
 			EncryptedMessage:     cyclic.NewIntFromBytes(in.EncryptedMessage),
 			EncryptedRecipientID: cyclic.NewIntFromBytes(in.EncryptedRecipientID),
-			TransmissionKey:      cyclic.NewMaxInt(), // TODO populate this field
+			TransmissionKey:      cyclic.NewMaxInt(),
 		}
 		// Pass slot as input to Decrypt's channel
 		s.GetChannel(input.RoundID, globals.REAL_DECRYPT) <- &slot
