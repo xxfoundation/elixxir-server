@@ -30,12 +30,12 @@ func TestReorganizeSlots(t *testing.T) {
 		shuffledTestSlots[i] = &slot
 	}
 
-	tc := NewSlotReorganizer(nil, nil, batchSize)
-
 	tests := 100
 	pass := 0
 
 	for i := 0; i < tests; i++ {
+		tc := NewSlotReorganizer(nil, nil, batchSize)
+
 		cyclic.Shuffle(&testUints)
 		for i := 0; i < batchSize; i++ {
 			tc.InChannel <- shuffledTestSlots[i]
