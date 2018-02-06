@@ -78,21 +78,21 @@ func NewRound(roundId string, batchSize uint64) {
 		precomputation.Decrypt{}, nil, nil, round)
 	// Add the InChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_DECRYPT,
-		precompDecryptDispatcher.InChannel)
+		precompDecryptController.InChannel)
 	// Kick off PrecompDecrypt  Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
-		precompDecryptDispatcher.OutChannel,
+		precompDecryptController.OutChannel,
 		io.PrecompDecryptHandler{})
 
 	// Create the dispatch controller for PrecompPermute
-	precompDecryptController := services.DispatchCryptop(globals.Grp,
+	precompPermuteController := services.DispatchCryptop(globals.Grp,
 		precomputation.Permute{}, nil, nil, round)
 	// Hook up the dispatcher's input to the round
 	round.AddChannel(globals.PRECOMP_PERMUTE,
-		precompPermuteDispatcher.InChannel)
+		precompPermuteController.InChannel)
 	// Create the message reorganizer for PrecompPermute
 	precompPermuteReorganizer := services.NewSlotReorganizer(
-		precompPermuteDispatcher.OutChannel, nil, batchSize)
+		precompPermuteController.OutChannel, nil, batchSize)
 	// Kick off PrecompPermute Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		precompPermuteReorganizer.OutChannel,
