@@ -14,6 +14,8 @@ type PrecompPermuteHandler struct{}
 
 // ReceptionHandler for PrecompPermuteMessages
 func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
+	// Get the input channel for the cryptop
+	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_PERMUTE)
 	// Iterate through the Slots in the PrecompPermuteMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotPermute
@@ -30,7 +32,7 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 				in.PartialRecipientIDCypherText),
 		}
 		// Pass slot as input to Permute's channel
-		s.GetChannel(input.RoundID, globals.PRECOMP_PERMUTE) <- &slot
+		chIn <- &slot
 	}
 }
 
