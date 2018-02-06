@@ -14,6 +14,8 @@ type RealtimeEncryptHandler struct{}
 
 // ReceptionHandler for RealtimeEncryptMessages
 func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
+	// Get the input channel for the cryptop
+	chIn := s.GetChannel(input.RoundID, globals.REAL_ENCRYPT)
 	// Iterate through the Slots in the RealtimeEncryptMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
@@ -25,7 +27,7 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 			ReceptionKey:     cyclic.NewMaxInt(),
 		}
 		// Pass slot as input to Encrypt's channel
-		s.GetChannel(input.RoundID, globals.REAL_ENCRYPT) <- &slot
+		chIn <- &slot
 	}
 }
 

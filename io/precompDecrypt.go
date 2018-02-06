@@ -14,6 +14,8 @@ type PrecompDecryptHandler struct{}
 
 // ReceptionHandler for PrecompDecryptMessages
 func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
+	// Get the input channel for the cryptop
+	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
 	// Iterate through the Slots in the PrecompDecryptMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
@@ -26,7 +28,7 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 			PartialRecipientIDCypherText: cyclic.NewIntFromBytes(in.PartialRecipientIDCypherText),
 		}
 		// Pass slot as input to Decrypt's channel
-		s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT) <- &slot
+		chIn <- &slot
 	}
 }
 
