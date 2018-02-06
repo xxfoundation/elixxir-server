@@ -10,15 +10,6 @@ import (
 )
 
 func TestPrecompEncrypt(t *testing.T) {
-	// Initialize GlobalRoundMap
-	globals.GlobalRoundMap = globals.NewRoundMap()
-	// Kick off comms server
-	localServer := "localhost:5556"
-	go mixserver.StartServer(localServer,
-		ServerImpl{Rounds: &globals.GlobalRoundMap})
-	// Next hop will be back to us
-	NextServer = localServer
-
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
