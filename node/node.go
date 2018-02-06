@@ -137,4 +137,13 @@ func NewRound(roundId string, batchSize uint64) {
 	// Kick off RealtimeEncrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		realtimeEncryptController.OutChannel, io.RealtimeEncryptHandler{})
+
+	// Create the controller for RealtimeIdentify
+	realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
+		realtime.Identify{}, nil, nil, round)
+	// Add the InChannel from the controller to round
+	round.AddChannel(globals.REAL_IDENTIFY, realtimeIdentifyController.InChannel)
+	// Kick off RealtimeIdentify Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		realtimeIdentifyController.OutChannel, io.RealtimeIdentifyHandler{})
 }
