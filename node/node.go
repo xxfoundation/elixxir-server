@@ -75,6 +75,15 @@ func NewRound(roundId string, batchSize uint64) {
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
+	// Create the controller for PrecompShare
+	precompShareController := services.DispatchCryptop(globals.Grp,
+		precomputation.Share{}, nil, nil, round)
+	// Add the inChannel from the controller to round
+	round.AddChannel(globals.PRECOMP_SHARE, precompShareController.InChannel)
+	// Kick off PrecompShare Transmission Handler
+	services.BatchTransmissionDispatch(roundId, batchSize,
+		precompShareController.OutChannel, io.PrecompShareHandler{})
+
 	// Create the controller for PrecompDecrypt
 	precompDecryptController := services.DispatchCryptop(globals.Grp,
 		precomputation.Decrypt{}, nil, nil, round)
