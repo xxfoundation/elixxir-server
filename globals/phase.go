@@ -10,6 +10,9 @@ const (
 	// Precomputation Generation: Initializes all the random values in round
 	PRECOMP_GENERATION
 
+	// Precomputation Share: Combine partial recipient public cypher keys
+	PRECOMP_SHARE
+
 	// Precomputation Decrypt: Adds in first set of encrypted keys
 	PRECOMP_DECRYPT
 
@@ -59,10 +62,12 @@ var phaseNames [NUM_PHASES]string
 func (p Phase) String() string {
 
 	if phaseNames[0] == "" {
-		phaseNames = [...]string{"OFF", "PRECOMP_GENERATION", "PRECOMP_DECRYPT",
-			"PRECOMP_PERMUTE", "PRECOMP_ENCRYPT", "PRECOMP_REVEAL", "PRECOMP_STRIP",
-			"WAIT", "REAL_DECRYPT", "REAL_PERMUTE", "REAL_IDENTIFY", "REAL_ENCRYPT",
-			"REAL_PEEL", "DONE", "ERROR"}
+		phaseNames = [...]string{"OFF", "PRECOMP_GENERATION",
+			"PRECOMP_SHARE", "PRECOMP_DECRYPT", "PRECOMP_PERMUTE",
+			"PRECOMP_ENCRYPT", "PRECOMP_REVEAL", "PRECOMP_STRIP",
+			"WAIT", "REAL_DECRYPT", "REAL_PERMUTE",
+			"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "DONE",
+			"ERROR"}
 	}
 
 	return phaseNames[p]
