@@ -153,10 +153,10 @@ func NewRound(roundId string, batchSize uint64) {
 	// Hook up the dispatcher's input to the round
 	round.AddChannel(globals.REAL_PERMUTE,
 		realtimePermuteController.InChannel)
-	// Create the message reorganizer for PrecompPermute
+	// Create the message reorganizer for RealtimePermute
 	realtimePermuteReorganizer := services.NewSlotReorganizer(
 		realtimePermuteController.OutChannel, nil, batchSize)
-	// Kick off PrecompPermute Transmission Handler
+	// Kick off RealtimePermute Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		realtimePermuteReorganizer.OutChannel,
 		io.RealtimePermuteHandler{})
