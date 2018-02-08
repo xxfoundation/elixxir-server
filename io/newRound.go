@@ -15,7 +15,7 @@ import (
 // Comms method for kicking off a new round in CMIX
 func (s ServerImpl) NewRound() {
 	roundId := "TEST"
-	batchSize := uint64(5)
+	batchSize := uint64(1)
 	// Create a new Round
 	round := globals.NewRound(batchSize)
 	// Add round to the GlobalRoundMap
@@ -111,6 +111,16 @@ func (s ServerImpl) NewRound() {
 		realtimePermuteReorganizer.OutChannel,
 		RealtimePermuteHandler{})
 
+	// Create the dispatch controller for PrecompGeneration
+	precompGenerationController := services.DispatchCryptop(globals.Grp,
+		precomputation.Generation{}, nil, nil, round)
+	// Run PrecompGeneration for the entire batch
+	for j := uint64(0); j < batchSize; j++ {
+		genMsg := services.Slot(&precomputation.SlotGeneration{Slot: j})
+		precompGenerationController.InChannel <- &genMsg
+		_ = <-precompGenerationController.OutChannel
+	}
+
 	if IsLastNode { // TODO better last node system
 		// Create the controller for RealtimeIdentify
 		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
@@ -120,16 +130,10 @@ func (s ServerImpl) NewRound() {
 		// Kick off RealtimeIdentify Transmission Handler
 		services.BatchTransmissionDispatch(roundId, batchSize,
 			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
-	}
 
-	// Create the dispatch controller for PrecompGeneration
-	precompGenerationController := services.DispatchCryptop(globals.Grp,
-		precomputation.Generation{}, nil, nil, round)
-	// Run PrecompGeneration for the entire batch
-	for j := uint64(0); j < batchSize; j++ {
-		genMsg := services.Slot(&precomputation.SlotGeneration{Slot: j})
-		precompGenerationController.InChannel <- &genMsg
-		_ = <-precompGenerationController.OutChannel
+		shareMsg := services.Slot(&precomputation.SlotShare{
+			PartialRoundPublicCypherKey: globals.Grp.G})
+		precompShareController.InChannel <- &shareMsg
 	}
 }
 

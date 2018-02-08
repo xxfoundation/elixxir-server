@@ -35,21 +35,16 @@ func StartServer(serverIndex int) {
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, io.ServerImpl{Rounds: &globals.GlobalRoundMap})
 
+	// TODO Replace these booleans with a better system
+	io.IsLastNode = serverIndex == len(servers)-1
+	io.NextServer = servers[(serverIndex+1)%len(servers)]
+
 	// Block until we can reach every server
 	io.VerifyServersOnline(servers)
 
-	// TODO Replace these booleans with a better system
-	if serverIndex == len(servers)-1 {
-		// Next leap will be first server
-		io.NextServer = servers[0]
-		// We are the last node
-		io.IsLastNode = true
+	if io.IsLastNode {
 		// Begin the round on all nodes
 		io.BeginNewRound(servers)
-	} else {
-		// Not last server, next leap will be next server
-		io.NextServer = servers[serverIndex+1]
-		io.IsLastNode = false
 	}
 
 	// Main loop
