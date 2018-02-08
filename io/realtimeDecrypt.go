@@ -1,6 +1,7 @@
 package io
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver/message"
 	"gitlab.com/privategrity/crypto/cyclic"
@@ -57,5 +58,6 @@ func (h RealtimeDecryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 	// Send the completed RealtimeDecryptMessage
+	jww.INFO.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
 	message.SendRealtimeDecrypt(NextServer, msg)
 }

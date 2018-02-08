@@ -1,6 +1,7 @@
 package io
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver/message"
 	"gitlab.com/privategrity/crypto/cyclic"
@@ -55,5 +56,6 @@ func (h PrecompEncryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 	// Send the completed PrecompEncryptMessage
+	jww.INFO.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
 	message.SendPrecompEncrypt(NextServer, msg)
 }

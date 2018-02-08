@@ -1,6 +1,7 @@
 package io
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver/message"
 	"gitlab.com/privategrity/crypto/cyclic"
@@ -62,5 +63,6 @@ func (h PrecompPermuteHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 	// Send the completed PrecompPermuteMessage
+	jww.INFO.Printf("Sending PrecompPermute Message to %v...", NextServer)
 	message.SendPrecompPermute(NextServer, msg)
 }

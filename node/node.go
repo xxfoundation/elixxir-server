@@ -7,12 +7,9 @@ import (
 	"strconv"
 
 	"gitlab.com/privategrity/comms/mixserver"
-	"gitlab.com/privategrity/server/cryptops"
-	"gitlab.com/privategrity/server/cryptops/precomputation"
-	"gitlab.com/privategrity/server/cryptops/realtime"
+	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
-	"gitlab.com/privategrity/server/services"
 )
 
 // StartServer reads configuration options and starts the cMix server
@@ -23,22 +20,46 @@ func StartServer(serverIndex int) {
 
 	// Get all servers
 	servers := getServers()
-	// Determine what the next server leap is
-	nextIndex := serverIndex + 1
-	if serverIndex == len(servers)-1 {
-		nextIndex = 0
-	}
-	io.NextServer = "localhost:" + servers[nextIndex]
-	localServer := "localhost:" + servers[serverIndex]
+
+	// TODO Generate globals.Grp somewhere intelligent
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
+		rng)
+	globals.Grp = &grp
 
 	// Start mix servers on localServer
+	localServer := servers[serverIndex]
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, io.ServerImpl{Rounds: &globals.GlobalRoundMap})
-	// Kick off a Round TODO Better parameters
-	NewRound("Test", 5)
+
+	// Block until we can reach every server
+	io.VerifyServersOnline(servers)
+
+	// TODO Replace these booleans with a better system
+	if serverIndex == len(servers)-1 {
+		// Next leap will be first server
+		io.NextServer = servers[0]
+		// We are the last node
+		io.IsLastNode = true
+		// Begin the round on all nodes
+		io.BeginNewRound(servers)
+	} else {
+		// Not last server, next leap will be next server
+		io.NextServer = servers[serverIndex+1]
+		io.IsLastNode = false
+	}
+
+	// Main loop
+	run()
+}
+
+// Main server loop
+func run() {
+	// Blocks forever as a keepalive
+	select {}
 }
 
 // getServers pulls a string slice of server ports from the config file and
@@ -64,109 +85,8 @@ func getServers() []string {
 			jww.WARN.Printf("Port %v is a reserved port, superuser privilege"+
 				" may be required.\n", temp)
 		}
+		// Assemble full server address
+		servers[i] = "localhost:" + servers[i]
 	}
 	return servers
-}
-
-// Kicks off a new round in CMIX
-func NewRound(roundId string, batchSize uint64) {
-	// Create a new Round
-	round := globals.NewRound(batchSize)
-	// Add round to the GlobalRoundMap
-	globals.GlobalRoundMap.AddRound(roundId, round)
-
-	// Create the controller for PrecompShare
-	precompShareController := services.DispatchCryptop(globals.Grp,
-		precomputation.Share{}, nil, nil, round)
-	// Add the inChannel from the controller to round
-	round.AddChannel(globals.PRECOMP_SHARE, precompShareController.InChannel)
-	// Kick off PrecompShare Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		precompShareController.OutChannel, io.PrecompShareHandler{})
-
-	// Create the controller for PrecompDecrypt
-	precompDecryptController := services.DispatchCryptop(globals.Grp,
-		precomputation.Decrypt{}, nil, nil, round)
-	// Add the InChannel from the controller to round
-	round.AddChannel(globals.PRECOMP_DECRYPT, precompDecryptController.InChannel)
-	// Kick off PrecompDecrypt Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		precompDecryptController.OutChannel, io.PrecompDecryptHandler{})
-
-	// Create the controller for PrecompEncrypt
-	precompEncryptController := services.DispatchCryptop(globals.Grp,
-		precomputation.Encrypt{}, nil, nil, round)
-	// Add the InChannel from the controller to round
-	round.AddChannel(globals.PRECOMP_ENCRYPT, precompEncryptController.InChannel)
-	// Kick off PrecompEncrypt Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		precompEncryptController.OutChannel, io.PrecompEncryptHandler{})
-
-	// Create the controller for PrecompReveal
-	precompRevealController := services.DispatchCryptop(globals.Grp,
-		precomputation.Reveal{}, nil, nil, round)
-	// Add the InChannel from the controller to round
-	round.AddChannel(globals.PRECOMP_REVEAL, precompRevealController.InChannel)
-	// Kick off PrecompReveal Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		precompRevealController.OutChannel, io.PrecompRevealHandler{})
-
-	// Create the dispatch controller for PrecompPermute
-	precompPermuteController := services.DispatchCryptop(globals.Grp,
-		precomputation.Permute{}, nil, nil, round)
-	// Hook up the dispatcher's input to the round
-	round.AddChannel(globals.PRECOMP_PERMUTE,
-		precompPermuteController.InChannel)
-	// Create the message reorganizer for PrecompPermute
-	precompPermuteReorganizer := services.NewSlotReorganizer(
-		precompPermuteController.OutChannel, nil, batchSize)
-	// Kick off PrecompPermute Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		precompPermuteReorganizer.OutChannel,
-		io.PrecompPermuteHandler{})
-
-	// Create the controller for Keygen
-	keygenController := services.DispatchCryptop(globals.Grp,
-		cryptops.GenerateClientKey{}, nil, nil, round)
-
-	// Create the controller for RealtimeDecrypt
-	realtimeDecryptController := services.DispatchCryptop(globals.Grp,
-		realtime.Decrypt{}, keygenController.OutChannel, nil, round)
-	// Add the InChannel from the keygen controller to round
-	round.AddChannel(globals.REAL_DECRYPT, keygenController.InChannel)
-	// Kick off RealtimeDecrypt Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		realtimeDecryptController.OutChannel, io.RealtimeDecryptHandler{})
-
-	// Create the controller for RealtimeEncrypt
-	realtimeEncryptController := services.DispatchCryptop(globals.Grp,
-		realtime.Encrypt{}, keygenController.OutChannel, nil, round)
-	// Add the InChannel from the keygen controller to round
-	round.AddChannel(globals.REAL_ENCRYPT, keygenController.InChannel)
-	// Kick off RealtimeEncrypt Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		realtimeEncryptController.OutChannel, io.RealtimeEncryptHandler{})
-
-	// Create the controller for RealtimeIdentify
-	realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
-		realtime.Identify{}, nil, nil, round)
-	// Add the InChannel from the controller to round
-	round.AddChannel(globals.REAL_IDENTIFY, realtimeIdentifyController.InChannel)
-	// Kick off RealtimeIdentify Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		realtimeIdentifyController.OutChannel, io.RealtimeIdentifyHandler{})
-
-	// Create the dispatch controller for RealtimePermute
-	realtimePermuteController := services.DispatchCryptop(globals.Grp,
-		realtime.Permute{}, nil, nil, round)
-	// Hook up the dispatcher's input to the round
-	round.AddChannel(globals.REAL_PERMUTE,
-		realtimePermuteController.InChannel)
-	// Create the message reorganizer for RealtimePermute
-	realtimePermuteReorganizer := services.NewSlotReorganizer(
-		realtimePermuteController.OutChannel, nil, batchSize)
-	// Kick off RealtimePermute Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
-		realtimePermuteReorganizer.OutChannel,
-		io.RealtimePermuteHandler{})
 }

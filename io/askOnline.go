@@ -4,14 +4,20 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver/message"
+	"time"
 )
 
-// Checks to see if the given servers are online TODO make blocking
-func verifyServersOnline(servers []string) {
-	for i := range servers {
+// Blocks until all given servers respond
+func VerifyServersOnline(servers []string) {
+	for i := 0; i < len(servers); {
+		jww.INFO.Printf("Sending AskOnline message to %s...", servers[i])
 		_, err := message.SendAskOnline(servers[i], &pb.Ping{})
 		if err != nil {
-			jww.ERROR.Println("Server %s failed to respond!", servers[i])
+			jww.ERROR.Printf("%v: Server %s failed to respond!", i, servers[i])
+			time.Sleep(250 * time.Millisecond)
+		} else {
+			jww.INFO.Printf("%v: Server %s responded!", i, servers[i])
+			i++
 		}
 	}
 }
