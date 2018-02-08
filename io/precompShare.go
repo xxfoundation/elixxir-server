@@ -17,15 +17,7 @@ type PrecompShareHandler struct{}
 func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 	jww.INFO.Printf("Received PrecompShare Message %v...", input.RoundID)
 	if IsLastNode {
-		// TODO For each node, set CypherPublicKey here to shareResult.PartialRoundPublicCypherKey
-		decMsg := services.Slot(&precomputation.SlotDecrypt{
-			Slot:                         1,
-			EncryptedMessageKeys:         cyclic.NewInt(1),
-			PartialMessageCypherText:     cyclic.NewInt(1),
-			EncryptedRecipientIDKeys:     cyclic.NewInt(1),
-			PartialRecipientIDCypherText: cyclic.NewInt(1),
-		})
-		s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT) <- &decMsg
+		s.precompShareLastNode(input)
 	} else {
 		chIn := s.GetChannel(input.RoundID, globals.PRECOMP_SHARE)
 		// Iterate through the Slots in the PrecompShareMessage
@@ -43,8 +35,21 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 	}
 }
 
-func PrecompShareLastNode(input *pb.PrecompShareMessage) {
-
+func (s ServerImpl) precompShareLastNode(input *pb.PrecompShareMessage) {
+	// TODO For each node, set CypherPublicKey here to shareResult.PartialRoundPublicCypherKey
+	jww.INFO.Println("Beginning Decrypt Phase...")
+	decCh := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
+	// Iterate through the Slots in the PrecompShareMessage
+	for i := 0; i < len(input.Slots); i++ {
+		decMsg := services.Slot(&precomputation.SlotDecrypt{
+			Slot:                         uint64(i),
+			EncryptedMessageKeys:         cyclic.NewInt(1),
+			PartialMessageCypherText:     cyclic.NewInt(1),
+			EncryptedRecipientIDKeys:     cyclic.NewInt(1),
+			PartialRecipientIDCypherText: cyclic.NewInt(1),
+		})
+		decCh <- &decMsg
+	}
 }
 
 // TransmissionHandler for PrecompShareMessages
