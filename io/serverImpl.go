@@ -6,8 +6,12 @@ import (
 )
 
 // Address of the subsequent server in the config file
-// TODO move or remove this probably
+// TODO remove this in favor of a better system
 var NextServer string
+
+// Boolean value for whether we are the last server
+// TODO remove this in favor of a better system
+var IsLastNode bool
 
 // Struct implementing mixserver.ServerHandler interface
 type ServerImpl struct {
