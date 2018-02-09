@@ -131,10 +131,11 @@ func (s ServerImpl) NewRound() {
 		services.BatchTransmissionDispatch(roundId, batchSize,
 			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
 
-		jww.INFO.Println("Beginning Share Phase...")
+		jww.INFO.Println("Beginning PrecompShare Phase...")
 		shareMsg := services.Slot(&precomputation.SlotShare{
 			PartialRoundPublicCypherKey: globals.Grp.G})
-		precompShareController.InChannel <- &shareMsg
+		PrecompShareHandler{}.Handler(roundId, batchSize, []*services.Slot{&shareMsg})
+
 	}
 }
 

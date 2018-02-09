@@ -14,6 +14,10 @@ var NextServer string
 // TODO remove this in favor of a better system
 var IsLastNode bool
 
+// List of server addresses
+// TODO remove this please thanks
+var Servers []string
+
 // Struct implementing mixserver.ServerHandler interface
 type ServerImpl struct {
 	// Pointer to the global map of RoundID -> Rounds

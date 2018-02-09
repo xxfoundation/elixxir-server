@@ -19,7 +19,7 @@ func StartServer(serverIndex int) {
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
 
 	// Get all servers
-	servers := getServers()
+	io.Servers = getServers()
 
 	// TODO Generate globals.Grp somewhere intelligent
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
@@ -28,23 +28,25 @@ func StartServer(serverIndex int) {
 	globals.Grp = &grp
 
 	// Start mix servers on localServer
-	localServer := servers[serverIndex]
+	localServer := io.Servers[serverIndex]
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	// Kick off Comms server
-	go mixserver.StartServer(localServer, io.ServerImpl{Rounds: &globals.GlobalRoundMap})
+	go mixserver.StartServer(localServer, io.ServerImpl{
+		Rounds: &globals.GlobalRoundMap,
+	})
 
 	// TODO Replace these booleans with a better system
-	io.IsLastNode = serverIndex == len(servers)-1
-	io.NextServer = servers[(serverIndex+1)%len(servers)]
+	io.IsLastNode = serverIndex == len(io.Servers)-1
+	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 
 	// Block until we can reach every server
-	io.VerifyServersOnline(servers)
+	io.VerifyServersOnline(io.Servers)
 
 	if io.IsLastNode {
 		// Begin the round on all nodes
-		io.BeginNewRound(servers)
+		io.BeginNewRound(io.Servers)
 	}
 
 	// Main loop
