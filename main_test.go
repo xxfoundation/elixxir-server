@@ -1126,7 +1126,7 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 
 		// Check precomputation, note that these are currently expected to be
 		// wrong under permutation
-		MP, RP := ComputePrecomputation(group, rounds)
+		// MP, RP := ComputePrecomputation(group, rounds)
 
 		// if MP.Cmp(es.MessagePrecomputation) != 0 {
 		// 	fmt.Printf("Message Precomputation Incorrect! Expected: %s, "+
