@@ -34,16 +34,35 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 	}
 }
 
-// Convert Decrypt output slot to Permute input slot
-func decryptPermuteTranslate(roundId string, batchSize uint64, decryptSlots []*services.Slot) {
+// Convert the precompDecrypt messages to precompPermute messages and send them
+// to the first node
+func precompDecryptLastNode(roundId string, batchSize uint64,
+	input []*pb.PrecompDecryptSlot) {
 	jww.INFO.Println("Beginning PrecompPermute Phase...")
-	permuteSlots := make([]*services.Slot, len(decryptSlots))
-	for i := range decryptSlots {
-		is := precomputation.SlotPermute(*((*decryptSlots[i]).(*precomputation.SlotDecrypt)))
-		os := services.Slot(&is)
-		permuteSlots[i] = &os
+	// Create the PrecompDecryptMessage
+	msg := &pb.PrecompPermuteMessage{
+		RoundID: roundId,
+		Slots:   make([]*pb.PrecompDecryptSlot, batchSize),
 	}
-	PrecompPermuteHandler{}.Handler(roundId, batchSize, permuteSlots)
+
+	// Iterate over the output channel
+	for i := range input.Slots {
+		out := input.Slots[i]
+		// Convert to PrecompDecryptSlot
+		msgSlot := &pb.PrecompPermuteSlot{
+			Slot:                         out.Slot,
+			EncryptedMessageKeys:         out.EncryptedMessageKeys,
+			EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys,
+			PartialMessageCypherText:     out.PartialMessageCypherText,
+			PartialRecipientIDCypherText: out.PartialRecipientIDCypherText,
+		}
+
+		// Append the PrecompDecryptSlot to the PrecompDecryptMessage
+		msg.Slots[i] = msgSlot
+	}
+	// Send the completed PrecompDecryptMessage
+	jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
+	message.SendPrecompPermute(NextServer, msg)
 }
 
 // TransmissionHandler for PrecompDecryptMessages
@@ -74,7 +93,7 @@ func (h PrecompDecryptHandler) Handler(
 	// Send the completed PrecompDecryptMessage
 	jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
 	if IsLastNode {
-		decryptPermuteTranslate(roundId, batchSize, slots)
+		precompDecryptLastNode(roundId, batchSize, msg)
 	} else {
 		message.SendPrecompDecrypt(NextServer, msg)
 	}
