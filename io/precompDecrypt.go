@@ -61,7 +61,7 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 		msg.Slots[i] = msgSlot
 	}
 	// Send the completed PrecompDecryptMessage
-	jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
+	jww.INFO.Printf("Sending PrecompPermute Message to %v...", NextServer)
 	message.SendPrecompPermute(NextServer, msg)
 }
 
@@ -91,10 +91,10 @@ func (h PrecompDecryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 	// Send the completed PrecompDecryptMessage
-	jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
 	if IsLastNode {
 		precompDecryptLastNode(roundId, batchSize, msg)
 	} else {
+		jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
 		message.SendPrecompDecrypt(NextServer, msg)
 	}
 }
