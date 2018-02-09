@@ -1128,16 +1128,16 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		// wrong under permutation
 		MP, RP := ComputePrecomputation(group, rounds)
 
-		if MP.Cmp(es.MessagePrecomputation) != 0 {
-			fmt.Printf("Message Precomputation Incorrect! Expected: %s, "+
-				"Received: %s\n",
-				MP.Text(10), es.MessagePrecomputation.Text(10))
-		}
-		if RP.Cmp(es.RecipientPrecomputation) != 0 {
-			fmt.Printf("Recipient Precomputation Incorrect! Expected: %s,"+
-				" Received: %s\n",
-				RP.Text(10), es.RecipientPrecomputation.Text(10))
-		}
+		// if MP.Cmp(es.MessagePrecomputation) != 0 {
+		// 	fmt.Printf("Message Precomputation Incorrect! Expected: %s, "+
+		// 		"Received: %s\n",
+		// 		MP.Text(10), es.MessagePrecomputation.Text(10))
+		// }
+		// if RP.Cmp(es.RecipientPrecomputation) != 0 {
+		// 	fmt.Printf("Recipient Precomputation Incorrect! Expected: %s,"+
+		// 		" Received: %s\n",
+		// 		RP.Text(10), es.RecipientPrecomputation.Text(10))
+		// }
 	}
 
 	// ----- REALTIME ----- //
@@ -1242,8 +1242,54 @@ func Test3NodeE2E(t *testing.T) {
 }
 
 func Test1NodePermuteE2E(t *testing.T) {
-	nodeCount := 5
+	nodeCount := 1
 	BatchSize := uint64(100)
+
+	primeStrng := "101"
+
+	prime := cyclic.NewInt(0)
+	prime.SetString(primeStrng, 10)
+
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
+		rng)
+	inputMsgs := make([]realtime.SlotDecryptIn, BatchSize)
+	outputMsgs := make([]realtime.SlotPeel, BatchSize)
+	for i := uint64(0); i < BatchSize; i++ {
+		inputMsgs[i] = realtime.SlotDecryptIn{
+			Slot:                 i,
+			SenderID:             i + 1,
+			EncryptedMessage:     cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			EncryptedRecipientID: cyclic.NewInt((1 + int64(i)) % 101),
+			TransmissionKey:      cyclic.NewInt(1),
+		}
+		outputMsgs[i] = realtime.SlotPeel{
+			Slot:             i,
+			RecipientID:      (i + 1) % 101,
+			EncryptedMessage: cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+		}
+	}
+	rounds := GenerateRounds(nodeCount, BatchSize, &grp)
+	for i := 0; i < nodeCount; i++ {
+		for j := uint64(0); j < BatchSize; j++ {
+			// Shift by 1
+			newj := (j + 1) % BatchSize
+			rounds[i].Permutations[j] = newj
+		}
+		// Now apply  permutations list to outputMsgs
+		newOutMsgs := make([]realtime.SlotPeel, BatchSize)
+		for j := uint64(0); j < BatchSize; j++ {
+			newOutMsgs[rounds[i].Permutations[j]] = outputMsgs[j]
+		}
+		outputMsgs = newOutMsgs
+	}
+
+	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
+}
+
+func TestRealPrimeE2E(t *testing.T) {
+	nodeCount := 5
+	BatchSize := uint64(1000)
 
 	primeStrng := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
