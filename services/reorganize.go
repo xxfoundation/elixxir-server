@@ -22,10 +22,8 @@ func NewSlotReorganizer(chIn, chOut chan *Slot,
 
 	// Create buffer for holding the slots
 	slots := make([]*Slot, batchSize)
-	reorganizedSlots := make([]*Slot, batchSize)
 	sr := slotReorganizer{inChannel: chIn, outChannel: chOut,
-		quitChannel: chQuit, locker: 1, batchCounter: 0,
-		inSlots: slots, outSlots: reorganizedSlots}
+		quitChannel: chQuit, locker: 1, batchCounter: 0, slots: slots}
 
 	// Start the goroutine up
 	go sr.startSlotReorganizer()
@@ -41,11 +39,11 @@ func (sr *slotReorganizer) startSlotReorganizer() {
 
 	var killNotify chan<- bool
 
-	for sr.batchCounter < len(sr.inSlots) && !q {
+	for sr.batchCounter < len(sr.slots) && !q {
 		select {
 		case in := <-sr.inChannel:
 			// add a new slot in the batch
-			sr.inSlots[sr.batchCounter] = in
+			sr.slots[sr.batchCounter] = in
 			sr.batchCounter++
 		case killNotify = <-sr.quitChannel:
 			// start killing the goroutine
@@ -55,16 +53,15 @@ func (sr *slotReorganizer) startSlotReorganizer() {
 
 	// put the slots in order
 	if !q {
-		reorganizeSlots(sr.inSlots, sr.outSlots)
+		reorganizeSlots(sr.slots)
 
 		// send them out again
-		for i := 0; i < len(sr.outSlots); i++ {
-			sr.outChannel <- sr.outSlots[i]
+		for i := 0; i < len(sr.slots); i++ {
+			sr.outChannel <- sr.slots[i]
 		}
 	}
 
 	//close the channels
-	// close(sr.inChannel)
 	close(sr.outChannel)
 	close(sr.quitChannel)
 
@@ -78,10 +75,10 @@ func (sr *slotReorganizer) startSlotReorganizer() {
 }
 
 // Used to put the message slots in their permuted order after permute phase
-func reorganizeSlots(inSlots []*Slot, outSlots []*Slot) {
-	for i := 0; i < len(inSlots); i++ {
-		sid := (*inSlots[i]).SlotID()
-		outSlots[sid] = inSlots[i]
+func reorganizeSlots(slots []*Slot) {
+	for i := len(slots) - 2; i >= 0; i-- {
+		sid := (*slots[i]).SlotID()
+		slots[i], slots[sid] = slots[sid], slots[i]
 	}
 }
 
@@ -92,7 +89,6 @@ type slotReorganizer struct {
 	outChannel   chan *Slot
 	quitChannel  chan chan bool
 	batchCounter int
-	inSlots      []*Slot
-	outSlots     []*Slot
+	slots        []*Slot
 	locker       uint32
 }
