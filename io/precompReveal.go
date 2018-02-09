@@ -24,6 +24,8 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 			Slot: in.Slot,
 			PartialMessageCypherText: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
+			PartialRecipientCypherText: cyclic.NewIntFromBytes(
+				in.PartialRecipientCypherText),
 		}
 		// Pass slot as input to Reveal's channel
 		chIn <- &slot
@@ -65,7 +67,8 @@ func (h PrecompRevealHandler) Handler(
 		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
 			Slot: out.Slot,
-			PartialMessageCypherText: out.PartialMessageCypherText.Bytes(),
+			PartialMessageCypherText:   out.PartialMessageCypherText.Bytes(),
+			PartialRecipientCypherText: out.PartialRecipientCypherText.Bytes(),
 		}
 
 		// Put it into the slice

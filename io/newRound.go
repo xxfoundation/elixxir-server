@@ -121,6 +121,14 @@ func (s ServerImpl) NewRound() {
 		_ = <-precompGenerationController.OutChannel
 	}
 
+	jww.INFO.Printf("R Value: %v, S Value: %v, T Value: %v",
+		round.R_INV[0].Text(10),
+		round.S_INV[0].Text(10),
+		round.T_INV[0].Text(10))
+	jww.INFO.Printf("U Value: %v, V Value: %v",
+		round.U_INV[0].Text(10),
+		round.V_INV[0].Text(10))
+
 	if IsLastNode { // TODO better last node system
 		// Create the controller for RealtimeIdentify
 		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,

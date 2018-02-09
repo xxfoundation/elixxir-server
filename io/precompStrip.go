@@ -19,8 +19,10 @@ func (h PrecompStripHandler) Handler(
 		// Save the LastNode Precomputation
 		round.LastNode.MessagePrecomputation[i] = slot.MessagePrecomputation
 		round.LastNode.RecipientPrecomputation[i] = slot.RecipientPrecomputation
-		jww.DEBUG.Printf("MessagePrecomputation Result: %v", slot.MessagePrecomputation)
-		jww.DEBUG.Printf("RecipientPrecomputation Result: %v", slot.RecipientPrecomputation)
+		jww.INFO.Printf("MessagePrecomputation Result: %v",
+			slot.MessagePrecomputation.Text(10))
+		jww.INFO.Printf("RecipientPrecomputation Result: %v",
+			slot.RecipientPrecomputation.Text(10))
 	}
 	jww.INFO.Println("Precomputation Finished!")
 }

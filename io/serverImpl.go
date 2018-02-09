@@ -1,7 +1,6 @@
 package io
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -31,5 +30,5 @@ func (s ServerImpl) GetChannel(roundId string, chanId globals.Phase) chan<- *ser
 
 // Set the CypherPublicKey for the server to the given value
 func (s ServerImpl) SetPublicKey(roundId string, newKey []byte) {
-	s.Rounds.GetRound(roundId).CypherPublicKey.Set(cyclic.NewIntFromBytes(newKey))
+	s.Rounds.GetRound(roundId).CypherPublicKey.SetBytes(newKey)
 }

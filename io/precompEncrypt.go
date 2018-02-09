@@ -61,7 +61,7 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 		msg.Slots[i] = msgSlot
 	}
 
-	// Send the first PrecompReveal Message
+	// Send the first PrecompRevealMessage
 	jww.INFO.Printf("Sending PrecompReveal Message to %v...", NextServer)
 	message.SendPrecompReveal(NextServer, msg)
 }
