@@ -37,14 +37,13 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompRevealMessage) {
 	jww.INFO.Println("Beginning PrecompStrip Phase...")
 	// Create the SlotStripIn for sending into PrecompStrip
-	round := globals.GlobalRoundMap.GetRound(roundId)
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to SlotStripIn
 		var slot services.Slot = &precomputation.SlotStripIn{
 			Slot: out.Slot,
 			RoundMessagePrivateKey:   cyclic.NewIntFromBytes(out.PartialMessageCypherText),
-			RoundRecipientPrivateKey: round.LastNode.RecipientCypherText[i],
+			RoundRecipientPrivateKey: cyclic.NewIntFromBytes(out.PartialRecipientCypherText),
 		}
 		// Pass slot as input to Strip's channel
 		globals.GlobalRoundMap.GetRound(roundId).GetChannel(globals.PRECOMP_STRIP) <- &slot
