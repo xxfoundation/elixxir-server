@@ -31,7 +31,7 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 	}
 }
 
-func precompShareLastNode(input *pb.PrecompShareMessage) {
+func precompShareLastNode(roundId string, batchSize uint64, input *pb.PrecompShareMessage) {
 	// For each node, set CypherPublicKey to shareResult.PartialRoundPublicCypherKey
 	for i := range Servers {
 		message.SetPublicKey(Servers[i], &pb.PublicKeyMessage{
@@ -41,18 +41,26 @@ func precompShareLastNode(input *pb.PrecompShareMessage) {
 	}
 	// Kick off the PrecompDecrypt phase
 	jww.INFO.Println("Beginning PrecompDecrypt Phase...")
-	decCh := globals.GlobalRoundMap.GetRound(input.RoundID).GetChannel(globals.PRECOMP_DECRYPT)
-	// Iterate through the Slots in the PrecompShareMessage
-	for i := 0; i < len(input.Slots); i++ {
-		decMsg := services.Slot(&precomputation.SlotDecrypt{
-			Slot:                         uint64(i),
-			EncryptedMessageKeys:         cyclic.NewInt(1),
-			PartialMessageCypherText:     cyclic.NewInt(1),
-			EncryptedRecipientIDKeys:     cyclic.NewInt(1),
-			PartialRecipientIDCypherText: cyclic.NewInt(1),
-		})
-		decCh <- &decMsg
+
+	// Create the PrecompDecryptMessage
+	msg := &pb.PrecompDecryptMessage{
+		RoundID: roundId,
+		Slots:   make([]*pb.PrecompDecryptSlot, batchSize),
 	}
+
+	// Iterate over the output channel
+	for i := uint64(0); i < batchSize; i++ {
+		// Convert to PrecompDecryptSlot
+		msgSlot := &pb.PrecompDecryptSlot{
+			Slot:                         uint64(i),
+			EncryptedMessageKeys:         cyclic.NewInt(1).Bytes(),
+			PartialMessageCypherText:     cyclic.NewInt(1).Bytes(),
+			EncryptedRecipientIDKeys:     cyclic.NewInt(1).Bytes(),
+			PartialRecipientIDCypherText: cyclic.NewInt(1).Bytes(),
+		}
+		msg.Slots[i] = msgSlot
+	}
+	message.SendPrecompDecrypt(NextServer, msg)
 }
 
 // TransmissionHandler for PrecompShareMessages
@@ -81,7 +89,7 @@ func (h PrecompShareHandler) Handler(
 	// Send the completed PrecompShareMessage
 	jww.INFO.Printf("Sending PrecompShare Message to %v...", NextServer)
 	if IsLastNode {
-		precompShareLastNode(msg)
+		precompShareLastNode(roundId, batchSize, msg)
 	} else {
 		message.SendPrecompShare(NextServer, msg)
 	}

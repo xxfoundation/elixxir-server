@@ -16,36 +16,34 @@ type PrecompDecryptHandler struct{}
 // ReceptionHandler for PrecompDecryptMessages
 func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 	jww.INFO.Printf("Received PrecompDecrypt Message %v...", input.RoundID)
-	if IsLastNode {
-		//decryptPermuteTranslate()
-		return
-	} else {
-		// Get the input channel for the cryptop
-		chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
-		// Iterate through the Slots in the PrecompDecryptMessage
-		for i := 0; i < len(input.Slots); i++ {
-			// Convert input message to equivalent SlotDecrypt
-			in := input.Slots[i]
-			var slot services.Slot = &precomputation.SlotDecrypt{
-				Slot:                         in.Slot,
-				EncryptedMessageKeys:         cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
-				EncryptedRecipientIDKeys:     cyclic.NewIntFromBytes(in.EncryptedRecipientIDKeys),
-				PartialMessageCypherText:     cyclic.NewIntFromBytes(in.PartialMessageCypherText),
-				PartialRecipientIDCypherText: cyclic.NewIntFromBytes(in.PartialRecipientIDCypherText),
-			}
-			// Pass slot as input to Decrypt's channel
-			chIn <- &slot
+	// Get the input channel for the cryptop
+	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
+	// Iterate through the Slots in the PrecompDecryptMessage
+	for i := 0; i < len(input.Slots); i++ {
+		// Convert input message to equivalent SlotDecrypt
+		in := input.Slots[i]
+		var slot services.Slot = &precomputation.SlotDecrypt{
+			Slot:                         in.Slot,
+			EncryptedMessageKeys:         cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
+			EncryptedRecipientIDKeys:     cyclic.NewIntFromBytes(in.EncryptedRecipientIDKeys),
+			PartialMessageCypherText:     cyclic.NewIntFromBytes(in.PartialMessageCypherText),
+			PartialRecipientIDCypherText: cyclic.NewIntFromBytes(in.PartialRecipientIDCypherText),
 		}
+		// Pass slot as input to Decrypt's channel
+		chIn <- &slot
 	}
 }
 
 // Convert Decrypt output slot to Permute input slot
-func decryptPermuteTranslate(decrypt, permute chan *services.Slot) {
-	for decryptSlot := range decrypt {
-		is := precomputation.SlotPermute(*((*decryptSlot).(*precomputation.SlotDecrypt)))
-		sp := services.Slot(&is)
-		permute <- &sp
+func decryptPermuteTranslate(roundId string, batchSize uint64, decryptSlots []*services.Slot) {
+	jww.INFO.Println("Beginning PrecompPermute Phase...")
+	permuteSlots := make([]*services.Slot, len(decryptSlots))
+	for i := range decryptSlots {
+		is := precomputation.SlotPermute(*((*decryptSlots[i]).(*precomputation.SlotDecrypt)))
+		os := services.Slot(&is)
+		permuteSlots[i] = &os
 	}
+	PrecompPermuteHandler{}.Handler(roundId, batchSize, permuteSlots)
 }
 
 // TransmissionHandler for PrecompDecryptMessages
@@ -75,5 +73,9 @@ func (h PrecompDecryptHandler) Handler(
 	}
 	// Send the completed PrecompDecryptMessage
 	jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
-	message.SendPrecompDecrypt(NextServer, msg)
+	if IsLastNode {
+		decryptPermuteTranslate(roundId, batchSize, slots)
+	} else {
+		message.SendPrecompDecrypt(NextServer, msg)
+	}
 }
