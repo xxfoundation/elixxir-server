@@ -37,7 +37,7 @@ func StartServer(serverIndex int) {
 		Rounds: &globals.GlobalRoundMap,
 	})
 
-	// TODO Replace these booleans with a better system
+	// TODO Replace these concepts with a better system
 	io.IsLastNode = serverIndex == len(io.Servers)-1
 	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 

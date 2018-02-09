@@ -60,7 +60,7 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 		msg.Slots[i] = msgSlot
 	}
 
-	// Send the completed PrecompPermuteMessage
+	// Send the first PrecompPermute Message
 	jww.INFO.Printf("Sending PrecompPermute Message to %v...", NextServer)
 	message.SendPrecompPermute(NextServer, msg)
 }

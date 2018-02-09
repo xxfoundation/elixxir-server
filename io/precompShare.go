@@ -67,6 +67,7 @@ func precompShareLastNode(roundId string, batchSize uint64,
 	}
 
 	// Send first PrecompDecrypt Message
+	jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
 	message.SendPrecompDecrypt(NextServer, msg)
 }
 
