@@ -37,12 +37,12 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 // Convert the precompDecrypt messages to precompPermute messages and send them
 // to the first node
 func precompDecryptLastNode(roundId string, batchSize uint64,
-	input []*pb.PrecompDecryptSlot) {
+	input *pb.PrecompDecryptMessage) {
 	jww.INFO.Println("Beginning PrecompPermute Phase...")
 	// Create the PrecompDecryptMessage
 	msg := &pb.PrecompPermuteMessage{
 		RoundID: roundId,
-		Slots:   make([]*pb.PrecompDecryptSlot, batchSize),
+		Slots:   make([]*pb.PrecompPermuteSlot, batchSize),
 	}
 
 	// Iterate over the output channel

@@ -34,6 +34,7 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 func precompRevealLastNode(roundID string, batchSize uint64,
 	slots []*pb.PrecompRevealSlot) {
 	// Create the PrecompEncryptMessage for sending
+	/* We need to set up the following for it to work..
 	msg := &pb.PrecompStripMessage{
 		RoundID: roundID,
 		Slots:   make([]*pb.PrecompStripSlot, batchSize),
@@ -55,6 +56,8 @@ func precompRevealLastNode(roundID string, batchSize uint64,
 	jww.INFO.Printf("Sending PrecompStrip Message to %v...",
 		Servers[len(Servers-1)])
 	message.SendPrecompStrip(Servers[len(Servers-1)], msg)
+*/
+	return
 }
 
 // TransmissionHandler for PrecompRevealMessages

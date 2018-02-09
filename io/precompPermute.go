@@ -41,17 +41,17 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 // Save the recipient cyphertext and the encrypted recipient precomputation,
 // Send the encrypted message keys and partial message cypher text to the first
 // nodes Encrypt handler
-func precompPermuteLastNode(roundID string, batchSize uint64,
-	slots []*pb.PrecompPermuteSlot) {
+func precompPermuteLastNode(roundId string, batchSize uint64,
+	input *pb.PrecompPermuteMessage) {
 	// Create the PrecompEncryptMessage for sending
 	msg := &pb.PrecompEncryptMessage{
-		RoundID: roundID,
+		RoundID: roundId,
 		Slots:   make([]*pb.PrecompEncryptSlot, batchSize),
 	}
 
-	round := globals.GlobalRoundMap.GetRound(roundIdD)
+	round := globals.GlobalRoundMap.GetRound(roundId)
 	for i := uint64(0); i < batchSize; i++ {
-		out := slots[i]
+		out := input.Slots[i]
 		// Convert to PrecompEncryptSlot
 		msgSlot := &pb.PrecompEncryptSlot{
 			Slot:                         out.Slot,
@@ -100,7 +100,7 @@ func (h PrecompPermuteHandler) Handler(
 	}
 	// Send the completed PrecompPermuteMessage
 	if IsLastNode {
-		precompPermuteLastNode(roundId, batchSize, msg)
+		precompPermuteLastNode(roundID, batchSize, msg)
 	} else {
 		jww.INFO.Printf("Sending PrecompPermute Message to %v...", NextServer)
 		message.SendPrecompPermute(NextServer, msg)

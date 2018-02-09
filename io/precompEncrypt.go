@@ -33,21 +33,21 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 }
 
 func precompEncryptLastNode(roundId string, batchSize uint64,
-	slots []*pb.PrecompEncryptSlot) {
+	input *pb.PrecompEncryptMessage) {
 	// Create the PrecompEncryptMessage for sending
 	msg := &pb.PrecompRevealMessage{
-		RoundID: roundID,
+		RoundID: roundId,
 		Slots:   make([]*pb.PrecompRevealSlot, batchSize),
 	}
 
-	round := globals.GlobalRoundMap.GetRound(roundIdD)
+	round := globals.GlobalRoundMap.GetRound(roundId)
 	for i := uint64(0); i < batchSize; i++ {
-		out := slots[i]
+		out := input.Slots[i]
 		// Convert to PrecompPermuteSlot
 		msgSlot := &pb.PrecompRevealSlot{
-			Slot:                         out.Slot,
-			PartialMessageCypherText:     out.PartialMessageCypherText,
-			PartialRecipientCypherText:   round.LastNode.RecipientCypherText[i],
+			Slot:                       out.Slot,
+			PartialMessageCypherText:   out.PartialMessageCypherText,
+			PartialRecipientCypherText: round.LastNode.RecipientCypherText[i].Bytes(),
 		}
 
 		// Save the Message Precomputation
