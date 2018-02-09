@@ -131,11 +131,19 @@ func (s ServerImpl) NewRound() {
 		services.BatchTransmissionDispatch(roundId, batchSize,
 			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
 
+		// Create the controller for PrecompStrip
+		precompStripController := services.DispatchCryptop(globals.Grp,
+			precomputation.Strip{}, nil, nil, round)
+		// Add the InChannel from the controller to round
+		round.AddChannel(globals.PRECOMP_STRIP, precompStripController.InChannel)
+		// Kick off PrecompStrip Transmission Handler
+		services.BatchTransmissionDispatch(roundId, batchSize,
+			precompStripController.OutChannel, PrecompStripHandler{})
+
 		jww.INFO.Println("Beginning PrecompShare Phase...")
 		shareMsg := services.Slot(&precomputation.SlotShare{
 			PartialRoundPublicCypherKey: globals.Grp.G})
 		PrecompShareHandler{}.Handler(roundId, batchSize, []*services.Slot{&shareMsg})
-
 	}
 }
 

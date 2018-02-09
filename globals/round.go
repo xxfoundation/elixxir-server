@@ -20,9 +20,9 @@ type LastNode struct {
 
 	// These are technically temp values, representing recipient info
 	// Encrypted under homomorphic encryption that later get revealed
-	RecipientCypherText []*cyclic.Int
+	RecipientCypherText              []*cyclic.Int
 	EncryptedRecipientPrecomputation []*cyclic.Int
-	EncryptedMessagePrecomputation []*cyclic.Int
+	EncryptedMessagePrecomputation   []*cyclic.Int
 }
 
 // Round contains the keys and permutations for a given message batch
@@ -116,7 +116,6 @@ func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
 	return newRound(batchSize, p)
 }
 
-
 // Returns a copy of the current phase
 func (round *Round) GetPhase() Phase {
 	round.phaseLock.Lock()
@@ -186,8 +185,8 @@ func newRound(batchSize uint64, p Phase) *Round {
 
 		BatchSize: batchSize}
 
-	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
-	NR.Z.SetBytes(cyclic.Max4kBitInt)
+	NR.CypherPublicKey = cyclic.NewMaxInt()
+	NR.Z = cyclic.NewMaxInt()
 
 	for i := uint64(0); i < batchSize; i++ {
 		NR.R[i] = cyclic.NewMaxInt()
