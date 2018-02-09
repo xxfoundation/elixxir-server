@@ -52,7 +52,7 @@ func precompPermuteLastNode(roundID string, batchSize uint64,
 	round := globals.GlobalRoundMap.GetRound(roundIdD)
 	for i := uint64(0); i < batchSize; i++ {
 		out := slots[i]
-		// Convert to PrecompPermuteSlot
+		// Convert to PrecompEncryptSlot
 		msgSlot := &pb.PrecompEncryptSlot{
 			Slot:                         out.Slot,
 			EncryptedMessageKeys:         out.EncryptedMessageKeys,
@@ -65,10 +65,9 @@ func precompPermuteLastNode(roundID string, batchSize uint64,
 		round.LastNode.EncryptedRecipientPrecomputation[i].SetBytes(
 			out.EncryptedRecipientIDKeys)
 
-		// Append the PrecompPermuteSlot to the PrecompPermuteMessage
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed PrecompPermuteMessage
+	// Send the completed PrecompEncryptMessage
 	jww.INFO.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
 	message.SendPrecompEncrypt(NextServer, msg)
 

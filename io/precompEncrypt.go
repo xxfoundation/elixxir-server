@@ -32,6 +32,36 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 	}
 }
 
+func precompEncryptLastNode(roundId string, batchSize uint64,
+	slots []*pb.PrecompEncryptSlot) {
+	// Create the PrecompEncryptMessage for sending
+	msg := &pb.PrecompRevealMessage{
+		RoundID: roundID,
+		Slots:   make([]*pb.PrecompRevealSlot, batchSize),
+	}
+
+	round := globals.GlobalRoundMap.GetRound(roundIdD)
+	for i := uint64(0); i < batchSize; i++ {
+		out := slots[i]
+		// Convert to PrecompPermuteSlot
+		msgSlot := &pb.PrecompRevealSlot{
+			Slot:                         out.Slot,
+			PartialMessageCypherText:     out.PartialMessageCypherText,
+			PartialRecipientCypherText:   round.LastNode.RecipientCypherText[i],
+		}
+
+		// Save the Message Precomputation
+		round.LastNode.EncryptedMessagePrecomputation[i].SetBytes(
+			out.EncryptedMessageKeys)
+
+		// Append the PrecompPermuteSlot to the PrecompPermuteMessage
+		msg.Slots[i] = msgSlot
+	}
+	// Send the completed PrecompPermuteMessage
+	jww.INFO.Printf("Sending PrecompReveal Message to %v...", NextServer)
+	message.SendPrecompReveal(NextServer, msg)
+}
+
 // TransmissionHandler for PrecompEncryptMessages
 func (h PrecompEncryptHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
@@ -56,6 +86,10 @@ func (h PrecompEncryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 	// Send the completed PrecompEncryptMessage
-	jww.INFO.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
-	message.SendPrecompEncrypt(NextServer, msg)
+	if IsLastNode {
+		precompEncryptLastNode(roundId, batchSize, msg)
+	} else {
+		jww.INFO.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
+		message.SendPrecompEncrypt(NextServer, msg)
+	}
 }

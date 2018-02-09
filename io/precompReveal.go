@@ -30,6 +30,33 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 	}
 }
 
+// Convert the Reveal message to a Strip message and send to the last node
+func precompRevealLastNode(roundID string, batchSize uint64,
+	slots []*pb.PrecompRevealSlot) {
+	// Create the PrecompEncryptMessage for sending
+	msg := &pb.PrecompStripMessage{
+		RoundID: roundID,
+		Slots:   make([]*pb.PrecompStripSlot, batchSize),
+	}
+
+	round := globals.GlobalRoundMap.GetRound(roundIdD)
+	for i := uint64(0); i < batchSize; i++ {
+		out := slots[i]
+		// Convert to PrecompStripSlot
+		msgSlot := &pb.PrecompStripSlot{
+			Slot:                         out.Slot,
+			RoundMessagePrivateKey:       out.PartialMessageCypherText,
+			RoundRecipientPrivateKey:     out.PartialRecipientCypherText,
+		}
+
+		msg.Slots[i] = msgSlot
+	}
+	// Send the completed PrecompStripMessage
+	jww.INFO.Printf("Sending PrecompStrip Message to %v...",
+		Servers[len(Servers-1)])
+	message.SendPrecompStrip(Servers[len(Servers-1)], msg)
+}
+
 // TransmissionHandler for PrecompRevealMessages
 func (h PrecompRevealHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
