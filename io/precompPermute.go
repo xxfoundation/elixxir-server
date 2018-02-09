@@ -41,8 +41,10 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 // Save the recipient cyphertext and the encrypted recipient precomputation,
 // Send the encrypted message keys and partial message cypher text to the first
 // nodes Encrypt handler
+// Transition to PrecompEncrypt phase on the last node
 func precompPermuteLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompPermuteMessage) {
+	jww.INFO.Println("Beginning PrecompEncrypt Phase...")
 	// Create the PrecompEncryptMessage for sending
 	msg := &pb.PrecompEncryptMessage{
 		RoundID: roundId,
@@ -50,13 +52,14 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 	}
 
 	round := globals.GlobalRoundMap.GetRound(roundId)
+	// Iterate over the input slots
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to PrecompEncryptSlot
 		msgSlot := &pb.PrecompEncryptSlot{
-			Slot:                         out.Slot,
-			EncryptedMessageKeys:         out.EncryptedMessageKeys,
-			PartialMessageCypherText:     out.PartialMessageCypherText,
+			Slot:                     out.Slot,
+			EncryptedMessageKeys:     out.EncryptedMessageKeys,
+			PartialMessageCypherText: out.PartialMessageCypherText,
 		}
 
 		// Save the Recipient ID CypherText and Precomputation
@@ -65,12 +68,13 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 		round.LastNode.EncryptedRecipientPrecomputation[i].SetBytes(
 			out.EncryptedRecipientIDKeys)
 
+		// Append the PrecompEncryptSlot to the PrecompEncryptMessage
 		msg.Slots[i] = msgSlot
 	}
+
 	// Send the completed PrecompEncryptMessage
 	jww.INFO.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
 	message.SendPrecompEncrypt(NextServer, msg)
-
 }
 
 // TransmissionHandler for PrecompPermuteMessages
@@ -98,10 +102,12 @@ func (h PrecompPermuteHandler) Handler(
 		// Append the PrecompPermuteSlot to the PrecompPermuteMessage
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed PrecompPermuteMessage
+
 	if IsLastNode {
+		// Transition to PrecompEncrypt phase
 		precompPermuteLastNode(roundID, batchSize, msg)
 	} else {
+		// Send the completed PrecompPermuteMessage
 		jww.INFO.Printf("Sending PrecompPermute Message to %v...", NextServer)
 		message.SendPrecompPermute(NextServer, msg)
 	}

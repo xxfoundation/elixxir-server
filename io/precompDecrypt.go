@@ -34,21 +34,20 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 	}
 }
 
-// Convert the precompDecrypt messages to precompPermute messages and send them
-// to the first node
+// Transition to PrecompPermute phase on the last node
 func precompDecryptLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompDecryptMessage) {
 	jww.INFO.Println("Beginning PrecompPermute Phase...")
-	// Create the PrecompDecryptMessage
+	// Create the PrecompPermuteMessage
 	msg := &pb.PrecompPermuteMessage{
 		RoundID: roundId,
 		Slots:   make([]*pb.PrecompPermuteSlot, batchSize),
 	}
 
-	// Iterate over the output channel
+	// Iterate over the input slots
 	for i := range input.Slots {
 		out := input.Slots[i]
-		// Convert to PrecompDecryptSlot
+		// Convert to PrecompPermuteSlot
 		msgSlot := &pb.PrecompPermuteSlot{
 			Slot:                         out.Slot,
 			EncryptedMessageKeys:         out.EncryptedMessageKeys,
@@ -57,10 +56,11 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 			PartialRecipientIDCypherText: out.PartialRecipientIDCypherText,
 		}
 
-		// Append the PrecompDecryptSlot to the PrecompDecryptMessage
+		// Append the PrecompPermuteSlot to the PrecompPermuteMessage
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed PrecompDecryptMessage
+
+	// Send the completed PrecompPermuteMessage
 	jww.INFO.Printf("Sending PrecompPermute Message to %v...", NextServer)
 	message.SendPrecompPermute(NextServer, msg)
 }
@@ -90,8 +90,10 @@ func (h PrecompDecryptHandler) Handler(
 		// Append the PrecompDecryptSlot to the PrecompDecryptMessage
 		msg.Slots[i] = msgSlot
 	}
+
 	// Send the completed PrecompDecryptMessage
 	if IsLastNode {
+		// Transition to PrecompPermute phase
 		precompDecryptLastNode(roundId, batchSize, msg)
 	} else {
 		jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)

@@ -31,10 +31,12 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 	}
 }
 
+// Transition to PrecompDecrypt phase on the last node
 func precompShareLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompShareMessage) {
 	// For each node, set CypherPublicKey to
 	// shareResult.PartialRoundPublicCypherKey
+	jww.INFO.Println("Setting node Public Keys...")
 	for i := range Servers {
 		message.SetPublicKey(Servers[i], &pb.PublicKeyMessage{
 			RoundID:   input.RoundID,
@@ -51,7 +53,7 @@ func precompShareLastNode(roundId string, batchSize uint64,
 		Slots:   make([]*pb.PrecompDecryptSlot, batchSize),
 	}
 
-	// Iterate over the output channel
+	// Iterate over the input slots
 	for i := uint64(0); i < batchSize; i++ {
 		// Convert to PrecompDecryptSlot
 		msgSlot := &pb.PrecompDecryptSlot{
@@ -63,6 +65,8 @@ func precompShareLastNode(roundId string, batchSize uint64,
 		}
 		msg.Slots[i] = msgSlot
 	}
+
+	// Send first PrecompDecrypt Message
 	message.SendPrecompDecrypt(NextServer, msg)
 }
 
@@ -89,11 +93,13 @@ func (h PrecompShareHandler) Handler(
 		// Put it into the slice
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed PrecompShareMessage
-	jww.INFO.Printf("Sending PrecompShare Message to %v...", NextServer)
+
 	if IsLastNode {
+		// Transition to PrecompDecrypt phase
 		precompShareLastNode(roundId, batchSize, msg)
 	} else {
+		// Send the completed PrecompShareMessage
+		jww.INFO.Printf("Sending PrecompShare Message to %v...", NextServer)
 		message.SendPrecompShare(NextServer, msg)
 	}
 }

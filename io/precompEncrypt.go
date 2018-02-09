@@ -32,20 +32,23 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 	}
 }
 
+// Transition to PrecompReveal phase on the last node
 func precompEncryptLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompEncryptMessage) {
-	// Create the PrecompEncryptMessage for sending
+	jww.INFO.Println("Beginning PrecompReveal Phase...")
+	// Create the PrecompRevealMessage for sending
 	msg := &pb.PrecompRevealMessage{
 		RoundID: roundId,
 		Slots:   make([]*pb.PrecompRevealSlot, batchSize),
 	}
 
 	round := globals.GlobalRoundMap.GetRound(roundId)
+	// Iterate over the input slots
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
-		// Convert to PrecompPermuteSlot
+		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
-			Slot:                       out.Slot,
+			Slot: out.Slot,
 			PartialMessageCypherText:   out.PartialMessageCypherText,
 			PartialRecipientCypherText: round.LastNode.RecipientCypherText[i].Bytes(),
 		}
@@ -54,10 +57,11 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 		round.LastNode.EncryptedMessagePrecomputation[i].SetBytes(
 			out.EncryptedMessageKeys)
 
-		// Append the PrecompPermuteSlot to the PrecompPermuteMessage
+		// Append the PrecompRevealSlot to the PrecompRevealMessage
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed PrecompPermuteMessage
+
+	// Send the completed PrecompRevealMessage
 	jww.INFO.Printf("Sending PrecompReveal Message to %v...", NextServer)
 	message.SendPrecompReveal(NextServer, msg)
 }
@@ -85,10 +89,12 @@ func (h PrecompEncryptHandler) Handler(
 		// Put it into the slice
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed PrecompEncryptMessage
+
 	if IsLastNode {
+		// Transition to PrecompReveal phase
 		precompEncryptLastNode(roundId, batchSize, msg)
 	} else {
+		// Send the completed PrecompEncryptMessage
 		jww.INFO.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
 		message.SendPrecompEncrypt(NextServer, msg)
 	}
