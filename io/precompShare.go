@@ -31,14 +31,17 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 	}
 }
 
-func precompShareLastNode(roundId string, batchSize uint64, input *pb.PrecompShareMessage) {
-	// For each node, set CypherPublicKey to shareResult.PartialRoundPublicCypherKey
+func precompShareLastNode(roundId string, batchSize uint64,
+	input *pb.PrecompShareMessage) {
+	// For each node, set CypherPublicKey to
+	// shareResult.PartialRoundPublicCypherKey
 	for i := range Servers {
 		message.SetPublicKey(Servers[i], &pb.PublicKeyMessage{
 			RoundID:   input.RoundID,
 			PublicKey: input.Slots[0].PartialRoundPublicCypherKey,
 		})
 	}
+
 	// Kick off the PrecompDecrypt phase
 	jww.INFO.Println("Beginning PrecompDecrypt Phase...")
 
