@@ -12,14 +12,13 @@ import (
 // Blank struct for implementing services.BatchTransmission
 type RealtimeIdentifyHandler struct{}
 
-// Keep track of EncryptedMessages from RealtimePermute
-// TODO Possibly remove this when we harmonize message types
-var encryptedMessages []*cyclic.Int
-
 // TransmissionHandler for RealtimeIdentifyMessages
 func (h RealtimeIdentifyHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	jww.INFO.Println("Beginning RealtimeEncrypt Phase...")
+	// Get round and channel
+	round := globals.GlobalRoundMap.GetRound(roundId)
+	encryptChannel := round.GetChannel(globals.REAL_ENCRYPT)
 	// Create the SlotEncryptIn for sending into RealtimeEncrypt
 	for i := uint64(0); i < batchSize; i++ {
 		out := (*slots[i]).(*realtime.SlotIdentify)
@@ -28,10 +27,10 @@ func (h RealtimeIdentifyHandler) Handler(
 		var slot services.Slot = &realtime.SlotEncryptIn{
 			Slot:             out.Slot,
 			RecipientID:      rID,
-			EncryptedMessage: encryptedMessages[i],
+			EncryptedMessage: round.LastNode.EncryptedMessage[i],
 			ReceptionKey:     cyclic.NewInt(1),
 		}
 		// Pass slot as input to Encrypt's channel
-		globals.GlobalRoundMap.GetRound(roundId).GetChannel(globals.REAL_ENCRYPT) <- &slot
+		encryptChannel <- &slot
 	}
 }

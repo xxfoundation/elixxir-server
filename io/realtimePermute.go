@@ -15,6 +15,7 @@ type RealtimePermuteHandler struct{}
 
 // ReceptionHandler for RealtimePermuteMessages
 func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
+	jww.DEBUG.Printf("Received RealtimePermute Message %v...", input.RoundID)
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
@@ -37,6 +38,9 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 func realtimePermuteLastNode(roundId string, batchSize uint64,
 	input *pb.RealtimePermuteMessage) {
 	jww.INFO.Println("Beginning RealtimeIdentify Phase...")
+	// Get round and channel
+	round := globals.GlobalRoundMap.GetRound(roundId)
+	identifyChannel := round.GetChannel(globals.REAL_IDENTIFY)
 	// Create the SlotIdentify for sending into RealtimeIdentify
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
@@ -46,10 +50,9 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 			EncryptedRecipientID: cyclic.NewIntFromBytes(out.EncryptedRecipientID),
 		}
 		// Save EncryptedMessages for the Identify->Encrypt transition
-		// TODO Remove this when we harmonize message types
-		encryptedMessages[i] = cyclic.NewIntFromBytes(out.EncryptedMessage)
+		round.LastNode.EncryptedMessage[i] = cyclic.NewIntFromBytes(out.EncryptedMessage)
 		// Pass slot as input to Identify's channel
-		globals.GlobalRoundMap.GetRound(roundId).GetChannel(globals.REAL_IDENTIFY) <- &slot
+		identifyChannel <- &slot
 	}
 }
 
@@ -82,7 +85,7 @@ func (h RealtimePermuteHandler) Handler(
 		realtimePermuteLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed RealtimePermuteMessage
-		jww.INFO.Printf("Sending RealtimePermute Message to %v...", NextServer)
+		jww.DEBUG.Printf("Sending RealtimePermute Message to %v...", NextServer)
 		message.SendRealtimePermute(NextServer, msg)
 	}
 }

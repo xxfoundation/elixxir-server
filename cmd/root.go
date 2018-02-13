@@ -94,6 +94,9 @@ func initLog() {
 	if viper.Get("logPath") != nil {
 		// If verbose flag set then log more info for debugging
 		if verbose || viper.GetBool("verbose") {
+			jww.SetLogThreshold(jww.LevelDebug)
+			jww.SetStdoutThreshold(jww.LevelDebug)
+		} else {
 			jww.SetLogThreshold(jww.LevelInfo)
 			jww.SetStdoutThreshold(jww.LevelInfo)
 		}

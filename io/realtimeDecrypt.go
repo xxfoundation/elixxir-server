@@ -15,6 +15,7 @@ type RealtimeDecryptHandler struct{}
 
 // ReceptionHandler for RealtimeDecryptMessages
 func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
+	jww.DEBUG.Printf("Received RealtimeDecrypt Message %v...", input.RoundID)
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_DECRYPT)
 	// Iterate through the Slots in the RealtimeDecryptMessage
@@ -58,7 +59,7 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 	}
 
 	// Send the first RealtimePermute Message
-	jww.INFO.Printf("Sending RealtimePermute Message to %v...", NextServer)
+	jww.DEBUG.Printf("Sending RealtimePermute Message to %v...", NextServer)
 	message.SendRealtimePermute(NextServer, msg)
 }
 
@@ -92,7 +93,36 @@ func (h RealtimeDecryptHandler) Handler(
 		realtimeDecryptLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed RealtimeDecryptMessage
-		jww.INFO.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
+		jww.DEBUG.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
 		message.SendRealtimeDecrypt(NextServer, msg)
 	}
+}
+
+// Kickoff for RealtimeDecryptMessages
+// TODO Remove this duplication
+func KickoffDecryptHandler(roundId string, batchSize uint64, slots []*services.Slot) {
+	// Create the RealtimeDecryptMessage
+	msg := &pb.RealtimeDecryptMessage{
+		RoundID: roundId,
+		Slots:   make([]*pb.RealtimeDecryptSlot, batchSize),
+	}
+
+	// Iterate over the output channel
+	for i := uint64(0); i < batchSize; i++ {
+		// Type assert Slot to SlotDecrypt
+		out := (*slots[i]).(*realtime.SlotDecryptOut)
+		// Convert to RealtimeDecryptSlot
+		msgSlot := &pb.RealtimeDecryptSlot{
+			Slot:                 out.Slot,
+			SenderID:             out.SenderID,
+			EncryptedMessage:     out.EncryptedMessage.Bytes(),
+			EncryptedRecipientID: out.EncryptedRecipientID.Bytes(),
+		}
+
+		// Append the RealtimeDecryptSlot to the RealtimeDecryptMessage
+		msg.Slots[i] = msgSlot
+	}
+	// Send the completed RealtimeDecryptMessage
+	jww.DEBUG.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
+	message.SendRealtimeDecrypt(NextServer, msg)
 }

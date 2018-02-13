@@ -15,7 +15,7 @@ type PrecompDecryptHandler struct{}
 
 // ReceptionHandler for PrecompDecryptMessages
 func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
-	jww.INFO.Printf("Received PrecompDecrypt Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received PrecompDecrypt Message %v...", input.RoundID)
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
 	// Iterate through the Slots in the PrecompDecryptMessage
@@ -61,7 +61,7 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 	}
 
 	// Send the first PrecompPermute Message
-	jww.INFO.Printf("Sending PrecompPermute Message to %v...", NextServer)
+	jww.DEBUG.Printf("Sending PrecompPermute Message to %v...", NextServer)
 	message.SendPrecompPermute(NextServer, msg)
 }
 
@@ -96,7 +96,7 @@ func (h PrecompDecryptHandler) Handler(
 		precompDecryptLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed PrecompDecryptMessage
-		jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
+		jww.DEBUG.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
 		message.SendPrecompDecrypt(NextServer, msg)
 	}
 }
