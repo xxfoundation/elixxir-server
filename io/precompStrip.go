@@ -37,7 +37,7 @@ func (h PrecompStripHandler) Handler(
 func StartRealtime(roundId string, batchSize uint64) {
 	// TODO Place transition logic here
 	testText := []byte("Hello, world!")
-	jww.DEBUG.Printf("RealtimePeel EncryptedMessage Input: %s", testText)
+	jww.DEBUG.Printf("EncryptedMessage Input: %s", testText)
 	inputMsg := services.Slot(&realtime.SlotDecryptOut{
 		Slot:                 0,
 		SenderID:             1,

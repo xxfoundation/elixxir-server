@@ -15,7 +15,7 @@ func (h RealtimePeelHandler) Handler(
 	// Retrieve the EncryptedMessage
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*realtime.SlotPeel)
-		jww.DEBUG.Printf("RealtimePeel EncryptedMessage Result: %s",
+		jww.DEBUG.Printf("EncryptedMessage Result: %s",
 			slot.EncryptedMessage.Bytes())
 	}
 	jww.INFO.Println("Realtime Finished!")

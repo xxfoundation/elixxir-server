@@ -26,7 +26,7 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 			Slot:             in.Slot,
 			RecipientID:      in.RecipientID,
 			EncryptedMessage: cyclic.NewIntFromBytes(in.EncryptedMessage),
-			ReceptionKey:     cyclic.NewMaxInt(),
+			ReceptionKey:     cyclic.NewInt(1),
 		}
 		// Pass slot as input to Encrypt's channel
 		chIn <- &slot
