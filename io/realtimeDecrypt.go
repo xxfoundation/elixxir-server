@@ -33,6 +33,35 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	}
 }
 
+// Transition to RealtimePermute phase on the last node
+func realtimeDecryptLastNode(roundId string, batchSize uint64,
+	input *pb.RealtimeDecryptMessage) {
+	jww.INFO.Println("Beginning RealtimePermute Phase...")
+	// Create the RealtimePermuteMessage
+	msg := &pb.RealtimePermuteMessage{
+		RoundID: roundId,
+		Slots:   make([]*pb.RealtimePermuteSlot, batchSize),
+	}
+
+	// Iterate over the input slots
+	for i := range input.Slots {
+		out := input.Slots[i]
+		// Convert to RealtimePermuteSlot
+		msgSlot := &pb.RealtimePermuteSlot{
+			Slot:                 out.Slot,
+			EncryptedMessage:     out.EncryptedMessage,
+			EncryptedRecipientID: out.EncryptedRecipientID,
+		}
+
+		// Append the RealtimePermuteSlot to the RealtimePermuteMessage
+		msg.Slots[i] = msgSlot
+	}
+
+	// Send the first RealtimePermute Message
+	jww.INFO.Printf("Sending RealtimePermute Message to %v...", NextServer)
+	message.SendRealtimePermute(NextServer, msg)
+}
+
 // TransmissionHandler for RealtimeDecryptMessages
 func (h RealtimeDecryptHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
@@ -57,7 +86,13 @@ func (h RealtimeDecryptHandler) Handler(
 		// Append the RealtimeDecryptSlot to the RealtimeDecryptMessage
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed RealtimeDecryptMessage
-	jww.INFO.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
-	message.SendRealtimeDecrypt(NextServer, msg)
+
+	if IsLastNode {
+		// Transition to RealtimePermute phase
+		realtimeDecryptLastNode(roundId, batchSize, msg)
+	} else {
+		// Send the completed RealtimeDecryptMessage
+		jww.INFO.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
+		message.SendRealtimeDecrypt(NextServer, msg)
+	}
 }

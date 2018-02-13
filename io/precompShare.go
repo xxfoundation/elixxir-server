@@ -95,7 +95,7 @@ func (h PrecompShareHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
-	// Returns whether this is the first time Share is being run
+	// Returns whether this is the first time Share is being run TODO Something better
 	IsFirstRun := (*slots[0]).(*precomputation.SlotShare).PartialRoundPublicCypherKey.Cmp(globals.Grp.G) == 0
 	if IsLastNode && !IsFirstRun {
 		// Transition to PrecompDecrypt phase

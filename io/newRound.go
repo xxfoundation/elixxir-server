@@ -21,7 +21,7 @@ func (s ServerImpl) NewRound() {
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 	// Initialize the LastNode struct for the round
-	if IsLastNode { // TODO better last node system
+	if IsLastNode {
 		globals.InitLastNode(round)
 	}
 
@@ -121,15 +121,16 @@ func (s ServerImpl) NewRound() {
 		_ = <-precompGenerationController.OutChannel
 	}
 
-	jww.INFO.Printf("R Value: %v, S Value: %v, T Value: %v",
+	// Generate debugging information
+	jww.DEBUG.Printf("R Value: %v, S Value: %v, T Value: %v",
 		round.R_INV[0].Text(10),
 		round.S_INV[0].Text(10),
 		round.T_INV[0].Text(10))
-	jww.INFO.Printf("U Value: %v, V Value: %v",
+	jww.DEBUG.Printf("U Value: %v, V Value: %v",
 		round.U_INV[0].Text(10),
 		round.V_INV[0].Text(10))
 
-	if IsLastNode { // TODO better last node system
+	if IsLastNode {
 		// Create the controller for RealtimeIdentify
 		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
 			realtime.Identify{}, nil, nil, round)
@@ -138,6 +139,12 @@ func (s ServerImpl) NewRound() {
 		// Kick off RealtimeIdentify Transmission Handler
 		services.BatchTransmissionDispatch(roundId, batchSize,
 			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
+
+		// Create the controller for RealtimePeel
+		realtimePeelController := services.DispatchCryptop(globals.Grp,
+			realtime.Peel{}, nil, nil, round)
+		// Add the InChannel from the controller to round
+		round.AddChannel(globals.REAL_PEEL, realtimePeelController.InChannel)
 
 		// Create the controller for PrecompStrip
 		precompStripController := services.DispatchCryptop(globals.Grp,
@@ -153,6 +160,10 @@ func (s ServerImpl) NewRound() {
 			PartialRoundPublicCypherKey: globals.Grp.G})
 		PrecompShareHandler{}.Handler(roundId, batchSize, []*services.Slot{&shareMsg})
 	}
+
+	// TODO remove
+	time.Sleep(5 * time.Second)
+
 }
 
 // Blocks until all given servers begin a new round

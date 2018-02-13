@@ -91,11 +91,11 @@ func (h PrecompDecryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
-	// Send the completed PrecompDecryptMessage
 	if IsLastNode {
 		// Transition to PrecompPermute phase
 		precompDecryptLastNode(roundId, batchSize, msg)
 	} else {
+		// Send the completed PrecompDecryptMessage
 		jww.INFO.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
 		message.SendPrecompDecrypt(NextServer, msg)
 	}
