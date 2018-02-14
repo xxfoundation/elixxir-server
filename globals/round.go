@@ -176,8 +176,8 @@ func newRound(batchSize uint64, p Phase) *Round {
 		V_INV: make([]*cyclic.Int, batchSize),
 		U_INV: make([]*cyclic.Int, batchSize),
 
-		CypherPublicKey: cyclic.NewInt(0),
-		Z:               cyclic.NewInt(0),
+		CypherPublicKey: cyclic.NewMaxInt(),
+		Z:               cyclic.NewMaxInt(),
 
 		Permutations: make([]uint64, batchSize),
 
