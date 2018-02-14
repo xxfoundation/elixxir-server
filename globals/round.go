@@ -189,8 +189,8 @@ func newRound(batchSize uint64, p Phase) *Round {
 
 		BatchSize: batchSize}
 
-	NR.CypherPublicKey = cyclic.NewMaxInt()
-	NR.Z = cyclic.NewMaxInt()
+	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
+	NR.Z.SetBytes(cyclic.Max4kBitInt)
 
 	for i := uint64(0); i < batchSize; i++ {
 		NR.R[i] = cyclic.NewMaxInt()
