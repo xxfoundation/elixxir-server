@@ -57,7 +57,7 @@ func (t *transmit) transmitter(bt BatchTransmission) {
 	}
 
 	// Close the channels
-	close(t.inChannel)
+	//close(t.inChannel)
 	close(t.quit)
 
 	// Unlock the dispatch locker, indicating the dispatcher is no longer running

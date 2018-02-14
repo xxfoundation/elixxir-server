@@ -15,6 +15,11 @@ func TestPrecompShare(t *testing.T) {
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
+	// Set up Grp
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4), rng)
+	globals.Grp = &grp
+
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)
 	chOut := make(chan *services.Slot, round.BatchSize)

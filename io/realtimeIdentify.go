@@ -4,55 +4,44 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver/message"
-	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"strconv"
 )
 
 // Blank struct for implementing services.BatchTransmission
 type RealtimeIdentifyHandler struct{}
 
-// ReceptionHandler for RealtimeIdentifyMessages
-func (s ServerImpl) RealtimeIdentify(input *pb.RealtimeIdentifyMessage) {
-	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.REAL_IDENTIFY)
-	// Iterate through the Slots in the RealtimeIdentifyMessage
-	for i := 0; i < len(input.Slots); i++ {
-		// Convert input message to equivalent SlotIdentify
-		in := input.Slots[i]
-		var slot services.Slot = &realtime.SlotIdentify{
-			Slot:                 in.Slot,
-			EncryptedRecipientID: cyclic.NewIntFromBytes(in.EncryptedRecipientID),
-		}
-		// Pass slot as input to Identify's channel
-		chIn <- &slot
-	}
-}
-
 // TransmissionHandler for RealtimeIdentifyMessages
 func (h RealtimeIdentifyHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
-	// Create the RealtimeIdentifyMessage
-	msg := &pb.RealtimeIdentifyMessage{
+	jww.INFO.Println("Beginning RealtimeEncrypt Phase...")
+	// Create the RealtimeEncryptMessage
+	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,
-		Slots:   make([]*pb.RealtimeIdentifySlot, batchSize),
+		Slots:   make([]*pb.RealtimeEncryptSlot, batchSize),
 	}
 
-	// Iterate over the output channel
-	for i := uint64(0); i < batchSize; i++ {
-		// Type assert Slot to SlotIdentify
+	// Get round
+	round := globals.GlobalRoundMap.GetRound(roundId)
+
+	// Iterate over the input slots
+	for i := range slots {
 		out := (*slots[i]).(*realtime.SlotIdentify)
-		// Convert to RealtimeIdentifySlot
-		msgSlot := &pb.RealtimeIdentifySlot{
-			Slot:                 out.Slot,
-			EncryptedRecipientID: out.EncryptedRecipientID.Bytes(),
+		// Convert to RealtimeEncryptSlot
+		rId, _ := strconv.ParseUint(out.EncryptedRecipientID.Text(10), 10, 64)
+		msgSlot := &pb.RealtimeEncryptSlot{
+			Slot:             out.Slot,
+			RecipientID:      rId,
+			EncryptedMessage: round.LastNode.EncryptedMessage[i].Bytes(),
 		}
 
-		// Append the RealtimeIdentifySlot to the RealtimeIdentifyMessage
+		// Append the RealtimeEncryptSlot to the RealtimeEncryptMessage
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed RealtimeIdentifyMessage
-	jww.INFO.Printf("Sending RealtimeIdentify Message to %v...", NextServer)
-	message.SendRealtimeIdentify(NextServer, msg)
+
+	// Send the first RealtimeEncrypt Message
+	jww.DEBUG.Printf("Sending RealtimeEncrypt Message to %v...", NextServer)
+	message.SendRealtimeEncrypt(NextServer, msg)
 }

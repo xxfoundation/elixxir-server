@@ -23,6 +23,10 @@ type LastNode struct {
 	RecipientCypherText              []*cyclic.Int
 	EncryptedRecipientPrecomputation []*cyclic.Int
 	EncryptedMessagePrecomputation   []*cyclic.Int
+
+	// Temp value storing EncryptedMessages after RealtimePermute
+	// in order to be passed into RealtimeEncrypt after RealtimeIdentify
+	EncryptedMessage []*cyclic.Int
 }
 
 // Round contains the keys and permutations for a given message batch
@@ -185,6 +189,9 @@ func newRound(batchSize uint64, p Phase) *Round {
 
 		BatchSize: batchSize}
 
+	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
+	NR.Z.SetBytes(cyclic.Max4kBitInt)
+
 	for i := uint64(0); i < batchSize; i++ {
 		NR.R[i] = cyclic.NewMaxInt()
 		NR.S[i] = cyclic.NewMaxInt()
@@ -225,6 +232,7 @@ func InitLastNode(round *Round) {
 		round.BatchSize)
 	round.LastNode.EncryptedMessagePrecomputation = make([]*cyclic.Int,
 		round.BatchSize)
+	round.LastNode.EncryptedMessage = make([]*cyclic.Int, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
@@ -234,5 +242,6 @@ func InitLastNode(round *Round) {
 		round.LastNode.RecipientCypherText[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedMessage[i] = cyclic.NewMaxInt()
 	}
 }

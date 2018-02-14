@@ -84,10 +84,15 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute,
 func buildCryptoPermute(round *globals.Round, outMessages []services.Slot) {
 	// Prepare the permuted output messages
 	for i := uint64(0); i < round.BatchSize; i++ {
-		outMessages[i] = &SlotPermute{
+		slot := &SlotPermute{
 			Slot:                 round.Permutations[i],
 			EncryptedMessage:     cyclic.NewMaxInt(),
 			EncryptedRecipientID: cyclic.NewMaxInt(),
 		}
+		// If this is the last node, save the EncryptedMessage
+		if round.LastNode.EncryptedMessage != nil {
+			slot.EncryptedMessage = round.LastNode.EncryptedMessage[i]
+		}
+		outMessages[i] = slot
 	}
 }

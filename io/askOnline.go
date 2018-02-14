@@ -10,13 +10,13 @@ import (
 // Blocks until all given servers respond
 func VerifyServersOnline(servers []string) {
 	for i := 0; i < len(servers); {
-		jww.INFO.Printf("Sending AskOnline message to %s...", servers[i])
+		jww.DEBUG.Printf("Sending AskOnline message to %s...", servers[i])
 		_, err := message.SendAskOnline(servers[i], &pb.Ping{})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to respond!", i, servers[i])
 			time.Sleep(250 * time.Millisecond)
 		} else {
-			jww.INFO.Printf("%v: Server %s responded!", i, servers[i])
+			jww.DEBUG.Printf("%v: Server %s responded!", i, servers[i])
 			i++
 		}
 	}

@@ -4,7 +4,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixserver/message"
-	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -15,13 +14,13 @@ import (
 // Comms method for kicking off a new round in CMIX
 func (s ServerImpl) NewRound() {
 	roundId := "TEST"
-	batchSize := uint64(5)
+	batchSize := uint64(1)
 	// Create a new Round
 	round := globals.NewRound(batchSize)
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 	// Initialize the LastNode struct for the round
-	if IsLastNode { // TODO better last node system
+	if IsLastNode {
 		globals.InitLastNode(round)
 	}
 
@@ -75,24 +74,20 @@ func (s ServerImpl) NewRound() {
 		precompPermuteReorganizer.OutChannel,
 		PrecompPermuteHandler{})
 
-	// Create the controller for Keygen
-	keygenController := services.DispatchCryptop(globals.Grp,
-		cryptops.GenerateClientKey{}, nil, nil, round)
-
 	// Create the controller for RealtimeDecrypt
 	realtimeDecryptController := services.DispatchCryptop(globals.Grp,
-		realtime.Decrypt{}, keygenController.OutChannel, nil, round)
+		realtime.Decrypt{}, nil, nil, round)
 	// Add the InChannel from the keygen controller to round
-	round.AddChannel(globals.REAL_DECRYPT, keygenController.InChannel)
+	round.AddChannel(globals.REAL_DECRYPT, realtimeDecryptController.InChannel)
 	// Kick off RealtimeDecrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		realtimeDecryptController.OutChannel, RealtimeDecryptHandler{})
 
 	// Create the controller for RealtimeEncrypt
 	realtimeEncryptController := services.DispatchCryptop(globals.Grp,
-		realtime.Encrypt{}, keygenController.OutChannel, nil, round)
+		realtime.Encrypt{}, nil, nil, round)
 	// Add the InChannel from the keygen controller to round
-	round.AddChannel(globals.REAL_ENCRYPT, keygenController.InChannel)
+	round.AddChannel(globals.REAL_ENCRYPT, realtimeEncryptController.InChannel)
 	// Kick off RealtimeEncrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		realtimeEncryptController.OutChannel, RealtimeEncryptHandler{})
@@ -111,17 +106,6 @@ func (s ServerImpl) NewRound() {
 		realtimePermuteReorganizer.OutChannel,
 		RealtimePermuteHandler{})
 
-	if IsLastNode { // TODO better last node system
-		// Create the controller for RealtimeIdentify
-		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
-			realtime.Identify{}, nil, nil, round)
-		// Add the InChannel from the controller to round
-		round.AddChannel(globals.REAL_IDENTIFY, realtimeIdentifyController.InChannel)
-		// Kick off RealtimeIdentify Transmission Handler
-		services.BatchTransmissionDispatch(roundId, batchSize,
-			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
-	}
-
 	// Create the dispatch controller for PrecompGeneration
 	precompGenerationController := services.DispatchCryptop(globals.Grp,
 		precomputation.Generation{}, nil, nil, round)
@@ -131,18 +115,61 @@ func (s ServerImpl) NewRound() {
 		precompGenerationController.InChannel <- &genMsg
 		_ = <-precompGenerationController.OutChannel
 	}
+
+	// Generate debugging information
+	jww.DEBUG.Printf("R Value: %v, S Value: %v, T Value: %v",
+		round.R_INV[0].Text(10),
+		round.S_INV[0].Text(10),
+		round.T_INV[0].Text(10))
+	jww.DEBUG.Printf("U Value: %v, V Value: %v",
+		round.U_INV[0].Text(10),
+		round.V_INV[0].Text(10))
+
+	if IsLastNode {
+		// Create the controller for RealtimeIdentify
+		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
+			realtime.Identify{}, nil, nil, round)
+		// Add the InChannel from the controller to round
+		round.AddChannel(globals.REAL_IDENTIFY, realtimeIdentifyController.InChannel)
+		// Kick off RealtimeIdentify Transmission Handler
+		services.BatchTransmissionDispatch(roundId, batchSize,
+			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
+
+		// Create the controller for RealtimePeel
+		realtimePeelController := services.DispatchCryptop(globals.Grp,
+			realtime.Peel{}, nil, nil, round)
+		// Add the InChannel from the controller to round
+		round.AddChannel(globals.REAL_PEEL, realtimePeelController.InChannel)
+		// Kick off RealtimePeel Transmission Handler
+		services.BatchTransmissionDispatch(roundId, batchSize,
+			realtimePeelController.OutChannel, RealtimePeelHandler{})
+
+		// Create the controller for PrecompStrip
+		precompStripController := services.DispatchCryptop(globals.Grp,
+			precomputation.Strip{}, nil, nil, round)
+		// Add the InChannel from the controller to round
+		round.AddChannel(globals.PRECOMP_STRIP, precompStripController.InChannel)
+		// Kick off PrecompStrip Transmission Handler
+		services.BatchTransmissionDispatch(roundId, batchSize,
+			precompStripController.OutChannel, PrecompStripHandler{})
+
+		jww.INFO.Println("Beginning PrecompShare Phase...")
+		shareMsg := services.Slot(&precomputation.SlotShare{
+			PartialRoundPublicCypherKey: globals.Grp.G})
+		PrecompShareHandler{}.Handler(roundId, batchSize, []*services.Slot{&shareMsg})
+	}
 }
 
 // Blocks until all given servers begin a new round
 func BeginNewRound(servers []string) {
 	for i := 0; i < len(servers); {
-		jww.INFO.Printf("Sending NewRound message to %s...", servers[i])
+		jww.DEBUG.Printf("Sending NewRound message to %s...", servers[i])
 		_, err := message.SendNewRound(servers[i], &pb.InitRound{})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to begin new round!", i, servers[i])
 			time.Sleep(250 * time.Millisecond)
 		} else {
-			jww.INFO.Printf("%v: Server %s began new round!", i, servers[i])
+			jww.DEBUG.Printf("%v: Server %s began new round!", i, servers[i])
 			i++
 		}
 	}

@@ -324,8 +324,8 @@ func TestEndToEndCryptops(t *testing.T) {
 	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
 	round.CypherPublicKey.Set(shareResult.PartialRoundPublicCypherKey)
 
-	fmt.Printf("SHARE:\n")
-	fmt.Printf("%v", RoundText(&grp, round))
+	t.Logf("SHARE:\n")
+	t.Logf("%v", RoundText(&grp, round))
 
 	if shareResult.PartialRoundPublicCypherKey.Cmp(cyclic.NewInt(20)) != 0 {
 		t.Errorf("SHARE failed, expected 20, got %s",
@@ -352,7 +352,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		iv := <-in
 		is := precomputation.SlotPermute(*((*iv).(*precomputation.SlotDecrypt)))
 
-		fmt.Printf("DECRYPT:\n  EncryptedMessageKeys: %s, "+
+		t.Logf("DECRYPT:\n  EncryptedMessageKeys: %s, "+
 			"EncryptedRecipientIDKeys: %s,\n"+
 			"  PartialMessageCypherText: %s, PartialRecipientIDCypherText: %s\n",
 			is.EncryptedMessageKeys.Text(10), is.EncryptedRecipientIDKeys.Text(10),
@@ -398,7 +398,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			PartialMessageCypherText: pm.PartialMessageCypherText,
 		}
 
-		fmt.Printf("PERMUTE:\n  EncryptedMessageKeys: %s, "+
+		t.Logf("PERMUTE:\n  EncryptedMessageKeys: %s, "+
 			"EncryptedRecipientIDKeys: %s,\n"+
 			"  PartialMessageCypherText: %s, PartialRecipientIDCypherText: %s\n",
 			pm.EncryptedMessageKeys.Text(10), pm.EncryptedRecipientIDKeys.Text(10),
@@ -452,7 +452,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			PartialRecipientCypherText: round.LastNode.RecipientCypherText[i],
 		}
 
-		fmt.Printf("ENCRYPT:\n  EncryptedMessageKeys: %s, "+
+		t.Logf("ENCRYPT:\n  EncryptedMessageKeys: %s, "+
 			"PartialMessageCypherText: %s\n", pm.EncryptedMessageKeys.Text(10),
 			pm.PartialMessageCypherText.Text(10))
 
@@ -489,7 +489,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			RoundRecipientPrivateKey: pm.PartialRecipientCypherText,
 		}
 
-		fmt.Printf("REVEAL:\n  RoundMessagePrivateKey: %s, "+
+		t.Logf("REVEAL:\n  RoundMessagePrivateKey: %s, "+
 			"RoundRecipientPrivateKey: %s\n", se.RoundMessagePrivateKey.Text(10),
 			se.RoundRecipientPrivateKey.Text(10))
 		expectedReveal := []*cyclic.Int{
@@ -516,7 +516,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
 	round.LastNode.RecipientPrecomputation[es.Slot] = es.RecipientPrecomputation
 
-	fmt.Printf("STRIP:\n  MessagePrecomputation: %s, "+
+	t.Logf("STRIP:\n  MessagePrecomputation: %s, "+
 		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
 		es.RecipientPrecomputation.Text(10))
 	expectedStrip := []*cyclic.Int{
@@ -569,7 +569,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			EncryptedRecipientID: is.EncryptedRecipientID,
 		})
 
-		fmt.Printf("RTDECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n",
+		t.Logf("RTDECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n",
 			is.EncryptedMessage.Text(10),
 			is.EncryptedRecipientID.Text(10))
 		expectedRTDecrypt := []*cyclic.Int{
@@ -599,7 +599,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		EncryptedRecipientID: esPrm.EncryptedRecipientID,
 	})
 	TmpMsg := esPrm.EncryptedMessage
-	fmt.Printf("RTPERMUTE:\n  EncryptedRecipientID: %s\n",
+	t.Logf("RTPERMUTE:\n  EncryptedRecipientID: %s\n",
 		esPrm.EncryptedRecipientID.Text(10))
 	expectedRTPermute := []*cyclic.Int{
 		cyclic.NewInt(4),
@@ -619,7 +619,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		EncryptedMessage: TmpMsg,
 		ReceptionKey:     cyclic.NewInt(1),
 	})
-	fmt.Printf("RTIDENTIFY:\n  RecipientID: %s\n",
+	t.Logf("RTIDENTIFY:\n  RecipientID: %s\n",
 		esTmp.EncryptedRecipientID.Text(10))
 	expectedRTIdentify := []*cyclic.Int{
 		cyclic.NewInt(1),
@@ -642,7 +642,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		is := realtime.SlotPeel(*((*iv).(*realtime.SlotEncryptOut)))
 		ov := services.Slot(&is)
 
-		fmt.Printf("RTENCRYPT:\n  EncryptedMessage: %s\n",
+		t.Logf("RTENCRYPT:\n  EncryptedMessage: %s\n",
 			is.EncryptedMessage.Text(10))
 		expectedRTEncrypt := []*cyclic.Int{
 			cyclic.NewInt(41),
@@ -660,7 +660,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	rtnRT := <-RTPeel.OutChannel
 	esRT := (*rtnRT).(*realtime.SlotPeel)
 
-	fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
+	t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 		esRT.EncryptedMessage.Text(10))
 	expectedRTPeel := []*cyclic.Int{
 		cyclic.NewInt(31),
@@ -670,7 +670,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
 	}
 
-	fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+	t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
 		esRT.Slot, esRT.RecipientID,
 		esRT.EncryptedMessage.Text(10))
 }
@@ -877,9 +877,9 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	N2Generation.InChannel <- &genMsg
 	_ = <-N2Generation.OutChannel
 
-	fmt.Printf("2 NODE GENERATION RESULTS: \n")
-	fmt.Printf("%v", RoundText(&grp, Node1Round))
-	fmt.Printf("%v", RoundText(&grp, Node2Round))
+	t.Logf("2 NODE GENERATION RESULTS: \n")
+	t.Logf("%v", RoundText(&grp, Node1Round))
+	t.Logf("%v", RoundText(&grp, Node2Round))
 
 	// TODO: Pre-can the keys to use here if necessary.
 
@@ -895,9 +895,9 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	Node1Round.CypherPublicKey.Set(PublicCypherKey)
 	Node2Round.CypherPublicKey.Set(PublicCypherKey)
 
-	fmt.Printf("2 NODE SHARE RESULTS: \n")
-	fmt.Printf("%v", RoundText(&grp, Node2Round))
-	fmt.Printf("%v", RoundText(&grp, Node1Round))
+	t.Logf("2 NODE SHARE RESULTS: \n")
+	t.Logf("%v", RoundText(&grp, Node2Round))
+	t.Logf("%v", RoundText(&grp, Node1Round))
 
 	// Now finish precomputation
 	decMsg := services.Slot(&precomputation.SlotDecrypt{
@@ -914,7 +914,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	Node2Round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
 	Node2Round.LastNode.RecipientPrecomputation[es.Slot] =
 		es.RecipientPrecomputation
-	fmt.Printf("2 NODE STRIP:\n  MessagePrecomputation: %s, "+
+	t.Logf("2 NODE STRIP:\n  MessagePrecomputation: %s, "+
 		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
 		es.RecipientPrecomputation.Text(10))
 
@@ -975,7 +975,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	N1RTDecrypt.InChannel <- &inputMsg
 	rtnRT := <-N2RTPeel.OutChannel
 	esRT := (*rtnRT).(*realtime.SlotPeel)
-	fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
+	t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 		esRT.EncryptedMessage.Text(10))
 	expectedRTPeel := []*cyclic.Int{
 		cyclic.NewInt(42),
@@ -985,7 +985,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 			esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
 	}
 
-	fmt.Println("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+	t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
 		esRT.Slot, esRT.RecipientID,
 		esRT.EncryptedMessage.Text(10))
 }
@@ -993,7 +993,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 // Helper function to initialize round keys. Useful when you only need to edit 1
 // element (e.g., the Permutation) in the set of keys held in round
 func GenerateRounds(nodeCount int, BatchSize uint64,
-	group *cyclic.Group) []*globals.Round {
+	group *cyclic.Group, t *testing.T) []*globals.Round {
 	rounds := make([]*globals.Round, nodeCount)
 	for i := 0; i < nodeCount; i++ {
 		rounds[i] = globals.NewRound(BatchSize)
@@ -1018,9 +1018,9 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 		}
 	}
 
-	fmt.Printf("%d NODE GENERATION RESULTS: \n", nodeCount)
+	t.Logf("%d NODE GENERATION RESULTS: \n", nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		fmt.Printf("%v", RoundText(group, rounds[i]))
+		t.Logf("%v", RoundText(group, rounds[i]))
 	}
 
 	return rounds
@@ -1094,9 +1094,9 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		rounds[i].CypherPublicKey.Set(PublicCypherKey)
 	}
 
-	fmt.Printf("%d NODE SHARE RESULTS: \n", nodeCount)
+	t.Logf("%d NODE SHARE RESULTS: \n", nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		fmt.Printf("%v", RoundText(group, rounds[i]))
+		t.Logf("%v", RoundText(group, rounds[i]))
 	}
 
 	// Now finish precomputation
@@ -1119,25 +1119,25 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		LastRound.LastNode.RecipientPrecomputation[es.Slot] =
 			es.RecipientPrecomputation
 
-		fmt.Printf("%d NODE STRIP:\n  MessagePrecomputation: %s, "+
+		t.Logf("%d NODE STRIP:\n  MessagePrecomputation: %s, "+
 			"RecipientPrecomputation: %s\n", nodeCount,
 			es.MessagePrecomputation.Text(10),
 			es.RecipientPrecomputation.Text(10))
 
 		// Check precomputation, note that these are currently expected to be
 		// wrong under permutation
-		MP, RP := ComputePrecomputation(group, rounds)
+		// MP, RP := ComputePrecomputation(group, rounds)
 
-		if MP.Cmp(es.MessagePrecomputation) != 0 {
-			fmt.Printf("Message Precomputation Incorrect! Expected: %s, "+
-				"Received: %s\n",
-				MP.Text(10), es.MessagePrecomputation.Text(10))
-		}
-		if RP.Cmp(es.RecipientPrecomputation) != 0 {
-			fmt.Printf("Recipient Precomputation Incorrect! Expected: %s,"+
-				" Received: %s\n",
-				RP.Text(10), es.RecipientPrecomputation.Text(10))
-		}
+		// if MP.Cmp(es.MessagePrecomputation) != 0 {
+		// 	t.Logf("Message Precomputation Incorrect! Expected: %s, "+
+		// 		"Received: %s\n",
+		// 		MP.Text(10), es.MessagePrecomputation.Text(10))
+		// }
+		// if RP.Cmp(es.RecipientPrecomputation) != 0 {
+		// 	t.Logf("Recipient Precomputation Incorrect! Expected: %s,"+
+		// 		" Received: %s\n",
+		// 		RP.Text(10), es.RecipientPrecomputation.Text(10))
+		// }
 	}
 
 	// ----- REALTIME ----- //
@@ -1196,7 +1196,7 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	for i := uint64(0); i < BatchSize; i++ {
 		rtnRT := <-LNRTPeel.OutChannel
 		esRT := (*rtnRT).(*realtime.SlotPeel)
-		fmt.Printf("RTPEEL:\n  EncryptedMessage: %s\n",
+		t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 			esRT.EncryptedMessage.Text(10))
 
 		if esRT.EncryptedMessage.Cmp(expectedOutputs[i].EncryptedMessage) != 0 {
@@ -1210,7 +1210,7 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 				esRT.Slot, esRT.RecipientID, expectedOutputs[i].RecipientID)
 		}
 
-		fmt.Printf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+		t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
 			esRT.Slot, esRT.RecipientID, esRT.EncryptedMessage.Text(10))
 	}
 }
@@ -1237,13 +1237,59 @@ func Test3NodeE2E(t *testing.T) {
 			EncryptedMessage: cyclic.NewInt(42 + int64(i)), // Meaning of Life
 		}
 	}
-	rounds := GenerateRounds(nodeCount, BatchSize, &grp)
+	rounds := GenerateRounds(nodeCount, BatchSize, &grp, t)
 	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
 }
 
 func Test1NodePermuteE2E(t *testing.T) {
-	nodeCount := 5
+	nodeCount := 1
 	BatchSize := uint64(100)
+
+	primeStrng := "101"
+
+	prime := cyclic.NewInt(0)
+	prime.SetString(primeStrng, 10)
+
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
+		rng)
+	inputMsgs := make([]realtime.SlotDecryptIn, BatchSize)
+	outputMsgs := make([]realtime.SlotPeel, BatchSize)
+	for i := uint64(0); i < BatchSize; i++ {
+		inputMsgs[i] = realtime.SlotDecryptIn{
+			Slot:                 i,
+			SenderID:             i + 1,
+			EncryptedMessage:     cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			EncryptedRecipientID: cyclic.NewInt((1 + int64(i)) % 101),
+			TransmissionKey:      cyclic.NewInt(1),
+		}
+		outputMsgs[i] = realtime.SlotPeel{
+			Slot:             i,
+			RecipientID:      (i + 1) % 101,
+			EncryptedMessage: cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+		}
+	}
+	rounds := GenerateRounds(nodeCount, BatchSize, &grp, t)
+	for i := 0; i < nodeCount; i++ {
+		for j := uint64(0); j < BatchSize; j++ {
+			// Shift by 1
+			newj := (j + 1) % BatchSize
+			rounds[i].Permutations[j] = newj
+		}
+		// Now apply  permutations list to outputMsgs
+		newOutMsgs := make([]realtime.SlotPeel, BatchSize)
+		for j := uint64(0); j < BatchSize; j++ {
+			newOutMsgs[rounds[i].Permutations[j]] = outputMsgs[j]
+		}
+		outputMsgs = newOutMsgs
+	}
+
+	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
+}
+
+func TestRealPrimeE2E(t *testing.T) {
+	nodeCount := 5
+	BatchSize := uint64(10)
 
 	primeStrng := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -1290,7 +1336,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 			EncryptedMessage: cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
-	rounds := GenerateRounds(nodeCount, BatchSize, &grp)
+	rounds := GenerateRounds(nodeCount, BatchSize, &grp, t)
 	for i := 0; i < nodeCount; i++ {
 		for j := uint64(0); j < BatchSize; j++ {
 			// Shift by 1

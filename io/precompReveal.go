@@ -15,6 +15,8 @@ type PrecompRevealHandler struct{}
 
 // ReceptionHandler for PrecompRevealMessages
 func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
+	jww.DEBUG.Printf("Received PrecompReveal Message %v...", input.RoundID)
+	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_REVEAL)
 	// Iterate through the Slots in the PrecompRevealMessage
 	for i := 0; i < len(input.Slots); i++ {
@@ -24,9 +26,30 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 			Slot: in.Slot,
 			PartialMessageCypherText: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
+			PartialRecipientCypherText: cyclic.NewIntFromBytes(
+				in.PartialRecipientCypherText),
 		}
 		// Pass slot as input to Reveal's channel
 		chIn <- &slot
+	}
+}
+
+// Convert the Reveal message to a Strip message and send to the last node
+func precompRevealLastNode(roundId string, batchSize uint64,
+	input *pb.PrecompRevealMessage) {
+	jww.INFO.Println("Beginning PrecompStrip Phase...")
+	// Create the SlotStripIn for sending into PrecompStrip
+	stripChannel := globals.GlobalRoundMap.GetRound(roundId).GetChannel(globals.PRECOMP_STRIP)
+	for i := uint64(0); i < batchSize; i++ {
+		out := input.Slots[i]
+		// Convert to SlotStripIn
+		var slot services.Slot = &precomputation.SlotStripIn{
+			Slot: out.Slot,
+			RoundMessagePrivateKey:   cyclic.NewIntFromBytes(out.PartialMessageCypherText),
+			RoundRecipientPrivateKey: cyclic.NewIntFromBytes(out.PartialRecipientCypherText),
+		}
+		// Pass slot as input to Strip's channel
+		stripChannel <- &slot
 	}
 }
 
@@ -46,13 +69,20 @@ func (h PrecompRevealHandler) Handler(
 		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
 			Slot: out.Slot,
-			PartialMessageCypherText: out.PartialMessageCypherText.Bytes(),
+			PartialMessageCypherText:   out.PartialMessageCypherText.Bytes(),
+			PartialRecipientCypherText: out.PartialRecipientCypherText.Bytes(),
 		}
 
 		// Put it into the slice
 		msg.Slots[i] = msgSlot
 	}
-	// Send the completed PrecompRevealMessage
-	jww.INFO.Printf("Sending PrecompReveal Message to %v...", NextServer)
-	message.SendPrecompReveal(NextServer, msg)
+
+	if IsLastNode {
+		// Transition to PrecompStrip phase
+		precompRevealLastNode(roundId, batchSize, msg)
+	} else {
+		// Send the completed PrecompRevealMessage
+		jww.DEBUG.Printf("Sending PrecompReveal Message to %v...", NextServer)
+		message.SendPrecompReveal(NextServer, msg)
+	}
 }
