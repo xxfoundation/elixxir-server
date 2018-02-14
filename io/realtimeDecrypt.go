@@ -100,7 +100,7 @@ func (h RealtimeDecryptHandler) Handler(
 
 // Kickoff for RealtimeDecryptMessages
 // TODO Remove this duplication
-func KickoffDecryptHandler(roundId string, batchSize uint64, slots []*services.Slot) {
+func kickoffDecryptHandler(roundId string, batchSize uint64, slots []*services.Slot) {
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{
 		RoundID: roundId,

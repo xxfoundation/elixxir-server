@@ -46,5 +46,5 @@ func StartRealtime(roundId string, batchSize uint64) {
 	})
 
 	jww.INFO.Println("Beginning RealtimeDecrypt Phase...")
-	KickoffDecryptHandler(roundId, batchSize, []*services.Slot{&inputMsg})
+	kickoffDecryptHandler(roundId, batchSize, []*services.Slot{&inputMsg})
 }

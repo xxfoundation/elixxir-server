@@ -2,7 +2,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/crypto/cyclic"
+	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/comms/mixserver/message"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -16,21 +17,31 @@ type RealtimeIdentifyHandler struct{}
 func (h RealtimeIdentifyHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	jww.INFO.Println("Beginning RealtimeEncrypt Phase...")
-	// Get round and channel
-	round := globals.GlobalRoundMap.GetRound(roundId)
-	encryptChannel := round.GetChannel(globals.REAL_ENCRYPT)
-	// Create the SlotEncryptIn for sending into RealtimeEncrypt
-	for i := uint64(0); i < batchSize; i++ {
-		out := (*slots[i]).(*realtime.SlotIdentify)
-		// Convert to SlotEncryptIn
-		rID, _ := strconv.ParseUint(out.EncryptedRecipientID.Text(10), 10, 64)
-		var slot services.Slot = &realtime.SlotEncryptIn{
-			Slot:             out.Slot,
-			RecipientID:      rID,
-			EncryptedMessage: round.LastNode.EncryptedMessage[i],
-			ReceptionKey:     cyclic.NewInt(1),
-		}
-		// Pass slot as input to Encrypt's channel
-		encryptChannel <- &slot
+	// Create the RealtimeEncryptMessage
+	msg := &pb.RealtimeEncryptMessage{
+		RoundID: roundId,
+		Slots:   make([]*pb.RealtimeEncryptSlot, batchSize),
 	}
+
+	// Get round
+	round := globals.GlobalRoundMap.GetRound(roundId)
+
+	// Iterate over the input slots
+	for i := range slots {
+		out := (*slots[i]).(*realtime.SlotIdentify)
+		// Convert to RealtimeEncryptSlot
+		rId, _ := strconv.ParseUint(out.EncryptedRecipientID.Text(10), 10, 64)
+		msgSlot := &pb.RealtimeEncryptSlot{
+			Slot:             out.Slot,
+			RecipientID:      rId,
+			EncryptedMessage: round.LastNode.EncryptedMessage[i].Bytes(),
+		}
+
+		// Append the RealtimeEncryptSlot to the RealtimeEncryptMessage
+		msg.Slots[i] = msgSlot
+	}
+
+	// Send the first RealtimeEncrypt Message
+	jww.DEBUG.Printf("Sending RealtimeEncrypt Message to %v...", NextServer)
+	message.SendRealtimeEncrypt(NextServer, msg)
 }
