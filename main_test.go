@@ -1289,7 +1289,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 
 func TestRealPrimeE2E(t *testing.T) {
 	nodeCount := 5
-	BatchSize := uint64(1000)
+	BatchSize := uint64(10)
 
 	primeStrng := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
