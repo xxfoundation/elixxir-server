@@ -55,10 +55,13 @@ func (m *UserMap) NewUser(address string) *User {
 	m.idCounter++
 	return &User{Id: m.idCounter - 1, Address: address,
 		Transmission: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			PartialBaseKey: cyclic.NewMaxInt(), RecursiveKey: cyclic.NewMaxInt()},
+			PartialBaseKey: cyclic.NewMaxInt(),
+			RecursiveKey:   cyclic.NewMaxInt()},
 		Reception: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			PartialBaseKey: cyclic.NewMaxInt(), RecursiveKey: cyclic.NewMaxInt()},
-		PublicKey: cyclic.NewMaxInt(),
+			PartialBaseKey: cyclic.NewMaxInt(),
+			RecursiveKey:   cyclic.NewMaxInt()},
+		PublicKey:     cyclic.NewMaxInt(),
+		MessageBuffer: make(chan *pb.CmixMessage, 100),
 	}
 }
 
