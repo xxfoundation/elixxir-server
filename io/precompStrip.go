@@ -26,4 +26,8 @@ func (h PrecompStripHandler) Handler(
 			slot.RecipientPrecomputation.Text(10))
 	}
 	jww.INFO.Println("Precomputation Finished!")
+	// Since precomputation is finished, we put this round's ID on the
+	// channel of waiting rounds so that the round can wait until we've
+	// received enough messages to kick off realtime
+	globals.PutWaitingRoundID(roundId)
 }
