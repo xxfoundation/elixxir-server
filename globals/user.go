@@ -1,6 +1,7 @@
 package globals
 
 import (
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
@@ -45,6 +46,8 @@ type User struct {
 	Reception    ForwardKey
 
 	PublicKey *cyclic.Int
+
+	MessageBuffer chan *pb.CmixMessage
 }
 
 // NewUser creates a new User object with default fields and given address.
