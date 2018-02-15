@@ -45,8 +45,7 @@ type User struct {
 	Transmission ForwardKey
 	Reception    ForwardKey
 
-	PublicKey *cyclic.Int
-
+	PublicKey     *cyclic.Int
 	MessageBuffer chan *pb.CmixMessage
 }
 

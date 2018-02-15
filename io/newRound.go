@@ -13,8 +13,8 @@ import (
 
 // Comms method for kicking off a new round in CMIX
 func (s ServerImpl) NewRound() {
-	roundId := "TEST"
-	batchSize := uint64(1)
+	batchSize := globals.BatchSize
+	roundId := globals.GetNextRoundID()
 	// Create a new Round
 	round := globals.NewRound(batchSize)
 	// Add round to the GlobalRoundMap
