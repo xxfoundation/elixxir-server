@@ -4,8 +4,13 @@ import (
 	"errors"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/services"
+	"strconv"
 	"sync"
+	"sync/atomic"
 )
+
+// Server-wide configured batch size
+const BatchSize = uint64(1)
 
 // LastNode contains precomputations held only by the last node
 type LastNode struct {
@@ -72,6 +77,20 @@ var Grp *cyclic.Group
 // Global instance of RoundMap
 var GlobalRoundMap RoundMap
 
+// Atomic counter to generate round IDs
+var globalRoundCounter uint64
+
+func getAndIncrementRoundCounter() uint64 {
+	defer atomic.AddUint64(&globalRoundCounter, uint64(1))
+	return globalRoundCounter
+}
+
+// TODO: have a better way to generate round IDs
+func GetNextRoundID() string {
+	// 36 is the base for formatting
+	return strconv.FormatUint(getAndIncrementRoundCounter(), 36)
+}
+
 // Wrapper struct for a map of String -> Round structs
 type RoundMap struct {
 	// Mapping of session identifiers to round structures
@@ -90,6 +109,20 @@ func (m *RoundMap) GetRound(roundId string) *Round {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	return m.rounds[roundId]
+}
+
+var waitingRoundId chan string
+
+func GetNextWaitingRoundID() string {
+	return <-waitingRoundId
+}
+
+func PutWaitingRoundID(roundId string) {
+	waitingRoundId <- roundId
+}
+
+func MakeWaitingRoundIDChannel(numberOfRounds int) {
+	waitingRoundId = make(chan string, numberOfRounds)
 }
 
 // Atomic add *Round to rounds map with given roundId

@@ -2,9 +2,7 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
-	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -28,23 +26,4 @@ func (h PrecompStripHandler) Handler(
 			slot.RecipientPrecomputation.Text(10))
 	}
 	jww.INFO.Println("Precomputation Finished!")
-
-	// Transition to Realtime phase
-	StartRealtime(roundId, batchSize)
-}
-
-// Begin Realtime once Precomputation is finished
-func StartRealtime(roundId string, batchSize uint64) {
-	// TODO Place transition logic here
-	testText := []byte("Hello, world!")
-	jww.DEBUG.Printf("EncryptedMessage Input: %s", testText)
-	inputMsg := services.Slot(&realtime.SlotDecryptOut{
-		Slot:                 0,
-		SenderID:             1,
-		EncryptedMessage:     cyclic.NewIntFromBytes(testText),
-		EncryptedRecipientID: cyclic.NewInt(1),
-	})
-
-	jww.INFO.Println("Beginning RealtimeDecrypt Phase...")
-	kickoffDecryptHandler(roundId, batchSize, []*services.Slot{&inputMsg})
 }

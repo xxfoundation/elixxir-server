@@ -22,10 +22,7 @@ func StartServer(serverIndex int) {
 	io.Servers = getServers()
 
 	// TODO Generate globals.Grp somewhere intelligent
-	//rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	//grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
-	//	rng)
-	primeStrng := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
 		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
@@ -48,7 +45,7 @@ func StartServer(serverIndex int) {
 		"93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199" +
 		"FFFFFFFFFFFFFFFF"
 	prime := cyclic.NewInt(0)
-	prime.SetString(primeStrng, 16)
+	prime.SetString(primeString, 16)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4), rng)
 	globals.Grp = &grp
@@ -56,8 +53,10 @@ func StartServer(serverIndex int) {
 	// Start mix servers on localServer
 	localServer := io.Servers[serverIndex]
 	jww.INFO.Printf("Starting server on %v\n", localServer)
-	// Initialize GlobalRoundMap
+	// Initialize GlobalRoundMap and waiting rounds queue
 	globals.GlobalRoundMap = globals.NewRoundMap()
+	globals.MakeWaitingRoundIDChannel(64)
+
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,
