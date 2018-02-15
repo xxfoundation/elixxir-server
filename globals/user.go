@@ -44,7 +44,8 @@ type User struct {
 	Transmission ForwardKey
 	Reception    ForwardKey
 
-	PublicKey *cyclic.Int
+	PublicKey     *cyclic.Int
+	MessageBuffer chan *pb.CmixMessage
 }
 
 // NewUser creates a new User object with default fields and given address.
