@@ -35,6 +35,3 @@ func StartRealtime(msg *pb.CmixMessage, roundId string, batchSize uint64) {
 	jww.INFO.Println("Beginning RealtimeDecrypt Phase...")
 	kickoffDecryptHandler(roundId, batchSize, []*services.Slot{&inputMsg})
 }
-
-// TODO Remove or implement stubbed method
-func (s ServerImpl) ClientPoll(message *pb.ClientPollMessage) *pb.CmixMessage { return nil }

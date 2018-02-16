@@ -20,13 +20,13 @@ func TestUserRegistry(t *testing.T) {
 		t.Errorf("UpsertUser: Failed to add a new user!")
 	}
 
-	if getUser := Users.GetUser(testUser.Id); getUser != testUser {
+	if getUser, _ := Users.GetUser(testUser.Id); getUser != testUser {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
 	Users.DeleteUser(testUser.Id)
 
-	if getUser := Users.GetUser(testUser.Id); getUser != nil {
+	if _, userExists := Users.GetUser(testUser.Id); userExists {
 		t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
 	}
 

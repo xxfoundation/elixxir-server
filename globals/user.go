@@ -12,7 +12,7 @@ var Users = newUserRegistry()
 type UserRegistry interface {
 	NewUser(address string) *User
 	DeleteUser(id uint64)
-	GetUser(id uint64) *User
+	GetUser(id uint64) (user *User, ok bool)
 	UpsertUser(user *User)
 	CountUsers() int
 }
@@ -54,10 +54,13 @@ func (m *UserMap) NewUser(address string) *User {
 	m.idCounter++
 	return &User{Id: m.idCounter - 1, Address: address,
 		Transmission: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			PartialBaseKey: cyclic.NewMaxInt(), RecursiveKey: cyclic.NewMaxInt()},
+			PartialBaseKey: cyclic.NewMaxInt(),
+			RecursiveKey:   cyclic.NewMaxInt()},
 		Reception: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			PartialBaseKey: cyclic.NewMaxInt(), RecursiveKey: cyclic.NewMaxInt()},
-		PublicKey: cyclic.NewMaxInt(),
+			PartialBaseKey: cyclic.NewMaxInt(),
+			RecursiveKey:   cyclic.NewMaxInt()},
+		PublicKey:     cyclic.NewMaxInt(),
+		MessageBuffer: make(chan *pb.CmixMessage, 100),
 	}
 }
 
@@ -67,10 +70,11 @@ func (m *UserMap) DeleteUser(id uint64) {
 	delete(m.userCollection, id)
 }
 
-// GetUser returns a user with the given ID from userCollection.
-func (m *UserMap) GetUser(id uint64) *User {
-	// If key does not exist, return nil
-	return m.userCollection[id]
+// GetUser returns a user with the given ID from userCollection
+// and a boolean for whether the user exists
+func (m *UserMap) GetUser(id uint64) (user *User, ok bool) {
+	user, ok = m.userCollection[id]
+	return
 }
 
 // UpsertUser inserts given user into userCollection or update the user if it
@@ -79,7 +83,7 @@ func (m *UserMap) UpsertUser(user *User) {
 	m.userCollection[user.Id] = user
 }
 
-// CountUsers returns a count of the users in userCollection
+// CountUsers returns a count of the users in userCollection.
 func (m *UserMap) CountUsers() int {
 	return len(m.userCollection)
 }
