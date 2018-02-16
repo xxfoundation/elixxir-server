@@ -15,6 +15,9 @@ type ReceiveMessageHandler struct{}
 func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	jww.DEBUG.Printf("Received message from client: %v...", msg)
 
+	// Start precomputation for the next message we receive
+	BeginNewRound(Servers)
+
 	roundId := globals.GetNextWaitingRoundID()
 
 	jww.DEBUG.Printf("roundID: %s\n", roundId)
