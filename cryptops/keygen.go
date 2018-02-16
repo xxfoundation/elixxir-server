@@ -74,7 +74,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in, out KeySlot,
 	keys *KeysGenerateClientKey) services.Slot {
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
-	user := globals.Users.GetUser(in.UserID())
+	user, _ := globals.Users.GetUser(in.UserID())
 
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike
