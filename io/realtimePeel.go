@@ -19,7 +19,7 @@ func (h RealtimePeelHandler) Handler(
 		slot := (*slots[i]).(*realtime.SlotPeel)
 		jww.DEBUG.Printf("EncryptedMessage Result: %s",
 			slot.EncryptedMessage.Bytes())
-		globals.Users.GetUser(slot.RecipientID).MessageBuffer <- pb.CmixMessage{
+		globals.Users.GetUser(slot.RecipientID).MessageBuffer <- &pb.CmixMessage{
 			slot.EncryptedMessage.Bytes(), make([]byte, 0)}
 	}
 	jww.INFO.Println("Realtime Finished!")

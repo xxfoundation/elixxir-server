@@ -37,4 +37,4 @@ func StartRealtime(msg *pb.CmixMessage, roundId string, batchSize uint64) {
 }
 
 // TODO Remove or implement stubbed method
-func (s ServerImpl) ClientPoll(message *pb.ClientPollMessage) {}
+func (s ServerImpl) ClientPoll(message *pb.ClientPollMessage) *pb.CmixMessage { return nil }

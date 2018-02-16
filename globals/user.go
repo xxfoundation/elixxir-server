@@ -1,6 +1,7 @@
 package globals
 
 import (
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
