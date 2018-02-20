@@ -25,12 +25,12 @@ func (s ServerImpl) NewRound() {
 	}
 
 	// Create the controller for PrecompShare
-	precompShareController := services.DispatchCryptop(globals.Grp,
-		precomputation.Share{}, nil, nil, round)
+	precompShareController := services.DispatchCryptopSized(globals.Grp,
+		precomputation.Share{}, nil, nil, uint64(1), round)
 	// Add the inChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_SHARE, precompShareController.InChannel)
 	// Kick off PrecompShare Transmission Handler
-	services.BatchTransmissionDispatch(roundId, batchSize,
+	services.BatchTransmissionDispatch(roundId, uint64(1),
 		precompShareController.OutChannel, PrecompShareHandler{})
 
 	// Create the controller for PrecompDecrypt
@@ -156,7 +156,7 @@ func (s ServerImpl) NewRound() {
 		jww.INFO.Println("Beginning PrecompShare Phase...")
 		shareMsg := services.Slot(&precomputation.SlotShare{
 			PartialRoundPublicCypherKey: globals.Grp.G})
-		PrecompShareHandler{}.Handler(roundId, batchSize, []*services.Slot{&shareMsg})
+		PrecompShareHandler{}.Handler(roundId, uint64(1), []*services.Slot{&shareMsg})
 	}
 }
 
