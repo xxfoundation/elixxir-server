@@ -1,3 +1,6 @@
+// Copyright © 2018 Privategrity Corporation
+//
+// All rights reserved.
 package precomputation
 
 import (
@@ -23,20 +26,20 @@ func TestPrecomputationReveal(t *testing.T) {
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
-	im = append(im, &SlotReveal{
+	im = append(im, &PrecomputationSlot{
 		Slot: uint64(0),
-		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(13))})
+		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(13))})
 
-	im = append(im, &SlotReveal{
+	im = append(im, &PrecomputationSlot{
 		Slot: uint64(1),
-		PartialMessageCypherText:   cyclic.NewInt(int64(86)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(87))})
+		MessagePrecomputation:   cyclic.NewInt(int64(86)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(87))})
 
-	im = append(im, &SlotReveal{
+	im = append(im, &PrecomputationSlot{
 		Slot: uint64(2),
-		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(51))})
+		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(51))})
 
 	round.Z = cyclic.NewInt(53)
 
@@ -52,16 +55,16 @@ func TestPrecomputationReveal(t *testing.T) {
 		dc.InChannel <- &im[i]
 		trn := <-dc.OutChannel
 
-		rtn := (*trn).(*SlotReveal)
+		rtn := (*trn).(*PrecomputationSlot)
 		result := results[i]
 
-		if result[0].Cmp(rtn.PartialMessageCypherText) != 0 ||
-			result[1].Cmp(rtn.PartialRecipientCypherText) != 0 {
+		if result[0].Cmp(rtn.MessagePrecomputation) != 0 ||
+			result[1].Cmp(rtn.RecipientIDPrecomputation) != 0 {
 			t.Errorf("Test of PrecompReveal's cryptop failed on index: %v"+
 				" Expected: %v,%v Received: %v,%v ", i,
 				result[0].Text(10), result[1].Text(10),
-				rtn.PartialMessageCypherText.Text(10),
-				rtn.PartialRecipientCypherText.Text(10))
+				rtn.MessagePrecomputation.Text(10),
+				rtn.RecipientIDPrecomputation.Text(10))
 		} else {
 			pass++
 		}
@@ -74,43 +77,43 @@ func TestPrecomputationReveal(t *testing.T) {
 func TestPrecomputationRevealRun(t *testing.T) {
 	bs := uint64(3)
 
-	var im []*SlotReveal
-	var om []*SlotReveal
+	var im []*PrecomputationSlot
+	var om []*PrecomputationSlot
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
-	im = append(im, &SlotReveal{
+	im = append(im, &PrecomputationSlot{
 		Slot: uint64(0),
-		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(13))})
+		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(13))})
 
-	im = append(im, &SlotReveal{
+	im = append(im, &PrecomputationSlot{
 		Slot: uint64(1),
-		PartialMessageCypherText:   cyclic.NewInt(int64(86)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(87))})
+		MessagePrecomputation:   cyclic.NewInt(int64(86)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(87))})
 
-	im = append(im, &SlotReveal{
+	im = append(im, &PrecomputationSlot{
 		Slot: uint64(2),
-		PartialMessageCypherText:   cyclic.NewInt(int64(39)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(51))})
+		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(51))})
 
-	om = append(om, &SlotReveal{
+	om = append(om, &PrecomputationSlot{
 		Slot: uint64(1),
-		PartialMessageCypherText:   cyclic.NewInt(int64(0)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(0))})
+		MessagePrecomputation:   cyclic.NewInt(int64(0)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
 
-	om = append(om, &SlotReveal{
+	om = append(om, &PrecomputationSlot{
 		Slot: uint64(2),
-		PartialMessageCypherText:   cyclic.NewInt(int64(0)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(0))})
+		MessagePrecomputation:   cyclic.NewInt(int64(0)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
 
-	om = append(om, &SlotReveal{
+	om = append(om, &PrecomputationSlot{
 		Slot: uint64(0),
-		PartialMessageCypherText:   cyclic.NewInt(int64(0)),
-		PartialRecipientCypherText: cyclic.NewInt(int64(0))})
+		MessagePrecomputation:   cyclic.NewInt(int64(0)),
+		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
 
 	key := KeysReveal{
 		Z: cyclic.NewInt(53),
@@ -129,12 +132,12 @@ func TestPrecomputationRevealRun(t *testing.T) {
 	}
 
 	for i := uint64(0); i < bs; i++ {
-		if results[i][0].Cmp(om[i].PartialMessageCypherText) != 0 ||
-			results[i][1].Cmp(om[i].PartialRecipientCypherText) != 0 {
+		if results[i][0].Cmp(om[i].MessagePrecomputation) != 0 ||
+			results[i][1].Cmp(om[i].RecipientIDPrecomputation) != 0 {
 			t.Errorf("%v - Expected: %v,%v Got: %v,%v",
 				results[i][0].Text(10), results[i][1].Text(10),
-				om[i].PartialMessageCypherText.Text(10),
-				om[i].PartialRecipientCypherText.Text(10))
+				om[i].MessagePrecomputation.Text(10),
+				om[i].RecipientIDPrecomputation.Text(10))
 		}
 	}
 }

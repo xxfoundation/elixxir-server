@@ -1,3 +1,6 @@
+// Copyright © 2018 Privategrity Corporation
+//
+// All rights reserved.
 package io
 
 import (
@@ -21,11 +24,10 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
-		var slot services.Slot = &precomputation.SlotEncrypt{
-			Slot: in.Slot,
-			EncryptedMessageKeys: cyclic.NewIntFromBytes(
-				in.EncryptedMessageKeys),
-			PartialMessageCypherText: cyclic.NewIntFromBytes(
+		var slot services.Slot = &precomputation.PrecomputationSlot{
+			Slot:                  in.Slot,
+			MessageCypher:         cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
+			MessagePrecomputation: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
 		}
 		// Pass slot as input to Encrypt's channel
@@ -79,12 +81,12 @@ func (h PrecompEncryptHandler) Handler(
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotEncrypt
-		out := (*slots[i]).(*precomputation.SlotEncrypt)
+		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompEncryptSlot
 		msgSlot := &pb.PrecompEncryptSlot{
 			Slot:                     out.Slot,
-			EncryptedMessageKeys:     out.EncryptedMessageKeys.Bytes(),
-			PartialMessageCypherText: out.PartialMessageCypherText.Bytes(),
+			EncryptedMessageKeys:     out.MessageCypher.Bytes(),
+			PartialMessageCypherText: out.MessagePrecomputation.Bytes(),
 		}
 
 		// Put it into the slice

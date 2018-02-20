@@ -1,3 +1,6 @@
+// Copyright © 2018 Privategrity Corporation
+//
+// All rights reserved.
 // Implements the Precomputation Reveal phase
 
 package precomputation
@@ -13,22 +16,6 @@ import (
 // private keys for the round
 type Reveal struct{}
 
-// (r Reveal) Run() uses SlotReveal structs to pass data into and out of Reveal
-type SlotReveal struct {
-	// Slot number
-	Slot uint64
-
-	// Partially decrypted message cypher texts
-	PartialMessageCypherText *cyclic.Int
-	// Partially decrypted recipient cypher texts
-	PartialRecipientCypherText *cyclic.Int
-}
-
-// SlotID() gets the Slot number
-func (r *SlotReveal) SlotID() uint64 {
-	return r.Slot
-}
-
 // KeysReveal holds the keys used by the Reveal operation
 type KeysReveal struct {
 	// Private cypher key for all messages in the round
@@ -37,7 +24,9 @@ type KeysReveal struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Reveal phase
-func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (r Reveal) Build(g *cyclic.Group, face interface{}) (
+	*services.DispatchBuilder) {
+
 	// The empty interface should be castable to a Round
 	round := face.(*globals.Round)
 
@@ -45,9 +34,10 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotReveal{Slot: i,
-			PartialMessageCypherText:   cyclic.NewMaxInt(),
-			PartialRecipientCypherText: cyclic.NewMaxInt(),
+		om[i] = &PrecomputationSlot{
+			Slot:                      i,
+			MessagePrecomputation:     cyclic.NewMaxInt(),
+			RecipientIDPrecomputation: cyclic.NewMaxInt(),
 		}
 	}
 
@@ -62,7 +52,9 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
-		Output:    &om, G: g}
+		Output:    &om,
+		G: g,
+	}
 
 	return &db
 }
@@ -70,18 +62,20 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 // Input: Partial message cypher text, from Encrypt Phase
 //        Partial recipient ID cypher text, from Permute Phase
 // This phase removes the homomorphic encryption from these two quantities.
-func (r Reveal) Run(g *cyclic.Group, in, out *SlotReveal,
+func (r Reveal) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	keys *KeysReveal) services.Slot {
 
 	// Eq 15.11 Root by cypher key to remove one layer of homomorphic
 	// encryption from partially encrypted message cypher text.
-	g.RootCoprime(in.PartialMessageCypherText, keys.Z,
-		out.PartialMessageCypherText)
+	g.RootCoprime(in.MessagePrecomputation, keys.Z, out.MessagePrecomputation)
 
 	// Eq 15.13 Root by cypher key to remove one layer of homomorphic
 	// encryption from partially encrypted recipient ID cypher text.
-	g.RootCoprime(in.PartialRecipientCypherText, keys.Z,
-		out.PartialRecipientCypherText)
+	g.RootCoprime(in.RecipientIDPrecomputation, keys.Z,
+		out.RecipientIDPrecomputation)
+
+	out.MessageCypher = in.MessageCypher
+	out.RecipientIDCypher = in.RecipientIDCypher
 
 	return out
 }

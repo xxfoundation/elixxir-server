@@ -1,3 +1,6 @@
+// Copyright © 2018 Privategrity Corporation
+//
+// All rights reserved.
 package io
 
 import (
@@ -26,10 +29,10 @@ func TestPrecompEncrypt(t *testing.T) {
 		chOut, PrecompEncryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &precomputation.SlotEncrypt{
+	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot:                     uint64(0),
-		EncryptedMessageKeys:     cyclic.NewInt(12),
-		PartialMessageCypherText: cyclic.NewInt(3),
+		MessageCypher:     cyclic.NewInt(12),
+		MessagePrecomputation: cyclic.NewInt(3),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler
@@ -39,25 +42,25 @@ func TestPrecompEncrypt(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*precomputation.SlotEncrypt)
-	actual := (*received).(*precomputation.SlotEncrypt)
+	expected := slot.(*precomputation.PrecomputationSlot)
+	actual := (*received).(*precomputation.PrecomputationSlot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {
 		t.Errorf("Slot does not match!")
 	}
-	if expected.EncryptedMessageKeys.Text(10) !=
-		actual.EncryptedMessageKeys.Text(10) {
-		t.Errorf("EncryptedMessageKeys does not match!"+
+	if expected.MessageCypher.Text(10) !=
+		actual.MessageCypher.Text(10) {
+		t.Errorf("MessageCypher does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedMessageKeys.Text(10),
-			expected.EncryptedMessageKeys.Text(10))
+			actual.MessageCypher.Text(10),
+			expected.MessageCypher.Text(10))
 	}
-	if expected.PartialMessageCypherText.Text(10) !=
-		actual.PartialMessageCypherText.Text(10) {
-		t.Errorf("PartialMessageCypherText does not match!"+
+	if expected.MessagePrecomputation.Text(10) !=
+		actual.MessagePrecomputation.Text(10) {
+		t.Errorf("MessagePrecomputation does not match!"+
 			" Got %v, expected %v.",
-			actual.PartialMessageCypherText.Text(10),
-			expected.PartialMessageCypherText.Text(10))
+			actual.MessagePrecomputation.Text(10),
+			expected.MessagePrecomputation.Text(10))
 	}
 }
