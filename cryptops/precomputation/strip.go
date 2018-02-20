@@ -13,36 +13,6 @@ import (
 // the Encrypted Message Keys and the Encrypted Recipient Keys, revealing completed precomputation
 type Strip struct{}
 
-// SlotStripIn is used to pass external data into Strip
-type SlotStripIn struct {
-	//Slot Number of the Data
-	Slot uint64
-	// Encrypted but completed message precomputation
-	RoundMessagePrivateKey *cyclic.Int
-	// Encrypted but completed recipient precomputation
-	RoundRecipientPrivateKey *cyclic.Int
-}
-
-// SlotStripOut is used to pass the results out of Strip
-type SlotStripOut struct {
-	//Slot Number of the Data
-	Slot uint64
-	// Completed Message Precomputation
-	MessagePrecomputation *cyclic.Int
-	// Completed Recipient Precomputation
-	RecipientPrecomputation *cyclic.Int
-}
-
-// SlotID Returns the Slot number of the input
-func (e *SlotStripIn) SlotID() uint64 {
-	return e.Slot
-}
-
-// SlotID Returns the Slot number of the output
-func (e *SlotStripOut) SlotID() uint64 {
-	return e.Slot
-}
-
 // KeysStrip holds the keys used by the Strip Operation
 type KeysStrip struct {
 	// Eq 16.1

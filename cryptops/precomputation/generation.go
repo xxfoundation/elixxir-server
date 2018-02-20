@@ -14,17 +14,6 @@ import (
 // Generation phase generates all the keys used in the encryption.
 type Generation struct{}
 
-// SlotGeneration is empty; no data being passed in or out of Generation
-type SlotGeneration struct {
-	//Slot Number of the Data
-	Slot uint64
-}
-
-// SlotID Returns the Slot number
-func (e *SlotGeneration) SlotID() uint64 {
-	return e.Slot
-}
-
 // KeysGeneration holds the keys used by the Generation Operation
 type KeysGeneration struct {
 	R     *cyclic.Int

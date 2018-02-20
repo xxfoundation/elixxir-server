@@ -16,22 +16,6 @@ import (
 // private keys for the round
 type Reveal struct{}
 
-// (r Reveal) Run() uses SlotReveal structs to pass data into and out of Reveal
-type SlotReveal struct {
-	// Slot number
-	Slot uint64
-
-	// Partially decrypted message cypher texts
-	PartialMessageCypherText *cyclic.Int
-	// Partially decrypted recipient cypher texts
-	PartialRecipientCypherText *cyclic.Int
-}
-
-// SlotID() gets the Slot number
-func (r *SlotReveal) SlotID() uint64 {
-	return r.Slot
-}
-
 // KeysReveal holds the keys used by the Reveal operation
 type KeysReveal struct {
 	// Private cypher key for all messages in the round

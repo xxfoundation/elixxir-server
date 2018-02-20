@@ -13,21 +13,6 @@ import (
 // Seconds Unpermuted Internode Message Keys into the Message Precomputation
 type Encrypt struct{}
 
-// SlotEncrypt is used to pass external data into Encrypt and to pass the results out of Encrypt
-type SlotEncrypt struct {
-	// Slot Number of the Data
-	Slot uint64
-	// Partial Precomputation for the Messages
-	EncryptedMessageKeys *cyclic.Int
-	// Partial Cypher Text for the Message Precomputation
-	PartialMessageCypherText *cyclic.Int
-}
-
-// SlotID Returns the Slot number
-func (e SlotEncrypt) SlotID() uint64 {
-	return e.Slot
-}
-
 // KeysEncrypt holds the keys used by the Encrypt Operation
 type KeysEncrypt struct {
 	// Public Key for entire round generated in Share Phase

@@ -15,28 +15,6 @@ import (
 // text, while multiplying in its own keys.
 type Permute struct{}
 
-// SlotPermute is used to pass external data into Permute and to pass the
-// results out of Permute
-type SlotPermute struct {
-	//Slot Number of the Data
-	Slot uint64
-	// All of the first unpermuted internode message keys multiplied
-	// together under Homomorphic Encryption
-	EncryptedMessageKeys *cyclic.Int
-	// All of the unpermuted internode recipient keys multiplied together
-	// under Homomorphic Encryption
-	EncryptedRecipientIDKeys *cyclic.Int
-	// Partial Cypher Text for EncryptedMessageKeys
-	PartialMessageCypherText *cyclic.Int
-	// Partial Cypher Text for RecipientIDKeys
-	PartialRecipientIDCypherText *cyclic.Int
-}
-
-// SlotID Returns the Slot number
-func (e *SlotPermute) SlotID() uint64 {
-	return e.Slot
-}
-
 // KeysPermute holds the keys used by the Permute Operation
 type KeysPermute struct {
 	// Public Key for entire round generated in Share Phase

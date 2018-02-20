@@ -12,19 +12,6 @@ import (
 // Share phase generates the Round Public Cypher Key to share with all nodes
 type Share struct{}
 
-// SlotShare is used to pass external data into Share and to pass the results out of Share
-type SlotShare struct {
-	// Slot Number of the Data
-	Slot uint64
-	// Eq 10.3: Partial result of raising the global generator to the power of each node's Private Cypher Key
-	PartialRoundPublicCypherKey *cyclic.Int
-}
-
-// SlotID Returns the Slot number
-func (e SlotShare) SlotID() uint64 {
-	return e.Slot
-}
-
 // KeysShare holds the keys used by the Share Operation
 type KeysShare struct {
 	// Private Cypher Key

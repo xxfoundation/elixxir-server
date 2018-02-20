@@ -15,25 +15,6 @@ import (
 // and partial cypher texts into the data that the permute phase needs
 type Decrypt struct{}
 
-// SlotDecrypt is used to pass external data into Decrypt and to pass the results out of Decrypt
-type SlotDecrypt struct {
-	//Slot Number of the Data
-	Slot uint64
-	// Eq 12.9: First unpermuted internode message key from previous node
-	EncryptedMessageKeys *cyclic.Int
-	// Eq 12.11: First unpermuted internode recipient ID key from previous node
-	EncryptedRecipientIDKeys *cyclic.Int
-	// Eq 12.13: Partial cipher test for first unpermuted internode message key from previous node
-	PartialMessageCypherText *cyclic.Int
-	// Eq 12.15: Partial cipher test for first unpermuted internode recipient ID key from previous node
-	PartialRecipientIDCypherText *cyclic.Int
-}
-
-// SlotID Returns the Slot number
-func (e *SlotDecrypt) SlotID() uint64 {
-	return e.Slot
-}
-
 // KeysDecrypt holds the keys used by the Decrypt Operation
 type KeysDecrypt struct {
 	// Public Key for entire round generated in Share Phase
