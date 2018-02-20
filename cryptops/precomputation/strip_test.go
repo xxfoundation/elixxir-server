@@ -27,17 +27,17 @@ func TestStrip(t *testing.T) {
 
 	var inMessages []services.Slot
 
-	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(0),
-		RoundMessagePrivateKey:   cyclic.NewInt(39),
-		RoundRecipientPrivateKey: cyclic.NewInt(13)})
+	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
+		MessagePrecomputation:     cyclic.NewInt(39),
+		RecipientIDPrecomputation: cyclic.NewInt(13)})
 
-	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(1),
-		RoundMessagePrivateKey:   cyclic.NewInt(86),
-		RoundRecipientPrivateKey: cyclic.NewInt(87)})
+	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
+		MessagePrecomputation:     cyclic.NewInt(86),
+		RecipientIDPrecomputation: cyclic.NewInt(87)})
 
-	inMessages = append(inMessages, &SlotStripIn{Slot: uint64(2),
-		RoundMessagePrivateKey:   cyclic.NewInt(39),
-		RoundRecipientPrivateKey: cyclic.NewInt(51)})
+	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
+		MessagePrecomputation:     cyclic.NewInt(39),
+		RecipientIDPrecomputation: cyclic.NewInt(51)})
 
 	globals.InitLastNode(round)
 	round.LastNode.EncryptedMessagePrecomputation[0] = cyclic.NewInt(41)
@@ -47,16 +47,16 @@ func TestStrip(t *testing.T) {
 	round.LastNode.EncryptedMessagePrecomputation[2] = cyclic.NewInt(91)
 	round.LastNode.EncryptedRecipientPrecomputation[2] = cyclic.NewInt(73)
 
-	expected := []SlotStripOut{
-		SlotStripOut{Slot: uint64(0),
-			MessagePrecomputation:   cyclic.NewInt(98),
-			RecipientPrecomputation: cyclic.NewInt(21)},
-		SlotStripOut{Slot: uint64(1),
-			MessagePrecomputation:   cyclic.NewInt(51),
-			RecipientPrecomputation: cyclic.NewInt(12)},
-		SlotStripOut{Slot: uint64(2),
-			MessagePrecomputation:   cyclic.NewInt(135),
-			RecipientPrecomputation: cyclic.NewInt(138)},
+	expected := []PrecomputationSlot{
+		PrecomputationSlot{Slot: uint64(0),
+			MessagePrecomputation:     cyclic.NewInt(98),
+			RecipientIDPrecomputation: cyclic.NewInt(21)},
+		PrecomputationSlot{Slot: uint64(1),
+			MessagePrecomputation:     cyclic.NewInt(51),
+			RecipientIDPrecomputation: cyclic.NewInt(12)},
+		PrecomputationSlot{Slot: uint64(2),
+			MessagePrecomputation:     cyclic.NewInt(135),
+			RecipientIDPrecomputation: cyclic.NewInt(138)},
 	}
 
 	dc := services.DispatchCryptop(&group, Strip{}, nil, nil, round)
@@ -64,7 +64,7 @@ func TestStrip(t *testing.T) {
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(inMessages[i])
 		act := <-dc.OutChannel
-		actual := (*act).(*SlotStripOut)
+		actual := (*act).(*PrecomputationSlot)
 
 		if actual.SlotID() != expected[i].SlotID() {
 			t.Errorf("Test of Precomputation Strip's cryptop failed Slot"+
@@ -77,13 +77,13 @@ func TestStrip(t *testing.T) {
 				"on index: %v; Expected: %v; Actual: %v\n", i,
 				expected[i].MessagePrecomputation.Text(10),
 				actual.MessagePrecomputation.Text(10))
-		} else if actual.RecipientPrecomputation.Cmp(
-			expected[i].RecipientPrecomputation) != 0 {
+		} else if actual.RecipientIDPrecomputation.Cmp(
+			expected[i].RecipientIDPrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Strip's cryptop failed"+
 				" RecipientPrecomputation "+
 				"on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].RecipientPrecomputation.Text(10),
-				actual.RecipientPrecomputation.Text(10))
+				expected[i].RecipientIDPrecomputation.Text(10),
+				actual.RecipientIDPrecomputation.Text(10))
 		} else {
 			pass++
 		}

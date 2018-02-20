@@ -26,26 +26,26 @@ func TestPrecompDecrypt(t *testing.T) {
 
 	var im []services.Slot
 
-	im = append(im, &SlotDecrypt{
+	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(0),
-		EncryptedMessageKeys:         cyclic.NewInt(12),
-		EncryptedRecipientIDKeys:     cyclic.NewInt(7),
-		PartialMessageCypherText:     cyclic.NewInt(3),
-		PartialRecipientIDCypherText: cyclic.NewInt(8)})
+		MessageCypher:         cyclic.NewInt(12),
+		RecipientIDCypher:     cyclic.NewInt(7),
+		MessagePrecomputation:     cyclic.NewInt(3),
+		RecipientIDPrecomputation: cyclic.NewInt(8)})
 
-	im = append(im, &SlotDecrypt{
+	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(1),
-		EncryptedMessageKeys:         cyclic.NewInt(2),
-		EncryptedRecipientIDKeys:     cyclic.NewInt(4),
-		PartialMessageCypherText:     cyclic.NewInt(9),
-		PartialRecipientIDCypherText: cyclic.NewInt(16)})
+		MessageCypher:         cyclic.NewInt(2),
+		RecipientIDCypher:     cyclic.NewInt(4),
+		MessagePrecomputation:     cyclic.NewInt(9),
+		RecipientIDPrecomputation: cyclic.NewInt(16)})
 
-	im = append(im, &SlotDecrypt{
+	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(2),
-		EncryptedMessageKeys:         cyclic.NewInt(14),
-		EncryptedRecipientIDKeys:     cyclic.NewInt(99),
-		PartialMessageCypherText:     cyclic.NewInt(96),
-		PartialRecipientIDCypherText: cyclic.NewInt(5)})
+		MessageCypher:         cyclic.NewInt(14),
+		RecipientIDCypher:     cyclic.NewInt(99),
+		MessagePrecomputation:     cyclic.NewInt(96),
+		RecipientIDPrecomputation: cyclic.NewInt(5)})
 
 	round.R_INV[0] = cyclic.NewInt(5)
 	round.U_INV[0] = cyclic.NewInt(9)
@@ -81,26 +81,26 @@ func TestPrecompDecrypt(t *testing.T) {
 		dispatch.InChannel <- &(im[i])
 		actual := <-dispatch.OutChannel
 
-		act := (*actual).(*SlotDecrypt)
+		act := (*actual).(*PrecomputationSlot)
 
 		expectedVal := expected[i]
 
-		if act.EncryptedMessageKeys.Cmp(expectedVal[0]) != 0 {
+		if act.MessageCypher.Cmp(expectedVal[0]) != 0 {
 			t.Errorf("Test of Precomputation Decrypt's cryptop failed Message"+
 				"Keys Test on index: %v; Expected: %v, Actual: %v", i,
-				expectedVal[0].Text(10), act.EncryptedMessageKeys.Text(10))
-		} else if act.EncryptedRecipientIDKeys.Cmp(expectedVal[1]) != 0 {
+				expectedVal[0].Text(10), act.MessageCypher.Text(10))
+		} else if act.RecipientIDCypher.Cmp(expectedVal[1]) != 0 {
 			t.Errorf("Test of Precomputation Decrypt's cryptop failed Recipient"+
 				"Keys Test on index: %v; Expected: %v, Actual: %v", i,
-				expectedVal[1].Text(10), act.EncryptedRecipientIDKeys.Text(10))
-		} else if act.PartialMessageCypherText.Cmp(expectedVal[2]) != 0 {
+				expectedVal[1].Text(10), act.RecipientIDCypher.Text(10))
+		} else if act.MessagePrecomputation.Cmp(expectedVal[2]) != 0 {
 			t.Errorf("Test of Precomputation Decrypt's cryptop failed Message"+
 				"Cypher Test on index: %v; Expected: %v, Actual: %v", i,
-				expectedVal[2].Text(10), act.PartialMessageCypherText.Text(10))
-		} else if act.PartialRecipientIDCypherText.Cmp(expectedVal[3]) != 0 {
+				expectedVal[2].Text(10), act.MessagePrecomputation.Text(10))
+		} else if act.RecipientIDPrecomputation.Cmp(expectedVal[3]) != 0 {
 			t.Errorf("Test of Precomputation Decrypt's cryptop failed Recipient"+
 				"Cypher Test on index: %v; Expected: %v, Actual: %v", i,
-				expectedVal[3].Text(10), act.PartialRecipientIDCypherText.Text(10))
+				expectedVal[3].Text(10), act.RecipientIDPrecomputation.Text(10))
 		} else {
 			pass++
 		}

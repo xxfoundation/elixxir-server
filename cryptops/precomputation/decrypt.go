@@ -1,6 +1,7 @@
 // Copyright © 2018 Privategrity Corporation
 //
 // All rights reserved.
+//
 // Implements the Precomputation Decrypt phase
 
 package precomputation
@@ -29,8 +30,10 @@ type KeysDecrypt struct {
 	Y_U *cyclic.Int
 }
 
-// Allocated memory and arranges key objects for the Precomputation Decrypt Phase
-func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+// Allocated memory and arranges key objects for the Precomputation
+// Decrypt Phase
+func (d Decrypt) Build(g *cyclic.Group, face interface{}) (
+	*services.DispatchBuilder) {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -39,12 +42,12 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotDecrypt{
-			Slot:                         i,
-			EncryptedMessageKeys:         cyclic.NewMaxInt(),
-			PartialMessageCypherText:     cyclic.NewMaxInt(),
-			EncryptedRecipientIDKeys:     cyclic.NewMaxInt(),
-			PartialRecipientIDCypherText: cyclic.NewMaxInt(),
+		om[i] = &PrecomputationSlot{
+			Slot:                      i,
+			MessagePrecomputation:     cyclic.NewMaxInt(),
+			MessageCypher:             cyclic.NewMaxInt(),
+			RecipientIDPrecomputation: cyclic.NewMaxInt(),
+			RecipientIDCypher:         cyclic.NewMaxInt(),
 		}
 	}
 
@@ -62,14 +65,19 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys: &keys,
+		Output: &om,
+		G: g,
+	}
 
 	return &db
-
 }
 
 // Multiplies in own Encrypted Keys and Partial Cypher Texts
-func (d Decrypt) Run(g *cyclic.Group, in, out *SlotDecrypt, keys *KeysDecrypt) services.Slot {
+func (d Decrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
+	keys *KeysDecrypt) services.Slot {
 
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
@@ -77,20 +85,20 @@ func (d Decrypt) Run(g *cyclic.Group, in, out *SlotDecrypt, keys *KeysDecrypt) s
 	// Eq 12.1: Combine First Unpermuted Internode Message Keys
 	g.Exp(g.G, keys.Y_R, tmp)
 	g.Mul(keys.R_INV, tmp, tmp)
-	g.Mul(in.EncryptedMessageKeys, tmp, out.EncryptedMessageKeys)
+	g.Mul(in.MessageCypher, tmp, out.MessageCypher)
 
 	// Eq 12.3: Combine First Unpermuted Internode Recipient Keys
 	g.Exp(g.G, keys.Y_U, tmp)
 	g.Mul(keys.U_INV, tmp, tmp)
-	g.Mul(in.EncryptedRecipientIDKeys, tmp, out.EncryptedRecipientIDKeys)
+	g.Mul(in.RecipientIDCypher, tmp, out.RecipientIDCypher)
 
 	// Eq 12.5: Combine Partial Message Cypher Text
 	g.Exp(keys.PublicCypherKey, keys.Y_R, tmp)
-	g.Mul(in.PartialMessageCypherText, tmp, out.PartialMessageCypherText)
+	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
 	// Eq 12.7: Combine Partial Recipient Cypher Text
 	g.Exp(keys.PublicCypherKey, keys.Y_U, tmp)
-	g.Mul(in.PartialRecipientIDCypherText, tmp, out.PartialRecipientIDCypherText)
+	g.Mul(in.RecipientIDPrecomputation, tmp, out.RecipientIDPrecomputation)
 
 	return out
 

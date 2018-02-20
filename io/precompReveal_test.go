@@ -1,3 +1,6 @@
+// Copyright © 2018 Privategrity Corporation
+//
+// All rights reserved.
 package io
 
 import (
@@ -26,10 +29,10 @@ func TestPrecompReveal(t *testing.T) {
 		chOut, PrecompRevealHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &precomputation.SlotReveal{
-		Slot: uint64(0),
-		PartialMessageCypherText:   cyclic.NewInt(3),
-		PartialRecipientCypherText: cyclic.NewInt(10),
+	var slot services.Slot = &precomputation.PrecomputationSlot{
+		Slot:                      uint64(0),
+		MessagePrecomputation:     cyclic.NewInt(3),
+		RecipientIDPrecomputation: cyclic.NewInt(10),
 	}
 
 	// Pass slot as input to Reveal's TransmissionHandler
@@ -39,18 +42,18 @@ func TestPrecompReveal(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*precomputation.SlotReveal)
-	actual := (*received).(*precomputation.SlotReveal)
+	expected := slot.(*precomputation.PrecomputationSlot)
+	actual := (*received).(*precomputation.PrecomputationSlot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {
 		t.Errorf("Slot does not match!")
 	}
-	if expected.PartialMessageCypherText.Text(10) !=
-		actual.PartialMessageCypherText.Text(10) {
-		t.Errorf("PartialMessageCypherText does not match!"+
+	if expected.MessagePrecomputation.Text(10) !=
+		actual.MessagePrecomputation.Text(10) {
+		t.Errorf("MessagePrecomputation does not match!"+
 			" Got %v, expected %v.",
-			actual.PartialMessageCypherText.Text(10),
-			expected.PartialMessageCypherText.Text(10))
+			actual.MessagePrecomputation.Text(10),
+			expected.MessagePrecomputation.Text(10))
 	}
 }

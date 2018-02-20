@@ -49,72 +49,72 @@ func TestPermute(t *testing.T) {
 	round.Y_V[2] = cyclic.NewInt(17)
 
 	var inMessages []services.Slot
-	inMessages = append(inMessages, &SlotPermute{Slot: uint64(0),
-		EncryptedMessageKeys:         cyclic.NewInt(39),
-		EncryptedRecipientIDKeys:     cyclic.NewInt(13),
-		PartialMessageCypherText:     cyclic.NewInt(41),
-		PartialRecipientIDCypherText: cyclic.NewInt(74)})
+	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
+		MessageCypher:         cyclic.NewInt(39),
+		RecipientIDCypher:     cyclic.NewInt(13),
+		MessagePrecomputation:     cyclic.NewInt(41),
+		RecipientIDPrecomputation: cyclic.NewInt(74)})
 
-	inMessages = append(inMessages, &SlotPermute{Slot: uint64(1),
-		EncryptedMessageKeys:         cyclic.NewInt(86),
-		EncryptedRecipientIDKeys:     cyclic.NewInt(87),
-		PartialMessageCypherText:     cyclic.NewInt(8),
-		PartialRecipientIDCypherText: cyclic.NewInt(49)})
+	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
+		MessageCypher:         cyclic.NewInt(86),
+		RecipientIDCypher:     cyclic.NewInt(87),
+		MessagePrecomputation:     cyclic.NewInt(8),
+		RecipientIDPrecomputation: cyclic.NewInt(49)})
 
-	inMessages = append(inMessages, &SlotPermute{Slot: uint64(2),
-		EncryptedMessageKeys:         cyclic.NewInt(39),
-		EncryptedRecipientIDKeys:     cyclic.NewInt(51),
-		PartialMessageCypherText:     cyclic.NewInt(91),
-		PartialRecipientIDCypherText: cyclic.NewInt(73)})
+	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
+		MessageCypher:         cyclic.NewInt(39),
+		RecipientIDCypher:     cyclic.NewInt(51),
+		MessagePrecomputation:     cyclic.NewInt(91),
+		RecipientIDPrecomputation: cyclic.NewInt(73)})
 
-	expected := []SlotPermute{
-		SlotPermute{Slot: uint64(1),
-			EncryptedMessageKeys:         cyclic.NewInt(71),
-			EncryptedRecipientIDKeys:     cyclic.NewInt(60),
-			PartialMessageCypherText:     cyclic.NewInt(44),
-			PartialRecipientIDCypherText: cyclic.NewInt(97)},
-		SlotPermute{Slot: uint64(2),
-			EncryptedMessageKeys:         cyclic.NewInt(79),
-			EncryptedRecipientIDKeys:     cyclic.NewInt(16),
-			PartialMessageCypherText:     cyclic.NewInt(47),
-			PartialRecipientIDCypherText: cyclic.NewInt(47)},
-		SlotPermute{Slot: uint64(0),
-			EncryptedMessageKeys:         cyclic.NewInt(78),
-			EncryptedRecipientIDKeys:     cyclic.NewInt(34),
-			PartialMessageCypherText:     cyclic.NewInt(69),
-			PartialRecipientIDCypherText: cyclic.NewInt(13)},
+	expected := []PrecomputationSlot{
+		PrecomputationSlot{Slot: uint64(1),
+			MessageCypher:         cyclic.NewInt(71),
+			RecipientIDCypher:     cyclic.NewInt(60),
+			MessagePrecomputation:     cyclic.NewInt(44),
+			RecipientIDPrecomputation: cyclic.NewInt(97)},
+		PrecomputationSlot{Slot: uint64(2),
+			MessageCypher:         cyclic.NewInt(79),
+			RecipientIDCypher:     cyclic.NewInt(16),
+			MessagePrecomputation:     cyclic.NewInt(47),
+			RecipientIDPrecomputation: cyclic.NewInt(47)},
+		PrecomputationSlot{Slot: uint64(0),
+			MessageCypher:         cyclic.NewInt(78),
+			RecipientIDCypher:     cyclic.NewInt(34),
+			MessagePrecomputation:     cyclic.NewInt(69),
+			RecipientIDPrecomputation: cyclic.NewInt(13)},
 	}
 	dispatch := services.DispatchCryptop(&group, Permute{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dispatch.InChannel <- &(inMessages[i])
 		actual := <-dispatch.OutChannel
-		act := (*actual).(*SlotPermute)
+		act := (*actual).(*PrecomputationSlot)
 
 		if act.SlotID() != expected[i].SlotID() {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Slot"+
 				"ID Test on index: %v; Expected: %v; Actual: %v\n", i,
 				expected[i].SlotID(), act.SlotID())
-		} else if act.EncryptedMessageKeys.Cmp(expected[i].EncryptedMessageKeys) != 0 {
+		} else if act.MessageCypher.Cmp(expected[i].MessageCypher) != 0 {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Message"+
 				"Keys Test on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].EncryptedMessageKeys.Text(10),
-				act.EncryptedMessageKeys.Text(10))
-		} else if act.EncryptedRecipientIDKeys.Cmp(expected[i].EncryptedRecipientIDKeys) != 0 {
+				expected[i].MessageCypher.Text(10),
+				act.MessageCypher.Text(10))
+		} else if act.RecipientIDCypher.Cmp(expected[i].RecipientIDCypher) != 0 {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Recipient"+
 				"IDKeys Test on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].EncryptedRecipientIDKeys.Text(10),
-				act.EncryptedRecipientIDKeys.Text(10))
-		} else if act.PartialMessageCypherText.Cmp(expected[i].PartialMessageCypherText) != 0 {
+				expected[i].RecipientIDCypher.Text(10),
+				act.RecipientIDCypher.Text(10))
+		} else if act.MessagePrecomputation.Cmp(expected[i].MessagePrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Message"+
 				"CypherText Test on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].PartialMessageCypherText.Text(10),
-				act.PartialMessageCypherText.Text(10))
-		} else if act.PartialRecipientIDCypherText.Cmp(expected[i].PartialRecipientIDCypherText) != 0 {
+				expected[i].MessagePrecomputation.Text(10),
+				act.MessagePrecomputation.Text(10))
+		} else if act.RecipientIDPrecomputation.Cmp(expected[i].RecipientIDPrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Recipient"+
 				"CypherText Test on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].PartialRecipientIDCypherText.Text(10),
-				act.PartialRecipientIDCypherText.Text(10))
+				expected[i].RecipientIDPrecomputation.Text(10),
+				act.RecipientIDPrecomputation.Text(10))
 		} else {
 			pass++
 		}

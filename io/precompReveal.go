@@ -1,3 +1,6 @@
+// Copyright © 2018 Privategrity Corporation
+//
+// All rights reserved.
 package io
 
 import (
@@ -22,11 +25,11 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotReveal
 		in := input.Slots[i]
-		var slot services.Slot = &precomputation.SlotReveal{
+		var slot services.Slot = &precomputation.PrecomputationSlot{
 			Slot: in.Slot,
-			PartialMessageCypherText: cyclic.NewIntFromBytes(
+			MessagePrecomputation: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
-			PartialRecipientCypherText: cyclic.NewIntFromBytes(
+			RecipientIDPrecomputation: cyclic.NewIntFromBytes(
 				in.PartialRecipientCypherText),
 		}
 		// Pass slot as input to Reveal's channel
@@ -39,14 +42,15 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompRevealMessage) {
 	jww.INFO.Println("Beginning PrecompStrip Phase...")
 	// Create the SlotStripIn for sending into PrecompStrip
-	stripChannel := globals.GlobalRoundMap.GetRound(roundId).GetChannel(globals.PRECOMP_STRIP)
+	stripChannel := globals.GlobalRoundMap.GetRound(roundId).GetChannel(
+		globals.PRECOMP_STRIP)
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to SlotStripIn
-		var slot services.Slot = &precomputation.SlotStripIn{
-			Slot: out.Slot,
-			RoundMessagePrivateKey:   cyclic.NewIntFromBytes(out.PartialMessageCypherText),
-			RoundRecipientPrivateKey: cyclic.NewIntFromBytes(out.PartialRecipientCypherText),
+		var slot services.Slot = &precomputation.PrecomputationSlot{
+			Slot:              out.Slot,
+			MessageCypher:     cyclic.NewIntFromBytes(out.PartialMessageCypherText),
+			RecipientIDCypher: cyclic.NewIntFromBytes(out.PartialRecipientCypherText),
 		}
 		// Pass slot as input to Strip's channel
 		stripChannel <- &slot
@@ -65,12 +69,12 @@ func (h PrecompRevealHandler) Handler(
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotReveal
-		out := (*slots[i]).(*precomputation.SlotReveal)
+		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
 			Slot: out.Slot,
-			PartialMessageCypherText:   out.PartialMessageCypherText.Bytes(),
-			PartialRecipientCypherText: out.PartialRecipientCypherText.Bytes(),
+			PartialMessageCypherText:   out.MessagePrecomputation.Bytes(),
+			PartialRecipientCypherText: out.RecipientIDPrecomputation.Bytes(),
 		}
 
 		// Put it into the slice

@@ -28,20 +28,20 @@ func TestEncrypt(t *testing.T) {
 
 	globals.Grp = &grp
 
-	im = append(im, &SlotEncrypt{
+	im = append(im, &PrecomputationSlot{
 		Slot:                     uint64(0),
-		EncryptedMessageKeys:     cyclic.NewInt(int64(91)),
-		PartialMessageCypherText: cyclic.NewInt(int64(73))})
+		MessageCypher:     cyclic.NewInt(int64(91)),
+		MessagePrecomputation: cyclic.NewInt(int64(73))})
 
-	im = append(im, &SlotEncrypt{
+	im = append(im, &PrecomputationSlot{
 		Slot:                     uint64(1),
-		EncryptedMessageKeys:     cyclic.NewInt(int64(86)),
-		PartialMessageCypherText: cyclic.NewInt(int64(87))})
+		MessageCypher:     cyclic.NewInt(int64(86)),
+		MessagePrecomputation: cyclic.NewInt(int64(87))})
 
-	im = append(im, &SlotEncrypt{
+	im = append(im, &PrecomputationSlot{
 		Slot:                     uint64(2),
-		EncryptedMessageKeys:     cyclic.NewInt(int64(39)),
-		PartialMessageCypherText: cyclic.NewInt(int64(50))})
+		MessageCypher:     cyclic.NewInt(int64(39)),
+		MessagePrecomputation: cyclic.NewInt(int64(50))})
 
 	round.CypherPublicKey = cyclic.NewInt(30)
 
@@ -65,18 +65,18 @@ func TestEncrypt(t *testing.T) {
 		dc.InChannel <- &(im[i])
 		actual := <-dc.OutChannel
 
-		act := (*actual).(*SlotEncrypt)
+		act := (*actual).(*PrecomputationSlot)
 
 		expectedVal := expected[i]
 
-		if expectedVal[0].Cmp(act.EncryptedMessageKeys) != 0 {
+		if expectedVal[0].Cmp(act.MessageCypher) != 0 {
 			t.Errorf("Test of Precomputation Encrypt's cryptop failed Keys Test on index: %v; "+
 				"Expected: %v, Actual: %v", i, expectedVal[0].Text(10),
-				act.EncryptedMessageKeys.Text(10))
-		} else if expectedVal[1].Cmp(act.PartialMessageCypherText) != 0 {
+				act.MessageCypher.Text(10))
+		} else if expectedVal[1].Cmp(act.MessagePrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Encrypt's cryptop failed Cypher Text Test on index: %v; "+
 				"Expected: %v, Actual: %v", i, expectedVal[1].Text(10),
-				act.PartialMessageCypherText.Text(10))
+				act.MessagePrecomputation.Text(10))
 		} else {
 			pass++
 		}

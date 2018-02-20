@@ -22,15 +22,15 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotPermute
 		in := input.Slots[i]
-		var slot services.Slot = &precomputation.SlotPermute{
+		var slot services.Slot = &precomputation.PrecomputationSlot{
 			Slot: in.Slot,
-			EncryptedMessageKeys: cyclic.NewIntFromBytes(
+			MessageCypher: cyclic.NewIntFromBytes(
 				in.EncryptedMessageKeys),
-			EncryptedRecipientIDKeys: cyclic.NewIntFromBytes(
+			RecipientIDCypher: cyclic.NewIntFromBytes(
 				in.EncryptedRecipientIDKeys),
-			PartialMessageCypherText: cyclic.NewIntFromBytes(
+			MessagePrecomputation: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
-			PartialRecipientIDCypherText: cyclic.NewIntFromBytes(
+			RecipientIDPrecomputation: cyclic.NewIntFromBytes(
 				in.PartialRecipientIDCypherText),
 		}
 		// Pass slot as input to Permute's channel
@@ -89,14 +89,14 @@ func (h PrecompPermuteHandler) Handler(
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotPermute
-		out := (*slots[i]).(*precomputation.SlotPermute)
+		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompPermuteSlot
 		msgSlot := &pb.PrecompPermuteSlot{
 			Slot:                         out.Slot,
-			EncryptedMessageKeys:         out.EncryptedMessageKeys.Bytes(),
-			EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys.Bytes(),
-			PartialMessageCypherText:     out.PartialMessageCypherText.Bytes(),
-			PartialRecipientIDCypherText: out.PartialRecipientIDCypherText.Bytes(),
+			EncryptedMessageKeys:         out.MessageCypher.Bytes(),
+			EncryptedRecipientIDKeys:     out.RecipientIDCypher.Bytes(),
+			PartialMessageCypherText:     out.MessagePrecomputation.Bytes(),
+			PartialRecipientIDCypherText: out.RecipientIDPrecomputation.Bytes(),
 		}
 
 		// Append the PrecompPermuteSlot to the PrecompPermuteMessage

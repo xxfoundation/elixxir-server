@@ -29,8 +29,10 @@ type KeysPermute struct {
 	Y_V *cyclic.Int
 }
 
-// Allocated memory and arranges key objects for the Precomputation Permute Phase
-func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+// Allocated memory and arranges key objects for the Precomputation
+// Permute Phase
+func (p Permute) Build(g *cyclic.Group, face interface{}) (
+	*services.DispatchBuilder) {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -39,16 +41,15 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotPermute{
-			Slot:                         i,
-			EncryptedMessageKeys:         cyclic.NewMaxInt(),
-			EncryptedRecipientIDKeys:     cyclic.NewMaxInt(),
-			PartialMessageCypherText:     cyclic.NewMaxInt(),
-			PartialRecipientIDCypherText: cyclic.NewMaxInt(),
+		om[i] = &PrecomputationSlot{
+			Slot:                      i,
+			MessagePrecomputation:     cyclic.NewMaxInt(),
+			MessageCypher:             cyclic.NewMaxInt(),
+			RecipientIDPrecomputation: cyclic.NewMaxInt(),
+			RecipientIDCypher:         cyclic.NewMaxInt(),
 		}
 	}
 
-	//
 	buildCryptoPermute(round, &om)
 
 	keys := make([]services.NodeKeys, round.BatchSize)
@@ -65,14 +66,20 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys: &keys,
+		Output: &om,
+		G: g,
+	}
 
 	return &db
 
 }
 
 // Permutes the four results of the Decrypt phase and multiplies in own keys
-func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) services.Slot {
+func (p Permute) Run(g *cyclic.Group, in, out *PrecomputationSlot,
+	keys *KeysPermute) services.Slot {
 
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
@@ -84,7 +91,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 
 	// Eq 13.17: Multiplies the Permuted Internode Message Key under Homomorphic
 	// Encryption into the Partial Encrypted Message Precomputation
-	g.Mul(in.EncryptedMessageKeys, tmp, out.EncryptedMessageKeys)
+	g.Mul(in.MessageCypher, tmp, out.MessageCypher)
 
 	// Eq 11.1: Encrypt the Permuted Internode Recipient Key under Homomorphic
 	// Encryption
@@ -93,7 +100,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 
 	// Eq 13.19: Multiplies the Permuted Internode Recipient Key under
 	// Homomorphic Encryption into the Partial Encrypted Recipient Precomputation
-	g.Mul(in.EncryptedRecipientIDKeys, tmp, out.EncryptedRecipientIDKeys)
+	g.Mul(in.RecipientIDCypher, tmp, out.RecipientIDCypher)
 
 	// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode Message
 	// Key
@@ -101,7 +108,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 
 	// Eq 13.21: Multiplies the Partial Cypher Text for the Permuted Internode
 	// Message Key into the Round Message Partial Cypher Text
-	g.Mul(in.PartialMessageCypherText, tmp, out.PartialMessageCypherText)
+	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
 	// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode
 	// Recipient Key
@@ -109,7 +116,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 
 	// Eq 13.23 Multiplies the Partial Cypher Text for the Permuted Internode
 	// Recipient Key into the Round Recipient Partial Cypher Text
-	g.Mul(in.PartialRecipientIDCypherText, tmp, out.PartialRecipientIDCypherText)
+	g.Mul(in.RecipientIDPrecomputation, tmp, out.RecipientIDPrecomputation)
 
 	return out
 
@@ -119,6 +126,6 @@ func (p Permute) Run(g *cyclic.Group, in, out *SlotPermute, keys *KeysPermute) s
 func buildCryptoPermute(round *globals.Round, om *[]services.Slot) {
 	// Set the Slot to the respective permutation
 	for i := uint64(0); i < round.BatchSize; i++ {
-		(*om)[i].(*SlotPermute).Slot = round.Permutations[i]
+		(*om)[i].(*PrecomputationSlot).Slot = round.Permutations[i]
 	}
 }
