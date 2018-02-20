@@ -1041,6 +1041,17 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 				nil, nil, rounds[i])
 			reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
 				nil, nil, rounds[i])
+		} else if i < (nodeCount - 1) {
+			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+				shares[i-1].OutChannel, nil, rounds[i])
+			decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+				decrypts[i-1].OutChannel, nil, rounds[i])
+			permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+				permutes[i-1].OutChannel, nil, rounds[i])
+			encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+				encrypts[i-1].OutChannel, nil, rounds[i])
+			reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+				reveals[i-1].OutChannel, nil, rounds[i])
 		} else {
 			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
 				shares[i-1].OutChannel, nil, rounds[i])
