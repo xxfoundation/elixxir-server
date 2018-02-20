@@ -444,11 +444,6 @@ func TestEndToEndCryptops(t *testing.T) {
 		iv := <-in
 		pm := (*iv).(*precomputation.PrecomputationSlot)
 		i := pm.Slot
-		se := precomputation.PrecomputationSlot{
-			Slot:                       i,
-			MessagePrecomputation:      pm.MessagePrecomputation,
-			RecipientIDPrecomputation:  round.LastNode.RecipientCypherText[i],
-		}
 
 		t.Logf("ENCRYPT:\n  MessageCypher: %s, "+
 			"MessagePrecomputation: %s\n", pm.MessageCypher.Text(10),
@@ -469,7 +464,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		// Save the results to LastNode
 		round.LastNode.EncryptedMessagePrecomputation[i].Set(
 			pm.MessageCypher)
-		ov := services.Slot(&se)
+		ov := services.Slot(pm)
 		out <- &ov
 	}(Encrypt.OutChannel, Reveal.InChannel)
 
@@ -480,29 +475,23 @@ func TestEndToEndCryptops(t *testing.T) {
 	go func(in, out chan *services.Slot) {
 		iv := <-in
 		pm := (*iv).(*precomputation.PrecomputationSlot)
-		i := pm.Slot
-		se := precomputation.PrecomputationSlot{
-			Slot: i,
-			MessagePrecomputation:     pm.MessagePrecomputation,
-			RecipientIDPrecomputation: pm.RecipientIDPrecomputation,
-		}
 
 		t.Logf("REVEAL:\n  RoundMessagePrivateKey: %s, "+
-			"RoundRecipientPrivateKey: %s\n", se.RecipientIDPrecomputation.Text(10),
-			se.RecipientIDPrecomputation.Text(10))
+			"RoundRecipientPrivateKey: %s\n", pm.RecipientIDPrecomputation.Text(10),
+			pm.RecipientIDPrecomputation.Text(10))
 		expectedReveal := []*cyclic.Int{
 			cyclic.NewInt(20), cyclic.NewInt(68),
 		}
-		if se.MessagePrecomputation.Cmp(expectedReveal[0]) != 0 {
+		if pm.MessagePrecomputation.Cmp(expectedReveal[0]) != 0 {
 			t.Errorf("REVEAL failed RoundMessagePrivateKey. Got: %s Expected: %s",
-				se.MessagePrecomputation.Text(10), expectedReveal[0].Text(10))
+				pm.MessagePrecomputation.Text(10), expectedReveal[0].Text(10))
 		}
-		if se.RecipientIDPrecomputation.Cmp(expectedReveal[1]) != 0 {
+		if pm.RecipientIDPrecomputation.Cmp(expectedReveal[1]) != 0 {
 			t.Errorf("REVEAL failed RoundRecipientPrivateKey. Got: %s Expected: %s",
-				se.RecipientIDPrecomputation.Text(10), expectedReveal[1].Text(10))
+				pm.RecipientIDPrecomputation.Text(10), expectedReveal[1].Text(10))
 		}
 
-		ov := services.Slot(&se)
+		ov := services.Slot(pm)
 		out <- &ov
 	}(Reveal.OutChannel, Strip.InChannel)
 
@@ -844,7 +833,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		N1Decrypt.OutChannel, nil, Node2Round)
 
 	N1Permute := services.DispatchCryptop(&grp, precomputation.Permute{},
-		nil, nil, Node1Round)
+		N2Decrypt.OutChannel, nil, Node1Round)
 	N2Permute := services.DispatchCryptop(&grp, precomputation.Permute{},
 		N1Permute.OutChannel, nil, Node2Round)
 
@@ -866,7 +855,6 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		Node2Round)
 	go PermuteEncryptTranslate(N2Permute.OutChannel, N1Encrypt.InChannel,
 		Node2Round)
-	go DecryptPermuteTranslate(N2Decrypt.OutChannel, N1Permute.InChannel)
 
 	// Run Generate
 	genMsg := services.Slot(&precomputation.SlotGeneration{Slot: 0})
