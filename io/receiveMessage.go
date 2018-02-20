@@ -11,30 +11,47 @@ import (
 
 type ReceiveMessageHandler struct{}
 
+// Serves as the batch queue
+// TODO better batch logic
+var msgCounter uint64 = 0
+var msgQueue = make([]*pb.CmixMessage, globals.BatchSize)
+
 // Reception handler for ReceiveMessageFromClient
 func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	jww.DEBUG.Printf("Received message from client: %v...", msg)
 
-	// Start precomputation for the next message we receive
-	BeginNewRound(Servers)
+	// Append the message to the batch queue
+	msgQueue[msgCounter] = msg
+	msgCounter += 1
 
-	roundId := globals.GetNextWaitingRoundID()
+	// Once the batch is filled
+	if msgCounter == globals.BatchSize {
+		roundId := globals.GetNextWaitingRoundID()
+		jww.DEBUG.Printf("Beginning round %s...", roundId)
+		// Pass the batch queue into Realtime
+		StartRealtime(msgQueue, roundId, globals.BatchSize)
 
-	jww.DEBUG.Printf("roundID: %s\n", roundId)
-
-	StartRealtime(msg, roundId, 1)
+		// Reset the batch queue
+		msgCounter = 0
+		msgQueue = make([]*pb.CmixMessage, globals.BatchSize)
+		// Begin a new round and start precomputation
+		BeginNewRound(Servers)
+	}
 }
 
 // Begin Realtime once Precomputation is finished
-func StartRealtime(msg *pb.CmixMessage, roundId string, batchSize uint64) {
-
-	inputMsg := services.Slot(&realtime.SlotDecryptOut{
-		Slot:                 0,
-		SenderID:             1,
-		EncryptedMessage:     cyclic.NewIntFromBytes(msg.MessagePayload),
-		EncryptedRecipientID: cyclic.NewIntFromBytes(msg.RecipientID),
-	})
+func StartRealtime(messages []*pb.CmixMessage, roundId string, batchSize uint64) {
+	inputSlots := make([]*services.Slot, batchSize)
+	for i := uint64(0); i < batchSize; i++ {
+		inputMsg := services.Slot(&realtime.SlotDecryptOut{
+			Slot:                 i,
+			SenderID:             1,
+			EncryptedMessage:     cyclic.NewIntFromBytes(messages[i].MessagePayload),
+			EncryptedRecipientID: cyclic.NewIntFromBytes(messages[i].RecipientID),
+		})
+		inputSlots[i] = &inputMsg
+	}
 
 	jww.INFO.Println("Beginning RealtimeDecrypt Phase...")
-	kickoffDecryptHandler(roundId, batchSize, []*services.Slot{&inputMsg})
+	kickoffDecryptHandler(roundId, batchSize, inputSlots)
 }
