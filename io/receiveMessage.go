@@ -27,7 +27,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 		// Convert message to a Slot
 		inputMsg := services.Slot(&realtime.SlotDecryptOut{
 			Slot:                 msgCounter,
-			SenderID:             1,
+			SenderID:             msg.SenderID,
 			EncryptedMessage:     messagePayload,
 			EncryptedRecipientID: recipientId,
 		})
