@@ -10,7 +10,7 @@ import (
 )
 
 // Server-wide configured batch size
-const BatchSize = uint64(1)
+var BatchSize = uint64(1)
 
 // LastNode contains precomputations held only by the last node
 type LastNode struct {
