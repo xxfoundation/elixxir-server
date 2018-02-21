@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package precomputation
 
 import (
@@ -50,37 +52,37 @@ func TestPermute(t *testing.T) {
 
 	var inMessages []services.Slot
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
-		MessageCypher:         cyclic.NewInt(39),
-		RecipientIDCypher:     cyclic.NewInt(13),
+		MessageCypher:             cyclic.NewInt(39),
+		RecipientIDCypher:         cyclic.NewInt(13),
 		MessagePrecomputation:     cyclic.NewInt(41),
 		RecipientIDPrecomputation: cyclic.NewInt(74)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
-		MessageCypher:         cyclic.NewInt(86),
-		RecipientIDCypher:     cyclic.NewInt(87),
+		MessageCypher:             cyclic.NewInt(86),
+		RecipientIDCypher:         cyclic.NewInt(87),
 		MessagePrecomputation:     cyclic.NewInt(8),
 		RecipientIDPrecomputation: cyclic.NewInt(49)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
-		MessageCypher:         cyclic.NewInt(39),
-		RecipientIDCypher:     cyclic.NewInt(51),
+		MessageCypher:             cyclic.NewInt(39),
+		RecipientIDCypher:         cyclic.NewInt(51),
 		MessagePrecomputation:     cyclic.NewInt(91),
 		RecipientIDPrecomputation: cyclic.NewInt(73)})
 
 	expected := []PrecomputationSlot{
 		PrecomputationSlot{Slot: uint64(1),
-			MessageCypher:         cyclic.NewInt(71),
-			RecipientIDCypher:     cyclic.NewInt(60),
+			MessageCypher:             cyclic.NewInt(71),
+			RecipientIDCypher:         cyclic.NewInt(60),
 			MessagePrecomputation:     cyclic.NewInt(44),
 			RecipientIDPrecomputation: cyclic.NewInt(97)},
 		PrecomputationSlot{Slot: uint64(2),
-			MessageCypher:         cyclic.NewInt(79),
-			RecipientIDCypher:     cyclic.NewInt(16),
+			MessageCypher:             cyclic.NewInt(79),
+			RecipientIDCypher:         cyclic.NewInt(16),
 			MessagePrecomputation:     cyclic.NewInt(47),
 			RecipientIDPrecomputation: cyclic.NewInt(47)},
 		PrecomputationSlot{Slot: uint64(0),
-			MessageCypher:         cyclic.NewInt(78),
-			RecipientIDCypher:     cyclic.NewInt(34),
+			MessageCypher:             cyclic.NewInt(78),
+			RecipientIDCypher:         cyclic.NewInt(34),
 			MessagePrecomputation:     cyclic.NewInt(69),
 			RecipientIDPrecomputation: cyclic.NewInt(13)},
 	}

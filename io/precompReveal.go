@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package io
 
 import (
@@ -18,7 +20,8 @@ type PrecompRevealHandler struct{}
 
 // ReceptionHandler for PrecompRevealMessages
 func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
-	jww.DEBUG.Printf("Received PrecompReveal Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received PrecompReveal Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_REVEAL)
 	// Iterate through the Slots in the PrecompRevealMessage
@@ -65,6 +68,7 @@ func (h PrecompRevealHandler) Handler(
 	// Create the PrecompRevealMessage
 	msg := &pb.PrecompRevealMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_REVEAL),
 		Slots:   make([]*pb.PrecompRevealSlot, batchSize),
 	}
 

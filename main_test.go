@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package main
 
 import (
@@ -338,10 +340,10 @@ func TestEndToEndCryptops(t *testing.T) {
 	// DECRYPT PHASE
 	var decMsg services.Slot
 	decMsg = &precomputation.PrecomputationSlot{
-		Slot:                         0,
-		MessageCypher:         cyclic.NewInt(1),
+		Slot:                      0,
+		MessageCypher:             cyclic.NewInt(1),
 		MessagePrecomputation:     cyclic.NewInt(1),
-		RecipientIDCypher:     cyclic.NewInt(1),
+		RecipientIDCypher:         cyclic.NewInt(1),
 		RecipientIDPrecomputation: cyclic.NewInt(1),
 	}
 	Decrypt := services.DispatchCryptop(&grp, precomputation.Decrypt{},

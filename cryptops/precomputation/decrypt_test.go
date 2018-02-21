@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package precomputation
 
 import (
@@ -27,23 +29,23 @@ func TestPrecompDecrypt(t *testing.T) {
 	var im []services.Slot
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                         uint64(0),
-		MessageCypher:         cyclic.NewInt(12),
-		RecipientIDCypher:     cyclic.NewInt(7),
+		Slot:                      uint64(0),
+		MessageCypher:             cyclic.NewInt(12),
+		RecipientIDCypher:         cyclic.NewInt(7),
 		MessagePrecomputation:     cyclic.NewInt(3),
 		RecipientIDPrecomputation: cyclic.NewInt(8)})
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                         uint64(1),
-		MessageCypher:         cyclic.NewInt(2),
-		RecipientIDCypher:     cyclic.NewInt(4),
+		Slot:                      uint64(1),
+		MessageCypher:             cyclic.NewInt(2),
+		RecipientIDCypher:         cyclic.NewInt(4),
 		MessagePrecomputation:     cyclic.NewInt(9),
 		RecipientIDPrecomputation: cyclic.NewInt(16)})
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                         uint64(2),
-		MessageCypher:         cyclic.NewInt(14),
-		RecipientIDCypher:     cyclic.NewInt(99),
+		Slot:                      uint64(2),
+		MessageCypher:             cyclic.NewInt(14),
+		RecipientIDCypher:         cyclic.NewInt(99),
 		MessagePrecomputation:     cyclic.NewInt(96),
 		RecipientIDPrecomputation: cyclic.NewInt(5)})
 

@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package io
 
 import (
@@ -15,7 +21,8 @@ type RealtimePermuteHandler struct{}
 
 // ReceptionHandler for RealtimePermuteMessages
 func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
-	jww.DEBUG.Printf("Received RealtimePermute Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received RealtimePermute Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
@@ -62,6 +69,7 @@ func (h RealtimePermuteHandler) Handler(
 	// Create the RealtimePermuteMessage for sending
 	msg := &pb.RealtimePermuteMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.REAL_PERMUTE),
 		Slots:   make([]*pb.RealtimePermuteSlot, batchSize),
 	}
 

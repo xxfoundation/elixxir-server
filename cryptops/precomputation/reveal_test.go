@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package precomputation
 
 import (
@@ -28,17 +30,17 @@ func TestPrecomputationReveal(t *testing.T) {
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(0),
-		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		MessagePrecomputation:     cyclic.NewInt(int64(39)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(1),
-		MessagePrecomputation:   cyclic.NewInt(int64(86)),
+		MessagePrecomputation:     cyclic.NewInt(int64(86)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(2),
-		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		MessagePrecomputation:     cyclic.NewInt(int64(39)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(51))})
 
 	round.Z = cyclic.NewInt(53)
@@ -87,32 +89,32 @@ func TestPrecomputationRevealRun(t *testing.T) {
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(0),
-		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		MessagePrecomputation:     cyclic.NewInt(int64(39)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(1),
-		MessagePrecomputation:   cyclic.NewInt(int64(86)),
+		MessagePrecomputation:     cyclic.NewInt(int64(86)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(2),
-		MessagePrecomputation:   cyclic.NewInt(int64(39)),
+		MessagePrecomputation:     cyclic.NewInt(int64(39)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(51))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot: uint64(1),
-		MessagePrecomputation:   cyclic.NewInt(int64(0)),
+		MessagePrecomputation:     cyclic.NewInt(int64(0)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot: uint64(2),
-		MessagePrecomputation:   cyclic.NewInt(int64(0)),
+		MessagePrecomputation:     cyclic.NewInt(int64(0)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot: uint64(0),
-		MessagePrecomputation:   cyclic.NewInt(int64(0)),
+		MessagePrecomputation:     cyclic.NewInt(int64(0)),
 		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
 
 	key := KeysReveal{

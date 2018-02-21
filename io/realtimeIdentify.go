@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package io
 
 import (
@@ -20,6 +26,7 @@ func (h RealtimeIdentifyHandler) Handler(
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.REAL_IDENTIFY),
 		Slots:   make([]*pb.RealtimeEncryptSlot, batchSize),
 	}
 

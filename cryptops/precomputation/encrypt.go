@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package precomputation
 
 import (
@@ -24,8 +26,7 @@ type KeysEncrypt struct {
 }
 
 // Allocated memory and arranges key objects for the Precomputation Encrypt Phase
-func (e Encrypt) Build(g *cyclic.Group, face interface{}) (
-	*services.DispatchBuilder) {
+func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -35,8 +36,8 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) (
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
-			Slot:                 i,
-			MessageCypher:        cyclic.NewMaxInt(),
+			Slot:                  i,
+			MessageCypher:         cyclic.NewMaxInt(),
 			MessagePrecomputation: cyclic.NewMaxInt(),
 		}
 	}
@@ -55,9 +56,9 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) (
 
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
-		Keys: &keys,
-		Output: &om,
-		G: g,
+		Keys:      &keys,
+		Output:    &om,
+		G:         g,
 	}
 
 	return &db

@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package io
 
 import (
@@ -30,7 +32,7 @@ func TestPrecompReveal(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
-		Slot:                      uint64(0),
+		Slot: uint64(0),
 		MessagePrecomputation:     cyclic.NewInt(3),
 		RecipientIDPrecomputation: cyclic.NewInt(10),
 	}
