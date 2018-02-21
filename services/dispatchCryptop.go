@@ -125,7 +125,22 @@ func (d *dispatch) dispatcher() {
 //  dispatcher will generate its own.
 func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Slot, face interface{}) *ThreadController {
 
+	return DispatchCryptopSized(g, cryptop, chIn, chOut, 0, face)
+
+}
+
+// DispatchCryptopSized creates the dispatcher with an alternate batch size
+// and returns its control structure. cryptop is the operation the dispatch
+// will do round is a pointer to the round object the dispatcher is in
+// chIn and chOut are the input and output channels, set to nil and the
+// dispatcher will generate its own.
+func DispatchCryptopSized(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Slot, batchSize uint64, face interface{}) *ThreadController {
+
 	db := cryptop.Build(g, face)
+
+	if batchSize != 0 {
+		db.BatchSize = batchSize
+	}
 
 	//Creates a channel for input if none is provided
 	if chIn == nil {

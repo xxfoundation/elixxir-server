@@ -33,8 +33,11 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 }
 
 // Transition to PrecompDecrypt phase on the last node
-func precompShareLastNode(roundId string, batchSize uint64,
-	input *pb.PrecompShareMessage) {
+func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
+	// Force batchSize to be global as the batchSize we need
+	// may be inconsistent with the Share phase batchSize
+	batchSize := globals.BatchSize
+
 	// For each node, set CypherPublicKey to
 	// shareResult.PartialRoundPublicCypherKey
 	jww.INFO.Println("Setting node Public Keys...")
@@ -101,7 +104,7 @@ func (h PrecompShareHandler) Handler(
 	if IsLastNode && !IsFirstRun {
 		// Transition to PrecompDecrypt phase
 		// if we are last node and this isn't the first run
-		precompShareLastNode(roundId, batchSize, msg)
+		precompShareLastNode(roundId, msg)
 	} else {
 		// Send the completed PrecompShareMessage
 		jww.DEBUG.Printf("Sending PrecompShare Message to %v...", NextServer)
