@@ -15,7 +15,8 @@ type PrecompPermuteHandler struct{}
 
 // ReceptionHandler for PrecompPermuteMessages
 func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
-	jww.DEBUG.Printf("Received PrecompPermute Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received PrecompPermute Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_PERMUTE)
 	// Iterate through the Slots in the PrecompPermuteMessage
@@ -48,6 +49,7 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 	// Create the PrecompEncryptMessage for sending
 	msg := &pb.PrecompEncryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_PERMUTE),
 		Slots:   make([]*pb.PrecompEncryptSlot, batchSize),
 	}
 
@@ -83,6 +85,7 @@ func (h PrecompPermuteHandler) Handler(
 	// Create the PrecompPermuteMessage for sending
 	msg := &pb.PrecompPermuteMessage{
 		RoundID: roundID,
+		LastOp:  int32(globals.PRECOMP_PERMUTE),
 		Slots:   make([]*pb.PrecompPermuteSlot, batchSize),
 	}
 

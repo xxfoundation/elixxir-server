@@ -18,7 +18,8 @@ type PrecompDecryptHandler struct{}
 
 // ReceptionHandler for PrecompDecryptMessages
 func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
-	jww.DEBUG.Printf("Received PrecompDecrypt Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received PrecompDecrypt Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
 	// Iterate through the Slots in the PrecompDecryptMessage
@@ -26,12 +27,12 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.PrecomputationSlot{
-			Slot:                      in.Slot,
-			MessageCypher:             cyclic.NewIntFromBytes(
+			Slot: in.Slot,
+			MessageCypher: cyclic.NewIntFromBytes(
 				in.EncryptedMessageKeys),
-			RecipientIDCypher:         cyclic.NewIntFromBytes(
+			RecipientIDCypher: cyclic.NewIntFromBytes(
 				in.EncryptedRecipientIDKeys),
-			MessagePrecomputation:     cyclic.NewIntFromBytes(
+			MessagePrecomputation: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
 			RecipientIDPrecomputation: cyclic.NewIntFromBytes(
 				in.PartialRecipientIDCypherText),
@@ -48,6 +49,7 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 	// Create the PrecompPermuteMessage
 	msg := &pb.PrecompPermuteMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_DECRYPT),
 		Slots:   make([]*pb.PrecompPermuteSlot, batchSize),
 	}
 
@@ -78,6 +80,7 @@ func (h PrecompDecryptHandler) Handler(
 	// Create the PrecompDecryptMessage
 	msg := &pb.PrecompDecryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_DECRYPT),
 		Slots:   make([]*pb.PrecompDecryptSlot, batchSize),
 	}
 

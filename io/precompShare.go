@@ -15,7 +15,8 @@ type PrecompShareHandler struct{}
 
 // ReceptionHandler for PrecompShareMessages
 func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
-	jww.DEBUG.Printf("Received PrecompShare Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received PrecompShare Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_SHARE)
 	// Iterate through the Slots in the PrecompShareMessage
@@ -55,6 +56,7 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	// Create the PrecompDecryptMessage
 	msg := &pb.PrecompDecryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_SHARE),
 		Slots:   make([]*pb.PrecompDecryptSlot, batchSize),
 	}
 
@@ -82,6 +84,7 @@ func (h PrecompShareHandler) Handler(
 	// Create the PrecompShareMessage
 	msg := &pb.PrecompShareMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_SHARE),
 		Slots:   make([]*pb.PrecompShareSlot, batchSize),
 	}
 

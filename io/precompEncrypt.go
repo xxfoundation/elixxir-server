@@ -19,14 +19,15 @@ type PrecompEncryptHandler struct{}
 // ReceptionHandler for PrecompEncryptMessages
 func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT)
-	jww.DEBUG.Printf("Received PrecompEncrypt Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received PrecompEncrypt Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Iterate through the Slots in the PrecompEncryptMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.PrecomputationSlot{
-			Slot:                  in.Slot,
-			MessageCypher:         cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
+			Slot:          in.Slot,
+			MessageCypher: cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
 			MessagePrecomputation: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
 		}
@@ -42,6 +43,7 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 	// Create the PrecompRevealMessage for sending
 	msg := &pb.PrecompRevealMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_ENCRYPT),
 		Slots:   make([]*pb.PrecompRevealSlot, batchSize),
 	}
 
@@ -75,6 +77,7 @@ func (h PrecompEncryptHandler) Handler(
 	// Create the PrecompEncryptMessage
 	msg := &pb.PrecompEncryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_ENCRYPT),
 		Slots:   make([]*pb.PrecompEncryptSlot, batchSize),
 	}
 

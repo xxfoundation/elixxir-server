@@ -15,7 +15,8 @@ type RealtimeEncryptHandler struct{}
 
 // ReceptionHandler for RealtimeEncryptMessages
 func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
-	jww.DEBUG.Printf("Received RealtimeEncrypt Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received RealtimeEncrypt Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_ENCRYPT)
 	// Iterate through the Slots in the RealtimeEncryptMessage
@@ -60,6 +61,7 @@ func (h RealtimeEncryptHandler) Handler(
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.REAL_ENCRYPT),
 		Slots:   make([]*pb.RealtimeEncryptSlot, batchSize),
 	}
 

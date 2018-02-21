@@ -15,7 +15,8 @@ type RealtimeDecryptHandler struct{}
 
 // ReceptionHandler for RealtimeDecryptMessages
 func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
-	jww.DEBUG.Printf("Received RealtimeDecrypt Message %v...", input.RoundID)
+	jww.DEBUG.Printf("Received RealtimeDecrypt Message %v from phase %s...",
+		input.RoundID, globals.Phase(input.LastOp).String())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_DECRYPT)
 	// Iterate through the Slots in the RealtimeDecryptMessage
@@ -41,6 +42,7 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 	// Create the RealtimePermuteMessage
 	msg := &pb.RealtimePermuteMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.REAL_DECRYPT),
 		Slots:   make([]*pb.RealtimePermuteSlot, batchSize),
 	}
 
@@ -69,6 +71,7 @@ func (h RealtimeDecryptHandler) Handler(
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.REAL_DECRYPT),
 		Slots:   make([]*pb.RealtimeDecryptSlot, batchSize),
 	}
 
@@ -104,6 +107,7 @@ func kickoffDecryptHandler(roundId string, batchSize uint64, slots []*services.S
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.WAIT),
 		Slots:   make([]*pb.RealtimeDecryptSlot, batchSize),
 	}
 

@@ -20,6 +20,7 @@ func (h RealtimeIdentifyHandler) Handler(
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,
+		LastOp:  int32(globals.REAL_IDENTIFY),
 		Slots:   make([]*pb.RealtimeEncryptSlot, batchSize),
 	}
 
