@@ -49,8 +49,10 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 		// Convert to SlotStripIn
 		var slot services.Slot = &precomputation.PrecomputationSlot{
 			Slot:              out.Slot,
-			MessageCypher:     cyclic.NewIntFromBytes(out.PartialMessageCypherText),
-			RecipientIDCypher: cyclic.NewIntFromBytes(out.PartialRecipientCypherText),
+			MessagePrecomputation:     cyclic.NewIntFromBytes(
+				out.PartialMessageCypherText),
+			RecipientIDPrecomputation: cyclic.NewIntFromBytes(
+				out.PartialRecipientCypherText),
 		}
 		// Pass slot as input to Strip's channel
 		stripChannel <- &slot
