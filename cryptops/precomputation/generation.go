@@ -1,7 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
-// Implements the Precomputation Generation phase
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 

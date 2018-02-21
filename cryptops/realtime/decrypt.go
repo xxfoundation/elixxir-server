@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 // Package realtime implements the realtime cryptographic phases of the cMix
 // protocol as detailed in the cMix technical doc. To decrypt messages, the
 // system goes through five phases, which are Decrypt, Permute, Identify,

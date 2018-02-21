@@ -1,7 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
-// Implements the Precomputation Permute phase
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
@@ -31,8 +32,7 @@ type KeysPermute struct {
 
 // Allocated memory and arranges key objects for the Precomputation
 // Permute Phase
-func (p Permute) Build(g *cyclic.Group, face interface{}) (
-	*services.DispatchBuilder) {
+func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -42,7 +42,7 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) (
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
-			Slot:                      i,
+			Slot: i,
 			MessagePrecomputation:     cyclic.NewMaxInt(),
 			MessageCypher:             cyclic.NewMaxInt(),
 			RecipientIDPrecomputation: cyclic.NewMaxInt(),
@@ -68,9 +68,9 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) (
 
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
-		Keys: &keys,
-		Output: &om,
-		G: g,
+		Keys:      &keys,
+		Output:    &om,
+		G:         g,
 	}
 
 	return &db

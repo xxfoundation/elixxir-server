@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package precomputation
 
 import (
@@ -53,9 +55,9 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
-		Keys: &keys,
-		Output: &om,
-		G: g,
+		Keys:      &keys,
+		Output:    &om,
+		G:         g,
 	}
 
 	return &db

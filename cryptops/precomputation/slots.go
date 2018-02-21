@@ -1,9 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
-//
-// These are the dispatch slot types for precomputation dispatcher
-// implementations. There are 3 types: Generate, Share, and Precomputation.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 

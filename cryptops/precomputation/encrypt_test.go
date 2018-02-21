@@ -1,6 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package precomputation
 
 import (
@@ -29,18 +31,18 @@ func TestEncrypt(t *testing.T) {
 	globals.Grp = &grp
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                     uint64(0),
-		MessageCypher:     cyclic.NewInt(int64(91)),
+		Slot:                  uint64(0),
+		MessageCypher:         cyclic.NewInt(int64(91)),
 		MessagePrecomputation: cyclic.NewInt(int64(73))})
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                     uint64(1),
-		MessageCypher:     cyclic.NewInt(int64(86)),
+		Slot:                  uint64(1),
+		MessageCypher:         cyclic.NewInt(int64(86)),
 		MessagePrecomputation: cyclic.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                     uint64(2),
-		MessageCypher:     cyclic.NewInt(int64(39)),
+		Slot:                  uint64(2),
+		MessageCypher:         cyclic.NewInt(int64(39)),
 		MessagePrecomputation: cyclic.NewInt(int64(50))})
 
 	round.CypherPublicKey = cyclic.NewInt(30)

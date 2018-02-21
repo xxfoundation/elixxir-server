@@ -1,7 +1,8 @@
-// Copyright © 2018 Privategrity Corporation
-//
-// All rights reserved.
-// Implements the Precomputation Reveal phase
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
@@ -24,8 +25,7 @@ type KeysReveal struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Reveal phase
-func (r Reveal) Build(g *cyclic.Group, face interface{}) (
-	*services.DispatchBuilder) {
+func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// The empty interface should be castable to a Round
 	round := face.(*globals.Round)
@@ -35,7 +35,7 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) (
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
-			Slot:                      i,
+			Slot: i,
 			MessagePrecomputation:     cyclic.NewMaxInt(),
 			RecipientIDPrecomputation: cyclic.NewMaxInt(),
 		}
@@ -53,7 +53,7 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) (
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
 		Output:    &om,
-		G: g,
+		G:         g,
 	}
 
 	return &db
