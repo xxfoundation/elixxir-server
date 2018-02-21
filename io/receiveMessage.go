@@ -41,10 +41,9 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 
 	// Once the batch is filled
 	if msgCounter == globals.BatchSize {
-		roundId := globals.GetNextWaitingRoundID()
-		jww.DEBUG.Printf("Beginning round %s...", roundId)
-		// Pass the batch queue into Realtime
-		StartRealtime(msgQueue, roundId, globals.BatchSize)
+		// Pass the batch queue into Realtime and begin
+		jww.INFO.Println("Beginning RealtimeDecrypt Phase...")
+		kickoffDecryptHandler(globals.GetNextWaitingRoundID(), globals.BatchSize, msgQueue)
 
 		// Reset the batch queue
 		msgCounter = 0
@@ -52,10 +51,4 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 		// Begin a new round and start precomputation
 		BeginNewRound(Servers)
 	}
-}
-
-// Begin Realtime with a new batch of slots
-func StartRealtime(slots []*services.Slot, roundId string, batchSize uint64) {
-	jww.INFO.Println("Beginning RealtimeDecrypt Phase...")
-	kickoffDecryptHandler(roundId, batchSize, slots)
 }
