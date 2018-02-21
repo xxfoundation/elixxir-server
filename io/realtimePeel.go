@@ -21,7 +21,9 @@ func (h RealtimePeelHandler) Handler(
 			slot.EncryptedMessage.Bytes())
 		user, _ := globals.Users.GetUser(slot.RecipientID)
 		user.MessageBuffer <- &pb.CmixMessage{
-			slot.EncryptedMessage.LeftpadBytes(512), make([]byte, 0),
+			SenderID:       uint64(0), // Currently zero this field
+			MessagePayload: slot.EncryptedMessage.LeftpadBytes(512),
+			RecipientID:    make([]byte, 0), // Currently zero this field
 		}
 	}
 	jww.INFO.Println("Realtime Finished!")
