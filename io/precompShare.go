@@ -34,9 +34,10 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 
 // Transition to PrecompDecrypt phase on the last node
 func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
-	// Force batchSize to be global as the batchSize we need
-	// may be inconsistent with the Share phase batchSize
-	batchSize := globals.BatchSize
+	// Force batchSize to be the same as the round
+	// as the batchSize we need may be inconsistent
+	// with the Share phase batchSize
+	batchSize := globals.GlobalRoundMap.GetRound(roundId).BatchSize
 
 	// For each node, set CypherPublicKey to
 	// shareResult.PartialRoundPublicCypherKey
