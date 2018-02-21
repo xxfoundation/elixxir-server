@@ -12,7 +12,7 @@ import (
 type ReceiveMessageHandler struct{}
 
 // Serves as the batch queue
-// TODO better batch logic
+// TODO better batch logic, we should convert this to a queue or channel
 var msgCounter uint64 = 0
 var msgQueue = make([]*pb.CmixMessage, globals.BatchSize)
 
