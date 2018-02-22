@@ -110,11 +110,11 @@ func (m *UserMap) DeleteUser(id uint64) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserMap) GetUser(id uint64) (user *User, ok bool) {
+func (m *UserMap) GetUser(id uint64) (*User , bool) {
 	var u *User
-	u, ok = m.userCollection[id]
-	user = u.DeepCopy()
-	return
+	u, ok := m.userCollection[id]
+	user := u.DeepCopy()
+	return user, ok
 }
 
 // UpsertUser inserts given user into userCollection or update the user if it

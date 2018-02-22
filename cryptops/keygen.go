@@ -80,20 +80,27 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in, out KeySlot,
 	keys *KeysGenerateClientKey) services.Slot {
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
+
 	user, _ := globals.Users.GetUser(in.UserID())
+
 
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
 	if in.GetKeyType() == TRANSMISSION {
+
 		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
 			user.Transmission.RecursiveKey, in.Key(),
 			keys.sharedKeyStorage)
 	} else if in.GetKeyType() == RECEPTION {
+
 		forward.GenerateSharedKey(group, user.Reception.BaseKey,
 			user.Reception.RecursiveKey, in.Key(),
 			keys.sharedKeyStorage)
 	}
+
+
+	globals.Users.UpsertUser(user)
 
 	return in.(services.Slot)
 }

@@ -204,7 +204,8 @@ func TestGenerateClientKey(t *testing.T) {
 		dc.InChannel <- &(inSlots[i])
 		testOK := true
 		actual := (*<-dc.OutChannel).(GenericKeySlot)
-		if users[i+1].Reception.RecursiveKey.Cmp(expectedRecursiveKeys[i]) != 0 {
+		usr, _ := globals.Users.GetUser(i+1)
+		if usr.Reception.RecursiveKey.Cmp(expectedRecursiveKeys[i]) != 0 {
 			testOK = false
 			t.Error("Recursive keys differed at index", i)
 		} else if actual.Key().Cmp(expectedSharedKeys[i]) != 0 {
