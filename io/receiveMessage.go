@@ -32,10 +32,10 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	if globals.Grp.Inside(recipientId) && globals.Grp.Inside(messagePayload) {
 		// Convert message to a Slot
 		inputMsg := services.Slot(&realtime.SlotDecryptOut{
-			Slot:                 msgCounter,
-			SenderID:             msg.SenderID,
-			EncryptedMessage:     messagePayload,
-			EncryptedRecipientID: recipientId,
+			Slot:               msgCounter,
+			CurrentID:          msg.SenderID,
+			Message:            messagePayload,
+			EncryptedRecipient: recipientId,
 		})
 		// Append the message to the batch queue
 		msgQueue[msgCounter] = &inputMsg

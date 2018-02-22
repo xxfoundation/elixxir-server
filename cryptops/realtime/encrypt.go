@@ -24,11 +24,11 @@ type SlotEncryptIn struct {
 	// Slot Number of the Data
 	Slot uint64
 	// ID of the client who will receive the message (Pass through)
-	RecipientID uint64
+	CurrentID uint64
 	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
-	EncryptedMessage *cyclic.Int
+	Message *cyclic.Int
 	// Shared Key between the client who receives the message and the node
-	ReceptionKey *cyclic.Int
+	CurrentKey *cyclic.Int
 }
 
 // SlotEncryptOut is used to pass  the results out of Encrypt
@@ -36,9 +36,9 @@ type SlotEncryptOut struct {
 	//Slot Number of the Data
 	Slot uint64
 	// ID of the client who will receive the message (Pass through)
-	RecipientID uint64
+	CurrentID uint64
 	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
-	EncryptedMessage *cyclic.Int
+	Message *cyclic.Int
 }
 
 // SlotID Returns the Slot number
@@ -48,12 +48,12 @@ func (e *SlotEncryptIn) SlotID() uint64 {
 
 // ID of the user for keygen
 func (e *SlotEncryptIn) UserID() uint64 {
-	return e.RecipientID
+	return e.CurrentID
 }
 
 // Cyclic int to place the key in
 func (e *SlotEncryptIn) Key() *cyclic.Int {
-	return e.ReceptionKey
+	return e.CurrentKey
 }
 
 // Returns the KeyType
@@ -73,7 +73,8 @@ type KeysEncrypt struct {
 }
 
 // Allocated memory and arranges key objects for the Realtime Encrypt Phase
-func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (e Encrypt) Build(g *cyclic.Group,
+	face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -83,9 +84,9 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotEncryptOut{
-			Slot:             i,
-			EncryptedMessage: cyclic.NewMaxInt(),
-			RecipientID:      0,
+			Slot:      i,
+			Message:   cyclic.NewMaxInt(),
+			CurrentID: 0,
 		}
 	}
 
@@ -99,25 +100,27 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{BatchSize: round.BatchSize,
+		Keys: &keys, Output: &om, G: g}
 
 	return &db
 
 }
 
 // Multiplies in the ReceptionKey and the node’s cypher key
-func (e Encrypt) Run(g *cyclic.Group, in *SlotEncryptIn, out *SlotEncryptOut, keys *KeysEncrypt) services.Slot {
+func (e Encrypt) Run(g *cyclic.Group, in *SlotEncryptIn,
+	out *SlotEncryptOut, keys *KeysEncrypt) services.Slot {
 
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
 	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted
 	// Internode Keys into the Encrypted Message
-	g.Mul(in.ReceptionKey, keys.T, tmp)
-	g.Mul(in.EncryptedMessage, tmp, out.EncryptedMessage)
+	g.Mul(in.CurrentKey, keys.T, tmp)
+	g.Mul(in.Message, tmp, out.Message)
 
 	// Pass through RecipientID
-	out.RecipientID = in.RecipientID
+	out.CurrentID = in.CurrentID
 
 	return out
 

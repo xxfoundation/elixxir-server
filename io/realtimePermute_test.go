@@ -33,9 +33,9 @@ func TestRealtimePermute(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.SlotPermute{
-		Slot:                 uint64(0),
-		EncryptedMessage:     cyclic.NewInt(12),
-		EncryptedRecipientID: cyclic.NewInt(7),
+		Slot:               uint64(0),
+		Message:            cyclic.NewInt(12),
+		EncryptedRecipient: cyclic.NewInt(7),
 	}
 
 	// Pass slot as input to Permute's TransmissionHandler
@@ -52,18 +52,18 @@ func TestRealtimePermute(t *testing.T) {
 	if expected.Slot != actual.Slot {
 		t.Errorf("Slot does not match!")
 	}
-	if expected.EncryptedMessage.Cmp(
-		actual.EncryptedMessage) != 0 {
+	if expected.Message.Cmp(
+		actual.Message) != 0 {
 		t.Errorf("EncryptedMessage does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedMessage.Text(10),
-			expected.EncryptedMessage.Text(10))
+			actual.Message.Text(10),
+			expected.Message.Text(10))
 	}
-	if expected.EncryptedRecipientID.Cmp(
-		actual.EncryptedRecipientID) != 0 {
+	if expected.EncryptedRecipient.Cmp(
+		actual.EncryptedRecipient) != 0 {
 		t.Errorf("EncryptedRecipientID does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedRecipientID.Text(10),
-			expected.EncryptedRecipientID.Text(10))
+			actual.EncryptedRecipient.Text(10),
+			expected.EncryptedRecipient.Text(10))
 	}
 }

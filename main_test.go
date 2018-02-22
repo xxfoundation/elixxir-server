@@ -534,11 +534,11 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	// ----- REALTIME ----- //
 	inputMsg := services.Slot(&realtime.SlotDecryptIn{
-		Slot:                 0,
-		SenderID:             1,
-		EncryptedMessage:     cyclic.NewInt(31),
-		EncryptedRecipientID: cyclic.NewInt(1),
-		TransmissionKey:      cyclic.NewInt(1),
+		Slot:               0,
+		CurrentID:          1,
+		Message:            cyclic.NewInt(31),
+		EncryptedRecipient: cyclic.NewInt(1),
+		CurrentKey:         cyclic.NewInt(1),
 	})
 
 	// DECRYPT PHASE
@@ -553,24 +553,24 @@ func TestEndToEndCryptops(t *testing.T) {
 		iv := <-in
 		is := (*iv).(*realtime.SlotDecryptOut)
 		ov := services.Slot(&realtime.SlotPermute{
-			Slot:                 is.Slot,
-			EncryptedMessage:     is.EncryptedMessage,
-			EncryptedRecipientID: is.EncryptedRecipientID,
+			Slot:               is.Slot,
+			Message:            is.Message,
+			EncryptedRecipient: is.EncryptedRecipient,
 		})
 
 		t.Logf("RTDECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n",
-			is.EncryptedMessage.Text(10),
-			is.EncryptedRecipientID.Text(10))
+			is.Message.Text(10),
+			is.EncryptedRecipient.Text(10))
 		expectedRTDecrypt := []*cyclic.Int{
 			cyclic.NewInt(75), cyclic.NewInt(72),
 		}
-		if is.EncryptedMessage.Cmp(expectedRTDecrypt[0]) != 0 {
+		if is.Message.Cmp(expectedRTDecrypt[0]) != 0 {
 			t.Errorf("RTDECRYPT failed EncryptedMessage. Got: %s Expected: %s",
-				is.EncryptedMessage.Text(10), expectedRTDecrypt[0].Text(10))
+				is.Message.Text(10), expectedRTDecrypt[0].Text(10))
 		}
-		if is.EncryptedRecipientID.Cmp(expectedRTDecrypt[1]) != 0 {
+		if is.EncryptedRecipient.Cmp(expectedRTDecrypt[1]) != 0 {
 			t.Errorf("RTDECRYPT failed EncryptedRecipientID. Got: %s Expected: %s",
-				is.EncryptedRecipientID.Text(10), expectedRTDecrypt[1].Text(10))
+				is.EncryptedRecipient.Text(10), expectedRTDecrypt[1].Text(10))
 		}
 
 		out <- &ov
@@ -584,38 +584,38 @@ func TestEndToEndCryptops(t *testing.T) {
 	rtnPrm := <-RTPermute.OutChannel
 	esPrm := (*rtnPrm).(*realtime.SlotPermute)
 	ovPrm := services.Slot(&realtime.SlotIdentify{
-		Slot:                 esPrm.Slot,
-		EncryptedRecipientID: esPrm.EncryptedRecipientID,
+		Slot:               esPrm.Slot,
+		EncryptedRecipient: esPrm.EncryptedRecipient,
 	})
-	TmpMsg := esPrm.EncryptedMessage
+	TmpMsg := esPrm.Message
 	t.Logf("RTPERMUTE:\n  EncryptedRecipientID: %s\n",
-		esPrm.EncryptedRecipientID.Text(10))
+		esPrm.EncryptedRecipient.Text(10))
 	expectedRTPermute := []*cyclic.Int{
 		cyclic.NewInt(4),
 	}
-	if esPrm.EncryptedRecipientID.Cmp(expectedRTPermute[0]) != 0 {
+	if esPrm.EncryptedRecipient.Cmp(expectedRTPermute[0]) != 0 {
 		t.Errorf("RTPERMUTE failed EncryptedRecipientID. Got: %s Expected: %s",
-			esPrm.EncryptedRecipientID.Text(10), expectedRTPermute[0].Text(10))
+			esPrm.EncryptedRecipient.Text(10), expectedRTPermute[0].Text(10))
 	}
 
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.SlotIdentify)
-	rID, _ := strconv.ParseUint(esTmp.EncryptedRecipientID.Text(10), 10, 64)
+	rID, _ := strconv.ParseUint(esTmp.EncryptedRecipient.Text(10), 10, 64)
 	inputMsgPostID := services.Slot(&realtime.SlotEncryptIn{
-		Slot:             esTmp.Slot,
-		RecipientID:      rID,
-		EncryptedMessage: TmpMsg,
-		ReceptionKey:     cyclic.NewInt(1),
+		Slot:       esTmp.Slot,
+		CurrentID:  rID,
+		Message:    TmpMsg,
+		CurrentKey: cyclic.NewInt(1),
 	})
 	t.Logf("RTIDENTIFY:\n  RecipientID: %s\n",
-		esTmp.EncryptedRecipientID.Text(10))
+		esTmp.EncryptedRecipient.Text(10))
 	expectedRTIdentify := []*cyclic.Int{
 		cyclic.NewInt(1),
 	}
-	if esTmp.EncryptedRecipientID.Cmp(expectedRTIdentify[0]) != 0 {
+	if esTmp.EncryptedRecipient.Cmp(expectedRTIdentify[0]) != 0 {
 		t.Errorf("RTIDENTIFY failed EncryptedRecipientID. Got: %s Expected: %s",
-			esTmp.EncryptedRecipientID.Text(10), expectedRTIdentify[0].Text(10))
+			esTmp.EncryptedRecipient.Text(10), expectedRTIdentify[0].Text(10))
 	}
 
 	// ENCRYPT PHASE
@@ -632,13 +632,13 @@ func TestEndToEndCryptops(t *testing.T) {
 		ov := services.Slot(&is)
 
 		t.Logf("RTENCRYPT:\n  EncryptedMessage: %s\n",
-			is.EncryptedMessage.Text(10))
+			is.Message.Text(10))
 		expectedRTEncrypt := []*cyclic.Int{
 			cyclic.NewInt(41),
 		}
-		if is.EncryptedMessage.Cmp(expectedRTEncrypt[0]) != 0 {
+		if is.Message.Cmp(expectedRTEncrypt[0]) != 0 {
 			t.Errorf("RTENCRYPT failed EncryptedMessage. Got: %s Expected: %s",
-				is.EncryptedMessage.Text(10), expectedRTEncrypt[0].Text(10))
+				is.Message.Text(10), expectedRTEncrypt[0].Text(10))
 		}
 
 		out <- &ov
@@ -650,18 +650,18 @@ func TestEndToEndCryptops(t *testing.T) {
 	esRT := (*rtnRT).(*realtime.SlotPeel)
 
 	t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
-		esRT.EncryptedMessage.Text(10))
+		esRT.Message.Text(10))
 	expectedRTPeel := []*cyclic.Int{
 		cyclic.NewInt(31),
 	}
-	if esRT.EncryptedMessage.Cmp(expectedRTPeel[0]) != 0 {
+	if esRT.Message.Cmp(expectedRTPeel[0]) != 0 {
 		t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
-			esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+			esRT.Message.Text(10), expectedRTPeel[0].Text(10))
 	}
 
 	t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-		esRT.Slot, esRT.RecipientID,
-		esRT.EncryptedMessage.Text(10))
+		esRT.Slot, esRT.CurrentID,
+		esRT.Message.Text(10))
 }
 
 // Convert Decrypt output slot to Permute input slot
@@ -728,9 +728,9 @@ func RTDecryptRTPermuteTranslate(decrypt, permute chan *services.Slot) {
 	for decryptSlot := range decrypt {
 		is := (*decryptSlot).(*realtime.SlotDecryptOut)
 		ov := services.Slot(&realtime.SlotPermute{
-			Slot:                 is.Slot,
-			EncryptedMessage:     is.EncryptedMessage,
-			EncryptedRecipientID: is.EncryptedRecipientID,
+			Slot:               is.Slot,
+			Message:            is.Message,
+			EncryptedRecipient: is.EncryptedRecipient,
 		})
 		permute <- &ov
 	}
@@ -741,10 +741,10 @@ func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
 	for permuteSlot := range permute {
 		esPrm := (*permuteSlot).(*realtime.SlotPermute)
 		ovPrm := services.Slot(&realtime.SlotIdentify{
-			Slot:                 esPrm.Slot,
-			EncryptedRecipientID: esPrm.EncryptedRecipientID,
+			Slot:               esPrm.Slot,
+			EncryptedRecipient: esPrm.EncryptedRecipient,
 		})
-		outMsgs[esPrm.Slot].Set(esPrm.EncryptedMessage)
+		outMsgs[esPrm.Slot].Set(esPrm.Message)
 		identify <- &ovPrm
 	}
 }
@@ -753,12 +753,12 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 	inMsgs []*cyclic.Int) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.SlotIdentify)
-		rID, _ := strconv.ParseUint(esTmp.EncryptedRecipientID.Text(10), 10, 64)
+		rID, _ := strconv.ParseUint(esTmp.EncryptedRecipient.Text(10), 10, 64)
 		inputMsgPostID := services.Slot(&realtime.SlotEncryptIn{
-			Slot:             esTmp.Slot,
-			RecipientID:      rID,
-			EncryptedMessage: inMsgs[esTmp.Slot],
-			ReceptionKey:     cyclic.NewInt(1),
+			Slot:       esTmp.Slot,
+			CurrentID:  rID,
+			Message:    inMsgs[esTmp.Slot],
+			CurrentKey: cyclic.NewInt(1),
 		})
 		encrypt <- &inputMsgPostID
 	}
@@ -776,11 +776,11 @@ func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
 	for is := range in {
 		o := (*is).(*realtime.SlotDecryptOut)
 		os := services.Slot(&realtime.SlotDecryptIn{
-			Slot:                 o.Slot,
-			SenderID:             o.SenderID,
-			EncryptedMessage:     o.EncryptedMessage,
-			EncryptedRecipientID: o.EncryptedRecipientID,
-			TransmissionKey:      cyclic.NewInt(1), // WTF? FIXME
+			Slot:               o.Slot,
+			CurrentID:          o.CurrentID,
+			Message:            o.Message,
+			EncryptedRecipient: o.EncryptedRecipient,
+			CurrentKey:         cyclic.NewInt(1), // WTF? FIXME
 		})
 		out <- &os
 	}
@@ -790,10 +790,10 @@ func RTEncryptRTEncryptTranslate(in, out chan *services.Slot) {
 	for is := range in {
 		o := (*is).(*realtime.SlotEncryptOut)
 		os := services.Slot(&realtime.SlotEncryptIn{
-			Slot:             o.Slot,
-			RecipientID:      o.RecipientID,
-			EncryptedMessage: o.EncryptedMessage,
-			ReceptionKey:     cyclic.NewInt(1), // FIXME
+			Slot:       o.Slot,
+			CurrentID:  o.CurrentID,
+			Message:    o.Message,
+			CurrentKey: cyclic.NewInt(1), // FIXME
 		})
 		out <- &os
 	}
@@ -954,28 +954,28 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	go RTEncryptRTPeelTranslate(N2RTEncrypt.OutChannel, N2RTPeel.InChannel)
 
 	inputMsg := services.Slot(&realtime.SlotDecryptIn{
-		Slot:                 0,
-		SenderID:             1,
-		EncryptedMessage:     cyclic.NewInt(42), // Meaning of Life
-		EncryptedRecipientID: cyclic.NewInt(1),
-		TransmissionKey:      cyclic.NewInt(1),
+		Slot:               0,
+		CurrentID:          1,
+		Message:            cyclic.NewInt(42), // Meaning of Life
+		EncryptedRecipient: cyclic.NewInt(1),
+		CurrentKey:         cyclic.NewInt(1),
 	})
 	N1RTDecrypt.InChannel <- &inputMsg
 	rtnRT := <-N2RTPeel.OutChannel
 	esRT := (*rtnRT).(*realtime.SlotPeel)
 	t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
-		esRT.EncryptedMessage.Text(10))
+		esRT.Message.Text(10))
 	expectedRTPeel := []*cyclic.Int{
 		cyclic.NewInt(42),
 	}
-	if esRT.EncryptedMessage.Cmp(expectedRTPeel[0]) != 0 {
+	if esRT.Message.Cmp(expectedRTPeel[0]) != 0 {
 		t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
-			esRT.EncryptedMessage.Text(10), expectedRTPeel[0].Text(10))
+			esRT.Message.Text(10), expectedRTPeel[0].Text(10))
 	}
 
 	t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-		esRT.Slot, esRT.RecipientID,
-		esRT.EncryptedMessage.Text(10))
+		esRT.Slot, esRT.CurrentID,
+		esRT.Message.Text(10))
 }
 
 // Helper function to initialize round keys. Useful when you only need to edit 1
@@ -1196,21 +1196,21 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		rtnRT := <-LNRTPeel.OutChannel
 		esRT := (*rtnRT).(*realtime.SlotPeel)
 		t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
-			esRT.EncryptedMessage.Text(10))
+			esRT.Message.Text(10))
 
-		if esRT.EncryptedMessage.Cmp(expectedOutputs[i].EncryptedMessage) != 0 {
+		if esRT.Message.Cmp(expectedOutputs[i].Message) != 0 {
 			t.Errorf("RTPEEL %d failed EncryptedMessage. Got: %s Expected: %s",
 				esRT.Slot,
-				esRT.EncryptedMessage.Text(10),
-				expectedOutputs[i].EncryptedMessage.Text(10))
+				esRT.Message.Text(10),
+				expectedOutputs[i].Message.Text(10))
 		}
-		if esRT.RecipientID != expectedOutputs[i].RecipientID {
+		if esRT.CurrentID != expectedOutputs[i].CurrentID {
 			t.Errorf("RTPEEL %d failed RecipientID. Got: %d Expected: %d",
-				esRT.Slot, esRT.RecipientID, expectedOutputs[i].RecipientID)
+				esRT.Slot, esRT.CurrentID, expectedOutputs[i].CurrentID)
 		}
 
 		t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-			esRT.Slot, esRT.RecipientID, esRT.EncryptedMessage.Text(10))
+			esRT.Slot, esRT.CurrentID, esRT.Message.Text(10))
 	}
 }
 
@@ -1224,16 +1224,16 @@ func Test3NodeE2E(t *testing.T) {
 	outputMsgs := make([]realtime.SlotPeel, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.SlotDecryptIn{
-			Slot:                 i,
-			SenderID:             i + 1,
-			EncryptedMessage:     cyclic.NewInt(42 + int64(i)), // Meaning of Life
-			EncryptedRecipientID: cyclic.NewInt(1 + int64(i)),
-			TransmissionKey:      cyclic.NewInt(1),
+			Slot:               i,
+			CurrentID:          i + 1,
+			Message:            cyclic.NewInt(42 + int64(i)), // Meaning of Life
+			EncryptedRecipient: cyclic.NewInt(1 + int64(i)),
+			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.SlotPeel{
-			Slot:             i,
-			RecipientID:      i + 1,
-			EncryptedMessage: cyclic.NewInt(42 + int64(i)), // Meaning of Life
+			Slot:      i,
+			CurrentID: i + 1,
+			Message:   cyclic.NewInt(42 + int64(i)), // Meaning of Life
 		}
 	}
 	rounds := GenerateRounds(nodeCount, BatchSize, &grp, t)
@@ -1256,16 +1256,16 @@ func Test1NodePermuteE2E(t *testing.T) {
 	outputMsgs := make([]realtime.SlotPeel, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.SlotDecryptIn{
-			Slot:                 i,
-			SenderID:             i + 1,
-			EncryptedMessage:     cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			EncryptedRecipientID: cyclic.NewInt((1 + int64(i)) % 101),
-			TransmissionKey:      cyclic.NewInt(1),
+			Slot:               i,
+			CurrentID:          i + 1,
+			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
+			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.SlotPeel{
-			Slot:             i,
-			RecipientID:      (i + 1) % 101,
-			EncryptedMessage: cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			Slot:      i,
+			CurrentID: (i + 1) % 101,
+			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
 	rounds := GenerateRounds(nodeCount, BatchSize, &grp, t)
@@ -1323,16 +1323,16 @@ func TestRealPrimeE2E(t *testing.T) {
 	outputMsgs := make([]realtime.SlotPeel, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.SlotDecryptIn{
-			Slot:                 i,
-			SenderID:             i + 1,
-			EncryptedMessage:     cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			EncryptedRecipientID: cyclic.NewInt((1 + int64(i)) % 101),
-			TransmissionKey:      cyclic.NewInt(1),
+			Slot:               i,
+			CurrentID:          i + 1,
+			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
+			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.SlotPeel{
-			Slot:             i,
-			RecipientID:      (i + 1) % 101,
-			EncryptedMessage: cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			Slot:      i,
+			CurrentID: (i + 1) % 101,
+			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
 	rounds := GenerateRounds(nodeCount, BatchSize, &grp, t)

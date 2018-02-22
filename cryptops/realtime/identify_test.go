@@ -25,12 +25,12 @@ func TestRealTimeIdentify(t *testing.T) {
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
 	im = append(im, &SlotIdentify{
-		Slot:                 0,
-		EncryptedRecipientID: cyclic.NewInt(42)})
+		Slot:               0,
+		EncryptedRecipient: cyclic.NewInt(42)})
 
 	im = append(im, &SlotIdentify{
-		Slot:                 1,
-		EncryptedRecipientID: cyclic.NewInt(1)})
+		Slot:               1,
+		EncryptedRecipient: cyclic.NewInt(1)})
 
 	ExpectedOutputs := []*cyclic.Int{cyclic.NewInt(1), cyclic.NewInt(42)}
 
@@ -43,9 +43,9 @@ func TestRealTimeIdentify(t *testing.T) {
 		rtn := (*trn).(*SlotIdentify)
 		ExpectedOutput := ExpectedOutputs[i]
 
-		if rtn.EncryptedRecipientID.Cmp(ExpectedOutput) != 0 {
+		if rtn.EncryptedRecipient.Cmp(ExpectedOutput) != 0 {
 			t.Errorf("%v - Expected: %v, Got: %v", i, ExpectedOutput.Text(10),
-				rtn.EncryptedRecipientID.Text(10))
+				rtn.EncryptedRecipient.Text(10))
 		}
 	}
 }
@@ -62,12 +62,12 @@ func TestIdentifyRun(t *testing.T) {
 	// DecryptedRecipient := cyclic.NewInt(0)
 
 	im := SlotIdentify{
-		Slot:                 0,
-		EncryptedRecipientID: cyclic.NewInt(42)}
+		Slot:               0,
+		EncryptedRecipient: cyclic.NewInt(42)}
 
 	om := SlotIdentify{
-		Slot:                 0,
-		EncryptedRecipientID: cyclic.NewInt(0)}
+		Slot:               0,
+		EncryptedRecipient: cyclic.NewInt(0)}
 
 	ExpectedOutput := cyclic.NewInt(1) // 42*42 mod 43 => 1
 
@@ -75,8 +75,8 @@ func TestIdentifyRun(t *testing.T) {
 	identify := Identify{}
 	identify.Run(&grp, &im, &om, &keys)
 
-	if om.EncryptedRecipientID.Cmp(ExpectedOutput) != 0 {
+	if om.EncryptedRecipient.Cmp(ExpectedOutput) != 0 {
 		t.Errorf("Expected: %v, Got: %v", ExpectedOutput.Text(10),
-			om.EncryptedRecipientID.Text(10))
+			om.EncryptedRecipient.Text(10))
 	}
 }

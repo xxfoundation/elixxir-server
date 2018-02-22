@@ -31,9 +31,9 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		in := input.Slots[i]
 		var slot services.Slot = &realtime.SlotPermute{
 			Slot: in.Slot,
-			EncryptedMessage: cyclic.NewIntFromBytes(
+			Message: cyclic.NewIntFromBytes(
 				in.EncryptedMessage),
-			EncryptedRecipientID: cyclic.NewIntFromBytes(
+			EncryptedRecipient: cyclic.NewIntFromBytes(
 				in.EncryptedRecipientID),
 		}
 		// Pass slot as input to Permute's channel
@@ -53,8 +53,8 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to SlotIdentify
 		var slot services.Slot = &realtime.SlotIdentify{
-			Slot:                 out.Slot,
-			EncryptedRecipientID: cyclic.NewIntFromBytes(out.EncryptedRecipientID),
+			Slot:               out.Slot,
+			EncryptedRecipient: cyclic.NewIntFromBytes(out.EncryptedRecipientID),
 		}
 		// Save EncryptedMessages for the Identify->Encrypt transition
 		round.LastNode.EncryptedMessage[i] = cyclic.NewIntFromBytes(out.EncryptedMessage)
@@ -80,8 +80,8 @@ func (h RealtimePermuteHandler) Handler(
 		// Convert to RealtimePermuteSlot
 		msgSlot := &pb.RealtimePermuteSlot{
 			Slot:                 out.Slot,
-			EncryptedMessage:     out.EncryptedMessage.Bytes(),
-			EncryptedRecipientID: out.EncryptedRecipientID.Bytes(),
+			EncryptedMessage:     out.Message.Bytes(),
+			EncryptedRecipientID: out.EncryptedRecipient.Bytes(),
 		}
 
 		// Append the RealtimePermuteSlot to the RealtimePermuteMessage

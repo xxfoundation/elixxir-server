@@ -30,10 +30,10 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
 		var slot services.Slot = &realtime.SlotEncryptIn{
-			Slot:             in.Slot,
-			RecipientID:      in.RecipientID,
-			EncryptedMessage: cyclic.NewIntFromBytes(in.EncryptedMessage),
-			ReceptionKey:     cyclic.NewInt(1),
+			Slot:       in.Slot,
+			CurrentID:  in.RecipientID,
+			Message:    cyclic.NewIntFromBytes(in.EncryptedMessage),
+			CurrentKey: cyclic.NewInt(1),
 		}
 		// Pass slot as input to Encrypt's channel
 		chIn <- &slot
@@ -52,9 +52,9 @@ func realtimeEncryptLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to SlotPeel
 		var slot services.Slot = &realtime.SlotPeel{
-			Slot:             out.Slot,
-			RecipientID:      out.RecipientID,
-			EncryptedMessage: cyclic.NewIntFromBytes(out.EncryptedMessage),
+			Slot:      out.Slot,
+			CurrentID: out.RecipientID,
+			Message:   cyclic.NewIntFromBytes(out.EncryptedMessage),
 		}
 		// Pass slot as input to Peel's channel
 		peelChannel <- &slot
@@ -78,8 +78,8 @@ func (h RealtimeEncryptHandler) Handler(
 		// Convert to RealtimeEncryptSlot
 		msgSlot := &pb.RealtimeEncryptSlot{
 			Slot:             out.Slot,
-			RecipientID:      out.RecipientID,
-			EncryptedMessage: out.EncryptedMessage.Bytes(),
+			RecipientID:      out.CurrentID,
+			EncryptedMessage: out.Message.Bytes(),
 		}
 
 		// Append the RealtimeEncryptSlot to the RealtimeEncryptMessage
