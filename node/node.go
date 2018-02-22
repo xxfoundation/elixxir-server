@@ -13,10 +13,13 @@ import (
 )
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(serverIndex int) {
+func StartServer(serverIndex int, batchSize uint64) {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
+
+	// Set global batch size
+	globals.BatchSize = batchSize
 
 	// Get all servers
 	io.Servers = getServers()
@@ -70,6 +73,8 @@ func StartServer(serverIndex int) {
 	io.VerifyServersOnline(io.Servers)
 
 	if io.IsLastNode {
+		// Initializes message queue at runtime
+		io.InitMessageQueue()
 		// Begin the round on all nodes
 		io.BeginNewRound(io.Servers)
 	}

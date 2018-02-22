@@ -6,14 +6,12 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/node"
 )
 
@@ -30,8 +28,7 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		globals.BatchSize = uint64(viper.GetInt("batchSize"))
-		node.StartServer(serverIdx)
+		node.StartServer(serverIdx, uint64(viper.GetInt("batchSize")))
 	},
 }
 
@@ -40,7 +37,7 @@ communications.`,
 // happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		jww.ERROR.Println(err)
 		os.Exit(1)
 	}
 }
@@ -61,7 +58,7 @@ func init() {
 		"Config index to use for local server")
 	rootCmd.PersistentFlags().IntVarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
-	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batchSize"))
+	viper.BindPFlag("batchSize", rootCmd.PersistentFlags().Lookup("batch"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -77,7 +74,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
+			jww.ERROR.Println(err)
 			os.Exit(1)
 		}
 
@@ -90,7 +87,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		jww.ERROR.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
 }

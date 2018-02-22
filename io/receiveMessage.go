@@ -14,7 +14,7 @@ type ReceiveMessageHandler struct{}
 // Serves as the batch queue
 // TODO better batch logic, we should convert this to a queue or channel
 var msgCounter uint64 = 0
-var msgQueue = make([]*services.Slot, globals.BatchSize)
+var msgQueue []*services.Slot
 
 // Reception handler for ReceiveMessageFromClient
 func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
@@ -51,4 +51,8 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 		// Begin a new round and start precomputation
 		BeginNewRound(Servers)
 	}
+}
+
+func InitMessageQueue() {
+	msgQueue = make([]*services.Slot, globals.BatchSize)
 }
