@@ -14,13 +14,30 @@ override the values set in the config file:
 
 `-v`      : Boolean indicating verbose logging
 
+## Config File
 
+Sample config file `sample_server.yaml` located in server directory.
+Create a directory named `.privategrity` in your home directory,
+move the sample config file into this direcory and rename it to `server.yaml`
+
+Alternatively, here is the text of the config file if you'd like to
+make it yourself:
+
+``` yaml
+logPath: "server.log"
+verbose: "false"
+batchSize: 1
+servers:
+	- 50002
+	- 50003
+```
 
 ## Compiling the Binary
 
-To compile and run the server for your platform, you will need to run
-one of the commands in the following sections. The `gitlab-ci.yml` file
-also contains cross build instructions for all of these platforms.
+To compile a binary that will run the server on your platform,
+you will need to run one of the commands in the following sections.
+The `gitlab-ci.yml` file also contains cross build instructions
+for all of these platforms.
 
 ### Linux
 
