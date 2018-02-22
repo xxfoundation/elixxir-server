@@ -14,23 +14,9 @@ import (
 	"gitlab.com/privategrity/server/services"
 )
 
-// Peel phase removes the Internode Keys by multiplying in the precomputation to the encrypted message
+// Peel phase removes the Internode Keys by multiplying in the precomputation
+// to the encrypted message
 type Peel struct{}
-
-// SlotPeel is used to pass external data into Peel and to pass the results out of Peel
-type SlotPeel struct {
-	//Slot Number of the Data
-	Slot uint64
-	//ID of the client who will recieve the message (Pass through)
-	RecipientID uint64
-	// Permuted Message encrypted by all internode keys and the reception keys
-	EncryptedMessage *cyclic.Int
-}
-
-// SlotID Returns the Slot number
-func (e *SlotPeel) SlotID() uint64 {
-	return e.Slot
-}
 
 // KeysPeel holds the keys used by the Peel Operation
 type KeysPeel struct {
@@ -39,7 +25,8 @@ type KeysPeel struct {
 }
 
 // Allocated memory and arranges key objects for the Realtime Peel Phase
-func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (p Peel) Build(g *cyclic.Group,
+	face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -48,10 +35,10 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotPeel{
-			Slot:             i,
-			EncryptedMessage: cyclic.NewMaxInt(),
-			RecipientID:      0,
+		om[i] = &RealtimeSlot{
+			Slot:      i,
+			Message:   cyclic.NewMaxInt(),
+			CurrentID: 0,
 		}
 	}
 
@@ -65,20 +52,23 @@ func (p Peel) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{BatchSize: round.BatchSize,
+		Keys: &keys, Output: &om, G: g}
 
 	return &db
 
 }
 
-// Removes the Internode Keys by multiplying in the precomputation to the encrypted message
-func (p Peel) Run(g *cyclic.Group, in, out *SlotPeel, keys *KeysPeel) services.Slot {
+// Removes the Internode Keys by multiplying
+// in the precomputation to the encrypted message
+func (p Peel) Run(g *cyclic.Group,
+	in, out *RealtimeSlot, keys *KeysPeel) services.Slot {
 
 	// Eq 7.1: Multiply in the precomputation
-	g.Mul(in.EncryptedMessage, keys.MessagePrecomputation, out.EncryptedMessage)
+	g.Mul(in.Message, keys.MessagePrecomputation, out.Message)
 
 	// Pass through SenderID
-	out.RecipientID = in.RecipientID
+	out.CurrentID = in.CurrentID
 
 	return out
 

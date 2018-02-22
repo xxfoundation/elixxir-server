@@ -29,20 +29,20 @@ func TestRealTimePermute(t *testing.T) {
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
-	im = append(im, &SlotPermute{
-		Slot:                 uint64(0),
-		EncryptedMessage:     cyclic.NewInt(int64(39)),
-		EncryptedRecipientID: cyclic.NewInt(int64(13))})
+	im = append(im, &RealtimeSlot{
+		Slot:               uint64(0),
+		Message:            cyclic.NewInt(int64(39)),
+		EncryptedRecipient: cyclic.NewInt(int64(13))})
 
-	im = append(im, &SlotPermute{
-		Slot:                 uint64(1),
-		EncryptedMessage:     cyclic.NewInt(int64(86)),
-		EncryptedRecipientID: cyclic.NewInt(int64(87))})
+	im = append(im, &RealtimeSlot{
+		Slot:               uint64(1),
+		Message:            cyclic.NewInt(int64(86)),
+		EncryptedRecipient: cyclic.NewInt(int64(87))})
 
-	im = append(im, &SlotPermute{
-		Slot:                 uint64(2),
-		EncryptedMessage:     cyclic.NewInt(int64(39)),
-		EncryptedRecipientID: cyclic.NewInt(int64(51))})
+	im = append(im, &RealtimeSlot{
+		Slot:               uint64(2),
+		Message:            cyclic.NewInt(int64(39)),
+		EncryptedRecipient: cyclic.NewInt(int64(51))})
 
 	round.Permutations[0] = 1
 	round.Permutations[1] = 2
@@ -68,15 +68,15 @@ func TestRealTimePermute(t *testing.T) {
 		dc.InChannel <- &im[i]
 		trn := <-dc.OutChannel
 
-		rtn := (*trn).(*SlotPermute)
+		rtn := (*trn).(*RealtimeSlot)
 		result := results[i]
 
-		if result[0].Cmp(rtn.EncryptedMessage) != 0 ||
-			result[1].Cmp(rtn.EncryptedRecipientID) != 0 {
+		if result[0].Cmp(rtn.Message) != 0 ||
+			result[1].Cmp(rtn.EncryptedRecipient) != 0 {
 			t.Errorf("Test of RealPermute's cryptop failed on index: %v"+
 				" Expected: %v,%v Received: %v,%v ", i,
 				result[0].Text(10), result[1].Text(10),
-				rtn.EncryptedMessage.Text(10), rtn.EncryptedRecipientID.Text(10))
+				rtn.Message.Text(10), rtn.EncryptedRecipient.Text(10))
 		} else {
 			pass++
 		}
@@ -96,43 +96,43 @@ func TestRealTimePermute(t *testing.T) {
 func TestRealtimePermuteRun(t *testing.T) {
 	bs := uint64(3)
 
-	var im []*SlotPermute
-	var om []*SlotPermute
+	var im []*RealtimeSlot
+	var om []*RealtimeSlot
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
-	im = append(im, &SlotPermute{
-		Slot:                 uint64(0),
-		EncryptedMessage:     cyclic.NewInt(int64(39)),
-		EncryptedRecipientID: cyclic.NewInt(int64(13))})
+	im = append(im, &RealtimeSlot{
+		Slot:               uint64(0),
+		Message:            cyclic.NewInt(int64(39)),
+		EncryptedRecipient: cyclic.NewInt(int64(13))})
 
-	im = append(im, &SlotPermute{
-		Slot:                 uint64(1),
-		EncryptedMessage:     cyclic.NewInt(int64(86)),
-		EncryptedRecipientID: cyclic.NewInt(int64(87))})
+	im = append(im, &RealtimeSlot{
+		Slot:               uint64(1),
+		Message:            cyclic.NewInt(int64(86)),
+		EncryptedRecipient: cyclic.NewInt(int64(87))})
 
-	im = append(im, &SlotPermute{
-		Slot:                 uint64(2),
-		EncryptedMessage:     cyclic.NewInt(int64(39)),
-		EncryptedRecipientID: cyclic.NewInt(int64(51))})
+	im = append(im, &RealtimeSlot{
+		Slot:               uint64(2),
+		Message:            cyclic.NewInt(int64(39)),
+		EncryptedRecipient: cyclic.NewInt(int64(51))})
 
-	om = append(om, &SlotPermute{
-		Slot:                 uint64(1),
-		EncryptedMessage:     cyclic.NewInt(int64(0)),
-		EncryptedRecipientID: cyclic.NewInt(int64(0))})
+	om = append(om, &RealtimeSlot{
+		Slot:               uint64(1),
+		Message:            cyclic.NewInt(int64(0)),
+		EncryptedRecipient: cyclic.NewInt(int64(0))})
 
-	om = append(om, &SlotPermute{
-		Slot:                 uint64(2),
-		EncryptedMessage:     cyclic.NewInt(int64(0)),
-		EncryptedRecipientID: cyclic.NewInt(int64(0))})
+	om = append(om, &RealtimeSlot{
+		Slot:               uint64(2),
+		Message:            cyclic.NewInt(int64(0)),
+		EncryptedRecipient: cyclic.NewInt(int64(0))})
 
-	om = append(om, &SlotPermute{
-		Slot:                 uint64(0),
-		EncryptedMessage:     cyclic.NewInt(int64(0)),
-		EncryptedRecipientID: cyclic.NewInt(int64(0))})
+	om = append(om, &RealtimeSlot{
+		Slot:               uint64(0),
+		Message:            cyclic.NewInt(int64(0)),
+		EncryptedRecipient: cyclic.NewInt(int64(0))})
 
 	keys := []KeysPermute{
 		{
@@ -159,12 +159,12 @@ func TestRealtimePermuteRun(t *testing.T) {
 	}
 
 	for i := uint64(0); i < bs; i++ {
-		if results[i][0].Cmp(om[i].EncryptedMessage) != 0 ||
-			results[i][1].Cmp(om[i].EncryptedRecipientID) != 0 {
+		if results[i][0].Cmp(om[i].Message) != 0 ||
+			results[i][1].Cmp(om[i].EncryptedRecipient) != 0 {
 			t.Errorf("%v - Expected: %v,%v Got: %v,%v",
 				results[i][0].Text(10), results[i][1].Text(10),
-				om[i].EncryptedMessage.Text(10),
-				om[i].EncryptedRecipientID.Text(10))
+				om[i].Message.Text(10),
+				om[i].EncryptedRecipient.Text(10))
 		}
 	}
 }

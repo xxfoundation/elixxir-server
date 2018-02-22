@@ -32,10 +32,10 @@ func TestRealtimeEncrypt(t *testing.T) {
 		chOut, RealtimeEncryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &realtime.SlotEncryptOut{
-		Slot:             uint64(0),
-		RecipientID:      uint64(42),
-		EncryptedMessage: cyclic.NewInt(7),
+	var slot services.Slot = &realtime.RealtimeSlot{
+		Slot:      uint64(0),
+		CurrentID: uint64(42),
+		Message:   cyclic.NewInt(7),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler
@@ -45,24 +45,24 @@ func TestRealtimeEncrypt(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*realtime.SlotEncryptOut)
-	actual := (*received).(*realtime.SlotEncryptIn)
+	expected := slot.(*realtime.RealtimeSlot)
+	actual := (*received).(*realtime.RealtimeSlot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {
 		t.Errorf("Slot does not match!")
 	}
-	if expected.RecipientID != actual.RecipientID {
+	if expected.CurrentID != actual.CurrentID {
 		t.Errorf("RecipientID does not match!"+
 			" Got %v, expected %v.",
-			actual.RecipientID,
-			expected.RecipientID)
+			actual.CurrentID,
+			expected.CurrentID)
 	}
-	if expected.EncryptedMessage.Text(10) !=
-		actual.EncryptedMessage.Text(10) {
+	if expected.Message.Text(10) !=
+		actual.Message.Text(10) {
 		t.Errorf("EncryptedMessage does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedMessage.Text(10),
-			expected.EncryptedMessage.Text(10))
+			actual.Message.Text(10),
+			expected.Message.Text(10))
 	}
 }

@@ -19,21 +19,6 @@ import (
 // start sending the ciphertext to the correct recipient.
 type Identify struct{}
 
-// (i Identify) Run() uses SlotIdentify structs to pass data into and out of
-// Identify.
-type SlotIdentify struct {
-	// Slot number
-	Slot uint64
-
-	// It is encrypted until this phase has run on all the nodes
-	EncryptedRecipientID *cyclic.Int
-}
-
-// SlotID() gets the Slot number
-func (i *SlotIdentify) SlotID() uint64 {
-	return i.Slot
-}
-
 // KeysIdentify holds the key needed for the realtime Identify phase
 type KeysIdentify struct {
 	// Result of the precomputation for the recipient ID
@@ -52,8 +37,8 @@ func (i Identify) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotIdentify{Slot: i,
-			EncryptedRecipientID: cyclic.NewMaxInt(),
+		om[i] = &RealtimeSlot{Slot: i,
+			EncryptedRecipient: cyclic.NewMaxInt(),
 		}
 	}
 
@@ -76,13 +61,13 @@ func (i Identify) Build(g *cyclic.Group,
 
 // Input: Encrypted Recipient ID, from Permute phase
 // This phase decrypts the recipient ID, identifying the recipient
-func (i Identify) Run(g *cyclic.Group, in, out *SlotIdentify,
-	keys *KeysIdentify) services.Slot {
+func (i Identify) Run(g *cyclic.Group,
+	in, out *RealtimeSlot, keys *KeysIdentify) services.Slot {
 
 	// Eq 5.1
 	// Multiply EncryptedRecipientID by the precomputed value
-	g.Mul(in.EncryptedRecipientID, keys.RecipientPrecomputation,
-		out.EncryptedRecipientID)
+	g.Mul(in.EncryptedRecipient, keys.RecipientPrecomputation,
+		out.EncryptedRecipient)
 
 	return out
 }

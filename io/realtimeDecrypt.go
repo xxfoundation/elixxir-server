@@ -29,12 +29,12 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
-		var slot services.Slot = &realtime.SlotDecryptIn{
-			Slot:                 in.Slot,
-			SenderID:             in.SenderID,
-			EncryptedMessage:     cyclic.NewIntFromBytes(in.EncryptedMessage),
-			EncryptedRecipientID: cyclic.NewIntFromBytes(in.EncryptedRecipientID),
-			TransmissionKey:      cyclic.NewInt(1),
+		var slot services.Slot = &realtime.RealtimeSlot{
+			Slot:               in.Slot,
+			CurrentID:          in.SenderID,
+			Message:            cyclic.NewIntFromBytes(in.EncryptedMessage),
+			EncryptedRecipient: cyclic.NewIntFromBytes(in.EncryptedRecipientID),
+			CurrentKey:         cyclic.NewInt(1),
 		}
 		// Pass slot as input to Decrypt's channel
 		chIn <- &slot
@@ -84,13 +84,13 @@ func (h RealtimeDecryptHandler) Handler(
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotDecrypt
-		out := (*slots[i]).(*realtime.SlotDecryptOut)
+		out := (*slots[i]).(*realtime.RealtimeSlot)
 		// Convert to RealtimeDecryptSlot
 		msgSlot := &pb.RealtimeDecryptSlot{
 			Slot:                 out.Slot,
-			SenderID:             out.SenderID,
-			EncryptedMessage:     out.EncryptedMessage.Bytes(),
-			EncryptedRecipientID: out.EncryptedRecipientID.Bytes(),
+			SenderID:             out.CurrentID,
+			EncryptedMessage:     out.Message.Bytes(),
+			EncryptedRecipientID: out.EncryptedRecipient.Bytes(),
 		}
 
 		// Append the RealtimeDecryptSlot to the RealtimeDecryptMessage
@@ -120,13 +120,13 @@ func kickoffDecryptHandler(roundId string, batchSize uint64, slots []*services.S
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotDecrypt
-		out := (*slots[i]).(*realtime.SlotDecryptOut)
+		out := (*slots[i]).(*realtime.RealtimeSlot)
 		// Convert to RealtimeDecryptSlot
 		msgSlot := &pb.RealtimeDecryptSlot{
 			Slot:                 out.Slot,
-			SenderID:             out.SenderID,
-			EncryptedMessage:     out.EncryptedMessage.Bytes(),
-			EncryptedRecipientID: out.EncryptedRecipientID.Bytes(),
+			SenderID:             out.CurrentID,
+			EncryptedMessage:     out.Message.Bytes(),
+			EncryptedRecipientID: out.EncryptedRecipient.Bytes(),
 		}
 
 		// Append the RealtimeDecryptSlot to the RealtimeDecryptMessage

@@ -31,20 +31,20 @@ func TestPeel(t *testing.T) {
 
 	var im []services.Slot
 
-	im = append(im, &SlotPeel{
-		Slot:             uint64(0),
-		RecipientID:      recipientIds[0],
-		EncryptedMessage: cyclic.NewInt(int64(39))})
+	im = append(im, &RealtimeSlot{
+		Slot:      uint64(0),
+		CurrentID: recipientIds[0],
+		Message:   cyclic.NewInt(int64(39))})
 
-	im = append(im, &SlotPeel{
-		Slot:             uint64(1),
-		RecipientID:      recipientIds[1],
-		EncryptedMessage: cyclic.NewInt(int64(86))})
+	im = append(im, &RealtimeSlot{
+		Slot:      uint64(1),
+		CurrentID: recipientIds[1],
+		Message:   cyclic.NewInt(int64(86))})
 
-	im = append(im, &SlotPeel{
-		Slot:             uint64(2),
-		RecipientID:      recipientIds[2],
-		EncryptedMessage: cyclic.NewInt(int64(66))})
+	im = append(im, &RealtimeSlot{
+		Slot:      uint64(2),
+		CurrentID: recipientIds[2],
+		Message:   cyclic.NewInt(int64(66))})
 
 	// Set the keys
 	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
@@ -66,23 +66,23 @@ func TestPeel(t *testing.T) {
 
 		result := expected[i]
 
-		rtnXtc := (*rtn).(*SlotPeel)
+		rtnXtc := (*rtn).(*RealtimeSlot)
 
 		// Test EncryptedMessage results
 		for j := 0; j < 1; j++ {
-			if result[j].Cmp(rtnXtc.EncryptedMessage) != 0 {
+			if result[j].Cmp(rtnXtc.Message) != 0 {
 				t.Errorf("Test of RealtimePeel's EncryptedMessage output "+
 					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
-					i, j, result[j].Text(10), rtnXtc.EncryptedMessage.Text(10))
+					i, j, result[j].Text(10), rtnXtc.Message.Text(10))
 			} else {
 				pass++
 			}
 		}
 
 		// Test RecipientID pass through
-		if recipientIds[i] != rtnXtc.RecipientID {
+		if recipientIds[i] != rtnXtc.CurrentID {
 			t.Errorf("Test of RealtimePeel's RecipientID ouput failed on index %v.  Expected: %v Received: %v ",
-				i, recipientIds[i], rtnXtc.RecipientID)
+				i, recipientIds[i], rtnXtc.CurrentID)
 		} else {
 			pass++
 		}

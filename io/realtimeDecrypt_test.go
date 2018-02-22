@@ -32,11 +32,11 @@ func TestRealtimeDecrypt(t *testing.T) {
 		chOut, RealtimeDecryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &realtime.SlotDecryptOut{
-		Slot:                 uint64(0),
-		SenderID:             uint64(42),
-		EncryptedMessage:     cyclic.NewInt(7),
-		EncryptedRecipientID: cyclic.NewInt(3),
+	var slot services.Slot = &realtime.RealtimeSlot{
+		Slot:               uint64(0),
+		CurrentID:          uint64(42),
+		Message:            cyclic.NewInt(7),
+		EncryptedRecipient: cyclic.NewInt(3),
 	}
 
 	// Pass slot as input to Decrypt's TransmissionHandler
@@ -46,31 +46,31 @@ func TestRealtimeDecrypt(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*realtime.SlotDecryptOut)
-	actual := (*received).(*realtime.SlotDecryptIn)
+	expected := slot.(*realtime.RealtimeSlot)
+	actual := (*received).(*realtime.RealtimeSlot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {
 		t.Errorf("Slot does not match!")
 	}
-	if expected.SenderID != actual.SenderID {
+	if expected.CurrentID != actual.CurrentID {
 		t.Errorf("SenderID does not match!"+
 			" Got %v, expected %v.",
-			actual.SenderID,
-			expected.SenderID)
+			actual.CurrentID,
+			expected.CurrentID)
 	}
-	if expected.EncryptedMessage.Text(10) !=
-		actual.EncryptedMessage.Text(10) {
+	if expected.Message.Text(10) !=
+		actual.Message.Text(10) {
 		t.Errorf("EncryptedMessage does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedMessage.Text(10),
-			expected.EncryptedMessage.Text(10))
+			actual.Message.Text(10),
+			expected.Message.Text(10))
 	}
-	if expected.EncryptedRecipientID.Text(10) !=
-		actual.EncryptedRecipientID.Text(10) {
+	if expected.EncryptedRecipient.Text(10) !=
+		actual.EncryptedRecipient.Text(10) {
 		t.Errorf("EncryptedRecipientID does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedRecipientID.Text(10),
-			expected.EncryptedRecipientID.Text(10))
+			actual.EncryptedRecipient.Text(10),
+			expected.EncryptedRecipient.Text(10))
 	}
 }

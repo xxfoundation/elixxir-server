@@ -35,9 +35,9 @@ func (h RealtimeIdentifyHandler) Handler(
 
 	// Iterate over the input slots
 	for i := range slots {
-		out := (*slots[i]).(*realtime.SlotIdentify)
+		out := (*slots[i]).(*realtime.RealtimeSlot)
 		// Convert to RealtimeEncryptSlot
-		rId, _ := strconv.ParseUint(out.EncryptedRecipientID.Text(10), 10, 64)
+		rId, _ := strconv.ParseUint(out.EncryptedRecipient.Text(10), 10, 64)
 		msgSlot := &pb.RealtimeEncryptSlot{
 			Slot:             out.Slot,
 			RecipientID:      rId,

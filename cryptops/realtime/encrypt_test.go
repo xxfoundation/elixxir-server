@@ -31,23 +31,23 @@ func TestEncrypt(t *testing.T) {
 
 	var im []services.Slot
 
-	im = append(im, &SlotEncryptIn{
-		Slot:             uint64(0),
-		RecipientID:      recipientIds[0],
-		EncryptedMessage: cyclic.NewInt(int64(39)),
-		ReceptionKey:     cyclic.NewInt(int64(65))})
+	im = append(im, &RealtimeSlot{
+		Slot:       uint64(0),
+		CurrentID:  recipientIds[0],
+		Message:    cyclic.NewInt(int64(39)),
+		CurrentKey: cyclic.NewInt(int64(65))})
 
-	im = append(im, &SlotEncryptIn{
-		Slot:             uint64(1),
-		RecipientID:      recipientIds[1],
-		EncryptedMessage: cyclic.NewInt(int64(86)),
-		ReceptionKey:     cyclic.NewInt(int64(44))})
+	im = append(im, &RealtimeSlot{
+		Slot:       uint64(1),
+		CurrentID:  recipientIds[1],
+		Message:    cyclic.NewInt(int64(86)),
+		CurrentKey: cyclic.NewInt(int64(44))})
 
-	im = append(im, &SlotEncryptIn{
-		Slot:             uint64(2),
-		RecipientID:      recipientIds[2],
-		EncryptedMessage: cyclic.NewInt(int64(66)),
-		ReceptionKey:     cyclic.NewInt(int64(94))})
+	im = append(im, &RealtimeSlot{
+		Slot:       uint64(2),
+		CurrentID:  recipientIds[2],
+		Message:    cyclic.NewInt(int64(66)),
+		CurrentKey: cyclic.NewInt(int64(94))})
 
 	// Set the keys
 	round.T[0] = cyclic.NewInt(52)
@@ -68,23 +68,23 @@ func TestEncrypt(t *testing.T) {
 
 		result := expected[i]
 
-		rtnXtc := (*rtn).(*SlotEncryptOut)
+		rtnXtc := (*rtn).(*RealtimeSlot)
 
 		// Test EncryptedMessage results
 		for j := 0; j < 1; j++ {
-			if result[j].Cmp(rtnXtc.EncryptedMessage) != 0 {
+			if result[j].Cmp(rtnXtc.Message) != 0 {
 				t.Errorf("Test of RealtimeEncrypt's EncryptedMessage output "+
 					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
-					i, j, result[j].Text(10), rtnXtc.EncryptedMessage.Text(10))
+					i, j, result[j].Text(10), rtnXtc.Message.Text(10))
 			} else {
 				pass++
 			}
 		}
 
 		// Test RecipientID pass through
-		if recipientIds[i] != rtnXtc.RecipientID {
+		if recipientIds[i] != rtnXtc.CurrentID {
 			t.Errorf("Test of RealtimeEncrypt's RecipientID ouput failed on index %v.  Expected: %v Received: %v ",
-				i, recipientIds[i], rtnXtc.RecipientID)
+				i, recipientIds[i], rtnXtc.CurrentID)
 		} else {
 			pass++
 		}
