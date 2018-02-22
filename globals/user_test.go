@@ -26,8 +26,20 @@ func TestUserRegistry(t *testing.T) {
 		t.Errorf("UpsertUser: Failed to add a new user!")
 	}
 
-	if getUser, _ := Users.GetUser(testUser.Id); getUser != testUser {
+	getUser, _ := Users.GetUser(testUser.Id)
+
+	if  getUser.Id != testUser.Id {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
+	}
+
+	getUser.Transmission.RecursiveKey.SetInt64(int64(5))
+
+	Users.UpsertUser(getUser)
+
+	getUser2, _ := Users.GetUser(testUser.Id)
+
+	if  getUser2.Transmission.RecursiveKey.Int64() != 5 {
+		t.Errorf("UpsertUser: User did not save!")
 	}
 
 	Users.DeleteUser(testUser.Id)
