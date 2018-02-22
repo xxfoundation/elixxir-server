@@ -22,7 +22,7 @@ func (h RealtimePeelHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	// Retrieve the EncryptedMessage
 	for i := uint64(0); i < batchSize; i++ {
-		slot := (*slots[i]).(*realtime.SlotPeel)
+		slot := (*slots[i]).(*realtime.RealtimeSlot)
 		jww.DEBUG.Printf("EncryptedMessage Result: %s",
 			slot.Message.Bytes())
 		user, _ := globals.Users.GetUser(slot.CurrentID)

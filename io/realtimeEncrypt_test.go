@@ -32,7 +32,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 		chOut, RealtimeEncryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &realtime.SlotEncryptOut{
+	var slot services.Slot = &realtime.RealtimeSlot{
 		Slot:      uint64(0),
 		CurrentID: uint64(42),
 		Message:   cyclic.NewInt(7),
@@ -45,8 +45,8 @@ func TestRealtimeEncrypt(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*realtime.SlotEncryptOut)
-	actual := (*received).(*realtime.SlotEncryptIn)
+	expected := slot.(*realtime.RealtimeSlot)
+	actual := (*received).(*realtime.RealtimeSlot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {

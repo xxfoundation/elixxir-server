@@ -10,7 +10,6 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -18,53 +17,6 @@ import (
 // The Encrypt phase adds in the final internode keys while simultaneously
 // adding in Reception Keys for the recipient.
 type Encrypt struct{}
-
-// SlotEncrypt is used to pass external data into Encrypt
-type SlotEncryptIn struct {
-	// Slot Number of the Data
-	Slot uint64
-	// ID of the client who will receive the message (Pass through)
-	CurrentID uint64
-	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
-	Message *cyclic.Int
-	// Shared Key between the client who receives the message and the node
-	CurrentKey *cyclic.Int
-}
-
-// SlotEncryptOut is used to pass  the results out of Encrypt
-type SlotEncryptOut struct {
-	//Slot Number of the Data
-	Slot uint64
-	// ID of the client who will receive the message (Pass through)
-	CurrentID uint64
-	// Permuted Message Encrypted with R and S and some Ts and Reception Keys
-	Message *cyclic.Int
-}
-
-// SlotID Returns the Slot number
-func (e *SlotEncryptIn) SlotID() uint64 {
-	return e.Slot
-}
-
-// ID of the user for keygen
-func (e *SlotEncryptIn) UserID() uint64 {
-	return e.CurrentID
-}
-
-// Cyclic int to place the key in
-func (e *SlotEncryptIn) Key() *cyclic.Int {
-	return e.CurrentKey
-}
-
-// Returns the KeyType
-func (e *SlotEncryptIn) GetKeyType() cryptops.KeyType {
-	return cryptops.RECEPTION
-}
-
-// SlotID Returns the Slot number
-func (e *SlotEncryptOut) SlotID() uint64 {
-	return e.Slot
-}
 
 // KeysEncrypt holds the keys used by the Encrypt Operation
 type KeysEncrypt struct {
@@ -83,7 +35,7 @@ func (e Encrypt) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotEncryptOut{
+		om[i] = &RealtimeSlot{
 			Slot:      i,
 			Message:   cyclic.NewMaxInt(),
 			CurrentID: 0,
@@ -108,8 +60,8 @@ func (e Encrypt) Build(g *cyclic.Group,
 }
 
 // Multiplies in the ReceptionKey and the node’s cypher key
-func (e Encrypt) Run(g *cyclic.Group, in *SlotEncryptIn,
-	out *SlotEncryptOut, keys *KeysEncrypt) services.Slot {
+func (e Encrypt) Run(g *cyclic.Group, in *RealtimeSlot,
+	out *RealtimeSlot, keys *KeysEncrypt) services.Slot {
 
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()

@@ -31,7 +31,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	messagePayload := cyclic.NewIntFromBytes(msg.MessagePayload)
 	if globals.Grp.Inside(recipientId) && globals.Grp.Inside(messagePayload) {
 		// Convert message to a Slot
-		inputMsg := services.Slot(&realtime.SlotDecryptOut{
+		inputMsg := services.Slot(&realtime.RealtimeSlot{
 			Slot:               msgCounter,
 			CurrentID:          msg.SenderID,
 			Message:            messagePayload,

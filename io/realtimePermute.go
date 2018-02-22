@@ -27,9 +27,9 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
 	for i := 0; i < len(input.Slots); i++ {
-		// Convert input message to equivalent SlotPermute
+		// Convert input message to equivalent RealtimeSlot
 		in := input.Slots[i]
-		var slot services.Slot = &realtime.SlotPermute{
+		var slot services.Slot = &realtime.RealtimeSlot{
 			Slot: in.Slot,
 			Message: cyclic.NewIntFromBytes(
 				in.EncryptedMessage),
@@ -48,11 +48,11 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 	// Get round and channel
 	round := globals.GlobalRoundMap.GetRound(roundId)
 	identifyChannel := round.GetChannel(globals.REAL_IDENTIFY)
-	// Create the SlotIdentify for sending into RealtimeIdentify
+	// Create the RealtimeSlot for sending into RealtimeIdentify
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
-		// Convert to SlotIdentify
-		var slot services.Slot = &realtime.SlotIdentify{
+		// Convert to RealtimeSlot
+		var slot services.Slot = &realtime.RealtimeSlot{
 			Slot:               out.Slot,
 			EncryptedRecipient: cyclic.NewIntFromBytes(out.EncryptedRecipientID),
 		}
@@ -75,8 +75,8 @@ func (h RealtimePermuteHandler) Handler(
 
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
-		// Type assert Slot to SlotPermute
-		out := (*slots[i]).(*realtime.SlotPermute)
+		// Type assert Slot to RealtimeSlot
+		out := (*slots[i]).(*realtime.RealtimeSlot)
 		// Convert to RealtimePermuteSlot
 		msgSlot := &pb.RealtimePermuteSlot{
 			Slot:                 out.Slot,

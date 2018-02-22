@@ -32,7 +32,7 @@ func TestRealtimePermute(t *testing.T) {
 		chOut, RealtimePermuteHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &realtime.SlotPermute{
+	var slot services.Slot = &realtime.RealtimeSlot{
 		Slot:               uint64(0),
 		Message:            cyclic.NewInt(12),
 		EncryptedRecipient: cyclic.NewInt(7),
@@ -45,8 +45,8 @@ func TestRealtimePermute(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*realtime.SlotPermute)
-	actual := (*received).(*realtime.SlotPermute)
+	expected := slot.(*realtime.RealtimeSlot)
+	actual := (*received).(*realtime.RealtimeSlot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {

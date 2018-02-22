@@ -24,7 +24,6 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -33,61 +32,6 @@ import (
 // while adding in the First Unpermuted Internode Keys.  Becasue the unpermutted
 // keys are added simultaniously, no entropy is lost.
 type Decrypt struct{}
-
-// SlotDecryptIn is used to pass external data into Decrypt
-type SlotDecryptIn struct {
-	//Slot Number of the Data
-	Slot uint64
-	// ID of the sending client (Pass through)
-	CurrentID uint64
-	// Message Encrypted with some Transmission Keys and some First Unpermuted
-	// Internode Message Keys.
-	Message *cyclic.Int
-	// Recipient Encrypted with some Transmission Keys and some Unpermuted
-	// Internode Recipient Keys.
-	EncryptedRecipient *cyclic.Int
-	// Next Ratchet of the sender's Transmission key
-	CurrentKey *cyclic.Int
-}
-
-// SlotDecryptOut is used to pass the results out of Decrypt
-type SlotDecryptOut struct {
-	//Slot Number of the Data
-	Slot uint64
-	// ID of the sending client(Pass through)
-	CurrentID uint64
-	// Message Encrypted with a Transmission Key removed and a First Unpermuted
-	// Internode Message Key added.
-	Message *cyclic.Int
-	// Recipient Encrypted with a Transmission Key removed and an Unpermuted
-	// Internode Recipient Key added.
-	EncryptedRecipient *cyclic.Int
-}
-
-// SlotID Returns the Slot number
-func (e *SlotDecryptIn) SlotID() uint64 {
-	return e.Slot
-}
-
-// ID of the user for keygen
-func (e *SlotDecryptIn) UserID() uint64 {
-	return e.CurrentID
-}
-
-// Cyclic int to place the key in
-func (e *SlotDecryptIn) Key() *cyclic.Int {
-	return e.CurrentKey
-}
-
-// Returns the KeyType
-func (e *SlotDecryptIn) GetKeyType() cryptops.KeyType {
-	return cryptops.TRANSMISSION
-}
-
-// SlotID Returns the Slot number
-func (e *SlotDecryptOut) SlotID() uint64 {
-	return e.Slot
-}
 
 // KeysDecrypt holds the keys used by the Decrypt Operation
 type KeysDecrypt struct {
@@ -108,7 +52,7 @@ func (d Decrypt) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &SlotDecryptOut{
+		om[i] = &RealtimeSlot{
 			Slot:               i,
 			Message:            cyclic.NewMaxInt(),
 			EncryptedRecipient: cyclic.NewMaxInt(),
@@ -136,8 +80,8 @@ func (d Decrypt) Build(g *cyclic.Group,
 
 // Removes the encryption added by the Client while simultaneously
 // encrypting the message with unpermuted internode keys.
-func (d Decrypt) Run(g *cyclic.Group, in *SlotDecryptIn,
-	out *SlotDecryptOut, keys *KeysDecrypt) services.Slot {
+func (d Decrypt) Run(g *cyclic.Group, in *RealtimeSlot,
+	out *RealtimeSlot, keys *KeysDecrypt) services.Slot {
 
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
