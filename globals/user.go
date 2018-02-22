@@ -1,9 +1,3 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
-
 package globals
 
 import (
@@ -39,8 +33,25 @@ func newUserRegistry() UserRegistry {
 
 type ForwardKey struct {
 	BaseKey        *cyclic.Int
-	PartialBaseKey *cyclic.Int
 	RecursiveKey   *cyclic.Int
+}
+
+func (fk *ForwardKey) DeepCopy()(*ForwardKey){
+
+	if fk == nil{
+		return nil
+	}
+
+	nfk := ForwardKey{
+		cyclic.NewInt(0),
+		cyclic.NewInt(0),
+	}
+
+	nfk.BaseKey.Set(fk.BaseKey)
+	nfk.RecursiveKey.Set(fk.RecursiveKey)
+
+	return &nfk
+
 }
 
 // Struct representing a User in the system
@@ -55,15 +66,36 @@ type User struct {
 	MessageBuffer chan *pb.CmixMessage
 }
 
+func (u *User) DeepCopy()(*User){
+
+	if u == nil{
+		return nil
+	}
+
+
+	nu := new(User)
+
+	nu.Id = u.Id
+	nu.Address = u.Address
+
+	nu.Transmission = *u.Transmission.DeepCopy()
+
+	nu.Reception = *u.Reception.DeepCopy()
+
+	nu.PublicKey = cyclic.NewInt(0).Set(u.PublicKey)
+
+	nu.MessageBuffer = u.MessageBuffer
+
+	return nu
+}
+
 // NewUser creates a new User object with default fields and given address.
 func (m *UserMap) NewUser(address string) *User {
 	m.idCounter++
 	return &User{Id: m.idCounter - 1, Address: address,
 		Transmission: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			PartialBaseKey: cyclic.NewMaxInt(),
 			RecursiveKey:   cyclic.NewMaxInt()},
 		Reception: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			PartialBaseKey: cyclic.NewMaxInt(),
 			RecursiveKey:   cyclic.NewMaxInt()},
 		PublicKey:     cyclic.NewMaxInt(),
 		MessageBuffer: make(chan *pb.CmixMessage, 100),
@@ -79,7 +111,9 @@ func (m *UserMap) DeleteUser(id uint64) {
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
 func (m *UserMap) GetUser(id uint64) (user *User, ok bool) {
-	user, ok = m.userCollection[id]
+	var u *User
+	u, ok = m.userCollection[id]
+	user = u.DeepCopy()
 	return
 }
 

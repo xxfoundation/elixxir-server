@@ -26,7 +26,9 @@ func TestUserRegistry(t *testing.T) {
 		t.Errorf("UpsertUser: Failed to add a new user!")
 	}
 
-	if getUser, _ := Users.GetUser(testUser.Id); getUser != testUser {
+	getUser, _ := Users.GetUser(testUser.Id)
+
+	if  getUser.Id != testUser.Id {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
