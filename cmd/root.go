@@ -8,7 +8,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -21,6 +20,7 @@ import (
 var cfgFile string
 var verbose bool
 var serverIdx int
+var batchSize int
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -30,7 +30,7 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		node.StartServer(serverIdx)
+		node.StartServer(serverIdx, uint64(viper.GetInt("batchSize")))
 	},
 }
 
@@ -39,7 +39,7 @@ communications.`,
 // happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		jww.ERROR.Println(err)
 		os.Exit(1)
 	}
 }
@@ -58,6 +58,9 @@ func init() {
 		"Verbose mode for debugging")
 	rootCmd.PersistentFlags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
+	rootCmd.PersistentFlags().IntVarP(&batchSize, "batch", "b", 1,
+		"Batch size to use for node server rounds")
+	viper.BindPFlag("batchSize", rootCmd.PersistentFlags().Lookup("batch"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -73,7 +76,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
+			jww.ERROR.Println(err)
 			os.Exit(1)
 		}
 
@@ -86,7 +89,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		jww.ERROR.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
 }
