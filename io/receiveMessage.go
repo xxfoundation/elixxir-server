@@ -59,6 +59,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	}
 }
 
+// Initialize the Message Queue structure
 func InitMessageQueue() {
 	msgQueue = make([]*services.Slot, globals.BatchSize)
 }
