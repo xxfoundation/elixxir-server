@@ -93,7 +93,7 @@ func getAndIncrementRoundCounter() uint64 {
 
 // FIXME, maybe: This is used by last node to precalc the round id
 func PeekNextRoundID() string {
-	return strconv.FormatUint(globalRoundCounter + 1, 36)
+	return strconv.FormatUint(globalRoundCounter, 36)
 }
 
 // TODO: have a better way to generate round IDs
