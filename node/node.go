@@ -39,7 +39,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 			// Pass the batch queue into Realtime and begin
 			jww.INFO.Println("Beginning RealTime Phase...")
 			roundId := <- RoundCh
-			jww.INFO.Println("Starting RealTime Round %s...", roundId)
+			jww.INFO.Printf("Starting RealTime Round %s...\n", roundId)
 			io.KickoffDecryptHandler(*roundId, batchSize, msgList)
 		}
 	}
@@ -53,7 +53,11 @@ func RunPrecomputation(RoundCh chan *string) {
 		if len(RoundCh) < 10 {
 			// Begin the round on all nodes
 			roundId := globals.PeekNextRoundID()
+			jww.INFO.Printf("Beginning Precomputation Phase with Round ID %s...\n",
+				roundId)
 			io.BeginNewRound(io.Servers, roundId)
+			jww.INFO.Printf("Finished Precomputation Phase with Round ID %s!\n",
+				roundId)
 			RoundCh <- &roundId
 		} else {
 			time.Sleep(500 * time.Millisecond)
@@ -121,6 +125,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	io.VerifyServersOnline(io.Servers)
 
 	if io.IsLastNode {
+		io.RoundCh = make(chan *string)
+		io.MessageCh = make(chan *realtime.RealtimeSlot)
 		// Last Node handles when realtime and precomp get run
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh)
 		go RunPrecomputation(io.RoundCh)

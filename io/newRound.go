@@ -22,6 +22,9 @@ func (s ServerImpl) NewRound(ClusterRoundID string) {
 	batchSize := globals.BatchSize
 	roundId := globals.GetNextRoundID()
 	if roundId != ClusterRoundID {
+		jww.INFO.Printf("ClusterRoundID: %s\n", ClusterRoundID)
+		jww.FATAL.Printf("round id %s does not match passed round id %s",
+			roundId, ClusterRoundID)
 		panic("Passed round identifier does not match generated identifier!")
 	}
 
@@ -177,7 +180,7 @@ func (s ServerImpl) NewRound(ClusterRoundID string) {
 func BeginNewRound(servers []string, RoundID string) {
 	for i := 0; i < len(servers); {
 		jww.DEBUG.Printf("Sending NewRound message to %s...", servers[i])
-		_, err := message.SendNewRound(servers[i], &pb.InitRound{})
+		_, err := message.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to begin new round!", i, servers[i])
 			time.Sleep(250 * time.Millisecond)
