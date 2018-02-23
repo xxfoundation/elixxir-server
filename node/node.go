@@ -168,7 +168,7 @@ func getServers() []string {
 				" may be required.\n", temp)
 		}
 		// Assemble full server address
-		servers[i] = "localhost:" + servers[i]
+		servers[i] = "0.0.0.0:" + servers[i]
 	}
 	return servers
 }
