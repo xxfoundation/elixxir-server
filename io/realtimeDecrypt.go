@@ -109,7 +109,8 @@ func (h RealtimeDecryptHandler) Handler(
 
 // Kickoff for RealtimeDecryptMessages
 // TODO Remove this duplication
-func kickoffDecryptHandler(roundId string, batchSize uint64, slots []*services.Slot) {
+func KickoffDecryptHandler(roundId string, batchSize uint64,
+	slots []*realtime.RealtimeSlot) {
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{
 		RoundID: roundId,
@@ -120,7 +121,7 @@ func kickoffDecryptHandler(roundId string, batchSize uint64, slots []*services.S
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotDecrypt
-		out := (*slots[i]).(*realtime.RealtimeSlot)
+		out := slots[i]
 		// Convert to RealtimeDecryptSlot
 		msgSlot := &pb.RealtimeDecryptSlot{
 			Slot:                 out.Slot,

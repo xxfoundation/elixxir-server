@@ -91,6 +91,11 @@ func getAndIncrementRoundCounter() uint64 {
 	return globalRoundCounter
 }
 
+// FIXME, maybe: This is used by last node to precalc the round id
+func PeekNextRoundID() string {
+	return strconv.FormatUint(globalRoundCounter, 36)
+}
+
 // TODO: have a better way to generate round IDs
 func GetNextRoundID() string {
 	// 36 is the base for formatting
@@ -115,20 +120,6 @@ func (m *RoundMap) GetRound(roundId string) *Round {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	return m.rounds[roundId]
-}
-
-var waitingRoundId chan string
-
-func GetNextWaitingRoundID() string {
-	return <-waitingRoundId
-}
-
-func PutWaitingRoundID(roundId string) {
-	waitingRoundId <- roundId
-}
-
-func MakeWaitingRoundIDChannel(numberOfRounds int) {
-	waitingRoundId = make(chan string, numberOfRounds)
 }
 
 // Atomic add *Round to rounds map with given roundId

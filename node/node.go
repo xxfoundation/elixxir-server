@@ -11,12 +11,60 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"strconv"
+	"time"
 
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 )
+
+// RunRealtime controls when realtime is kicked off and which
+// messages are sent through the realtime phase. It reads up to batchSize
+// messages from the MessageCh, then reads a round and kicks off realtime
+// with those messages.
+func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
+	RoundCh chan *string) {
+	msgCount := uint64(0)
+	msgList := make([]*realtime.RealtimeSlot, batchSize)
+	for msg := range MessageCh {
+		jww.INFO.Printf("Adding message (%d/%d) from %d", msgCount + 1, batchSize,
+			msg.CurrentID)
+		msg.Slot = msgCount
+		msgList[msgCount] = msg
+		msgCount = msgCount + 1
+
+		if msgCount == batchSize {
+			msgCount = uint64(0)
+			// Pass the batch queue into Realtime and begin
+			jww.INFO.Println("Beginning RealTime Phase...")
+			roundId := <- RoundCh
+			jww.INFO.Printf("Starting RealTime Round %s...\n", roundId)
+			io.KickoffDecryptHandler(*roundId, batchSize, msgList)
+		}
+	}
+}
+
+// RunPrecomputation controls when precomputation is kicked off. It monitors
+// the length of the RoundCh and creates new rounds and kicks of precomputation
+// whenever it falls below a threshhold.
+func RunPrecomputation(RoundCh chan *string) {
+	for {
+		if len(RoundCh) < 10 {
+			// Begin the round on all nodes
+			roundId := globals.PeekNextRoundID()
+			jww.INFO.Printf("Beginning Precomputation Phase with Round ID %s...\n",
+				roundId)
+			io.BeginNewRound(io.Servers, roundId)
+			jww.INFO.Printf("Finished Precomputation Phase with Round ID %s!\n",
+				roundId)
+			RoundCh <- &roundId
+		} else {
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+}
 
 // StartServer reads configuration options and starts the cMix server
 func StartServer(serverIndex int, batchSize uint64) {
@@ -64,7 +112,6 @@ func StartServer(serverIndex int, batchSize uint64) {
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap and waiting rounds queue
 	globals.GlobalRoundMap = globals.NewRoundMap()
-	globals.MakeWaitingRoundIDChannel(64)
 
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, io.ServerImpl{
@@ -79,10 +126,11 @@ func StartServer(serverIndex int, batchSize uint64) {
 	io.VerifyServersOnline(io.Servers)
 
 	if io.IsLastNode {
-		// Initializes message queue at runtime
-		io.InitMessageQueue()
-		// Begin the round on all nodes
-		io.BeginNewRound(io.Servers)
+		io.RoundCh = make(chan *string, 10)
+		io.MessageCh = make(chan *realtime.RealtimeSlot)
+		// Last Node handles when realtime and precomp get run
+		go RunRealTime(batchSize, io.MessageCh, io.RoundCh)
+		go RunPrecomputation(io.RoundCh)
 	}
 
 	// Main loop

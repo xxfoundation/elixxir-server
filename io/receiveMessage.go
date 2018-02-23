@@ -12,15 +12,9 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
 )
 
 type ReceiveMessageHandler struct{}
-
-// Serves as the batch queue
-// TODO better batch logic, we should convert this to a queue or channel
-var msgCounter uint64 = 0
-var msgQueue []*services.Slot
 
 // Reception handler for ReceiveMessageFromClient
 func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
@@ -30,36 +24,18 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	recipientId := cyclic.NewIntFromBytes(msg.RecipientID)
 	messagePayload := cyclic.NewIntFromBytes(msg.MessagePayload)
 	if globals.Grp.Inside(recipientId) && globals.Grp.Inside(messagePayload) {
+		jww.INFO.Printf("Adding message from client with sender id: %d",
+			msg.SenderID)
 		// Convert message to a Slot
-		inputMsg := services.Slot(&realtime.RealtimeSlot{
-			Slot:               msgCounter,
+		inputMsg := realtime.RealtimeSlot{
+			Slot:               0,
 			CurrentID:          msg.SenderID,
 			Message:            messagePayload,
 			EncryptedRecipient: recipientId,
-		})
-		// Append the message to the batch queue
-		msgQueue[msgCounter] = &inputMsg
-		msgCounter += 1
+		}
+		MessageCh <- &inputMsg
 	} else {
 		jww.ERROR.Printf("Received message is not in the group: MsgPayload %v RecipientID %v",
 			messagePayload.Text(10), recipientId.Text(10))
 	}
-
-	// Once the batch is filled
-	if msgCounter == globals.BatchSize {
-		// Pass the batch queue into Realtime and begin
-		jww.INFO.Println("Beginning RealtimeDecrypt Phase...")
-		kickoffDecryptHandler(globals.GetNextWaitingRoundID(), globals.BatchSize, msgQueue)
-
-		// Reset the batch queue
-		msgCounter = 0
-		msgQueue = make([]*services.Slot, globals.BatchSize)
-		// Begin a new round and start precomputation
-		BeginNewRound(Servers)
-	}
-}
-
-// Initialize the Message Queue structure
-func InitMessageQueue() {
-	msgQueue = make([]*services.Slot, globals.BatchSize)
 }
