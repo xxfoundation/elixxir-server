@@ -31,8 +31,10 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 	for msg := range MessageCh {
 		msg.Slot = msgCount
 		msg := <- MessageCh
+		jww.INFO.Printf("Adding message (%d/%d) from %d", msgCount + 1, batchSize,
+			msg.CurrentID)
 		msgList[msgCount] = msg
-		msgCount += 1
+		msgCount = msgCount + 1
 
 		if msgCount == batchSize {
 			msgCount = uint64(0)
@@ -125,7 +127,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	io.VerifyServersOnline(io.Servers)
 
 	if io.IsLastNode {
-		io.RoundCh = make(chan *string)
+		io.RoundCh = make(chan *string, 10)
 		io.MessageCh = make(chan *realtime.RealtimeSlot)
 		// Last Node handles when realtime and precomp get run
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh)
