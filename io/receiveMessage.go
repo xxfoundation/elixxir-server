@@ -24,6 +24,8 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	recipientId := cyclic.NewIntFromBytes(msg.RecipientID)
 	messagePayload := cyclic.NewIntFromBytes(msg.MessagePayload)
 	if globals.Grp.Inside(recipientId) && globals.Grp.Inside(messagePayload) {
+		jww.INFO.Printf("Adding message from client with sender id: %d",
+			msg.SenderID)
 		// Convert message to a Slot
 		inputMsg := realtime.RealtimeSlot{
 			Slot:               0,
