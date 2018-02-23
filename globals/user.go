@@ -27,8 +27,19 @@ type UserMap struct {
 
 // Creates a new UserRegistry interface
 func newUserRegistry() UserRegistry {
+	ur := UserRegistry(&UserMap{
+		userCollection: make(map[uint64]*User),
+		idCounter: 0,
+	})
+	// TODO remove temp users
+	for i := 0; i < 25; i++ {
+		ur.UpsertUser(ur.NewUser(""))
+	}
+
+	return ur
+
 	// With an underlying UserMap data structure
-	return UserRegistry(&UserMap{userCollection: make(map[uint64]*User), idCounter: 0})
+	//return UserRegistry(&UserMap{userCollection: make(map[uint64]*User), idCounter: 0})
 }
 
 type ForwardKey struct {
