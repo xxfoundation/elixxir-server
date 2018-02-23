@@ -18,24 +18,24 @@ type ReceiveMessageHandler struct{}
 
 // Reception handler for ReceiveMessageFromClient
 func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
-	jww.DEBUG.Printf("Received message from client: %v...", msg)
+	jww.DEBUG.Printf("Received message from client: %v...\n", msg)
 
 	// Verify message fields are within the global cyclic group
 	recipientId := cyclic.NewIntFromBytes(msg.RecipientID)
 	messagePayload := cyclic.NewIntFromBytes(msg.MessagePayload)
 	if globals.Grp.Inside(recipientId) && globals.Grp.Inside(messagePayload) {
-		jww.INFO.Printf("Adding message from client with sender id: %d",
+		jww.DEBUG.Printf("Adding message from client with sender id: %d",
 			msg.SenderID)
 		// Convert message to a Slot
 		inputMsg := realtime.RealtimeSlot{
-			Slot:               0,
+			Slot:               0, // Set in RunRealTime() in node/node.go
 			CurrentID:          msg.SenderID,
 			Message:            messagePayload,
 			EncryptedRecipient: recipientId,
 		}
 		MessageCh <- &inputMsg
 	} else {
-		jww.ERROR.Printf("Received message is not in the group: MsgPayload %v RecipientID %v",
-			messagePayload.Text(10), recipientId.Text(10))
+		jww.ERROR.Printf("Received message is not in the group: MsgPayload %v " +
+			"RecipientID %v", messagePayload.Text(10), recipientId.Text(10))
 	}
 }

@@ -18,13 +18,13 @@ import (
 )
 
 // Comms method for kicking off a new round in CMIX
-func (s ServerImpl) NewRound(ClusterRoundID string) {
+func (s ServerImpl) NewRound(clusterRoundID string) {
 	batchSize := globals.BatchSize
 	roundId := globals.GetNextRoundID()
-	if roundId != ClusterRoundID {
-		jww.INFO.Printf("ClusterRoundID: %s\n", ClusterRoundID)
+	jww.INFO.Printf("Received Cluster Round ID: %s\n", clusterRoundID)
+	if roundId != clusterRoundID {
 		jww.FATAL.Printf("round id %s does not match passed round id %s",
-			roundId, ClusterRoundID)
+			roundId, clusterRoundID)
 		panic("Passed round identifier does not match generated identifier!")
 	}
 
@@ -145,7 +145,8 @@ func (s ServerImpl) NewRound(ClusterRoundID string) {
 		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
 			realtime.Identify{}, nil, nil, round)
 		// Add the InChannel from the controller to round
-		round.AddChannel(globals.REAL_IDENTIFY, realtimeIdentifyController.InChannel)
+		round.AddChannel(globals.REAL_IDENTIFY,
+			realtimeIdentifyController.InChannel)
 		// Kick off RealtimeIdentify Transmission Handler
 		services.BatchTransmissionDispatch(roundId, batchSize,
 			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
@@ -172,20 +173,22 @@ func (s ServerImpl) NewRound(ClusterRoundID string) {
 		shareMsg := services.Slot(&precomputation.SlotShare{
 			PartialRoundPublicCypherKey: globals.Grp.G})
 		// Note: Share requires a batchSize of 1
-		PrecompShareHandler{}.Handler(roundId, uint64(1), []*services.Slot{&shareMsg})
+		PrecompShareHandler{}.Handler(roundId, uint64(1),
+			[]*services.Slot{&shareMsg})
 	}
 }
 
 // Blocks until all given servers begin a new round
 func BeginNewRound(servers []string, RoundID string) {
 	for i := 0; i < len(servers); {
-		jww.DEBUG.Printf("Sending NewRound message to %s...", servers[i])
+		jww.DEBUG.Printf("Sending NewRound message to %s...\n", servers[i])
 		_, err := message.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
 		if err != nil {
-			jww.ERROR.Printf("%v: Server %s failed to begin new round!", i, servers[i])
+			jww.ERROR.Printf("%v: Server %s failed to begin new round!\n", i,
+				servers[i])
 			time.Sleep(250 * time.Millisecond)
 		} else {
-			jww.DEBUG.Printf("%v: Server %s began new round!", i, servers[i])
+			jww.DEBUG.Printf("%v: Server %s began new round!\n", i, servers[i])
 			i++
 		}
 	}
