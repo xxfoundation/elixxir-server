@@ -18,9 +18,13 @@ import (
 )
 
 // Comms method for kicking off a new round in CMIX
-func (s ServerImpl) NewRound() {
+func (s ServerImpl) NewRound(ClusterRoundID string) {
 	batchSize := globals.BatchSize
 	roundId := globals.GetNextRoundID()
+	if roundId != ClusterRoundID {
+		panic("Passed round identifier does not match generated identifier!")
+	}
+
 	// Create a new Round
 	round := globals.NewRound(batchSize)
 	// Add round to the GlobalRoundMap
@@ -170,7 +174,7 @@ func (s ServerImpl) NewRound() {
 }
 
 // Blocks until all given servers begin a new round
-func BeginNewRound(servers []string) {
+func BeginNewRound(servers []string, RoundID string) {
 	for i := 0; i < len(servers); {
 		jww.DEBUG.Printf("Sending NewRound message to %s...", servers[i])
 		_, err := message.SendNewRound(servers[i], &pb.InitRound{})
