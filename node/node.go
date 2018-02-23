@@ -29,10 +29,9 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 	msgCount := uint64(0)
 	msgList := make([]*realtime.RealtimeSlot, batchSize)
 	for msg := range MessageCh {
-		msg.Slot = msgCount
-		msg := <- MessageCh
 		jww.INFO.Printf("Adding message (%d/%d) from %d", msgCount + 1, batchSize,
 			msg.CurrentID)
+		msg.Slot = msgCount
 		msgList[msgCount] = msg
 		msgCount = msgCount + 1
 
