@@ -29,8 +29,8 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 	msgCount := uint64(0)
 	msgList := make([]*realtime.RealtimeSlot, batchSize)
 	for msg := range MessageCh {
-		jww.INFO.Printf("Adding message (%d/%d) from %d", msgCount + 1, batchSize,
-			msg.CurrentID)
+		jww.DEBUG.Printf("Adding message (%d/%d) from %d\n", msgCount + 1,
+			batchSize, msg.CurrentID)
 		msg.Slot = msgCount
 		msgList[msgCount] = msg
 		msgCount = msgCount + 1
@@ -40,7 +40,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 			// Pass the batch queue into Realtime and begin
 			jww.INFO.Println("Beginning RealTime Phase...")
 			roundId := <- RoundCh
-			jww.INFO.Printf("Starting RealTime Round %s...\n", roundId)
+			jww.INFO.Printf("Got Round ID %s for RealTime...\n", roundId)
 			io.KickoffDecryptHandler(*roundId, batchSize, msgList)
 		}
 	}

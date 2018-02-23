@@ -120,9 +120,7 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
-		// Type assert Slot to SlotDecrypt
 		out := slots[i]
-		// Convert to RealtimeDecryptSlot
 		msgSlot := &pb.RealtimeDecryptSlot{
 			Slot:                 out.Slot,
 			SenderID:             out.CurrentID,
