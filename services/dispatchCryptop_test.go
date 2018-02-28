@@ -78,36 +78,39 @@ func TestDispatchCryptop(t *testing.T) {
 	}
 
 	result := []*cyclic.Int{
-		cyclic.NewInt(3), cyclic.NewInt(6), cyclic.NewInt(9), cyclic.NewInt(12),
+		cyclic.NewInt(18), cyclic.NewInt(21), cyclic.NewInt(24),
+		cyclic.NewInt(27),
 	}
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
 	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12), rng)
 
-	dc := DispatchCryptop(&grp, Test{}, nil, nil, round)
+	dc1 := DispatchCryptop(&grp, Test{}, nil, nil, round)
+	dc2 := DispatchCryptop(&grp, Test{}, dc1.OutChannel, nil, round)
 
-	if dc.IsAlive() {
+	if dc1.IsAlive() && dc2.IsAlive(){
 		pass++
 	} else {
 		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
 	}
 
 	for i := uint64(0); i < bs; i++ {
-		dc.InChannel <- &im[i]
-		trn := <-dc.OutChannel
+		dc1.InChannel <- &im[i]
+		trn := <-dc2.OutChannel
 
 		rtn := (*trn).(*SlotTest)
 
 		if rtn.A.Cmp(result[i]) != 0 {
-			t.Errorf("Test of Dispatcher failed at index: %v Expected: %v;",
+			t.Errorf("Test of Dispatcher failed at index: %v Expected: %v;" +
 				" Actual: %v", i, result[i].Text(10), rtn.A.Text(10))
 		} else {
 			pass++
 		}
 
 		if round[i].Int64() != 15 {
-			t.Errorf("Test of Dispatcher pass by reference failed at index: %v Expected: %v;",
+			t.Errorf("Test of Dispatcher pass by reference failed at index" +
+				": %v Expected: %v;" +
 				" Actual: %v", i, 15, round[i].Text(10))
 		} else {
 			pass++
@@ -115,7 +118,7 @@ func TestDispatchCryptop(t *testing.T) {
 
 	}
 
-	if !dc.IsAlive() {
+	if !dc1.IsAlive() && !dc2.IsAlive() {
 		pass++
 	} else {
 		t.Errorf("IsAlive: Expected dispatch to be dead after channels closed!")
