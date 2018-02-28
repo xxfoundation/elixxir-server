@@ -7,39 +7,16 @@
 package cryptops
 
 import (
-	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"strconv"
 	"testing"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 )
 
 // GenericKeySlot implements the KeySlot interface in the simplest way
 // possible. It's not meant for use outside testing.
-type GenericKeySlot struct {
-	slotID  uint64
-	userID  uint64
-	key     *cyclic.Int
-	keyType KeyType
-}
-
-func (g GenericKeySlot) SlotID() uint64 {
-	return g.slotID
-}
-
-func (g GenericKeySlot) UserID() uint64 {
-	return g.userID
-}
-
-func (g GenericKeySlot) Key() *cyclic.Int {
-	return g.key
-}
-
-func (g GenericKeySlot) GetKeyType() KeyType {
-	return g.keyType
-}
-
 func TestGenerateClientKey(t *testing.T) {
 	// NOTE: Does not test correctness
 
@@ -79,7 +56,13 @@ func TestGenerateClientKey(t *testing.T) {
 
 	group := cyclic.NewGroup(prime, cyclic.NewInt(55), cyclic.NewInt(33), rng)
 
-	dc := services.DispatchCryptop(&group, GenerateClientKey{}, nil, nil, round)
+	face := make([]interface{}, 2)
+
+	face[0] = round
+	face[1] = RECEPTION
+
+	dc := services.DispatchCryptop(&group, GenerateClientKey{}, nil, nil,
+	face)
 
 	// Create user registry, where Run() gets its pair of keys.
 	var users []*globals.User
@@ -118,10 +101,10 @@ func TestGenerateClientKey(t *testing.T) {
 	var inSlots []services.Slot
 
 	for i := uint64(0); i < batchSize; i++ {
-		inSlots = append(inSlots, GenericKeySlot{slotID: i,
-			userID:  users[i+1].Id,
-			key:     cyclic.NewMaxInt(),
-			keyType: RECEPTION,
+		inSlots = append(inSlots, &realtime.RealtimeSlot{
+			Slot: i,
+			CurrentID:  users[i+1].Id,
+			CurrentKey:     cyclic.NewMaxInt(),
 		})
 	}
 
@@ -203,13 +186,12 @@ func TestGenerateClientKey(t *testing.T) {
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(inSlots[i])
 		testOK := true
-		actual := (*<-dc.OutChannel).(GenericKeySlot)
+		actual := (*<-dc.OutChannel).(*realtime.RealtimeSlot)
 		usr, _ := globals.Users.GetUser(i+1)
 		if usr.Reception.RecursiveKey.Cmp(expectedRecursiveKeys[i]) != 0 {
 			testOK = false
 			t.Error("Recursive keys differed at index", i)
-		} else if actual.Key().Cmp(expectedSharedKeys[i]) != 0 {
-			fmt.Println(actual.Key().Text(16))
+		} else if actual.CurrentKey.Cmp(expectedSharedKeys[i]) != 0 {
 			testOK = false
 			t.Error("Shared keys differed at index", i)
 		}

@@ -12,7 +12,20 @@ import (
 	"gitlab.com/privategrity/crypto/forward"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"gitlab.com/privategrity/server/cryptops/realtime"
+	"fmt"
 )
+
+//Denotes what kind of key will be
+type KeyType uint8
+
+const (
+	TRANSMISSION 	KeyType = 1
+	RECEPTION    	KeyType = 2
+	RECIEPT			KeyType = 3
+	RETURN       	KeyType = 4
+)
+
 
 // Generate client key creates shared keys for the client's transmission and
 // reception and creates the next recursive key for that shared key using the
@@ -23,21 +36,8 @@ type GenerateClientKey struct{}
 // This byte slice should have lots of capacity to hold the long key for shared
 // key generation
 type KeysGenerateClientKey struct {
-	sharedKeyStorage []byte
-}
-
-// Dummy struct for runtime polymorphism requirements
-type SlotGenerateClientKeyOut struct{}
-
-func (s SlotGenerateClientKeyOut) SlotID() uint64 { return uint64(0) }
-
-func (s SlotGenerateClientKeyOut) UserID() uint64 { return uint64(0) }
-
-func (s SlotGenerateClientKeyOut) Key() *cyclic.Int { return nil }
-
-func (s SlotGenerateClientKeyOut) GetKeyType() KeyType {
-	var result KeyType
-	return result
+	sharedKeyStorage 	[]byte
+	keySelection		KeyType
 }
 
 // Build() pre-allocates the memory and structs required to Run() this cryptop.
@@ -47,7 +47,9 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
-	round := face.(*globals.Round)
+	faceLst := face.([]interface{})
+	round := faceLst[0].(*globals.Round)
+	keySelection :=  faceLst[1].(KeyType)
 
 	// Let's have 65536-bit long keys for now. We can increase or reduce
 	// size as needed after profiling, or perhaps look for a way to reuse
@@ -55,7 +57,8 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 	keys := make([]services.NodeKeys, round.BatchSize)
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysGenerateClientKey{
-			sharedKeyStorage: make([]byte, 0, 8192),
+		 make([]byte, 0, 8192),
+		 keySelection,
 		}
 		keys[i] = keySlc
 	}
@@ -65,7 +68,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 	// a few empty structs
 	om := make([]services.Slot, round.BatchSize)
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = SlotGenerateClientKeyOut{}
+		om[i] = &realtime.RealtimeSlot{}
 	}
 
 	return &services.DispatchBuilder{round.BatchSize, &keys, &om, group}
@@ -76,31 +79,35 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 // when the first node receives the message from the client, and the reception
 // key is used after the realtime Peel phase, when the client is receiving the
 // message from the last node.
-func (g GenerateClientKey) Run(group *cyclic.Group, in, out KeySlot,
+func (g GenerateClientKey) Run(group *cyclic.Group, in,
+	out *realtime.RealtimeSlot,
 	keys *KeysGenerateClientKey) services.Slot {
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
 
-	user, _ := globals.Users.GetUser(in.UserID())
+	user, _ := globals.Users.GetUser(in.CurrentID)
 
 
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
-	if in.GetKeyType() == TRANSMISSION {
+	if keys.keySelection == TRANSMISSION {
 
 		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
-			user.Transmission.RecursiveKey, in.Key(),
+			user.Transmission.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
-	} else if in.GetKeyType() == RECEPTION {
+	} else if keys.keySelection  == RECEPTION {
 
 		forward.GenerateSharedKey(group, user.Reception.BaseKey,
-			user.Reception.RecursiveKey, in.Key(),
+			user.Reception.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
+	} else {
+		panic(fmt.Sprintf("Key Generation Failed: Invalid Key Selection.\n" +
+			"  Slot: %v; Recieved: %v", in.Slot, keys.keySelection))
 	}
 
 
 	globals.Users.UpsertUser(user)
 
-	return in.(services.Slot)
+	return in
 }
