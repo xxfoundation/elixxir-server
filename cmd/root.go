@@ -30,7 +30,7 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		node.StartServer(serverIdx, uint64(viper.GetInt("batchSize")))
+		node.StartServer(serverIdx, batchSize)
 	},
 }
 
