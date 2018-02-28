@@ -22,7 +22,7 @@ type KeyType uint8
 const (
 	TRANSMISSION 	KeyType = 1
 	RECEPTION    	KeyType = 2
-	RECIEPT			KeyType = 3
+	RECEIPT			KeyType = 3
 	RETURN       	KeyType = 4
 )
 
