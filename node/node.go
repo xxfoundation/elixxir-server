@@ -20,6 +20,13 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 )
 
+// This global variable is read-only outside of this package
+var id uint64
+
+func ID() uint64 {
+	return id
+}
+
 // RunRealtime controls when realtime is kicked off and which
 // messages are sent through the realtime phase. It reads up to batchSize
 // messages from the MessageCh, then reads a round and kicks off realtime
@@ -29,7 +36,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 	msgCount := uint64(0)
 	msgList := make([]*realtime.RealtimeSlot, batchSize)
 	for msg := range MessageCh {
-		jww.DEBUG.Printf("Adding message (%d/%d) from %d\n", msgCount + 1,
+		jww.DEBUG.Printf("Adding message (%d/%d) from %d\n", msgCount+1,
 			batchSize, msg.CurrentID)
 		msg.Slot = msgCount
 		msgList[msgCount] = msg
@@ -39,7 +46,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 			msgCount = uint64(0)
 			// Pass the batch queue into Realtime and begin
 			jww.INFO.Println("Beginning RealTime Phase...")
-			roundId := <- RoundCh
+			roundId := <-RoundCh
 			jww.INFO.Printf("Got Round ID %s for RealTime...\n", roundId)
 			io.KickoffDecryptHandler(*roundId, batchSize, msgList)
 		}
@@ -67,10 +74,13 @@ func RunPrecomputation(RoundCh chan *string) {
 }
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(serverIndex int, batchSize uint64) {
+func StartServer(serverIndex uint64, batchSize uint64) {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
+
+	// Set node ID
+	id = serverIndex
 
 	// Set global batch size
 	globals.BatchSize = batchSize
@@ -119,8 +129,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	})
 
 	// TODO Replace these concepts with a better system
-	io.IsLastNode = serverIndex == len(io.Servers)-1
-	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
+	io.IsLastNode = serverIndex == uint64(len(io.Servers)-1)
+	io.NextServer = io.Servers[(serverIndex+1)%uint64(len(io.Servers))]
 
 	// Block until we can reach every server
 	io.VerifyServersOnline(io.Servers)

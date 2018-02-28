@@ -19,8 +19,8 @@ import (
 
 var cfgFile string
 var verbose bool
-var serverIdx int
-var batchSize int
+var serverIdx uint64
+var batchSize uint64
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -56,9 +56,9 @@ func init() {
 		"config file (default is $HOME/.privategrity/server.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
-	rootCmd.PersistentFlags().IntVarP(&serverIdx, "index", "i", 0,
+	rootCmd.PersistentFlags().Uint64VarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
-	rootCmd.PersistentFlags().IntVarP(&batchSize, "batch", "b", 1,
+	rootCmd.PersistentFlags().Uint64VarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
 	viper.BindPFlag("batchSize", rootCmd.PersistentFlags().Lookup("batch"))
 
