@@ -9,7 +9,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -50,7 +50,7 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	// shareResult.PartialRoundPublicCypherKey
 	jww.INFO.Println("Setting node Public Keys...")
 	for i := range Servers {
-		message.SetPublicKey(Servers[i], &pb.PublicKeyMessage{
+		clusterclient.SetPublicKey(Servers[i], &pb.PublicKeyMessage{
 			RoundID:   input.RoundID,
 			PublicKey: input.Slots[0].PartialRoundPublicCypherKey,
 		})
@@ -81,7 +81,7 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 
 	// Send first PrecompDecrypt Message
 	jww.DEBUG.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
-	message.SendPrecompDecrypt(NextServer, msg)
+	clusterclient.SendPrecompDecrypt(NextServer, msg)
 }
 
 // TransmissionHandler for PrecompShareMessages
@@ -118,6 +118,6 @@ func (h PrecompShareHandler) Handler(
 	} else {
 		// Send the completed PrecompShareMessage
 		jww.DEBUG.Printf("Sending PrecompShare Message to %v...", NextServer)
-		message.SendPrecompShare(NextServer, msg)
+		clusterclient.SendPrecompShare(NextServer, msg)
 	}
 }

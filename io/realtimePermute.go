@@ -9,7 +9,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -94,6 +94,6 @@ func (h RealtimePermuteHandler) Handler(
 	} else {
 		// Send the completed RealtimePermuteMessage
 		jww.DEBUG.Printf("Sending RealtimePermute Message to %v...", NextServer)
-		message.SendRealtimePermute(NextServer, msg)
+		clusterclient.SendRealtimePermute(NextServer, msg)
 	}
 }
