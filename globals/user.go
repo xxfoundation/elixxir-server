@@ -32,13 +32,6 @@ type UserMap struct {
 	userCollection map[uint64]*User
 }
 
-// Creates a new UserRegistry interface
-func newUserRegistry() UserRegistry {
-	ur := InitDatabase()
-	// With an underlying UserMap data structure
-	return ur
-}
-
 type ForwardKey struct {
 	BaseKey      *cyclic.Int
 	RecursiveKey *cyclic.Int
