@@ -11,6 +11,7 @@ import (
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
@@ -24,7 +25,8 @@ const (
 
 // Struct implementing the UserRegistry Interface with an underlying DB
 type UserDatabase struct {
-	db *pg.DB
+	db           *pg.DB                          // Stored database connection
+	userChannels map[uint64]chan *pb.CmixMessage // Map of UserId to chan
 }
 
 // Struct representing a User in the database
@@ -67,14 +69,24 @@ func newUserRegistry() UserRegistry {
 		// in the event there are no database errors
 		jww.INFO.Println("Using database backend for UserRegistry!")
 		return UserRegistry(&UserDatabase{
-			db: db,
+			db:           db,
+			userChannels: make(map[uint64]chan *pb.CmixMessage),
 		})
 	}
 }
 
 // NewUser creates a new User object with default fields and given address.
 func (m *UserDatabase) NewUser(address string) *User {
-	return UserRegistry(&UserMap{}).NewUser(address)
+	newUser := UserRegistry(&UserMap{}).NewUser(address)
+	// Handle the conversion of the user's message buffer
+	if userChannel, exists := m.userChannels[newUser.Id]; exists {
+		// Add the old channel to the new User object if channel already exists
+		newUser.MessageBuffer = userChannel
+	} else {
+		// Otherwise add the new channel to the userChannels map
+		m.userChannels[newUser.Id] = newUser.MessageBuffer
+	}
+	return newUser
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
@@ -103,7 +115,7 @@ func (m *UserDatabase) GetUser(id uint64) (*User, bool) {
 		return nil, false
 	}
 	// If we found a user for the given ID, return it
-	return convertDbToUser(&user), true
+	return m.convertDbToUser(&user), true
 }
 
 // UpsertUser inserts given user into the database or update the user if it
@@ -189,22 +201,19 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	if user == nil {
 		return nil
 	}
-
 	newUser = new(UserDB)
 	newUser.Id = user.Id
 	newUser.Address = user.Address
-
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
 	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
 	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
 	newUser.ReceptionRecursiveKey = user.Reception.RecursiveKey.Bytes()
-
 	newUser.PublicKey = user.PublicKey.Bytes()
 	return
 }
 
 // Convert UserDB type to User type
-func convertDbToUser(user *UserDB) (newUser *User) {
+func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	if user == nil {
 		return nil
 	}
@@ -212,7 +221,6 @@ func convertDbToUser(user *UserDB) (newUser *User) {
 	newUser = new(User)
 	newUser.Id = user.Id
 	newUser.Address = user.Address
-
 	newUser.Transmission = ForwardKey{
 		BaseKey:      cyclic.NewIntFromBytes(user.TransmissionBaseKey),
 		RecursiveKey: cyclic.NewIntFromBytes(user.TransmissionRecursiveKey),
@@ -221,7 +229,17 @@ func convertDbToUser(user *UserDB) (newUser *User) {
 		BaseKey:      cyclic.NewIntFromBytes(user.ReceptionBaseKey),
 		RecursiveKey: cyclic.NewIntFromBytes(user.ReceptionRecursiveKey),
 	}
-
 	newUser.PublicKey = cyclic.NewIntFromBytes(user.PublicKey)
+
+	// Handle the conversion of the user's message buffer
+	if userChannel, exists := m.userChannels[user.Id]; exists {
+		// Add the channel to the new User object if it already exists
+		newUser.MessageBuffer = userChannel
+	} else {
+		// Otherwise create a new channel for the new User object
+		newUser.MessageBuffer = make(chan *pb.CmixMessage, 100)
+		// And add it to the userChannels map
+		m.userChannels[user.Id] = newUser.MessageBuffer
+	}
 	return
 }

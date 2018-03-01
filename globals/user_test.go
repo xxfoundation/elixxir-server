@@ -40,9 +40,9 @@ func TestUserRegistry(t *testing.T) {
 		t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
 	}
 
-	if Users.CountUsers() != numUsers {
-		t.Errorf("DeleteUser: Excepted empty userRegistry after user" +
-			" deletion!")
+	if count := Users.CountUsers(); count != numUsers {
+		t.Errorf("DeleteUser: Excepted empty userRegistry after user"+
+			" deletion! Got %d expected %d", count, numUsers)
 	}
 
 }
