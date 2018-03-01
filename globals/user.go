@@ -28,17 +28,22 @@ type UserMap struct {
 // Creates a new UserRegistry interface
 func newUserRegistry() UserRegistry {
 	// With an underlying UserMap data structure
-	return UserRegistry(&UserMap{userCollection: make(map[uint64]*User), idCounter: 0})
+	ur :=UserRegistry(&UserMap{userCollection: make(map[uint64]*User), idCounter: 0})
+	for i := 1; i < 6; i++ {
+		newUser := ur.NewUser("")
+		ur.UpsertUser(newUser)
+	}
+	return ur
 }
 
 type ForwardKey struct {
-	BaseKey        *cyclic.Int
-	RecursiveKey   *cyclic.Int
+	BaseKey      *cyclic.Int
+	RecursiveKey *cyclic.Int
 }
 
-func (fk *ForwardKey) DeepCopy()(*ForwardKey){
+func (fk *ForwardKey) DeepCopy() (*ForwardKey) {
 
-	if fk == nil{
+	if fk == nil {
 		return nil
 	}
 
@@ -66,12 +71,11 @@ type User struct {
 	MessageBuffer chan *pb.CmixMessage
 }
 
-func (u *User) DeepCopy()(*User){
+func (u *User) DeepCopy() (*User) {
 
-	if u == nil{
+	if u == nil {
 		return nil
 	}
-
 
 	nu := new(User)
 
@@ -93,11 +97,15 @@ func (u *User) DeepCopy()(*User){
 func (m *UserMap) NewUser(address string) *User {
 	m.idCounter++
 	return &User{Id: m.idCounter - 1, Address: address,
-		Transmission: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			RecursiveKey:   cyclic.NewMaxInt()},
-		Reception: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			RecursiveKey:   cyclic.NewMaxInt()},
-		PublicKey:     cyclic.NewMaxInt(),
+		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
+			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
+			RecursiveKey: cyclic.NewIntFromString(
+				"ad333f4ccea0ccf2afcab6c1b9aa2384e561aee970046e39b7f2a78c3942a251", 16)},
+		Reception: ForwardKey{BaseKey: cyclic.NewIntFromString(
+			"83120e7bfaba497f8e2c95457a28006f73ff4ec75d3ad91d27bf7ce8f04e772c", 16),
+			RecursiveKey: cyclic.NewIntFromString(
+				"979e574166ef0cd06d34e3260fe09512b69af6a414cf481770600d9c7447837b", 16)},
+		PublicKey: cyclic.NewMaxInt(),
 		MessageBuffer: make(chan *pb.CmixMessage, 100),
 	}
 }
@@ -110,7 +118,7 @@ func (m *UserMap) DeleteUser(id uint64) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserMap) GetUser(id uint64) (*User , bool) {
+func (m *UserMap) GetUser(id uint64) (*User, bool) {
 	var u *User
 	u, ok := m.userCollection[id]
 	user := u.DeepCopy()
