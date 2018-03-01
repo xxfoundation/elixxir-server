@@ -15,9 +15,9 @@ import (
 
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
-	"gitlab.com/privategrity/server/cryptops/realtime"
 )
 
 // RunRealtime controls when realtime is kicked off and which
@@ -29,7 +29,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 	msgCount := uint64(0)
 	msgList := make([]*realtime.RealtimeSlot, batchSize)
 	for msg := range MessageCh {
-		jww.DEBUG.Printf("Adding message (%d/%d) from %d\n", msgCount + 1,
+		jww.DEBUG.Printf("Adding message (%d/%d) from %d\n", msgCount+1,
 			batchSize, msg.CurrentID)
 		msg.Slot = msgCount
 		msgList[msgCount] = msg
@@ -39,7 +39,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 			msgCount = uint64(0)
 			// Pass the batch queue into Realtime and begin
 			jww.INFO.Println("Beginning RealTime Phase...")
-			roundId := <- RoundCh
+			roundId := <-RoundCh
 			jww.INFO.Printf("Got Round ID %s for RealTime...\n", roundId)
 			io.KickoffDecryptHandler(*roundId, batchSize, msgList)
 		}
@@ -74,6 +74,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Set global batch size
 	globals.BatchSize = batchSize
+	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
 
 	// Get all servers
 	io.Servers = getServers()
