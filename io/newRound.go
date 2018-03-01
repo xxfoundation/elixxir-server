@@ -93,7 +93,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	// Create the reception keygen for RealtimeDecrypt
 	receptionKeygenInit := make([]interface{}, 2)
 	receptionKeygenInit[0] = round
-	receptionKeygenInit[1] = cryptops.RECEPTION
+	receptionKeygenInit[1] = cryptops.TRANSMISSION
 	realtimeReceptionKeygen := services.DispatchCryptop(globals.Grp,
 		cryptops.GenerateClientKey{}, nil, nil, receptionKeygenInit)
 	// Create the controller for RealtimeDecrypt
@@ -108,7 +108,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	// Create the transmission keygen for RealtimeEncrypt
 	transmissionKeygenInit := make([]interface{}, 2)
 	transmissionKeygenInit[0] = round
-	transmissionKeygenInit[1] = cryptops.TRANSMISSION
+	transmissionKeygenInit[1] = cryptops.RECEPTION
 	realtimeTransmissionKeygen := services.DispatchCryptop(globals.Grp,
 		cryptops.GenerateClientKey{}, nil, nil, transmissionKeygenInit)
 	// Create the controller for RealtimeEncrypt

@@ -69,5 +69,8 @@ func (i Identify) Run(g *cyclic.Group,
 	g.Mul(in.EncryptedRecipient, keys.RecipientPrecomputation,
 		out.EncryptedRecipient)
 
+	recpbytes := out.EncryptedRecipient.LeftpadBytes(512)
+	out.EncryptedRecipient.SetBytes(recpbytes[503:512])
+
 	return out
 }

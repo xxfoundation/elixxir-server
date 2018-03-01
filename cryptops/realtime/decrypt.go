@@ -101,5 +101,4 @@ func (d Decrypt) Run(g *cyclic.Group, in *RealtimeSlot,
 	// Pass through SenderID
 	out.CurrentID = in.CurrentID
 	return out
-
 }
