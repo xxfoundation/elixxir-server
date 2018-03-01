@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package globals
 
 import (
@@ -39,13 +45,16 @@ type UserDB struct {
 
 // Initialize the UserRegistry interface with a database backend
 func InitDatabase() UserRegistry {
+	// Create the database connection
 	db := pg.Connect(&pg.Options{
 		User:     username,
 		Password: password,
 		Database: database,
 		Addr:     address,
 	})
+	// Initialize the schema if it does not already exist
 	createSchema(db)
+	// Return the database-backed UserRegistry interface
 	return UserRegistry(&UserDatabase{
 		db: db,
 	})
@@ -53,8 +62,7 @@ func InitDatabase() UserRegistry {
 
 // NewUser creates a new User object with default fields and given address.
 func (m *UserDatabase) NewUser(address string) *User {
-	// TODO
-	return nil
+	return UserRegistry(&UserMap{}).NewUser(address)
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
@@ -64,6 +72,7 @@ func (m *UserDatabase) DeleteUser(id uint64) {
 	err := m.db.Delete(&user)
 
 	if err != nil {
+		// Non-fatal error, user probably doesn't exist in the database
 		jww.ERROR.Printf("Unable to delete user %d! %v", id, err)
 	}
 }
