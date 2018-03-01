@@ -9,7 +9,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"time"
 )
 
@@ -17,7 +17,7 @@ import (
 func VerifyServersOnline(servers []string) {
 	for i := 0; i < len(servers); {
 		jww.DEBUG.Printf("Sending AskOnline message to %s...", servers[i])
-		_, err := message.SendAskOnline(servers[i], &pb.Ping{})
+		_, err := clusterclient.SendAskOnline(servers[i], &pb.Ping{})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to respond!", i, servers[i])
 			time.Sleep(250 * time.Millisecond)

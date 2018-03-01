@@ -9,7 +9,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -92,6 +92,6 @@ func (h RealtimeEncryptHandler) Handler(
 	} else {
 		// Send the completed RealtimeEncryptMessage
 		jww.DEBUG.Printf("Sending RealtimeEncrypt Message to %v...", NextServer)
-		message.SendRealtimeEncrypt(NextServer, msg)
+		clusterclient.SendRealtimeEncrypt(NextServer, msg)
 	}
 }

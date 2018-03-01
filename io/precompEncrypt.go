@@ -8,7 +8,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -70,7 +70,7 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 
 	// Send the first PrecompRevealMessage
 	jww.DEBUG.Printf("Sending PrecompReveal Message to %v...", NextServer)
-	message.SendPrecompReveal(NextServer, msg)
+	clusterclient.SendPrecompReveal(NextServer, msg)
 }
 
 // TransmissionHandler for PrecompEncryptMessages
@@ -104,6 +104,6 @@ func (h PrecompEncryptHandler) Handler(
 	} else {
 		// Send the completed PrecompEncryptMessage
 		jww.DEBUG.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
-		message.SendPrecompEncrypt(NextServer, msg)
+		clusterclient.SendPrecompEncrypt(NextServer, msg)
 	}
 }

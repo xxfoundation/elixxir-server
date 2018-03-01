@@ -9,7 +9,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -182,7 +182,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 func BeginNewRound(servers []string, RoundID string) {
 	for i := 0; i < len(servers); {
 		jww.DEBUG.Printf("Sending NewRound message to %s...\n", servers[i])
-		_, err := message.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
+		_, err := clusterclient.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to begin new round!\n", i,
 				servers[i])
