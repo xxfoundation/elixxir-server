@@ -43,8 +43,8 @@ type UserDB struct {
 	PublicKey []byte
 }
 
-// Initialize the UserRegistry interface with a database backend
-func InitDatabase() UserRegistry {
+// Initialize the UserRegistry interface with appropriate backend
+func newUserRegistry() UserRegistry {
 	// Create the database connection
 	db := pg.Connect(&pg.Options{
 		User:     username,
@@ -52,12 +52,24 @@ func InitDatabase() UserRegistry {
 		Database: database,
 		Addr:     address,
 	})
-	// Initialize the schema if it does not already exist
-	createSchema(db)
-	// Return the database-backed UserRegistry interface
-	return UserRegistry(&UserDatabase{
-		db: db,
-	})
+	// Attempt to connect to the database and initialize the schema
+	err := createSchema(db)
+
+	if err != nil {
+		// Return the map-backed UserRegistry interface
+		// in the event there is a database error
+		jww.INFO.Println("Using map backend for UserRegistry!")
+		return UserRegistry(&UserMap{
+			userCollection: make(map[uint64]*User),
+		})
+	} else {
+		// Return the database-backed UserRegistry interface
+		// in the event there are no database errors
+		jww.INFO.Println("Using database backend for UserRegistry!")
+		return UserRegistry(&UserDatabase{
+			db: db,
+		})
+	}
 }
 
 // NewUser creates a new User object with default fields and given address.
@@ -73,7 +85,7 @@ func (m *UserDatabase) DeleteUser(id uint64) {
 
 	if err != nil {
 		// Non-fatal error, user probably doesn't exist in the database
-		jww.ERROR.Printf("Unable to delete user %d! %v", id, err)
+		jww.DEBUG.Printf("Unable to delete user %d! %v", id, err)
 	}
 }
 
@@ -87,6 +99,7 @@ func (m *UserDatabase) GetUser(id uint64) (*User, bool) {
 	if err != nil {
 		// If there was an error, no user for the given ID was found
 		// So we will return nil, false, similar to map behavior
+		jww.DEBUG.Printf("Unable to get user %d! %v", id, err)
 		return nil, false
 	}
 	// If we found a user for the given ID, return it
@@ -127,7 +140,7 @@ func (m *UserDatabase) CountUsers() int {
 }
 
 // Create the database schema
-func createSchema(db *pg.DB) {
+func createSchema(db *pg.DB) error {
 	for _, model := range []interface{}{&UserDB{}} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			// Ignore create table if already exists?
@@ -142,10 +155,13 @@ func createSchema(db *pg.DB) {
 			//Varchar: 255
 		})
 		if err != nil {
-			jww.FATAL.Println("Unable to create database schema!")
-			panic(err)
+			// Return the error if one comes up
+			jww.ERROR.Printf("Unable to create database schema! %v", err)
+			return err
 		}
 	}
+	// No error, return nil
+	return nil
 }
 
 // Return given table information in string format
