@@ -17,7 +17,7 @@ import (
 
 // Constants for the database connection
 const (
-	username = "jacobtaylor"
+	username = "cmix"
 	password = ""
 	database = "cmix_server"
 	address  = ""
