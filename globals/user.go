@@ -93,6 +93,7 @@ func (u *User) DeepCopy() *User {
 func (m *UserMap) NewUser(address string) *User {
 	idCounter++
 	return &User{Id: idCounter - 1, Address: address,
+		// TODO: each user should have unique base and secret keys
 		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
 			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
 			RecursiveKey: cyclic.NewIntFromString(

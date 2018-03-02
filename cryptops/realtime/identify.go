@@ -69,6 +69,8 @@ func (i Identify) Run(g *cyclic.Group,
 	g.Mul(in.EncryptedRecipient, keys.RecipientPrecomputation,
 		out.EncryptedRecipient)
 
+	// These lines remove the nonce on the recipient ID,
+	// so that the server can send the message to an untainted recipient
 	recpbytes := out.EncryptedRecipient.LeftpadBytes(512)
 	out.EncryptedRecipient.SetBytes(recpbytes[503:512])
 
