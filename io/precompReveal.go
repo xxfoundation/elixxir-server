@@ -8,7 +8,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -93,6 +93,6 @@ func (h PrecompRevealHandler) Handler(
 	} else {
 		// Send the completed PrecompRevealMessage
 		jww.DEBUG.Printf("Sending PrecompReveal Message to %v...", NextServer)
-		message.SendPrecompReveal(NextServer, msg)
+		clusterclient.SendPrecompReveal(NextServer, msg)
 	}
 }

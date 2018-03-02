@@ -15,9 +15,9 @@ import (
 
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
-	"gitlab.com/privategrity/server/cryptops/realtime"
 )
 
 // This global variable is read-only outside of this package
@@ -84,6 +84,9 @@ func StartServer(serverIndex uint64, batchSize uint64) {
 
 	// Set global batch size
 	globals.BatchSize = batchSize
+	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
+
+	globals.PopulateDummyUsers()
 
 	// Get all servers
 	io.Servers = getServers()

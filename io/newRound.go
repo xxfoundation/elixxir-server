@@ -9,12 +9,13 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"time"
+	"gitlab.com/privategrity/server/cryptops"
 )
 
 // Comms method for kicking off a new round in CMIX
@@ -89,20 +90,32 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		precompPermuteReorganizer.OutChannel,
 		PrecompPermuteHandler{})
 
+	// Create the reception keygen for RealtimeDecrypt
+	receptionKeygenInit := make([]interface{}, 2)
+	receptionKeygenInit[0] = round
+	receptionKeygenInit[1] = cryptops.TRANSMISSION
+	realtimeReceptionKeygen := services.DispatchCryptop(globals.Grp,
+		cryptops.GenerateClientKey{}, nil, nil, receptionKeygenInit)
 	// Create the controller for RealtimeDecrypt
 	realtimeDecryptController := services.DispatchCryptop(globals.Grp,
-		realtime.Decrypt{}, nil, nil, round)
+		realtime.Decrypt{}, realtimeReceptionKeygen.OutChannel, nil, round)
 	// Add the InChannel from the keygen controller to round
-	round.AddChannel(globals.REAL_DECRYPT, realtimeDecryptController.InChannel)
+	round.AddChannel(globals.REAL_DECRYPT, realtimeReceptionKeygen.InChannel)
 	// Kick off RealtimeDecrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		realtimeDecryptController.OutChannel, RealtimeDecryptHandler{})
 
+	// Create the transmission keygen for RealtimeEncrypt
+	transmissionKeygenInit := make([]interface{}, 2)
+	transmissionKeygenInit[0] = round
+	transmissionKeygenInit[1] = cryptops.RECEPTION
+	realtimeTransmissionKeygen := services.DispatchCryptop(globals.Grp,
+		cryptops.GenerateClientKey{}, nil, nil, transmissionKeygenInit)
 	// Create the controller for RealtimeEncrypt
 	realtimeEncryptController := services.DispatchCryptop(globals.Grp,
-		realtime.Encrypt{}, nil, nil, round)
+		realtime.Encrypt{}, realtimeTransmissionKeygen.OutChannel, nil, round)
 	// Add the InChannel from the keygen controller to round
-	round.AddChannel(globals.REAL_ENCRYPT, realtimeEncryptController.InChannel)
+	round.AddChannel(globals.REAL_ENCRYPT, realtimeTransmissionKeygen.InChannel)
 	// Kick off RealtimeEncrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, batchSize,
 		realtimeEncryptController.OutChannel, RealtimeEncryptHandler{})
@@ -182,7 +195,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 func BeginNewRound(servers []string, RoundID string) {
 	for i := 0; i < len(servers); {
 		jww.DEBUG.Printf("Sending NewRound message to %s...\n", servers[i])
-		_, err := message.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
+		_, err := clusterclient.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to begin new round!\n", i,
 				servers[i])

@@ -1031,18 +1031,35 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	permutes := make([]*services.ThreadController, nodeCount)
 	encrypts := make([]*services.ThreadController, nodeCount)
 	reveals := make([]*services.ThreadController, nodeCount)
+
+	decrPerm := make(chan *services.Slot)
+
 	for i := 0; i < nodeCount; i++ {
 		if i == 0 {
-			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
-				nil, nil, rounds[i])
-			decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
-				nil, nil, rounds[i])
-			permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
-				nil, nil, rounds[i])
-			encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
-				nil, nil, rounds[i])
-			reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
-				nil, nil, rounds[i])
+			if nodeCount == 1{
+				shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+					nil, nil, rounds[i])
+				decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+					nil, decrPerm, rounds[i])
+				permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+					decrPerm, nil, rounds[i])
+				encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+					nil, nil, rounds[i])
+				reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+					nil, nil, rounds[i])
+			}else{
+				shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+					nil, nil, rounds[i])
+				decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+					nil, nil, rounds[i])
+				permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+					decrPerm, nil, rounds[i])
+				encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+					nil, nil, rounds[i])
+				reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+					nil, nil, rounds[i])
+			}
+
 		} else if i < (nodeCount - 1) {
 			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
 				shares[i-1].OutChannel, nil, rounds[i])
@@ -1058,7 +1075,7 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
 				shares[i-1].OutChannel, nil, rounds[i])
 			decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
-				decrypts[i-1].OutChannel, nil, rounds[i])
+				decrypts[i-1].OutChannel, decrPerm, rounds[i])
 			permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
 				permutes[i-1].OutChannel, nil, rounds[i])
 			encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
@@ -1067,6 +1084,8 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 				reveals[i-1].OutChannel, nil, rounds[i])
 		}
 	}
+
+
 
 	LNStrip := services.DispatchCryptop(group, precomputation.Strip{},
 		nil, nil, LastRound)
@@ -1077,8 +1096,8 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		reveals[0].InChannel, LastRound)
 	go PermuteEncryptTranslate(permutes[nodeCount-1].OutChannel,
 		encrypts[0].InChannel, LastRound)
-	go DecryptPermuteTranslate(decrypts[nodeCount-1].OutChannel,
-		permutes[0].InChannel)
+	//go DecryptPermuteTranslate(decrypts[nodeCount-1].OutChannel,
+	//	permutes[0].InChannel)
 
 	// Run Share -- Then save the result to both rounds
 	// Note that the outchannel for N1Share is the input channel for N2share

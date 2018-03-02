@@ -8,8 +8,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/privategrity/comms/clusterclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/mixserver/message"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -68,7 +68,7 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 
 	// Send the first RealtimePermute Message
 	jww.DEBUG.Printf("Sending RealtimePermute Message to %v...", NextServer)
-	message.SendRealtimePermute(NextServer, msg)
+	clusterclient.SendRealtimePermute(NextServer, msg)
 }
 
 // TransmissionHandler for RealtimeDecryptMessages
@@ -103,7 +103,7 @@ func (h RealtimeDecryptHandler) Handler(
 	} else {
 		// Send the completed RealtimeDecryptMessage
 		jww.DEBUG.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
-		message.SendRealtimeDecrypt(NextServer, msg)
+		clusterclient.SendRealtimeDecrypt(NextServer, msg)
 	}
 }
 
@@ -133,5 +133,5 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	}
 	// Send the completed RealtimeDecryptMessage
 	jww.DEBUG.Printf("Sending RealtimeDecrypt Message to %v...", NextServer)
-	message.SendRealtimeDecrypt(NextServer, msg)
+	clusterclient.SendRealtimeDecrypt(NextServer, msg)
 }
