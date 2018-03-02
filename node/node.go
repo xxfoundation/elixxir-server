@@ -76,6 +76,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	globals.BatchSize = batchSize
 	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
 
+	globals.PopulateDummyUsers()
+
 	// Get all servers
 	io.Servers = getServers()
 
