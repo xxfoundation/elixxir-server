@@ -20,13 +20,6 @@ import (
 	"gitlab.com/privategrity/server/io"
 )
 
-// This global variable is read-only outside of this package
-var id uint64
-
-func ID() uint64 {
-	return id
-}
-
 // RunRealtime controls when realtime is kicked off and which
 // messages are sent through the realtime phase. It reads up to batchSize
 // messages from the MessageCh, then reads a round and kicks off realtime
@@ -79,9 +72,6 @@ func StartServer(serverIndex uint64, batchSize uint64) {
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
 
-	// Set node ID
-	id = serverIndex
-
 	// Set global batch size
 	globals.BatchSize = batchSize
 	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
@@ -125,6 +115,9 @@ func StartServer(serverIndex uint64, batchSize uint64) {
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap and waiting rounds queue
 	globals.GlobalRoundMap = globals.NewRoundMap()
+
+	// ensure that the Node ID is populated
+	globals.NodeID()
 
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, io.ServerImpl{

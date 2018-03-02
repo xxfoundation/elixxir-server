@@ -15,12 +15,14 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/privategrity/server/node"
+	"math"
 )
 
 var cfgFile string
 var verbose bool
 var serverIdx uint64
 var batchSize uint64
+var nodeID uint64
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -60,7 +62,12 @@ func init() {
 		"Config index to use for local server")
 	rootCmd.PersistentFlags().Uint64VarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
-	viper.BindPFlag("batchSize", rootCmd.PersistentFlags().Lookup("batch"))
+	rootCmd.PersistentFlags().Uint64VarP(&nodeID, "nodeID", "n",
+		math.MaxUint64, "Unique identifier for this node")
+	viper.BindPFlag("batch", rootCmd.PersistentFlags().Lookup("batch"))
+	viper.BindPFlag("nodeID", rootCmd.PersistentFlags().Lookup("nodeID"))
+
+	batchSize = uint64(viper.GetInt("batch"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
