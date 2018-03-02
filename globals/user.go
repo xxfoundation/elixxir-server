@@ -93,10 +93,15 @@ func (u *User) DeepCopy() *User {
 func (m *UserMap) NewUser(address string) *User {
 	idCounter++
 	return &User{Id: idCounter - 1, Address: address,
-		Transmission: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			RecursiveKey: cyclic.NewMaxInt()},
-		Reception: ForwardKey{BaseKey: cyclic.NewMaxInt(),
-			RecursiveKey: cyclic.NewMaxInt()},
+		// TODO: each user should have unique base and secret keys
+		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
+			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
+			RecursiveKey: cyclic.NewIntFromString(
+				"ad333f4ccea0ccf2afcab6c1b9aa2384e561aee970046e39b7f2a78c3942a251", 16)},
+		Reception: ForwardKey{BaseKey: cyclic.NewIntFromString(
+			"83120e7bfaba497f8e2c95457a28006f73ff4ec75d3ad91d27bf7ce8f04e772c", 16),
+			RecursiveKey: cyclic.NewIntFromString(
+				"979e574166ef0cd06d34e3260fe09512b69af6a414cf481770600d9c7447837b", 16)},
 		PublicKey:     cyclic.NewMaxInt(),
 		MessageBuffer: make(chan *pb.CmixMessage, 100),
 	}

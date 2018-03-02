@@ -75,6 +75,12 @@ func newUserRegistry() UserRegistry {
 	}
 }
 
+func PopulateDummyUsers() {
+	for i := 0; i < 5; i++ {
+		Users.UpsertUser(Users.NewUser(""))
+	}
+}
+
 // NewUser creates a new User object with default fields and given address.
 func (m *UserDatabase) NewUser(address string) *User {
 	newUser := UserRegistry(&UserMap{}).NewUser(address)
