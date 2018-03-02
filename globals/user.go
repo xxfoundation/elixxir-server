@@ -52,7 +52,6 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 	nfk.RecursiveKey.Set(fk.RecursiveKey)
 
 	return &nfk
-
 }
 
 // Struct representing a User in the system

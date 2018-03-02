@@ -20,7 +20,7 @@ import (
 
 var cfgFile string
 var verbose bool
-var serverIdx uint64
+var serverIdx int
 var batchSize uint64
 var nodeID uint64
 
@@ -58,7 +58,7 @@ func init() {
 		"config file (default is $HOME/.privategrity/server.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
-	rootCmd.PersistentFlags().Uint64VarP(&serverIdx, "index", "i", 0,
+	rootCmd.PersistentFlags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
 	rootCmd.PersistentFlags().Uint64VarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
@@ -66,11 +66,6 @@ func init() {
 		math.MaxUint64, "Unique identifier for this node")
 	viper.BindPFlag("batchSize", rootCmd.PersistentFlags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.PersistentFlags().Lookup("nodeID"))
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// TODO: is this a flag that we use anywhere?
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initConfig reads in config file and ENV variables if set.

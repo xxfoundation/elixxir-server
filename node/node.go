@@ -67,7 +67,7 @@ func RunPrecomputation(RoundCh chan *string) {
 }
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(serverIndex uint64, batchSize uint64) {
+func StartServer(serverIndex int, batchSize uint64) {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
 	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
@@ -117,7 +117,7 @@ func StartServer(serverIndex uint64, batchSize uint64) {
 	globals.GlobalRoundMap = globals.NewRoundMap()
 
 	// ensure that the Node ID is populated
-	globals.NodeID()
+	globals.NodeID(uint64(serverIndex))
 
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, io.ServerImpl{
@@ -125,8 +125,8 @@ func StartServer(serverIndex uint64, batchSize uint64) {
 	})
 
 	// TODO Replace these concepts with a better system
-	io.IsLastNode = serverIndex == uint64(len(io.Servers)-1)
-	io.NextServer = io.Servers[(serverIndex+1)%uint64(len(io.Servers))]
+	io.IsLastNode = serverIndex == len(io.Servers)-1
+	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 
 	// Block until we can reach every server
 	io.VerifyServersOnline(io.Servers)

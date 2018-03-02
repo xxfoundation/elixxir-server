@@ -8,11 +8,12 @@ import (
 
 var nodeId = uint64(math.MaxUint64)
 
-func NodeID() uint64 {
+func NodeID(serverIdx uint64) uint64 {
 	if nodeId == math.MaxUint64 {
 		jww.DEBUG.Printf("Getting node ID")
 		if !viper.IsSet("nodeID") {
-			panic("Node ID wasn't set")
+			// set node ID to server index as a backup
+			nodeId = serverIdx
 		}
 		nodeId := viper.GetInt("nodeID")
 		jww.DEBUG.Printf("Node ID: %v", nodeId)
