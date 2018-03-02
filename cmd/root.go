@@ -32,7 +32,7 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		node.StartServer(serverIdx, batchSize)
+		node.StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
 	},
 }
 
@@ -64,13 +64,12 @@ func init() {
 		"Batch size to use for node server rounds")
 	rootCmd.PersistentFlags().Uint64VarP(&nodeID, "nodeID", "n",
 		math.MaxUint64, "Unique identifier for this node")
-	viper.BindPFlag("batch", rootCmd.PersistentFlags().Lookup("batch"))
+	viper.BindPFlag("batchSize", rootCmd.PersistentFlags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.PersistentFlags().Lookup("nodeID"))
-
-	batchSize = uint64(viper.GetInt("batch"))
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
+	// TODO: is this a flag that we use anywhere?
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
