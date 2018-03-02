@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package globals
 
 import (
@@ -7,6 +13,9 @@ import (
 
 // Globally initiated UserRegistry
 var Users = newUserRegistry()
+
+// Globally initiated User Id counter
+var idCounter = uint64(1)
 
 // Interface for User Registry operations
 type UserRegistry interface {
@@ -21,20 +30,6 @@ type UserRegistry interface {
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[uint64]*User
-	// Increments sequentially for User.id values
-	idCounter uint64
-}
-
-// Creates a new UserRegistry interface
-func newUserRegistry() UserRegistry {
-	// With an underlying UserMap data structure
-	ur := UserRegistry(&UserMap{userCollection: make(map[uint64]*User), idCounter: 1})
-	// TODO: unbreak tests by making the fake users optional
-	for i := 1; i < 6; i++ {
-		newUser := ur.NewUser("")
-		ur.UpsertUser(newUser)
-	}
-	return ur
 }
 
 type ForwardKey struct {
@@ -96,9 +91,8 @@ func (u *User) DeepCopy() *User {
 
 // NewUser creates a new User object with default fields and given address.
 func (m *UserMap) NewUser(address string) *User {
-	m.idCounter++
-	// TODO: better key negotiation/temp users
-	return &User{Id: m.idCounter - 1, Address: address,
+	idCounter++
+	return &User{Id: idCounter - 1, Address: address,
 		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
 			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
 			RecursiveKey: cyclic.NewIntFromString(

@@ -8,11 +8,11 @@ package cryptops
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"strconv"
 	"testing"
-	"gitlab.com/privategrity/server/cryptops/realtime"
 )
 
 // GenericKeySlot implements the KeySlot interface in the simplest way
@@ -62,7 +62,7 @@ func TestGenerateClientKey(t *testing.T) {
 	face[1] = RECEPTION
 
 	dc := services.DispatchCryptop(&group, GenerateClientKey{}, nil, nil,
-	face)
+		face)
 
 	// Create user registry, where Run() gets its pair of keys.
 	var users []*globals.User
@@ -102,9 +102,9 @@ func TestGenerateClientKey(t *testing.T) {
 
 	for i := uint64(0); i < batchSize; i++ {
 		inSlots = append(inSlots, &realtime.RealtimeSlot{
-			Slot: i,
+			Slot:       i,
 			CurrentID:  users[i+1].Id,
-			CurrentKey:     cyclic.NewMaxInt(),
+			CurrentKey: cyclic.NewMaxInt(),
 		})
 	}
 
@@ -187,10 +187,12 @@ func TestGenerateClientKey(t *testing.T) {
 		dc.InChannel <- &(inSlots[i])
 		testOK := true
 		actual := (*<-dc.OutChannel).(*realtime.RealtimeSlot)
-		usr, _ := globals.Users.GetUser(i+1)
+		usr, _ := globals.Users.GetUser(users[i].Id + 1)
 		if usr.Reception.RecursiveKey.Cmp(expectedRecursiveKeys[i]) != 0 {
 			testOK = false
-			t.Error("Recursive keys differed at index", i)
+			t.Errorf("Recursive keys differed at index %d. Expected %v, "+
+				"got %v", i, expectedRecursiveKeys[i].Text(10),
+				usr.Reception.RecursiveKey.Text(10))
 		} else if actual.CurrentKey.Cmp(expectedSharedKeys[i]) != 0 {
 			testOK = false
 			t.Error("Shared keys differed at index", i)
