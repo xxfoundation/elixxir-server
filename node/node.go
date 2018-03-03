@@ -116,6 +116,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Initialize GlobalRoundMap and waiting rounds queue
 	globals.GlobalRoundMap = globals.NewRoundMap()
 
+	// ensure that the Node ID is populated
+	globals.NodeID(uint64(serverIndex))
+
 	// Kick off Comms server
 	go mixserver.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,
