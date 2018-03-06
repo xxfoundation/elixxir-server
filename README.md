@@ -16,9 +16,8 @@ override the values set in the config file:
 
 ## Config File
 
-Sample config file `sample_server.yaml` located in server directory.
 Create a directory named `.privategrity` in your home directory,
-move the sample config file into this direcory and rename it to `server.yaml`
+move the sample config file into this directory and rename it to `server.yaml`
 
 Alternatively, here is the text of the config file if you'd like to
 make it yourself:
@@ -28,8 +27,8 @@ logPath: "server.log"
 verbose: "false"
 batchSize: 1
 servers:
-	- 50002
-	- 50003
+	- 0.0.0.0:11420
+	- 0.0.0.0:11421
 ```
 
 ## Compiling the Binary
