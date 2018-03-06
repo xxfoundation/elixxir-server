@@ -18,6 +18,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
+	"strings"
 )
 
 // RunRealtime controls when realtime is kicked off and which
@@ -79,7 +80,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	globals.PopulateDummyUsers()
 
 	// Get all servers
-	io.Servers = getServers()
+	io.Servers = getServers(serverIndex)
 
 	// TODO Generate globals.Grp somewhere intelligent
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -151,13 +152,16 @@ func run() {
 
 // getServers pulls a string slice of server ports from the config file and
 // verifies that the ports are valid.
-func getServers() []string {
+func getServers(serverIndex int) []string {
 	servers := viper.GetStringSlice("servers")
 	if servers == nil {
 		jww.ERROR.Println("No servers listed in config file.")
 	}
 	for i := range servers {
-		temp, err := strconv.Atoi(servers[i])
+		// Split address and port
+		s := strings.Split(servers[i], ":")
+		// Convert port to an int
+		temp, err := strconv.Atoi(s[1])
 		// catch non-int ports
 		if err != nil {
 			jww.ERROR.Println("Non-integer server ports in config file")
@@ -172,8 +176,11 @@ func getServers() []string {
 			jww.WARN.Printf("Port %v is a reserved port, superuser privilege"+
 				" may be required.\n", temp)
 		}
-		// Assemble full server address
-		servers[i] = "0.0.0.0:" + servers[i]
+		if i == serverIndex {
+			// Remove the IP from the local server
+			// in order to listen on the relevant port
+			servers[i] = "0.0.0.0:" + s[1]
+		}
 	}
 	return servers
 }
