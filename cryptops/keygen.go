@@ -13,7 +13,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/server/cryptops/realtime"
-	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 )
 
 //Denotes what kind of key will be
@@ -87,6 +87,11 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 
 	user, _ := globals.Users.GetUser(in.CurrentID)
 
+	if user == nil {
+		jww.FATAL.Panicf("GenerateClientKey Run: Got nil user from user ID" +
+			" %v", in.CurrentID)
+	}
+
 
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike
@@ -102,8 +107,9 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 			user.Reception.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
 	} else {
-		panic(fmt.Sprintf("Key Generation Failed: Invalid Key Selection.\n" +
-			"  Slot: %v; Recieved: %v", in.Slot, keys.keySelection))
+		jww.FATAL.Panicf(
+			"Key Generation Failed: Invalid Key Selection.\n" +
+			"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
 	}
 
 
