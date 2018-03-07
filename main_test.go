@@ -981,7 +981,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 // Helper function to initialize round keys. Useful when you only need to edit 1
 // element (e.g., the Permutation) in the set of keys held in round
 func GenerateRounds(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, t *testing.T) []*globals.Round {
+	group *cyclic.Group, t testing.TB) []*globals.Round {
 	rounds := make([]*globals.Round, nodeCount)
 	for i := 0; i < nodeCount; i++ {
 		rounds[i] = globals.NewRound(BatchSize)
