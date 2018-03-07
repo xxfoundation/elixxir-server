@@ -1014,14 +1014,8 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 	return rounds
 }
 
-// Perform an end to end test of the precomputation with batchsize 1,
-// then use it to send the message through a 2-node system to smoke test
-// the cryptographic operations.
-func MultiNodeTest(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, rounds []*globals.Round,
-	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot,
-	t *testing.T) {
-
+func MultiNodePrecomp(nodeCount int, BatchSize uint64,
+	group *cyclic.Group, rounds []*globals.Round, t testing.TB) {
 	LastRound := rounds[nodeCount-1]
 
 	// ----- PRECOMPUTATION ----- //
@@ -1157,6 +1151,14 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		// 		RP.Text(10), es.RecipientPrecomputation.Text(10))
 		// }
 	}
+}
+
+func MultiNodeRealtime(nodeCount int, BatchSize uint64,
+	group *cyclic.Group, rounds []*globals.Round,
+	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot,
+	t testing.TB) {
+
+	LastRound := rounds[nodeCount-1]
 
 	// ----- REALTIME ----- //
 	IntermediateMsgs := make([]*cyclic.Int, BatchSize)
@@ -1231,6 +1233,20 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 		t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
 			esRT.Slot, esRT.CurrentID, esRT.Message.Text(10))
 	}
+
+}
+
+// Perform an end to end test of the precomputation with batchsize 1,
+// then use it to send the message through a 2-node system to smoke test
+// the cryptographic operations.
+func MultiNodeTest(nodeCount int, BatchSize uint64,
+	group *cyclic.Group, rounds []*globals.Round,
+	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot,
+	t *testing.T) {
+
+	MultiNodePrecomp(nodeCount, BatchSize, group, rounds, t)
+	MultiNodeRealtime(nodeCount, BatchSize, group, rounds, inputMsgs,
+		expectedOutputs, t)
 }
 
 func Test3NodeE2E(t *testing.T) {
