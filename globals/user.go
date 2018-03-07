@@ -22,6 +22,7 @@ type UserRegistry interface {
 	NewUser(address string) *User
 	DeleteUser(id uint64)
 	GetUser(id uint64) (user *User, ok bool)
+	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
 }
@@ -58,6 +59,7 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 type User struct {
 	Id      uint64
 	Address string
+	Nick    string
 
 	Transmission ForwardKey
 	Reception    ForwardKey
@@ -130,4 +132,19 @@ func (m *UserMap) UpsertUser(user *User) {
 // CountUsers returns a count of the users in userCollection.
 func (m *UserMap) CountUsers() int {
 	return len(m.userCollection)
+}
+
+func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
+	userCount := m.CountUsers()
+
+	nicks = make([]string, 0, userCount)
+	ids = make([]uint64, 0, userCount)
+	for _, user := range m.userCollection {
+		if user != nil {
+			nicks = append(nicks, user.Nick)
+			ids = append(ids, user.Id)
+		}
+	}
+
+	return ids, nicks
 }

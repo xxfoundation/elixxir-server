@@ -36,6 +36,7 @@ type UserDB struct {
 
 	Id      uint64
 	Address string
+	Nick    string
 
 	TransmissionBaseKey      []byte
 	TransmissionRecursiveKey []byte
@@ -75,6 +76,7 @@ func newUserRegistry() UserRegistry {
 	}
 }
 
+// TODO: remove or improve this
 func PopulateDummyUsers() {
 	for i := 0; i < 5; i++ {
 		Users.UpsertUser(Users.NewUser(""))
@@ -157,6 +159,21 @@ func (m *UserDatabase) CountUsers() int {
 	return count
 }
 
+// GetNickList returns a list of userID/nick pairs.
+func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
+	model := make([]UserDB, 0)
+	ids = make([]uint64, 0)
+	nicks = make([]string, 0)
+	err := m.db.Model(&model).Column("id", "nick").Select(&ids, &nicks)
+
+	if err != nil {
+		jww.FATAL.Println("Unable to get contact list!")
+		panic(err)
+	}
+
+	return ids, nicks
+}
+
 // Create the database schema
 func createSchema(db *pg.DB) error {
 	for _, model := range []interface{}{&UserDB{}} {
@@ -210,6 +227,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	newUser = new(UserDB)
 	newUser.Id = user.Id
 	newUser.Address = user.Address
+	newUser.Nick = user.Nick
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
 	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
 	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
@@ -227,6 +245,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser = new(User)
 	newUser.Id = user.Id
 	newUser.Address = user.Address
+	newUser.Nick = user.Nick
 	newUser.Transmission = ForwardKey{
 		BaseKey:      cyclic.NewIntFromBytes(user.TransmissionBaseKey),
 		RecursiveKey: cyclic.NewIntFromBytes(user.TransmissionRecursiveKey),

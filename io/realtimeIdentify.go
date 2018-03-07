@@ -8,8 +8,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/clusterclient"
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
