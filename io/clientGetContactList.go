@@ -11,7 +11,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 )
 
-func (s ServerImpl) ClientGetContactList(inputMsg *pb.
+func (s ServerImpl) RequestContactList(inputMsg *pb.
 	ContactPoll) *pb.ContactMessage {
 	userCount := globals.Users.CountUsers()
 
