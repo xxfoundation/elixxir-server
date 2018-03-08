@@ -54,18 +54,18 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
+	rootCmd.Flags().StringVar(&cfgFile, "config", "",
 		"config file (default is $HOME/.privategrity/server.yaml)")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false,
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
-	rootCmd.PersistentFlags().IntVarP(&serverIdx, "index", "i", 0,
+	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
-	rootCmd.PersistentFlags().Uint64VarP(&batchSize, "batch", "b", 1,
+	rootCmd.Flags().Uint64VarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
-	rootCmd.PersistentFlags().Uint64VarP(&nodeID, "nodeID", "n",
+	rootCmd.Flags().Uint64VarP(&nodeID, "nodeID", "n",
 		math.MaxUint64, "Unique identifier for this node")
-	viper.BindPFlag("batchSize", rootCmd.PersistentFlags().Lookup("batch"))
-	viper.BindPFlag("nodeID", rootCmd.PersistentFlags().Lookup("nodeID"))
+	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
+	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 }
 
 // initConfig reads in config file and ENV variables if set.

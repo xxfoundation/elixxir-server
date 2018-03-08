@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/privategrity
   REPO_NAME: server
-  DOCKER_IMAGE: carback1/golang-glide:1.9-d638096cef01
+  DOCKER_IMAGE: carback1/golang-glide:1.9-84952ffd3be2
 
 before_script:
   ##
@@ -73,7 +73,17 @@ test:
   stage: test
   image: $DOCKER_IMAGE
   script:
+    - mkdir -p benchmarks
     - go test -cover -v ./...
+    - go test -bench=BenchmarkPrecomp -cpuprofile=benchmarks/precomp.cpu -memprofile=benchmarks/precomp.mem -short
+    - go tool pprof -png server.test benchmarks/precomp.cpu > benchmarks/precomp-cpu.png
+    - go tool pprof -png server.test benchmarks/precomp.mem > benchmarks/precomp-mem.png
+    - go test -bench=BenchmarkRealtime -cpuprofile=benchmarks/realtime.cpu -memprofile=benchmarks/realtime.mem -short
+    - go tool pprof -png server.test benchmarks/realtime.cpu > benchmarks/realtime-cpu.png
+    - go tool pprof -png server.test benchmarks/realtime.mem > benchmarks/realtime-mem.png
+  artifacts:
+    paths:
+      - benchmarks/
 
 build:
   stage: build
