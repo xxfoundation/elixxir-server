@@ -174,10 +174,12 @@ func (m *UserDatabase) CountUsers() int {
 
 // GetNickList returns a list of userID/nick pairs.
 func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
-	model := make([]UserDB, 0)
+	var model []UserDB
+	//model := make([]UserDB, 0)
 	ids = make([]uint64, 0)
 	nicks = make([]string, 0)
-	err := m.db.Model(&model).Column("id", "nick").Select(&ids, &nicks)
+
+	err := m.db.Model(&model).Column("id", "nick").Select()
 
 	if err != nil {
 		jww.FATAL.Panicf("Unable to get contact list! %s", err.Error())
