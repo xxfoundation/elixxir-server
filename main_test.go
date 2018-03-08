@@ -838,9 +838,9 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot,
 	t *testing.T) {
 
-	benchmark.MultiNodePrecomp(nodeCount, BatchSize, group, rounds, t)
+	benchmark.MultiNodePrecomp(nodeCount, BatchSize, group, rounds)
 	benchmark.MultiNodeRealtime(nodeCount, BatchSize, group, rounds, inputMsgs,
-		expectedOutputs, t)
+		expectedOutputs)
 }
 
 func Test3NodeE2E(t *testing.T) {
@@ -865,7 +865,7 @@ func Test3NodeE2E(t *testing.T) {
 			Message:   cyclic.NewInt(42 + int64(i)), // Meaning of Life
 		}
 	}
-	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp, t)
+	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)
 	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
 }
 
@@ -897,7 +897,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
-	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp, t)
+	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)
 	for i := 0; i < nodeCount; i++ {
 		for j := uint64(0); j < BatchSize; j++ {
 			// Shift by 1
@@ -964,7 +964,7 @@ func TestRealPrimeE2E(t *testing.T) {
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
-	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp, t)
+	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)
 	for i := 0; i < nodeCount; i++ {
 		for j := uint64(0); j < BatchSize; j++ {
 			// Shift by 1

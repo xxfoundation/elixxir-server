@@ -1,9 +1,8 @@
 package cmd
 
 import (
-  "fmt"
-
-  "github.com/spf13/cobra"
+	"gitlab.com/privategrity/server/benchmark"
+	"github.com/spf13/cobra"
 )
 
 var benchBatchSize uint64
@@ -26,6 +25,7 @@ var benchmarkCmd = &cobra.Command{
   Short: "Server benchmarking tests",
   Long:  `Run internal benchmark funcs by specifying node and batch sizes`,
   Run: func(cmd *cobra.Command, args []string) {
-    fmt.Println("Hugo Static Site Generator v0.9 -- HEAD")
+		benchmark.PrecompIterations(nodeCount, benchBatchSize, iterations)
+		benchmark.RealtimeIterations(nodeCount, benchBatchSize, iterations)
   },
 }

@@ -13,6 +13,9 @@ import (
 	"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
+
+	jww "github.com/spf13/jwalterweatherman"
+
 	"testing"
 	"strconv"
 	"fmt"
@@ -59,12 +62,10 @@ func RoundText(g *cyclic.Group, n *globals.Round) string {
 	return outStr
 }
 
-
-
 // Helper function to initialize round keys. Useful when you only need to edit 1
 // element (e.g., the Permutation) in the set of keys held in round
 func GenerateRounds(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, t testing.TB) []*globals.Round {
+	group *cyclic.Group) []*globals.Round {
 	rounds := make([]*globals.Round, nodeCount)
 	for i := 0; i < nodeCount; i++ {
 		rounds[i] = globals.NewRound(BatchSize)
@@ -90,10 +91,11 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 		}
 	}
 
-	t.Logf("%d NODE GENERATION RESULTS: \n", nodeCount)
-	for i := 0; i < nodeCount; i++ {
-		t.Logf("%v", RoundText(group, rounds[i]))
-	}
+	// TODO: Consider moving this to the callers where it matters
+	// t.Logf("%d NODE GENERATION RESULTS: \n", nodeCount)
+	// for i := 0; i < nodeCount; i++ {
+	// 	t.Logf("%v", RoundText(group, rounds[i]))
+	// }
 
 	return rounds
 }
@@ -234,7 +236,7 @@ func RTEncryptRTEncryptTranslate(in, out chan *services.Slot) {
 }
 
 func MultiNodePrecomp(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, rounds []*globals.Round, t testing.TB) {
+	group *cyclic.Group, rounds []*globals.Round) {
 	LastRound := rounds[nodeCount-1]
 
 	// ----- PRECOMPUTATION ----- //
@@ -325,10 +327,11 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 		rounds[i].CypherPublicKey.Set(PublicCypherKey)
 	}
 
-	t.Logf("%d NODE SHARE RESULTS: \n", nodeCount)
-	for i := 0; i < nodeCount; i++ {
-		t.Logf("%v", RoundText(group, rounds[i]))
-	}
+	// TODO: Consider moving to caller
+	// t.Logf("%d NODE SHARE RESULTS: \n", nodeCount)
+	// for i := 0; i < nodeCount; i++ {
+	// 	t.Logf("%v", RoundText(group, rounds[i]))
+	// }
 
 	// Now finish precomputation
 	for i := uint64(0); i < BatchSize; i++ {
@@ -350,10 +353,11 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 		LastRound.LastNode.RecipientPrecomputation[es.Slot] =
 			es.RecipientIDPrecomputation
 
-		t.Logf("%d NODE STRIP:\n  MessagePrecomputation: %s, "+
-			"RecipientPrecomputation: %s\n", nodeCount,
-			es.MessagePrecomputation.Text(10),
-			es.RecipientIDPrecomputation.Text(10))
+		// TOOD: Consider moving this to the caller
+		// t.Logf("%d NODE STRIP:\n  MessagePrecomputation: %s, "+
+		// 	"RecipientPrecomputation: %s\n", nodeCount,
+		// 	es.MessagePrecomputation.Text(10),
+		// 	es.RecipientIDPrecomputation.Text(10))
 
 		// Check precomputation, note that these are currently expected to be
 		// wrong under permutation
@@ -374,8 +378,7 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 
 func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 	group *cyclic.Group, rounds []*globals.Round,
-	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot,
-	t testing.TB) {
+	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot) {
 
 	LastRound := rounds[nodeCount-1]
 
@@ -432,25 +435,29 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 		rtdecrypts[0].InChannel <- &in
 	}
 
+
+	// TODO: Consider doing this better and re-enabling the prints if they are
+	//       useful
+
 	for i := uint64(0); i < BatchSize; i++ {
 		rtnRT := <-LNRTPeel.OutChannel
 		esRT := (*rtnRT).(*realtime.RealtimeSlot)
-		t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
-			esRT.Message.Text(10))
+		// t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
+		// 	esRT.Message.Text(10))
 
 		if esRT.Message.Cmp(expectedOutputs[i].Message) != 0 {
-			t.Errorf("RTPEEL %d failed EncryptedMessage. Got: %s Expected: %s",
+			jww.FATAL.Panicf("RTPEEL %d failed EncryptedMessage. Got: %s Expected: %s",
 				esRT.Slot,
 				esRT.Message.Text(10),
 				expectedOutputs[i].Message.Text(10))
 		}
 		if esRT.CurrentID != expectedOutputs[i].CurrentID {
-			t.Errorf("RTPEEL %d failed RecipientID. Got: %d Expected: %d",
+			jww.FATAL.Panicf("RTPEEL %d failed RecipientID. Got: %d Expected: %d",
 				esRT.Slot, esRT.CurrentID, expectedOutputs[i].CurrentID)
 		}
 
-		t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-			esRT.Slot, esRT.CurrentID, esRT.Message.Text(10))
+		// t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+		// 	esRT.Slot, esRT.CurrentID, esRT.Message.Text(10))
 	}
 
 }
@@ -466,7 +473,7 @@ func RoundGeneratorBenchmark(nodeCount int, batchSize uint64, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		GenerateRounds(nodeCount, batchSize, &grp, b)
+		GenerateRounds(nodeCount, batchSize, &grp)
 	}
 }
 
@@ -484,11 +491,11 @@ func Precomp(nodeCount int, batchSize uint64, b *testing.B) {
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
-	rounds := GenerateRounds(nodeCount, batchSize, &grp, b)
+	rounds := GenerateRounds(nodeCount, batchSize, &grp)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		MultiNodePrecomp(nodeCount, batchSize, &grp, rounds, b)
+		MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
 	}
 }
 
@@ -588,7 +595,7 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
 
-	rounds := GenerateRounds(nodeCount, batchSize, &grp, b)
+	rounds := GenerateRounds(nodeCount, batchSize, &grp)
 
 	// Rewrite permutation pattern
 	for i := 0; i < nodeCount; i++ {
@@ -599,7 +606,7 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 		}
 	}
 
-	MultiNodePrecomp(nodeCount, batchSize, &grp, rounds, b)
+	MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -607,6 +614,53 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 		inputMsgs,outputMsgs := GenerateIOMessages(nodeCount, batchSize, tmpRounds)
 
 		MultiNodeRealtime(nodeCount, batchSize, &grp, tmpRounds, inputMsgs,
-			outputMsgs, b)
+			outputMsgs)
+	}
+}
+
+// Template function for running precomputation
+func PrecompIterations(nodeCount int, batchSize uint64, iterations int) {
+	prime := cyclic.NewInt(0)
+	prime.SetString(PRIME, 16)
+
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
+		rng)
+	rounds := GenerateRounds(nodeCount, batchSize, &grp)
+
+	for i := 0; i < iterations; i++ {
+		MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+	}
+}
+
+
+// Run realtime simulation for given number of of iterations
+func RealtimeIterations(nodeCount int, batchSize uint64, iterations int) {
+	prime := cyclic.NewInt(0)
+	prime.SetString(PRIME, 16)
+
+	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
+		rng)
+
+	rounds := GenerateRounds(nodeCount, batchSize, &grp)
+
+	// Rewrite permutation pattern
+	for i := 0; i < nodeCount; i++ {
+		for j := uint64(0); j < batchSize; j++ {
+			// Shift by 1
+			newj := (j + 1) % batchSize
+			rounds[i].Permutations[j] = newj
+		}
+	}
+
+	MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+
+	for i := 0; i < iterations; i++ {
+		tmpRounds := CopyRounds(nodeCount, rounds)
+		inputMsgs,outputMsgs := GenerateIOMessages(nodeCount, batchSize, tmpRounds)
+
+		MultiNodeRealtime(nodeCount, batchSize, &grp, tmpRounds, inputMsgs,
+			outputMsgs)
 	}
 }
