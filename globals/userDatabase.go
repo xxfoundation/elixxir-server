@@ -13,7 +13,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
-	"errors"
 )
 
 // Constants for the database connection
@@ -57,9 +56,7 @@ func newUserRegistry() UserRegistry {
 		Addr:     address,
 	})
 	// Attempt to connect to the database and initialize the schema
-	// TODO: temporarily broke database to force usermap
-	//err := createSchema(db)
-	err := errors.New("Broke the database on purpose")
+	err := createSchema(db)
 	if err != nil {
 		// Return the map-backed UserRegistry interface
 		// in the event there is a database error
@@ -86,11 +83,11 @@ func newUserRegistry() UserRegistry {
 // TODO: remove or improve this
 func PopulateDummyUsers() {
 
-	nickList := []string{ "David", "Jim", "Ben", "Rick", "Spencer", "Jake",
+	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
 		"Mario", "Will", "Sydney", "Jon0"}
 
 	// Deterministically create users for demo
-	for i := 1; i<= NUM_DEMO_USERS; i++ {
+	for i := 1; i <= NUM_DEMO_USERS; i++ {
 		u := Users.NewUser("")
 		u.Nick = nickList[i-1]
 		Users.UpsertUser(u)
@@ -175,14 +172,17 @@ func (m *UserDatabase) CountUsers() int {
 // GetNickList returns a list of userID/nick pairs.
 func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
 	var model []UserDB
-	//model := make([]UserDB, 0)
-	ids = make([]uint64, 0)
-	nicks = make([]string, 0)
-
 	err := m.db.Model(&model).Column("id", "nick").Select()
 
 	if err != nil {
 		jww.FATAL.Panicf("Unable to get contact list! %s", err.Error())
+	}
+
+	ids = make([]uint64, len(model))
+	nicks = make([]string, len(model))
+	for i, user := range(model) {
+		ids[i] = user.Id
+		nicks[i] = user.Nick
 	}
 
 	return ids, nicks
@@ -284,6 +284,6 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 }
 
 // TODO CREATE A REAL LOOKUP FUNCTION
-func (m *UserDatabase) LookupUser(huid uint64) (uint64, bool)  {
+func (m *UserDatabase) LookupUser(huid uint64) (uint64, bool) {
 	return uint64(0), false
 }
