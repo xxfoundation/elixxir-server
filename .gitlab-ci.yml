@@ -76,11 +76,11 @@ test:
     - mkdir -p benchmarks
     - go test -cover -v ./...
     - go test -bench=BenchmarkPrecomp -cpuprofile=benchmarks/precomp.cpu -memprofile=benchmarks/precomp.mem -short
-    - go tool pprof -pdf server.test benchmarks/precomp.cpu > precomp-cpu.pdf
-    - go tool pprof -pdf server.test benchmarks/precomp.mem > precomp-mem.pdf
+    - go tool pprof -pdf server.test benchmarks/precomp.cpu > benchmarks/precomp-cpu.pdf
+    - go tool pprof -pdf server.test benchmarks/precomp.mem > benchmarks/precomp-mem.pdf
     - go test -bench=BenchmarkRealtime -cpuprofile=benchmarks/realtime.cpu -memprofile=benchmarks/realtime.mem -short
-    - go tool pprof -pdf server.test benchmarks/realtime.cpu > realtime-cpu.pdf
-    - go tool pprof -pdf server.test benchmarks/realtime.mem > realtime-mem.pdf
+    - go tool pprof -pdf server.test benchmarks/realtime.cpu > benchmarks/realtime-cpu.pdf
+    - go tool pprof -pdf server.test benchmarks/realtime.mem > benchmarks/realtime-mem.pdf
   artifacts:
     paths:
       - benchmarks/
