@@ -21,7 +21,7 @@ func TestServerImpl_ClientPoll(t *testing.T) {
 	user.MessageBuffer <- &pb.CmixMessage{MessagePayload: cyclic.NewInt(42).Bytes()}
 
 	// Get the message for the valid user via ClientPoll
-	msg := ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: user.Id})
+	msg := ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: user.UID})
 	// Make sure the message contains the same payload
 	if cyclic.NewIntFromBytes(msg.MessagePayload).Cmp(cyclic.NewInt(42)) != 0 {
 		t.Errorf("ClientPoll returned invalid MessagePayload!")

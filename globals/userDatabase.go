@@ -13,6 +13,8 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"crypto/sha256"
+	"errors"
 )
 
 // Constants for the database connection
@@ -56,14 +58,49 @@ func newUserRegistry() UserRegistry {
 		Addr:     address,
 	})
 	// Attempt to connect to the database and initialize the schema
-	err := createSchema(db)
-
+	// TODO: temporarily broke database to force usermap
+	//err := createSchema(db)
+	err := errors.New("Broke the database on purpose")
 	if err != nil {
 		// Return the map-backed UserRegistry interface
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
+
+		// Generate hard-coded users.
+		// TODO fix this so they are created in database too
+		uc := make(map[uint64]*User)
+		ul := make(map[uint64]uint64)
+
+		// Deterministically create users for demo
+		for i := 1; i<= NUM_DEMO_USERS; i++ {
+			h := sha256.New()
+			t := new(User)
+			// Generate user parameters
+			t.UID = uint64(i)
+			h.Write([]byte(string(20000+i)))
+			t.Transmission.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+			h.Write([]byte(string(30000+i)))
+			t.Transmission.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+			h.Write([]byte(string(40000+i)))
+			t.Reception.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+			h.Write([]byte(string(50000+i)))
+			t.Reception.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+			t.PublicKey = cyclic.NewMaxInt()
+			t.MessageBuffer = make(chan *pb.CmixMessage, 100)
+			uc[t.UID] = t
+			ul[t.UID+10000] = t.UID
+		}
+		uc[1].Nick = "David"
+		uc[2].Nick = "Jim"
+		uc[3].Nick = "Ben"
+		uc[4].Nick = "Rick"
+		uc[5].Nick = "Spencer"
+		uc[6].Nick = "Jake"
+		uc[7].Nick = "Mario"
+		uc[8].Nick = "Will"
 		return UserRegistry(&UserMap{
-			userCollection: make(map[uint64]*User),
+			userCollection: uc,
+			userLookup: ul,
 		})
 	} else {
 		// Return the database-backed UserRegistry interface
@@ -87,12 +124,12 @@ func PopulateDummyUsers() {
 func (m *UserDatabase) NewUser(address string) *User {
 	newUser := UserRegistry(&UserMap{}).NewUser(address)
 	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[newUser.Id]; exists {
+	if userChannel, exists := m.userChannels[newUser.UID]; exists {
 		// Add the old channel to the new User object if channel already exists
 		newUser.MessageBuffer = userChannel
 	} else {
 		// Otherwise add the new channel to the userChannels map
-		m.userChannels[newUser.Id] = newUser.MessageBuffer
+		m.userChannels[newUser.UID] = newUser.MessageBuffer
 	}
 	return newUser
 }
@@ -145,7 +182,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.FATAL.Panicf("Unable to upsert user %d! %s", user.Id, err.Error())
+		jww.FATAL.Panicf("Unable to upsert user %d! %s", user.UID, err.Error())
 	}
 }
 
@@ -223,7 +260,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
-	newUser.Id = user.Id
+	newUser.Id = user.UID
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
@@ -241,7 +278,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 
 	newUser = new(User)
-	newUser.Id = user.Id
+	newUser.UID = user.Id
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.Transmission = ForwardKey{
@@ -265,4 +302,9 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 		m.userChannels[user.Id] = newUser.MessageBuffer
 	}
 	return
+}
+
+// TODO CREATE A REAL LOOKUP FUNCTION
+func (m *UserDatabase) LookupUser(huid uint64) (uint64, bool)  {
+	return uint64(0), false
 }

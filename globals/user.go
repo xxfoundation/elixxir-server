@@ -15,7 +15,10 @@ import (
 // Globally initiated UserRegistry
 var Users = newUserRegistry()
 
-// Globally initiated User Id counter
+// Number of hard-coded users to create
+var NUM_DEMO_USERS = int(8)
+
+// Globally initiated User UID counter
 var idCounter = uint64(1)
 
 // Interface for User Registry operations
@@ -26,12 +29,14 @@ type UserRegistry interface {
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
+	LookupUser(huid uint64) (uint64, bool)
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[uint64]*User
+	userLookup map[uint64]uint64
 }
 
 type ForwardKey struct {
@@ -58,7 +63,8 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 // Struct representing a User in the system
 type User struct {
-	Id      uint64
+	UID     uint64
+	HUID	uint64
 	Address string
 	Nick    string
 
@@ -77,7 +83,7 @@ func (u *User) DeepCopy() *User {
 
 	nu := new(User)
 
-	nu.Id = u.Id
+	nu.UID = u.UID
 	nu.Address = u.Address
 	nu.Nick = u.Nick
 
@@ -95,7 +101,7 @@ func (u *User) DeepCopy() *User {
 // NewUser creates a new User object with default fields and given address.
 func (m *UserMap) NewUser(address string) *User {
 	idCounter++
-	return &User{Id: idCounter - 1, Address: address, Nick: "",
+	return &User{UID: idCounter - 1, Address: address, Nick: "",
 		// TODO: each user should have unique base and secret keys
 		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
 			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
@@ -128,7 +134,7 @@ func (m *UserMap) GetUser(id uint64) (*User, bool) {
 // UpsertUser inserts given user into userCollection or update the user if it
 // already exists (Upsert operation).
 func (m *UserMap) UpsertUser(user *User) {
-	m.userCollection[user.Id] = user
+	m.userCollection[user.UID] = user
 }
 
 // CountUsers returns a count of the users in userCollection.
@@ -145,11 +151,15 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 	for _, user := range m.userCollection {
 		if user != nil {
 			nicks = append(nicks, user.Nick)
-			ids = append(ids, user.Id)
+			ids = append(ids, user.UID)
 		} else {
 			jwalterweatherman.FATAL.Panicf("A user was nil.")
 		}
 	}
 
 	return ids, nicks
+}
+
+func (m *UserMap) LookupUser(huid uint64) (uint64, bool) {
+	return m.userLookup[huid], true
 }
