@@ -73,7 +73,17 @@ test:
   stage: test
   image: $DOCKER_IMAGE
   script:
+    - mkdir -p benchmarks
     - go test -cover -v ./...
+    - go test -bench=BenchmarkPrecomp -cpuprofile=benchmarks/precomp.cpu -memprofile=benchmarks/precomp.mem -short
+    - go tool pprof -pdf server.test benchmarks/precomp.cpu > precomp-cpu.pdf
+    - go tool pprof -pdf server.test benchmarks/precomp.mem > precomp-mem.pdf
+    - go test -bench=BenchmarkRealtime -cpuprofile=benchmarks/realtime.cpu -memprofile=benchmarks/realtime.mem -short
+    - go tool pprof -pdf server.test benchmarks/realtime.cpu > realtime-cpu.pdf
+    - go tool pprof -pdf server.test benchmarks/realtime.mem > realtime-mem.pdf
+  artifacts:
+    paths:
+      - benchmarks/
 
 build:
   stage: build
