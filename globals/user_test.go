@@ -15,6 +15,7 @@ import (
 func TestUserRegistry(t *testing.T) {
 
 	testUser := Users.NewUser("Someplace")
+	testUser.Nick = "Me"
 	numUsers := Users.CountUsers()
 	Users.DeleteUser(testUser.Id)
 	Users.UpsertUser(testUser)
@@ -25,13 +26,17 @@ func TestUserRegistry(t *testing.T) {
 	}
 
 	getUser.Transmission.RecursiveKey.SetInt64(5)
+	getUser.Nick = "Michael"
 
 	Users.UpsertUser(getUser)
 
 	getUser2, _ := Users.GetUser(testUser.Id)
 
-	if getUser2.Transmission.RecursiveKey.Int64() != 5 {
-		t.Errorf("UpsertUser: User did not save!")
+	if getUser2.Transmission.RecursiveKey.Int64() != 5 || getUser2.
+		Nick != "Michael" {
+		t.Errorf("UpsertUser: User did not save! Got: %v, %v; expected: %v, " +
+			"%v", getUser2.Transmission.RecursiveKey.Int64(), getUser2.Nick,
+				5, "Michael")
 	}
 
 	Users.DeleteUser(testUser.Id)

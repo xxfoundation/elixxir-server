@@ -136,6 +136,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
 		Set("address = EXCLUDED.address," +
+			"nick = EXCLUDED.nick," +
 			"transmission_base_key = EXCLUDED.transmission_base_key," +
 			"transmission_recursive_key = EXCLUDED.transmission_recursive_key," +
 			"reception_base_key = EXCLUDED.reception_base_key," +
@@ -144,8 +145,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.FATAL.Printf("Unable to upsert user %d!", user.Id)
-		panic(err)
+		jww.FATAL.Panicf("Unable to upsert user %d! %s", user.Id, err.Error())
 	}
 }
 
@@ -153,8 +153,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 func (m *UserDatabase) CountUsers() int {
 	count, err := m.db.Model(&UserDB{}).Count()
 	if err != nil {
-		jww.FATAL.Println("Unable to count users!")
-		panic(err)
+		jww.FATAL.Panicf("Unable to count users! %s", err.Error())
 	}
 	return count
 }
@@ -167,8 +166,7 @@ func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
 	err := m.db.Model(&model).Column("id", "nick").Select(&ids, &nicks)
 
 	if err != nil {
-		jww.FATAL.Println("Unable to get contact list!")
-		panic(err)
+		jww.FATAL.Panicf("Unable to get contact list! %s", err.Error())
 	}
 
 	return ids, nicks

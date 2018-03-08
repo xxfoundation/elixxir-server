@@ -9,6 +9,7 @@ package globals
 import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"github.com/spf13/jwalterweatherman"
 )
 
 // Globally initiated UserRegistry
@@ -78,6 +79,7 @@ func (u *User) DeepCopy() *User {
 
 	nu.Id = u.Id
 	nu.Address = u.Address
+	nu.Nick = u.Nick
 
 	nu.Transmission = *u.Transmission.DeepCopy()
 
@@ -93,7 +95,7 @@ func (u *User) DeepCopy() *User {
 // NewUser creates a new User object with default fields and given address.
 func (m *UserMap) NewUser(address string) *User {
 	idCounter++
-	return &User{Id: idCounter - 1, Address: address,
+	return &User{Id: idCounter - 1, Address: address, Nick: "",
 		// TODO: each user should have unique base and secret keys
 		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
 			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
@@ -135,6 +137,7 @@ func (m *UserMap) CountUsers() int {
 }
 
 func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
+
 	userCount := m.CountUsers()
 
 	nicks = make([]string, 0, userCount)
@@ -143,6 +146,8 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 		if user != nil {
 			nicks = append(nicks, user.Nick)
 			ids = append(ids, user.Id)
+		} else {
+			jwalterweatherman.FATAL.Panicf("A user was nil.")
 		}
 	}
 

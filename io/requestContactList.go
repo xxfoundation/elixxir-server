@@ -12,7 +12,7 @@ import (
 )
 
 func (s ServerImpl) RequestContactList(inputMsg *pb.
-	ContactPoll) *pb.ContactMessage {
+ContactPoll) *pb.ContactMessage {
 	userCount := globals.Users.CountUsers()
 
 	contactList := pb.ContactMessage{
@@ -22,8 +22,8 @@ func (s ServerImpl) RequestContactList(inputMsg *pb.
 	idList, nickList := globals.Users.GetNickList()
 
 	for i := 0; i < userCount; i++ {
-		contactList.Contacts[i].Nick = nickList[i]
-		contactList.Contacts[i].UserID = idList[i]
+		contactList.Contacts[i] = &pb.Contact{Nick: nickList[i],
+			UserID: idList[i]}
 	}
 
 	return &contactList
