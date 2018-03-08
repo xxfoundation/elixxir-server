@@ -14,6 +14,7 @@ import (
 	"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	jww "github.com/spf13/jwalterweatherman"
+	"fmt"
 )
 
 //Denotes what kind of key will be
@@ -98,10 +99,14 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
 	if keys.keySelection == TRANSMISSION {
 
+		fmt.Println("base key: " + user.Transmission.BaseKey.Text(10))
+
 		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
 			user.Transmission.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
 	} else if keys.keySelection  == RECEPTION {
+
+
 
 		forward.GenerateSharedKey(group, user.Reception.BaseKey,
 			user.Reception.RecursiveKey, in.CurrentKey,

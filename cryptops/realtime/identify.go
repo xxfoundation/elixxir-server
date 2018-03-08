@@ -64,6 +64,8 @@ func (i Identify) Build(g *cyclic.Group,
 func (i Identify) Run(g *cyclic.Group,
 	in, out *RealtimeSlot, keys *KeysIdentify) services.Slot {
 
+
+
 	// Eq 5.1
 	// Multiply EncryptedRecipientID by the precomputed value
 	g.Mul(in.EncryptedRecipient, keys.RecipientPrecomputation,
@@ -73,6 +75,7 @@ func (i Identify) Run(g *cyclic.Group,
 	// so that the server can send the message to an untainted recipient
 	recpbytes := out.EncryptedRecipient.LeftpadBytes(512)
 	out.EncryptedRecipient.SetBytes(recpbytes[503:512])
+
 
 	return out
 }

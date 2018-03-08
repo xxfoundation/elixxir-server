@@ -16,7 +16,7 @@ import (
 var Users = newUserRegistry()
 
 // Number of hard-coded users to create
-var NUM_DEMO_USERS = int(8)
+var NUM_DEMO_USERS = int(10)
 
 // Globally initiated User UID counter
 var idCounter = uint64(1)

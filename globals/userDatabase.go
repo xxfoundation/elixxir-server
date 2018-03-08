@@ -13,7 +13,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
-	"crypto/sha256"
 	"errors"
 )
 
@@ -69,38 +68,9 @@ func newUserRegistry() UserRegistry {
 		// Generate hard-coded users.
 		// TODO fix this so they are created in database too
 		uc := make(map[uint64]*User)
-		ul := make(map[uint64]uint64)
 
-		// Deterministically create users for demo
-		for i := 1; i<= NUM_DEMO_USERS; i++ {
-			h := sha256.New()
-			t := new(User)
-			// Generate user parameters
-			t.UID = uint64(i)
-			h.Write([]byte(string(20000+i)))
-			t.Transmission.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
-			h.Write([]byte(string(30000+i)))
-			t.Transmission.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
-			h.Write([]byte(string(40000+i)))
-			t.Reception.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
-			h.Write([]byte(string(50000+i)))
-			t.Reception.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
-			t.PublicKey = cyclic.NewMaxInt()
-			t.MessageBuffer = make(chan *pb.CmixMessage, 100)
-			uc[t.UID] = t
-			ul[t.UID+10000] = t.UID
-		}
-		uc[1].Nick = "David"
-		uc[2].Nick = "Jim"
-		uc[3].Nick = "Ben"
-		uc[4].Nick = "Rick"
-		uc[5].Nick = "Spencer"
-		uc[6].Nick = "Jake"
-		uc[7].Nick = "Mario"
-		uc[8].Nick = "Will"
 		return UserRegistry(&UserMap{
 			userCollection: uc,
-			userLookup: ul,
 		})
 	} else {
 		// Return the database-backed UserRegistry interface
@@ -115,8 +85,15 @@ func newUserRegistry() UserRegistry {
 
 // TODO: remove or improve this
 func PopulateDummyUsers() {
-	for i := 0; i < 5; i++ {
-		Users.UpsertUser(Users.NewUser(""))
+
+	nickList := []string{ "David", "Jim", "Ben", "Rick", "Spencer", "Jake",
+		"Mario", "Will", "Sydney", "Jon0"}
+
+	// Deterministically create users for demo
+	for i := 1; i<= NUM_DEMO_USERS; i++ {
+		u := Users.NewUser("")
+		u.Nick = nickList[i-1]
+		Users.UpsertUser(u)
 	}
 }
 
