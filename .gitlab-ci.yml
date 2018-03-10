@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/privategrity
   REPO_NAME: server
-  DOCKER_IMAGE: carback1/golang-glide:1.9-84952ffd3be2
+  DOCKER_IMAGE: carback1/golang-glide:1.9-3b2621654f38
 
 before_script:
   ##
@@ -73,17 +73,19 @@ test:
   stage: test
   image: $DOCKER_IMAGE
   script:
-    - mkdir -p benchmarks
-    - go test -cover -v ./...
-    - go test -bench=BenchmarkPrecomp -cpuprofile=benchmarks/precomp.cpu -memprofile=benchmarks/precomp.mem -short
-    - go tool pprof -png server.test benchmarks/precomp.cpu > benchmarks/precomp-cpu.png
-    - go tool pprof -png server.test benchmarks/precomp.mem > benchmarks/precomp-mem.png
-    - go test -bench=BenchmarkRealtime -cpuprofile=benchmarks/realtime.cpu -memprofile=benchmarks/realtime.mem -short
-    - go tool pprof -png server.test benchmarks/realtime.cpu > benchmarks/realtime-cpu.png
-    - go tool pprof -png server.test benchmarks/realtime.mem > benchmarks/realtime-mem.png
+    - mkdir -p testdata
+    - goverage -coverprofile=testdata/coverage.out -v ./... | grep -v "no packages being tested depend on"
+    - go tool cover -func=testdata/coverage.out
+    - go tool cover -html=testdata/coverage.out -o testdata/coverage.html
+    - go test -bench=BenchmarkPrecomp -cpuprofile=testdata/precomp.cpu -memprofile=testdata/precomp.mem -short
+    - go tool pprof -png server.test testdata/precomp.cpu > testdata/precomp-cpu.png
+    - go tool pprof -png server.test testdata/precomp.mem > testdata/precomp-mem.png
+    - go test -bench=BenchmarkRealtime -cpuprofile=testdata/realtime.cpu -memprofile=testdata/realtime.mem -short
+    - go tool pprof -png server.test testdata/realtime.cpu > testdata/realtime-cpu.png
+    - go tool pprof -png server.test testdata/realtime.mem > testdata/realtime-mem.png
   artifacts:
     paths:
-      - benchmarks/
+      - testdata/
 
 build:
   stage: build
