@@ -481,7 +481,7 @@ func RoundGeneratorBenchmark(nodeCount int, batchSize uint64, b *testing.B) {
 func Precomp(nodeCount int, batchSize uint64, b *testing.B) {
 	if testing.Short() {
 		cnt := uint64(nodeCount) * batchSize
-		if cnt > 256 {
+		if cnt > 32 {
 			b.Skip("Skipping test due to short mode flag")
 		}
 	}
@@ -584,7 +584,7 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 	if testing.Short() {
 		cnt := uint64(nodeCount) * batchSize
-		if cnt > 128 {
+		if cnt > 16 {
 			b.Skip("Skipping test due to short mode flag")
 		}
 	}
