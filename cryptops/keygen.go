@@ -14,7 +14,6 @@ import (
 	"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	jww "github.com/spf13/jwalterweatherman"
-	"fmt"
 )
 
 //Denotes what kind of key will be
