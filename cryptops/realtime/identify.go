@@ -14,7 +14,6 @@ import (
 	"gitlab.com/privategrity/server/services"
 	"gitlab.com/privategrity/crypto/verification"
 	jww "github.com/spf13/jwalterweatherman"
-	"fmt"
 )
 
 const (
