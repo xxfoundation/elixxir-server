@@ -86,13 +86,19 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
 
-	user, _ := globals.Users.GetUser(in.CurrentID)
-
-	if user == nil {
-		jww.FATAL.Panicf("GenerateClientKey Run: Got nil user from user ID" +
-			" %v", in.CurrentID)
+	if in.CurrentID == globals.NIL_USER{
+		jww.ERROR.Printf("GenerateClientKey Run: Got NIL_USER")
+		in.CurrentKey.SetInt64(int64(1))
+		return in
 	}
 
+
+	user, _ := globals.Users.GetUser(in.CurrentID)
+
+	if user == nil{
+		jww.ERROR.Panic("GenerateClientKey Run: Got lookup" +
+			" failure on %v", in.CurrentID)
+	}
 
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike
