@@ -103,15 +103,10 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// the correct shared key for the key type into `in`'s key. Unlike
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
 	if keys.keySelection == TRANSMISSION {
-
-		fmt.Println("base key: " + user.Transmission.BaseKey.Text(10))
-
 		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
 			user.Transmission.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
 	} else if keys.keySelection  == RECEPTION {
-
-
 
 		forward.GenerateSharedKey(group, user.Reception.BaseKey,
 			user.Reception.RecursiveKey, in.CurrentKey,
