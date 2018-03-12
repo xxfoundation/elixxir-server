@@ -30,8 +30,10 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 	msgCount := uint64(0)
 	msgList := make([]*realtime.RealtimeSlot, batchSize)
 	for msg := range MessageCh {
-		jww.DEBUG.Printf("Adding message (%d/%d) from %d\n", msgCount+1,
-			batchSize, msg.CurrentID)
+		jww.DEBUG.Printf("Adding message ("+
+			"%d/%d) from SenderID %d to Recipient %s...",
+			msgCount+1, batchSize, msg.CurrentID,
+			msg.EncryptedRecipient.Text(10))
 		msg.Slot = msgCount
 		msgList[msgCount] = msg
 		msgCount = msgCount + 1
@@ -49,7 +51,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 
 // RunPrecomputation controls when precomputation is kicked off. It monitors
 // the length of the RoundCh and creates new rounds and kicks of precomputation
-// whenever it falls below a threshhold.
+// whenever it falls below a threshold.
 func RunPrecomputation(RoundCh chan *string) {
 	for {
 		if len(RoundCh) < 10 {
