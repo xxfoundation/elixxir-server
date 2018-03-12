@@ -95,7 +95,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	user, _ := globals.Users.GetUser(in.CurrentID)
 
 	if user == nil{
-		jww.ERROR.Panic("GenerateClientKey Run: Got lookup" +
+		jww.ERROR.Panicf("GenerateClientKey Run: Got lookup" +
 			" failure on %v", in.CurrentID)
 	}
 
