@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/jwalterweatherman"
 )
 
+const NIL_USER uint64 = 0
+
 // Globally initiated UserRegistry
 var Users = newUserRegistry()
 
