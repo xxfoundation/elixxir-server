@@ -63,7 +63,7 @@ func init() {
 		"config file (default is $HOME/.privategrity/server.yaml)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
-	rootCmd.Flags().BoolVarP(&noRatchet, "noratchet", "nr", false,
+	rootCmd.Flags().BoolVar(&noRatchet, "noratchet", false,
 		"Avoid ratcheting the keys for forward secrecy")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
