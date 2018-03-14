@@ -12,7 +12,7 @@ import (
 )
 
 func (s ServerImpl) RequestContactList(inputMsg *pb.
-ContactPoll) *pb.ContactMessage {
+	ContactPoll) *pb.ContactMessage {
 	userCount := globals.Users.CountUsers()
 
 	contactList := pb.ContactMessage{

@@ -180,7 +180,7 @@ func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
 
 	ids = make([]uint64, len(model))
 	nicks = make([]string, len(model))
-	for i, user := range(model) {
+	for i, user := range model {
 		ids[i] = user.Id
 		nicks[i] = user.Nick
 	}

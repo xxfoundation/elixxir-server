@@ -7,10 +7,10 @@
 package io
 
 import (
-	"testing"
-	"gitlab.com/privategrity/server/globals"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/mixclient"
+	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/server/globals"
+	"testing"
 )
 
 func TestRequestContactList(t *testing.T) {

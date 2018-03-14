@@ -23,9 +23,9 @@ func (h RealtimePeelHandler) Handler(
 	// Retrieve the EncryptedMessage
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*realtime.RealtimeSlot)
-		if slot.CurrentID == globals.NIL_USER{
+		if slot.CurrentID == globals.NIL_USER {
 			jww.ERROR.Printf("Message to Nil User not queued")
-		}else{
+		} else {
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
 				slot.Message.Bytes())
 			user, _ := globals.Users.GetUser(slot.CurrentID)
@@ -33,7 +33,7 @@ func (h RealtimePeelHandler) Handler(
 				SenderID:       uint64(0), // Currently zero this field
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				RecipientID:    make([]byte, 0), // Currently zero this field
-		}
+			}
 
 		}
 	}

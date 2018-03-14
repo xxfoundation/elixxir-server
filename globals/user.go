@@ -7,9 +7,9 @@
 package globals
 
 import (
+	"github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
-	"github.com/spf13/jwalterweatherman"
 )
 
 const NIL_USER uint64 = 0
@@ -38,7 +38,7 @@ type UserRegistry interface {
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[uint64]*User
-	userLookup map[uint64]uint64
+	userLookup     map[uint64]uint64
 }
 
 type ForwardKey struct {
@@ -66,7 +66,7 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 // Struct representing a User in the system
 type User struct {
 	UID     uint64
-	HUID	uint64
+	HUID    uint64
 	Address string
 	Nick    string
 

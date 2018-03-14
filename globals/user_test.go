@@ -35,22 +35,22 @@ func TestUserRegistry(t *testing.T) {
 
 	if getUser2.Transmission.RecursiveKey.Int64() != 5 || getUser2.
 		Nick != "Michael" {
-		t.Errorf("UpsertUser: User did not save! Got: %v, %v; expected: %v, " +
+		t.Errorf("UpsertUser: User did not save! Got: %v, %v; expected: %v, "+
 			"%v", getUser2.Transmission.RecursiveKey.Int64(), getUser2.Nick,
-				5, "Michael")
+			5, "Michael")
 	}
 
 	Users.DeleteUser(testUser.UID)
 
 	// TODO Fix these tests to work with the hard-coded users
-/*
-	if _, userExists := Users.GetUser(testUser.UID); userExists {
-		t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
-	}
+	/*
+		if _, userExists := Users.GetUser(testUser.UID); userExists {
+			t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
+		}
 
-	if count := Users.CountUsers(); count != numUsers {
-		t.Errorf("DeleteUser: Excepted empty userRegistry after user"+
-			" deletion! Got %d expected %d", count, numUsers)
-	}
-*/
+		if count := Users.CountUsers(); count != numUsers {
+			t.Errorf("DeleteUser: Excepted empty userRegistry after user"+
+				" deletion! Got %d expected %d", count, numUsers)
+		}
+	*/
 }

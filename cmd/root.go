@@ -14,9 +14,9 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/privategrity/crypto/forward"
 	"gitlab.com/privategrity/server/node"
 	"math"
-	"gitlab.com/privategrity/crypto/forward"
 )
 
 var cfgFile string

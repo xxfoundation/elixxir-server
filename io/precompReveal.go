@@ -7,8 +7,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/clusterclient"
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -51,8 +51,8 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to SlotStripIn
 		var slot services.Slot = &precomputation.PrecomputationSlot{
-			Slot:              out.Slot,
-			MessagePrecomputation:     cyclic.NewIntFromBytes(
+			Slot: out.Slot,
+			MessagePrecomputation: cyclic.NewIntFromBytes(
 				out.PartialMessageCypherText),
 			RecipientIDPrecomputation: cyclic.NewIntFromBytes(
 				out.PartialRecipientCypherText),

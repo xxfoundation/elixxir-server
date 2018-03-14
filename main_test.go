@@ -6,15 +6,15 @@
 package main
 
 import (
+	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/server/benchmark"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	"gitlab.com/privategrity/server/benchmark"
-	"testing"
 	"strconv"
-	"fmt"
+	"testing"
 )
 
 // ComputeSingleNodePrecomputation is a helper func to compute what

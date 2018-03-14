@@ -86,9 +86,6 @@ func (d Decrypt) Run(g *cyclic.Group, in *RealtimeSlot,
 	// Create Temporary variable
 	tmp := cyclic.NewMaxInt()
 
-
-
-
 	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key together
 	// with with Transmission key before modulo multiplying into the
 	// EncryptedMessage

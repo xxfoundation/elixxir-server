@@ -8,24 +8,23 @@
 package cryptops
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/crypto/forward"
+	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	"gitlab.com/privategrity/server/cryptops/realtime"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 //Denotes what kind of key will be
 type KeyType uint8
 
 const (
-	TRANSMISSION 	KeyType = 1
-	RECEPTION    	KeyType = 2
-	RECEIPT			KeyType = 3
-	RETURN       	KeyType = 4
+	TRANSMISSION KeyType = 1
+	RECEPTION    KeyType = 2
+	RECEIPT      KeyType = 3
+	RETURN       KeyType = 4
 )
-
 
 // Generate client key creates shared keys for the client's transmission and
 // reception and creates the next recursive key for that shared key using the
@@ -36,8 +35,8 @@ type GenerateClientKey struct{}
 // This byte slice should have lots of capacity to hold the long key for shared
 // key generation
 type KeysGenerateClientKey struct {
-	sharedKeyStorage 	[]byte
-	keySelection		KeyType
+	sharedKeyStorage []byte
+	keySelection     KeyType
 }
 
 // Build() pre-allocates the memory and structs required to Run() this cryptop.
@@ -49,7 +48,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 	// Get round from the empty interface
 	faceLst := face.([]interface{})
 	round := faceLst[0].(*globals.Round)
-	keySelection :=  faceLst[1].(KeyType)
+	keySelection := faceLst[1].(KeyType)
 
 	// Let's have 65536-bit long keys for now. We can increase or reduce
 	// size as needed after profiling, or perhaps look for a way to reuse
@@ -57,8 +56,8 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 	keys := make([]services.NodeKeys, round.BatchSize)
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysGenerateClientKey{
-		 make([]byte, 0, 8192),
-		 keySelection,
+			make([]byte, 0, 8192),
+			keySelection,
 		}
 		keys[i] = keySlc
 	}
@@ -85,17 +84,16 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
 
-	if in.CurrentID == globals.NIL_USER{
+	if in.CurrentID == globals.NIL_USER {
 		jww.ERROR.Printf("GenerateClientKey Run: Got NIL_USER")
 		in.CurrentKey.SetInt64(int64(1))
 		return in
 	}
 
-
 	user, _ := globals.Users.GetUser(in.CurrentID)
 
-	if user == nil{
-		jww.ERROR.Panicf("GenerateClientKey Run: Got lookup" +
+	if user == nil {
+		jww.ERROR.Panicf("GenerateClientKey Run: Got lookup"+
 			" failure on %v", in.CurrentID)
 	}
 
@@ -106,17 +104,16 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
 			user.Transmission.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
-	} else if keys.keySelection  == RECEPTION {
+	} else if keys.keySelection == RECEPTION {
 
 		forward.GenerateSharedKey(group, user.Reception.BaseKey,
 			user.Reception.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
 	} else {
 		jww.FATAL.Panicf(
-			"Key Generation Failed: Invalid Key Selection.\n" +
-			"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
+			"Key Generation Failed: Invalid Key Selection.\n"+
+				"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
 	}
-
 
 	globals.Users.UpsertUser(user)
 

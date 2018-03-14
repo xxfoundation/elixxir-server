@@ -1,9 +1,9 @@
 package globals
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"math"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 var nodeId = uint64(math.MaxUint64)

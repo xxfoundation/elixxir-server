@@ -7,10 +7,10 @@
 package io
 
 import (
-	"testing"
-	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/comms/mixclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/server/globals"
+	"testing"
 )
 
 func TestSetNick(t *testing.T) {
@@ -30,7 +30,7 @@ func TestSetNick(t *testing.T) {
 	expectedNick := "Jake"
 	user, ok := globals.Users.GetUser(user.UID)
 	if !ok {
-		t.Errorf("User with id %v mysteriously disappeared from the user" +
+		t.Errorf("User with id %v mysteriously disappeared from the user"+
 			" registry", user.UID)
 	}
 	if user.Nick != expectedNick {

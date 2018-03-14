@@ -89,7 +89,7 @@ func TestDispatchCryptop(t *testing.T) {
 	dc1 := DispatchCryptop(&grp, Test{}, nil, nil, round)
 	dc2 := DispatchCryptop(&grp, Test{}, dc1.OutChannel, nil, round)
 
-	if dc1.IsAlive() && dc2.IsAlive(){
+	if dc1.IsAlive() && dc2.IsAlive() {
 		pass++
 	} else {
 		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
@@ -102,15 +102,15 @@ func TestDispatchCryptop(t *testing.T) {
 		rtn := (*trn).(*SlotTest)
 
 		if rtn.A.Cmp(result[i]) != 0 {
-			t.Errorf("Test of Dispatcher failed at index: %v Expected: %v;" +
+			t.Errorf("Test of Dispatcher failed at index: %v Expected: %v;"+
 				" Actual: %v", i, result[i].Text(10), rtn.A.Text(10))
 		} else {
 			pass++
 		}
 
 		if round[i].Int64() != 15 {
-			t.Errorf("Test of Dispatcher pass by reference failed at index" +
-				": %v Expected: %v;" +
+			t.Errorf("Test of Dispatcher pass by reference failed at index"+
+				": %v Expected: %v;"+
 				" Actual: %v", i, 15, round[i].Text(10))
 		} else {
 			pass++
