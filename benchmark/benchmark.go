@@ -18,7 +18,6 @@ import (
 
 	"fmt"
 	"strconv"
-	"testing"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -97,15 +96,6 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 	// }
 
 	return rounds
-}
-
-// Convert Decrypt output slot to Permute input slot
-func DecryptPermuteTranslate(decrypt, permute chan *services.Slot) {
-	for decryptSlot := range decrypt {
-		is := (*decryptSlot).(*precomputation.PrecomputationSlot)
-		sp := services.Slot(is)
-		permute <- &sp
-	}
 }
 
 // Convert Permute output slot to Encrypt input slot
@@ -458,43 +448,6 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 
 }
 
-// Tempate function for running the variations of GenerateRounds
-func RoundGeneratorBenchmark(nodeCount int, batchSize uint64, b *testing.B) {
-	prime := cyclic.NewInt(0)
-	prime.SetString(PRIME, 16)
-
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		GenerateRounds(nodeCount, batchSize, &grp)
-	}
-}
-
-// Template function for running precomputation
-func Precomp(nodeCount int, batchSize uint64, b *testing.B) {
-	if testing.Short() {
-		cnt := uint64(nodeCount) * batchSize
-		if cnt > 32 {
-			b.Skip("Skipping test due to short mode flag")
-		}
-	}
-	prime := cyclic.NewInt(0)
-	prime.SetString(PRIME, 16)
-
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
-	rounds := GenerateRounds(nodeCount, batchSize, &grp)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
-	}
-}
-
 func CopyRounds(nodeCount int, r []*globals.Round) []*globals.Round {
 	tmp := make([]*globals.Round, nodeCount)
 	for i := 0; i < nodeCount; i++ {
@@ -574,44 +527,6 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 	}
 
 	return inputMsgs, outputMsgs
-}
-
-// Benchmarks for realtime
-func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
-	if testing.Short() {
-		cnt := uint64(nodeCount) * batchSize
-		if cnt > 16 {
-			b.Skip("Skipping test due to short mode flag")
-		}
-	}
-	prime := cyclic.NewInt(0)
-	prime.SetString(PRIME, 16)
-
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
-
-	rounds := GenerateRounds(nodeCount, batchSize, &grp)
-
-	// Rewrite permutation pattern
-	for i := 0; i < nodeCount; i++ {
-		for j := uint64(0); j < batchSize; j++ {
-			// Shift by 1
-			newj := (j + 1) % batchSize
-			rounds[i].Permutations[j] = newj
-		}
-	}
-
-	MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		tmpRounds := CopyRounds(nodeCount, rounds)
-		inputMsgs, outputMsgs := GenerateIOMessages(nodeCount, batchSize, tmpRounds)
-
-		MultiNodeRealtime(nodeCount, batchSize, &grp, tmpRounds, inputMsgs,
-			outputMsgs)
-	}
 }
 
 // Template function for running precomputation
