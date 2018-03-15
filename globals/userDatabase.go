@@ -98,12 +98,12 @@ func PopulateDummyUsers() {
 func (m *UserDatabase) NewUser(address string) *User {
 	newUser := UserRegistry(&UserMap{}).NewUser(address)
 	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[newUser.UID]; exists {
+	if userChannel, exists := m.userChannels[newUser.ID]; exists {
 		// Add the old channel to the new User object if channel already exists
 		newUser.MessageBuffer = userChannel
 	} else {
 		// Otherwise add the new channel to the userChannels map
-		m.userChannels[newUser.UID] = newUser.MessageBuffer
+		m.userChannels[newUser.ID] = newUser.MessageBuffer
 	}
 	return newUser
 }
@@ -156,7 +156,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.FATAL.Panicf("Unable to upsert user %d! %s", user.UID, err.Error())
+		jww.FATAL.Panicf("Unable to upsert user %d! %s", user.ID, err.Error())
 	}
 }
 
@@ -239,7 +239,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
-	newUser.Id = user.UID
+	newUser.Id = user.ID
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
@@ -257,7 +257,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 
 	newUser = new(User)
-	newUser.UID = user.Id
+	newUser.ID = user.Id
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.Transmission = ForwardKey{
