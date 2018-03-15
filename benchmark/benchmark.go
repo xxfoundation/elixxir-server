@@ -98,15 +98,6 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 	return rounds
 }
 
-// Convert Decrypt output slot to Permute input slot
-func DecryptPermuteTranslate(decrypt, permute chan *services.Slot) {
-	for decryptSlot := range decrypt {
-		is := (*decryptSlot).(*precomputation.PrecomputationSlot)
-		sp := services.Slot(is)
-		permute <- &sp
-	}
-}
-
 // Convert Permute output slot to Encrypt input slot
 func PermuteEncryptTranslate(permute, encrypt chan *services.Slot,
 	round *globals.Round) {
