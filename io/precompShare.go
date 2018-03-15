@@ -46,7 +46,7 @@ func (s ServerImpl) PrecompShareCompare(*pb.PrecompShareCompareMessage) {}
 func (s ServerImpl) PrecompShareConfirm(*pb.PrecompShareConfirmMessage) {}
 
 // TODO finish implementing this stubbed-out method
-func (s ServerImpl) PrecompShareInit(message *pb.PrecompShareInitMessage) {}
+func (s ServerImpl) PrecompShareInit(*pb.PrecompShareInitMessage) {}
 
 // Transition to PrecompDecrypt phase on the last node
 func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
