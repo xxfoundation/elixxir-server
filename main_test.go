@@ -981,3 +981,10 @@ func TestRealPrimeE2E(t *testing.T) {
 
 	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
 }
+
+// Call the main benchmark tests so we get coverage for it
+func TestBMGenerateRounds_5_1024(b *testing.B) {
+	benchmark.RoundGeneratorBenchmark(5, 1024, b)
+}
+func TestBMPrecomp_1_1(b *testing.B)    { benchmark.Precomp(1, 1, b) }
+func TestBMRealtime_1_1(b *testing.B)    { benchmark.Realtime(1, 1, b) }
