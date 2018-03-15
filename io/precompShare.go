@@ -39,6 +39,15 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 	}
 }
 
+// TODO finish implementing this stubbed-out method
+func (s ServerImpl) PrecompShareCompare(*pb.PrecompShareCompareMessage) {}
+
+// TODO finish implementing this stubbed-out method
+func (s ServerImpl) PrecompShareConfirm(*pb.PrecompShareConfirmMessage) {}
+
+// TODO finish implementing this stubbed-out method
+func (s ServerImpl) PrecompShareInit(message *pb.PrecompShareInitMessage) {}
+
 // Transition to PrecompDecrypt phase on the last node
 func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	// Force batchSize to be the same as the round
