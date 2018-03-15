@@ -10,6 +10,8 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"github.com/spf13/jwalterweatherman"
+	"crypto/sha256"
+	"fmt"
 )
 
 // Globally initiated UserRegistry
@@ -101,7 +103,7 @@ func (u *User) DeepCopy() *User {
 // NewUser creates a new User object with default fields and given address.
 func (m *UserMap) NewUser(address string) *User {
 	idCounter++
-	return &User{UID: idCounter - 1, Address: address, Nick: "",
+	/*return &User{UID: idCounter - 1, Address: address, Nick: "",
 		// TODO: each user should have unique base and secret keys
 		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
 			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
@@ -113,7 +115,29 @@ func (m *UserMap) NewUser(address string) *User {
 				"979e574166ef0cd06d34e3260fe09512b69af6a414cf481770600d9c7447837b", 16)},
 		PublicKey:     cyclic.NewMaxInt(),
 		MessageBuffer: make(chan *pb.CmixMessage, 100),
-	}
+	}*/
+	usr := new(User)
+	h := sha256.New()
+	i := idCounter -1
+	trans := new(ForwardKey)
+	recept := new(ForwardKey)
+	// Generate user parameters
+	usr.UID = uint64(i)
+	h.Write([]byte(string(20000 + i)))
+	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h.Write([]byte(string(30000 + i)))
+	trans.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h.Write([]byte(string(40000 + i)))
+	recept.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h.Write([]byte(string(50000 + i)))
+	recept.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	usr.Reception = *recept
+	usr.Transmission = *trans
+	usr.PublicKey = cyclic.NewMaxInt()
+	usr.MessageBuffer = make(chan *pb.CmixMessage, 100)
+	fmt.Printf("Forward Keys: %v\n%v", usr.Transmission.RecursiveKey.Text(16),
+		usr.Transmission.BaseKey.Text(16))
+	return usr
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
