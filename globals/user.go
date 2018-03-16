@@ -46,6 +46,8 @@ type ForwardKey struct {
 	RecursiveKey *cyclic.Int
 }
 
+// DeepCopy creates a deep copy of a ForwardKey struct and returns a pointer
+// to the new copy
 func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 	if fk == nil {
@@ -72,7 +74,7 @@ type User struct {
 	MessageBuffer chan *pb.CmixMessage
 }
 
-// Deep Copy creates a deep copy of a user and returns a pointer to the new copy
+// DeepCopy creates a deep copy of a user and returns a pointer to the new copy
 func (u *User) DeepCopy() *User {
 	if u == nil {
 		return nil
