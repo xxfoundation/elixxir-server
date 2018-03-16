@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"strconv"
 	"time"
+	"math"
 
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
@@ -109,11 +110,14 @@ func StartServer(serverIndex int, batchSize uint64) {
 		"FFFFFFFFFFFFFFFF"
 	prime := cyclic.NewInt(0)
 	prime.SetString(primeString, 16)
-	one := cyclic.NewInt(1)
-	primeMinusOne := cyclic.NewInt(0)
-	primeMinusOne.Sub(prime, one)
-	rng := cyclic.NewRandom(cyclic.NewInt(2), primeMinusOne)
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4), rng)
+	// one := cyclic.NewInt(1)
+	rngmax := cyclic.NewIntFromUInt(math.MaxUint64)
+	rngmax.Mul(rngmax, cyclic.NewInt(1024))
+	rngmax.Mul(rngmax, cyclic.NewInt(1024))
+	rngmax.Mul(rngmax, cyclic.NewInt(1024))
+	rngmax.Mul(rngmax, cyclic.NewInt(1024))
+	rng := cyclic.NewRandom(cyclic.NewInt(0), rngmax)
+	grp := cyclic.NewGroup(prime, cyclic.NewInt(2), cyclic.NewInt(4), rng)
 	globals.Grp = &grp
 
 	// Start mix servers on localServer
