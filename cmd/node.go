@@ -5,14 +5,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Package node contains the initialization and main loop of a cMix server.
-package node
+package cmd
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"math"
 	"strconv"
 	"time"
-	"math"
 
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
