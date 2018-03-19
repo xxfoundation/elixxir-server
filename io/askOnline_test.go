@@ -9,6 +9,7 @@ import (
 
 func TestVerifyServersOnline(t *testing.T) {
 
+	// This is the (static) IP of the last node
 	servers := []string{"13.56.70.255:11420"}
 
 	test := len(servers) + 1
@@ -35,5 +36,4 @@ func TestVerifyServersOnline(t *testing.T) {
 	}
 
 	println("AskOnline test", pass, "out of", test, "tests passed.")
-
 }

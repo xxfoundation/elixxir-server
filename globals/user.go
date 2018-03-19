@@ -30,7 +30,6 @@ type UserRegistry interface {
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
-	LookupUser(huid uint64) (uint64, bool)
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
@@ -45,6 +44,8 @@ type ForwardKey struct {
 	RecursiveKey *cyclic.Int
 }
 
+// DeepCopy creates a deep copy of a ForwardKey struct and returns a pointer
+// to the new copy
 func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 	if fk == nil {
@@ -78,7 +79,6 @@ func (u *User) DeepCopy() *User {
 	}
 	nu := new(User)
 	nu.ID = u.ID
-	nu.HUID = u.HUID
 	nu.Address = u.Address
 	nu.Nick = u.Nick
 	nu.Transmission = *u.Transmission.DeepCopy()
@@ -99,7 +99,6 @@ func (m *UserMap) NewUser(address string) *User {
 
 	// Generate user parameters
 	usr.ID = uint64(i)
-	usr.HUID = uint64(i + 10)
 	h.Write([]byte(string(20000 + i)))
 	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	h.Write([]byte(string(30000 + i)))
@@ -159,11 +158,4 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 	}
 
 	return ids, nicks
-}
-
-// LookupUser takes a hashed registration code and returns the corresponding
-// User ID if it is found.
-func (m *UserMap) LookupUser(huid uint64) (uint64, bool) {
-	uid, ok := m.userLookup[huid]
-	return uid, ok
 }

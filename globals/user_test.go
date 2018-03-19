@@ -7,7 +7,6 @@
 package globals
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -22,12 +21,11 @@ func TestUserRegistry(t *testing.T) {
 	for i := 1; i <= NUM_DEMO_USERS; i++ {
 		u := Users.NewUser("")
 		u.Nick = nickList[i-1]
-		//u.HUID = uint64(2*i)
 		Users.UpsertUser(u)
 	}
 
 	// TESTS Start here
-	test := 8
+	test := 7
 	pass := 0
 
 	numUsers := Users.CountUsers()
@@ -88,25 +86,6 @@ func TestUserRegistry(t *testing.T) {
 	} else {
 		pass++
 	}
-
-	// HERE IT STOPS WORKING!
-	_, ok := Users.LookupUser(usr3.HUID)
-
-	if !ok {
-		t.Errorf("Error Looking up user")
-	} else {
-		pass++
-	}
-
-	fmt.Println("Testing")
-	fmt.Println(usr3.HUID)
-
-	t_usr, _ := Users.GetUser(8)
-	fmt.Println(t_usr.HUID)
-
-	fmt.Println(Users.LookupUser(t_usr.HUID))
-
-	fmt.Println("Checkpoint")
 
 	println("User Test", pass, "out of", test, "tests passed.")
 }
