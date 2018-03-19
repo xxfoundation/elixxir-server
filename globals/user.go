@@ -7,12 +7,11 @@
 package globals
 
 import (
+	"crypto/sha256"
 	"github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 )
-
-const NIL_USER uint64 = 0
 
 // Globally initiated UserRegistry
 var Users = newUserRegistry()
@@ -20,7 +19,7 @@ var Users = newUserRegistry()
 // Number of hard-coded users to create
 var NUM_DEMO_USERS = int(10)
 
-// Globally initiated User UID counter
+// Globally initiated User ID counter
 var idCounter = uint64(1)
 
 // Interface for User Registry operations
@@ -51,71 +50,69 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 	if fk == nil {
 		return nil
 	}
-
 	nfk := ForwardKey{
 		cyclic.NewInt(0),
 		cyclic.NewInt(0),
 	}
-
 	nfk.BaseKey.Set(fk.BaseKey)
 	nfk.RecursiveKey.Set(fk.RecursiveKey)
-
 	return &nfk
 }
 
 // Struct representing a User in the system
 type User struct {
-	UID     uint64
-	HUID    uint64
-	Address string
-	Nick    string
-
-	Transmission ForwardKey
-	Reception    ForwardKey
-
+	ID            uint64
+	HUID          uint64
+	Address       string
+	Nick          string
+	Transmission  ForwardKey
+	Reception     ForwardKey
 	PublicKey     *cyclic.Int
 	MessageBuffer chan *pb.CmixMessage
 }
 
+// Deep Copy creates a deep copy of a user and returns a pointer to the new copy
 func (u *User) DeepCopy() *User {
-
 	if u == nil {
 		return nil
 	}
-
 	nu := new(User)
-
-	nu.UID = u.UID
+	nu.ID = u.ID
+	nu.HUID = u.HUID
 	nu.Address = u.Address
 	nu.Nick = u.Nick
-
 	nu.Transmission = *u.Transmission.DeepCopy()
-
 	nu.Reception = *u.Reception.DeepCopy()
-
 	nu.PublicKey = cyclic.NewInt(0).Set(u.PublicKey)
-
 	nu.MessageBuffer = u.MessageBuffer
-
 	return nu
 }
 
 // NewUser creates a new User object with default fields and given address.
 func (m *UserMap) NewUser(address string) *User {
 	idCounter++
-	return &User{UID: idCounter - 1, Address: address, Nick: "",
-		// TODO: each user should have unique base and secret keys
-		Transmission: ForwardKey{BaseKey: cyclic.NewIntFromString(
-			"c1248f42f8127999e07c657896a26b56fd9a499c6199e1265053132451128f52", 16),
-			RecursiveKey: cyclic.NewIntFromString(
-				"ad333f4ccea0ccf2afcab6c1b9aa2384e561aee970046e39b7f2a78c3942a251", 16)},
-		Reception: ForwardKey{BaseKey: cyclic.NewIntFromString(
-			"83120e7bfaba497f8e2c95457a28006f73ff4ec75d3ad91d27bf7ce8f04e772c", 16),
-			RecursiveKey: cyclic.NewIntFromString(
-				"979e574166ef0cd06d34e3260fe09512b69af6a414cf481770600d9c7447837b", 16)},
-		PublicKey:     cyclic.NewMaxInt(),
-		MessageBuffer: make(chan *pb.CmixMessage, 100),
-	}
+	usr := new(User)
+	h := sha256.New()
+	i := idCounter - 1
+	trans := new(ForwardKey)
+	recept := new(ForwardKey)
+
+	// Generate user parameters
+	usr.ID = uint64(i)
+	usr.HUID = uint64(i + 10)
+	h.Write([]byte(string(20000 + i)))
+	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h.Write([]byte(string(30000 + i)))
+	trans.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h.Write([]byte(string(40000 + i)))
+	recept.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h.Write([]byte(string(50000 + i)))
+	recept.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	usr.Reception = *recept
+	usr.Transmission = *trans
+	usr.PublicKey = cyclic.NewMaxInt()
+	usr.MessageBuffer = make(chan *pb.CmixMessage, 100)
+	return usr
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
@@ -136,7 +133,7 @@ func (m *UserMap) GetUser(id uint64) (*User, bool) {
 // UpsertUser inserts given user into userCollection or update the user if it
 // already exists (Upsert operation).
 func (m *UserMap) UpsertUser(user *User) {
-	m.userCollection[user.UID] = user
+	m.userCollection[user.ID] = user
 }
 
 // CountUsers returns a count of the users in userCollection.
@@ -144,6 +141,8 @@ func (m *UserMap) CountUsers() int {
 	return len(m.userCollection)
 }
 
+// GetNickList returns a slice of all the user IDs and a slice of the
+// corresponding nicknames of all the users in a user map.
 func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 
 	userCount := m.CountUsers()
@@ -153,7 +152,7 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 	for _, user := range m.userCollection {
 		if user != nil {
 			nicks = append(nicks, user.Nick)
-			ids = append(ids, user.UID)
+			ids = append(ids, user.ID)
 		} else {
 			jwalterweatherman.FATAL.Panicf("A user was nil.")
 		}
@@ -162,6 +161,9 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 	return ids, nicks
 }
 
+// LookupUser takes a hashed registration code and returns the corresponding
+// User ID if it is found.
 func (m *UserMap) LookupUser(huid uint64) (uint64, bool) {
-	return m.userLookup[huid], true
+	uid, ok := m.userLookup[huid]
+	return uid, ok
 }
