@@ -205,7 +205,7 @@ func createSchema(db *pg.DB) error {
 		})
 		if err != nil {
 			// Return the error if one comes up
-			jww.ERROR.Printf("Unable to create database schema! %v", err)
+			jww.WARN.Printf("Unable to create database schema! %v", err)
 			return err
 		}
 	}
