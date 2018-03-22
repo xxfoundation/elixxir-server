@@ -74,7 +74,7 @@ func RunPrecomputation(RoundCh chan *string) {
 func StartServer(serverIndex int, batchSize uint64) {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
-	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
+	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
 
 	// Set global batch size
 	globals.BatchSize = batchSize
