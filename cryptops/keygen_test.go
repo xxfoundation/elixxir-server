@@ -27,6 +27,9 @@ func TestGenerateClientKey(t *testing.T) {
 
 	round := globals.NewRound(batchSize)
 
+	globals.Users = globals.NewUserRegistry("cmix", "",
+		"cmix_server", "")
+
 	rng := cyclic.NewRandom(cyclic.NewInt(2), cyclic.NewInt(1000))
 
 	// This prime is 4096 bits
