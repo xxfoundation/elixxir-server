@@ -85,7 +85,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		viper.GetString("dbUsername"),
 		viper.GetString("dbPassword"),
 		viper.GetString("dbName"),
-		viper.GetString("dbAddress"),
+		viper.GetStringSlice("dbAddress")[serverIndex],
 	)
 	globals.PopulateDummyUsers()
 
