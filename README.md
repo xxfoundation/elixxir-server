@@ -26,7 +26,9 @@ batchSize: 1
 dbUsername: "cmix"
 dbPassword: ""
 dbName: "cmix_server"
-dbAddress: ""
+dbAddresses:
+    - ""
+    - ""
 servers:
 	- 0.0.0.0:11420
 	- 0.0.0.0:11421
