@@ -15,7 +15,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/privategrity/crypto/forward"
-	"gitlab.com/privategrity/server/globals"
 	"math"
 )
 
@@ -37,13 +36,6 @@ communications.`,
 		if noRatchet {
 			forward.SetRatchetStatus(false)
 		}
-		// Initialize the backend
-		globals.Users = globals.NewUserRegistry(
-			viper.GetString("dbUsername"),
-			viper.GetString("dbPassword"),
-			viper.GetString("dbName"),
-			viper.GetString("dbAddress"),
-		)
 		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
 	},
 }
