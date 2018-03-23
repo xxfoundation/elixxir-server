@@ -11,8 +11,6 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/comms/mixclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/server/globals"
-	"testing"
 )
 
 func TestSetNick(t *testing.T) {

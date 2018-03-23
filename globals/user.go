@@ -8,10 +8,9 @@ package globals
 
 import (
 	"crypto/sha256"
-	"github.com/spf13/jwalterweatherman"
+	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
-	"github.com/spf13/jwalterweatherman"
 )
 
 // Globally initiated UserRegistry
@@ -22,6 +21,9 @@ var NUM_DEMO_USERS = int(10)
 
 // Globally initiated User ID counter
 var idCounter = uint64(1)
+
+// Nil User
+var NIL_USER = uint64(0)
 
 // Interface for User Registry operations
 type UserRegistry interface {
@@ -155,7 +157,7 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 			nicks = append(nicks, user.Nick)
 			ids = append(ids, user.ID)
 		} else {
-			jwalterweatherman.FATAL.Panicf("A user was nil.")
+			jww.FATAL.Panicf("A user was nil.")
 		}
 	}
 
