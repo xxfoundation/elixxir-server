@@ -16,16 +16,19 @@ override the values set in the config file:
 
 ## Config File
 
-Create a directory named `.privategrity` in your home directory,
-move the sample config file into this directory and rename it to `server.yaml`
-
-Alternatively, here is the text of the config file if you'd like to
-make it yourself:
+Create a directory named `.privategrity` in your home directory with a file 
+called `server.yaml` as follows:
 
 ``` yaml
 logPath: "server.log"
 verbose: "false"
 batchSize: 1
+dbUsername: "cmix"
+dbPassword: ""
+dbName: "cmix_server"
+dbAddresses:
+    - ""
+    - ""
 servers:
 	- 0.0.0.0:11420
 	- 0.0.0.0:11421

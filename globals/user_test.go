@@ -13,6 +13,8 @@ import (
 // TestUserRegistry tests the constructors/getters/setters
 // surrounding the User struct and the UserRegistry interface
 func TestUserRegistry(t *testing.T) {
+	Users = NewUserRegistry("cmix", "",
+		"cmix_server", "")
 
 	// Loop from userDatabase.go to create and add users
 	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",

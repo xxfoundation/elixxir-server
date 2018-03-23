@@ -14,6 +14,8 @@ import (
 )
 
 func TestServerImpl_ClientPoll(t *testing.T) {
+	g.Users = g.NewUserRegistry("cmix", "",
+		"cmix_server", "")
 	user := g.Users.NewUser("test") // Create user
 	g.Users.UpsertUser(user)        // Insert user into registry
 

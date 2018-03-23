@@ -15,14 +15,6 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 )
 
-// Constants for the database connection
-const (
-	username = "cmix"
-	password = ""
-	database = "cmix_server"
-	address  = ""
-)
-
 // Struct implementing the UserRegistry Interface with an underlying DB
 type UserDatabase struct {
 	db           *pg.DB                          // Stored database connection
@@ -47,7 +39,8 @@ type UserDB struct {
 }
 
 // Initialize the UserRegistry interface with appropriate backend
-func newUserRegistry() UserRegistry {
+func NewUserRegistry(username, password,
+	database, address string) UserRegistry {
 	// Create the database connection
 	db := pg.Connect(&pg.Options{
 		User:     username,
@@ -205,7 +198,7 @@ func createSchema(db *pg.DB) error {
 		})
 		if err != nil {
 			// Return the error if one comes up
-			jww.ERROR.Printf("Unable to create database schema! %v", err)
+			jww.WARN.Printf("Unable to create database schema! %v", err)
 			return err
 		}
 	}

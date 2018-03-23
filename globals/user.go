@@ -14,7 +14,7 @@ import (
 )
 
 // Globally initiated UserRegistry
-var Users = newUserRegistry()
+var Users UserRegistry
 
 // Number of hard-coded users to create
 var NUM_DEMO_USERS = int(10)
