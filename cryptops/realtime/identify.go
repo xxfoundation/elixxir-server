@@ -11,44 +11,10 @@ package realtime
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/format"
 	"gitlab.com/privategrity/crypto/verification"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-)
-
-const (
-	TOTAL_LEN uint64 = 512
-
-	// Length and Position of the Initialization Vector for both the payload and
-	// the recipient
-	IV_LEN   uint64 = 9
-	IV_START uint64 = 0
-	IV_END   uint64 = IV_LEN
-
-	// Length and Position of message payload
-	PAYLOAD_LEN   uint64 = TOTAL_LEN - SID_LEN - IV_LEN - PMIC_LEN
-	PAYLOAD_START uint64 = IV_END
-	PAYLOAD_END   uint64 = PAYLOAD_START + PAYLOAD_LEN
-
-	// Length and Position of the Sender ID in the payload
-	SID_LEN   uint64 = 8
-	SID_START uint64 = PAYLOAD_END
-	SID_END   uint64 = SID_START + SID_LEN
-
-	// Length and Position of the Payload MIC
-	PMIC_LEN   uint64 = 8
-	PMIC_START uint64 = SID_END
-	PMIC_END   uint64 = PMIC_START + PMIC_LEN
-
-	// Length and Position of the Recipient ID
-	RID_LEN   uint64 = TOTAL_LEN - IV_LEN - RMIC_LEN
-	RID_START uint64 = RMIC_END
-	RID_END   uint64 = RID_START + RID_LEN
-
-	// Length and Position of the Recipient MIC
-	RMIC_LEN   uint64 = 8
-	RMIC_START uint64 = IV_END
-	RMIC_END   uint64 = RMIC_START + RMIC_LEN
 )
 
 // Identify implements the Identify phase of the realtime processing.
@@ -108,10 +74,10 @@ func (i Identify) Run(g *cyclic.Group,
 
 	// These lines remove the nonce on the recipient ID,
 	// so that the server can send the message to an untainted recipient
-	recpbytes := out.EncryptedRecipient.LeftpadBytes(TOTAL_LEN)
-	iv := recpbytes[IV_START:IV_END]
-	pmic := recpbytes[RMIC_START:RMIC_END]
-	recpbytes = recpbytes[RID_START:RID_END]
+	recip := format.DeserializeRecipient(out.EncryptedRecipient)
+	iv := recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN)
+	pmic := recip.GetRecipientMIC().LeftpadBytes(format.RMIC_LEN)
+	recpbytes := recip.GetRecipientID().LeftpadBytes(format.RID_LEN)
 
 	recipientMicList := [][]byte{iv, recpbytes}
 
