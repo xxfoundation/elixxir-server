@@ -983,5 +983,5 @@ func TestRealPrimeE2E(t *testing.T) {
 }
 
 // Call the main benchmark tests so we get coverage for it
-func TestBMPrecomp_1_1(b *testing.T) { benchmark.PrecompIterations(1, 1, 1) }
+func TestBMPrecomp_1_1(b *testing.T)  { benchmark.PrecompIterations(1, 1, 1) }
 func TestBMRealtime_1_1(b *testing.T) { benchmark.RealtimeIterations(1, 1, 1) }
