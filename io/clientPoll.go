@@ -21,10 +21,10 @@ func (s ServerImpl) ClientPoll(inputMsg *pb.ClientPollMessage) *pb.CmixMessage {
 		select {
 		case msg := <-user.MessageBuffer:
 			// Return pending message for the given User
-			jww.DEBUG.Printf("Message pending for User %v", user.UID)
+			jww.DEBUG.Printf("Message pending for User %v", user.ID)
 			return msg
 		default:
-			jww.DEBUG.Printf("No messages pending for User %v!", user.UID)
+			jww.DEBUG.Printf("No messages pending for User %v!", user.ID)
 		}
 	}
 	// Return blank message if nonexistent User or no messages

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"github.com/spf13/jwalterweatherman"
 )
 
 // Globally initiated UserRegistry
@@ -30,6 +31,7 @@ type UserRegistry interface {
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
+	LookupUser(huid uint64) (uint64, bool)
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
@@ -72,7 +74,7 @@ type User struct {
 	MessageBuffer chan *pb.CmixMessage
 }
 
-// Deep Copy creates a deep copy of a user and returns a pointer to the new copy
+// DeepCopy creates a deep copy of a user and returns a pointer to the new copy
 func (u *User) DeepCopy() *User {
 	if u == nil {
 		return nil
@@ -158,4 +160,10 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 	}
 
 	return ids, nicks
+}
+
+// LookupUser takes a hashed registration code and returns the corresponding
+// User ID if it is found.
+func (m *UserMap) LookupUser(huid uint64) (uint64, bool) {
+	return m.userLookup[huid], true
 }
