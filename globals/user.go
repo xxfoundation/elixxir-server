@@ -81,15 +81,15 @@ func (u *User) DeepCopy() *User {
 	if u == nil {
 		return nil
 	}
-	nu := new(User)
-	nu.ID = u.ID
-	nu.Address = u.Address
-	nu.Nick = u.Nick
-	nu.Transmission = *u.Transmission.DeepCopy()
-	nu.Reception = *u.Reception.DeepCopy()
-	nu.PublicKey = cyclic.NewInt(0).Set(u.PublicKey)
-	nu.MessageBuffer = u.MessageBuffer
-	return nu
+	newUser := new(User)
+	newUser.ID = u.ID
+	newUser.Address = u.Address
+	newUser.Nick = u.Nick
+	newUser.Transmission = *u.Transmission.DeepCopy()
+	newUser.Reception = *u.Reception.DeepCopy()
+	newUser.PublicKey = cyclic.NewInt(0).Set(u.PublicKey)
+	newUser.MessageBuffer = u.MessageBuffer
+	return newUser
 }
 
 // NewUser creates a new User object with default fields and given address.
