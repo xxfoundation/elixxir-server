@@ -87,7 +87,6 @@ func Precomp(nodeCount int, batchSize uint64, b *testing.B) {
 	}
 }
 
-
 // GenerateRoundsBenchmarkTests
 func BenchmarkGenerateRounds_5_1024(b *testing.B) {
 	RoundGeneratorBenchmark(5, 1024, b)
