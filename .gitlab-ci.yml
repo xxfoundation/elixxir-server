@@ -10,6 +10,7 @@ variables:
   REPO_DIR: gitlab.com/privategrity
   REPO_NAME: server
   DOCKER_IMAGE: carback1/golang-glide:1.9-3b2621654f38
+  MIN_CODE_COVERAGE: 65.0
 
 before_script:
   ##
@@ -92,7 +93,7 @@ test:
 
     # Test Coverage Check
     - go tool cover -func=testdata/coverage.out | grep "total:" | awk '{print $3}' > testdata/coverage-percentage.txt
-    - eval (( $(echo -e "$(cat testdata/coverage-percentage.txt) > 70.0" | bc)))
+    - (( $(echo -e "$(cat testdata/coverage-percentage.txt) > $MIN_CODE_COVERAGE" | bc -l) ))
   artifacts:
     paths:
       - testdata/
