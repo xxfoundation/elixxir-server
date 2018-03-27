@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/privategrity
   REPO_NAME: server
-  DOCKER_IMAGE: carback1/golang-glide:1.9-3b2621654f38
+  DOCKER_IMAGE: carback1/golang-glide:1.9-4a49ace8cac8
 
 before_script:
   ##
