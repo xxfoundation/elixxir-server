@@ -93,7 +93,7 @@ test:
 
     # Test Coverage Check
     - go tool cover -func=testdata/coverage.out | grep "total:" | awk '{print $3}' > testdata/coverage-percentage.txt
-    - (( $(echo -e "$(cat testdata/coverage-percentage.txt) > $MIN_CODE_COVERAGE" | bc -l) ))
+    - (( $(echo "$(cat testdata/coverage-percentage.txt) > 60.0" | bc -l) ))
   artifacts:
     paths:
       - testdata/
