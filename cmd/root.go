@@ -10,12 +10,11 @@ package cmd
 import (
 	"os"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/privategrity/crypto/forward"
-	"gitlab.com/privategrity/server/node"
 	"math"
 )
 
@@ -37,7 +36,7 @@ communications.`,
 		if noRatchet {
 			forward.SetRatchetStatus(false)
 		}
-		node.StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
+		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
 	},
 }
 
@@ -96,8 +95,8 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		jww.ERROR.Println("Using config file:", viper.ConfigFileUsed())
+	if err := viper.ReadInConfig(); err != nil {
+		jww.ERROR.Printf("Unable to read config file: %s", err)
 	}
 
 }

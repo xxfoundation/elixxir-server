@@ -5,14 +5,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // Package node contains the initialization and main loop of a cMix server.
-package node
+package cmd
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"math"
 	"strconv"
 	"time"
-	"math"
 
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
@@ -74,12 +74,19 @@ func RunPrecomputation(RoundCh chan *string) {
 func StartServer(serverIndex int, batchSize uint64) {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
-	jww.INFO.Printf("Config Filename: %v\n\n", viper.ConfigFileUsed())
+	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
 
 	// Set global batch size
 	globals.BatchSize = batchSize
 	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
 
+	// Initialize the backend
+	globals.Users = globals.NewUserRegistry(
+		viper.GetString("dbUsername"),
+		viper.GetString("dbPassword"),
+		viper.GetString("dbName"),
+		viper.GetStringSlice("dbAddresses")[serverIndex],
+	)
 	globals.PopulateDummyUsers()
 
 	// Get all servers

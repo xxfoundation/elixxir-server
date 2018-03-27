@@ -1,9 +1,9 @@
 package globals
 
 import (
-	"testing"
 	"github.com/spf13/viper"
 	"math"
+	"testing"
 )
 
 func nodeIDTestError(t *testing.T, actual, expected uint64) {
@@ -36,7 +36,6 @@ func TestNodeID(t *testing.T) {
 	actual = NodeID(0)
 	expected = uint64(math.MaxUint64 - 5)
 	nodeIDTestError(t, actual, expected)
-
 
 	// fourth test: make sure you can't set the nodeId more than once
 	actual = NodeID(67896)
