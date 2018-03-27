@@ -93,7 +93,7 @@ test:
 
     # Test Coverage Check
     - go tool cover -func=testdata/coverage.out | grep "total:" | awk '{print $3}' | sed 's/\%//g' > testdata/coverage-percentage.txt
-    - if (( $(echo "$(cat testdata/coverage-percentage.txt) >= $MIN_CODE_COVERAGE" | bc -l) )); then echo "Minimum coverage of $MIN_CODE_COVERAGE achieved!; else echo "Minimum coverage of $MIN_CODE_COVERAGE needed!; exit 1; fi
+    - if (( $(echo "$(cat testdata/coverage-percentage.txt) >= $MIN_CODE_COVERAGE" | bc -l) )); then echo "Minimum coverage of $MIN_CODE_COVERAGE achieved"; else echo "Minimum coverage of $MIN_CODE_COVERAGE needed"; exit 1; fi
   artifacts:
     paths:
       - testdata/
