@@ -83,20 +83,17 @@ func (d Decrypt) Build(g *cyclic.Group,
 func (d Decrypt) Run(g *cyclic.Group, in *RealtimeSlot,
 	out *RealtimeSlot, keys *KeysDecrypt) services.Slot {
 
-	// Create Temporary variable
-	tmp := cyclic.NewMaxInt()
-
 	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key together
 	// with with Transmission key before modulo multiplying into the
 	// EncryptedMessage
-	g.Mul(in.CurrentKey, keys.R, tmp)
-	g.Mul(in.Message, tmp, out.Message)
+	g.Mul(in.CurrentKey, in.Message, in.Message)
+	g.Mul(in.Message, keys.R, out.Message)
 
 	// Eq 3.3: Modulo Multiplies the Unpermuted Internode Recipient Key together
 	// with with Transmission key before modulo multiplying into the
 	// EncryptedRecipient
-	g.Mul(in.CurrentKey, keys.U, tmp)
-	g.Mul(in.EncryptedRecipient, tmp, out.EncryptedRecipient)
+	g.Mul(in.CurrentKey, in.EncryptedRecipient, in.EncryptedRecipient)
+	g.Mul(in.EncryptedRecipient, keys.U, out.EncryptedRecipient)
 
 	// Pass through SenderID
 	out.CurrentID = in.CurrentID
