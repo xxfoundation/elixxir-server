@@ -89,6 +89,10 @@ test:
     - go test -bench=BenchmarkRealtime -cpuprofile=testdata/realtime.cpu -memprofile=testdata/realtime.mem -short
     - go tool pprof -png server.test testdata/realtime.cpu > testdata/realtime-cpu.png
     - go tool pprof -png server.test testdata/realtime.mem > testdata/realtime-mem.png
+
+    # Test Coverage Check
+    - go tool cover -func=testdata/coverage.out | grep "total:" | awk '{print $3}' > testdata/coverage-percentage.txt
+    - eval (( $(echo -e "$(cat testdata/coverage-percentage.txt) > 70.0" | bc)))
   artifacts:
     paths:
       - testdata/
@@ -142,18 +146,18 @@ deploy_staging:
   only:
   - master
 
-pages:
-  stage: deploy
-  dependencies:
-    - test
-  script:
-    - mv testdata/ public/
-  artifacts:
-    paths:
-      - public
-    expire_in: 30 days
-  only:
-    - master
+# pages:
+#   stage: deploy
+#   dependencies:
+#     - test
+#   script:
+#     - mv testdata/ public/
+#   artifacts:
+#     paths:
+#       - public
+#     expire_in: 30 days
+#   only:
+#     - master
 
 trigger_integration:
   stage: trigger_integration
