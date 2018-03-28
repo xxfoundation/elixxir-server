@@ -7,10 +7,10 @@
 package io
 
 import (
+	"testing"
+	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/comms/mixclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/server/globals"
-	"testing"
 )
 
 func TestSetNick(t *testing.T) {
@@ -20,7 +20,7 @@ func TestSetNick(t *testing.T) {
 	globals.Users.UpsertUser(user)
 
 	_, err := mixclient.SetNick(NextServer, &pb.Contact{
-		UserID: user.UID,
+		UserID: user.ID,
 		Nick:   "Jake",
 	})
 	if err != nil {
@@ -28,10 +28,10 @@ func TestSetNick(t *testing.T) {
 	}
 
 	expectedNick := "Jake"
-	user, ok := globals.Users.GetUser(user.UID)
+	user, ok := globals.Users.GetUser(user.ID)
 	if !ok {
-		t.Errorf("User with id %v mysteriously disappeared from the user"+
-			" registry", user.UID)
+		t.Errorf("User with id %v mysteriously disappeared from the user" +
+			" registry", user.ID)
 	}
 	if user.Nick != expectedNick {
 		t.Errorf("Nick differed from expected. Got: %v, expected %v",

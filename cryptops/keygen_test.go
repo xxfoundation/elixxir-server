@@ -15,8 +15,6 @@ import (
 	"testing"
 )
 
-// GenericKeySlot implements the KeySlot interface in the simplest way
-// possible. It's not meant for use outside testing.
 func TestGenerateClientKey(t *testing.T) {
 	// NOTE: Does not test correctness
 
@@ -106,7 +104,7 @@ func TestGenerateClientKey(t *testing.T) {
 	for i := uint64(0); i < batchSize; i++ {
 		inSlots = append(inSlots, &realtime.RealtimeSlot{
 			Slot:       i,
-			CurrentID:  users[i+1].UID,
+			CurrentID:  users[i+1].ID,
 			CurrentKey: cyclic.NewMaxInt(),
 		})
 	}
@@ -190,7 +188,7 @@ func TestGenerateClientKey(t *testing.T) {
 		dc.InChannel <- &(inSlots[i])
 		testOK := true
 		actual := (*<-dc.OutChannel).(*realtime.RealtimeSlot)
-		usr, _ := globals.Users.GetUser(users[i].UID + 1)
+		usr, _ := globals.Users.GetUser(users[i].ID + 1)
 		if usr.Reception.RecursiveKey.Cmp(expectedRecursiveKeys[i]) != 0 {
 			testOK = false
 			t.Errorf("Recursive keys differed at index %d. Expected %v, "+
@@ -210,6 +208,6 @@ func TestGenerateClientKey(t *testing.T) {
 
 	// Clean up user registry
 	for i := 0; i < len(users); i++ {
-		globals.Users.DeleteUser(users[i].UID)
+		globals.Users.DeleteUser(users[i].ID)
 	}
 }
