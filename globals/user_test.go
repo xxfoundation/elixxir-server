@@ -16,43 +16,78 @@ func TestUserRegistry(t *testing.T) {
 	Users = NewUserRegistry("cmix", "",
 		"cmix_server", "")
 
-	testUser := Users.NewUser("Someplace")
-	testUser.Nick = "Me"
-	// TODO see tests at bottom of file. removed numUsers temporarily
-	//numUsers := Users.CountUsers()
-	Users.DeleteUser(testUser.UID)
-	Users.UpsertUser(testUser)
-	getUser, exists := Users.GetUser(testUser.UID)
+	// Loop from userDatabase.go to create and add users
+	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
+		"Mario", "Will", "Sydney", "Jon0"}
 
-	if !exists || getUser.UID != testUser.UID {
+	for i := 1; i <= NUM_DEMO_USERS; i++ {
+		u := Users.NewUser("")
+		u.Nick = nickList[i-1]
+		Users.UpsertUser(u)
+	}
+
+	// TESTS Start here
+	test := 7
+	pass := 0
+
+	numUsers := Users.CountUsers()
+
+	if numUsers != NUM_DEMO_USERS {
+		t.Errorf("Count users is not working correctly")
+	} else {
+		pass++
+	}
+
+	usr9, exists := Users.GetUser(9)
+
+	if usr9 == nil {
+		t.Errorf("Error fetching user!")
+	} else {
+		pass++
+	}
+
+	getUser, exists := Users.GetUser(usr9.ID)
+
+	if !exists || getUser.ID != usr9.ID {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
-	getUser.Transmission.RecursiveKey.SetInt64(5)
-	getUser.Nick = "Michael"
+	usr3, _ := Users.GetUser(3)
+	usr5, _ := Users.GetUser(5)
 
-	Users.UpsertUser(getUser)
-
-	getUser2, _ := Users.GetUser(testUser.UID)
-
-	if getUser2.Transmission.RecursiveKey.Int64() != 5 || getUser2.
-		Nick != "Michael" {
-		t.Errorf("UpsertUser: User did not save! Got: %v, %v; expected: %v, "+
-			"%v", getUser2.Transmission.RecursiveKey.Int64(), getUser2.Nick,
-			5, "Michael")
+	if usr3.Transmission.BaseKey == nil {
+		t.Errorf("Error Setting the Transmission Base Key")
+	} else {
+		pass++
 	}
 
-	Users.DeleteUser(testUser.UID)
+	if usr3.Reception.BaseKey == usr5.Reception.BaseKey {
+		t.Errorf("Transmissions keys are the same and they should be different!")
+	} else {
+		pass++
+	}
 
-	// TODO Fix these tests to work with the hard-coded users
-	/*
-		if _, userExists := Users.GetUser(testUser.UID); userExists {
-			t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
-		}
+	ids, _ := Users.GetNickList()
 
-		if count := Users.CountUsers(); count != numUsers {
-			t.Errorf("DeleteUser: Excepted empty userRegistry after user"+
-				" deletion! Got %d expected %d", count, numUsers)
-		}
-	*/
+	if len(ids) != Users.CountUsers() {
+		t.Errorf("Nicklist is not ok! ")
+	} else {
+		pass++
+	}
+
+	Users.DeleteUser(usr9.ID)
+
+	if Users.CountUsers() != NUM_DEMO_USERS-1 {
+		t.Errorf("User has not been deleted correctly.")
+	} else {
+		pass++
+	}
+
+	if _, userExists := Users.GetUser(usr9.ID); userExists {
+		t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
+	} else {
+		pass++
+	}
+
+	println("User Test", pass, "out of", test, "tests passed.")
 }
