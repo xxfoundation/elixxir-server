@@ -105,10 +105,13 @@ func (m *UserMap) NewUser(address string) *User {
 	usr.ID = uint64(i)
 	h.Write([]byte(string(20000 + i)))
 	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h = sha256.New()
 	h.Write([]byte(string(30000 + i)))
 	trans.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h = sha256.New()
 	h.Write([]byte(string(40000 + i)))
 	recept.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	h = sha256.New()
 	h.Write([]byte(string(50000 + i)))
 	recept.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	usr.Reception = *recept
