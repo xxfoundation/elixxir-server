@@ -15,8 +15,6 @@ import (
 	"testing"
 )
 
-// GenericKeySlot implements the KeySlot interface in the simplest way
-// possible. It's not meant for use outside testing.
 func TestGenerateClientKey(t *testing.T) {
 	// NOTE: Does not test correctness
 
