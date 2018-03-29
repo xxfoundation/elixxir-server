@@ -88,7 +88,7 @@ func (i Identify) Run(g *cyclic.Group,
 	if !valid && cyclic.NewIntFromBytes(pmic).Uint64() != 0 {
 		// TODO: Re-enforce MIC checking, requires fixing main test!!!
 		// out.EncryptedRecipient.SetUint64(globals.NIL_USER)
-		jww.WARN.Printf("Recipient MIC failed, Recipient ID read as %v",
+		jww.ERROR.Printf("Recipient MIC failed, Recipient ID read as %v",
 			cyclic.NewIntFromBytes(recpbytes).Text(10))
 	} else {
 		out.EncryptedRecipient.SetBytes(recpbytes)
