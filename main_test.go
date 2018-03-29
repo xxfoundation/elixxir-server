@@ -6,6 +6,8 @@
 package main
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+
 	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/benchmark"
@@ -15,7 +17,14 @@ import (
 	"gitlab.com/privategrity/server/services"
 	"strconv"
 	"testing"
+	"os"
 )
+
+func TestMain(m *testing.M) {
+	// Set log level high for main testing to disable MIC errors, etc
+	jww.SetStdoutThreshold(jww.LevelFatal)
+	os.Exit(m.Run())
+}
 
 // ComputeSingleNodePrecomputation is a helper func to compute what
 // the precomputation should be without any sharing computations for a
