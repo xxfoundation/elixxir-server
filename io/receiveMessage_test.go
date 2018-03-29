@@ -13,7 +13,6 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"testing"
-	"time"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -46,7 +45,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		PRIME, 16), cyclic.NewInt(0), cyclic.NewInt(5),
 		cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000)))
 	globals.Grp = &g
-	MessageCh = make(chan *realtime.RealtimeSlot)
+	MessageCh = make(chan *realtime.RealtimeSlot, 1)
 
 	// Expected values
 	senderID := uint64(66)
@@ -63,22 +62,12 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	}
 	messageSerial := message[0].SerializeMessage()
 
-	// Set ourselves up to receive the sent message
-	var receivedMessage *realtime.RealtimeSlot
-	go func() {
-		receivedMessage = <-MessageCh
-	}()
-
 	// Send the message to the server itself
 	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{message[0].
 		GetSenderIDUint(), messageSerial.Payload.Bytes(),
 		messageSerial.Recipient.Bytes()})
 
-	// There's some timing issue where it has to timeout to successfully
-	// populate the data.
-	for receivedMessage == nil {
-		time.Sleep(time.Second)
-	}
+	receivedMessage := <-MessageCh
 
 	// Verify that the received message holds the expected data
 	if receivedMessage.CurrentID != senderID {
