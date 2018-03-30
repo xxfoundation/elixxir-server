@@ -31,7 +31,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 	msgCount := uint64(0)
 	msgList := make([]*realtime.RealtimeSlot, batchSize)
 	for msg := range MessageCh {
-		jww.DEBUG.Printf("Adding message ("+
+		jww.FATAL.Printf("Adding message ("+
 			"%d/%d) from SenderID %d to Recipient %s...",
 			msgCount+1, batchSize, msg.CurrentID,
 			msg.EncryptedRecipient.Text(10))
