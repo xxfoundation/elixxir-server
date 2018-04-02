@@ -152,7 +152,7 @@ func (h PrecompPermuteHandler) Handler(
 	} else {
 		// Send the completed PrecompPermuteMessage
 		jww.INFO.Printf("Sending PrecompPermute Message to %v at %s",
-			NextServer, startTime.Format(time.RFC3339))
+			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendPrecompPermute(NextServer, msg)
 	}
 

@@ -159,7 +159,7 @@ func (h PrecompShareHandler) Handler(
 	} else {
 		// Send the completed PrecompShareMessage
 		jww.INFO.Printf("Sending PrecompShare Message to %v at %s",
-			NextServer, startTime.Format(time.RFC3339))
+			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendPrecompShare(NextServer, msg)
 	}
 
