@@ -15,9 +15,9 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"os"
 	"strconv"
 	"testing"
-	"os"
 )
 
 func TestMain(m *testing.M) {
@@ -954,7 +954,8 @@ func TestRealPrimeE2E(t *testing.T) {
 	prime := cyclic.NewInt(0)
 	prime.SetString(primeStrng, 16)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	rng := cyclic.NewRandom(cyclic.NewInt(0),
+		cyclic.NewIntFromString(benchmark.MAXGENERATION, 16))
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
 	inputMsgs := make([]realtime.RealtimeSlot, BatchSize)
