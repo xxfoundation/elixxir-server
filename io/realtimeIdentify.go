@@ -60,5 +60,5 @@ func (h RealtimeIdentifyHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeIdentify.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

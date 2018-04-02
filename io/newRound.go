@@ -198,7 +198,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished NewRound(RoundId: %s) in %d ms",
-		clusterRoundID, (endTime.Sub(startTime))*time.Millisecond)
+		clusterRoundID, (endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Blocks until all given servers begin a new round
@@ -223,5 +223,5 @@ func BeginNewRound(servers []string, RoundID string) {
 
 	endTime := time.Now()
 	jww.INFO.Printf("[Last Node] Finished BeginNewRound(RoundId: %s) in %d ms",
-		RoundID, (endTime.Sub(startTime))*time.Millisecond)
+		RoundID, (endTime.Sub(startTime))/time.Millisecond)
 }

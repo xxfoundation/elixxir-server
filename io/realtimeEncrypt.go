@@ -45,7 +45,7 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeEncrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Transition to RealtimePeel phase on the last node
@@ -81,7 +81,7 @@ func realtimeEncryptLastNode(roundId string, batchSize uint64,
 	jww.INFO.Printf("[Last Node] Finished Initializing " +
 		"RealtimePeel(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for RealtimeEncryptMessages
@@ -128,5 +128,5 @@ func (h RealtimeEncryptHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeEncrypt.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

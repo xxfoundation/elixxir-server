@@ -46,7 +46,7 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompShare(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TODO finish implementing this stubbed-out method
@@ -115,7 +115,7 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	jww.INFO.Printf("[Last Node] Finished Initializing " +
 		"PrecompDecrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for PrecompShareMessages
@@ -165,5 +165,5 @@ func (h PrecompShareHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompShare.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

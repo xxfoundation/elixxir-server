@@ -51,7 +51,7 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompDecrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Transition to PrecompPermute phase on the last node
@@ -100,7 +100,7 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 	jww.INFO.Printf("[Last Node] Finished Initializing " +
 		"PrecompPermute(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for PrecompDecryptMessages
@@ -149,5 +149,5 @@ func (h PrecompDecryptHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompDecrypt.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

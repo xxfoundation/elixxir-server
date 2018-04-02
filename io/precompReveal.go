@@ -47,7 +47,7 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompReveal(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Convert the Reveal message to a Strip message and send to the last node
@@ -84,7 +84,7 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 	jww.INFO.Printf("[Last Node] Finished Initializing " +
 		"PrecompStrip(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for PrecompRevealMessages
@@ -131,5 +131,5 @@ func (h PrecompRevealHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompReveal.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

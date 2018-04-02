@@ -52,7 +52,7 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompPermute(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Save the recipient cyphertext and the encrypted recipient precomputation,
@@ -109,7 +109,7 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 	jww.INFO.Printf("[Last Node] Finished Initializing " +
 		"PrecompEncrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for PrecompPermuteMessages
@@ -158,5 +158,5 @@ func (h PrecompPermuteHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompPermute.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

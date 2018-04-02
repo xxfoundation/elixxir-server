@@ -45,6 +45,6 @@ func (h RealtimePeelHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimePeel.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 	jww.INFO.Printf("Realtime for Round %s Finished at %s!", roundId, endTime)
 }

@@ -47,7 +47,7 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeDecrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Transition to RealtimePermute phase on the last node
@@ -94,7 +94,7 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 	jww.INFO.Printf("[Last Node] Finished Initializing " +
 		"RealtimePermute(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
-		(endTime.Sub(startTime))*time.Millisecond)
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for RealtimeDecryptMessages
@@ -142,7 +142,7 @@ func (h RealtimeDecryptHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeDecrypt.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Kickoff for RealtimeDecryptMessages
@@ -184,5 +184,5 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	endTime := time.Now()
 	jww.INFO.Printf("[Last Node] Finished KickoffDecryptHandler(RoundId: %s)" +
 		" in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

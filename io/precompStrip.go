@@ -39,6 +39,6 @@ func (h PrecompStripHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompStrip.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))*time.Millisecond)
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 	jww.INFO.Printf("Precomputation Finished at %s!", endTime.Format(time.RFC3339))
 }
