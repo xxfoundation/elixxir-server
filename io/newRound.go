@@ -189,7 +189,8 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		PrecompShareHandler{}.Handler(roundId, uint64(1),
 			[]*services.Slot{&shareMsg})
 	}
-	jww.DEBUG.Println("New Round Complete")
+	jww.DEBUG.Println("New Round Complete for round: %s, time: %v",
+		clusterRoundID, time.Now().Nanosecond())
 }
 
 // Blocks until all given servers begin a new round

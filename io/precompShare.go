@@ -14,6 +14,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"time"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -21,8 +22,10 @@ type PrecompShareHandler struct{}
 
 // ReceptionHandler for PrecompShareMessages
 func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
-	jww.DEBUG.Printf("Received PrecompShare Message %v from phase %s...",
-		input.RoundID, globals.Phase(input.LastOp).String())
+	jww.DEBUG.Printf("Received PrecompShare Message %v from phase %s on"+
+		" round %s time: %v...",
+		input.RoundID, globals.Phase(input.LastOp).String(), input.RoundID,
+		time.Now().Nanosecond())
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_SHARE)
 	// Iterate through the Slots in the PrecompShareMessage
