@@ -62,6 +62,9 @@ type dispatch struct {
 	//Counter of how many messages have been processed
 	batchCntr uint64
 
+	//number of of logical threads supported by the cpu
+	numCPU uint64
+
 	// Locker for determining whether the dispatcher is still running
 	// 1 = True, 0 = False
 	locker uint32
@@ -141,6 +144,45 @@ func DispatchCryptop(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOu
 // chIn and chOut are the input and output channels, set to nil and the
 // dispatcher will generate its own.
 func DispatchCryptopSized(g *cyclic.Group, cryptop CryptographicOperation, chIn, chOut chan *Slot, batchSize uint64, face interface{}) *ThreadController {
+
+	db := cryptop.Build(g, face)
+
+	if batchSize != 0 {
+		db.BatchSize = batchSize
+	}
+
+	//Creates a channel for input if none is provided
+	if chIn == nil {
+		chIn = make(chan *Slot, db.BatchSize)
+	}
+
+	//Creates a channel for output if none is provided
+	if chOut == nil {
+		chOut = make(chan *Slot, db.BatchSize)
+	}
+
+	//Creates a channel for force quitting the dispatched operation
+	chQuit := make(chan chan bool, 1)
+
+	//build the data used to run the cryptop
+
+	//Creates the internal dispatch structure
+	d := &dispatch{cryptop: cryptop, DispatchBuilder: *db,
+		inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0, locker: 1}
+
+	//runs the dispatcher
+	go d.dispatcher()
+
+	//creates the  dispatch control structure
+	dc := &ThreadController{InChannel: chIn, OutChannel: chOut, quitChannel: chQuit,
+		threadLocker: &d.locker}
+
+	return dc
+
+}
+
+func DispatchCryptopSizedThreaded(g *cyclic.Group,
+	cryptop CryptographicOperation, chIn, chOut chan *Slot, batchSize uint64, face interface{}) *ThreadController {
 
 	db := cryptop.Build(g, face)
 
