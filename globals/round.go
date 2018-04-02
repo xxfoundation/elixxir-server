@@ -7,9 +7,9 @@
 package globals
 
 import (
-	"errors"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/services"
+	jww "github.com/spf13/jwalterweatherman"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -158,38 +158,15 @@ func (round *Round) GetPhase() Phase {
 	return rp
 }
 
-// Increments the phase if the phase can be incremented and was told to
-// increment to the correct phase
-func (round *Round) IncrementPhase(p Phase) error {
+// Sets the phase
+func (round *Round) SetPhase(p Phase) {
 	round.phaseLock.Lock()
-
-	if round.phase == DONE {
-		round.phaseLock.Unlock()
-		return errors.New("Cannot Increment Phase past DONE")
+	if p < round.phase {
+		jww.FATAL.Panicf("Cannot decrement Phases!")
 	}
-
-	if round.phase == ERROR {
-		round.phaseLock.Unlock()
-		return errors.New("Cannot Increment a Phase in ERROR")
-	}
-
-	if (round.phase + 1) != p {
-		round.phaseLock.Unlock()
-		return errors.New("Invalid Phase Incrementation; Expected: " + (round.phase + 1).String() + ", Received: " + p.String())
-	}
-
-	round.phase++
+	round.phase = p
 	round.phaseLock.Unlock()
-
-	return nil
-}
-
-// Puts the phase into an error state
-func (round *Round) Error() {
-	round.phaseLock.Lock()
-	round.phase = ERROR
-	round.phaseLock.Unlock()
-}
+ }
 
 // Unexported underlying function to initialize a new round
 func newRound(batchSize uint64, p Phase) *Round {
