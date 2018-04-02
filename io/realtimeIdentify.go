@@ -14,6 +14,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"strconv"
+	"time"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -22,7 +23,10 @@ type RealtimeIdentifyHandler struct{}
 // TransmissionHandler for RealtimeIdentifyMessages
 func (h RealtimeIdentifyHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
-	jww.INFO.Println("Beginning RealtimeEncrypt Phase...")
+	startTime := time.Now()
+	jww.INFO.Printf("Starting RealtimeIdentify.Handler(RoundId: %s) at %s",
+		roundId, startTime.Format(time.RFC3339))
+
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,
@@ -49,6 +53,12 @@ func (h RealtimeIdentifyHandler) Handler(
 	}
 
 	// Send the first RealtimeEncrypt Message
-	jww.DEBUG.Printf("Sending RealtimeEncrypt Message to %v...", NextServer)
+	sendTime := time.Now()
+	jww.INFO.Printf("Sending RealtimeEncrypt Messages to %v at %s",
+		NextServer, sendTime.Format(time.RFC3339))
 	clusterclient.SendRealtimeEncrypt(NextServer, msg)
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished RealtimeIdentify.Handler(RoundId: %s) in %d ms",
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

@@ -14,6 +14,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"time"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -21,8 +22,10 @@ type RealtimeEncryptHandler struct{}
 
 // ReceptionHandler for RealtimeEncryptMessages
 func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
-	jww.DEBUG.Printf("Received RealtimeEncrypt Message %v from phase %s...",
-		input.RoundID, globals.Phase(input.LastOp).String())
+	startTime := time.Now()
+	jww.INFO.Printf("Starting RealtimeEncrypt(RoundId: %s, Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_ENCRYPT)
 	// Iterate through the Slots in the RealtimeEncryptMessage
@@ -38,12 +41,26 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		// Pass slot as input to Encrypt's channel
 		chIn <- &slot
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished RealtimeEncrypt(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Transition to RealtimePeel phase on the last node
 func realtimeEncryptLastNode(roundId string, batchSize uint64,
 	input *pb.RealtimeEncryptMessage) {
-	jww.INFO.Println("Beginning RealtimePeel Phase...")
+
+	startTime := time.Now()
+	jww.INFO.Printf("[Last Node] Initializing RealtimePeel(RoundId: %s, " +
+		"Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
+
+	// TODO: record the start precomp permute time for this round here,
+	//       and print the time it took for the Decrypt phase to complete.
+
 	// Get round and channel
 	round := globals.GlobalRoundMap.GetRound(roundId)
 	peelChannel := round.GetChannel(globals.REAL_PEEL)
@@ -59,11 +76,21 @@ func realtimeEncryptLastNode(roundId string, batchSize uint64,
 		// Pass slot as input to Peel's channel
 		peelChannel <- &slot
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("[Last Node] Finished Initializing " +
+		"RealtimePeel(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for RealtimeEncryptMessages
 func (h RealtimeEncryptHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
+	startTime := time.Now()
+	jww.INFO.Printf("Starting RealtimeEncrypt.Handler(RoundId: %s) at %s",
+		roundId, startTime.Format(time.RFC3339))
+
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,
@@ -86,12 +113,20 @@ func (h RealtimeEncryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to RealtimePeel phase
+		jww.INFO.Printf("Starting RealtimePeel Phase to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
 		realtimeEncryptLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed RealtimeEncryptMessage
-		jww.DEBUG.Printf("Sending RealtimeEncrypt Message to %v...", NextServer)
+		jww.INFO.Printf("Sending RealtimeEncrypt Message to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendRealtimeEncrypt(NextServer, msg)
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished RealtimeEncrypt.Handler(RoundId: %s) in %d ms",
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }
