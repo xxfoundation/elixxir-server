@@ -18,6 +18,10 @@ type PrecompStripHandler struct{}
 // TransmissionHandler for PrecompStripMessages
 func (h PrecompStripHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
+	startTime := time.Now()
+	jww.INFO.Printf("Starting PrecompStrip.Handler(RoundId: %s) at %s",
+		roundId, startTime.Format(time.RFC3339))
+
 	round := globals.GlobalRoundMap.GetRound(roundId)
 	// Retrieve the Precomputations
 	for i := uint64(0); i < batchSize; i++ {
@@ -30,5 +34,9 @@ func (h PrecompStripHandler) Handler(
 		jww.DEBUG.Printf("RecipientPrecomputation Result: %v",
 			slot.RecipientIDPrecomputation.Text(10))
 	}
-	jww.INFO.Println("Precomputation Finished!")
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished PrecompStrip.Handler(RoundId: %s) in %d ms",
+		roundId, (endTime.Sub(startTime))*time.Millisecond)
+	jww.INFO.Printf("Precomputation Finished at %s!", endTime.Format(time.RFC3339))
 }
