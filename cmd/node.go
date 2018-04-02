@@ -119,10 +119,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	prime.SetString(primeString, 16)
 	// one := cyclic.NewInt(1)
 	rngmax := cyclic.NewIntFromUInt(math.MaxUint64)
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
+	rngmax.Mul(rngmax, prime)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), rngmax)
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(2), cyclic.NewInt(4), rng)
 	globals.Grp = &grp
