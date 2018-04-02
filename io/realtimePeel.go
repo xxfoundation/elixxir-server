@@ -12,6 +12,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"time"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -20,6 +21,10 @@ type RealtimePeelHandler struct{}
 // TransmissionHandler for RealtimePeelMessages
 func (h RealtimePeelHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
+	startTime := time.Now()
+	jww.INFO.Printf("Starting RealtimePeel.Handler(RoundId: %s) at %s",
+		roundId, startTime.Format(time.RFC3339))
+
 	// Retrieve the EncryptedMessage
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*realtime.RealtimeSlot)
@@ -37,5 +42,9 @@ func (h RealtimePeelHandler) Handler(
 
 		}
 	}
-	jww.INFO.Println("Realtime Finished!")
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished RealtimePeel.Handler(RoundId: %s) in %d ms",
+		roundId, (endTime.Sub(startTime))*time.Millisecond)
+	jww.INFO.Printf("Realtime for Round %s Finished at %s!", roundId, endTime)
 }
