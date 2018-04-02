@@ -143,7 +143,7 @@ func (h PrecompDecryptHandler) Handler(
 	} else {
 		// Send the completed PrecompDecryptMessage
 		jww.INFO.Printf("Sending PrecompDecrypt Message to %v at %s",
-			NextServer, startTime.Format(time.RFC3339))
+			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendPrecompDecrypt(NextServer, msg)
 	}
 
