@@ -164,7 +164,10 @@ func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
 
 // Returns a copy of the current phase
 func (round *Round) GetPhase() Phase {
-	return round.phase
+	round.phaseCond.L.Lock()
+	p := round.phase
+	round.phaseCond.L.Unlock()
+	return p
 }
 
 // Sets the phase, and signals the phaseCond that the phase state has changed
