@@ -37,6 +37,9 @@ func (h PrecompStripHandler) Handler(
 			slot.RecipientIDPrecomputation.Text(10))
 	}
 
+	// Advance internal state to PRECOMP_DECRYPT (the next phase)
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.WAIT)
+
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompStrip.Handler(RoundId: %s) in %d ms",
 		roundId, (endTime.Sub(startTime))/time.Millisecond)

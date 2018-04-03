@@ -43,6 +43,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	if IsLastNode {
 		globals.InitLastNode(round)
 	}
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_GENERATION)
 
 	// Create the controller for PrecompShare
 	// Note: Share requires a batchSize of 1
@@ -149,6 +150,8 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		precompGenerationController.InChannel <- &genMsg
 		_ = <-precompGenerationController.OutChannel
 	}
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+
 
 	// Generate debugging information
 	jww.DEBUG.Printf("R Value: %v, S Value: %v, T Value: %v",

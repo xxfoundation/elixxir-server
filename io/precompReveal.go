@@ -116,6 +116,9 @@ func (h PrecompRevealHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	// Advance internal state to the next phase
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_STRIP)
+
 	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to PrecompStrip phase

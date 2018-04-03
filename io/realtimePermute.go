@@ -119,11 +119,15 @@ func (h RealtimePermuteHandler) Handler(
 	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to RealtimeIdentify phase
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_IDENTIFY)
 		jww.INFO.Printf("Starting RealtimeIdentify Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
 		realtimePermuteLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed RealtimePermuteMessage
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_ENCRYPT)
 		jww.INFO.Printf("Sending RealtimePermute Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendRealtimePermute(NextServer, msg)

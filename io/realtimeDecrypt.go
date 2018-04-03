@@ -127,6 +127,9 @@ func (h RealtimeDecryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	// Advance internal state to the next phase
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_PERMUTE)
+
 	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to RealtimePermute phase
@@ -174,6 +177,9 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 		// Append the RealtimeDecryptSlot to the RealtimeDecryptMessage
 		msg.Slots[i] = msgSlot
 	}
+
+	// Advance internal state to the next phase
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_DECRYPT)
 
 	// Send the completed RealtimeDecryptMessage
 	sendTime := time.Now()

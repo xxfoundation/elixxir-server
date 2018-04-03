@@ -10,6 +10,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Address of the subsequent server in the config file
@@ -37,7 +38,13 @@ type ServerImpl struct {
 
 // Get the respective channel for the given roundId and chanId combination
 func (s ServerImpl) GetChannel(roundId string, chanId globals.Phase) chan<- *services.Slot {
-	return s.Rounds.GetRound(roundId).GetChannel(chanId)
+	round := s.Rounds.GetRound(roundId)
+	curPhase := round.GetPhase()
+	if chanId != curPhase {
+		jww.FATAL.Panicf("Round %s trying to start phase %s, but on phase %s!",
+			roundId, chanId.String(), curPhase.String())
+	}
+	return round.GetChannel(chanId)
 }
 
 // Set the CypherPublicKey for the server to the given value

@@ -17,8 +17,10 @@ func TestPrecompEncrypt(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
+	globals.InitLastNode(round)
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
+	IsLastNode = true
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)
@@ -28,13 +30,15 @@ func TestPrecompEncrypt(t *testing.T) {
 	round.AddChannel(globals.PRECOMP_ENCRYPT, chIn)
 	// Kick off PrecompEncrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
-		chOut, PrecompEncryptHandler{})
+		chOut, PrecompPermuteHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
-		Slot:                  uint64(0),
-		MessageCypher:         cyclic.NewInt(12),
-		MessagePrecomputation: cyclic.NewInt(3),
+		Slot:                      uint64(0),
+		MessageCypher:             cyclic.NewInt(12),
+		MessagePrecomputation:     cyclic.NewInt(3),
+		RecipientIDCypher:         cyclic.NewInt(1),
+		RecipientIDPrecomputation: cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler
