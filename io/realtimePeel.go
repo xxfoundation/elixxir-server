@@ -32,7 +32,7 @@ func (h RealtimePeelHandler) Handler(
 			jww.ERROR.Printf("Message to Nil User not queued")
 		} else {
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
-				slot.Message.Bytes())
+				slot.Message.Text(10))
 			user, _ := globals.Users.GetUser(slot.CurrentID)
 			user.MessageBuffer <- &pb.CmixMessage{
 				SenderID:       uint64(0), // Currently zero this field
@@ -42,6 +42,8 @@ func (h RealtimePeelHandler) Handler(
 
 		}
 	}
+
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.DONE)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimePeel.Handler(RoundId: %s) in %d ms",

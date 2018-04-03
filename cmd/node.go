@@ -42,10 +42,20 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 		if msgCount == batchSize {
 			msgCount = uint64(0)
 			// Pass the batch queue into Realtime and begin
-			jww.INFO.Println("Beginning RealTime Phase...")
-			roundId := <-RoundCh
-			jww.INFO.Printf("Got Round ID %s for RealTime...\n", *roundId)
-			io.KickoffDecryptHandler(*roundId, batchSize, msgList)
+			startTime := time.Now()
+			roundId := *(<-RoundCh)
+			jww.INFO.Printf("Realtime phase with Round ID %s started at %s\n",
+				roundId, startTime.Format(time.RFC3339))
+			io.KickoffDecryptHandler(roundId, batchSize, msgList)
+			go func(roundId string, startTime time.Time) {
+				round := globals.GlobalRoundMap.GetRound(roundId)
+				round.WaitUntilPhase(globals.DONE)
+				endTime := time.Now()
+				jww.INFO.Printf("Realtime phase with Round ID %s finished at %s!\n",
+					roundId, endTime.Format(time.RFC3339))
+				jww.INFO.Printf("Realtime phase completed in %d ms",
+					int64(endTime.Sub(startTime)/time.Millisecond))
+			}(roundId, startTime)
 		}
 	}
 }
@@ -74,8 +84,8 @@ func RunPrecomputation(RoundCh chan *string) {
 			endTime := time.Now()
 			jww.INFO.Printf("Precomputation phase with Round ID %s finished at %s!\n",
 				roundId, endTime.Format(time.RFC3339))
-			jww.INFO.Printf("Precomputation phase completed in %s ms",
-				(endTime.Sub(startTime)/time.Millisecond))
+			jww.INFO.Printf("Precomputation phase completed in %d ms",
+				int64(endTime.Sub(startTime)/time.Millisecond))
 			RoundCh <- &roundId
 			// }(RoundCh, roundId)
 			// Wait at least a second before kicking off another round
