@@ -10,6 +10,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"sync"
 	"testing"
+	"time"
 )
 
 // TestNewRound tests that the round constructor really only returns
@@ -91,7 +92,7 @@ func TestNewRound(t *testing.T) {
 
 func TestGetPhase(t *testing.T) {
 	round := &Round{}
-	round.phaseLock = &sync.Mutex{}
+	round.phaseCond = &sync.Cond{L: &sync.Mutex{}}
 
 	for p := OFF; p < NUM_PHASES; p++ {
 		round.phase = p
@@ -184,11 +185,23 @@ func TestNewRoundWithPhase(t *testing.T) {
 
 func TestSetPhase(t *testing.T) {
 	round := &Round{}
-	round.phaseLock = &sync.Mutex{}
+	round.phaseCond = &sync.Cond{L: &sync.Mutex{}}
+	var phaseWaitCheck int = 0
+
+	go func(r *Round, p *int) {
+		r.WaitUntilPhase(REAL_DECRYPT)
+		*p = 1
+	}(round, &phaseWaitCheck)
+
 	for q := Phase(OFF); q < NUM_PHASES; q++ {
 		round.SetPhase(q)
 		if (round.phase != q) {
 			t.Errorf("Failed to set phase to %d!", q)
 		}
+	}
+	// Give the goroutine some extra time to run
+	time.Sleep(100*time.Millisecond)
+	if phaseWaitCheck != 1 {
+		t.Errorf("round.WaitUntilPhase did not complete!")
 	}
 }
