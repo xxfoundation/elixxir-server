@@ -82,7 +82,9 @@ func RunPrecomputation(RoundCh chan *string) {
 			roundTimeout := time.Timer(5 * time.Minute)
 			go func() {
 				<-roundTimeout.C
-				round.SetPhase(globals.ERROR)
+				if round.GetPhase() < globals.WAIT {
+					round.SetPhase(globals.ERROR)
+				}
 			}()
 
 			// Wait until the round completes to continue
