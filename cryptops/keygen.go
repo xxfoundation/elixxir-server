@@ -86,12 +86,6 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
 
-	if in.CurrentID == globals.NIL_USER {
-		jww.ERROR.Printf("GenerateClientKey Run: Got NIL_USER")
-		in.CurrentKey.SetInt64(int64(1))
-		return in
-	}
-
 	user, _ := globals.Users.GetUser(in.CurrentID)
 
 	if user == nil {
@@ -102,15 +96,21 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
-	if keys.keySelection == TRANSMISSION && *keys.verification {
+	if keys.keySelection == TRANSMISSION {
 		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
 			user.Transmission.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
 	} else if keys.keySelection == RECEPTION {
+		if !*keys.verification {
+			jww.ERROR.Printf(
+				"Key Generation Failed: MIC failure detected.\n"+
+					"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
+		} else {
+			forward.GenerateSharedKey(group, user.Reception.BaseKey,
+				user.Reception.RecursiveKey, in.CurrentKey,
+				keys.sharedKeyStorage)
+		}
 
-		forward.GenerateSharedKey(group, user.Reception.BaseKey,
-			user.Reception.RecursiveKey, in.CurrentKey,
-			keys.sharedKeyStorage)
 	} else {
 		jww.FATAL.Panicf(
 			"Key Generation Failed: Invalid Key Selection.\n"+
