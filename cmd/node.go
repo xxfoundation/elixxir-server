@@ -55,7 +55,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 // whenever it falls below a threshold.
 func RunPrecomputation(RoundCh chan *string) {
 	for {
-		if len(RoundCh) < 1 {
+		if len(RoundCh) < 10 {
 			// Begin the round on all nodes
 			roundId := globals.PeekNextRoundID()
 			jww.INFO.Printf("Beginning Precomputation Phase with Round ID %s...\n",
