@@ -63,20 +63,20 @@ func RunPrecomputation(RoundCh chan *string) {
 			io.BeginNewRound(io.Servers, roundId)
 			// Wait for round to be in the WAIT state before adding it to the round
 			// map
-			go func(RoundCh chan *string, roundId string) {
-				round := globals.GlobalRoundMap.GetRound(roundId)
-				for (round.GetPhase() != globals.WAIT &&
-					round.GetPhase() != globals.ERROR) {
-					time.Sleep(100*time.Millisecond)
-				}
-				if round.GetPhase() == globals.ERROR {
-					jww.FATAL.Panicf("Fatal error occurred during precomputation of " +
-						"round %s", roundId)
-				}
-				jww.INFO.Printf("Finished Precomputation Phase with " +
-					"Round ID %s at %s!\n", roundId, time.Now().Format(time.RFC3339))
-				RoundCh <- &roundId
-			}(RoundCh, roundId)
+			// go func(RoundCh chan *string, roundId string) {
+			round := globals.GlobalRoundMap.GetRound(roundId)
+			for (round.GetPhase() != globals.WAIT &&
+				round.GetPhase() != globals.ERROR) {
+				time.Sleep(100*time.Millisecond)
+			}
+			if round.GetPhase() == globals.ERROR {
+				jww.FATAL.Panicf("Fatal error occurred during precomputation of " +
+					"round %s", roundId)
+			}
+			jww.INFO.Printf("Finished Precomputation Phase with " +
+				"Round ID %s at %s!\n", roundId, time.Now().Format(time.RFC3339))
+			RoundCh <- &roundId
+			// }(RoundCh, roundId)
 			// Wait at least a second before kicking off another round
 			time.Sleep(1000 * time.Millisecond)
 		} else {
@@ -134,10 +134,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	prime.SetString(primeString, 16)
 	// one := cyclic.NewInt(1)
 	rngmax := cyclic.NewIntFromUInt(math.MaxUint64)
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
-	rngmax.Mul(rngmax, cyclic.NewInt(1024))
+	rngmax.Mul(rngmax, prime)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), rngmax)
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(2), cyclic.NewInt(4), rng)
 	globals.Grp = &grp
