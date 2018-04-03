@@ -37,6 +37,7 @@ type GenerateClientKey struct{}
 type KeysGenerateClientKey struct {
 	sharedKeyStorage []byte
 	keySelection     KeyType
+	verification     *bool
 }
 
 // Build() pre-allocates the memory and structs required to Run() this cryptop.
@@ -58,6 +59,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 		keySlc := &KeysGenerateClientKey{
 			make([]byte, 0, 8192),
 			keySelection,
+			&round.MIC_Verification[i],
 		}
 		keys[i] = keySlc
 	}
@@ -100,7 +102,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// Running this puts the next recursive key in the user's record and
 	// the correct shared key for the key type into `in`'s key. Unlike
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
-	if keys.keySelection == TRANSMISSION {
+	if keys.keySelection == TRANSMISSION && *keys.verification {
 		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
 			user.Transmission.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
