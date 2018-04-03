@@ -37,6 +37,7 @@ type GenerateClientKey struct{}
 type KeysGenerateClientKey struct {
 	sharedKeyStorage []byte
 	keySelection     KeyType
+	verification     *bool
 }
 
 // Build() pre-allocates the memory and structs required to Run() this cryptop.
@@ -58,6 +59,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 		keySlc := &KeysGenerateClientKey{
 			make([]byte, 0, 8192),
 			keySelection,
+			&round.MIC_Verification[i],
 		}
 		keys[i] = keySlc
 	}
@@ -84,12 +86,6 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
 
-	if in.CurrentID == globals.NIL_USER {
-		jww.ERROR.Printf("GenerateClientKey Run: Got NIL_USER")
-		in.CurrentKey.SetInt64(int64(1))
-		return in
-	}
-
 	user, _ := globals.Users.GetUser(in.CurrentID)
 
 	if user == nil {
@@ -105,10 +101,16 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 			user.Transmission.RecursiveKey, in.CurrentKey,
 			keys.sharedKeyStorage)
 	} else if keys.keySelection == RECEPTION {
+		if !*keys.verification {
+			jww.ERROR.Printf(
+				"Key Generation Failed: MIC failure detected.\n"+
+					"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
+		} else {
+			forward.GenerateSharedKey(group, user.Reception.BaseKey,
+				user.Reception.RecursiveKey, in.CurrentKey,
+				keys.sharedKeyStorage)
+		}
 
-		forward.GenerateSharedKey(group, user.Reception.BaseKey,
-			user.Reception.RecursiveKey, in.CurrentKey,
-			keys.sharedKeyStorage)
 	} else {
 		jww.FATAL.Panicf(
 			"Key Generation Failed: Invalid Key Selection.\n"+

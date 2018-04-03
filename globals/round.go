@@ -7,9 +7,9 @@
 package globals
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/services"
-	jww "github.com/spf13/jwalterweatherman"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -75,6 +75,9 @@ type Round struct {
 
 	// Array of Channels associated to each Phase of this Round
 	channels [NUM_PHASES]chan<- *services.Slot
+
+	// Array of status booleans to store the results of the MIC
+	MIC_Verification []bool
 }
 
 // Grp is the cyclic group that all operations are done within
@@ -209,7 +212,9 @@ func newRound(batchSize uint64, p Phase) *Round {
 		Y_V: make([]*cyclic.Int, batchSize),
 		Y_U: make([]*cyclic.Int, batchSize),
 
-		BatchSize: batchSize}
+		BatchSize: batchSize,
+
+		MIC_Verification: make([]bool, batchSize)}
 
 	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
 	NR.Z.SetBytes(cyclic.Max4kBitInt)
@@ -237,6 +242,8 @@ func newRound(batchSize uint64, p Phase) *Round {
 
 		NR.LastNode.MessagePrecomputation = nil
 		NR.LastNode.RecipientPrecomputation = nil
+
+		NR.MIC_Verification[i] = true
 	}
 	NR.phase = p
 	NR.phaseCond = &sync.Cond{L: &sync.Mutex{}}
@@ -265,5 +272,6 @@ func InitLastNode(round *Round) {
 		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedMessage[i] = cyclic.NewMaxInt()
+		round.MIC_Verification[i] = false
 	}
 }

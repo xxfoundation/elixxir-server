@@ -152,7 +152,6 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	}
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
 
-
 	// Generate debugging information
 	jww.DEBUG.Printf("R Value: %v, S Value: %v, T Value: %v",
 		round.R_INV[0].Text(10),
@@ -169,9 +168,12 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		// Add the InChannel from the controller to round
 		round.AddChannel(globals.REAL_IDENTIFY,
 			realtimeIdentifyController.InChannel)
+		//Add Verify on the end of Identify
+		realtimeVerifyController := services.DispatchCryptop(globals.Grp,
+			realtime.Verify{}, realtimeIdentifyController.OutChannel, nil, round)
 		// Kick off RealtimeIdentify Transmission Handler
 		services.BatchTransmissionDispatch(roundId, batchSize,
-			realtimeIdentifyController.OutChannel, RealtimeIdentifyHandler{})
+			realtimeVerifyController.OutChannel, RealtimeIdentifyHandler{})
 
 		// Create the controller for RealtimePeel
 		realtimePeelController := services.DispatchCryptop(globals.Grp,

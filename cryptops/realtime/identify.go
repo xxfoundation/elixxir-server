@@ -9,10 +9,7 @@
 package realtime
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/crypto/format"
-	"gitlab.com/privategrity/crypto/verification"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -71,28 +68,6 @@ func (i Identify) Run(g *cyclic.Group,
 	// Multiply EncryptedRecipientID by the precomputed value
 	g.Mul(in.EncryptedRecipient, keys.RecipientPrecomputation,
 		out.EncryptedRecipient)
-
-	// These lines remove the nonce on the recipient ID,
-	// so that the server can send the message to an untainted recipient
-	recip := format.DeserializeRecipient(out.EncryptedRecipient)
-	iv := recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN)
-	pmic := recip.GetRecipientMIC().LeftpadBytes(format.RMIC_LEN)
-	recpbytes := recip.GetRecipientID().LeftpadBytes(format.RID_LEN)
-
-	recipientMicList := [][]byte{iv, recpbytes}
-
-	valid := verification.CheckMic(recipientMicList, pmic)
-
-	//The second part of this line is a hack to make test pass at this stage
-	//TODO: Update tests so the second part of this line can be removed
-	if !valid && cyclic.NewIntFromBytes(pmic).Uint64() != 0 {
-		// TODO: Re-enforce MIC checking, requires fixing main test!!!
-		// out.EncryptedRecipient.SetUint64(globals.NIL_USER)
-		jww.ERROR.Printf("Recipient MIC failed, Recipient ID read as %v",
-			cyclic.NewIntFromBytes(recpbytes).Text(10))
-	} else {
-		out.EncryptedRecipient.SetBytes(recpbytes)
-	}
 
 	return out
 }

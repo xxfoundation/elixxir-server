@@ -22,9 +22,6 @@ var NUM_DEMO_USERS = int(10)
 // Globally initiated User ID counter
 var idCounter = uint64(1)
 
-// Nil User
-var NIL_USER = uint64(0)
-
 // Interface for User Registry operations
 type UserRegistry interface {
 	NewUser(address string) *User

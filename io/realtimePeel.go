@@ -28,8 +28,9 @@ func (h RealtimePeelHandler) Handler(
 	// Retrieve the EncryptedMessage
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*realtime.RealtimeSlot)
-		if slot.CurrentID == globals.NIL_USER {
-			jww.ERROR.Printf("Message to Nil User not queued")
+		round := globals.GlobalRoundMap.GetRound(roundId)
+		if !round.MIC_Verification[slot.Slot] {
+			jww.ERROR.Printf("Message corrupted, not queued")
 		} else {
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
 				slot.Message.Text(10))

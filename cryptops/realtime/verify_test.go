@@ -8,18 +8,17 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/format"
+	"gitlab.com/privategrity/crypto/verification"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
 
-func TestRealTimeIdentify(t *testing.T) {
+func TestRealTimeVerify(t *testing.T) {
 	var im []services.Slot
 	batchSize := uint64(2)
 	round := globals.NewRound(batchSize)
-	round.RecipientPrecomputation = make([]*cyclic.Int, batchSize)
-	round.RecipientPrecomputation[0] = cyclic.NewInt(42)
-	round.RecipientPrecomputation[1] = cyclic.NewInt(42)
 
 	grp := cyclic.NewGroup(cyclic.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
@@ -47,22 +46,30 @@ func TestRealTimeIdentify(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	invsprecomp := grp.Inverse(cyclic.NewInt(42), cyclic.NewInt(0))
-
-	encrRecp := grp.Mul(cyclic.NewInt(42),
-		invsprecomp, cyclic.NewInt(0))
+	recip, _ := format.NewRecipientPayload(42)
+	recip.GetRecipientInitVect().Set(cyclic.NewInt(1))
+	payloadMicList := [][]byte{
+		recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN),
+		recip.GetRecipientID().LeftpadBytes(format.RID_LEN),
+	}
+	recip.GetRecipientMIC().SetBytes(verification.GenerateMIC(payloadMicList,
+		format.RMIC_LEN))
 
 	im = append(im, &RealtimeSlot{
 		Slot:               0,
-		EncryptedRecipient: encrRecp})
+		EncryptedRecipient: recip.SerializeRecipient()})
 
 	im = append(im, &RealtimeSlot{
 		Slot:               1,
-		EncryptedRecipient: encrRecp})
+		EncryptedRecipient: recip.SerializeRecipient()})
 
-	ExpectedOutputs := []*cyclic.Int{cyclic.NewInt(42), cyclic.NewInt(42)}
+	im = append(im, &RealtimeSlot{
+		Slot:               2,
+		EncryptedRecipient: cyclic.NewInt(0)})
 
-	dc := services.DispatchCryptop(&grp, Identify{}, nil, nil, round)
+	ExpectedOutputs := []bool{true, true, false}
+
+	dc := services.DispatchCryptop(&grp, Verify{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &im[i]
@@ -71,17 +78,17 @@ func TestRealTimeIdentify(t *testing.T) {
 		rtn := (*trn).(*RealtimeSlot)
 		ExpectedOutput := ExpectedOutputs[i]
 
-		if rtn.EncryptedRecipient.Cmp(ExpectedOutput) != 0 {
-			t.Errorf("%v - Expected: %v, Got: %v", i, ExpectedOutput.Text(10),
-				rtn.EncryptedRecipient.Text(10))
+		if round.MIC_Verification[rtn.Slot] != ExpectedOutput {
+			t.Errorf("%v - Expected: %v, Got: %v", i, round.MIC_Verification[rtn.Slot],
+				ExpectedOutput)
 		}
 	}
 }
 
 // Smoke test test the identify function
-func TestIdentifyRun(t *testing.T) {
-	keys := KeysIdentify{
-		RecipientPrecomputation: cyclic.NewInt(69)}
+func TestVerifyRun(t *testing.T) {
+	keys := KeysVerify{
+		Verification: new(bool)}
 
 	grp := cyclic.NewGroup(cyclic.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
@@ -109,27 +116,43 @@ func TestIdentifyRun(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	invsprecomp := grp.Inverse(cyclic.NewInt(69), cyclic.NewInt(0))
-
-	encrRecp := grp.Mul(cyclic.NewInt(42),
-		invsprecomp, cyclic.NewInt(0))
+	recip, _ := format.NewRecipientPayload(42)
+	recip.GetRecipientInitVect().Set(cyclic.NewInt(1))
+	payloadMicList := [][]byte{
+		recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN),
+		recip.GetRecipientID().LeftpadBytes(format.RID_LEN),
+	}
+	recip.GetRecipientMIC().SetBytes(verification.GenerateMIC(payloadMicList,
+		format.RMIC_LEN))
 
 	im := RealtimeSlot{
 		Slot:               0,
-		EncryptedRecipient: encrRecp}
+		EncryptedRecipient: recip.SerializeRecipient()}
 
 	om := RealtimeSlot{
 		Slot:               0,
 		EncryptedRecipient: cyclic.NewInt(0)}
 
-	ExpectedOutput := cyclic.NewInt(42)
+	verify := Verify{}
+	verify.Run(&grp, &im, &om, &keys)
 
-	// Identify(&grp, EncryptedRecipient, DecryptedRecipient, RecipientPrecomp)
-	identify := Identify{}
-	identify.Run(&grp, &im, &om, &keys)
+	if !*keys.Verification {
+		t.Errorf("Expected: %v, Got: %v", true,
+			*keys.Verification)
+	}
 
-	if om.EncryptedRecipient.Cmp(ExpectedOutput) != 0 {
-		t.Errorf("Expected: %v, Got: %v", ExpectedOutput.Text(10),
-			om.EncryptedRecipient.Text(10))
+	im = RealtimeSlot{
+		Slot:               0,
+		EncryptedRecipient: cyclic.NewInt(0)}
+
+	om = RealtimeSlot{
+		Slot:               0,
+		EncryptedRecipient: cyclic.NewInt(0)}
+
+	verify.Run(&grp, &im, &om, &keys)
+
+	if *keys.Verification {
+		t.Errorf("Expected: %v, Got: %v", false,
+			*keys.Verification)
 	}
 }
