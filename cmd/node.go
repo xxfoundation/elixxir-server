@@ -69,6 +69,7 @@ func RunPrecomputation(RoundCh chan *string) {
 			// Begin the round on all nodes
 			startTime := time.Now()
 			roundId := globals.PeekNextRoundID()
+
 			jww.INFO.Printf("Precomputation phase with Round ID %s started at %s\n",
 				roundId, startTime.Format(time.RFC3339))
 			io.BeginNewRound(io.Servers, roundId)
@@ -76,6 +77,15 @@ func RunPrecomputation(RoundCh chan *string) {
 			// map
 			// go func(RoundCh chan *string, roundId string) {
 			round := globals.GlobalRoundMap.GetRound(roundId)
+
+			// If a round takes more than 5 minutes to compute, fail it
+			roundTimeout := time.Timer(5 * time.Minute)
+			go func() {
+				<-roundTimeout.C
+				round.SetPhase(globals.ERROR)
+			}()
+
+			// Wait until the round completes to continue
 			round.WaitUntilPhase(globals.WAIT)
 			if round.GetPhase() == globals.ERROR {
 				jww.FATAL.Panicf("Fatal error occurred during precomputation of " +
@@ -88,7 +98,7 @@ func RunPrecomputation(RoundCh chan *string) {
 				int64(endTime.Sub(startTime)/time.Millisecond))
 			RoundCh <- &roundId
 			// }(RoundCh, roundId)
-			// Wait at least a second before kicking off another round
+			// Wait at least a second before kicking off another precomputation
 			time.Sleep(1000 * time.Millisecond)
 		} else {
 			time.Sleep(500 * time.Millisecond)
