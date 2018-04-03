@@ -160,7 +160,7 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{
 		RoundID: roundId,
-		LastOp:  int32(globals.WAIT),
+		LastOp:  int32(globals.PRECOMP_COMPLETE),
 		Slots:   make([]*pb.RealtimeDecryptSlot, batchSize),
 	}
 

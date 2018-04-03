@@ -34,8 +34,9 @@ const (
 	// Precomputation Strip: Decrypts the Precomputation
 	PRECOMP_STRIP
 
-	// Wait: Precomputation has finished but Realtime hasn't started
-	WAIT
+	// Precomputation Complete: Precomputation has finished but Realtime hasn't
+	//                          started
+	PRECOMP_COMPLETE
 
 	// Realtime Decrypt: Removes Transmission Keys and add first Keys
 	REAL_DECRYPT
@@ -71,7 +72,7 @@ func (p Phase) String() string {
 		phaseNames = [...]string{"OFF", "PRECOMP_GENERATION",
 			"PRECOMP_SHARE", "PRECOMP_DECRYPT", "PRECOMP_PERMUTE",
 			"PRECOMP_ENCRYPT", "PRECOMP_REVEAL", "PRECOMP_STRIP",
-			"WAIT", "REAL_DECRYPT", "REAL_PERMUTE",
+			"PRECOMP_COMPLETE", "REAL_DECRYPT", "REAL_PERMUTE",
 			"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "DONE",
 			"ERROR"}
 	}

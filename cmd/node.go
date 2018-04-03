@@ -81,8 +81,8 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			jww.INFO.Printf("Precomputation phase with Round ID %s started at %s\n",
 				roundId, startTime.Format(time.RFC3339))
 			io.BeginNewRound(io.Servers, roundId)
-			// Wait for round to be in the WAIT state before adding it to the round
-			// map
+			// Wait for round to be in the PRECOMP_COMPLETE state before
+			// adding it to the round map
 			// go func(RoundCh chan *string, roundId string) {
 			round := globals.GlobalRoundMap.GetRound(roundId)
 
@@ -90,13 +90,13 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			roundTimeout := time.NewTimer(5 * time.Minute)
 			go func() {
 				<-roundTimeout.C
-				if round.GetPhase() < globals.WAIT {
+				if round.GetPhase() < globals.PRECOMP_COMPLETE {
 					round.SetPhase(globals.ERROR)
 				}
 			}()
 
 			// Wait until the round completes to continue
-			round.WaitUntilPhase(globals.WAIT)
+			round.WaitUntilPhase(globals.PRECOMP_COMPLETE)
 			roundTimeout.Stop()
 			if round.GetPhase() == globals.ERROR {
 				jww.FATAL.Panicf("Fatal error occurred during precomputation of " +
