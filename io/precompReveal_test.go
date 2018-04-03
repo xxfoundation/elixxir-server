@@ -17,8 +17,11 @@ func TestPrecompReveal(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
+	globals.InitLastNode(round)
+	IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_REVEAL)
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)
@@ -28,13 +31,15 @@ func TestPrecompReveal(t *testing.T) {
 	round.AddChannel(globals.PRECOMP_REVEAL, chIn)
 	// Kick off PrecompReveal Transmission Handler
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
-		chOut, PrecompRevealHandler{})
+		chOut, PrecompEncryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot: uint64(0),
 		MessagePrecomputation:     cyclic.NewInt(3),
 		RecipientIDPrecomputation: cyclic.NewInt(10),
+		RecipientIDCypher:         cyclic.NewInt(1),
+		MessageCypher:             cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Reveal's TransmissionHandler

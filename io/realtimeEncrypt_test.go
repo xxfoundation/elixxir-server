@@ -18,6 +18,8 @@ func TestRealtimeEncrypt(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
+	globals.InitLastNode(round)
+	IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -29,13 +31,14 @@ func TestRealtimeEncrypt(t *testing.T) {
 	round.AddChannel(globals.REAL_ENCRYPT, chIn)
 	// Kick off RealtimeEncrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
-		chOut, RealtimeEncryptHandler{})
-
+		chOut, RealtimeIdentifyHandler{})
+	round.LastNode.EncryptedMessage[0] = cyclic.NewInt(7)
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.RealtimeSlot{
 		Slot:      uint64(0),
 		CurrentID: uint64(42),
 		Message:   cyclic.NewInt(7),
+		EncryptedRecipient: cyclic.NewInt(42),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler

@@ -52,6 +52,9 @@ func (h RealtimeIdentifyHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	// Advance internal state to the next phase
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_ENCRYPT)
+
 	// Send the first RealtimeEncrypt Message
 	sendTime := time.Now()
 	jww.INFO.Printf("Sending RealtimeEncrypt Messages to %v at %s",

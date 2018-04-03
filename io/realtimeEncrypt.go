@@ -118,11 +118,15 @@ func (h RealtimeEncryptHandler) Handler(
 		// Transition to RealtimePeel phase
 		jww.INFO.Printf("Starting RealtimePeel Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_PEEL)
 		realtimeEncryptLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed RealtimeEncryptMessage
 		jww.INFO.Printf("Sending RealtimeEncrypt Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.DONE)
 		clusterclient.SendRealtimeEncrypt(NextServer, msg)
 	}
 

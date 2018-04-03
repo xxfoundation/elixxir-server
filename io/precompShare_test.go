@@ -7,17 +7,53 @@
 package io
 
 import (
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"testing"
 )
+
+type DummyPrecompShareHandler struct{}
+func (h DummyPrecompShareHandler) Handler(
+	roundId string, batchSize uint64, slots []*services.Slot) {
+	// Create the PrecompShareMessage
+	msg := &pb.PrecompShareMessage{
+		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_SHARE),
+		Slots:   make([]*pb.PrecompShareSlot, batchSize),
+	}
+
+	// Iterate over the output channel
+	for i := uint64(0); i < batchSize; i++ {
+		// Type assert Slot to SlotShare
+		out := (*slots[i]).(*precomputation.SlotShare)
+		// Convert to PrecompShareSlot
+		msgSlot := &pb.PrecompShareSlot{
+			Slot: out.Slot,
+			PartialRoundPublicCypherKey: out.
+				PartialRoundPublicCypherKey.Bytes(),
+		}
+
+		// Put it into the slice
+		msg.Slots[i] = msgSlot
+	}
+
+	// Advance internal state to PRECOMP_DECRYPT (the next phase)
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+
+	// Send the completed PrecompShareMessage
+	clusterclient.SendPrecompShare(NextServer, msg)
+}
+
 
 func TestPrecompShare(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
+	IsLastNode = false
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -34,7 +70,7 @@ func TestPrecompShare(t *testing.T) {
 	round.AddChannel(globals.PRECOMP_SHARE, chIn)
 	// Kick off PrecompShare Transmission Handler
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
-		chOut, PrecompShareHandler{})
+		chOut, DummyPrecompShareHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.SlotShare{

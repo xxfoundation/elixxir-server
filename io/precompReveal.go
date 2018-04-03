@@ -119,6 +119,8 @@ func (h PrecompRevealHandler) Handler(
 	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to PrecompStrip phase
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_STRIP)
 		jww.INFO.Printf("Starting PrecompStrip Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
 		precompRevealLastNode(roundId, batchSize, msg)
@@ -126,6 +128,8 @@ func (h PrecompRevealHandler) Handler(
 		// Send the completed PrecompRevealMessage
 		jww.INFO.Printf("Sending PrecompReveal Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_DECRYPT)
 		clusterclient.SendPrecompReveal(NextServer, msg)
 	}
 

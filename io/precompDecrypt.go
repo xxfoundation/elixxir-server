@@ -134,6 +134,9 @@ func (h PrecompDecryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	// Advance internal state to PRECOMP_DECRYPT (the next phase)
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_PERMUTE)
+
 	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to PrecompPermute phase

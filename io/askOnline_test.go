@@ -1,26 +1,19 @@
 package io
 
 import (
-	"net"
+	"time"
 	"testing"
 )
 
 func TestVerifyServersOnline(t *testing.T) {
-
-	// (Static) IP of the last node
-	server := "13.56.70.255:11420"
-
-	test := 1
-	pass := 0
-
-	conn, err := net.Dial("tcp", server)
-	if err != nil {
-		t.Errorf("Error:Program could not connect to last node!")
-	} else {
-		pass++
+	done := 0
+	servers := [1]string{ "localhost:5555" }
+	go func(d *int) {
+		time.Sleep(2 * time.Second)
+		*d = 1
+	}(&done)
+	VerifyServersOnline(servers[:])
+	if done == 1 {
+		t.Errorf("Could not verify servers in less than 2 seconds!")
 	}
-
-	defer conn.Close()
-
-	println("AskOnline test", pass, "out of", test, "tests passed.")
 }

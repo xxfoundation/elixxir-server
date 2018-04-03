@@ -182,62 +182,13 @@ func TestNewRoundWithPhase(t *testing.T) {
 	}
 }
 
-func TestIncrementPhase(t *testing.T) {
+func TestSetPhase(t *testing.T) {
 	round := &Round{}
 	round.phaseLock = &sync.Mutex{}
-
-	for p := OFF; p < DONE; p++ {
-		for q := OFF; q < NUM_PHASES; q++ {
-			round.phase = p
-
-			err := round.IncrementPhase(q)
-
-			if (p+1 != q) && err == nil {
-				t.Errorf("Test of IncrementPhase() did not find an error on Phase %v which tried to increment to  %v", p.String(), q.String())
-			}
-
-			if (p+1 == q) && err != nil {
-				t.Errorf("Test of IncrementPhase() found an error on Phase %v when trying to increment to phase %v which read: %v", p.String(), q.String(), err.Error())
-			}
-
-		}
-	}
-
-	round.phase = DONE
-
-	for p := OFF; p < NUM_PHASES; p++ {
-		err := round.IncrementPhase(p)
-
-		if err == nil {
-			t.Errorf("Test of IncrementPhase() on DONE did not find an error when incrementing to Phase %v", p.String())
-		}
-
-	}
-
-	round.phase = ERROR
-
-	for p := OFF; p < NUM_PHASES; p++ {
-		err := round.IncrementPhase(p)
-
-		if err == nil {
-			t.Errorf("Test of IncrementPhase() on ERROR did not find an error when incrementing to Phase %v", p.String())
-		}
-
-	}
-
-}
-
-func TestError(t *testing.T) {
-	round := &Round{}
-	round.phaseLock = &sync.Mutex{}
-
-	for p := OFF; p < NUM_PHASES; p++ {
-		round.phase = p
-
-		round.Error()
-
-		if round.phase != ERROR {
-			t.Errorf("Test of Error() failed on Phase %v", p.String())
+	for q := Phase(OFF); q < NUM_PHASES; q++ {
+		round.SetPhase(q)
+		if (round.phase != q) {
+			t.Errorf("Failed to set phase to %d!", q)
 		}
 	}
 }

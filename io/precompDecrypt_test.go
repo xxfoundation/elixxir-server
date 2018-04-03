@@ -6,12 +6,49 @@
 package io
 
 import (
+	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/comms/clusterclient"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
 )
+
+type DummyPrecompDecryptHandler struct{}
+func (h DummyPrecompDecryptHandler) Handler(
+	roundId string, batchSize uint64, slots []*services.Slot) {
+	// Create the PrecompDecryptMessage
+	msg := &pb.PrecompDecryptMessage{
+		RoundID: roundId,
+		LastOp:  int32(globals.PRECOMP_DECRYPT),
+		Slots:   make([]*pb.PrecompDecryptSlot, batchSize),
+	}
+
+	// Iterate over the output channel
+	for i := uint64(0); i < batchSize; i++ {
+		// Type assert Slot to SlotDecrypt
+		out := (*slots[i]).(*precomputation.PrecomputationSlot)
+		// Convert to PrecompDecryptSlot
+		msgSlot := &pb.PrecompDecryptSlot{
+			Slot:                         out.Slot,
+			EncryptedMessageKeys:         out.MessageCypher.Bytes(),
+			EncryptedRecipientIDKeys:     out.RecipientIDCypher.Bytes(),
+			PartialMessageCypherText:     out.MessagePrecomputation.Bytes(),
+			PartialRecipientIDCypherText: out.RecipientIDPrecomputation.Bytes(),
+		}
+
+		// Append the PrecompDecryptSlot to the PrecompDecryptMessage
+		msg.Slots[i] = msgSlot
+	}
+
+	// Advance internal state to PRECOMP_DECRYPT (the next phase)
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
+
+	// Send the completed PrecompDecryptMessage
+	clusterclient.SendPrecompDecrypt(NextServer, msg)
+}
+
 
 func TestPrecompDecrypt(t *testing.T) {
 	// Create a new Round
@@ -28,7 +65,7 @@ func TestPrecompDecrypt(t *testing.T) {
 	round.AddChannel(globals.PRECOMP_DECRYPT, chIn)
 	// Kick off PrecompDecrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
-		chOut, PrecompDecryptHandler{})
+		chOut, DummyPrecompDecryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
