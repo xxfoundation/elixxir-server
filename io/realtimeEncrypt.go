@@ -126,7 +126,7 @@ func (h RealtimeEncryptHandler) Handler(
 		jww.INFO.Printf("Sending RealtimeEncrypt Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
 		// Advance internal state to the next phase
-		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.DONE)
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_COMPLETE)
 		clusterclient.SendRealtimeEncrypt(NextServer, msg)
 	}
 

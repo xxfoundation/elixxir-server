@@ -43,7 +43,7 @@ func (h RealtimePeelHandler) Handler(
 		}
 	}
 
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.DONE)
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_COMPLETE)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimePeel.Handler(RoundId: %s) in %d ms",

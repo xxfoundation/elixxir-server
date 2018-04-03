@@ -57,7 +57,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 			// Wait for the realtime phase to complete and record the elapsed time
 			go func(roundId string, startTime time.Time) {
 				round := globals.GlobalRoundMap.GetRound(roundId)
-				round.WaitUntilPhase(globals.DONE)
+				round.WaitUntilPhase(globals.REAL_COMPLETE)
 				endTime := time.Now()
 				jww.INFO.Printf("Realtime phase with Round ID %s finished at %s!\n",
 					roundId, endTime.Format(time.RFC3339))

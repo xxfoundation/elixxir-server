@@ -53,8 +53,8 @@ const (
 	// Realtime Peel: Uses Precomputation to prepare slots for Reception
 	REAL_PEEL
 
-	// Done: Round has been completed
-	DONE
+	// Realtime Complete: Round has been completed
+	REAL_COMPLETE
 
 	// Error: A Fatal Error has occurred, cannot continue
 	ERROR
@@ -73,7 +73,7 @@ func (p Phase) String() string {
 			"PRECOMP_SHARE", "PRECOMP_DECRYPT", "PRECOMP_PERMUTE",
 			"PRECOMP_ENCRYPT", "PRECOMP_REVEAL", "PRECOMP_STRIP",
 			"PRECOMP_COMPLETE", "REAL_DECRYPT", "REAL_PERMUTE",
-			"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "DONE",
+			"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "REAL_COMPLETE",
 			"ERROR"}
 	}
 
