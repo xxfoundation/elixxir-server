@@ -57,24 +57,25 @@ func RunPrecomputation(RoundCh chan *string) {
 	for {
 		if len(RoundCh) < 10 {
 			// Begin the round on all nodes
+			startTime := time.Now()
 			roundId := globals.PeekNextRoundID()
-			jww.INFO.Printf("Beginning Precomputation Phase with Round ID %s...\n",
-				roundId)
+			jww.INFO.Printf("Precomputation phase with Round ID %s started at %s\n",
+				roundId, startTime.Format(time.RFC3339))
 			io.BeginNewRound(io.Servers, roundId)
 			// Wait for round to be in the WAIT state before adding it to the round
 			// map
 			// go func(RoundCh chan *string, roundId string) {
 			round := globals.GlobalRoundMap.GetRound(roundId)
-			for (round.GetPhase() != globals.WAIT &&
-				round.GetPhase() != globals.ERROR) {
-				time.Sleep(100*time.Millisecond)
-			}
+			round.WaitUntilPhase(globals.WAIT)
 			if round.GetPhase() == globals.ERROR {
 				jww.FATAL.Panicf("Fatal error occurred during precomputation of " +
 					"round %s", roundId)
 			}
-			jww.INFO.Printf("Finished Precomputation Phase with " +
-				"Round ID %s at %s!\n", roundId, time.Now().Format(time.RFC3339))
+			endTime := time.Now()
+			jww.INFO.Printf("Precomputation phase with Round ID %s finished at %s!\n",
+				roundId, endTime.Format(time.RFC3339))
+			jww.INFO.Printf("Precomputation phase completed in %s ms",
+				(endTime.Sub(startTime)/time.Millisecond))
 			RoundCh <- &roundId
 			// }(RoundCh, roundId)
 			// Wait at least a second before kicking off another round
