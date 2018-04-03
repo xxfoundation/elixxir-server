@@ -7,19 +7,25 @@
 package io
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/comms/clusterclient"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+
+	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"time"
 )
 
 // Comms method for kicking off a new round in CMIX
 func (s ServerImpl) NewRound(clusterRoundID string) {
+	startTime := time.Now()
+	jww.INFO.Printf("Starting NewRound(RoundId: %s) at %s",
+		clusterRoundID,
+		startTime.Format(time.RFC3339))
+
 	batchSize := globals.BatchSize
 	roundId := globals.GetNextRoundID()
 	jww.INFO.Printf("Received Cluster Round ID: %s\n", clusterRoundID)
@@ -37,6 +43,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	if IsLastNode {
 		globals.InitLastNode(round)
 	}
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_GENERATION)
 
 	// Create the controller for PrecompShare
 	// Note: Share requires a batchSize of 1
@@ -143,6 +150,8 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		precompGenerationController.InChannel <- &genMsg
 		_ = <-precompGenerationController.OutChannel
 	}
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+
 
 	// Generate debugging information
 	jww.DEBUG.Printf("R Value: %v, S Value: %v, T Value: %v",
@@ -189,22 +198,33 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		PrecompShareHandler{}.Handler(roundId, uint64(1),
 			[]*services.Slot{&shareMsg})
 	}
-	jww.DEBUG.Println("New Round Complete for round: %s, time: %v",
-		clusterRoundID, time.Now().Nanosecond())
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished NewRound(RoundId: %s) in %d ms",
+		clusterRoundID, (endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Blocks until all given servers begin a new round
 func BeginNewRound(servers []string, RoundID string) {
+	startTime := time.Now()
+	jww.INFO.Printf("[Last Node] Starting BeginNewRound(RoundId: %s) at %s",
+		RoundID, startTime.Format(time.RFC3339))
+
 	for i := 0; i < len(servers); {
 		jww.DEBUG.Printf("Sending NewRound message to %s...\n", servers[i])
 		_, err := clusterclient.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to begin new round!\n", i,
 				servers[i])
+			// FIXME: Why aren't we retrying or something?
 			time.Sleep(250 * time.Millisecond)
 		} else {
 			jww.DEBUG.Printf("%v: Server %s began new round!\n", i, servers[i])
 			i++
 		}
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("[Last Node] Finished BeginNewRound(RoundId: %s) in %d ms",
+		RoundID, (endTime.Sub(startTime))/time.Millisecond)
 }

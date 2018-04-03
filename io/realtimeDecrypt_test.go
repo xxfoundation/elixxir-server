@@ -18,18 +18,16 @@ func TestRealtimeDecrypt(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
+	globals.InitLastNode(round)
+	IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)
-	chOut := make(chan *services.Slot, round.BatchSize)
 
 	// Add the InChannel from the controller to round
 	round.AddChannel(globals.REAL_DECRYPT, chIn)
-	// Kick off RealtimeDecrypt Transmission Handler
-	services.BatchTransmissionDispatch(roundId, round.BatchSize,
-		chOut, RealtimeDecryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.RealtimeSlot{
@@ -39,9 +37,10 @@ func TestRealtimeDecrypt(t *testing.T) {
 		EncryptedRecipient: cyclic.NewInt(3),
 	}
 
-	// Pass slot as input to Decrypt's TransmissionHandler
-	chOut <- &slot
-
+	slots := [1]*realtime.RealtimeSlot{ slot.(*realtime.RealtimeSlot) }
+	NextServer = "localhost:5555"
+	KickoffDecryptHandler(roundId, uint64(1), slots[:])
+	
 	// Which should be populated into chIn once received
 	received := <-chIn
 

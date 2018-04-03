@@ -14,6 +14,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"time"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -21,8 +22,11 @@ type RealtimePermuteHandler struct{}
 
 // ReceptionHandler for RealtimePermuteMessages
 func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
-	jww.DEBUG.Printf("Received RealtimePermute Message %v from phase %s...",
-		input.RoundID, globals.Phase(input.LastOp).String())
+	startTime := time.Now()
+	jww.INFO.Printf("Starting RealtimePermute(RoundId: %s, Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
+
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
@@ -39,12 +43,26 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		// Pass slot as input to Permute's channel
 		chIn <- &slot
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished RealtimePermute(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Transition to RealtimeIdentify phase on the last node
 func realtimePermuteLastNode(roundId string, batchSize uint64,
 	input *pb.RealtimePermuteMessage) {
-	jww.INFO.Println("Beginning RealtimeIdentify Phase...")
+
+	startTime := time.Now()
+	jww.INFO.Printf("[Last Node] Initializing RealtimeIdentify(RoundId: %s, " +
+		"Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
+
+	// TODO: record the start time for this round here,
+	//       and print the time it took for the last phase to complete.
+
 	// Get round and channel
 	round := globals.GlobalRoundMap.GetRound(roundId)
 	identifyChannel := round.GetChannel(globals.REAL_IDENTIFY)
@@ -61,11 +79,21 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 		// Pass slot as input to Identify's channel
 		identifyChannel <- &slot
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("[Last Node] Finished Initializing " +
+		"RealtimeIdentify(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for RealtimePermuteMessages
 func (h RealtimePermuteHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
+	startTime := time.Now()
+	jww.INFO.Printf("Starting RealtimePermute.Handler(RoundId: %s) at %s",
+		roundId, startTime.Format(time.RFC3339))
+
 	// Create the RealtimePermuteMessage for sending
 	msg := &pb.RealtimePermuteMessage{
 		RoundID: roundId,
@@ -88,12 +116,24 @@ func (h RealtimePermuteHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to RealtimeIdentify phase
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_IDENTIFY)
+		jww.INFO.Printf("Starting RealtimeIdentify Phase to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
 		realtimePermuteLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed RealtimePermuteMessage
-		jww.DEBUG.Printf("Sending RealtimePermute Message to %v...", NextServer)
+		// Advance internal state to the next phase
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_ENCRYPT)
+		jww.INFO.Printf("Sending RealtimePermute Message to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendRealtimePermute(NextServer, msg)
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished RealtimePermute.Handler(RoundId: %s) in %d ms",
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

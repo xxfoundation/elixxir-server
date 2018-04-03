@@ -7,13 +7,15 @@
 package io
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/comms/clusterclient"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+
+	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/privategrity/comms/mixmessages"
+	"time"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -21,8 +23,11 @@ type PrecompPermuteHandler struct{}
 
 // ReceptionHandler for PrecompPermuteMessages
 func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
-	jww.DEBUG.Printf("Received PrecompPermute Message %v from phase %s...",
-		input.RoundID, globals.Phase(input.LastOp).String())
+	startTime := time.Now()
+	jww.INFO.Printf("Starting PrecompPermute(RoundId: %s, Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
+
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_PERMUTE)
 	// Iterate through the Slots in the PrecompPermuteMessage
@@ -43,6 +48,11 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 		// Pass slot as input to Permute's channel
 		chIn <- &slot
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished PrecompPermute(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Save the recipient cyphertext and the encrypted recipient precomputation,
@@ -51,7 +61,16 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 // Transition to PrecompEncrypt phase on the last node
 func precompPermuteLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompPermuteMessage) {
-	jww.INFO.Println("Beginning PrecompEncrypt Phase...")
+
+	startTime := time.Now()
+	jww.INFO.Printf("[Last Node] Initializing PrecompEncrypt(RoundId: %s, " +
+		"Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
+
+	// TODO: record the start precomp permute time for this round here,
+	//       and print the time it took for the Decrypt phase to complete.
+
 	// Create the PrecompEncryptMessage for sending
 	msg := &pb.PrecompEncryptMessage{
 		RoundID: roundId,
@@ -81,16 +100,28 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 	}
 
 	// Send the first PrecompEncrypt Message
-	jww.DEBUG.Printf("Sending PrecompEncrypt Message to %v...", NextServer)
+	sendTime := time.Now()
+	jww.INFO.Printf("[Last Node] Sending PrecompEncrypt Messages to %v at %s",
+		NextServer, sendTime.Format(time.RFC3339))
 	clusterclient.SendPrecompEncrypt(NextServer, msg)
+
+	endTime := time.Now()
+	jww.INFO.Printf("[Last Node] Finished Initializing " +
+		"PrecompEncrypt(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for PrecompPermuteMessages
 func (h PrecompPermuteHandler) Handler(
-	roundID string, batchSize uint64, slots []*services.Slot) {
+	roundId string, batchSize uint64, slots []*services.Slot) {
+	startTime := time.Now()
+	jww.INFO.Printf("Starting PrecompPermute.Handler(RoundId: %s) at %s",
+		roundId, startTime.Format(time.RFC3339))
+
 	// Create the PrecompPermuteMessage for sending
 	msg := &pb.PrecompPermuteMessage{
-		RoundID: roundID,
+		RoundID: roundId,
 		LastOp:  int32(globals.PRECOMP_PERMUTE),
 		Slots:   make([]*pb.PrecompPermuteSlot, batchSize),
 	}
@@ -112,12 +143,23 @@ func (h PrecompPermuteHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	// Advance internal state to PRECOMP_PERMUTE (the next phase)
+	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_ENCRYPT)
+
+	sendTime := time.Now()
 	if IsLastNode {
 		// Transition to PrecompEncrypt phase
-		precompPermuteLastNode(roundID, batchSize, msg)
+		jww.INFO.Printf("Starting PrecompEncrypt Phase to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
+		precompPermuteLastNode(roundId, batchSize, msg)
 	} else {
 		// Send the completed PrecompPermuteMessage
-		jww.DEBUG.Printf("Sending PrecompPermute Message to %v...", NextServer)
+		jww.INFO.Printf("Sending PrecompPermute Message to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendPrecompPermute(NextServer, msg)
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished PrecompPermute.Handler(RoundId: %s) in %d ms",
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

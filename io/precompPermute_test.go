@@ -18,6 +18,8 @@ func TestPrecompPermute(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
+	globals.InitLastNode(round)
+	IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -29,7 +31,7 @@ func TestPrecompPermute(t *testing.T) {
 	round.AddChannel(globals.PRECOMP_PERMUTE, chIn)
 	// Kick off PrecompPermute Transmission Handler
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
-		chOut, PrecompPermuteHandler{})
+		chOut, PrecompDecryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{

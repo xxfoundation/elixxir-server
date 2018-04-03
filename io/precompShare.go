@@ -7,13 +7,14 @@
 package io
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/comms/clusterclient"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+
+	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"time"
 )
 
@@ -22,10 +23,11 @@ type PrecompShareHandler struct{}
 
 // ReceptionHandler for PrecompShareMessages
 func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
-	jww.DEBUG.Printf("Received PrecompShare Message %v from phase %s on"+
-		" round %s time: %v...",
-		input.RoundID, globals.Phase(input.LastOp).String(), input.RoundID,
-		time.Now().Nanosecond())
+	startTime := time.Now()
+	jww.INFO.Printf("Starting PrecompShare(RoundId: %s, Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
+
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_SHARE)
 	// Iterate through the Slots in the PrecompShareMessage
@@ -40,6 +42,11 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 		// Pass slot as input to Share's channel
 		chIn <- &slot
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished PrecompShare(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TODO finish implementing this stubbed-out method
@@ -53,6 +60,16 @@ func (s ServerImpl) PrecompShareInit(*pb.PrecompShareInitMessage) {}
 
 // Transition to PrecompDecrypt phase on the last node
 func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
+
+	startTime := time.Now()
+	jww.INFO.Printf("[Last Node] Initializing PrecompDecrypt(RoundId: %s, " +
+		"Phase: %s) at %s",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		startTime.Format(time.RFC3339))
+
+	// TODO: record the start precomp decrypt time for this round here,
+	//       and print the time it took for the Decrypt phase to complete.
+
 	// Force batchSize to be the same as the round
 	// as the batchSize we need may be inconsistent
 	// with the Share phase batchSize
@@ -67,9 +84,6 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 			PublicKey: input.Slots[0].PartialRoundPublicCypherKey,
 		})
 	}
-
-	// Kick off the PrecompDecrypt phase
-	jww.INFO.Println("Beginning PrecompDecrypt Phase...")
 
 	// Create the PrecompDecryptMessage
 	msg := &pb.PrecompDecryptMessage{
@@ -92,13 +106,25 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	}
 
 	// Send first PrecompDecrypt Message
-	jww.DEBUG.Printf("Sending PrecompDecrypt Message to %v...", NextServer)
+	sendTime := time.Now()
+	jww.INFO.Printf("[Last Node] Sending PrecompDecrypt Messages to %v at %s",
+		NextServer, sendTime.Format(time.RFC3339))
 	clusterclient.SendPrecompDecrypt(NextServer, msg)
+
+	endTime := time.Now()
+	jww.INFO.Printf("[Last Node] Finished Initializing " +
+		"PrecompDecrypt(RoundId: %s, Phase: %s) in %d ms",
+		input.RoundID, globals.Phase(input.LastOp).String(),
+		(endTime.Sub(startTime))/time.Millisecond)
 }
 
 // TransmissionHandler for PrecompShareMessages
 func (h PrecompShareHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
+	startTime := time.Now()
+	jww.INFO.Printf("Starting PrecompShare.Handler(RoundId: %s) at %s",
+		roundId, startTime.Format(time.RFC3339))
+
 	// Create the PrecompShareMessage
 	msg := &pb.PrecompShareMessage{
 		RoundID: roundId,
@@ -121,15 +147,31 @@ func (h PrecompShareHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
+	sendTime := time.Now()
 	// Returns whether this is the first time Share is being run TODO Something better
 	IsFirstRun := (*slots[0]).(*precomputation.SlotShare).PartialRoundPublicCypherKey.Cmp(globals.Grp.G) == 0
+
+	// Advance internal state to the next phase
+	if IsLastNode && IsFirstRun {
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+	} else {
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
+	}
+
 	if IsLastNode && !IsFirstRun {
 		// Transition to PrecompDecrypt phase
 		// if we are last node and this isn't the first run
+		jww.INFO.Printf("Starting PrecompDecrypt Phase to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
 		precompShareLastNode(roundId, msg)
 	} else {
 		// Send the completed PrecompShareMessage
-		jww.DEBUG.Printf("Sending PrecompShare Message to %v...", NextServer)
+		jww.INFO.Printf("Sending PrecompShare Message to %v at %s",
+			NextServer, sendTime.Format(time.RFC3339))
 		clusterclient.SendPrecompShare(NextServer, msg)
 	}
+
+	endTime := time.Now()
+	jww.INFO.Printf("Finished PrecompShare.Handler(RoundId: %s) in %d ms",
+		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }
