@@ -147,12 +147,17 @@ func (h PrecompShareHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
-	// Advance internal state to PRECOMP_DECRYPT (the next phase)
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
-
 	sendTime := time.Now()
 	// Returns whether this is the first time Share is being run TODO Something better
 	IsFirstRun := (*slots[0]).(*precomputation.SlotShare).PartialRoundPublicCypherKey.Cmp(globals.Grp.G) == 0
+
+	// Advance internal state to the next phase
+	if IsLastNode && IsFirstRun {
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+	} else {
+		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
+	}
+
 	if IsLastNode && !IsFirstRun {
 		// Transition to PrecompDecrypt phase
 		// if we are last node and this isn't the first run
