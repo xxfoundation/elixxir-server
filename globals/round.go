@@ -71,7 +71,7 @@ type Round struct {
 
 	// Phase fields
 	phase     Phase
-	phaseLock *sync.Mutex
+	phaseCond *sync.Cond
 
 	// Array of Channels associated to each Phase of this Round
 	channels [NUM_PHASES]chan<- *services.Slot
@@ -139,6 +139,18 @@ func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
 	round.channels[chanId] = newChan
 }
 
+// Returns when the provided round reaches the specified phase
+// Returns immediately if the phase has already past or it is in
+// an error state.
+func (round *Round) WaitUntilPhase(phase Phase) {
+	round.phaseCond.L.Lock() // This must be held when calling wait
+	for round.phase < phase {
+		jww.WARN.Printf("Current Phase State: %s", round.phase.String())
+		round.phaseCond.Wait()
+	}
+	round.phaseCond.L.Unlock()
+}
+
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
 func NewRound(batchSize uint64) *Round {
@@ -152,21 +164,24 @@ func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
 
 // Returns a copy of the current phase
 func (round *Round) GetPhase() Phase {
-	round.phaseLock.Lock()
-	rp := round.phase
-	round.phaseLock.Unlock()
-	return rp
+	round.phaseCond.L.Lock()
+	p := round.phase
+	round.phaseCond.L.Unlock()
+	return p
 }
 
-// Sets the phase
+// Sets the phase, and signals the phaseCond that the phase state has changed
+// Note that phases can only advance state, and can sometimes skip state when
+// the node is not the last node.
 func (round *Round) SetPhase(p Phase) {
-	round.phaseLock.Lock()
+	round.phaseCond.L.Lock()
 	if p < round.phase {
 		jww.FATAL.Panicf("Cannot decrement Phases!")
 	}
 	round.phase = p
-	round.phaseLock.Unlock()
- }
+	round.phaseCond.L.Unlock()
+	round.phaseCond.Signal()
+}
 
 // Unexported underlying function to initialize a new round
 func newRound(batchSize uint64, p Phase) *Round {
@@ -224,7 +239,7 @@ func newRound(batchSize uint64, p Phase) *Round {
 		NR.LastNode.RecipientPrecomputation = nil
 	}
 	NR.phase = p
-	NR.phaseLock = &sync.Mutex{}
+	NR.phaseCond = &sync.Cond{L: &sync.Mutex{}}
 
 	return &NR
 }

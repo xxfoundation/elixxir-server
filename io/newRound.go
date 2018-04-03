@@ -216,11 +216,10 @@ func BeginNewRound(servers []string, RoundID string) {
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to begin new round!\n", i,
 				servers[i])
-			// FIXME: Why aren't we retrying or something?
 			time.Sleep(250 * time.Millisecond)
 		} else {
 			jww.DEBUG.Printf("%v: Server %s began new round!\n", i, servers[i])
-			i++
+			i++ // NOTE: we only increment on success, otherwise retry
 		}
 	}
 
