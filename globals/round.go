@@ -148,7 +148,7 @@ func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
 func (round *Round) WaitUntilPhase(phase Phase) {
 	round.phaseCond.L.Lock() // This must be held when calling wait
 	for round.phase < phase {
-		jww.WARN.Printf("Current Phase State: %s", round.phase.String())
+		jww.DEBUG.Printf("Current Phase State: %s", round.phase.String())
 		round.phaseCond.Wait()
 	}
 	round.phaseCond.L.Unlock()
