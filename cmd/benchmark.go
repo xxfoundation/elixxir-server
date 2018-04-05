@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"gitlab.com/privategrity/server/benchmark"
+	jww "github.com/spf13/jwalterweatherman"
 	"time"
 )
 
@@ -19,7 +20,7 @@ func init() {
 		"Number of nodes for the benchmark")
 	benchmarkCmd.Flags().IntVarP(&iterations, "iterations", "i", 100,
 		"Number of times to iterate the benchmark")
-	rootCmd.Flags().BoolVar(&debug, "debug", false,
+	benchmarkCmd.Flags().BoolVar(&debug, "debug", false,
 		"Show debug and warning info (default is to only show errors and above)")
 
 	rootCmd.AddCommand(benchmarkCmd)
