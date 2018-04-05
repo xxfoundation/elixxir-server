@@ -47,7 +47,7 @@ func (t *transmit) transmitter(bt BatchTransmission) {
 		select {
 		case in := <-t.inChannel:
 			// Append channel input to slots
-			slots[batchCntr] = in
+			slots[(*in).SlotID()] = in
 			batchCntr++
 
 		case killNotify = <-t.quit:
@@ -88,7 +88,7 @@ func BatchTransmissionDispatch(roundId string, batchSize uint64, inCh chan *Slot
 
 	// Creates the  dispatch control structure
 	dc := &ThreadController{InChannel: inCh, OutChannel: nil, quitChannel: chQuit,
-		threadLocker: &t.locker}
+		threadLocker: &t.locker, numThreads: 1}
 
 	return dc
 }
