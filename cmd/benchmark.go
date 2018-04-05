@@ -10,6 +10,7 @@ import (
 var benchBatchSize uint64
 var nodeCount int
 var iterations int
+var debug bool
 
 func init() {
 	benchmarkCmd.Flags().Uint64VarP(&benchBatchSize, "batch", "b", 1,
@@ -18,6 +19,8 @@ func init() {
 		"Number of nodes for the benchmark")
 	benchmarkCmd.Flags().IntVarP(&iterations, "iterations", "i", 100,
 		"Number of times to iterate the benchmark")
+	rootCmd.Flags().BoolVar(&debug, "debug", false,
+		"Show debug and warning info (default is to only show errors and above)")
 
 	rootCmd.AddCommand(benchmarkCmd)
 }
@@ -29,6 +32,12 @@ var benchmarkCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Running benchmarks for %d nodes with %d batch size and %d"+
 			" iterations...\n", nodeCount, benchBatchSize, iterations)
+
+		if debug {
+			jww.SetLogThreshold(jww.LevelDebug)
+		} else {
+			jww.SetLogThreshold(jww.LevelError)
+		}
 
 		start := time.Now()
 		benchmark.PrecompIterations(nodeCount, benchBatchSize, iterations)
