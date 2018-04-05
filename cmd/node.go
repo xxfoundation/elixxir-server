@@ -99,7 +99,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			round.WaitUntilPhase(globals.PRECOMP_COMPLETE)
 			roundTimeout.Stop()
 			if round.GetPhase() == globals.ERROR {
-				jww.FATAL.Panicf("Fatal error occurred during precomputation of " +
+				jww.FATAL.Panicf("Fatal error occurred during precomputation of "+
 					"round %s", roundId)
 			}
 			endTime := time.Now()
@@ -220,7 +220,7 @@ func run() {
 func getServers(serverIndex int) []string {
 	servers := viper.GetStringSlice("servers")
 	if servers == nil {
-		jww.ERROR.Println("No servers listed in config file.")
+		jww.FATAL.Panicf("No servers listed in config file!")
 	}
 	for i := range servers {
 		// Split address and port
@@ -229,17 +229,17 @@ func getServers(serverIndex int) []string {
 		temp, err := strconv.Atoi(s[1])
 		// catch non-int ports
 		if err != nil {
-			jww.ERROR.Println("Non-integer server ports in config file")
+			jww.FATAL.Panicf("Non-integer server ports in config file!")
 		}
 		// Catch invalid ports
 		if temp > 65535 || temp < 0 {
-			jww.ERROR.Printf("Port %v listed in the config file is not a "+
-				"valid port\n", temp)
+			jww.FATAL.Panicf("Port %v listed in the config file is not a "+
+				"valid port!", temp)
 		}
 		// Catch reserved ports
 		if temp < 1024 {
 			jww.WARN.Printf("Port %v is a reserved port, superuser privilege"+
-				" may be required.\n", temp)
+				" may be required!", temp)
 		}
 		if i == serverIndex {
 			// Remove the IP from the local server

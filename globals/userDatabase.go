@@ -76,9 +76,9 @@ func NewUserRegistry(username, password,
 // TODO: remove or improve this
 func PopulateDummyUsers() {
 
-	nickList := []string {"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
+	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
 		"Mario", "Will", "Sydney", "Jono"}
-	channelList := []string {"#General", "#Engineering", "#Lunch", "#Random"}
+	channelList := []string{"#General", "#Engineering", "#Lunch", "#Random"}
 
 	// Deterministically create named users for demo
 	for i := 0; i < len(nickList); i++ {
@@ -87,7 +87,7 @@ func PopulateDummyUsers() {
 		Users.UpsertUser(u)
 	}
 	// Extra un-named users for demo expansion
-	for i := len(nickList)+1; i <= NUM_DEMO_USERS; i++ {
+	for i := len(nickList) + 1; i <= NUM_DEMO_USERS; i++ {
 		u := Users.NewUser("")
 		u.Nick = ""
 		Users.UpsertUser(u)
@@ -99,7 +99,7 @@ func PopulateDummyUsers() {
 		Users.UpsertUser(u)
 	}
 	// Extra un-named users for demo expansion
-	for i := len(channelList)+1; i <= NUM_DEMO_CHANNELS; i++ {
+	for i := len(channelList) + 1; i <= NUM_DEMO_CHANNELS; i++ {
 		u := Users.NewUser("")
 		u.Nick = ""
 		Users.UpsertUser(u)
@@ -128,7 +128,7 @@ func (m *UserDatabase) DeleteUser(id uint64) {
 
 	if err != nil {
 		// Non-fatal error, user probably doesn't exist in the database
-		jww.DEBUG.Printf("Unable to delete user %d! %v", id, err)
+		jww.WARN.Printf("Unable to delete user %d! %v", id, err)
 	}
 }
 
@@ -142,7 +142,7 @@ func (m *UserDatabase) GetUser(id uint64) (*User, bool) {
 	if err != nil {
 		// If there was an error, no user for the given ID was found
 		// So we will return nil, false, similar to map behavior
-		jww.DEBUG.Printf("Unable to get user %d! %v", id, err)
+		jww.WARN.Printf("Unable to get user %d! %v", id, err)
 		return nil, false
 	}
 	// If we found a user for the given ID, return it
@@ -239,7 +239,7 @@ func getTableInfo(db *pg.DB, table string) string {
 	_, err := db.Query(&info, query)
 	// Verify there were no errors
 	if err != nil {
-		jww.ERROR.Println(err)
+		jww.WARN.Println(err)
 	}
 	// Format the struct as a string and return
 	return fmt.Sprintf("%s", info)
