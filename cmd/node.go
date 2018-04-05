@@ -91,6 +91,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			go func() {
 				<-roundTimeout.C
 				if round.GetPhase() < globals.PRECOMP_COMPLETE {
+					jww.ERROR.Printf("Precomputation of round %s timed out", roundId)
 					round.SetPhase(globals.ERROR)
 				}
 			}()
