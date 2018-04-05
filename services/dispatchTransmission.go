@@ -47,7 +47,7 @@ func (t *transmit) transmitter(bt BatchTransmission) {
 		select {
 		case in := <-t.inChannel:
 			// Append channel input to slots
-			slots[batchCntr] = in
+			slots[(*in).SlotID()] = in
 			batchCntr++
 
 		case killNotify = <-t.quit:
