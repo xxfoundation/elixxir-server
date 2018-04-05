@@ -68,19 +68,6 @@ type dispatch struct {
 	locker *uint32
 }
 
-func (d *dispatch) Copy() *dispatch {
-	return &dispatch{
-		noCopy{},
-		d.cryptop,
-		d.DispatchBuilder,
-		d.inChannel,
-		d.outChannel,
-		d.quit,
-		d.batchCntr,
-		d.locker,
-	}
-}
-
 // dispatcher is the function which actually does the dispatching
 func (d *dispatch) dispatcher() {
 	q := false
