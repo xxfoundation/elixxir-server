@@ -76,13 +76,32 @@ func NewUserRegistry(username, password,
 // TODO: remove or improve this
 func PopulateDummyUsers() {
 
-	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
-		"Mario", "Will", "Sydney", "Jon0"}
+	nickList := []string {"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
+		"Mario", "Will", "Sydney", "Jono"}
+	channelList := []string {"#General", "#Engineering", "#Lunch", "#Random"}
 
-	// Deterministically create users for demo
-	for i := 1; i <= NUM_DEMO_USERS; i++ {
+	// Deterministically create named users for demo
+	for i := 0; i < len(nickList); i++ {
 		u := Users.NewUser("")
-		u.Nick = nickList[i-1]
+		u.Nick = nickList[i]
+		Users.UpsertUser(u)
+	}
+	// Extra un-named users for demo expansion
+	for i := len(nickList)+1; i <= NUM_DEMO_USERS; i++ {
+		u := Users.NewUser("")
+		u.Nick = ""
+		Users.UpsertUser(u)
+	}
+	// Named channel bot users
+	for i := 0; i < len(channelList); i++ {
+		u := Users.NewUser("")
+		u.Nick = channelList[i]
+		Users.UpsertUser(u)
+	}
+	// Extra un-named users for demo expansion
+	for i := len(channelList)+1; i <= NUM_DEMO_CHANNELS; i++ {
+		u := Users.NewUser("")
+		u.Nick = ""
 		Users.UpsertUser(u)
 	}
 }
