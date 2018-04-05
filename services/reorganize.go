@@ -35,7 +35,7 @@ func NewSlotReorganizer(chIn, chOut chan *Slot,
 	go sr.startSlotReorganizer()
 
 	tc := &ThreadController{InChannel: chIn, OutChannel: chOut,
-		quitChannel: chQuit, threadLocker: &sr.locker}
+		quitChannel: chQuit, threadLocker: &sr.locker, numThreads: 1}
 
 	return tc
 }
@@ -49,7 +49,7 @@ func (sr *slotReorganizer) startSlotReorganizer() {
 		select {
 		case in := <-sr.inChannel:
 			// add a new slot in the batch
-			sr.slots[sr.batchCounter] = in
+			sr.slots[(*in).SlotID()] = in
 			sr.batchCounter++
 		case killNotify = <-sr.quitChannel:
 			// start killing the goroutine
@@ -59,8 +59,6 @@ func (sr *slotReorganizer) startSlotReorganizer() {
 
 	// put the slots in order
 	if !q {
-		reorganizeSlots(sr.slots)
-
 		// send them out again
 		for i := 0; i < len(sr.slots); i++ {
 			sr.outChannel <- sr.slots[i]
@@ -77,14 +75,6 @@ func (sr *slotReorganizer) startSlotReorganizer() {
 	// Notify anyone who needs to wait on the dispatcher's death
 	if killNotify != nil {
 		killNotify <- true
-	}
-}
-
-// Used to put the message slots in their permuted order after permute phase
-func reorganizeSlots(slots []*Slot) {
-	for i := len(slots) - 2; i >= 0; i-- {
-		sid := (*slots[i]).SlotID()
-		slots[i], slots[sid] = slots[sid], slots[i]
 	}
 }
 

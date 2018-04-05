@@ -454,13 +454,13 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 		// t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 		// 	esRT.Message.Text(10))
 
-		if esRT.Message.Cmp(expectedOutputs[i].Message) != 0 {
+		if esRT.Message.Cmp(expectedOutputs[esRT.Slot].Message) != 0 {
 			jww.FATAL.Panicf("RTPEEL %d failed EncryptedMessage. Got: %s Expected: %s",
 				esRT.Slot,
 				esRT.Message.Text(10),
 				expectedOutputs[i].Message.Text(10))
 		}
-		if esRT.CurrentID != expectedOutputs[i].CurrentID {
+		if esRT.CurrentID != expectedOutputs[esRT.Slot].CurrentID {
 			jww.FATAL.Panicf("RTPEEL %d failed RecipientID. Got: %d Expected: %d",
 				esRT.Slot, esRT.CurrentID, expectedOutputs[i].CurrentID)
 		}

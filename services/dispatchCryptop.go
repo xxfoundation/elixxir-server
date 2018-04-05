@@ -10,7 +10,9 @@ package services
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"math"
 	"reflect"
+	"runtime"
 	"sync/atomic"
 )
 
@@ -62,12 +64,21 @@ type dispatch struct {
 	//Counter of how many messages have been processed
 	batchCntr uint64
 
-	//number of of logical threads supported by the cpu
-	numCPU uint64
+	// Locker for determining how many threads are still running
+	locker *uint32
+}
 
-	// Locker for determining whether the dispatcher is still running
-	// 1 = True, 0 = False
-	locker uint32
+func (d *dispatch) Copy() *dispatch {
+	return &dispatch{
+		noCopy{},
+		d.cryptop,
+		d.DispatchBuilder,
+		d.inChannel,
+		d.outChannel,
+		d.quit,
+		d.batchCntr,
+		d.locker,
+	}
 }
 
 // dispatcher is the function which actually does the dispatching
@@ -115,11 +126,14 @@ func (d *dispatch) dispatcher() {
 	// FIXME: This prevents double-close when chaining, perhaps senders should
 	//        Always be responsible for closing their channels?
 	//close(d.inChannel)
-	close(d.outChannel)
-	close(d.quit)
 
 	// Unlock the dispatch locker, indicating the dispatcher is no longer running
-	atomic.CompareAndSwapUint32(&d.locker, 1, 0)
+	result := atomic.AddUint32(d.locker, ^uint32(0))
+
+	if result == uint32(0) {
+		close(d.outChannel)
+		close(d.quit)
+	}
 
 	// Notify anyone who needs to wait on the dispatcher's death
 	if killNotify != nil {
@@ -167,55 +181,49 @@ func DispatchCryptopSized(g *cyclic.Group, cryptop CryptographicOperation, chIn,
 	//build the data used to run the cryptop
 
 	//Creates the internal dispatch structure
-	d := &dispatch{cryptop: cryptop, DispatchBuilder: *db,
-		inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0, locker: 1}
+	numThreads := uint32(runtime.NumCPU())
 
-	//runs the dispatcher
-	go d.dispatcher()
+	if uint64(numThreads) > db.BatchSize {
+		numThreads = uint32(db.BatchSize)
+	}
+
+	locker := uint32(numThreads)
+
+	batchPerThread := batchsizePerThread(numThreads, db.BatchSize)
+
+	for i := uint32(0); i < numThreads; i++ {
+		//build dispatcher for thread
+		d := &dispatch{cryptop: cryptop, DispatchBuilder: *db,
+			inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0,
+			locker: &locker}
+		d.BatchSize = batchPerThread[i]
+
+		//runs the dispatcher for current thread
+		go d.dispatcher()
+	}
 
 	//creates the  dispatch control structure
 	dc := &ThreadController{InChannel: chIn, OutChannel: chOut, quitChannel: chQuit,
-		threadLocker: &d.locker}
+		threadLocker: &locker, numThreads: numThreads}
 
 	return dc
 
 }
 
-func DispatchCryptopSizedThreaded(g *cyclic.Group,
-	cryptop CryptographicOperation, chIn, chOut chan *Slot, batchSize uint64, face interface{}) *ThreadController {
+func batchsizePerThread(numThreads uint32, batchsize uint64) []uint64 {
+	base := uint64(math.Floor(float64(batchsize) / float64(numThreads)))
 
-	db := cryptop.Build(g, face)
+	batchlist := make([]uint64, numThreads)
 
-	if batchSize != 0 {
-		db.BatchSize = batchSize
+	for i := uint32(0); i < numThreads; i++ {
+		batchlist[i] = base
 	}
 
-	//Creates a channel for input if none is provided
-	if chIn == nil {
-		chIn = make(chan *Slot, db.BatchSize)
+	delta := batchsize - uint64(numThreads)*base
+
+	for i := uint64(0); i < delta; i++ {
+		batchlist[i]++
 	}
 
-	//Creates a channel for output if none is provided
-	if chOut == nil {
-		chOut = make(chan *Slot, db.BatchSize)
-	}
-
-	//Creates a channel for force quitting the dispatched operation
-	chQuit := make(chan chan bool, 1)
-
-	//build the data used to run the cryptop
-
-	//Creates the internal dispatch structure
-	d := &dispatch{cryptop: cryptop, DispatchBuilder: *db,
-		inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0, locker: 1}
-
-	//runs the dispatcher
-	go d.dispatcher()
-
-	//creates the  dispatch control structure
-	dc := &ThreadController{InChannel: chIn, OutChannel: chOut, quitChannel: chQuit,
-		threadLocker: &d.locker}
-
-	return dc
-
+	return batchlist
 }

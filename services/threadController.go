@@ -25,25 +25,38 @@ type ThreadController struct {
 	// Channel which is used to receive the results of processing
 	OutChannel chan *Slot
 	// Channel which is used to send and process a kill command
+
 	quitChannel chan chan bool
+	//Number of threads its controlling
+	numThreads uint32
 }
 
 // Determines whether the Thread is still running
 func (dc *ThreadController) IsAlive() bool {
-	return atomic.LoadUint32(dc.threadLocker) == 1
+	return atomic.LoadUint32(dc.threadLocker) > 0
 }
 
 // Sends a Quit signal to the ThreadController
 // Blocks until death if you pass true, doesn't block if you pass false.
 func (dc *ThreadController) Kill(blockUntilDeath bool) {
-	if blockUntilDeath {
-		killNotify := make(chan bool)
-		dc.quitChannel <- killNotify
-		_ = <-killNotify
-		close(killNotify)
-	} else {
-		dc.quitChannel <- nil
+	// this makes it so killing works if they dont set numthreads,
+	// as in some older implementations
+	if dc.numThreads == 0 {
+		dc.numThreads = 1
 	}
+
+	// I am proud of how horrible this hack is
+	for i := uint32(0); i < dc.numThreads; i++ {
+		if blockUntilDeath {
+			killNotify := make(chan bool)
+			dc.quitChannel <- killNotify
+			_ = <-killNotify
+			close(killNotify)
+		} else {
+			dc.quitChannel <- nil
+		}
+	}
+
 }
 
 // noCopy may be embedded into structs which must not be copied

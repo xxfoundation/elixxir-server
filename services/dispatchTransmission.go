@@ -88,7 +88,7 @@ func BatchTransmissionDispatch(roundId string, batchSize uint64, inCh chan *Slot
 
 	// Creates the  dispatch control structure
 	dc := &ThreadController{InChannel: inCh, OutChannel: nil, quitChannel: chQuit,
-		threadLocker: &t.locker}
+		threadLocker: &t.locker, numThreads: 1}
 
 	return dc
 }

@@ -56,7 +56,8 @@ func TestThreadController(t *testing.T) {
 
 	//create thread controller
 	tl := uint32(1)
-	tc := &ThreadController{threadLocker: &tl, InChannel: make(chan *Slot, 10), OutChannel: make(chan *Slot, 10), quitChannel: make(chan chan bool, 1)}
+	tc := &ThreadController{threadLocker: &tl, InChannel: make(chan *Slot, 10),
+		OutChannel: make(chan *Slot, 10), quitChannel: make(chan chan bool, 1)}
 
 	//run threadtest
 	go threadtest(tc)
