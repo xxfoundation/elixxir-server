@@ -17,8 +17,8 @@ import (
 func VerifyServersOnline(servers []string) {
 	for i := 0; i < len(servers); {
 		_, err := clusterclient.SendAskOnline(servers[i], &pb.Ping{})
-		jww.INFO.Printf("Waiting for other federation servers (%d/%d)...",
-			i+1, len(servers))
+		jww.INFO.Printf("Waiting for federation server %s (%d/%d)...",
+			servers[i], i+1, len(servers))
 		if err != nil {
 			time.Sleep(250 * time.Millisecond)
 		} else {
