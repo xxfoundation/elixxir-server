@@ -63,13 +63,10 @@ func (e Encrypt) Build(g *cyclic.Group,
 func (e Encrypt) Run(g *cyclic.Group, in *RealtimeSlot,
 	out *RealtimeSlot, keys *KeysEncrypt) services.Slot {
 
-	// Create Temporary variable
-	tmp := cyclic.NewMaxInt()
-
 	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted
 	// Internode Keys into the Encrypted Message
-	g.Mul(in.CurrentKey, keys.T, tmp)
-	g.Mul(in.Message, tmp, out.Message)
+	g.Mul(in.CurrentKey, in.Message, in.Message)
+	g.Mul(keys.T, in.Message, out.Message)
 
 	// Pass through RecipientID
 	out.CurrentID = in.CurrentID
