@@ -20,9 +20,14 @@ func TestUserRegistry(t *testing.T) {
 	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
 		"Mario", "Will", "Sydney", "Jon0"}
 
-	for i := 1; i <= NUM_DEMO_USERS; i++ {
+	for i := 1; i <= len(nickList); i++ {
 		u := Users.NewUser("")
 		u.Nick = nickList[i-1]
+		Users.UpsertUser(u)
+	}
+	for i := len(nickList)+1; i <= NUM_DEMO_USERS; i++ {
+		u := Users.NewUser("")
+		u.Nick = ""
 		Users.UpsertUser(u)
 	}
 
@@ -33,7 +38,8 @@ func TestUserRegistry(t *testing.T) {
 	numUsers := Users.CountUsers()
 
 	if numUsers != NUM_DEMO_USERS {
-		t.Errorf("Count users is not working correctly")
+		t.Errorf("Count users is not working correctly. " +
+			"Expected: %v Actual: %v", NUM_DEMO_USERS, numUsers)
 	} else {
 		pass++
 	}
@@ -78,7 +84,8 @@ func TestUserRegistry(t *testing.T) {
 	Users.DeleteUser(usr9.ID)
 
 	if Users.CountUsers() != NUM_DEMO_USERS-1 {
-		t.Errorf("User has not been deleted correctly.")
+		t.Errorf("User has not been deleted correctly. " +
+			"Expected # of users: %v Actual: %v", NUM_DEMO_USERS-1, Users.CountUsers())
 	} else {
 		pass++
 	}
