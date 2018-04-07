@@ -10,11 +10,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	"sync"
 )
-
-var genint = uint64(2)
-var lock = &sync.Mutex{}
 
 // Generation phase generates all the keys used in the encryption.
 type Generation struct{}
