@@ -112,32 +112,6 @@ func TestGeneration(t *testing.T) {
 			t.Errorf("Generation generated the same Y_V between slots %d and %d\n", i, i+1)
 			testOK = false
 		}
-
-		if !round.Y_R[i].IsCoprime(pSub1) {
-			t.Errorf("Generation did not generate a coprime for Y_R on slot %d\n", i)
-			testOK = false
-		}
-
-		if !round.Y_S[i].IsCoprime(pSub1) {
-			t.Errorf("Generation did not generate a coprime for Y_S on slot %d\n", i)
-			testOK = false
-		}
-
-		if !round.Y_T[i].IsCoprime(pSub1) {
-			t.Errorf("Generation did not generate a coprime for Y_T on slot %d\n", i)
-			testOK = false
-		}
-
-		if !round.Y_U[i].IsCoprime(pSub1) {
-			t.Errorf("Generation did not generate a coprime for Y_U on slot %d\n", i)
-			testOK = false
-		}
-
-		if !round.Y_V[i].IsCoprime(pSub1) {
-			t.Errorf("Generation did not generate a coprime for Y_V on slot %d\n", i)
-			testOK = false
-		}
-
 	}
 	if testOK {
 		pass++

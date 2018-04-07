@@ -10,7 +10,11 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"sync"
 )
+
+var genint = uint64(2)
+var lock = &sync.Mutex{}
 
 // Generation phase generates all the keys used in the encryption.
 type Generation struct{}
@@ -107,11 +111,11 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	g.Inverse(keys.V, keys.V_INV)
 
 	// Generates a random value within the group for every private key
-	g.RandomCoprime(keys.Y_R)
-	g.RandomCoprime(keys.Y_S)
-	g.RandomCoprime(keys.Y_T)
-	g.RandomCoprime(keys.Y_U)
-	g.RandomCoprime(keys.Y_V)
+	g.Random(keys.Y_R)
+	g.Random(keys.Y_S)
+	g.Random(keys.Y_T)
+	g.Random(keys.Y_U)
+	g.Random(keys.Y_V)
 
 	return out
 
