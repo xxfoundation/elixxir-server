@@ -78,7 +78,6 @@ func init() {
 func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()
@@ -87,10 +86,21 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name "server" (without extension).
-		viper.AddConfigPath(home + "/.privategrity")
-		viper.SetConfigName("server")
+		cfgFile = home + "/.privategrity/server.yaml"
+
 	}
+
+	f, err := os.Open(cfgFile)
+
+	_, err = f.Stat()
+
+	if err != nil {
+		jww.FATAL.Panicf("Invalid config file: %s", err.Error())
+	}
+
+	f.Close()
+
+	viper.SetConfigFile(cfgFile)
 
 	viper.AutomaticEnv() // read in environment variables that match
 

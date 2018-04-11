@@ -111,7 +111,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			RoundCh <- &roundId
 			// }(RoundCh, roundId)
 			// Wait at least a second before kicking off another precomputation
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(10000 * time.Millisecond)
 		} else {
 			// Since we are full, wait until the realtime thread signals us to run
 			// again
