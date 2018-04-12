@@ -12,11 +12,12 @@ var benchBatchSize uint64
 var nodeCount int
 var iterations int
 var debug bool
-var benchmarking = false
 
 func init() {
-
-	benchmarking = true
+	// NOTE: The point of init() is to be declarative.
+	// There is one init in each sub command. Do not put variable declarations
+	// here, and ensure all the Flags are of the *P variety, unless there's a
+	// very good reason not to have them as local params to sub command."
 
 	benchmarkCmd.Flags().Uint64VarP(&benchBatchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
@@ -24,7 +25,7 @@ func init() {
 		"Number of nodes for the benchmark")
 	benchmarkCmd.Flags().IntVarP(&iterations, "iterations", "i", 100,
 		"Number of times to iterate the benchmark")
-	benchmarkCmd.Flags().BoolVar(&debug, "debug", false,
+	benchmarkCmd.Flags().BoolVarP(&debug, "debug", "", false,
 		"Show debug and warning info (default is to only show errors and above)")
 
 	rootCmd.AddCommand(benchmarkCmd)

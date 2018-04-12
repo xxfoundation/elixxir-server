@@ -24,6 +24,7 @@ var noRatchet bool
 var serverIdx int
 var batchSize uint64
 var nodeID uint64
+var validConfig bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -33,6 +34,9 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		if !validConfig {
+			jww.FATAL.Panic("Invalid Config File")
+		}
 		if noRatchet {
 			forward.SetRatchetStatus(false)
 		}
@@ -53,16 +57,20 @@ func Execute() {
 // init is the initialization function for Cobra which defines commands
 // and flags.
 func init() {
+	// NOTE: The point of init() is to be declarative.
+	// There is one init in each sub command. Do not put variable declarations
+	// here, and ensure all the Flags are of the *P variety, unless there's a
+	// very good reason not to have them as local params to sub command."
 	cobra.OnInitialize(initConfig, initLog)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.Flags().StringVar(&cfgFile, "config", "",
+	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
 		"config file (default is $HOME/.privategrity/server.yaml)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
-	rootCmd.Flags().BoolVar(&noRatchet, "noratchet", false,
+	rootCmd.Flags().BoolVarP(&noRatchet, "noratchet", "", false,
 		"Avoid ratcheting the keys for forward secrecy")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
@@ -76,31 +84,32 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	// TODO: get rid of this hack
-	if !benchmarking {
-		//Use default config location if none is passed
-		if cfgFile == "" {
-			// Find home directory.
-			home, err := homedir.Dir()
-			if err != nil {
-				jww.ERROR.Println(err)
-				os.Exit(1)
-			}
-
-			cfgFile = home + "/.privategrity/server.yaml"
-
-		}
-
-		f, err := os.Open(cfgFile)
-
-		_, err = f.Stat()
-
+	//Use default config location if none is passed
+	if cfgFile == "" {
+		// Find home directory.
+		home, err := homedir.Dir()
 		if err != nil {
-			jww.FATAL.Panicf("Invalid config file (%s): %s", cfgFile, err.Error())
+			jww.ERROR.Println(err)
+			os.Exit(1)
 		}
 
-		f.Close()
+		cfgFile = home + "/.privategrity/server.yaml"
+
 	}
+
+	f, err := os.Open(cfgFile)
+
+	_, err = f.Stat()
+
+	validConfig = true
+
+	if err != nil {
+		jww.ERROR.Printf("Invalid config file (%s): %s", cfgFile,
+			err.Error())
+		validConfig = false
+	}
+
+	f.Close()
 
 	viper.SetConfigFile(cfgFile)
 
@@ -108,7 +117,8 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
-		jww.ERROR.Printf("Unable to read config file: %s", err)
+		jww.ERROR.Printf("Unable to read config file (%s): %s", cfgFile, err.Error())
+		validConfig = false
 	}
 
 }
