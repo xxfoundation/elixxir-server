@@ -76,28 +76,31 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	//Use default config location if none is passed
-	if cfgFile == "" {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			jww.ERROR.Println(err)
-			os.Exit(1)
+	// TODO: get rid of this hack
+	if !benchmarking {
+		//Use default config location if none is passed
+		if cfgFile == "" {
+			// Find home directory.
+			home, err := homedir.Dir()
+			if err != nil {
+				jww.ERROR.Println(err)
+				os.Exit(1)
+			}
+
+			cfgFile = home + "/.privategrity/server.yaml"
+
 		}
 
-		cfgFile = home + "/.privategrity/server.yaml"
+		f, err := os.Open(cfgFile)
 
+		_, err = f.Stat()
+
+		if err != nil {
+			jww.FATAL.Panicf("Invalid config file (%s): %s", cfgFile, err.Error())
+		}
+
+		f.Close()
 	}
-
-	f, err := os.Open(cfgFile)
-
-	_, err = f.Stat()
-
-	if err != nil {
-		jww.FATAL.Panicf("Invalid config file (%s): %s", cfgFile, err.Error())
-	}
-
-	f.Close()
 
 	viper.SetConfigFile(cfgFile)
 

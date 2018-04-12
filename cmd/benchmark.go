@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"gitlab.com/privategrity/server/benchmark"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/privategrity/server/benchmark"
 	"time"
 )
 
@@ -12,8 +12,12 @@ var benchBatchSize uint64
 var nodeCount int
 var iterations int
 var debug bool
+var benchmarking = false
 
 func init() {
+
+	benchmarking = true
+
 	benchmarkCmd.Flags().Uint64VarP(&benchBatchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
 	benchmarkCmd.Flags().IntVarP(&nodeCount, "numnodes", "n", 1,
@@ -24,6 +28,7 @@ func init() {
 		"Show debug and warning info (default is to only show errors and above)")
 
 	rootCmd.AddCommand(benchmarkCmd)
+
 }
 
 var benchmarkCmd = &cobra.Command{
