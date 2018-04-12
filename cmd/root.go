@@ -94,7 +94,7 @@ func initConfig() {
 	_, err = f.Stat()
 
 	if err != nil {
-		jww.FATAL.Panicf("Invalid config file: %s", err.Error())
+		jww.FATAL.Panicf("Invalid config file (%s): %s", cfgFile, err.Error())
 	}
 
 	f.Close()
