@@ -62,10 +62,8 @@ setup:
     ##
     - ssh-keyscan -t rsa gitlab.com > ~/.ssh/known_hosts
 
-    - git clean -ffdx
-    - rm -fr ~/.glide
-    - rm -fr /root/.glide
-    - glide install -v
+    - glide cc
+    - glide up
   artifacts:
     paths:
      - vendor/
