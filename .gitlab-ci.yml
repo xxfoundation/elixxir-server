@@ -77,17 +77,17 @@ test:
     - mkdir -p testdata
 
     # Test coverage
-    - goverage -coverprofile=testdata/coverage.out -v ./... | grep -v "no packages being tested depend on"
+    - goverage -coverprofile=testdata/coverage.out -v ./... 2>&1 | grep -v "no packages being tested depend on"
     # Exclude some specific packages and files
     - grep -v cmd testdata/coverage.out > testdata/coverage-real.out
     - go tool cover -func=testdata/coverage-real.out
     - go tool cover -html=testdata/coverage-real.out -o testdata/coverage.html
 
     # Benchmarking
-    - go test -bench=BenchmarkPrecomp -cpuprofile=testdata/precomp.cpu -memprofile=testdata/precomp.mem -short
+    - go test -bench=BenchmarkPrecomp -cpuprofile=testdata/precomp.cpu -memprofile=testdata/precomp.mem -short main_benchmarks_test.go
     - go tool pprof -png server.test testdata/precomp.cpu > testdata/precomp-cpu.png
     - go tool pprof -png server.test testdata/precomp.mem > testdata/precomp-mem.png
-    - go test -bench=BenchmarkRealtime -cpuprofile=testdata/realtime.cpu -memprofile=testdata/realtime.mem -short
+    - go test -bench=BenchmarkRealtime -cpuprofile=testdata/realtime.cpu -memprofile=testdata/realtime.mem -short main_benchmarks_test.go
     - go tool pprof -png server.test testdata/realtime.cpu > testdata/realtime-cpu.png
     - go tool pprof -png server.test testdata/realtime.mem > testdata/realtime-mem.png
 
