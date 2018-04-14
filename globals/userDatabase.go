@@ -47,6 +47,7 @@ func NewUserRegistry(username, password,
 		Password: password,
 		Database: database,
 		Addr:     address,
+		PoolSize: 1,
 	})
 	// Attempt to connect to the database and initialize the schema
 	err := createSchema(db)
