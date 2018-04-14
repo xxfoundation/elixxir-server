@@ -77,9 +77,30 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 
 var numRunning = int32(0)
 
+const NUM_PRECOMP_SIMULTANIOUS = int(6)
+
 func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
+
+	var timer *time.Timer
+
+	realtimeChan := make(chan bool, 1000)
+	precompChan := make(chan bool, 1000)
+
+	readSignal(realtimeChan, realtimeSignal)
+
 	for {
-		if len(RoundCh)+int(atomic.LoadInt32(&numRunning)) < 1000 {
+		timer = time.NewTimer(2 * time.Second)
+
+		select {
+		case <-realtimeChan:
+		case <-precompChan:
+		case <-timer.C:
+		}
+
+		timer.Stop()
+
+		numSimul := int(atomic.LoadInt32(&numRunning))
+		if (len(RoundCh)+numSimul < 1000) && (numSimul < (NUM_PRECOMP_SIMULTANIOUS)) {
 			// Begin the round on all nodes
 			startTime := time.Now()
 			roundId := globals.PeekNextRoundID()
@@ -90,7 +111,8 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			io.BeginNewRound(io.Servers, roundId)
 			// Wait for round to be in the PRECOMP_COMPLETE state before
 			// adding it to the round map
-			go func(RoundCh chan *string, roundId string) {
+			go func(RoundCh chan *string, precompChan chan bool,
+				roundId string) {
 
 				round := globals.GlobalRoundMap.GetRound(roundId)
 
@@ -118,17 +140,20 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 				jww.INFO.Printf("Precomputation phase completed in %d ms",
 					int64(endTime.Sub(startTime)/time.Millisecond))
 				RoundCh <- &roundId
-			}(RoundCh, roundId)
-			// Wait at least a second before kicking off another precomputation
-			time.Sleep(500 * time.Millisecond)
-		} else {
-			// Since we are full, wait until the realtime thread signals us to run
-			// again
-			realtimeSignal.L.Lock()
-			realtimeSignal.Wait()
-			realtimeSignal.L.Unlock()
+				precompChan <- true
+			}(RoundCh, precompChan, roundId)
 		}
 	}
+}
+
+func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
+	for true {
+		realtimeSignal.L.Lock()
+		realtimeSignal.Wait()
+		realtimeSignal.L.Unlock()
+		rDone <- true
+	}
+
 }
 
 // StartServer reads configuration options and starts the cMix server
