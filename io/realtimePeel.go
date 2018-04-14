@@ -35,12 +35,20 @@ func (h RealtimePeelHandler) Handler(
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
 				slot.Message.Text(10))
 			user, _ := globals.Users.GetUser(slot.CurrentID)
-			user.MessageBuffer <- &pb.CmixMessage{
+
+			pbCmixMessage := pb.CmixMessage{
 				SenderID:       uint64(0), // Currently zero this field
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				RecipientID:    make([]byte, 0), // Currently zero this field
 			}
 
+			for !addMessageToBuffer(user, &pbCmixMessage) {
+				<-user.MessageBuffer
+				if user.ID != uint64(35) {
+					jww.WARN.Printf("Message dropped for user %v because"+
+						" message buffer is full", user.ID)
+				}
+			}
 		}
 	}
 
@@ -50,4 +58,13 @@ func (h RealtimePeelHandler) Handler(
 	jww.INFO.Printf("Finished RealtimePeel.Handler(RoundId: %s) in %d ms",
 		roundId, (endTime.Sub(startTime))/time.Millisecond)
 	jww.INFO.Printf("Realtime for Round %s Finished at %s!", roundId, endTime)
+}
+
+func addMessageToBuffer(user *globals.User, pbCmixMessage *pb.CmixMessage) bool {
+	select {
+	case user.MessageBuffer <- pbCmixMessage:
+		return true
+	default:
+		return false
+	}
 }

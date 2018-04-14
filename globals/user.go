@@ -115,7 +115,7 @@ func (m *UserMap) NewUser(address string) *User {
 	usr.Reception = *recept
 	usr.Transmission = *trans
 	usr.PublicKey = cyclic.NewMaxInt()
-	usr.MessageBuffer = make(chan *pb.CmixMessage, 100)
+	usr.MessageBuffer = make(chan *pb.CmixMessage, 50000)
 	return usr
 }
 
