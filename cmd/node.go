@@ -21,6 +21,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
+	"runtime"
 )
 
 // RunRealtime controls when realtime is kicked off and which
@@ -128,6 +129,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 	viper.Debug()
 	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
 	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
+
+	//Set the max number of processes
+	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
 
 	// Set global batch size
 	globals.BatchSize = batchSize
