@@ -90,7 +90,8 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 
 	if !ok {
 		jww.ERROR.Printf("GenerateClientKey Run: Got lookup"+
-			" failure on %v", in.CurrentID)
+			" failure on %v, using a random key to destroy the data",
+			in.CurrentID)
 		group.Random(in.CurrentKey)
 		return in
 	}
