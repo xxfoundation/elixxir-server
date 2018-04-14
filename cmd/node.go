@@ -100,7 +100,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 		timer.Stop()
 
 		numSimul := int(atomic.LoadInt32(&numRunning))
-		if (len(RoundCh)+numSimul < 1000) && (numSimul < (NUM_PRECOMP_SIMULTANIOUS)) {
+		for (len(RoundCh)+numSimul < 1000) && (numSimul < (NUM_PRECOMP_SIMULTANIOUS)) {
 			// Begin the round on all nodes
 			startTime := time.Now()
 			roundId := globals.PeekNextRoundID()
