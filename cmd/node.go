@@ -43,8 +43,9 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 		if msgCount == batchSize {
 			msgCount = uint64(0)
 			// Pass the batch queue into Realtime and begin
-			startTime := time.Now()
+
 			roundId := *(<-RoundCh)
+			startTime := time.Now()
 			jww.INFO.Printf("Realtime phase with Round ID %s started at %s\n",
 				roundId, startTime.Format(time.RFC3339))
 			io.KickoffDecryptHandler(roundId, batchSize, msgList)
