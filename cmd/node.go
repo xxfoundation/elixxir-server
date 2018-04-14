@@ -111,7 +111,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			// Wait for round to be in the PRECOMP_COMPLETE state before
 			// adding it to the round map
 			go func(RoundCh chan *string, precompChan chan bool,
-				roundId string) {
+				roundId string, startTime time.Time) {
 
 				round := globals.GlobalRoundMap.GetRound(roundId)
 
@@ -140,7 +140,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 					int64(endTime.Sub(startTime)/time.Millisecond))
 				RoundCh <- &roundId
 				precompChan <- true
-			}(RoundCh, precompChan, roundId)
+			}(RoundCh, precompChan, roundId, startTime)
 		}
 	}
 }
