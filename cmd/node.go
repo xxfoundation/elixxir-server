@@ -99,7 +99,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 
 		timer.Stop()
 
-		for (len(RoundCh)+int(atomic.LoadInt32(&numRunning)) < 1000) && (int(atomic.LoadInt32(&numRunning)) < (NUM_PRECOMP_SIMULTANIOUS)) {
+		for checkPrecompBuffer(len(RoundCh), int(atomic.LoadInt32(&numRunning))) {
 			// Begin the round on all nodes
 			startTime := time.Now()
 			roundId := globals.PeekNextRoundID()
@@ -143,6 +143,10 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 			}(RoundCh, precompChan, roundId)
 		}
 	}
+}
+
+func checkPrecompBuffer(numRounds, numRunning int) bool {
+	return (numRounds+numRunning < 1000) && (numRunning < NUM_PRECOMP_SIMULTANIOUS)
 }
 
 func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
