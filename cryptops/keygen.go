@@ -91,7 +91,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	if !ok {
 		jww.ERROR.Printf("GenerateClientKey Run: Got lookup"+
 			" failure on %v", in.CurrentID)
-		in.CurrentKey.SetUint64(uint64(1))
+		group.Random(in.CurrentKey)
 		return in
 	}
 
