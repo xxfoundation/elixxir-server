@@ -86,7 +86,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 	realtimeChan := make(chan bool, 1000)
 	precompChan := make(chan bool, 1000)
 
-	readSignal(realtimeChan, realtimeSignal)
+	go readSignal(realtimeChan, realtimeSignal)
 
 	for {
 		timer = time.NewTimer(2 * time.Second)
