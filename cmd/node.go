@@ -75,18 +75,18 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 // the length of the RoundCh and creates new rounds and kicks of precomputation
 // whenever it falls below a threshold.
 
-var numRunning = uint32(0)
+var numRunning = int32(0)
 
 func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 	for {
-		if len(RoundCh)+int(atomic.LoadUint32(&numRunning)) < 1000 {
+		if len(RoundCh)+int(atomic.LoadInt32(&numRunning)) < 1000 {
 			// Begin the round on all nodes
 			startTime := time.Now()
 			roundId := globals.PeekNextRoundID()
 
 			jww.INFO.Printf("Precomputation phase with Round ID %s started at %s\n",
 				roundId, startTime.Format(time.RFC3339))
-			atomic.AddUint32(&numRunning, uint32(1))
+			atomic.AddInt32(&numRunning, int32(1))
 			io.BeginNewRound(io.Servers, roundId)
 			// Wait for round to be in the PRECOMP_COMPLETE state before
 			// adding it to the round map
@@ -106,7 +106,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 
 				// Wait until the round completes to continue
 				round.WaitUntilPhase(globals.PRECOMP_COMPLETE)
-				atomic.AddUint32(&numRunning, ^uint32(1))
+				atomic.AddInt32(&numRunning, int32(-1))
 				roundTimeout.Stop()
 				if round.GetPhase() == globals.ERROR {
 					jww.FATAL.Panicf("Fatal error occurred during precomputation of "+
