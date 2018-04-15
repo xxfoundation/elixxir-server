@@ -135,16 +135,19 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond,
 				atomic.AddInt32(&numRunning, int32(-1))
 				roundTimeout.Stop()
 				if round.GetPhase() == globals.ERROR {
-					jww.FATAL.Panicf("Fatal error occurred during precomputation of "+
+					jww.FATAL.Printf("Fatal error occurred during precomputation"+
+						" of "+
 						"round %s", roundId)
+				} else {
+					endTime := time.Now()
+					jww.INFO.Printf("Precomputation phase with Round ID %s finished at %s!\n",
+						roundId, endTime.Format(time.RFC3339))
+					jww.INFO.Printf("Precomputation phase completed in %d ms",
+						int64(endTime.Sub(startTime)/time.Millisecond))
+					RoundCh <- &roundId
+					precompChan <- true
 				}
-				endTime := time.Now()
-				jww.INFO.Printf("Precomputation phase with Round ID %s finished at %s!\n",
-					roundId, endTime.Format(time.RFC3339))
-				jww.INFO.Printf("Precomputation phase completed in %d ms",
-					int64(endTime.Sub(startTime)/time.Millisecond))
-				RoundCh <- &roundId
-				precompChan <- true
+
 			}(RoundCh, precompChan, roundId, startTime)
 		}
 	}
