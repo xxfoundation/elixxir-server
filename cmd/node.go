@@ -78,13 +78,14 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 var numRunning = int32(0)
 
 const NUM_PRECOMP_SIMULTANIOUS = int(6)
+const PRECOMP_BUFFER = int(1000)
 
 func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 
 	var timer *time.Timer
 
-	realtimeChan := make(chan bool, 1000)
-	precompChan := make(chan bool, 1000)
+	realtimeChan := make(chan bool, PRECOMP_BUFFER+1)
+	precompChan := make(chan bool, PRECOMP_BUFFER+1)
 
 	go readSignal(realtimeChan, realtimeSignal)
 
@@ -146,7 +147,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 }
 
 func checkPrecompBuffer(numRounds, numRunning int) bool {
-	return (numRounds+numRunning < 1000) && (numRunning < NUM_PRECOMP_SIMULTANIOUS)
+	return (numRounds+numRunning < PRECOMP_BUFFER) && (numRunning < NUM_PRECOMP_SIMULTANIOUS)
 }
 
 func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {

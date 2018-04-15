@@ -13,6 +13,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"sync"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
@@ -62,6 +63,7 @@ func NewUserRegistry(username, password,
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
+			collectionLock: &sync.Mutex{},
 		})
 	} else {
 		// Return the database-backed UserRegistry interface

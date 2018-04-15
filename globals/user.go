@@ -11,6 +11,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"sync"
 )
 
 // Globally initiated UserRegistry
@@ -31,14 +32,13 @@ type UserRegistry interface {
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
-	LookupUser(huid uint64) (uint64, bool)
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[uint64]*User
-	userLookup     map[uint64]uint64
+	collectionLock *sync.Mutex
 }
 
 type ForwardKey struct {
@@ -122,14 +122,18 @@ func (m *UserMap) NewUser(address string) *User {
 // DeleteUser deletes a user with the given ID from userCollection.
 func (m *UserMap) DeleteUser(id uint64) {
 	// If key does not exist, do nothing
+	m.collectionLock.Lock()
 	delete(m.userCollection, id)
+	m.collectionLock.Unlock()
 }
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
 func (m *UserMap) GetUser(id uint64) (*User, bool) {
 	var u *User
+	m.collectionLock.Lock()
 	u, ok := m.userCollection[id]
+	m.collectionLock.Unlock()
 	user := u.DeepCopy()
 	return user, ok
 }
@@ -137,7 +141,9 @@ func (m *UserMap) GetUser(id uint64) (*User, bool) {
 // UpsertUser inserts given user into userCollection or update the user if it
 // already exists (Upsert operation).
 func (m *UserMap) UpsertUser(user *User) {
+	m.collectionLock.Lock()
 	m.userCollection[user.ID] = user
+	m.collectionLock.Unlock()
 }
 
 // CountUsers returns a count of the users in userCollection.
@@ -153,6 +159,7 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 
 	nicks = make([]string, 0, userCount)
 	ids = make([]uint64, 0, userCount)
+	m.collectionLock.Lock()
 	for _, user := range m.userCollection {
 		if user != nil {
 			nicks = append(nicks, user.Nick)
@@ -161,12 +168,7 @@ func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
 			jww.FATAL.Panicf("A user was nil.")
 		}
 	}
+	m.collectionLock.Unlock()
 
 	return ids, nicks
-}
-
-// LookupUser takes a hashed registration code and returns the corresponding
-// User ID if it is found.
-func (m *UserMap) LookupUser(huid uint64) (uint64, bool) {
-	return m.userLookup[huid], true
 }
