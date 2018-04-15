@@ -77,12 +77,16 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 
 var numRunning = int32(0)
 
-const NUM_PRECOMP_SIMULTANIOUS = int(6)
+var numPrecompSimultanious int
+
 const PRECOMP_BUFFER = int(1000)
 
-func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
+func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond,
+	numNodes int) {
 
 	var timer *time.Timer
+
+	numPrecompSimultanious = numNodes * 2
 
 	realtimeChan := make(chan bool, PRECOMP_BUFFER+1)
 	precompChan := make(chan bool, PRECOMP_BUFFER+1)
@@ -147,7 +151,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 }
 
 func checkPrecompBuffer(numRounds, numRunning int) bool {
-	return (numRounds+numRunning < PRECOMP_BUFFER) && (numRunning < NUM_PRECOMP_SIMULTANIOUS)
+	return (numRounds+numRunning < PRECOMP_BUFFER) && (numRunning < numPrecompSimultanious)
 }
 
 func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
@@ -234,7 +238,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		io.MessageCh = make(chan *realtime.RealtimeSlot)
 		// Last Node handles when realtime and precomp get run
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh, realtimeSignal)
-		go RunPrecomputation(io.RoundCh, realtimeSignal)
+		go RunPrecomputation(io.RoundCh, realtimeSignal, len(io.Servers))
 	}
 
 	// Main loop
