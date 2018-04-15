@@ -149,12 +149,6 @@ func (m *UserDatabase) GetUser(id uint64) (*User, error) {
 	err := m.db.Select(&user)
 
 	if err != nil {
-
-		//TODO: figure out a way to make this not disgusting
-		if err.Error() == "pg: connection pool timeout" {
-			return m.GetUser(id)
-		}
-
 		// If there was an error, no user for the given ID was found
 		// So we will return nil, false, similar to map behavior
 		return nil, err
@@ -182,7 +176,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.FATAL.Panicf("Unable to upsert user %d! %s", user.ID, err.Error())
+		jww.ERROR.Printf("Unable to upsert user %d! %s", user.ID, err.Error())
 	}
 }
 
@@ -190,7 +184,8 @@ func (m *UserDatabase) UpsertUser(user *User) {
 func (m *UserDatabase) CountUsers() int {
 	count, err := m.db.Model(&UserDB{}).Count()
 	if err != nil {
-		jww.FATAL.Panicf("Unable to count users! %s", err.Error())
+		jww.ERROR.Printf("Unable to count users! %s", err.Error())
+		return 0
 	}
 	return count
 }
@@ -200,12 +195,12 @@ func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
 	var model []UserDB
 	err := m.db.Model(&model).Column("id", "nick").Select()
 
-	if err != nil {
-		jww.FATAL.Panicf("Unable to get contact list! %s", err.Error())
-	}
-
 	ids = make([]uint64, len(model))
 	nicks = make([]string, len(model))
+	if err != nil {
+		return ids, nicks
+	}
+
 	for i, user := range model {
 		ids[i] = user.Id
 		nicks[i] = user.Nick
