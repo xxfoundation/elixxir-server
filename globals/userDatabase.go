@@ -14,6 +14,7 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"sync"
+	"time"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
@@ -44,11 +45,15 @@ func NewUserRegistry(username, password,
 	database, address string) UserRegistry {
 	// Create the database connection
 	db := pg.Connect(&pg.Options{
-		User:     username,
-		Password: password,
-		Database: database,
-		Addr:     address,
-		PoolSize: 1,
+		User:        username,
+		Password:    password,
+		Database:    database,
+		Addr:        address,
+		PoolSize:    1,
+		MaxRetries:  10,
+		PoolTimeout: time.Duration(2) * time.Minute,
+		IdleTimeout: time.Duration(10) * time.Minute,
+		MaxAge:      time.Duration(1) * time.Hour,
 	})
 	// Attempt to connect to the database and initialize the schema
 	err := createSchema(db)
