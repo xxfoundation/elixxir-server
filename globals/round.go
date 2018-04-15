@@ -132,6 +132,13 @@ func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 	m.mutex.Unlock()
 }
 
+// Atomic delete *Round to rounds map with given roundId
+func (m *RoundMap) DeleteRound(roundId string) {
+	m.mutex.Lock()
+	delete(m.rounds, roundId)
+	m.mutex.Unlock()
+}
+
 // Get chan for a given chanId in channels array (Not thread-safe!)
 func (round *Round) GetChannel(chanId Phase) chan<- *services.Slot {
 	return round.channels[chanId]
