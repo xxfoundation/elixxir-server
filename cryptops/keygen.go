@@ -89,8 +89,11 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	user, ok := globals.Users.GetUser(in.CurrentID)
 
 	if !ok {
-		jww.FATAL.Panicf("GenerateClientKey Run: Got lookup"+
-			" failure on %v", in.CurrentID)
+		jww.ERROR.Printf("GenerateClientKey Run: Got lookup"+
+			" failure on %v, using a random key to destroy the data",
+			in.CurrentID)
+		group.Random(in.CurrentKey)
+		return in
 	}
 
 	// Running this puts the next recursive key in the user's record and
