@@ -14,9 +14,9 @@ import (
 func (s ServerImpl) SetNick(inputMsg *pb.Contact) {
 	// TODO: users should only be able to set their own nicks,
 	// and should get errors back otherwise
-	user, ok := globals.Users.GetUser(inputMsg.UserID)
+	user, err := globals.Users.GetUser(inputMsg.UserID)
 
-	if ok {
+	if err == nil {
 		user.Nick = inputMsg.Nick
 		globals.Users.UpsertUser(user)
 	}

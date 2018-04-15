@@ -8,6 +8,7 @@ package globals
 
 import (
 	"crypto/sha256"
+	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
@@ -28,7 +29,7 @@ var idCounter = uint64(1)
 type UserRegistry interface {
 	NewUser(address string) *User
 	DeleteUser(id uint64)
-	GetUser(id uint64) (user *User, ok bool)
+	GetUser(id uint64) (user *User, err error)
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
@@ -129,13 +130,19 @@ func (m *UserMap) DeleteUser(id uint64) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserMap) GetUser(id uint64) (*User, bool) {
+func (m *UserMap) GetUser(id uint64) (*User, error) {
 	var u *User
+	var err error
 	m.collectionLock.Lock()
 	u, ok := m.userCollection[id]
 	m.collectionLock.Unlock()
-	user := u.DeepCopy()
-	return user, ok
+
+	if !ok {
+		err = errors.New("unable to lookup user in ram user registry")
+	} else {
+		u = u.DeepCopy()
+	}
+	return u, err
 }
 
 // UpsertUser inserts given user into userCollection or update the user if it

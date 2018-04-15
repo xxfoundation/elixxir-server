@@ -137,19 +137,25 @@ func (m *UserDatabase) DeleteUser(id uint64) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(id uint64) (*User, bool) {
+func (m *UserDatabase) GetUser(id uint64) (*User, error) {
 	// Perform the select for the given ID
+
 	user := UserDB{Id: id}
 	err := m.db.Select(&user)
 
 	if err != nil {
+
+		//TODO: figure out a way to make this not disgusting
+		if err.Error() == "pg: connection pool timeout" {
+			return m.GetUser(id)
+		}
+
 		// If there was an error, no user for the given ID was found
 		// So we will return nil, false, similar to map behavior
-		jww.WARN.Printf("Unable to get user %d! %v", id, err)
-		return nil, false
+		return nil, err
 	}
 	// If we found a user for the given ID, return it
-	return m.convertDbToUser(&user), true
+	return m.convertDbToUser(&user), nil
 }
 
 // UpsertUser inserts given user into the database or update the user if it

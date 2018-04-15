@@ -86,12 +86,12 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
 
-	user, ok := globals.Users.GetUser(in.CurrentID)
+	user, err := globals.Users.GetUser(in.CurrentID)
 
-	if !ok {
+	if err != nil {
 		jww.ERROR.Printf("GenerateClientKey Run: Got lookup"+
-			" failure on %v, using a random key to destroy the data",
-			in.CurrentID)
+			" failure on %v, using a random key to destroy the data. Error: %s",
+			in.CurrentID, err.Error())
 		group.Random(in.CurrentKey)
 		return in
 	}

@@ -34,9 +34,9 @@ func (h RealtimePeelHandler) Handler(
 		} else {
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
 				slot.Message.Text(10))
-			user, ok := globals.Users.GetUser(slot.CurrentID)
+			user, err := globals.Users.GetUser(slot.CurrentID)
 
-			if !ok {
+			if err != nil {
 				jww.ERROR.Printf("Could not store message for invalid"+
 					" user: %v", slot.CurrentID)
 				continue

@@ -15,9 +15,9 @@ import (
 // Determine whether a message is in the buffer for a given User
 // Return the message if so or a blank message if not
 func (s ServerImpl) ClientPoll(inputMsg *pb.ClientPollMessage) *pb.CmixMessage {
-	user, userExists := globals.Users.GetUser(inputMsg.UserID)
+	user, err := globals.Users.GetUser(inputMsg.UserID)
 	// Verify the User exists
-	if userExists {
+	if err == nil {
 		select {
 		case msg := <-user.MessageBuffer:
 			// Return pending message for the given User

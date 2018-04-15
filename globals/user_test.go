@@ -25,7 +25,7 @@ func TestUserRegistry(t *testing.T) {
 		u.Nick = nickList[i-1]
 		Users.UpsertUser(u)
 	}
-	for i := len(nickList)+1; i <= NUM_DEMO_USERS; i++ {
+	for i := len(nickList) + 1; i <= NUM_DEMO_USERS; i++ {
 		u := Users.NewUser("")
 		u.Nick = ""
 		Users.UpsertUser(u)
@@ -38,13 +38,13 @@ func TestUserRegistry(t *testing.T) {
 	numUsers := Users.CountUsers()
 
 	if numUsers != NUM_DEMO_USERS {
-		t.Errorf("Count users is not working correctly. " +
+		t.Errorf("Count users is not working correctly. "+
 			"Expected: %v Actual: %v", NUM_DEMO_USERS, numUsers)
 	} else {
 		pass++
 	}
 
-	usr9, exists := Users.GetUser(9)
+	usr9, _ := Users.GetUser(9)
 
 	if usr9 == nil {
 		t.Errorf("Error fetching user!")
@@ -52,9 +52,9 @@ func TestUserRegistry(t *testing.T) {
 		pass++
 	}
 
-	getUser, exists := Users.GetUser(usr9.ID)
+	getUser, err := Users.GetUser(usr9.ID)
 
-	if !exists || getUser.ID != usr9.ID {
+	if (err != nil) || getUser.ID != usr9.ID {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
@@ -84,13 +84,13 @@ func TestUserRegistry(t *testing.T) {
 	Users.DeleteUser(usr9.ID)
 
 	if Users.CountUsers() != NUM_DEMO_USERS-1 {
-		t.Errorf("User has not been deleted correctly. " +
+		t.Errorf("User has not been deleted correctly. "+
 			"Expected # of users: %v Actual: %v", NUM_DEMO_USERS-1, Users.CountUsers())
 	} else {
 		pass++
 	}
 
-	if _, userExists := Users.GetUser(usr9.ID); userExists {
+	if _, userExists := Users.GetUser(usr9.ID); userExists == nil {
 		t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
 	} else {
 		pass++
