@@ -66,6 +66,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 					roundId, endTime.Format(time.RFC3339))
 				jww.INFO.Printf("Realtime phase completed in %d ms",
 					int64(endTime.Sub(startTime)/time.Millisecond))
+				globals.GlobalRoundMap.DeleteRound(roundId)
 			}(roundId, startTime)
 		}
 	}
