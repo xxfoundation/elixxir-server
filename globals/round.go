@@ -123,8 +123,9 @@ func NewRoundMap() RoundMap {
 // Atomic get *Round for a given roundId in rounds map
 func (m *RoundMap) GetRound(roundId string) *Round {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	return m.rounds[roundId]
+	round := m.rounds[roundId]
+	m.mutex.Unlock()
+	return round
 }
 
 // Atomic add *Round to rounds map with given roundId
