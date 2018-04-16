@@ -137,15 +137,15 @@ func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 
 // Atomic delete *Round to rounds map with given roundId
 func (m *RoundMap) DeleteRound(roundId string) {
-	//round := m.GetRound(roundId)
+	round := m.GetRound(roundId)
 	m.mutex.Lock()
 	delete(m.rounds, roundId)
 	jww.INFO.Printf("Round %v has been recycled")
-	/*ResetRound(round)
+	ResetRound(round)
 	if IsLastNode {
 		ResetLastNode(round)
 	}
-	RoundRecycle <- round*/
+	RoundRecycle <- round
 	m.mutex.Unlock()
 }
 
@@ -175,14 +175,14 @@ func (round *Round) WaitUntilPhase(phase Phase) {
 // numbers being initialized to 0.
 func NewRound(batchSize uint64) *Round {
 	var round *Round
-	/*select {
+	select {
 	case round = <-RoundRecycle:
 	default:
 		round = newRound(batchSize, OFF)
 		if IsLastNode {
 			InitLastNode(round)
 		}
-	}*/
+	}
 	round = newRound(batchSize, OFF)
 	if IsLastNode {
 		InitLastNode(round)

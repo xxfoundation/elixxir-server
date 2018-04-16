@@ -49,7 +49,7 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 		chIn <- &slot
 	}
 
-	//close(chIn)
+	close(chIn)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompPermute(RoundId: %s, Phase: %s) in %d ms",

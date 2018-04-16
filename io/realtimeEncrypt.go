@@ -42,7 +42,7 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		chIn <- &slot
 	}
 
-	//close(chIn)
+	close(chIn)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeEncrypt(RoundId: %s, Phase: %s) in %d ms",

@@ -44,7 +44,7 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		chIn <- &slot
 	}
 
-	//close(chIn)
+	close(chIn)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimePermute(RoundId: %s, Phase: %s) in %d ms",

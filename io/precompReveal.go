@@ -44,7 +44,7 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 		chIn <- &slot
 	}
 
-	//close(chIn)
+	close(chIn)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompReveal(RoundId: %s, Phase: %s) in %d ms",
