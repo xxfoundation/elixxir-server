@@ -19,7 +19,7 @@ func TestRealtimeDecrypt(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -37,10 +37,10 @@ func TestRealtimeDecrypt(t *testing.T) {
 		EncryptedRecipient: cyclic.NewInt(3),
 	}
 
-	slots := [1]*realtime.RealtimeSlot{ slot.(*realtime.RealtimeSlot) }
+	slots := [1]*realtime.RealtimeSlot{slot.(*realtime.RealtimeSlot)}
 	NextServer = "localhost:5555"
 	KickoffDecryptHandler(roundId, uint64(1), slots[:])
-	
+
 	// Which should be populated into chIn once received
 	received := <-chIn
 

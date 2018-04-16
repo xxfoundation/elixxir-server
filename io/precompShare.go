@@ -43,6 +43,8 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 		chIn <- &slot
 	}
 
+	close(chIn)
+
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompShare(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -62,7 +64,7 @@ func (s ServerImpl) PrecompShareInit(*pb.PrecompShareInitMessage) {}
 func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 
 	startTime := time.Now()
-	jww.INFO.Printf("[Last Node] Initializing PrecompDecrypt(RoundId: %s, " +
+	jww.INFO.Printf("[Last Node] Initializing PrecompDecrypt(RoundId: %s, "+
 		"Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
@@ -112,7 +114,7 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	clusterclient.SendPrecompDecrypt(NextServer, msg)
 
 	endTime := time.Now()
-	jww.INFO.Printf("[Last Node] Finished Initializing " +
+	jww.INFO.Printf("[Last Node] Finished Initializing "+
 		"PrecompDecrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		(endTime.Sub(startTime))/time.Millisecond)
@@ -152,13 +154,13 @@ func (h PrecompShareHandler) Handler(
 	IsFirstRun := (*slots[0]).(*precomputation.SlotShare).PartialRoundPublicCypherKey.Cmp(globals.Grp.G) == 0
 
 	// Advance internal state to the next phase
-	if IsLastNode && IsFirstRun {
+	if globals.IsLastNode && IsFirstRun {
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
 	} else {
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
 	}
 
-	if IsLastNode && !IsFirstRun {
+	if globals.IsLastNode && !IsFirstRun {
 		// Transition to PrecompDecrypt phase
 		// if we are last node and this isn't the first run
 		jww.INFO.Printf("Starting PrecompDecrypt Phase to %v at %s",

@@ -7,19 +7,15 @@
 package io
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Address of the subsequent server in the config file
 // TODO remove this in favor of a better system
 var NextServer string
-
-// Boolean value for whether we are the last server
-// TODO remove this in favor of a better system
-var IsLastNode bool
 
 // List of server addresses
 // TODO remove this please thanks

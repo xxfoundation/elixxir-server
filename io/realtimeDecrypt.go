@@ -44,6 +44,8 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 		chIn <- &slot
 	}
 
+	close(chIn)
+
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeDecrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -55,7 +57,7 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 	input *pb.RealtimeDecryptMessage) {
 
 	startTime := time.Now()
-	jww.INFO.Printf("[Last Node] Initializing RealtimePermute(RoundId: %s, " +
+	jww.INFO.Printf("[Last Node] Initializing RealtimePermute(RoundId: %s, "+
 		"Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
@@ -91,7 +93,7 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 	clusterclient.SendRealtimePermute(NextServer, msg)
 
 	endTime := time.Now()
-	jww.INFO.Printf("[Last Node] Finished Initializing " +
+	jww.INFO.Printf("[Last Node] Finished Initializing "+
 		"RealtimePermute(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		(endTime.Sub(startTime))/time.Millisecond)
@@ -131,7 +133,7 @@ func (h RealtimeDecryptHandler) Handler(
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_PERMUTE)
 
 	sendTime := time.Now()
-	if IsLastNode {
+	if globals.IsLastNode {
 		// Transition to RealtimePermute phase
 		jww.INFO.Printf("Starting RealtimePermute  Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
@@ -153,7 +155,7 @@ func (h RealtimeDecryptHandler) Handler(
 func KickoffDecryptHandler(roundId string, batchSize uint64,
 	slots []*realtime.RealtimeSlot) {
 	startTime := time.Now()
-	jww.INFO.Printf("[Last Node] Starting KickoffDecryptHandler(RoundId: %s)" +
+	jww.INFO.Printf("[Last Node] Starting KickoffDecryptHandler(RoundId: %s)"+
 		" at %s",
 		roundId, startTime.Format(time.RFC3339))
 
@@ -184,11 +186,11 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	// Send the completed RealtimeDecryptMessage
 	sendTime := time.Now()
 	jww.INFO.Printf("Sending RealtimeDecrypt Message to %v at %s",
-			NextServer, sendTime.Format(time.RFC3339))
+		NextServer, sendTime.Format(time.RFC3339))
 	clusterclient.SendRealtimeDecrypt(NextServer, msg)
 
 	endTime := time.Now()
-	jww.INFO.Printf("[Last Node] Finished KickoffDecryptHandler(RoundId: %s)" +
+	jww.INFO.Printf("[Last Node] Finished KickoffDecryptHandler(RoundId: %s)"+
 		" in %d ms",
 		roundId, (endTime.Sub(startTime))/time.Millisecond)
 }

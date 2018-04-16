@@ -44,6 +44,8 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 		chIn <- &slot
 	}
 
+	close(chIn)
+
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompReveal(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -55,7 +57,7 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompRevealMessage) {
 
 	startTime := time.Now()
-	jww.INFO.Printf("[Last Node] Initializing PrecompStrip(RoundId: %s, " +
+	jww.INFO.Printf("[Last Node] Initializing PrecompStrip(RoundId: %s, "+
 		"Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
@@ -81,7 +83,7 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 	}
 
 	endTime := time.Now()
-	jww.INFO.Printf("[Last Node] Finished Initializing " +
+	jww.INFO.Printf("[Last Node] Finished Initializing "+
 		"PrecompStrip(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		(endTime.Sub(startTime))/time.Millisecond)
@@ -117,7 +119,7 @@ func (h PrecompRevealHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if IsLastNode {
+	if globals.IsLastNode {
 		// Transition to PrecompStrip phase
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_STRIP)

@@ -49,6 +49,8 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 		chIn <- &slot
 	}
 
+	close(chIn)
+
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompPermute(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -63,7 +65,7 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 	input *pb.PrecompPermuteMessage) {
 
 	startTime := time.Now()
-	jww.INFO.Printf("[Last Node] Initializing PrecompEncrypt(RoundId: %s, " +
+	jww.INFO.Printf("[Last Node] Initializing PrecompEncrypt(RoundId: %s, "+
 		"Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
@@ -106,7 +108,7 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 	clusterclient.SendPrecompEncrypt(NextServer, msg)
 
 	endTime := time.Now()
-	jww.INFO.Printf("[Last Node] Finished Initializing " +
+	jww.INFO.Printf("[Last Node] Finished Initializing "+
 		"PrecompEncrypt(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		(endTime.Sub(startTime))/time.Millisecond)
@@ -147,7 +149,7 @@ func (h PrecompPermuteHandler) Handler(
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_ENCRYPT)
 
 	sendTime := time.Now()
-	if IsLastNode {
+	if globals.IsLastNode {
 		// Transition to PrecompEncrypt phase
 		jww.INFO.Printf("Starting PrecompEncrypt Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

@@ -8,15 +8,16 @@ package io
 
 import (
 	"gitlab.com/privategrity/comms/clusterclient"
+	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"testing"
 )
 
 type DummyPrecompShareHandler struct{}
+
 func (h DummyPrecompShareHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	// Create the PrecompShareMessage
@@ -48,12 +49,11 @@ func (h DummyPrecompShareHandler) Handler(
 	clusterclient.SendPrecompShare(NextServer, msg)
 }
 
-
 func TestPrecompShare(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
-	IsLastNode = false
+	globals.IsLastNode = false
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 

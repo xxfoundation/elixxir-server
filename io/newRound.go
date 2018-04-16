@@ -37,12 +37,10 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 
 	// Create a new Round
 	round := globals.NewRound(batchSize)
+
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
-	// Initialize the LastNode struct for the round
-	if IsLastNode {
-		globals.InitLastNode(round)
-	}
+
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_GENERATION)
 
 	// Create the controller for PrecompShare
@@ -161,7 +159,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		round.U_INV[0].Text(10),
 		round.V_INV[0].Text(10))
 
-	if IsLastNode {
+	if globals.IsLastNode {
 		// Create the controller for RealtimeIdentify
 		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
 			realtime.Identify{}, nil, nil, round)

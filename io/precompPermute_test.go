@@ -19,7 +19,7 @@ func TestPrecompPermute(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
