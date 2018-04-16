@@ -25,6 +25,10 @@ import (
 	"sync/atomic"
 )
 
+const DELTA_THREADS = int(200)
+const DELTA_MEMORY = int64(100000000)
+const PERFORMANCE_CHECK_DELTA = time.Duration(2) * time.Minute
+
 // RunRealtime controls when realtime is kicked off and which
 // messages are sent through the realtime phase. It reads up to batchSize
 // messages from the MessageCh, then reads a round and kicks off realtime
@@ -177,6 +181,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//Set the max number of processes
 	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
 
+	//Start the performance monitor
+	periodicPerformanceCheck()
+
 	// Set global batch size
 	globals.BatchSize = batchSize
 	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
@@ -288,4 +295,51 @@ func getServers(serverIndex int) []string {
 		}
 	}
 	return servers
+}
+
+func periodicPerformanceCheck() {
+	var numthreads = int(0)
+	var numMemory = int64(0)
+
+	var lastTrigger = time.Now()
+
+	for {
+		time.Sleep(PERFORMANCE_CHECK_DELTA)
+
+		triggerTime := time.Now()
+		deltaTriggerTime := triggerTime.Sub(lastTrigger)
+		var pr []runtime.MemProfileRecord
+
+		currentThreads := runtime.NumGoroutine()
+
+		_, ok := runtime.MemProfile(pr, true)
+
+		memoryAllocated := int64(0)
+
+		if ok {
+			for _, data := range pr {
+				memoryAllocated += data.InUseBytes()
+			}
+
+			memoryDelta := memoryAllocated - numMemory
+			threadDelta := currentThreads - numthreads
+
+			if memoryDelta > DELTA_MEMORY || threadDelta > DELTA_THREADS {
+				numthreads = currentThreads
+				numMemory = memoryAllocated
+				lastTrigger = triggerTime
+
+				jww.WARN.Printf("Performance warning triggered after %v seconds"+
+					"", deltaTriggerTime*time.Second)
+				jww.WARN.Printf("THREADS; total: %v  delta: %v", numthreads, threadDelta)
+				jww.WARN.Printf("MEMORY; total: %v  delta: %v", numMemory,
+					memoryDelta)
+
+			}
+
+		} else {
+			jww.WARN.Printf("Could not read the memory profile record")
+		}
+	}
+
 }
