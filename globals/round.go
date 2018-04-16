@@ -304,9 +304,6 @@ func ResetRound(NR *Round) {
 
 		NR.Permutations[i] = i
 
-		NR.LastNode.MessagePrecomputation = nil
-		NR.LastNode.RecipientPrecomputation = nil
-
 		NR.MIC_Verification[i] = true
 	}
 	NR.phase = OFF
@@ -343,6 +340,8 @@ func InitLastNode(round *Round) {
 }
 
 func ResetLastNode(round *Round) {
+
+	jww.DEBUG.Printf("lastnode: %v")
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		round.LastNode.MessagePrecomputation[i].SetBytes(cyclic.Max4kBitInt)
