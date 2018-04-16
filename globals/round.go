@@ -140,6 +140,8 @@ func (m *RoundMap) DeleteRound(roundId string) {
 	round := m.GetRound(roundId)
 	delete(m.rounds, roundId)
 	m.mutex.Unlock()
+	jww.INFO.Printf("Round %v has been recycled")
+	ResetRound(round)
 	RoundRecycle <- round
 }
 
@@ -171,7 +173,6 @@ func NewRound(batchSize uint64) *Round {
 	var round *Round
 	select {
 	case round = <-RoundRecycle:
-		ResetRound(round, batchSize)
 		if IsLastNode {
 			ResetLastNode(round)
 		}
@@ -276,7 +277,8 @@ func newRound(batchSize uint64, p Phase) *Round {
 	return &NR
 }
 
-func ResetRound(NR *Round, batchSize uint64) {
+func ResetRound(NR *Round) {
+	batchSize := NR.BatchSize
 	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
 	NR.Z.SetBytes(cyclic.Max4kBitInt)
 
