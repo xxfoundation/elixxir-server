@@ -298,6 +298,15 @@ func getServers(serverIndex int) []string {
 }
 
 func periodicPerformanceCheck() {
+
+	defer func() {
+		if r := recover(); r != nil {
+			jww.ERROR.Printf("Performance monitoring failed due to errors")
+		} else {
+			jww.ERROR.Printf("Performance monitoring failed unexpectedly")
+		}
+	}()
+
 	var numthreads = int(0)
 	var numMemory = int64(0)
 
