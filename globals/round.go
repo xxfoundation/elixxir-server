@@ -137,8 +137,8 @@ func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 
 // Atomic delete *Round to rounds map with given roundId
 func (m *RoundMap) DeleteRound(roundId string) {
-	m.mutex.Lock()
 	round := m.GetRound(roundId)
+	m.mutex.Lock()
 	delete(m.rounds, roundId)
 	m.mutex.Unlock()
 	jww.INFO.Printf("Round %v has been recycled")
