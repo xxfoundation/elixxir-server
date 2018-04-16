@@ -43,7 +43,7 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 		chIn <- &slot
 	}
 
-	close(chIn)
+	//close(chIn)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompShare(RoundId: %s, Phase: %s) in %d ms",

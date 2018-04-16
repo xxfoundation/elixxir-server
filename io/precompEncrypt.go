@@ -44,7 +44,7 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 		chIn <- &slot
 	}
 
-	close(chIn)
+	//
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished PrecompEncrypt(RoundId: %s, Phase: %s) in %d ms",
