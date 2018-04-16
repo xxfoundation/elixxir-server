@@ -175,13 +175,17 @@ func (round *Round) WaitUntilPhase(phase Phase) {
 // numbers being initialized to 0.
 func NewRound(batchSize uint64) *Round {
 	var round *Round
-	select {
+	/*select {
 	case round = <-RoundRecycle:
 	default:
 		round = newRound(batchSize, OFF)
 		if IsLastNode {
 			InitLastNode(round)
 		}
+	}*/
+	round = newRound(batchSize, OFF)
+	if IsLastNode {
+		InitLastNode(round)
 	}
 
 	return round
