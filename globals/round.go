@@ -258,6 +258,44 @@ func newRound(batchSize uint64, p Phase) *Round {
 	return &NR
 }
 
+func ResetRound(NR *Round, batchSize uint64) {
+	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
+	NR.Z.SetBytes(cyclic.Max4kBitInt)
+
+	for i := uint64(0); i < batchSize; i++ {
+		NR.R[i].SetBytes(cyclic.Max4kBitInt)
+		NR.S[i].SetBytes(cyclic.Max4kBitInt)
+		NR.T[i].SetBytes(cyclic.Max4kBitInt)
+		NR.V[i].SetBytes(cyclic.Max4kBitInt)
+		NR.U[i].SetBytes(cyclic.Max4kBitInt)
+
+		NR.R_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.S_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.T_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.V_INV[i].SetBytes(cyclic.Max4kBitInt)
+		NR.U_INV[i].SetBytes(cyclic.Max4kBitInt)
+
+		NR.Y_R[i].SetBytes(cyclic.Max4kBitInt)
+		NR.Y_S[i].SetBytes(cyclic.Max4kBitInt)
+		NR.Y_T[i].SetBytes(cyclic.Max4kBitInt)
+		NR.Y_V[i].SetBytes(cyclic.Max4kBitInt)
+		NR.Y_U[i].SetBytes(cyclic.Max4kBitInt)
+
+		NR.Permutations[i] = i
+
+		NR.LastNode.MessagePrecomputation = nil
+		NR.LastNode.RecipientPrecomputation = nil
+
+		NR.MIC_Verification[i] = true
+	}
+	NR.phase = OFF
+	NR.phaseCond = &sync.Cond{L: &sync.Mutex{}}
+
+	for i := Phase(0); i < NUM_PHASES; i++ {
+		NR.channels[i] = nil
+	}
+}
+
 func InitLastNode(round *Round) {
 	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
 	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
@@ -279,6 +317,21 @@ func InitLastNode(round *Round) {
 		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedMessage[i] = cyclic.NewMaxInt()
+		round.MIC_Verification[i] = false
+	}
+}
+
+func ResetLastNode(round *Round) {
+
+	for i := uint64(0); i < round.BatchSize; i++ {
+		round.LastNode.MessagePrecomputation[i].SetBytes(cyclic.Max4kBitInt)
+		round.LastNode.RecipientPrecomputation[i].SetBytes(cyclic.Max4kBitInt)
+		round.LastNode.RoundMessagePrivateKey[i].SetBytes(cyclic.Max4kBitInt)
+		round.LastNode.RoundRecipientPrivateKey[i].SetBytes(cyclic.Max4kBitInt)
+		round.LastNode.RecipientCypherText[i].SetBytes(cyclic.Max4kBitInt)
+		round.LastNode.EncryptedRecipientPrecomputation[i].SetBytes(cyclic.Max4kBitInt)
+		round.LastNode.EncryptedMessagePrecomputation[i].SetBytes(cyclic.Max4kBitInt)
+		round.LastNode.EncryptedMessage[i].SetBytes(cyclic.Max4kBitInt)
 		round.MIC_Verification[i] = false
 	}
 }

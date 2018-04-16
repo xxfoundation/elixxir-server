@@ -7,10 +7,10 @@
 package io
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Address of the subsequent server in the config file
@@ -27,7 +27,8 @@ var Servers []string
 
 // These channels are used by LastNode to control when realtime and
 // precomutation are kicked off
-var RoundCh chan *string                  // Strings identifying rounds to be used
+var RoundCh chan *string // Strings identifying rounds to be used
+var RoundRecycle chan *globals.Round
 var MessageCh chan *realtime.RealtimeSlot // Message queuing
 
 // Struct implementing mixserver.ServerHandler interface

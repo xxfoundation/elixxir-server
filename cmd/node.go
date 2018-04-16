@@ -67,6 +67,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 				jww.INFO.Printf("Realtime phase completed in %d ms",
 					int64(endTime.Sub(startTime)/time.Millisecond))
 				globals.GlobalRoundMap.DeleteRound(roundId)
+				io.RoundRecycle <- round
 			}(roundId, startTime)
 		}
 	}
@@ -239,6 +240,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	if io.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
 		io.RoundCh = make(chan *string, 10)
+		io.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER)
 		io.MessageCh = make(chan *realtime.RealtimeSlot)
 		// Last Node handles when realtime and precomp get run
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh, realtimeSignal)

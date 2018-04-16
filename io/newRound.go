@@ -36,13 +36,23 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	}
 
 	// Create a new Round
-	round := globals.NewRound(batchSize)
+	var round *globals.Round
+	select {
+	case round = <-RoundRecycle:
+		globals.ResetRound(round, batchSize)
+		if IsLastNode {
+			globals.ResetLastNode(round)
+		}
+	default:
+		round = globals.NewRound(batchSize)
+		if IsLastNode {
+			globals.InitLastNode(round)
+		}
+	}
+
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
-	// Initialize the LastNode struct for the round
-	if IsLastNode {
-		globals.InitLastNode(round)
-	}
+
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_GENERATION)
 
 	// Create the controller for PrecompShare
