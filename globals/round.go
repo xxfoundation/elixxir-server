@@ -18,6 +18,8 @@ import (
 // Server-wide configured batch size
 var BatchSize uint64
 
+var RoundRecycle chan *Round
+
 // LastNode contains precomputations held only by the last node
 type LastNode struct {
 	// Message Decryption key, AKA PiRST_Inv
@@ -135,8 +137,10 @@ func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 // Atomic delete *Round to rounds map with given roundId
 func (m *RoundMap) DeleteRound(roundId string) {
 	m.mutex.Lock()
+	round := m.GetRound(roundId)
 	delete(m.rounds, roundId)
 	m.mutex.Unlock()
+	RoundRecycle <- round
 }
 
 // Get chan for a given chanId in channels array (Not thread-safe!)
@@ -164,7 +168,21 @@ func (round *Round) WaitUntilPhase(phase Phase) {
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
 func NewRound(batchSize uint64) *Round {
-	return newRound(batchSize, OFF)
+	var round *Round
+	select {
+	case round = <-RoundRecycle:
+		ResetRound(round, batchSize)
+		if IsLastNode {
+			ResetLastNode(round)
+		}
+	default:
+		round = newRound(batchSize, OFF)
+		if IsLastNode {
+			InitLastNode(round)
+		}
+	}
+
+	return round
 }
 
 //Creates a new Round at any phase

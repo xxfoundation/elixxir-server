@@ -44,6 +44,8 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		chIn <- &slot
 	}
 
+	close(chIn)
+
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimePermute(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -55,7 +57,7 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 	input *pb.RealtimePermuteMessage) {
 
 	startTime := time.Now()
-	jww.INFO.Printf("[Last Node] Initializing RealtimeIdentify(RoundId: %s, " +
+	jww.INFO.Printf("[Last Node] Initializing RealtimeIdentify(RoundId: %s, "+
 		"Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
@@ -81,7 +83,7 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 	}
 
 	endTime := time.Now()
-	jww.INFO.Printf("[Last Node] Finished Initializing " +
+	jww.INFO.Printf("[Last Node] Finished Initializing "+
 		"RealtimeIdentify(RoundId: %s, Phase: %s) in %d ms",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		(endTime.Sub(startTime))/time.Millisecond)
@@ -117,7 +119,7 @@ func (h RealtimePermuteHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if IsLastNode {
+	if globals.IsLastNode {
 		// Transition to RealtimeIdentify phase
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_IDENTIFY)

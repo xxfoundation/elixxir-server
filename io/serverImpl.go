@@ -17,18 +17,13 @@ import (
 // TODO remove this in favor of a better system
 var NextServer string
 
-// Boolean value for whether we are the last server
-// TODO remove this in favor of a better system
-var IsLastNode bool
-
 // List of server addresses
 // TODO remove this please thanks
 var Servers []string
 
 // These channels are used by LastNode to control when realtime and
 // precomutation are kicked off
-var RoundCh chan *string // Strings identifying rounds to be used
-var RoundRecycle chan *globals.Round
+var RoundCh chan *string                  // Strings identifying rounds to be used
 var MessageCh chan *realtime.RealtimeSlot // Message queuing
 
 // Struct implementing mixserver.ServerHandler interface

@@ -6,6 +6,8 @@ import (
 	"math"
 )
 
+var IsLastNode bool
+
 var nodeId = uint64(math.MaxUint64)
 
 func NodeID(serverIdx uint64) uint64 {

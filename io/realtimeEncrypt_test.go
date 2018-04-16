@@ -19,7 +19,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -35,9 +35,9 @@ func TestRealtimeEncrypt(t *testing.T) {
 	round.LastNode.EncryptedMessage[0] = cyclic.NewInt(7)
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.RealtimeSlot{
-		Slot:      uint64(0),
-		CurrentID: uint64(42),
-		Message:   cyclic.NewInt(7),
+		Slot:               uint64(0),
+		CurrentID:          uint64(42),
+		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(42),
 	}
 

@@ -36,19 +36,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	}
 
 	// Create a new Round
-	var round *globals.Round
-	select {
-	case round = <-RoundRecycle:
-		globals.ResetRound(round, batchSize)
-		if IsLastNode {
-			globals.ResetLastNode(round)
-		}
-	default:
-		round = globals.NewRound(batchSize)
-		if IsLastNode {
-			globals.InitLastNode(round)
-		}
-	}
+	round := globals.NewRound(batchSize)
 
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -171,7 +159,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		round.U_INV[0].Text(10),
 		round.V_INV[0].Text(10))
 
-	if IsLastNode {
+	if globals.IsLastNode {
 		// Create the controller for RealtimeIdentify
 		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
 			realtime.Identify{}, nil, nil, round)

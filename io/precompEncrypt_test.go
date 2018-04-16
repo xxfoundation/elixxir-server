@@ -20,7 +20,7 @@ func TestPrecompEncrypt(t *testing.T) {
 	globals.InitLastNode(round)
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
-	IsLastNode = true
+	globals.IsLastNode = true
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)
