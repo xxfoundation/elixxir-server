@@ -236,10 +236,11 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Block until we can reach every server
 	io.VerifyServersOnline(io.Servers)
 
+	globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER)
+
 	if globals.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
 		io.RoundCh = make(chan *string, 10)
-		globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER)
 		io.MessageCh = make(chan *realtime.RealtimeSlot)
 		// Last Node handles when realtime and precomp get run
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh, realtimeSignal)
