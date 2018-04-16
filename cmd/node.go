@@ -80,7 +80,7 @@ var numRunning = int32(0)
 
 var numPrecompSimultanious int
 
-const PRECOMP_BUFFER = int(1000)
+const PRECOMP_BUFFER = int(10)
 
 func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond,
 	numNodes int) {
