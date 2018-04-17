@@ -240,7 +240,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER)
 
-	messageBufferSize = int(uint64(len(io.Servers)*2) * batchSize)
+	messageBufferSize = int(uint64(len(io.Servers)*4) * batchSize)
 
 	if globals.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
