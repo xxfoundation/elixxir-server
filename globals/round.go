@@ -142,9 +142,6 @@ func (m *RoundMap) DeleteRound(roundId string) {
 	delete(m.rounds, roundId)
 	jww.INFO.Printf("Round %v has been recycled")
 	ResetRound(round)
-	if IsLastNode {
-		ResetLastNode(round)
-	}
 	RoundRecycle <- round
 	m.mutex.Unlock()
 }
