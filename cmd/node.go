@@ -25,10 +25,6 @@ import (
 	"sync/atomic"
 )
 
-const DELTA_THREADS = int(200)
-const DELTA_MEMORY = int64(100000000)
-const PERFORMANCE_CHECK_DELTA = time.Duration(2) * time.Minute
-
 // RunRealtime controls when realtime is kicked off and which
 // messages are sent through the realtime phase. It reads up to batchSize
 // messages from the MessageCh, then reads a round and kicks off realtime
@@ -182,7 +178,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
 
 	//Start the performance monitor
-	periodicPerformanceCheck()
+	go periodicPerformanceCheck()
 
 	// Set global batch size
 	globals.BatchSize = batchSize
@@ -297,6 +293,19 @@ func getServers(serverIndex int) []string {
 	return servers
 }
 
+// Number of thread that need to be added to the system before it triggers a
+// performance alert
+const DELTA_THREADS = int(200)
+
+// Amount of memory allocation required before the system triggers a
+// performance alert
+const DELTA_MEMORY = int64(100000000)
+
+// Time between performance checks
+const PERFORMANCE_CHECK_DELTA = time.Duration(2) * time.Minute
+
+// Checks and prints a warning every time thread or memory usage fo the system
+// jumps a designated amount
 func periodicPerformanceCheck() {
 
 	defer func() {
