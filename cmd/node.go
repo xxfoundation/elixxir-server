@@ -148,7 +148,8 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 						roundId, endTime.Format(time.RFC3339))
 					jww.INFO.Printf("Precomputation phase completed in %d ms",
 						int64(endTime.Sub(startTime)/time.Millisecond))
-					RoundCh <- &roundId
+
+					globals.GlobalRoundMap.DeleteRound(roundId)
 					precompChan <- true
 				}
 
