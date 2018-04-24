@@ -76,21 +76,24 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 // the length of the RoundCh and creates new rounds and kicks of precomputation
 // whenever it falls below a threshold.
 
+// Number of currentlyexecutingg precomputations
 var numRunning = int32(0)
 
+// Maximum number of simultanously run precomputation
 var numPrecompSimultanious int
 
-const PRECOMP_BUFFER = int(10)
+// Size of the buffer for input messages
+var messageBufferSize int
 
-func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond,
-	numNodes int) {
+// Maximum number of stored precomputations
+const PRECOMP_BUFFER_SIZE = int(1000)
+
+func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 
 	var timer *time.Timer
 
-	numPrecompSimultanious = numNodes * 2
-
-	realtimeChan := make(chan bool, PRECOMP_BUFFER+1)
-	precompChan := make(chan bool, PRECOMP_BUFFER+1)
+	realtimeChan := make(chan bool, PRECOMP_BUFFER_SIZE+1)
+	precompChan := make(chan bool, PRECOMP_BUFFER_SIZE+1)
 
 	go readSignal(realtimeChan, realtimeSignal)
 
@@ -145,7 +148,8 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond,
 						roundId, endTime.Format(time.RFC3339))
 					jww.INFO.Printf("Precomputation phase completed in %d ms",
 						int64(endTime.Sub(startTime)/time.Millisecond))
-					RoundCh <- &roundId
+
+					globals.GlobalRoundMap.DeleteRound(roundId)
 					precompChan <- true
 				}
 
@@ -155,7 +159,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond,
 }
 
 func checkPrecompBuffer(numRounds, numRunning int) bool {
-	return (numRounds+numRunning < PRECOMP_BUFFER) && (numRunning < numPrecompSimultanious)
+	return (numRounds+numRunning < PRECOMP_BUFFER_SIZE) && (numRunning < numPrecompSimultanious)
 }
 
 func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
@@ -236,15 +240,21 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Block until we can reach every server
 	io.VerifyServersOnline(io.Servers)
 
-	globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER)
+	globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER_SIZE)
+
+	// Run as many as half the number of nodes times the number of
+	// passthroughs (which is 4).
+	numPrecompSimultanious = int((uint64(len(io.Servers)) * 4) / 2)
+
+	messageBufferSize = int(10 * batchSize)
 
 	if globals.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
-		io.RoundCh = make(chan *string, 10)
-		io.MessageCh = make(chan *realtime.RealtimeSlot)
+		io.RoundCh = make(chan *string, PRECOMP_BUFFER_SIZE)
+		io.MessageCh = make(chan *realtime.RealtimeSlot, messageBufferSize)
 		// Last Node handles when realtime and precomp get run
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh, realtimeSignal)
-		go RunPrecomputation(io.RoundCh, realtimeSignal, len(io.Servers))
+		go RunPrecomputation(io.RoundCh, realtimeSignal)
 	}
 
 	// Main loop
