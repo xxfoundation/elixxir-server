@@ -86,7 +86,7 @@ var numPrecompSimultanious int
 var messageBufferSize int
 
 // Maximum number of stored precomputations
-const PRECOMP_BUFFER_SIZE = int(1000)
+const PRECOMP_BUFFER_SIZE = int(10)
 
 func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 
