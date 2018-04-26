@@ -70,7 +70,6 @@ test:
   stage: test
   image: $DOCKER_IMAGE
   script:
-    - go generate cmd/version.go
     - mkdir -p testdata
 
     # Test coverage
@@ -102,7 +101,6 @@ build:
   script:
     - mkdir -p release
     - go generate cmd/version.go
-    - mv cmd/version.go.tmp cmd/version.go
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
