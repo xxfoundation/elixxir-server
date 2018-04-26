@@ -100,11 +100,15 @@ build:
   image: $DOCKER_IMAGE
   script:
     - mkdir -p release
+    - sed -i "s/PRIVATEGRITY_GIT_VERSION/$(git show --oneline | head -1)/g" cmd/version.go
+    - awk -v GVER="$(cat glide.lock)" '{gsub("PRIVATEGRITY_GLIDE_DEPENDENCIES",GVER)}1' cmd/version.go > cmd/version.go.tmp
+    - mv cmd/version.go.tmp cmd/version.go
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
     - GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win32 main.go
     - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
+    - ./server/server.linux64 --version
   artifacts:
     paths:
      - release/
