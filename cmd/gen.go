@@ -13,21 +13,27 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"text/template"
 	"time"
+	"strings"
 )
 
 func GenerateGitVersion() string {
-	cmd := exec.Command("/bin/bash", "-c", "git show --oneline | head -1")
+	cmd := exec.Command("git", "show", "--oneline")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return string(stdoutStderr)
+	scanner := bufio.NewScanner(strings.NewReader(string(stdoutStderr)))
+	for scanner.Scan() {
+    return scanner.Text()
+	}
+	return "UNKNOWNVERSION"
 }
 
 func ReadGlideLock() string {
