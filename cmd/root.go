@@ -83,7 +83,7 @@ func init() {
 		"Batch size to use for node server rounds")
 	rootCmd.Flags().Uint64VarP(&nodeID, "nodeID", "n",
 		math.MaxUint64, "Unique identifier for this node")
-	rootCmd.Flags().BoolVarP(&showVer, "version", "v", false,
+	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
 		"Show the server version information.")
 	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
