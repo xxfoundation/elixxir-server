@@ -15,7 +15,7 @@ func init() {
 
 func printVersion() {
 	fmt.Printf("Privategrity Server v%s -- %s\n\n", SEMVER, GITVERSION)
-	fmt.Printf("Dependencies:\n\n%s", GLIDEDEPS)
+	fmt.Printf("Dependencies:\n\n%s\n", GLIDEDEPS)
 }
 
 var versionCmd = &cobra.Command{
