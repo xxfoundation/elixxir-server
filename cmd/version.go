@@ -1,8 +1,8 @@
 package cmd
 
 import (
-  "fmt"
-  "github.com/spf13/cobra"
+	"fmt"
+	"github.com/spf13/cobra"
 )
 
 const GITVERSION = "PRIVATEGRITY_GIT_VERSION"
@@ -10,7 +10,7 @@ const GLIDEDEPS = `PRIVATEGRITY_GLIDE_DEPENDENCIES`
 const SEMVER = "0.0.0a"
 
 func init() {
-  rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func printVersion() {
@@ -19,11 +19,11 @@ func printVersion() {
 }
 
 var versionCmd = &cobra.Command{
-  Use:   "version",
-  Short: "Print the version number of Privategrity Server",
-  Long:  `Print the version number of Privategrity Server. This also prints
+	Use:	 "version",
+	Short: "Print the version number of Privategrity Server",
+	Long:	 `Print the version number of Privategrity Server. This also prints
 the glide cache versions of all of its dependencies.`,
-  Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) {
 		printVersion()
-  },
+	},
 }
