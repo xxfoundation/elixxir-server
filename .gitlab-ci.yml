@@ -62,6 +62,7 @@ setup:
 
     - glide cc
     - glide up
+    - go generate cmd/version.go
   artifacts:
     paths:
      - vendor/
