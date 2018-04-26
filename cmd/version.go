@@ -5,9 +5,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const GITVERSION = "PRIVATEGRITY_GIT_VERSION"
-const GLIDEDEPS = `PRIVATEGRITY_GLIDE_DEPENDENCIES`
-const SEMVER = "0.0.0a"
+//go:generate go run gen.go
+// The above generates: GITVERSION, GLIDEDEPS, and SEMVER
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
