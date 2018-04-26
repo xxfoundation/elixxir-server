@@ -62,7 +62,6 @@ setup:
 
     - glide cc
     - glide up
-    - go generate cmd/version.go
   artifacts:
     paths:
      - vendor/
@@ -71,6 +70,7 @@ test:
   stage: test
   image: $DOCKER_IMAGE
   script:
+    - go generate cmd/version.go
     - mkdir -p testdata
 
     # Test coverage
