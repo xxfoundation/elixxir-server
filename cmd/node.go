@@ -248,6 +248,10 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	messageBufferSize = int(10 * batchSize)
 
+	if messageBufferSize < 1000 {
+		messageBufferSize = 1000
+	}
+
 	if globals.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
 		io.RoundCh = make(chan *string, PRECOMP_BUFFER_SIZE)
