@@ -25,6 +25,7 @@ var serverIdx int
 var batchSize uint64
 var nodeID uint64
 var validConfig bool
+var showVer bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -34,6 +35,10 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		if showVer {
+			printVersion()
+			return
+		}
 		if !validConfig {
 			jww.FATAL.Panic("Invalid Config File")
 		}
@@ -78,6 +83,8 @@ func init() {
 		"Batch size to use for node server rounds")
 	rootCmd.Flags().Uint64VarP(&nodeID, "nodeID", "n",
 		math.MaxUint64, "Unique identifier for this node")
+	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
+		"Show the server version information.")
 	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 }
