@@ -10,19 +10,18 @@ package cmd
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"math"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-
 	"gitlab.com/privategrity/comms/mixserver"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/io"
+	"math"
 	"runtime"
+	"strconv"
+	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // RunRealtime controls when realtime is kicked off and which
@@ -180,6 +179,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	//Set the max number of processes
 	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
+
+	//Start the performance monitor
+	go MonitorMemoryUsage()
 
 	// Set global batch size
 	globals.BatchSize = batchSize
