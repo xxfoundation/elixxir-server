@@ -9,8 +9,8 @@ import (
 
 // Amount of memory allocation required before the system triggers a
 // performance alert
-const DELTA_MEMORY_THREASHOLD = int64(100000000)
-const MIN_MEMORY_TRIGGER = int64(1000000000)
+const DELTA_MEMORY_THREASHOLD = int64(1024) * int64(1024) * int64(100) //100MiB
+const MIN_MEMORY_TRIGGER = int64(1024) * int64(1024) * int64(1024)     //1GiB
 
 // Time between performance checks
 const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
@@ -35,6 +35,9 @@ func MonitorMemoryUsage() {
 	//Null profile record for comparison
 	minMemoryUse := runtime.MemProfileRecord{0, 0, 0, 0, [32]uintptr{}}
 
+	//Slice to
+	highestMemUsage := make([]*runtime.MemProfileRecord, 10)
+
 	for {
 		//Only trigger preiodicly
 		time.Sleep(PERFORMANCE_CHECK_PERIOD)
@@ -56,10 +59,8 @@ func MonitorMemoryUsage() {
 			numMaxRecords = len(pr)
 		}
 
-		highestMemUsage := make([]*runtime.MemProfileRecord, numMaxRecords)
-
 		//Clear the memory profile record slice
-		for i := 0; i < len(highestMemUsage); i++ {
+		for i := 0; i < numMaxRecords; i++ {
 			highestMemUsage[i] = &minMemoryUse
 		}
 
@@ -67,7 +68,7 @@ func MonitorMemoryUsage() {
 		for i := 0; i < len(pr); i++ {
 			memoryAllocated += pr[i].InUseBytes()
 
-			for j := len(highestMemUsage) - 1; j > -1; j-- {
+			for j := numMaxRecords - 1; j > -1; j-- {
 				if pr[i].InUseBytes() > highestMemUsage[j].InUseBytes() {
 					highestMemUsage[j] = &pr[i]
 					break
@@ -91,7 +92,7 @@ func MonitorMemoryUsage() {
 			jww.WARN.Printf("Number of threads: %v", currentThreads)
 			jww.WARN.Printf("Top 10 threads by memory allocation:")
 			//Format the data from the top 10 threads for printing
-			for _, thr := range highestMemUsage {
+			for _, thr := range highestMemUsage[0:numMaxRecords] {
 
 				//Get a list of the last 10 executed functions
 				var funcNames string
