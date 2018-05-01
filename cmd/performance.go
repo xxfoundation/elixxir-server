@@ -46,6 +46,7 @@ func MonitorMemoryUsage() {
 		deltaTriggerTime := triggerTime.Sub(lastTrigger)
 		var pr []runtime.MemProfileRecord
 
+		//Get the number of executing goroutines
 		currentThreads := runtime.NumGoroutine()
 
 		//Get the memory usage of all threads
@@ -86,11 +87,11 @@ func MonitorMemoryUsage() {
 			jww.WARN.Printf("Performance warning triggered after "+
 				"%v seconds", deltaTriggerTime*time.Second)
 
-			jww.WARN.Printf("Allocated Memory %v exceeded threshold of %v"+
+			jww.WARN.Printf("  Allocated Memory %v exceeded threshold of %v"+
 				convertToReadableBytes(memoryAllocated), numMemory)
 
-			jww.WARN.Printf("Number of threads: %v", currentThreads)
-			jww.WARN.Printf("Top 10 threads by memory allocation:")
+			jww.WARN.Printf("  Number of threads: %v", currentThreads)
+			jww.WARN.Printf("  Top 10 threads by memory allocation:")
 			//Format the data from the top 10 threads for printing
 			for _, thr := range highestMemUsage[0:numMaxRecords] {
 
@@ -106,7 +107,7 @@ func MonitorMemoryUsage() {
 				}
 
 				//Print thread information
-				jww.WARN.Printf("  %s %s", convertToReadableBytes(thr.
+				jww.WARN.Printf("    %s %s", convertToReadableBytes(thr.
 					InUseBytes()), funcNames)
 			}
 			numMemory = memoryAllocated
