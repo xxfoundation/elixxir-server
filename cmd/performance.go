@@ -10,6 +10,7 @@ import (
 // Amount of memory allocation required before the system triggers a
 // performance alert
 const DELTA_MEMORY_THREASHOLD = int64(100000000)
+const MIN_TRIGGER_MEMORY = int64(1000000000)
 
 // Time between performance checks
 const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
@@ -77,7 +78,7 @@ func MonitorMemoryUsage() {
 		memoryDelta := memoryAllocated - numMemory
 
 		//check if the change in memory usage warrants an update
-		if memoryDelta > DELTA_MEMORY_THREASHOLD {
+		if memoryDelta > DELTA_MEMORY_THREASHOLD && MIN_TRIGGER_MEMORY < memoryAllocated {
 
 			lastTrigger = triggerTime
 
