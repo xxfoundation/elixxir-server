@@ -35,11 +35,11 @@ func MonitorMemoryUsage() {
 	//Null profile record for comparison
 	minMemoryUse := runtime.MemProfileRecord{0, 0, 0, 0, [32]uintptr{}}
 
-	//Slice to
+	//Slice to store the threads with the top memory usage
 	highestMemUsage := make([]*runtime.MemProfileRecord, 10)
 
 	for {
-		//Only trigger preiodicly
+		//Only trigger periodically
 		time.Sleep(PERFORMANCE_CHECK_PERIOD)
 
 		triggerTime := time.Now()
@@ -101,6 +101,8 @@ func MonitorMemoryUsage() {
 				if lenlookup > 10 {
 					lenlookup = 10
 				}
+				// append the function names of the last 10 executed functions
+				// to be printed
 				for i := 0; i < lenlookup; i++ {
 					funcNames += trncateFuncName(runtime.FuncForPC(thr.
 						Stack0[i]).Name())
