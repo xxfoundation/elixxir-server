@@ -97,7 +97,8 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 	go readSignal(realtimeChan, realtimeSignal)
 
 	for {
-		timer = time.NewTimer(2 * time.Second)
+
+		timer = time.NewTimer(333 * time.Millisecond)
 
 		select {
 		case <-realtimeChan:
@@ -138,9 +139,8 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 				atomic.AddInt32(&numRunning, int32(-1))
 				roundTimeout.Stop()
 				if round.GetPhase() == globals.ERROR {
-					jww.FATAL.Printf("Fatal error occurred during precomputation"+
-						" of "+
-						"round %s", roundId)
+					jww.ERROR.Printf("Error occurred during precomputation"+
+						" of round %s, round aborted", roundId)
 				} else {
 					endTime := time.Now()
 					jww.INFO.Printf("Precomputation phase with Round ID %s finished at %s!\n",
