@@ -271,6 +271,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 func run() {
 	// Blocks forever as a keepalive
 	select {}
+	jww.ERROR.Printf("Node Exiting without error")
 }
 
 // getServers pulls a string slice of server ports from the config file and
