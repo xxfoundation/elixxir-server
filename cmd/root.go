@@ -55,12 +55,11 @@ communications.`,
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		jww.ERROR.Printf("Node Exiting with error: %s", err.Error())
+		os.Exit(1)
 	} else {
+		// The code exited without
 		jww.ERROR.Printf("Node Exiting without error")
 	}
-
-	//Exit with an error because the code has no path to termination
-	os.Exit(1)
 
 }
 
