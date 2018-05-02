@@ -54,9 +54,14 @@ communications.`,
 // happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		jww.ERROR.Println(err)
-		os.Exit(1)
+		jww.ERROR.Printf("Node Exiting with error: %s", err.Error())
+	} else {
+		jww.ERROR.Printf("Node Exiting without error")
 	}
+
+	//Exit with an error because the code has no path to termination
+	os.Exit(1)
+
 }
 
 // init is the initialization function for Cobra which defines commands
