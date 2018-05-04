@@ -89,7 +89,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	user, err := globals.Users.GetUser(in.CurrentID)
 
 	if err != nil {
-		jww.ERROR.Printf("GenerateClientKey Run: Got lookup"+
+		jww.INFO.Printf("GenerateClientKey Run: Got lookup"+
 			" failure on %v, using a random key to destroy the data. Error: %s",
 			in.CurrentID, err.Error())
 		group.Random(in.CurrentKey)

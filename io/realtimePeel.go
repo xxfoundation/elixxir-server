@@ -30,7 +30,7 @@ func (h RealtimePeelHandler) Handler(
 		slot := (*slots[i]).(*realtime.RealtimeSlot)
 		round := globals.GlobalRoundMap.GetRound(roundId)
 		if !round.MIC_Verification[slot.Slot] {
-			jww.ERROR.Printf("Message corrupted, not queued")
+			jww.DEBUG.Printf("Message %v corrupted, not queued", slot.SlotID())
 		} else {
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
 				slot.Message.Text(10))

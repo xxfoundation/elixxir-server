@@ -75,7 +75,7 @@ func (i Verify) Run(g *cyclic.Group,
 	valid := verification.CheckMic(recipientMicList, pmic)
 
 	if !valid {
-		jww.ERROR.Printf("Recipient MIC failed, Recipient ID read as %v",
+		jww.WARN.Printf("Recipient MIC failed, Recipient ID read as %v",
 			cyclic.NewIntFromBytes(recpbytes).Text(10))
 		*keys.Verification = false
 	} else {
