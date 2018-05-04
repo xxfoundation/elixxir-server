@@ -140,10 +140,10 @@ func (m *RoundMap) DeleteRound(roundId string) {
 	round := m.GetRound(roundId)
 	m.mutex.Lock()
 	delete(m.rounds, roundId)
-	jww.INFO.Printf("Round %v has been recycled")
 	ResetRound(round)
 	RoundRecycle <- round
 	m.mutex.Unlock()
+	jww.INFO.Printf("Round %v has been recycled", roundId)
 }
 
 // Get chan for a given chanId in channels array (Not thread-safe!)
