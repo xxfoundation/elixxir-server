@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/mixclient"
+	"gitlab.com/privategrity/comms/client"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/server/globals"
 	"testing"
@@ -22,7 +22,7 @@ func TestRequestContactList(t *testing.T) {
 	globals.Users.UpsertUser(user)
 
 	// Currently we just return all the nicks
-	contacts, err := mixclient.RequestContactList(NextServer, &pb.ContactPoll{})
+	contacts, err := client.RequestContactList(NextServer, &pb.ContactPoll{})
 	if err != nil {
 		t.Errorf("RequestContactList() returned an error: %v", err.Error())
 	}

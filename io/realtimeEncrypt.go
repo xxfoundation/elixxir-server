@@ -8,8 +8,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/comms/clusterclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -129,7 +129,7 @@ func (h RealtimeEncryptHandler) Handler(
 			NextServer, sendTime.Format(time.RFC3339))
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_COMPLETE)
-		clusterclient.SendRealtimeEncrypt(NextServer, msg)
+		node.SendRealtimeEncrypt(NextServer, msg)
 		globals.GlobalRoundMap.DeleteRound(roundId)
 	}
 

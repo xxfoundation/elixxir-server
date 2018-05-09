@@ -10,7 +10,7 @@ package cmd
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/privategrity/comms/mixserver"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -231,7 +231,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	globals.NodeID(uint64(serverIndex))
 
 	// Kick off Comms server
-	go mixserver.StartServer(localServer, io.ServerImpl{
+	go node.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,
 	})
 

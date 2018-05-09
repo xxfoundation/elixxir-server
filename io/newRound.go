@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/clusterclient"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/server/cryptops"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
@@ -212,7 +212,7 @@ func BeginNewRound(servers []string, RoundID string) {
 
 	for i := 0; i < len(servers); {
 		jww.DEBUG.Printf("Sending NewRound message to %s...\n", servers[i])
-		_, err := clusterclient.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
+		_, err := node.SendNewRound(servers[i], &pb.InitRound{RoundID: RoundID})
 		if err != nil {
 			jww.ERROR.Printf("%v: Server %s failed to begin new round!\n", i,
 				servers[i])
