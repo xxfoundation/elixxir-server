@@ -7,7 +7,7 @@ package io
 
 import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/comms/clusterclient"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -16,6 +16,7 @@ import (
 )
 
 type DummyPrecompDecryptHandler struct{}
+
 func (h DummyPrecompDecryptHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	// Create the PrecompDecryptMessage
@@ -46,9 +47,8 @@ func (h DummyPrecompDecryptHandler) Handler(
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
 
 	// Send the completed PrecompDecryptMessage
-	clusterclient.SendPrecompDecrypt(NextServer, msg)
+	node.SendPrecompDecrypt(NextServer, msg)
 }
-
 
 func TestPrecompDecrypt(t *testing.T) {
 	// Create a new Round

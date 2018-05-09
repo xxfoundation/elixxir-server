@@ -26,7 +26,7 @@ var Servers []string
 var RoundCh chan *string                  // Strings identifying rounds to be used
 var MessageCh chan *realtime.RealtimeSlot // Message queuing
 
-// Struct implementing mixserver.ServerHandler interface
+// Struct implementing node.ServerHandler interface
 type ServerImpl struct {
 	// Pointer to the global map of RoundID -> Rounds
 	Rounds *globals.RoundMap

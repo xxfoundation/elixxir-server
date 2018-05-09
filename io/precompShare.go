@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/clusterclient"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -81,7 +81,7 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	// shareResult.PartialRoundPublicCypherKey
 	jww.INFO.Println("Setting node Public Keys...")
 	for i := range Servers {
-		clusterclient.SetPublicKey(Servers[i], &pb.PublicKeyMessage{
+		node.SetPublicKey(Servers[i], &pb.PublicKeyMessage{
 			RoundID:   input.RoundID,
 			PublicKey: input.Slots[0].PartialRoundPublicCypherKey,
 		})
@@ -111,7 +111,7 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	sendTime := time.Now()
 	jww.INFO.Printf("[Last Node] Sending PrecompDecrypt Messages to %v at %s",
 		NextServer, sendTime.Format(time.RFC3339))
-	clusterclient.SendPrecompDecrypt(NextServer, msg)
+	node.SendPrecompDecrypt(NextServer, msg)
 
 	endTime := time.Now()
 	jww.INFO.Printf("[Last Node] Finished Initializing "+
@@ -170,7 +170,7 @@ func (h PrecompShareHandler) Handler(
 		// Send the completed PrecompShareMessage
 		jww.INFO.Printf("Sending PrecompShare Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
-		clusterclient.SendPrecompShare(NextServer, msg)
+		node.SendPrecompShare(NextServer, msg)
 	}
 
 	endTime := time.Now()

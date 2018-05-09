@@ -8,15 +8,15 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/comms/clusterclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/comms/node"
 	"time"
 )
 
 // Blocks until all given servers respond
 func VerifyServersOnline(servers []string) {
 	for i := 0; i < len(servers); {
-		_, err := clusterclient.SendAskOnline(servers[i], &pb.Ping{})
+		_, err := node.SendAskOnline(servers[i], &pb.Ping{})
 		jww.INFO.Printf("Waiting for federation server %s (%d/%d)...",
 			servers[i], i+1, len(servers))
 		if err != nil {

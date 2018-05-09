@@ -6,7 +6,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/clusterclient"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -132,7 +132,7 @@ func (h PrecompRevealHandler) Handler(
 			NextServer, sendTime.Format(time.RFC3339))
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_DECRYPT)
-		clusterclient.SendPrecompReveal(NextServer, msg)
+		node.SendPrecompReveal(NextServer, msg)
 	}
 
 	endTime := time.Now()

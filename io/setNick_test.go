@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/mixclient"
+	"gitlab.com/privategrity/comms/client"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/server/globals"
 	"testing"
@@ -19,7 +19,7 @@ func TestSetNick(t *testing.T) {
 	user.Nick = "Nick"
 	globals.Users.UpsertUser(user)
 
-	_, err := mixclient.SetNick(NextServer, &pb.Contact{
+	_, err := client.SetNick(NextServer, &pb.Contact{
 		UserID: user.ID,
 		Nick:   "Jake",
 	})

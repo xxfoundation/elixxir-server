@@ -8,8 +8,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/comms/clusterclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -59,7 +59,7 @@ func (h RealtimeIdentifyHandler) Handler(
 	sendTime := time.Now()
 	jww.INFO.Printf("Sending RealtimeEncrypt Messages to %v at %s",
 		NextServer, sendTime.Format(time.RFC3339))
-	clusterclient.SendRealtimeEncrypt(NextServer, msg)
+	node.SendRealtimeEncrypt(NextServer, msg)
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeIdentify.Handler(RoundId: %s) in %d ms",

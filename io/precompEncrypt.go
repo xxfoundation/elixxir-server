@@ -6,7 +6,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/clusterclient"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/globals"
@@ -93,7 +93,7 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 	sendTime := time.Now()
 	jww.INFO.Printf("[Last Node] Sending PrecompReveal Messages to %v at %s",
 		NextServer, sendTime.Format(time.RFC3339))
-	clusterclient.SendPrecompReveal(NextServer, msg)
+	node.SendPrecompReveal(NextServer, msg)
 
 	endTime := time.Now()
 	jww.INFO.Printf("[Last Node] Finished Initializing "+
@@ -144,7 +144,7 @@ func (h PrecompEncryptHandler) Handler(
 		// Send the completed PrecompEncryptMessage
 		jww.INFO.Printf("Sending PrecompDecrypt Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
-		clusterclient.SendPrecompEncrypt(NextServer, msg)
+		node.SendPrecompEncrypt(NextServer, msg)
 	}
 
 	endTime := time.Now()

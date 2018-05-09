@@ -8,8 +8,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/comms/clusterclient"
 	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
@@ -132,7 +132,7 @@ func (h RealtimePermuteHandler) Handler(
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_ENCRYPT)
 		jww.INFO.Printf("Sending RealtimePermute Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
-		clusterclient.SendRealtimePermute(NextServer, msg)
+		node.SendRealtimePermute(NextServer, msg)
 	}
 
 	endTime := time.Now()

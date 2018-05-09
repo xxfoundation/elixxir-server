@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/mixserver"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"os"
@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	// Kick off comms server
 	localServer := "localhost:5555"
-	go mixserver.StartServer(localServer,
+	go node.StartServer(localServer,
 		ServerImpl{Rounds: &globals.GlobalRoundMap})
 	// Next hop will be back to us
 	NextServer = localServer
