@@ -27,8 +27,7 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
-	timeoutRealtime(globals.GlobalRoundMap.GetRound(input.RoundID),
-		10*time.Minute)
+	timeoutRealtime(input.RoundID, 10*time.Minute)
 
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_DECRYPT)
