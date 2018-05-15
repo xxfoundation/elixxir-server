@@ -39,13 +39,12 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	// Create a new Round
 	round := globals.NewRound(batchSize)
 
-	// Timeout this round on this node for precomputation after 10 minutes to
-	// prevent deadlock
-	// TODO bring this back to 10
-	timeoutPrecomputation(roundId, 3*time.Minute)
-
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
+
+	// Timeout this round on this node for precomputation after 10 minutes to
+	// prevent deadlock
+	timeoutPrecomputation(roundId, 10*time.Minute)
 
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_GENERATION)
 
