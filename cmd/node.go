@@ -241,7 +241,6 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Block until we can reach every server
 	io.VerifyServersOnline(io.Servers)
-
 	globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER_SIZE)
 
 	// Run as many as half the number of nodes times the number of
@@ -269,8 +268,28 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 // Main server loop
 func run() {
-	// Blocks forever as a keepalive
-	select {}
+	// Run a roundtrip ping every couple seconds if last node
+	if globals.IsLastNode {
+		ticker := time.NewTicker(5 * time.Second)
+		quit := make(chan struct{})
+		go func() {
+			for {
+				select {
+				case <- ticker.C:
+					jww.DEBUG.Print("Starting Roundtrip Ping")
+					io.GetRoundtripPing(io.Servers)
+				case <- quit:
+					ticker.Stop()
+					return
+				}
+			}
+		}()
+		// Blocks forever as a keepalive
+		select {}
+	} else {
+		// Blocks forever as a keepalive
+		select {}
+	}
 	jww.ERROR.Printf("Node Exiting without error")
 }
 
