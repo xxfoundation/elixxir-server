@@ -161,7 +161,7 @@ func TestRealtimePermuteRun(t *testing.T) {
 	for i := uint64(0); i < bs; i++ {
 		if results[i][0].Cmp(om[i].Message) != 0 ||
 			results[i][1].Cmp(om[i].EncryptedRecipient) != 0 {
-			t.Errorf("%v - Expected: %v,%v Got: %v,%v",
+			t.Errorf("TestRealtimePermuteRun - Expected: %v,%v Got: %v,%v",
 				results[i][0].Text(10), results[i][1].Text(10),
 				om[i].Message.Text(10),
 				om[i].EncryptedRecipient.Text(10))
