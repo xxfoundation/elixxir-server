@@ -19,6 +19,17 @@ import (
 	"time"
 )
 
+// Errors a round after a certain period of time if it's not complete by then
+func timeoutRound(round *globals.Round, timeout time.Duration) {
+	time.AfterFunc(timeout, func() {
+		if round.GetPhase() != globals.REAL_COMPLETE {
+			// Round wasn't totally complete before timeout. Set it to error
+			jww.ERROR.Printf("Timing out round on node %v", globals.NodeID(0))
+			round.SetPhase(globals.ERROR)
+		}
+	})
+}
+
 // Comms method for kicking off a new round in CMIX
 func (s ServerImpl) NewRound(clusterRoundID string) {
 	startTime := time.Now()
@@ -37,6 +48,9 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 
 	// Create a new Round
 	round := globals.NewRound(batchSize)
+
+	// Timeout this round on this node after 15 minutes to prevent deadlock
+	timeoutRound(round, 15*time.Minute)
 
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
