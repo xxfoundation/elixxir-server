@@ -342,7 +342,7 @@ func InitLastNode(round *Round) {
 
 func ResetLastNode(round *Round) {
 
-	jww.DEBUG.Printf("lastnode: %v")
+	jww.DEBUG.Printf("lastnode: %v", round.LastNode)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		round.LastNode.MessagePrecomputation[i].SetBytes(cyclic.Max4kBitInt)

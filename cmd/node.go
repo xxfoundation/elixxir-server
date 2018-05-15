@@ -79,7 +79,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 var numRunning = int32(0)
 
 // Maximum number of simultanously run precomputation
-var numPrecompSimultanious int
+var numPrecompSimultaneous int
 
 // Size of the buffer for input messages
 var messageBufferSize int
@@ -158,7 +158,7 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 }
 
 func checkPrecompBuffer(numRounds, numRunning int) bool {
-	return (numRounds+numRunning < PRECOMP_BUFFER_SIZE) && (numRunning < numPrecompSimultanious)
+	return (numRounds+numRunning < PRECOMP_BUFFER_SIZE) && (numRunning < numPrecompSimultaneous)
 }
 
 func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
@@ -246,7 +246,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Run as many as half the number of nodes times the number of
 	// passthroughs (which is 4).
-	numPrecompSimultanious = int((uint64(len(io.Servers)) * 4) / 2)
+	numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) / 2)
 
 	messageBufferSize = int(10 * batchSize)
 
