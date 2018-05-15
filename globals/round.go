@@ -205,6 +205,7 @@ func (round *Round) GetPhase() Phase {
 // Note that phases can only advance state, and can sometimes skip state when
 // the node is not the last node.
 func (round *Round) SetPhase(p Phase) {
+	jww.INFO.Printf("Setting phase to %v", p.String())
 	round.phaseCond.L.Lock()
 	if p < round.phase {
 		jww.FATAL.Panicf("Cannot decrement Phases!")
