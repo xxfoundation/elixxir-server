@@ -240,7 +240,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 
 	// Block until we can reach every server
-	io.VerifyServersOnline(io.Servers)
+	io.VerifyServersOnline()
 
 	globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER_SIZE)
 

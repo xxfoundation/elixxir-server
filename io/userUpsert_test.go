@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TestVerifyServersOnline(t *testing.T) {
+func TestUserUpsertBroadcast(t *testing.T) {
 	done := 0
 	Servers = []string{"localhost:5555"}
 	go func(d *int) {
@@ -20,6 +20,6 @@ func TestVerifyServersOnline(t *testing.T) {
 	}(&done)
 	VerifyServersOnline()
 	if done == 1 {
-		t.Errorf("Could not verify servers in less than 2 seconds!")
+		t.Errorf("Could not broadcast upsert in less than 2 seconds!")
 	}
 }
