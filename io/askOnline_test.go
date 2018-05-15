@@ -1,13 +1,13 @@
 package io
 
 import (
-	"time"
 	"testing"
+	"time"
 )
 
 func TestVerifyServersOnline(t *testing.T) {
 	done := 0
-	servers := [1]string{ "localhost:5555" }
+	servers := [1]string{"localhost:5555"}
 	go func(d *int) {
 		time.Sleep(2 * time.Second)
 		*d = 1
