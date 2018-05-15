@@ -14,18 +14,32 @@ import (
 
 func TestTimeoutRound(t *testing.T) {
 	round := globals.NewRound(1)
-	timeoutRound(round, time.Nanosecond)
+	timeoutPrecomputation(round, time.Nanosecond)
 	time.Sleep(time.Second)
 	if round.GetPhase() != globals.ERROR {
-		t.Error("Round didn't time out")
+		t.Error("Precomputation: Round didn't time out")
+	}
+
+	globals.ResetRound(round)
+	timeoutRealtime(round, time.Nanosecond)
+	time.Sleep(time.Second)
+	if round.GetPhase() != globals.ERROR {
+		t.Error("Realtime: Round didn't time out")
 	}
 }
 
 func TestNotTimeoutRound(t *testing.T) {
 	round := globals.NewRound(1)
-	timeoutRound(round, time.Minute)
+	timeoutRealtime(round, time.Minute)
 	time.Sleep(time.Second)
 	if round.GetPhase() == globals.ERROR {
-		t.Error("Round timed out")
+		t.Error("Realtime: Round timed out")
+	}
+
+	globals.ResetRound(round)
+	timeoutPrecomputation(round, time.Minute)
+	time.Sleep(time.Second)
+	if round.GetPhase() == globals.ERROR {
+		t.Error("Precomputation: Round timed out")
 	}
 }
