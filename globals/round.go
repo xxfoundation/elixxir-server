@@ -212,7 +212,7 @@ func (round *Round) SetPhase(p Phase) {
 		round.phaseCond.L.Unlock()
 		round.phaseCond.Broadcast()
 	}()
-	if p < round.phase {
+	if p < round.phase && round.phase != ERROR {
 		jww.FATAL.Panicf("Cannot decrement Phases!")
 	}
 	round.phase = p

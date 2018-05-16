@@ -30,7 +30,6 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	timeoutRealtime(input.RoundID, 10*time.Minute)
 
 	// Get the input channel for the cryptop
-	defer recoverSetPhasePanic(input.RoundID)
 	chIn := s.GetChannel(input.RoundID, globals.REAL_DECRYPT)
 	// Iterate through the Slots in the RealtimeDecryptMessage
 	for i := 0; i < len(input.Slots); i++ {
@@ -133,7 +132,6 @@ func (h RealtimeDecryptHandler) Handler(
 	}
 
 	// Advance internal state to the next phase
-		defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_PERMUTE)
 
 	sendTime := time.Now()
@@ -185,7 +183,6 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	}
 
 	// Advance internal state to the next phase
-		defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_DECRYPT)
 
 	// Send the completed RealtimeDecryptMessage

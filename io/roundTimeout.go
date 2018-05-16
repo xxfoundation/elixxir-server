@@ -12,18 +12,6 @@ import (
 	"time"
 )
 
-// When a round is set to ERROR because it timed out, other io functions
-// (transmission and reception handlers) can cause panics when setting the
-// phase to something earlier. Functions that set a phase should call
-// this function deferred.
-// This can't be right... can it?
-func recoverSetPhasePanic(roundId string) {
-	if r := recover(); r != nil {
-		jww.WARN.Printf("Recovered from panic: %v", r)
-		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.ERROR)
-	}
-}
-
 // Errors a round after a certain time if its precomputation isn't done
 func timeoutPrecomputation(roundId string, timeout time.Duration) {
 	round := globals.GlobalRoundMap.GetRound(roundId)

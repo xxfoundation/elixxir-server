@@ -38,7 +38,6 @@ func (h PrecompStripHandler) Handler(
 	}
 
 	// Advance internal state to PRECOMP_DECRYPT (the next phase)
-		defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_COMPLETE)
 
 	endTime := time.Now()

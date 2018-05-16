@@ -28,7 +28,6 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 		startTime.Format(time.RFC3339))
 
 	// Get the input channel for the cryptop
-	defer recoverSetPhasePanic(input.RoundID)
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
 	// Iterate through the Slots in the PrecompDecryptMessage
 	for i := 0; i < len(input.Slots); i++ {
@@ -138,7 +137,6 @@ func (h PrecompDecryptHandler) Handler(
 	}
 
 	// Advance internal state to PRECOMP_PERMUTE (the next phase)
-	defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_PERMUTE)
 
 	sendTime := time.Now()

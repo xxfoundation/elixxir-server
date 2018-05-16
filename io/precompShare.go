@@ -29,7 +29,6 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 		startTime.Format(time.RFC3339))
 
 	// Get the input channel for the cryptop
-	defer recoverSetPhasePanic(input.RoundID)
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_SHARE)
 	// Iterate through the Slots in the PrecompShareMessage
 	for i := 0; i < len(input.Slots); i++ {
@@ -156,10 +155,8 @@ func (h PrecompShareHandler) Handler(
 
 	// Advance internal state to the next phase
 	if globals.IsLastNode && IsFirstRun {
-		defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
 	} else {
-		defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
 	}
 

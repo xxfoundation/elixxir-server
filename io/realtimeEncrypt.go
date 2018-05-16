@@ -27,7 +27,6 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 	// Get the input channel for the cryptop
-	defer recoverSetPhasePanic(input.RoundID)
 	chIn := s.GetChannel(input.RoundID, globals.REAL_ENCRYPT)
 	// Iterate through the Slots in the RealtimeEncryptMessage
 	for i := 0; i < len(input.Slots); i++ {
@@ -122,7 +121,6 @@ func (h RealtimeEncryptHandler) Handler(
 		jww.INFO.Printf("Starting RealtimePeel Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
 		// Advance internal state to the next phase
-			defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_PEEL)
 		realtimeEncryptLastNode(roundId, batchSize, msg)
 	} else {
@@ -130,7 +128,6 @@ func (h RealtimeEncryptHandler) Handler(
 		jww.INFO.Printf("Sending RealtimeEncrypt Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
 		// Advance internal state to the next phase
-			defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_COMPLETE)
 		node.SendRealtimeEncrypt(NextServer, msg)
 		globals.GlobalRoundMap.DeleteRound(roundId)

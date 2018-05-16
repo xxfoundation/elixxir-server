@@ -28,7 +28,6 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 		startTime.Format(time.RFC3339))
 
 	// Get the input channel for the cryptop
-	defer recoverSetPhasePanic(input.RoundID)
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_REVEAL)
 	// Iterate through the Slots in the PrecompRevealMessage
 	for i := 0; i < len(input.Slots); i++ {
@@ -123,7 +122,6 @@ func (h PrecompRevealHandler) Handler(
 	if globals.IsLastNode {
 		// Transition to PrecompStrip phase
 		// Advance internal state to the next phase
-		defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_STRIP)
 		jww.INFO.Printf("Starting PrecompStrip Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
@@ -133,7 +131,6 @@ func (h PrecompRevealHandler) Handler(
 		jww.INFO.Printf("Sending PrecompReveal Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
 		// Advance internal state to the next phase
-		defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_DECRYPT)
 		node.SendPrecompReveal(NextServer, msg)
 	}

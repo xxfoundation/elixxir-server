@@ -46,7 +46,6 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	// prevent deadlock
 	timeoutPrecomputation(roundId, 10*time.Minute)
 
-	defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_GENERATION)
 
 	// Create the controller for PrecompShare
