@@ -58,6 +58,7 @@ func (h RealtimePeelHandler) Handler(
 		}
 	}
 
+		defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_COMPLETE)
 
 	endTime := time.Now()

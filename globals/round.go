@@ -160,12 +160,12 @@ func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
 // Returns immediately if the phase has already past or it is in
 // an error state.
 func (round *Round) WaitUntilPhase(phase Phase) {
-	round.phaseCond.L.Lock() // This must be held when calling wait
 	for round.phase < phase {
 		jww.DEBUG.Printf("Current Phase State: %s", round.phase.String())
+		round.phaseCond.L.Lock() // This must be held when calling wait
 		round.phaseCond.Wait()
+		round.phaseCond.L.Unlock()
 	}
-	round.phaseCond.L.Unlock()
 }
 
 // NewRound constructs an empty round for a given batch size, with all
@@ -207,12 +207,15 @@ func (round *Round) GetPhase() Phase {
 func (round *Round) SetPhase(p Phase) {
 	jww.INFO.Printf("Setting phase to %v", p.String())
 	round.phaseCond.L.Lock()
+	// These calls must be deferred so that they're still called after the panic
+	defer func() {
+		round.phaseCond.L.Unlock()
+		round.phaseCond.Broadcast()
+	}()
 	if p < round.phase {
 		jww.FATAL.Panicf("Cannot decrement Phases!")
 	}
 	round.phase = p
-	round.phaseCond.L.Unlock()
-	round.phaseCond.Signal()
 }
 
 // Unexported underlying function to initialize a new round
@@ -307,6 +310,13 @@ func ResetRound(NR *Round) {
 		NR.Permutations[i] = i
 
 		NR.MIC_Verification[i] = true
+	}
+	// We never unlock this lock after this. This avoids a double unlock in a
+	// really ugly way.
+	NR.phaseCond.L.Lock()
+	if NR.phase != ERROR {
+		NR.phase = REAL_COMPLETE
+		NR.phaseCond.Broadcast()
 	}
 	NR.phase = OFF
 	NR.phaseCond = &sync.Cond{L: &sync.Mutex{}}

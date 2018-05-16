@@ -27,6 +27,7 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
+	defer recoverSetPhasePanic(input.RoundID)
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT)
 	jww.DEBUG.Printf("Received PrecompEncrypt Message %v from phase %s...",
 		input.RoundID, globals.Phase(input.LastOp).String())
@@ -132,6 +133,7 @@ func (h PrecompEncryptHandler) Handler(
 	}
 
 	// Advance internal state to PRECOMP_DECRYPT (the next phase)
+	defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_REVEAL)
 
 	sendTime := time.Now()

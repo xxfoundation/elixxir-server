@@ -53,6 +53,7 @@ func (h RealtimeIdentifyHandler) Handler(
 	}
 
 	// Advance internal state to the next phase
+		defer recoverSetPhasePanic(roundId)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_ENCRYPT)
 
 	// Send the first RealtimeEncrypt Message

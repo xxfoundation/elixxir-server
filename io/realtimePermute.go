@@ -28,6 +28,7 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		startTime.Format(time.RFC3339))
 
 	// Get the input channel for the cryptop
+	defer recoverSetPhasePanic(input.RoundID)
 	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
 	for i := 0; i < len(input.Slots); i++ {
@@ -122,6 +123,7 @@ func (h RealtimePermuteHandler) Handler(
 	if globals.IsLastNode {
 		// Transition to RealtimeIdentify phase
 		// Advance internal state to the next phase
+			defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_IDENTIFY)
 		jww.INFO.Printf("Starting RealtimeIdentify Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
@@ -129,6 +131,7 @@ func (h RealtimePermuteHandler) Handler(
 	} else {
 		// Send the completed RealtimePermuteMessage
 		// Advance internal state to the next phase
+			defer recoverSetPhasePanic(roundId)
 		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_ENCRYPT)
 		jww.INFO.Printf("Sending RealtimePermute Message to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
