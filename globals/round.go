@@ -152,8 +152,10 @@ func (m *RoundMap) DeleteRound(roundId string) {
 	round := m.GetRound(roundId)
 	m.mutex.Lock()
 	delete(m.rounds, roundId)
-	ResetRound(round)
-	RoundRecycle <- round
+	// FIXME: Disabling round recycling until we can do it right.
+	round.SetPhase(REAL_COMPLETE)
+	// ResetRound(round)
+	// RoundRecycle <- round
 	m.mutex.Unlock()
 	jww.INFO.Printf("Round %v has been recycled", roundId)
 }

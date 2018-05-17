@@ -46,6 +46,11 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 			// Pass the batch queue into Realtime and begin
 
 			roundId := *(<-RoundCh)
+			// Keep reading until we get a valid round
+			for globals.GlobalRoundMap.GetRound(roundId) == nil {
+				roundId = *(<-RoundCh)
+			}
+
 			startTime := time.Now()
 			jww.INFO.Printf("Realtime phase with Round ID %s started at %s\n",
 				roundId, startTime.Format(time.RFC3339))
@@ -58,6 +63,8 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
 
 			// Wait for the realtime phase to complete and record the elapsed time
 			go func(roundId string, startTime time.Time) {
+				// Since we just started, it is safe not to check for nil here.
+				// this is still technically a race cond, though
 				round := globals.GlobalRoundMap.GetRound(roundId)
 				round.WaitUntilPhase(globals.REAL_COMPLETE)
 				endTime := time.Now()
