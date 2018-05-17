@@ -7,8 +7,8 @@
 package io
 
 import (
-	"testing"
 	"gitlab.com/privategrity/server/globals"
+	"testing"
 	"time"
 )
 
@@ -16,16 +16,20 @@ func TestTimeoutRound(t *testing.T) {
 	round := globals.NewRound(1)
 	roundId := "neil"
 	globals.GlobalRoundMap = globals.NewRoundMap()
+	// Timeout quickly, but slow enough to run WaitUntilPhase func
+	myTimeout := 500 * time.Millisecond
 	globals.GlobalRoundMap.AddRound(roundId, round)
-	timeoutPrecomputation(roundId, time.Nanosecond)
+	timeoutPrecomputation(roundId, myTimeout)
 	time.Sleep(time.Second)
 	if round.GetPhase() != globals.ERROR {
 		t.Error("Precomputation: Round didn't time out")
 	}
 
 	globals.ResetRound(round)
+	round = globals.NewRound(1)
 	roundId2 := "neal"
-	timeoutRealtime(roundId2, time.Nanosecond)
+	globals.GlobalRoundMap.AddRound(roundId2, round)
+	timeoutRealtime(roundId2, myTimeout)
 	time.Sleep(time.Second)
 	if round.GetPhase() != globals.ERROR {
 		t.Error("Realtime: Round didn't time out")
