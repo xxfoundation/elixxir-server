@@ -19,6 +19,7 @@ import (
 	"time"
 )
 
+
 // Comms method for kicking off a new round in CMIX
 func (s ServerImpl) NewRound(clusterRoundID string) {
 	startTime := time.Now()
@@ -37,6 +38,10 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 
 	// Create a new Round
 	round := globals.NewRound(batchSize)
+
+	// Timeout this round on this node for precomputation after 10 minutes to
+	// prevent deadlock
+	timeoutPrecomputation(round, 10*time.Minute)
 
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)

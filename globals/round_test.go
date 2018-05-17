@@ -195,12 +195,12 @@ func TestSetPhase(t *testing.T) {
 
 	for q := Phase(OFF); q < NUM_PHASES; q++ {
 		round.SetPhase(q)
-		if (round.phase != q) {
+		if round.phase != q {
 			t.Errorf("Failed to set phase to %d!", q)
 		}
 	}
 	// Give the goroutine some extra time to run
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	if phaseWaitCheck != 1 {
 		t.Errorf("round.WaitUntilPhase did not complete!")
 	}
