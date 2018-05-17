@@ -25,6 +25,11 @@ func (h PrecompStripHandler) Handler(
 		roundId, startTime.Format(time.RFC3339))
 
 	round := globals.GlobalRoundMap.GetRound(roundId)
+	if round == nil {
+		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
+		return
+	}
+
 	// Retrieve the Precomputations
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*precomputation.PrecomputationSlot)

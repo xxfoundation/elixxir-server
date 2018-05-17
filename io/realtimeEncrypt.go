@@ -65,6 +65,11 @@ func realtimeEncryptLastNode(roundId string, batchSize uint64,
 
 	// Get round and channel
 	round := globals.GlobalRoundMap.GetRound(roundId)
+	if round == nil {
+		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
+		return
+	}
+
 	peelChannel := round.GetChannel(globals.REAL_PEEL)
 	// Create the RealtimeSlot for sending into RealtimePeel
 	for i := uint64(0); i < batchSize; i++ {

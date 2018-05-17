@@ -68,6 +68,11 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 	// Create the SlotStripIn for sending into PrecompStrip
 	stripChannel := globals.GlobalRoundMap.GetRound(roundId).GetChannel(
 		globals.PRECOMP_STRIP)
+	if round == nil {
+		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
+		return
+	}
+
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to SlotStripIn

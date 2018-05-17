@@ -75,7 +75,12 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	// Force batchSize to be the same as the round
 	// as the batchSize we need may be inconsistent
 	// with the Share phase batchSize
-	batchSize := globals.GlobalRoundMap.GetRound(roundId).BatchSize
+	round := globals.GlobalRoundMap.GetRound(roundId)
+	if round == nil {
+		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
+		return
+	}
+	batchSize := round.BatchSize
 
 	// For each node, set CypherPublicKey to
 	// shareResult.PartialRoundPublicCypherKey
