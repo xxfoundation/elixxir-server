@@ -20,7 +20,7 @@ func timeoutPrecomputation(roundId string, timeout time.Duration) {
 		if !success && round.GetPhase() < globals.PRECOMP_COMPLETE {
 			// Precomp wasn't totally complete before timeout. Set it to error
 			jww.ERROR.Printf("Precomputation incomplete: Timing out round %v"+
-				" on node %v with phase %v", roundId, globals.NodeID(0),
+				" on node %v with phase %v", roundId, globals.GetNodeID(),
 				round.GetPhase().String())
 			round.SetPhase(globals.ERROR)
 		}
@@ -28,7 +28,8 @@ func timeoutPrecomputation(roundId string, timeout time.Duration) {
 	go func() {
 		round.WaitUntilPhase(globals.PRECOMP_COMPLETE)
 		jww.INFO.Printf("Waited until phase %v"+
-			" on node %v for round %v", round.GetPhase().String(), globals.NodeID(0),
+			" on node %v for round %v", round.GetPhase().String(),
+			globals.GetNodeID(),
 			roundId)
 		success = true
 		timer.Stop()
@@ -43,14 +44,16 @@ func timeoutRealtime(roundId string, timeout time.Duration) {
 		if !success && round.GetPhase() < globals.REAL_COMPLETE {
 			// Realtime wasn't totally complete before timeout. Set it to error
 			jww.ERROR.Printf("Realtime incomplete: Timing out round %v on node"+
-				" %v with phase %v", roundId, globals.NodeID(0), round.GetPhase().String())
+				" %v with phase %v", roundId, globals.GetNodeID(),
+				round.GetPhase().String())
 			round.SetPhase(globals.ERROR)
 		}
 	})
 	go func() {
 		round.WaitUntilPhase(globals.REAL_COMPLETE)
 		jww.INFO.Printf("Waited until phase %v"+
-			" on node %v for round %v", round.GetPhase().String(), globals.NodeID(0),
+			" on node %v for round %v", round.GetPhase().String(),
+			globals.GetNodeID(),
 			roundId)
 		success = true
 		timer.Stop()

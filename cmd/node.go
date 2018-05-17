@@ -217,7 +217,12 @@ func StartServer(serverIndex int, batchSize uint64) {
 	globals.GlobalRoundMap = globals.NewRoundMap()
 
 	// ensure that the Node ID is populated
-	globals.NodeID(uint64(serverIndex))
+	viperNodeID := uint64(viper.GetInt("nodeid"))
+	if viperNodeID == 0 {
+		globals.SetNodeID(uint64(serverIndex))
+	} else {
+		globals.SetNodeID(viperNodeID)
+	}
 
 	// Kick off Comms server
 	go node.StartServer(localServer, io.ServerImpl{
@@ -265,10 +270,10 @@ func run() {
 		go func() {
 			for {
 				select {
-				case <- ticker.C:
+				case <-ticker.C:
 					jww.DEBUG.Print("Starting Roundtrip Ping")
 					io.GetRoundtripPing(io.Servers)
-				case <- quit:
+				case <-quit:
 					ticker.Stop()
 					return
 				}

@@ -18,7 +18,7 @@ import (
 func UserUpsertBroadcast(userId, userPublicKey []byte) {
 	for i := 0; i < len(Servers); {
 		msg := pb.UpsertUserMessage{
-			NodeID:        globals.NodeID(0),
+			NodeID:        globals.GetNodeID(),
 			UserID:        userId,
 			UserPublicKey: userPublicKey,
 			Nonce:         make([]byte, 0),
