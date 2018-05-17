@@ -70,6 +70,11 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 	}
 
 	round := globals.GlobalRoundMap.GetRound(roundId)
+	if round == nil {
+		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
+		return
+	}
+
 	// Iterate over the input slots
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]

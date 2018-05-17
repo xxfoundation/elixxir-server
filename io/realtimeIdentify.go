@@ -36,6 +36,10 @@ func (h RealtimeIdentifyHandler) Handler(
 
 	// Get round
 	round := globals.GlobalRoundMap.GetRound(roundId)
+	if round == nil {
+		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
+		return
+	}
 
 	// Iterate over the input slots
 	for i := range slots {

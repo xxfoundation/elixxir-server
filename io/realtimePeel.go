@@ -26,9 +26,13 @@ func (h RealtimePeelHandler) Handler(
 		roundId, startTime.Format(time.RFC3339))
 
 	// Retrieve the EncryptedMessage
+	round := globals.GlobalRoundMap.GetRound(roundId)
+	if round == nil {
+		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
+		return
+	}
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*realtime.RealtimeSlot)
-		round := globals.GlobalRoundMap.GetRound(roundId)
 		if !round.MIC_Verification[slot.Slot] {
 			jww.DEBUG.Printf("Message %v corrupted, not queued", slot.SlotID())
 		} else {
