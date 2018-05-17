@@ -43,7 +43,7 @@ func (h DummyPrecompShareHandler) Handler(
 	}
 
 	// Advance internal state to PRECOMP_DECRYPT (the next phase)
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 
 	// Send the completed PrecompShareMessage
 	node.SendPrecompShare(NextServer, msg)

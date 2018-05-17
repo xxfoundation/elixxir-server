@@ -155,9 +155,9 @@ func (h PrecompShareHandler) Handler(
 
 	// Advance internal state to the next phase
 	if globals.IsLastNode && IsFirstRun {
-		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+		globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 	} else {
-		globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
+		globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_DECRYPT)
 	}
 
 	if globals.IsLastNode && !IsFirstRun {

@@ -19,7 +19,6 @@ import (
 	"time"
 )
 
-
 // Comms method for kicking off a new round in CMIX
 func (s ServerImpl) NewRound(clusterRoundID string) {
 	startTime := time.Now()
@@ -48,7 +47,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	timeoutPrecomputation(roundId, 10*time.Minute)
 	//timeoutPrecomputation(roundId, 200*time.Millisecond)
 
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_GENERATION)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_GENERATION)
 
 	// Create the controller for PrecompShare
 	// Note: Share requires a batchSize of 1
@@ -155,7 +154,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		precompGenerationController.InChannel <- &genMsg
 		_ = <-precompGenerationController.OutChannel
 	}
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_SHARE)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 
 	// Generate debugging information
 	jww.DEBUG.Printf("R Value: %v, S Value: %v, T Value: %v",

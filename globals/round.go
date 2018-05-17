@@ -128,6 +128,18 @@ func (m *RoundMap) GetRound(roundId string) *Round {
 	return round
 }
 
+// Atomic SetPhase -- NOTE: If round id was removed from the map this does
+// nothing.
+func (m *RoundMap) SetPhase(roundId string, p Phase) *Round {
+	m.mutex.Lock()
+	round, ok := m.rounds[roundId]
+	if ok {
+		round.SetPhase(p)
+	}
+	m.mutex.Unlock()
+	return round
+}
+
 // Atomic add *Round to rounds map with given roundId
 func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 	m.mutex.Lock()
@@ -160,6 +172,9 @@ func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
 // Returns immediately if the phase has already past or it is in
 // an error state.
 func (round *Round) WaitUntilPhase(phase Phase) {
+	if round == nil {
+		return
+	}
 	round.phaseCond.L.Lock() // This must be held when calling wait
 	for round.phase < phase {
 		jww.DEBUG.Printf("Current Phase State: %s", round.phase.String())
