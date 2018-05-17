@@ -345,7 +345,7 @@ func ResetRound(NR *Round) {
 
 		NR.MIC_Verification[i] = true
 	}
-	NR.SetPhase(ERROR)
+	NR.SetPhase(REALTIME_COMPLETE)
 	NR.phaseCond.L.Lock()
 	NR.phase = OFF
 	NR.phaseCond.L.Unlock()
