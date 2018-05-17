@@ -132,7 +132,7 @@ func (h PrecompEncryptHandler) Handler(
 	}
 
 	// Advance internal state to PRECOMP_DECRYPT (the next phase)
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_REVEAL)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_REVEAL)
 
 	sendTime := time.Now()
 	if globals.IsLastNode {

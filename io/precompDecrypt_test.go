@@ -44,7 +44,7 @@ func (h DummyPrecompDecryptHandler) Handler(
 	}
 
 	// Advance internal state to PRECOMP_DECRYPT (the next phase)
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_DECRYPT)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_DECRYPT)
 
 	// Send the completed PrecompDecryptMessage
 	node.SendPrecompDecrypt(NextServer, msg)

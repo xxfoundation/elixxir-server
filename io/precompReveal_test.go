@@ -21,7 +21,7 @@ func TestPrecompReveal(t *testing.T) {
 	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_REVEAL)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_REVEAL)
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)

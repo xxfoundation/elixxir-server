@@ -146,7 +146,7 @@ func (h PrecompPermuteHandler) Handler(
 	}
 
 	// Advance internal state to PRECOMP_PERMUTE (the next phase)
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_ENCRYPT)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_ENCRYPT)
 
 	sendTime := time.Now()
 	if globals.IsLastNode {

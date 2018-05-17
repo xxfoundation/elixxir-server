@@ -134,7 +134,7 @@ func (h RealtimeDecryptHandler) Handler(
 	}
 
 	// Advance internal state to the next phase
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_PERMUTE)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_PERMUTE)
 
 	sendTime := time.Now()
 	if globals.IsLastNode {
@@ -185,7 +185,7 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	}
 
 	// Advance internal state to the next phase
-	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.REAL_DECRYPT)
+	globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_DECRYPT)
 
 	// Send the completed RealtimeDecryptMessage
 	sendTime := time.Now()
