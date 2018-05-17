@@ -311,15 +311,11 @@ func ResetRound(NR *Round) {
 
 		NR.MIC_Verification[i] = true
 	}
-	// We never unlock this lock after this. This avoids a double unlock in a
-	// really ugly way.
+	NR.SetPhase(ERROR)
 	NR.phaseCond.L.Lock()
-	if NR.phase != ERROR {
-		NR.phase = REAL_COMPLETE
-		NR.phaseCond.Broadcast()
-	}
 	NR.phase = OFF
-	NR.phaseCond = &sync.Cond{L: &sync.Mutex{}}
+	NR.phaseCond.L.Unlock()
+	NR.phaseCond.Broadcast()
 
 	for i := Phase(0); i < NUM_PHASES; i++ {
 		NR.channels[i] = nil

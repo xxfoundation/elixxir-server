@@ -27,7 +27,9 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
+	// MARK To test the rounds timing out, switch which line is commented
 	timeoutRealtime(input.RoundID, 10*time.Minute)
+	//timeoutRealtime(input.RoundID, 20*time.Millisecond)
 
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_DECRYPT)
