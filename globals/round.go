@@ -205,13 +205,17 @@ func (round *Round) GetPhase() Phase {
 // Note that phases can only advance state, and can sometimes skip state when
 // the node is not the last node.
 func (round *Round) SetPhase(p Phase) {
+	jww.INFO.Printf("Setting phase to %v", p.String())
 	round.phaseCond.L.Lock()
-	if p < round.phase {
+	// These calls must be deferred so that they're still called after the panic
+	defer func() {
+		round.phaseCond.L.Unlock()
+		round.phaseCond.Broadcast()
+	}()
+	if p < round.phase && round.phase != ERROR {
 		jww.FATAL.Panicf("Cannot decrement Phases!")
 	}
 	round.phase = p
-	round.phaseCond.L.Unlock()
-	round.phaseCond.Signal()
 }
 
 // Unexported underlying function to initialize a new round
@@ -307,8 +311,11 @@ func ResetRound(NR *Round) {
 
 		NR.MIC_Verification[i] = true
 	}
+	NR.SetPhase(ERROR)
+	NR.phaseCond.L.Lock()
 	NR.phase = OFF
-	NR.phaseCond = &sync.Cond{L: &sync.Mutex{}}
+	NR.phaseCond.L.Unlock()
+	NR.phaseCond.Broadcast()
 
 	for i := Phase(0); i < NUM_PHASES; i++ {
 		NR.channels[i] = nil

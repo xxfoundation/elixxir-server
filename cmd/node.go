@@ -124,20 +124,9 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 
 				round := globals.GlobalRoundMap.GetRound(roundId)
 
-				// If a round takes more than 5 minutes to compute, fail it
-				roundTimeout := time.NewTimer(5 * time.Minute)
-				go func(round *globals.Round, roundTimeout *time.Timer) {
-					<-roundTimeout.C
-					if round.GetPhase() < globals.PRECOMP_COMPLETE {
-						jww.ERROR.Printf("Precomputation of round %s timed out", roundId)
-						round.SetPhase(globals.ERROR)
-					}
-				}(round, roundTimeout)
-
 				// Wait until the round completes to continue
 				round.WaitUntilPhase(globals.PRECOMP_COMPLETE)
 				atomic.AddInt32(&numRunning, int32(-1))
-				roundTimeout.Stop()
 				if round.GetPhase() == globals.ERROR {
 					jww.ERROR.Printf("Error occurred during precomputation"+
 						" of round %s, round aborted", roundId)

@@ -136,7 +136,7 @@ func (h PrecompDecryptHandler) Handler(
 		msg.Slots[i] = msgSlot
 	}
 
-	// Advance internal state to PRECOMP_DECRYPT (the next phase)
+	// Advance internal state to PRECOMP_PERMUTE (the next phase)
 	globals.GlobalRoundMap.GetRound(roundId).SetPhase(globals.PRECOMP_PERMUTE)
 
 	sendTime := time.Now()
