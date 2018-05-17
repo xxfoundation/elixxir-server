@@ -49,6 +49,8 @@ func TestNotTimeoutRound(t *testing.T) {
 
 	globals.ResetRound(round)
 	roundId2 := "neal"
+	round = globals.NewRound(1)
+	globals.GlobalRoundMap.AddRound(roundId2, round)
 	timeoutPrecomputation(roundId2, time.Minute)
 	time.Sleep(time.Second)
 	if round.GetPhase() == globals.ERROR {
