@@ -160,11 +160,24 @@ func (m *RoundMap) DeleteRound(roundId string) {
 
 // Get chan for a given chanId in channels array (Not thread-safe!)
 func (round *Round) GetChannel(chanId Phase) chan<- *services.Slot {
+	if round == nil {
+		n := make(chan *services.Slot, BatchSize)
+		go func(nullChan chan *services.Slot) {
+			for elem := range nullChan {
+				// ignore it.
+				jww.WARN.Printf("Dropping value %v", elem)
+			}
+		}(n)
+		return n
+	}
 	return round.channels[chanId]
 }
 
 // Add chan to channels array with given chanId (Not thread-safe!)
 func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
+	if round == nil {
+		return
+	}
 	round.channels[chanId] = newChan
 }
 
@@ -223,6 +236,9 @@ func (round *Round) GetPhase() Phase {
 // Note that phases can only advance state, and can sometimes skip state when
 // the node is not the last node.
 func (round *Round) SetPhase(p Phase) {
+	if round == nil {
+		return
+	}
 	jww.INFO.Printf("Setting phase to %v", p.String())
 	round.phaseCond.L.Lock()
 	// These calls must be deferred so that they're still called after the panic
