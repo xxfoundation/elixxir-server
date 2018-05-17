@@ -172,6 +172,9 @@ func (round *Round) AddChannel(chanId Phase, newChan chan<- *services.Slot) {
 // Returns immediately if the phase has already past or it is in
 // an error state.
 func (round *Round) WaitUntilPhase(phase Phase) {
+	if round == nil {
+		return
+	}
 	round.phaseCond.L.Lock() // This must be held when calling wait
 	for round.phase < phase {
 		jww.DEBUG.Printf("Current Phase State: %s", round.phase.String())
