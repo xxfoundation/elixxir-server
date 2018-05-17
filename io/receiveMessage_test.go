@@ -63,9 +63,11 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	messageSerial := message[0].SerializeMessage()
 
 	// Send the message to the server itself
-	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{message[0].
-		GetSenderIDUint(), messageSerial.Payload.Bytes(),
-		messageSerial.Recipient.Bytes()})
+	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{
+		SenderID:       message[0].GetSenderIDUint(),
+		MessagePayload: messageSerial.Payload.Bytes(),
+		RecipientID:    messageSerial.Recipient.Bytes(),
+	})
 
 	receivedMessage := <-MessageCh
 
