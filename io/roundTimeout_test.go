@@ -14,14 +14,18 @@ import (
 
 func TestTimeoutRound(t *testing.T) {
 	round := globals.NewRound(1)
-	timeoutPrecomputation(round, time.Nanosecond)
+	roundId := "neil"
+	globals.GlobalRoundMap = globals.NewRoundMap()
+	globals.GlobalRoundMap.AddRound(roundId, round)
+	timeoutPrecomputation(roundId, time.Nanosecond)
 	time.Sleep(time.Second)
 	if round.GetPhase() != globals.ERROR {
 		t.Error("Precomputation: Round didn't time out")
 	}
 
 	globals.ResetRound(round)
-	timeoutRealtime(round, time.Nanosecond)
+	roundId2 := "neal"
+	timeoutRealtime(roundId2, time.Nanosecond)
 	time.Sleep(time.Second)
 	if round.GetPhase() != globals.ERROR {
 		t.Error("Realtime: Round didn't time out")
@@ -30,14 +34,18 @@ func TestTimeoutRound(t *testing.T) {
 
 func TestNotTimeoutRound(t *testing.T) {
 	round := globals.NewRound(1)
-	timeoutRealtime(round, time.Minute)
+	roundId := "neil"
+	globals.GlobalRoundMap = globals.NewRoundMap()
+	globals.GlobalRoundMap.AddRound(roundId, round)
+	timeoutRealtime(roundId, time.Minute)
 	time.Sleep(time.Second)
 	if round.GetPhase() == globals.ERROR {
 		t.Error("Realtime: Round timed out")
 	}
 
 	globals.ResetRound(round)
-	timeoutPrecomputation(round, time.Minute)
+	roundId2 := "neal"
+	timeoutPrecomputation(roundId2, time.Minute)
 	time.Sleep(time.Second)
 	if round.GetPhase() == globals.ERROR {
 		t.Error("Precomputation: Round timed out")

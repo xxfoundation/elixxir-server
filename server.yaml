@@ -1,0 +1,10 @@
+logPath: "server.log"
+verbose: "false"
+batchSize: 1
+dbUsername: "cmix"
+dbPassword: ""
+dbName: "cmix_server"
+dbAddresses:
+    - ""
+servers:
+    - localhost:11420

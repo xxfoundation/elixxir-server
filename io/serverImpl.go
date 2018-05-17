@@ -36,7 +36,7 @@ type ServerImpl struct {
 func (s ServerImpl) GetChannel(roundId string, chanId globals.Phase) chan<- *services.Slot {
 	round := s.Rounds.GetRound(roundId)
 	curPhase := round.GetPhase()
-	if chanId != curPhase {
+	if chanId != curPhase && curPhase != globals.ERROR {
 		jww.FATAL.Panicf("Round %s trying to start phase %s, but on phase %s!",
 			roundId, chanId.String(), curPhase.String())
 	}
