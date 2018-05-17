@@ -128,6 +128,18 @@ func (m *RoundMap) GetRound(roundId string) *Round {
 	return round
 }
 
+// Atomic SetPhase -- NOTE: If round id was removed from the map this does
+// nothing.
+func (m *RoundMap) SetPhase(roundId string, p Phase) *Round {
+	m.mutex.Lock()
+	round, ok := m.rounds[roundId]
+	if ok {
+		round.SetPhase(p)
+	}
+	m.mutex.Unlock()
+	return round
+}
+
 // Atomic add *Round to rounds map with given roundId
 func (m *RoundMap) AddRound(roundId string, newRound *Round) {
 	m.mutex.Lock()
