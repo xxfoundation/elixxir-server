@@ -23,7 +23,7 @@ func TestGetRoundtripPing(t *testing.T) {
 	GetRoundtripPing(servers)
 }
 
-func TestGetRoundtripPing_OneServer(t *testing.T) {
+/*func TestGetRoundtripPing_OneServer(t *testing.T) {
 	server := []string{"localhost:50000"}
 	// Initialize GlobalRoundMap
 	globals.GlobalRoundMap = globals.NewRoundMap()
@@ -31,4 +31,4 @@ func TestGetRoundtripPing_OneServer(t *testing.T) {
 	go node.StartServer(server[0], ServerImpl{Rounds: &globals.GlobalRoundMap})
 	NextServer = server[0]
 	GetRoundtripPing(server)
-}
+}*/
