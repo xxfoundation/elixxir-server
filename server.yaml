@@ -6,5 +6,9 @@ dbPassword: ""
 dbName: "cmix_server"
 dbAddresses:
     - ""
+    - ""
+    - ""
 servers:
     - localhost:11420
+    - localhost:11421
+    - localhost:11422

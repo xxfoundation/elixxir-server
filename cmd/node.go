@@ -195,9 +195,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Get all servers
 	io.Servers = getServers(serverIndex)
 
-	serverList := io.Servers[0]
-	for i := 1; i < len(io.Servers); i++ {
-		serverList = serverList + "," + io.Servers[i]
+	serverList := viper.GetStringSlice("servers")[0]
+	for i := 1; i < len(viper.GetStringSlice("servers")); i++ {
+		serverList = serverList + "," + viper.GetStringSlice("servers")[i]
 	}
 	jww.INFO.Print("Server list: " + serverList)
 
@@ -276,6 +276,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 // Main server loop
 func run() {
+	io.TimeUp = time.Now().UnixNano()
 	// Run a roundtrip ping every couple seconds if last node
 	if globals.IsLastNode {
 		ticker := time.NewTicker(5 * time.Second)
@@ -286,6 +287,7 @@ func run() {
 				case <-ticker.C:
 					jww.DEBUG.Print("Starting Roundtrip Ping")
 					io.GetRoundtripPing(io.Servers)
+					io.GetServerMetrics(io.Servers)
 				case <-quit:
 					ticker.Stop()
 					return

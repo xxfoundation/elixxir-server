@@ -11,13 +11,8 @@ import (
 
 // Records current time and sends all recorded times to next node
 func (s ServerImpl) RoundtripPing(msg *pb.TimePing) {
-	// transcribe previous times
-	times := make([]int64, 0)
-	for i := range msg.Times {
-		times = append(times, msg.Times[i])
-	}
 	// record current time
-	times = append(times, time.Now().UnixNano())
+	times := append(msg.Times, time.Now().UnixNano())
 	// if not last node, send to next node. otherwise log results
 	if !globals.IsLastNode {
 		node.SendRoundtripPing(Servers[len(times)-1],

@@ -20,6 +20,7 @@ var NextServer string
 // List of server addresses
 // TODO remove this please thanks
 var Servers []string
+var TimeUp int64
 
 // These channels are used by LastNode to control when realtime and
 // precomutation are kicked off
