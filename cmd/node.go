@@ -195,6 +195,12 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Get all servers
 	io.Servers = getServers(serverIndex)
 
+	serverList := io.Servers[0]
+	for i := 1; i < len(io.Servers); i++ {
+		serverList = serverList + "," + io.Servers[i]
+	}
+	jww.INFO.Print("Server list: " + serverList)
+
 	// TODO Generate globals.Grp somewhere intelligent
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
