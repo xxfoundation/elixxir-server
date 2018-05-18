@@ -27,11 +27,7 @@ func (s ServerImpl) RoundtripPing(msg *pb.TimePing) {
 // Initiates a roundtrip ping starting at last node
 func GetRoundtripPing(servers []string) {
 	// if only one node then just print an empty log statement
-	if len(servers) < 2 {
-		jww.INFO.Print("Ping time between n nodes; n -> 1, 1 -> 2, " +
-			"..., n-1 -> n (ms): ")
-		// else record current time and send to first node
-	} else {
+	if len(servers) > 1 {
 		times := make([]int64, 0)
 		times = append(times, time.Now().UnixNano())
 		node.SendRoundtripPing(servers[0], &pb.TimePing{
