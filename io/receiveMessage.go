@@ -32,7 +32,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 			Message:            messagePayload,
 			EncryptedRecipient: recipientId,
 		}
-		MessageCh <- &inputMsg:
+		MessageCh <- &inputMsg
 
 	} else {
 		jww.ERROR.Printf("Received message is not in the group: MsgPayload %v "+
