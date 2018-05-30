@@ -183,6 +183,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	globals.BatchSize = batchSize
 	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
 
+	globals.GatewayAddress = viper.GetString("gatewayAddress")
+
 	// Initialize the backend
 	globals.Users = globals.NewUserRegistry(
 		viper.GetString("dbUsername"),
