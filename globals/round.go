@@ -18,6 +18,9 @@ import (
 // Server-wide configured batch size
 var BatchSize uint64
 
+// Server-wide gateway
+var GatewayAddress string = ""
+
 var RoundRecycle chan *Round
 
 // LastNode contains precomputations held only by the last node

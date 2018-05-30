@@ -9,6 +9,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
+	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -31,6 +32,7 @@ func (h RealtimePeelHandler) Handler(
 		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
 		return
 	}
+	messageBatch := make([]*pb.CmixMessage, 0)
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*realtime.RealtimeSlot)
 		if !round.MIC_Verification[slot.Slot] {
@@ -51,6 +53,7 @@ func (h RealtimePeelHandler) Handler(
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				RecipientID:    make([]byte, 0), // Currently zero this field
 			}
+			messageBatch = append(messageBatch, &pbCmixMessage)
 
 			for !addMessageToBuffer(user, &pbCmixMessage) {
 				<-user.MessageBuffer
@@ -60,6 +63,9 @@ func (h RealtimePeelHandler) Handler(
 				}
 			}
 		}
+	}
+	if globals.GatewayAddress != "" {
+		node.SendReceiveBatch(globals.GatewayAddress, messageBatch)
 	}
 
 	globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_COMPLETE)
