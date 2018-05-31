@@ -49,7 +49,7 @@ func (h RealtimePeelHandler) Handler(
 			}
 
 			pbCmixMessage := pb.CmixMessage{
-				SenderID:       uint64(0), // Currently zero this field
+				SenderID:       user.ID,
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				RecipientID:    make([]byte, 0), // Currently zero this field
 			}
@@ -65,6 +65,7 @@ func (h RealtimePeelHandler) Handler(
 		}
 	}
 	if globals.GatewayAddress != "" {
+		jww.INFO.Printf("Sending completed batch to gateway %v", globals.GatewayAddress)
 		node.SendReceiveBatch(globals.GatewayAddress, messageBatch)
 	}
 

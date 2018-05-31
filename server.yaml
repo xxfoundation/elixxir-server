@@ -8,3 +8,4 @@ dbAddresses:
     - ""
 servers:
     - localhost:11420
+gatewayAddress: "localhost:8443"
