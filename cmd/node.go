@@ -183,7 +183,17 @@ func StartServer(serverIndex int, batchSize uint64) {
 	globals.BatchSize = batchSize
 	jww.INFO.Printf("Batch Size: %v\n", globals.BatchSize)
 
-	globals.GatewayAddress = viper.GetString("gatewayAddress")
+	gateways := viper.GetStringSlice("gateways")
+	if len(gateways) < 1 {
+		// No gateways in config file or passed via command line
+		jww.FATAL.Panicf("Error: No gateways specified! Add to" +
+			" configuration file!")
+		return
+	} else {
+		// List of gateways found in config file, select one to use
+		// TODO: For now, just use the first one?
+		globals.GatewayAddress = gateways[0]
+	}
 
 	// Initialize the backend
 	globals.Users = globals.NewUserRegistry(

@@ -11,3 +11,5 @@ vendor/
 localdev_*
 # Ignore logs
 *.log
+# Ignore generated version file
+cmd/version_vars.go
