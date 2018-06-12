@@ -107,11 +107,21 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	g.Inverse(keys.V, keys.V_INV)
 
 	// Generates a random value within the group for every private key
-	g.Random(keys.Y_R)
-	g.Random(keys.Y_S)
-	g.Random(keys.Y_T)
-	g.Random(keys.Y_U)
-	g.Random(keys.Y_V)
+
+	yr, _ := cyclic.GenerateRandomKey(32)
+	keys.Y_R.SetBytes(yr)
+
+	ys, _ := cyclic.GenerateRandomKey(16)
+	keys.Y_S.SetBytes(ys)
+
+	yt, _ := cyclic.GenerateRandomKey(32)
+	keys.Y_T.SetBytes(yt)
+
+	yu, _ := cyclic.GenerateRandomKey(32)
+	keys.Y_U.SetBytes(yu)
+
+	yv, _ := cyclic.GenerateRandomKey(16)
+	keys.Y_V.SetBytes(yv)
 
 	return out
 
@@ -124,6 +134,6 @@ func buildCryptoGeneration(g *cyclic.Group, round *globals.Round) {
 	cyclic.Shuffle(&round.Permutations)
 
 	// Generate the Private Cypher Key
-	g.RandomCoprime(round.Z)
+	g.FindSmallInverse(round.Z, 32)
 
 }

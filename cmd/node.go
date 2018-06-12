@@ -92,7 +92,7 @@ var numPrecompSimultaneous int
 var messageBufferSize int
 
 // Maximum number of stored precomputations
-const PRECOMP_BUFFER_SIZE = int(10)
+const PRECOMP_BUFFER_SIZE = int(5000)
 
 func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 
@@ -265,7 +265,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Run as many as half the number of nodes times the number of
 	// passthroughs (which is 4).
-	numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) / 2)
+	numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) * 2)
 
 	messageBufferSize = int(10 * batchSize)
 
