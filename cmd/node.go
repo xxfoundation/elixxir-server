@@ -265,7 +265,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Run as many as half the number of nodes times the number of
 	// passthroughs (which is 4).
-	numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) * 2)
+	numPrecompSimultaneous = 1 //int((uint64(len(io.Servers)) * 4) * 2)
 
 	messageBufferSize = int(10 * batchSize)
 
