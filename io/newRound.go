@@ -154,8 +154,12 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	for j := uint64(0); j < batchSize; j++ {
 		genMsg := services.Slot(&precomputation.SlotGeneration{Slot: j})
 		precompGenerationController.InChannel <- &genMsg
+	}
+
+	for j := uint64(0); j < batchSize; j++ {
 		_ = <-precompGenerationController.OutChannel
 	}
+
 	gendlta := time.Now().Sub(genstart)
 	jww.DEBUG.Printf("Generate took: %v ms", (gendlta * time.Millisecond))
 
