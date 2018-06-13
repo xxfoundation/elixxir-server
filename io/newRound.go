@@ -157,7 +157,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 		_ = <-precompGenerationController.OutChannel
 	}
 	gendlta := time.Now().Sub(genstart)
-	jww.DEBUG.Printf("Generate took: %v ms", (gendlta * time.Millisecond))
+	jww.DEBUG.Printf("Generate took: %v ms", gendlta)
 
 	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 
