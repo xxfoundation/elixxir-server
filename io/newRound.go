@@ -148,22 +148,18 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	// Create the dispatch controller for PrecompGeneration
 	precompGenerationController := services.DispatchCryptop(globals.Grp,
 		precomputation.Generation{}, nil, nil, round)
+
+	genstart := time.Now()
 	// Run PrecompGeneration for the entire batch
 	for j := uint64(0); j < batchSize; j++ {
 		genMsg := services.Slot(&precomputation.SlotGeneration{Slot: j})
 		precompGenerationController.InChannel <- &genMsg
 		_ = <-precompGenerationController.OutChannel
 	}
-	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
+	gendlta := time.Now().Sub(genstart)
+	jww.DEBUG.Printf("Generate took: %v ms", (gendlta * time.Millisecond))
 
-	// Generate debugging information
-	jww.DEBUG.Printf("R Value: %v, S Value: %v, T Value: %v",
-		round.R_INV[0].Text(10),
-		round.S_INV[0].Text(10),
-		round.T_INV[0].Text(10))
-	jww.DEBUG.Printf("U Value: %v, V Value: %v",
-		round.U_INV[0].Text(10),
-		round.V_INV[0].Text(10))
+	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 
 	if globals.IsLastNode {
 		// Create the controller for RealtimeIdentify
