@@ -93,11 +93,16 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	keys *KeysGeneration) services.Slot {
 
 	// Generates a random value within the group for every internode key
-	g.Random(keys.R)
-	g.Random(keys.S)
-	g.Random(keys.T)
-	g.Random(keys.U)
-	g.Random(keys.V)
+	//g.Random(keys.R)
+	//g.Random(keys.S)
+	//g.Random(keys.T)
+	//g.Random(keys.U)
+	//g.Random(keys.V)
+	keys.R.SetUint64(uint64(5))
+	keys.S.SetUint64(uint64(5))
+	keys.T.SetUint64(uint64(5))
+	keys.U.SetUint64(uint64(5))
+	keys.V.SetUint64(uint64(5))
 
 	// Generates the inverse keys
 	g.Inverse(keys.R, keys.R_INV)
@@ -108,20 +113,25 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 
 	// Generates a random value within the group for every private key
 
-	yr, _ := cyclic.GenerateRandomKey(32)
-	keys.Y_R.SetBytes(yr)
+	//yr, _ := cyclic.GenerateRandomKey(32)
+	//keys.Y_R.SetBytes(yr)
+	keys.Y_R.SetUint64(uint64(7))
 
-	ys, _ := cyclic.GenerateRandomKey(16)
-	keys.Y_S.SetBytes(ys)
+	//ys, _ := cyclic.GenerateRandomKey(16)
+	//keys.Y_S.SetBytes(ys)
+	keys.Y_S.SetUint64(uint64(7))
 
-	yt, _ := cyclic.GenerateRandomKey(32)
-	keys.Y_T.SetBytes(yt)
+	//yt, _ := cyclic.GenerateRandomKey(32)
+	//keys.Y_T.SetBytes(yt)
+	keys.Y_T.SetUint64(uint64(7))
 
-	yu, _ := cyclic.GenerateRandomKey(32)
-	keys.Y_U.SetBytes(yu)
+	//yu, _ := cyclic.GenerateRandomKey(32)
+	//keys.Y_U.SetBytes(yu)
+	keys.Y_U.SetUint64(uint64(7))
 
-	yv, _ := cyclic.GenerateRandomKey(16)
-	keys.Y_V.SetBytes(yv)
+	//yv, _ := cyclic.GenerateRandomKey(16)
+	//keys.Y_V.SetBytes(yv)
+	keys.Y_V.SetUint64(uint64(7))
 
 	return out
 

@@ -29,6 +29,11 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_REVEAL)
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_REVEAL] = startTime
+
 	// Iterate through the Slots in the PrecompRevealMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotReveal
@@ -69,10 +74,15 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 	round := globals.GlobalRoundMap.GetRound(roundId)
 	stripChannel := round.GetChannel(
 		globals.PRECOMP_STRIP)
+
 	if round == nil {
 		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
 		return
 	}
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_STRIP] = time.Now()
 
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
@@ -99,6 +109,13 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 func (h PrecompRevealHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	startTime := time.Now()
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.PRECOMP_REVEAL])
+
+	jww.DEBUG.Printf(" PrecompReveal Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
+
 	jww.INFO.Printf("Starting PrecompReveal.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
 

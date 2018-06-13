@@ -27,6 +27,12 @@ func (h RealtimeIdentifyHandler) Handler(
 	jww.INFO.Printf("Starting RealtimeIdentify.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
 
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.REAL_IDENTIFY])
+
+	jww.DEBUG.Printf(" RealtimeIdentify Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
+
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Server-wide configured batch size
@@ -83,6 +84,9 @@ type Round struct {
 
 	// Array of status booleans to store the results of the MIC
 	MIC_Verification []bool
+
+	//Stores the start times for computations so they can be evaluated
+	CryptopStartTimes [NUM_PHASES]time.Time
 }
 
 // Grp is the cyclic group that all operations are done within
@@ -318,6 +322,10 @@ func newRound(batchSize uint64, p Phase) *Round {
 	}
 	NR.phase = p
 	NR.phaseCond = &sync.Cond{L: &sync.Mutex{}}
+
+	for i := 0; i < int(NUM_PHASES); i++ {
+		NR.CryptopStartTimes[i] = time.Now()
+	}
 
 	return &NR
 }

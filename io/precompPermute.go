@@ -30,6 +30,11 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_PERMUTE)
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_PERMUTE] = startTime
+
 	// Iterate through the Slots in the PrecompPermuteMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent RealtimeSlot
@@ -123,6 +128,13 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 func (h PrecompPermuteHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	startTime := time.Now()
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.PRECOMP_PERMUTE])
+
+	jww.DEBUG.Printf(" PrecompPermute Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
+
 	jww.INFO.Printf("Starting PrecompPermute.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
 

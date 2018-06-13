@@ -5,6 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package precomputation
 
+/*
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
@@ -120,3 +121,4 @@ func TestGeneration(t *testing.T) {
 	println("Precomputation Generation", pass, "out of", test, "tests "+
 		"passed.")
 }
+*/

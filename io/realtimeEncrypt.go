@@ -28,6 +28,11 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		startTime.Format(time.RFC3339))
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_ENCRYPT)
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_ENCRYPT] = startTime
+
 	// Iterate through the Slots in the RealtimeEncryptMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
@@ -60,6 +65,10 @@ func realtimeEncryptLastNode(roundId string, batchSize uint64,
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_ENCRYPT] = startTime
+
 	// TODO: record the start precomp permute time for this round here,
 	//       and print the time it took for the Decrypt phase to complete.
 
@@ -72,6 +81,11 @@ func realtimeEncryptLastNode(roundId string, batchSize uint64,
 
 	peelChannel := round.GetChannel(globals.REAL_PEEL)
 	// Create the RealtimeSlot for sending into RealtimePeel
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_PEEL] = time.Now()
+
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to RealtimeSlot
@@ -97,6 +111,12 @@ func (h RealtimeEncryptHandler) Handler(
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimeEncrypt.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.REAL_ENCRYPT])
+
+	jww.DEBUG.Printf(" RealtimeEncrypt Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
 
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{

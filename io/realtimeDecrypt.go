@@ -33,6 +33,11 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_DECRYPT)
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_DECRYPT] = startTime
+
 	// Iterate through the Slots in the RealtimeDecryptMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
@@ -68,6 +73,10 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 
 	// TODO: record the start precomp permute time for this round here,
 	//       and print the time it took for the Decrypt phase to complete.
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_DECRYPT] = startTime
 
 	// Create the RealtimePermuteMessage
 	msg := &pb.RealtimePermuteMessage{
@@ -109,6 +118,12 @@ func (h RealtimeDecryptHandler) Handler(
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimeDecrypt.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.REAL_DECRYPT])
+
+	jww.DEBUG.Printf(" RealtimeDecrypt Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
 
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{

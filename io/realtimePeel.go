@@ -32,6 +32,13 @@ func (h RealtimePeelHandler) Handler(
 		jww.INFO.Printf("skipping round %s, because it's dead", roundId)
 		return
 	}
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.REAL_PEEL])
+
+	jww.DEBUG.Printf(" RealtimePeel Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
+
 	messageBatch := make([]*pb.CmixMessage, 0)
 	for i := uint64(0); i < batchSize; i++ {
 		slot := (*slots[i]).(*realtime.RealtimeSlot)

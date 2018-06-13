@@ -29,6 +29,11 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_DECRYPT] = startTime
+
 	// Iterate through the Slots in the PrecompDecryptMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
@@ -68,6 +73,10 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 
 	// TODO: record the start precomp permute time for this round here,
 	//       and print the time it took for the Decrypt phase to complete.
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_DECRYPT] = startTime
 
 	// Create the PrecompPermuteMessage
 	msg := &pb.PrecompPermuteMessage{
@@ -109,6 +118,13 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 func (h PrecompDecryptHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	startTime := time.Now()
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.PRECOMP_DECRYPT])
+
+	jww.DEBUG.Printf(" PrecompDecrypt Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
+
 	jww.INFO.Printf("Starting PrecompDecrypt.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
 
