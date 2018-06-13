@@ -122,7 +122,7 @@ func (h PrecompEncryptHandler) Handler(
 	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
 		CryptopStartTimes[globals.PRECOMP_ENCRYPT])
 
-	jww.DEBUG.Printf(" PrecompEncrypt Crypto took %v ms for "+
+	jww.DEBUG.Printf("PrecompEncrypt Crypto took %v ms for "+
 		"RoundId %s", 1000*elapsed, roundId)
 
 	jww.INFO.Printf("Starting PrecompEncrypt.Handler(RoundId: %s) at %s",

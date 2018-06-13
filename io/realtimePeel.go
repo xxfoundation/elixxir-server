@@ -36,7 +36,7 @@ func (h RealtimePeelHandler) Handler(
 	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
 		CryptopStartTimes[globals.REAL_PEEL])
 
-	jww.DEBUG.Printf(" RealtimePeel Crypto took %v ms for "+
+	jww.DEBUG.Printf("RealtimePeel Crypto took %v ms for "+
 		"RoundId %s", 1000*elapsed, roundId)
 
 	messageBatch := make([]*pb.CmixMessage, 0)

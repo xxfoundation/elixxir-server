@@ -117,7 +117,7 @@ func (h RealtimePermuteHandler) Handler(
 	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
 		CryptopStartTimes[globals.REAL_PERMUTE])
 
-	jww.DEBUG.Printf(" RealtimePermute Crypto took %v ms for "+
+	jww.DEBUG.Printf("RealtimePermute Crypto took %v ms for "+
 		"RoundId %s", 1000*elapsed, roundId)
 
 	// Create the RealtimePermuteMessage for sending
