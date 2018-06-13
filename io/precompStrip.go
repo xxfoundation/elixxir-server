@@ -28,7 +28,7 @@ func (h PrecompStripHandler) Handler(
 		CryptopStartTimes[globals.PRECOMP_STRIP])
 
 	jww.DEBUG.Printf("PrecompStrip Crypto took %v ms for "+
-		"RoundId %s", 1000*elapsed, roundId)
+		"RoundId %s", 1000*int(elapsed), roundId)
 
 	round := globals.GlobalRoundMap.GetRound(roundId)
 	if round == nil {

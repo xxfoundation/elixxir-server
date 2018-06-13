@@ -161,7 +161,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 	}
 
 	gendlta := time.Now().Sub(genstart)
-	jww.DEBUG.Printf("Generate took: %v ms", 1000*gendlta)
+	jww.DEBUG.Printf("Generate took: %v ms", 1000*int(gendlta))
 
 	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 

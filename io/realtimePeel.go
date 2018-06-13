@@ -37,7 +37,7 @@ func (h RealtimePeelHandler) Handler(
 		CryptopStartTimes[globals.REAL_PEEL])
 
 	jww.DEBUG.Printf("RealtimePeel Crypto took %v ms for "+
-		"RoundId %s", 1000*elapsed, roundId)
+		"RoundId %s", 1000*int(elapsed), roundId)
 
 	messageBatch := make([]*pb.CmixMessage, 0)
 	for i := uint64(0); i < batchSize; i++ {

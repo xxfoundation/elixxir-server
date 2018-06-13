@@ -133,7 +133,7 @@ func (h PrecompPermuteHandler) Handler(
 		CryptopStartTimes[globals.PRECOMP_PERMUTE])
 
 	jww.DEBUG.Printf("PrecompPermute Crypto took %v ms for "+
-		"RoundId %s", 1000*elapsed, roundId)
+		"RoundId %s", 1000*int(elapsed), roundId)
 
 	jww.INFO.Printf("Starting PrecompPermute.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))

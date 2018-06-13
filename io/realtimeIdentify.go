@@ -31,7 +31,7 @@ func (h RealtimeIdentifyHandler) Handler(
 		CryptopStartTimes[globals.REAL_IDENTIFY])
 
 	jww.DEBUG.Printf("RealtimeIdentify Crypto took %v ms for "+
-		"RoundId %s", 1000*elapsed, roundId)
+		"RoundId %s", 1000*int(elapsed), roundId)
 
 	// Create the RealtimeEncryptMessage
 	msg := &pb.RealtimeEncryptMessage{
