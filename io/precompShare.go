@@ -28,6 +28,10 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_SHARE] = startTime
+
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_SHARE)
 	// Iterate through the Slots in the PrecompShareMessage
@@ -68,6 +72,10 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 		"Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_SHARE] = startTime
 
 	// TODO: record the start precomp decrypt time for this round here,
 	//       and print the time it took for the Decrypt phase to complete.
@@ -131,6 +139,12 @@ func (h PrecompShareHandler) Handler(
 	startTime := time.Now()
 	jww.INFO.Printf("Starting PrecompShare.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.PRECOMP_SHARE])
+
+	jww.DEBUG.Printf("PrecompShare Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
 
 	// Create the PrecompShareMessage
 	msg := &pb.PrecompShareMessage{

@@ -24,6 +24,12 @@ func (h PrecompStripHandler) Handler(
 	jww.INFO.Printf("Starting PrecompStrip.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
 
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.PRECOMP_STRIP])
+
+	jww.DEBUG.Printf("PrecompStrip Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
+
 	round := globals.GlobalRoundMap.GetRound(roundId)
 	if round == nil {
 		jww.INFO.Printf("skipping round %s, because it's dead", roundId)

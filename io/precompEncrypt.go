@@ -28,6 +28,10 @@ func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 		startTime.Format(time.RFC3339))
 
 	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT)
+
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_ENCRYPT] = startTime
+
 	jww.DEBUG.Printf("Received PrecompEncrypt Message %v from phase %s...",
 		input.RoundID, globals.Phase(input.LastOp).String())
 	// Iterate through the Slots in the PrecompEncryptMessage
@@ -61,6 +65,9 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 		"Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
+
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		PRECOMP_ENCRYPT] = startTime
 
 	// Create the PrecompRevealMessage for sending
 	msg := &pb.PrecompRevealMessage{
@@ -111,6 +118,13 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 func (h PrecompEncryptHandler) Handler(
 	roundId string, batchSize uint64, slots []*services.Slot) {
 	startTime := time.Now()
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.PRECOMP_ENCRYPT])
+
+	jww.DEBUG.Printf("PrecompEncrypt Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
+
 	jww.INFO.Printf("Starting PrecompEncrypt.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
 

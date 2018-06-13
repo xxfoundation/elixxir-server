@@ -27,6 +27,10 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_PERMUTE] = startTime
+
 	// Get the input channel for the cryptop
 	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
@@ -62,6 +66,10 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_PERMUTE] = startTime
+
 	// TODO: record the start time for this round here,
 	//       and print the time it took for the last phase to complete.
 
@@ -73,6 +81,11 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 	}
 
 	identifyChannel := round.GetChannel(globals.REAL_IDENTIFY)
+
+	// Store when the operation started
+	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
+		REAL_IDENTIFY] = time.Now()
+
 	// Create the RealtimeSlot for sending into RealtimeIdentify
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
@@ -100,6 +113,12 @@ func (h RealtimePermuteHandler) Handler(
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimePermute.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
+
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+		CryptopStartTimes[globals.REAL_PERMUTE])
+
+	jww.DEBUG.Printf("RealtimePermute Crypto took %v ms for "+
+		"RoundId %s", 1000*elapsed, roundId)
 
 	// Create the RealtimePermuteMessage for sending
 	msg := &pb.RealtimePermuteMessage{
