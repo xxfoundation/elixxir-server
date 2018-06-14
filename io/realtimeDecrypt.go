@@ -123,7 +123,7 @@ func (h RealtimeDecryptHandler) Handler(
 		CryptopStartTimes[globals.REAL_DECRYPT])
 
 	jww.DEBUG.Printf("RealtimeDecrypt Crypto took %v ms for "+
-		"RoundId %s", 1000*int(elapsed), roundId)
+		"RoundId %s", elapsed, roundId)
 
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{

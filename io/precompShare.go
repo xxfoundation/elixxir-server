@@ -144,7 +144,7 @@ func (h PrecompShareHandler) Handler(
 		CryptopStartTimes[globals.PRECOMP_SHARE])
 
 	jww.DEBUG.Printf("PrecompShare Crypto took %v ms for "+
-		"RoundId %s", 1000*int(elapsed), roundId)
+		"RoundId %s", elapsed, roundId)
 
 	// Create the PrecompShareMessage
 	msg := &pb.PrecompShareMessage{

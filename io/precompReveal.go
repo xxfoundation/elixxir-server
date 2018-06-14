@@ -114,7 +114,7 @@ func (h PrecompRevealHandler) Handler(
 		CryptopStartTimes[globals.PRECOMP_REVEAL])
 
 	jww.DEBUG.Printf("PrecompReveal Crypto took %v ms for "+
-		"RoundId %s", 1000*int(elapsed), roundId)
+		"RoundId %s", elapsed, roundId)
 
 	jww.INFO.Printf("Starting PrecompReveal.Handler(RoundId: %s) at %s",
 		roundId, startTime.Format(time.RFC3339))
