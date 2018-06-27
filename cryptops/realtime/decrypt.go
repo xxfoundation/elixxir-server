@@ -83,9 +83,9 @@ func (d Decrypt) Build(g *cyclic.Group,
 func (d Decrypt) Run(g *cyclic.Group, in *RealtimeSlot,
 	out *RealtimeSlot, keys *KeysDecrypt) services.Slot {
 
-	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key together
-	// with with Transmission key before modulo multiplying into the
-	// EncryptedMessage
+	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key
+	// together with with Transmission key before modulo multiplying into the
+	// EncryptedMessage3
 	g.Mul(in.CurrentKey, in.Message, in.Message)
 	g.Mul(in.Message, keys.R, out.Message)
 
