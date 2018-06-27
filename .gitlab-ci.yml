@@ -81,11 +81,11 @@ test:
 
     # Benchmarking
     - go test -bench=BenchmarkPrecomp -cpuprofile=testdata/precomp.cpu -memprofile=testdata/precomp.mem -short main_benchmarks_test.go
-    - go tool pprof -png server.test testdata/precomp.cpu > testdata/precomp-cpu.png
-    - go tool pprof -png server.test testdata/precomp.mem > testdata/precomp-mem.png
+    - go tool pprof -png server testdata/precomp.cpu > testdata/precomp-cpu.png
+    - go tool pprof -png server testdata/precomp.mem > testdata/precomp-mem.png
     - go test -bench=BenchmarkRealtime -cpuprofile=testdata/realtime.cpu -memprofile=testdata/realtime.mem -short main_benchmarks_test.go
-    - go tool pprof -png server.test testdata/realtime.cpu > testdata/realtime-cpu.png
-    - go tool pprof -png server.test testdata/realtime.mem > testdata/realtime-mem.png
+    - go tool pprof -png server testdata/realtime.cpu > testdata/realtime-cpu.png
+    - go tool pprof -png server testdata/realtime.mem > testdata/realtime-mem.png
 
     # Test Coverage Check
     - go tool cover -func=testdata/coverage-real.out | grep "total:" | awk '{print $3}' | sed 's/\%//g' > testdata/coverage-percentage.txt
