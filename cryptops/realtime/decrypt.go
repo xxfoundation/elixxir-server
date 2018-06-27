@@ -57,6 +57,7 @@ func (d Decrypt) Build(g *cyclic.Group,
 			Message:            cyclic.NewMaxInt(),
 			EncryptedRecipient: cyclic.NewMaxInt(),
 			CurrentID:          0,
+			CurrentKey:         cyclic.NewMaxInt(),
 		}
 	}
 
@@ -97,5 +98,6 @@ func (d Decrypt) Run(g *cyclic.Group, in *RealtimeSlot,
 
 	// Pass through SenderID
 	out.CurrentID = in.CurrentID
+	out.CurrentKey.Set(in.CurrentKey)
 	return out
 }

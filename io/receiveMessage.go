@@ -31,6 +31,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 			CurrentID:          msg.SenderID,
 			Message:            messagePayload,
 			EncryptedRecipient: recipientId,
+			CurrentKey:         cyclic.NewIntFromBytes(msg.Salt),
 		}
 		MessageCh <- &inputMsg
 

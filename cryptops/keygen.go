@@ -102,7 +102,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	if keys.keySelection == TRANSMISSION {
 		baseKey := user.Transmission.BaseKey
 		salt := in.CurrentKey.Bytes()
-		in.CurrentKey = cmix.NewDecryptionKey(salt, baseKey, group)
+		in.CurrentKey.Set(cmix.NewDecryptionKey(salt, baseKey, group))
 	} else if keys.keySelection == RECEPTION {
 		if !*keys.verification {
 			jww.ERROR.Printf(
@@ -111,7 +111,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 		} else {
 			baseKey := user.Reception.BaseKey
 			salt := in.CurrentKey.Bytes()
-			in.CurrentKey = cmix.NewEncryptionKey(salt, baseKey, group)
+			in.CurrentKey.Set(cmix.NewEncryptionKey(salt, baseKey, group))
 		}
 
 	} else {

@@ -43,10 +43,10 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
 		var slot services.Slot = &realtime.RealtimeSlot{
-			Slot:               in.Slot,
+			Slot:               uint64(i),
 			CurrentID:          in.SenderID,
-			Message:            cyclic.NewIntFromBytes(in.EncryptedMessage),
-			EncryptedRecipient: cyclic.NewIntFromBytes(in.EncryptedRecipientID),
+			Message:            cyclic.NewIntFromBytes(in.MessagePayload),
+			EncryptedRecipient: cyclic.NewIntFromBytes(in.RecipientID),
 			// FIXME: The following is a hack to pass salt, because there's not other
 			//        easy way to do it with the dispatcher.
 			CurrentKey: cyclic.NewIntFromBytes(in.Salt),
@@ -93,9 +93,9 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to RealtimePermuteSlot
 		msgSlot := &pb.RealtimePermuteSlot{
-			Slot:                 out.Slot,
-			EncryptedMessage:     out.EncryptedMessage,
-			EncryptedRecipientID: out.EncryptedRecipientID,
+			Slot:                 uint64(i),
+			EncryptedMessage:     out.MessagePayload,
+			EncryptedRecipientID: out.RecipientID,
 		}
 
 		// Append the RealtimePermuteSlot to the RealtimePermuteMessage
@@ -132,23 +132,24 @@ func (h RealtimeDecryptHandler) Handler(
 	msg := &pb.RealtimeDecryptMessage{
 		RoundID: roundId,
 		LastOp:  int32(globals.REAL_DECRYPT),
-		Slots:   make([]*pb.RealtimeDecryptSlot, batchSize),
+		Slots:   make([]*pb.CmixMessage, batchSize),
 	}
 
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotDecrypt
 		out := (*slots[i]).(*realtime.RealtimeSlot)
-		// Convert to RealtimeDecryptSlot
-		msgSlot := &pb.RealtimeDecryptSlot{
-			Slot:                 out.Slot,
-			SenderID:             out.CurrentID,
-			EncryptedMessage:     out.Message.Bytes(),
-			EncryptedRecipientID: out.EncryptedRecipient.Bytes(),
+		// Convert to CmixMessage
+		msgSlot := &pb.CmixMessage{
+			SenderID:       out.CurrentID,
+			MessagePayload: out.Message.Bytes(),
+			RecipientID:    out.EncryptedRecipient.Bytes(),
+			// FIXME: This probably breaks clusters with more than 1 node
+			Salt: out.CurrentKey.Bytes(),
 		}
 
-		// Append the RealtimeDecryptSlot to the RealtimeDecryptMessage
-		msg.Slots[i] = msgSlot
+		// Append the CmixMessage to the RealtimeDecryptMessage
+		msg.Slots[out.Slot] = msgSlot
 	}
 
 	// Advance internal state to the next phase
@@ -185,21 +186,22 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	msg := &pb.RealtimeDecryptMessage{
 		RoundID: roundId,
 		LastOp:  int32(globals.PRECOMP_COMPLETE),
-		Slots:   make([]*pb.RealtimeDecryptSlot, batchSize),
+		Slots:   make([]*pb.CmixMessage, batchSize),
 	}
 
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		out := slots[i]
-		msgSlot := &pb.RealtimeDecryptSlot{
-			Slot:                 out.Slot,
-			SenderID:             out.CurrentID,
-			EncryptedMessage:     out.Message.Bytes(),
-			EncryptedRecipientID: out.EncryptedRecipient.Bytes(),
+		msgSlot := &pb.CmixMessage{
+			SenderID:       out.CurrentID,
+			MessagePayload: out.Message.Bytes(),
+			RecipientID:    out.EncryptedRecipient.Bytes(),
+			// FIXME: This probably breaks clusters with more than 1 node
+			Salt: out.CurrentKey.Bytes(),
 		}
 
-		// Append the RealtimeDecryptSlot to the RealtimeDecryptMessage
-		msg.Slots[i] = msgSlot
+		// Append the CmixMessage to the RealtimeDecryptMessage
+		msg.Slots[out.Slot] = msgSlot
 	}
 
 	// Advance internal state to the next phase
