@@ -38,6 +38,7 @@ func TestRealtimePermute(t *testing.T) {
 		Slot:               uint64(0),
 		Message:            cyclic.NewInt(12),
 		EncryptedRecipient: cyclic.NewInt(7),
+		CurrentKey:         cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Permute's TransmissionHandler

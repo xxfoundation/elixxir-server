@@ -35,6 +35,8 @@ func TestRealtimeDecrypt(t *testing.T) {
 		CurrentID:          uint64(42),
 		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(3),
+		CurrentKey: cyclic.NewIntFromString(
+			"C0DED00DC0DED00DC0DED00DC0DED00D", 16),
 	}
 
 	slots := [1]*realtime.RealtimeSlot{slot.(*realtime.RealtimeSlot)}
