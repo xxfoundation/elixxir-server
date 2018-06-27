@@ -10,7 +10,7 @@ package cryptops
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/crypto/forward"
+	cmix "gitlab.com/privategrity/crypto/messaging"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -100,18 +100,18 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// the correct shared key for the key type into `in`'s key. Unlike
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
 	if keys.keySelection == TRANSMISSION {
-		forward.GenerateSharedKey(group, user.Transmission.BaseKey,
-			user.Transmission.RecursiveKey, in.CurrentKey,
-			keys.sharedKeyStorage)
+		baseKey := user.Transmission.BaseKey
+		salt := in.CurrentKey.Bytes()
+		in.CurrentKey = cmix.NewDecryptionKey(salt, baseKey, group)
 	} else if keys.keySelection == RECEPTION {
 		if !*keys.verification {
 			jww.ERROR.Printf(
 				"Key Generation Failed: MIC failure detected.\n"+
 					"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
 		} else {
-			forward.GenerateSharedKey(group, user.Reception.BaseKey,
-				user.Reception.RecursiveKey, in.CurrentKey,
-				keys.sharedKeyStorage)
+			baseKey := user.Reception.BaseKey
+			salt := in.CurrentKey.Bytes()
+			in.CurrentKey = cmix.NewEncryptionKey(salt, baseKey, group)
 		}
 
 	} else {

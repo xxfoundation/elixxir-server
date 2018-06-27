@@ -47,7 +47,10 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 			CurrentID:          in.SenderID,
 			Message:            cyclic.NewIntFromBytes(in.EncryptedMessage),
 			EncryptedRecipient: cyclic.NewIntFromBytes(in.EncryptedRecipientID),
-			CurrentKey:         cyclic.NewInt(1),
+			// FIXME: The following is a hack to pass salt, because there's not other
+			//        easy way to do it with the dispatcher.
+			CurrentKey: cyclic.NewIntFromBytes(in.Salt),
+			// TODO: How will we pass and verify the kmac?
 		}
 		// Pass slot as input to Decrypt's channel
 		chIn <- &slot
