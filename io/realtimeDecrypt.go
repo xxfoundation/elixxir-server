@@ -47,9 +47,9 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 			CurrentID:          in.SenderID,
 			Message:            cyclic.NewIntFromBytes(in.MessagePayload),
 			EncryptedRecipient: cyclic.NewIntFromBytes(in.RecipientID),
-			CurrentKey:         cyclic.NewInt(1),
+			CurrentKey:         cyclic.NewMaxInt(),
+			Salt:               in.Salt,
 			// TODO: How will we pass and verify the kmac?
-			Salt: in.Salt,
 		}
 		// Pass slot as input to Decrypt's channel
 		chIn <- &slot
@@ -116,20 +116,20 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 
 // TransmissionHandler for RealtimeDecryptMessages
 func (h RealtimeDecryptHandler) Handler(
-	roundId string, batchSize uint64, slots []*services.Slot) {
+	roundID string, batchSize uint64, slots []*services.Slot) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimeDecrypt.Handler(RoundId: %s) at %s",
-		roundId, startTime.Format(time.RFC3339))
+		roundID, startTime.Format(time.RFC3339))
 
-	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundId).
+	elapsed := startTime.Sub(globals.GlobalRoundMap.GetRound(roundID).
 		CryptopStartTimes[globals.REAL_DECRYPT])
 
 	jww.DEBUG.Printf("RealtimeDecrypt Crypto took %v ms for "+
-		"RoundId %s", elapsed, roundId)
+		"RoundId %s", elapsed, roundID)
 
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{
-		RoundID: roundId,
+		RoundID: roundID,
 		LastOp:  int32(globals.REAL_DECRYPT),
 		Slots:   make([]*pb.CmixMessage, batchSize),
 	}
@@ -143,8 +143,7 @@ func (h RealtimeDecryptHandler) Handler(
 			SenderID:       out.CurrentID,
 			MessagePayload: out.Message.Bytes(),
 			RecipientID:    out.EncryptedRecipient.Bytes(),
-			// FIXME: This probably breaks clusters with more than 1 node
-			Salt: out.Salt,
+			Salt:           out.Salt,
 		}
 
 		// Append the CmixMessage to the RealtimeDecryptMessage
@@ -152,14 +151,14 @@ func (h RealtimeDecryptHandler) Handler(
 	}
 
 	// Advance internal state to the next phase
-	globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_PERMUTE)
+	globals.GlobalRoundMap.SetPhase(roundID, globals.REAL_PERMUTE)
 
 	sendTime := time.Now()
 	if globals.IsLastNode {
 		// Transition to RealtimePermute phase
 		jww.INFO.Printf("Starting RealtimePermute  Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
-		realtimeDecryptLastNode(roundId, batchSize, msg)
+		realtimeDecryptLastNode(roundID, batchSize, msg)
 	} else {
 		// Send the completed RealtimeDecryptMessage
 		jww.INFO.Printf("Sending RealtimeDecrypt Message to %v at %s",
@@ -169,21 +168,21 @@ func (h RealtimeDecryptHandler) Handler(
 
 	endTime := time.Now()
 	jww.INFO.Printf("Finished RealtimeDecrypt.Handler(RoundId: %s) in %d ms",
-		roundId, (endTime.Sub(startTime))/time.Millisecond)
+		roundID, (endTime.Sub(startTime))/time.Millisecond)
 }
 
 // Kickoff for RealtimeDecryptMessages
 // TODO Remove this duplication
-func KickoffDecryptHandler(roundId string, batchSize uint64,
+func KickoffDecryptHandler(roundID string, batchSize uint64,
 	slots []*realtime.Slot) {
 	startTime := time.Now()
 	jww.INFO.Printf("[Last Node] Starting KickoffDecryptHandler(RoundId: %s)"+
 		" at %s",
-		roundId, startTime.Format(time.RFC3339))
+		roundID, startTime.Format(time.RFC3339))
 
 	// Create the RealtimeDecryptMessage
 	msg := &pb.RealtimeDecryptMessage{
-		RoundID: roundId,
+		RoundID: roundID,
 		LastOp:  int32(globals.PRECOMP_COMPLETE),
 		Slots:   make([]*pb.CmixMessage, batchSize),
 	}
@@ -195,8 +194,7 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 			SenderID:       out.CurrentID,
 			MessagePayload: out.Message.Bytes(),
 			RecipientID:    out.EncryptedRecipient.Bytes(),
-			// FIXME: This probably breaks clusters with more than 1 node
-			Salt: out.CurrentKey.Bytes(),
+			Salt:           out.Salt,
 		}
 
 		// Append the CmixMessage to the RealtimeDecryptMessage
@@ -204,7 +202,7 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	}
 
 	// Advance internal state to the next phase
-	globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_DECRYPT)
+	globals.GlobalRoundMap.SetPhase(roundID, globals.REAL_DECRYPT)
 
 	// Send the completed RealtimeDecryptMessage
 	sendTime := time.Now()
@@ -215,5 +213,5 @@ func KickoffDecryptHandler(roundId string, batchSize uint64,
 	endTime := time.Now()
 	jww.INFO.Printf("[Last Node] Finished KickoffDecryptHandler(RoundId: %s)"+
 		" in %d ms",
-		roundId, (endTime.Sub(startTime))/time.Millisecond)
+		roundID, (endTime.Sub(startTime))/time.Millisecond)
 }
