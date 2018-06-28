@@ -69,6 +69,7 @@ func (p Peel) Run(g *cyclic.Group,
 
 	// Pass through SenderID
 	out.CurrentID = in.CurrentID
+	out.Salt = in.Salt
 
 	return out
 
