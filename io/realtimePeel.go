@@ -59,6 +59,7 @@ func (h RealtimePeelHandler) Handler(
 				SenderID:       user.ID,
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				RecipientID:    make([]byte, 0), // Currently zero this field
+				Salt:           slot.Salt,
 			}
 			messageBatch = append(messageBatch, &pbCmixMessage)
 
