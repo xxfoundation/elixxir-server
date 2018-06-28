@@ -85,12 +85,12 @@ func TestGenerateClientKey(t *testing.T) {
 	var inSlots []services.Slot
 	for i := uint64(0); i < batchSize; i++ {
 		inSlots = append(inSlots, &realtime.Slot{
-			Slot:      i,
-			CurrentID: users[i+1].ID,
-			// NOTE: This is currently being used as the salt.
-			CurrentKey: cyclic.NewIntFromString(
+			Slot:       i,
+			CurrentID:  users[i+1].ID,
+			CurrentKey: cyclic.NewInt(1),
+			Salt: cyclic.NewIntFromString(
 				"C0DED00DC0DED00DC0DED00DC0DED00DC0DED00DC0DED00DC0DED00DC0DED00D",
-				16),
+				16).Bytes(),
 		})
 	}
 
