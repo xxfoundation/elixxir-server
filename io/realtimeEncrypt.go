@@ -38,10 +38,11 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
 		var slot services.Slot = &realtime.Slot{
-			Slot:       in.Slot,
-			CurrentID:  in.RecipientID,
-			Message:    cyclic.NewIntFromBytes(in.EncryptedMessage),
+			Slot:       uint64(i),
+			CurrentID:  cyclic.NewIntFromBytes(in.RecipientID).Uint64(),
+			Message:    cyclic.NewIntFromBytes(in.MessagePayload),
 			CurrentKey: cyclic.NewMaxInt(),
+			Salt:       in.Salt,
 		}
 		// Pass slot as input to Encrypt's channel
 		chIn <- &slot
@@ -90,9 +91,11 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to Slot
 		var slot services.Slot = &realtime.Slot{
-			Slot:      out.Slot,
-			CurrentID: out.RecipientID,
-			Message:   cyclic.NewIntFromBytes(out.EncryptedMessage),
+			Slot:       i,
+			CurrentID:  cyclic.NewIntFromBytes(out.RecipientID).Uint64(),
+			Message:    cyclic.NewIntFromBytes(out.MessagePayload),
+			CurrentKey: cyclic.NewMaxInt(),
+			Salt:       out.Salt,
 		}
 		// Pass slot as input to Peel's channel
 		peelChannel <- &slot
@@ -122,22 +125,23 @@ func (h RealtimeEncryptHandler) Handler(
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundID,
 		LastOp:  int32(globals.REAL_ENCRYPT),
-		Slots:   make([]*pb.RealtimeEncryptSlot, batchSize),
+		Slots:   make([]*pb.CmixMessage, batchSize),
 	}
 
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotEncrypt
 		out := (*slots[i]).(*realtime.Slot)
-		// Convert to RealtimeEncryptSlot
-		msgSlot := &pb.RealtimeEncryptSlot{
-			Slot:             out.Slot,
-			RecipientID:      out.CurrentID,
-			EncryptedMessage: out.Message.Bytes(),
+		// Convert to CmixMessage
+		msgSlot := &pb.CmixMessage{
+			SenderID:       0,
+			RecipientID:    cyclic.NewIntFromUInt(out.CurrentID).Bytes(),
+			MessagePayload: out.Message.Bytes(),
+			Salt:           out.Salt,
 		}
 
-		// Append the RealtimeEncryptSlot to the RealtimeEncryptMessage
-		msg.Slots[i] = msgSlot
+		// Append the CmixMessage to the RealtimeEncryptMessage
+		msg.Slots[out.Slot] = msgSlot
 	}
 
 	sendTime := time.Now()
