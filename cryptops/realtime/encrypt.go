@@ -36,9 +36,11 @@ func (e Encrypt) Build(g *cyclic.Group,
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{
-			Slot:      i,
-			Message:   cyclic.NewMaxInt(),
-			CurrentID: 0,
+			Slot:       i,
+			Message:    cyclic.NewMaxInt(),
+			CurrentID:  0,
+			CurrentKey: cyclic.NewMaxInt(),
+			Salt:       make([]byte, 0),
 		}
 	}
 
@@ -63,13 +65,16 @@ func (e Encrypt) Build(g *cyclic.Group,
 func (e Encrypt) Run(g *cyclic.Group, in *Slot,
 	out *Slot, keys *KeysEncrypt) services.Slot {
 
+	encryptionKey := in.CurrentKey
+
 	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted
 	// Internode Keys into the Encrypted Message
-	g.Mul(in.CurrentKey, in.Message, in.Message)
+	g.Mul(encryptionKey, in.Message, in.Message)
 	g.Mul(keys.T, in.Message, out.Message)
 
 	// Pass through RecipientID
 	out.CurrentID = in.CurrentID
+	out.Salt = in.Salt
 
 	return out
 

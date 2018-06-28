@@ -24,7 +24,6 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
-	cmix "gitlab.com/privategrity/crypto/messaging"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -86,7 +85,7 @@ func (d Decrypt) Build(g *cyclic.Group,
 func (d Decrypt) Run(g *cyclic.Group, in *Slot, out *Slot,
 	keys *KeysDecrypt) services.Slot {
 
-	decryptionKey := cmix.NewDecryptionKey(in.Salt, in.CurrentKey, g)
+	decryptionKey := in.CurrentKey
 
 	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key
 	// together with with Transmission key before modulo multiplying into the
