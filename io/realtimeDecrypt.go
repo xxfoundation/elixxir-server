@@ -42,15 +42,14 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
-		var slot services.Slot = &realtime.RealtimeSlot{
+		var slot services.Slot = &realtime.Slot{
 			Slot:               uint64(i),
 			CurrentID:          in.SenderID,
 			Message:            cyclic.NewIntFromBytes(in.MessagePayload),
 			EncryptedRecipient: cyclic.NewIntFromBytes(in.RecipientID),
-			// FIXME: The following is a hack to pass salt, because there's not other
-			//        easy way to do it with the dispatcher.
-			CurrentKey: cyclic.NewIntFromBytes(in.Salt),
+			CurrentKey:         cyclic.NewInt(1),
 			// TODO: How will we pass and verify the kmac?
+			Salt: in.Salt,
 		}
 		// Pass slot as input to Decrypt's channel
 		chIn <- &slot
@@ -138,14 +137,14 @@ func (h RealtimeDecryptHandler) Handler(
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
 		// Type assert Slot to SlotDecrypt
-		out := (*slots[i]).(*realtime.RealtimeSlot)
+		out := (*slots[i]).(*realtime.Slot)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
 			SenderID:       out.CurrentID,
 			MessagePayload: out.Message.Bytes(),
 			RecipientID:    out.EncryptedRecipient.Bytes(),
 			// FIXME: This probably breaks clusters with more than 1 node
-			Salt: out.CurrentKey.Bytes(),
+			Salt: out.Salt,
 		}
 
 		// Append the CmixMessage to the RealtimeDecryptMessage
@@ -176,7 +175,7 @@ func (h RealtimeDecryptHandler) Handler(
 // Kickoff for RealtimeDecryptMessages
 // TODO Remove this duplication
 func KickoffDecryptHandler(roundId string, batchSize uint64,
-	slots []*realtime.RealtimeSlot) {
+	slots []*realtime.Slot) {
 	startTime := time.Now()
 	jww.INFO.Printf("[Last Node] Starting KickoffDecryptHandler(RoundId: %s)"+
 		" at %s",

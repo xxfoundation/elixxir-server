@@ -37,7 +37,7 @@ func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
 
 	// Iterate through the Slots in the PrecompPermuteMessage
 	for i := 0; i < len(input.Slots); i++ {
-		// Convert input message to equivalent RealtimeSlot
+		// Convert input message to equivalent Slot
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.PrecomputationSlot{
 			Slot: in.Slot,
@@ -147,7 +147,7 @@ func (h PrecompPermuteHandler) Handler(
 
 	// Iterate over the output channel
 	for i := uint64(0); i < batchSize; i++ {
-		// Type assert Slot to RealtimeSlot
+		// Type assert Slot to Slot
 		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompPermuteSlot
 		msgSlot := &pb.PrecompPermuteSlot{

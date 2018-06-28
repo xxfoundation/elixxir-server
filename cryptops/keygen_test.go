@@ -84,7 +84,7 @@ func TestGenerateClientKey(t *testing.T) {
 
 	var inSlots []services.Slot
 	for i := uint64(0); i < batchSize; i++ {
-		inSlots = append(inSlots, &realtime.RealtimeSlot{
+		inSlots = append(inSlots, &realtime.Slot{
 			Slot:      i,
 			CurrentID: users[i+1].ID,
 			// NOTE: This is currently being used as the salt.
@@ -106,7 +106,7 @@ func TestGenerateClientKey(t *testing.T) {
 	// Do the test
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(inSlots[i])
-		actual := (*<-dc.OutChannel).(*realtime.RealtimeSlot)
+		actual := (*<-dc.OutChannel).(*realtime.Slot)
 		if actual.CurrentKey.Cmp(expectedSharedKeys[i]) != 0 {
 			t.Errorf("Shared keys differed at index %d. Expected %s, "+
 				"got %s", i, expectedSharedKeys[i].Text(10),

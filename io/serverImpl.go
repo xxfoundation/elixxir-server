@@ -24,8 +24,8 @@ var TimeUp int64
 
 // These channels are used by LastNode to control when realtime and
 // precomutation are kicked off
-var RoundCh chan *string                  // Strings identifying rounds to be used
-var MessageCh chan *realtime.RealtimeSlot // Message queuing
+var RoundCh chan *string          // Strings identifying rounds to be used
+var MessageCh chan *realtime.Slot // Message queuing
 
 // Struct implementing node.ServerHandler interface
 type ServerImpl struct {

@@ -45,7 +45,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		PRIME, 16), cyclic.NewInt(0), cyclic.NewInt(5),
 		cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000)))
 	globals.Grp = &g
-	MessageCh = make(chan *realtime.RealtimeSlot, 1)
+	MessageCh = make(chan *realtime.Slot, 1)
 
 	// Expected values
 	senderID := uint64(66)

@@ -35,7 +35,7 @@ func (e Encrypt) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &RealtimeSlot{
+		om[i] = &Slot{
 			Slot:      i,
 			Message:   cyclic.NewMaxInt(),
 			CurrentID: 0,
@@ -60,8 +60,8 @@ func (e Encrypt) Build(g *cyclic.Group,
 }
 
 // Multiplies in the ReceptionKey and the node’s cypher key
-func (e Encrypt) Run(g *cyclic.Group, in *RealtimeSlot,
-	out *RealtimeSlot, keys *KeysEncrypt) services.Slot {
+func (e Encrypt) Run(g *cyclic.Group, in *Slot,
+	out *Slot, keys *KeysEncrypt) services.Slot {
 
 	// Eq 6.6: Multiplies the Reception Key and the Second Unpermuted
 	// Internode Keys into the Encrypted Message

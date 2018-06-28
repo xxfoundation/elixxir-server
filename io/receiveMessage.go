@@ -26,7 +26,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	// Verify message fields are within the global cyclic group
 	if globals.Grp.Inside(recipientId) && globals.Grp.Inside(messagePayload) {
 		// Convert message to a Slot
-		inputMsg := realtime.RealtimeSlot{
+		inputMsg := realtime.Slot{
 			Slot:               0, // Set in RunRealTime() in node/node.go
 			CurrentID:          msg.SenderID,
 			Message:            messagePayload,

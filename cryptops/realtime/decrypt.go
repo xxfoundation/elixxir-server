@@ -24,6 +24,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	cmix "gitlab.com/privategrity/crypto/messaging"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -52,12 +53,13 @@ func (d Decrypt) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &RealtimeSlot{
+		om[i] = &Slot{
 			Slot:               i,
 			Message:            cyclic.NewMaxInt(),
 			EncryptedRecipient: cyclic.NewMaxInt(),
 			CurrentID:          0,
 			CurrentKey:         cyclic.NewMaxInt(),
+			Salt:               make([]byte, 0),
 		}
 	}
 
@@ -81,23 +83,25 @@ func (d Decrypt) Build(g *cyclic.Group,
 
 // Removes the encryption added by the Client while simultaneously
 // encrypting the message with unpermuted internode keys.
-func (d Decrypt) Run(g *cyclic.Group, in *RealtimeSlot,
-	out *RealtimeSlot, keys *KeysDecrypt) services.Slot {
+func (d Decrypt) Run(g *cyclic.Group, in *Slot, out *Slot,
+	keys *KeysDecrypt) services.Slot {
+
+	decryptionKey := cmix.NewDecryptionKey(in.Salt, in.CurrentKey, g)
 
 	// Eq 3.1: Modulo Multiplies the First Unpermuted Internode Message Key
 	// together with with Transmission key before modulo multiplying into the
-	// EncryptedMessage3
-	g.Mul(in.CurrentKey, in.Message, in.Message)
+	// EncryptedMessage
+	g.Mul(decryptionKey, in.Message, in.Message)
 	g.Mul(in.Message, keys.R, out.Message)
 
 	// Eq 3.3: Modulo Multiplies the Unpermuted Internode Recipient Key together
 	// with with Transmission key before modulo multiplying into the
 	// EncryptedRecipient
-	g.Mul(in.CurrentKey, in.EncryptedRecipient, in.EncryptedRecipient)
+	g.Mul(decryptionKey, in.EncryptedRecipient, in.EncryptedRecipient)
 	g.Mul(in.EncryptedRecipient, keys.U, out.EncryptedRecipient)
 
-	// Pass through SenderID
+	// Pass through SenderID and Salt to the next node
 	out.CurrentID = in.CurrentID
-	out.CurrentKey.Set(in.CurrentKey)
+	out.Salt = in.Salt
 	return out
 }

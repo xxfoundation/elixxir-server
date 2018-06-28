@@ -10,7 +10,6 @@ package cryptops
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/privategrity/crypto/cyclic"
-	cmix "gitlab.com/privategrity/crypto/messaging"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -69,7 +68,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 	// a few empty structs
 	om := make([]services.Slot, round.BatchSize)
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &realtime.RealtimeSlot{}
+		om[i] = &realtime.Slot{}
 	}
 
 	return &services.DispatchBuilder{round.BatchSize, &keys, &om, group}
@@ -81,7 +80,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 // key is used after the realtime Peel phase, when the client is receiving the
 // message from the last node.
 func (g GenerateClientKey) Run(group *cyclic.Group, in,
-	out *realtime.RealtimeSlot,
+	out *realtime.Slot,
 	keys *KeysGenerateClientKey) services.Slot {
 	// This cryptop gets user information from the user registry, which is
 	// an approach that isolates data less than I'd like.
@@ -100,18 +99,14 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// the correct shared key for the key type into `in`'s key. Unlike
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
 	if keys.keySelection == TRANSMISSION {
-		baseKey := user.Transmission.BaseKey
-		salt := in.CurrentKey.Bytes()
-		in.CurrentKey.Set(cmix.NewDecryptionKey(salt, baseKey, group))
+		in.CurrentKey.Set(user.Transmission.BaseKey)
 	} else if keys.keySelection == RECEPTION {
 		if !*keys.verification {
 			jww.ERROR.Printf(
 				"Key Generation Failed: MIC failure detected.\n"+
 					"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
 		} else {
-			baseKey := user.Reception.BaseKey
-			salt := in.CurrentKey.Bytes()
-			in.CurrentKey.Set(cmix.NewEncryptionKey(salt, baseKey, group))
+			in.CurrentKey.Set(user.Reception.BaseKey)
 		}
 
 	} else {

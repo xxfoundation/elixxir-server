@@ -28,10 +28,10 @@ import (
 // messages are sent through the realtime phase. It reads up to batchSize
 // messages from the MessageCh, then reads a round and kicks off realtime
 // with those messages.
-func RunRealTime(batchSize uint64, MessageCh chan *realtime.RealtimeSlot,
+func RunRealTime(batchSize uint64, MessageCh chan *realtime.Slot,
 	RoundCh chan *string, realtimeSignal *sync.Cond) {
 	msgCount := uint64(0)
-	msgList := make([]*realtime.RealtimeSlot, batchSize)
+	msgList := make([]*realtime.Slot, batchSize)
 	for msg := range MessageCh {
 		jww.DEBUG.Printf("Adding message ("+
 			"%d/%d) from SenderID %d to Recipient %s...",
@@ -276,7 +276,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	if globals.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
 		io.RoundCh = make(chan *string, PRECOMP_BUFFER_SIZE)
-		io.MessageCh = make(chan *realtime.RealtimeSlot, messageBufferSize)
+		io.MessageCh = make(chan *realtime.Slot, messageBufferSize)
 		// Last Node handles when realtime and precomp get run
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh, realtimeSignal)
 		go RunPrecomputation(io.RoundCh, realtimeSignal)

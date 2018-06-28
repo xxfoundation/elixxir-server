@@ -2,7 +2,7 @@ package realtime
 
 import "gitlab.com/privategrity/crypto/cyclic"
 
-// RealtimeSlot is a general slot structure used by all other
+// Slot is a general slot structure used by all other
 // realtime cryptops. The semantics of each element change and not
 // all elements are used by every cryptop, but the purpose remains the same
 // as the data travels through realtime.
