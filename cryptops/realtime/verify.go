@@ -38,7 +38,7 @@ func (i Verify) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &RealtimeSlot{Slot: i,
+		om[i] = &Slot{Slot: i,
 			EncryptedRecipient: cyclic.NewMaxInt(),
 		}
 	}
@@ -63,7 +63,7 @@ func (i Verify) Build(g *cyclic.Group,
 // Input: Decrypted Recipient ID Payload, from Identify phase
 // This verifies the decrypted payload matches its MIC
 func (i Verify) Run(g *cyclic.Group,
-	in, out *RealtimeSlot, keys *KeysVerify) services.Slot {
+	in, out *Slot, keys *KeysVerify) services.Slot {
 
 	recip := format.DeserializeRecipient(in.EncryptedRecipient)
 	iv := recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN)

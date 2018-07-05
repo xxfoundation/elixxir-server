@@ -37,7 +37,7 @@ func (i Identify) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &RealtimeSlot{Slot: i,
+		om[i] = &Slot{Slot: i,
 			EncryptedRecipient: cyclic.NewMaxInt(),
 		}
 	}
@@ -62,7 +62,7 @@ func (i Identify) Build(g *cyclic.Group,
 // Input: Encrypted Recipient ID, from Permute phase
 // This phase decrypts the recipient ID, identifying the recipient
 func (i Identify) Run(g *cyclic.Group,
-	in, out *RealtimeSlot, keys *KeysIdentify) services.Slot {
+	in, out *Slot, keys *KeysIdentify) services.Slot {
 
 	// Eq 5.1
 	// Multiply EncryptedRecipientID by the precomputed value

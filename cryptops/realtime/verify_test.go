@@ -55,15 +55,15 @@ func TestRealTimeVerify(t *testing.T) {
 	recip.GetRecipientMIC().SetBytes(verification.GenerateMIC(payloadMicList,
 		format.RMIC_LEN))
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               0,
 		EncryptedRecipient: recip.SerializeRecipient()})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               1,
 		EncryptedRecipient: recip.SerializeRecipient()})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               2,
 		EncryptedRecipient: cyclic.NewInt(0)})
 
@@ -75,7 +75,7 @@ func TestRealTimeVerify(t *testing.T) {
 		dc.InChannel <- &im[i]
 		trn := <-dc.OutChannel
 
-		rtn := (*trn).(*RealtimeSlot)
+		rtn := (*trn).(*Slot)
 		ExpectedOutput := ExpectedOutputs[i]
 
 		if round.MIC_Verification[rtn.Slot] != ExpectedOutput {
@@ -125,11 +125,11 @@ func TestVerifyRun(t *testing.T) {
 	recip.GetRecipientMIC().SetBytes(verification.GenerateMIC(payloadMicList,
 		format.RMIC_LEN))
 
-	im := RealtimeSlot{
+	im := Slot{
 		Slot:               0,
 		EncryptedRecipient: recip.SerializeRecipient()}
 
-	om := RealtimeSlot{
+	om := Slot{
 		Slot:               0,
 		EncryptedRecipient: cyclic.NewInt(0)}
 
@@ -141,11 +141,11 @@ func TestVerifyRun(t *testing.T) {
 			*keys.Verification)
 	}
 
-	im = RealtimeSlot{
+	im = Slot{
 		Slot:               0,
 		EncryptedRecipient: cyclic.NewInt(0)}
 
-	om = RealtimeSlot{
+	om = Slot{
 		Slot:               0,
 		EncryptedRecipient: cyclic.NewInt(0)}
 

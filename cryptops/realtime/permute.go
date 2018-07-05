@@ -57,7 +57,7 @@ func (p Permute) Build(g *cyclic.Group,
 //        Encrypted recipient ID, from Decrypt Phase
 // This phase permutes the message and the recipient ID and encrypts
 // them with their respective permuted internode keys.
-func (p Permute) Run(g *cyclic.Group, in, out *RealtimeSlot,
+func (p Permute) Run(g *cyclic.Group, in, out *Slot,
 	keys *KeysPermute) services.Slot {
 
 	// Eq 4.10 Multiply the message by its permuted key to make the permutation
@@ -75,7 +75,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *RealtimeSlot,
 func buildCryptoPermute(round *globals.Round, outMessages []services.Slot) {
 	// Prepare the permuted output messages
 	for i := uint64(0); i < round.BatchSize; i++ {
-		slot := &RealtimeSlot{
+		slot := &Slot{
 			Slot:               round.Permutations[i],
 			Message:            cyclic.NewMaxInt(),
 			EncryptedRecipient: cyclic.NewMaxInt(),

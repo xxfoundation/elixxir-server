@@ -29,17 +29,17 @@ func TestRealTimePermute(t *testing.T) {
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(0),
 		Message:            cyclic.NewInt(int64(39)),
 		EncryptedRecipient: cyclic.NewInt(int64(13))})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(1),
 		Message:            cyclic.NewInt(int64(86)),
 		EncryptedRecipient: cyclic.NewInt(int64(87))})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(2),
 		Message:            cyclic.NewInt(int64(39)),
 		EncryptedRecipient: cyclic.NewInt(int64(51))})
@@ -68,7 +68,7 @@ func TestRealTimePermute(t *testing.T) {
 		dc.InChannel <- &im[i]
 		trn := <-dc.OutChannel
 
-		rtn := (*trn).(*RealtimeSlot)
+		rtn := (*trn).(*Slot)
 		result := results[i]
 
 		if result[0].Cmp(rtn.Message) != 0 ||
@@ -96,40 +96,40 @@ func TestRealTimePermute(t *testing.T) {
 func TestRealtimePermuteRun(t *testing.T) {
 	bs := uint64(3)
 
-	var im []*RealtimeSlot
-	var om []*RealtimeSlot
+	var im []*Slot
+	var om []*Slot
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(0),
 		Message:            cyclic.NewInt(int64(39)),
 		EncryptedRecipient: cyclic.NewInt(int64(13))})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(1),
 		Message:            cyclic.NewInt(int64(86)),
 		EncryptedRecipient: cyclic.NewInt(int64(87))})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(2),
 		Message:            cyclic.NewInt(int64(39)),
 		EncryptedRecipient: cyclic.NewInt(int64(51))})
 
-	om = append(om, &RealtimeSlot{
+	om = append(om, &Slot{
 		Slot:               uint64(1),
 		Message:            cyclic.NewInt(int64(0)),
 		EncryptedRecipient: cyclic.NewInt(int64(0))})
 
-	om = append(om, &RealtimeSlot{
+	om = append(om, &Slot{
 		Slot:               uint64(2),
 		Message:            cyclic.NewInt(int64(0)),
 		EncryptedRecipient: cyclic.NewInt(int64(0))})
 
-	om = append(om, &RealtimeSlot{
+	om = append(om, &Slot{
 		Slot:               uint64(0),
 		Message:            cyclic.NewInt(int64(0)),
 		EncryptedRecipient: cyclic.NewInt(int64(0))})

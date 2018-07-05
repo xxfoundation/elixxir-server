@@ -31,21 +31,21 @@ func TestDecrypt(t *testing.T) {
 
 	var im []services.Slot
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(0),
 		CurrentID:          senderIds[0],
 		Message:            cyclic.NewInt(int64(39)),
 		CurrentKey:         cyclic.NewInt(int64(65)),
 		EncryptedRecipient: cyclic.NewInt(7)})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(1),
 		CurrentID:          senderIds[1],
 		Message:            cyclic.NewInt(int64(86)),
 		CurrentKey:         cyclic.NewInt(int64(44)),
 		EncryptedRecipient: cyclic.NewInt(51)})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               uint64(2),
 		CurrentID:          senderIds[2],
 		Message:            cyclic.NewInt(int64(66)),
@@ -75,7 +75,7 @@ func TestDecrypt(t *testing.T) {
 
 		result := expected[i]
 
-		rtnXtc := (*rtn).(*RealtimeSlot)
+		rtnXtc := (*rtn).(*Slot)
 
 		for j := 0; j < 1; j++ {
 			// Test EncryptedMessage results

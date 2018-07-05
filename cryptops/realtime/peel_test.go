@@ -31,17 +31,17 @@ func TestPeel(t *testing.T) {
 
 	var im []services.Slot
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:      uint64(0),
 		CurrentID: recipientIds[0],
 		Message:   cyclic.NewInt(int64(39))})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:      uint64(1),
 		CurrentID: recipientIds[1],
 		Message:   cyclic.NewInt(int64(86))})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:      uint64(2),
 		CurrentID: recipientIds[2],
 		Message:   cyclic.NewInt(int64(66))})
@@ -66,7 +66,7 @@ func TestPeel(t *testing.T) {
 
 		result := expected[i]
 
-		rtnXtc := (*rtn).(*RealtimeSlot)
+		rtnXtc := (*rtn).(*Slot)
 
 		// Test EncryptedMessage results
 		for j := 0; j < 1; j++ {

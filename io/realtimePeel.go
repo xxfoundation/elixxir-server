@@ -41,7 +41,7 @@ func (h RealtimePeelHandler) Handler(
 
 	messageBatch := make([]*pb.CmixMessage, 0)
 	for i := uint64(0); i < batchSize; i++ {
-		slot := (*slots[i]).(*realtime.RealtimeSlot)
+		slot := (*slots[i]).(*realtime.Slot)
 		if !round.MIC_Verification[slot.Slot] {
 			jww.DEBUG.Printf("Message %v corrupted, not queued", slot.SlotID())
 		} else {
@@ -59,6 +59,7 @@ func (h RealtimePeelHandler) Handler(
 				SenderID:       user.ID,
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				RecipientID:    make([]byte, 0), // Currently zero this field
+				Salt:           slot.Salt,
 			}
 			messageBatch = append(messageBatch, &pbCmixMessage)
 

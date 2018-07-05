@@ -35,7 +35,7 @@ func (p Peel) Build(g *cyclic.Group,
 	om := make([]services.Slot, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &RealtimeSlot{
+		om[i] = &Slot{
 			Slot:      i,
 			Message:   cyclic.NewMaxInt(),
 			CurrentID: 0,
@@ -62,13 +62,14 @@ func (p Peel) Build(g *cyclic.Group,
 // Removes the Internode Keys by multiplying
 // in the precomputation to the encrypted message
 func (p Peel) Run(g *cyclic.Group,
-	in, out *RealtimeSlot, keys *KeysPeel) services.Slot {
+	in, out *Slot, keys *KeysPeel) services.Slot {
 
 	// Eq 7.1: Multiply in the precomputation
 	g.Mul(in.Message, keys.MessagePrecomputation, out.Message)
 
 	// Pass through SenderID
 	out.CurrentID = in.CurrentID
+	out.Salt = in.Salt
 
 	return out
 

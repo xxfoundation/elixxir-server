@@ -52,11 +52,11 @@ func TestRealTimeIdentify(t *testing.T) {
 	encrRecp := grp.Mul(cyclic.NewInt(42),
 		invsprecomp, cyclic.NewInt(0))
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               0,
 		EncryptedRecipient: encrRecp})
 
-	im = append(im, &RealtimeSlot{
+	im = append(im, &Slot{
 		Slot:               1,
 		EncryptedRecipient: encrRecp})
 
@@ -68,7 +68,7 @@ func TestRealTimeIdentify(t *testing.T) {
 		dc.InChannel <- &im[i]
 		trn := <-dc.OutChannel
 
-		rtn := (*trn).(*RealtimeSlot)
+		rtn := (*trn).(*Slot)
 		ExpectedOutput := ExpectedOutputs[i]
 
 		if rtn.EncryptedRecipient.Cmp(ExpectedOutput) != 0 {
@@ -114,11 +114,11 @@ func TestIdentifyRun(t *testing.T) {
 	encrRecp := grp.Mul(cyclic.NewInt(42),
 		invsprecomp, cyclic.NewInt(0))
 
-	im := RealtimeSlot{
+	im := Slot{
 		Slot:               0,
 		EncryptedRecipient: encrRecp}
 
-	om := RealtimeSlot{
+	om := Slot{
 		Slot:               0,
 		EncryptedRecipient: cyclic.NewInt(0)}
 

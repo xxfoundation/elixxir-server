@@ -525,7 +525,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	}
 
 	// ----- REALTIME ----- //
-	inputMsg := services.Slot(&realtime.RealtimeSlot{
+	inputMsg := services.Slot(&realtime.Slot{
 		Slot:               0,
 		CurrentID:          1,
 		Message:            cyclic.NewInt(31),
@@ -543,8 +543,8 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	go func(in, out chan *services.Slot) {
 		iv := <-in
-		is := (*iv).(*realtime.RealtimeSlot)
-		ov := services.Slot(&realtime.RealtimeSlot{
+		is := (*iv).(*realtime.Slot)
+		ov := services.Slot(&realtime.Slot{
 			Slot:               is.Slot,
 			Message:            is.Message,
 			EncryptedRecipient: is.EncryptedRecipient,
@@ -574,8 +574,8 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	RTDecrypt.InChannel <- &inputMsg
 	rtnPrm := <-RTPermute.OutChannel
-	esPrm := (*rtnPrm).(*realtime.RealtimeSlot)
-	ovPrm := services.Slot(&realtime.RealtimeSlot{
+	esPrm := (*rtnPrm).(*realtime.Slot)
+	ovPrm := services.Slot(&realtime.Slot{
 		Slot:               esPrm.Slot,
 		EncryptedRecipient: esPrm.EncryptedRecipient,
 	})
@@ -592,9 +592,9 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
-	esTmp := (*rtnTmp).(*realtime.RealtimeSlot)
+	esTmp := (*rtnTmp).(*realtime.Slot)
 	rID, _ := strconv.ParseUint(esTmp.EncryptedRecipient.Text(10), 10, 64)
-	inputMsgPostID := services.Slot(&realtime.RealtimeSlot{
+	inputMsgPostID := services.Slot(&realtime.Slot{
 		Slot:       esTmp.Slot,
 		CurrentID:  rID,
 		Message:    TmpMsg,
@@ -620,7 +620,7 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	go func(in, out chan *services.Slot) {
 		iv := <-in
-		is := realtime.RealtimeSlot(*((*iv).(*realtime.RealtimeSlot)))
+		is := realtime.Slot(*((*iv).(*realtime.Slot)))
 		ov := services.Slot(&is)
 
 		t.Logf("RTENCRYPT:\n  EncryptedMessage: %s\n",
@@ -639,7 +639,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	// KICK OFF RT COMPUTATION
 	RTEncrypt.InChannel <- &inputMsgPostID
 	rtnRT := <-RTPeel.OutChannel
-	esRT := (*rtnRT).(*realtime.RealtimeSlot)
+	esRT := (*rtnRT).(*realtime.Slot)
 
 	t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 		esRT.Message.Text(10))
@@ -814,7 +814,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	go benchmark.RTEncryptRTPeelTranslate(N2RTEncrypt.OutChannel,
 		N2RTPeel.InChannel)
 
-	inputMsg := services.Slot(&realtime.RealtimeSlot{
+	inputMsg := services.Slot(&realtime.Slot{
 		Slot:               0,
 		CurrentID:          1,
 		Message:            cyclic.NewInt(42), // Meaning of Life
@@ -823,7 +823,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	})
 	N1RTDecrypt.InChannel <- &inputMsg
 	rtnRT := <-N2RTPeel.OutChannel
-	esRT := (*rtnRT).(*realtime.RealtimeSlot)
+	esRT := (*rtnRT).(*realtime.Slot)
 	t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 		esRT.Message.Text(10))
 	expectedRTPeel := []*cyclic.Int{
@@ -844,7 +844,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 // the cryptographic operations.
 func MultiNodeTest(nodeCount int, BatchSize uint64,
 	group *cyclic.Group, rounds []*globals.Round,
-	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot,
+	inputMsgs []realtime.Slot, expectedOutputs []realtime.Slot,
 	t *testing.T) {
 
 	benchmark.MultiNodePrecomp(nodeCount, BatchSize, group, rounds)
@@ -858,17 +858,17 @@ func Test3NodeE2E(t *testing.T) {
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
-	inputMsgs := make([]realtime.RealtimeSlot, BatchSize)
-	outputMsgs := make([]realtime.RealtimeSlot, BatchSize)
+	inputMsgs := make([]realtime.Slot, BatchSize)
+	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
-		inputMsgs[i] = realtime.RealtimeSlot{
+		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
 			CurrentID:          i + 1,
 			Message:            cyclic.NewInt(42 + int64(i)), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt(1 + int64(i)),
 			CurrentKey:         cyclic.NewInt(1),
 		}
-		outputMsgs[i] = realtime.RealtimeSlot{
+		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
 			CurrentID: i + 1,
 			Message:   cyclic.NewInt(42 + int64(i)), // Meaning of Life
@@ -890,17 +890,17 @@ func Test1NodePermuteE2E(t *testing.T) {
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
-	inputMsgs := make([]realtime.RealtimeSlot, BatchSize)
-	outputMsgs := make([]realtime.RealtimeSlot, BatchSize)
+	inputMsgs := make([]realtime.Slot, BatchSize)
+	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
-		inputMsgs[i] = realtime.RealtimeSlot{
+		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
 			CurrentID:          i + 1,
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
-		outputMsgs[i] = realtime.RealtimeSlot{
+		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
 			CurrentID: (i + 1) % 101,
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
@@ -914,7 +914,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 			rounds[i].Permutations[j] = newj
 		}
 		// Now apply  permutations list to outputMsgs
-		newOutMsgs := make([]realtime.RealtimeSlot, BatchSize)
+		newOutMsgs := make([]realtime.Slot, BatchSize)
 		for j := uint64(0); j < BatchSize; j++ {
 			newOutMsgs[rounds[i].Permutations[j]] = outputMsgs[j]
 		}
@@ -958,17 +958,17 @@ func TestRealPrimeE2E(t *testing.T) {
 		cyclic.NewIntFromString(benchmark.MAXGENERATION, 16))
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
-	inputMsgs := make([]realtime.RealtimeSlot, BatchSize)
-	outputMsgs := make([]realtime.RealtimeSlot, BatchSize)
+	inputMsgs := make([]realtime.Slot, BatchSize)
+	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
-		inputMsgs[i] = realtime.RealtimeSlot{
+		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
 			CurrentID:          i + 1,
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
-		outputMsgs[i] = realtime.RealtimeSlot{
+		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
 			CurrentID: (i + 1) % 101,
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
@@ -982,7 +982,7 @@ func TestRealPrimeE2E(t *testing.T) {
 			rounds[i].Permutations[j] = newj
 		}
 		// Now apply  permutations list to outputMsgs
-		newOutMsgs := make([]realtime.RealtimeSlot, BatchSize)
+		newOutMsgs := make([]realtime.Slot, BatchSize)
 		for j := uint64(0); j < BatchSize; j++ {
 			newOutMsgs[rounds[i].Permutations[j]] = outputMsgs[j]
 		}

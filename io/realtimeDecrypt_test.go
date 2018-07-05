@@ -30,14 +30,16 @@ func TestRealtimeDecrypt(t *testing.T) {
 	round.AddChannel(globals.REAL_DECRYPT, chIn)
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &realtime.RealtimeSlot{
+	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
 		CurrentID:          uint64(42),
 		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(3),
+		CurrentKey: cyclic.NewIntFromString(
+			"C0DED00DC0DED00DC0DED00DC0DED00D", 16),
 	}
 
-	slots := [1]*realtime.RealtimeSlot{slot.(*realtime.RealtimeSlot)}
+	slots := [1]*realtime.Slot{slot.(*realtime.Slot)}
 	NextServer = "localhost:5555"
 	KickoffDecryptHandler(roundId, uint64(1), slots[:])
 
@@ -45,8 +47,8 @@ func TestRealtimeDecrypt(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*realtime.RealtimeSlot)
-	actual := (*received).(*realtime.RealtimeSlot)
+	expected := slot.(*realtime.Slot)
+	actual := (*received).(*realtime.Slot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {

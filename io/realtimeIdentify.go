@@ -10,10 +10,10 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
+	"gitlab.com/privategrity/crypto/hash"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	"strconv"
 	"time"
 )
 
@@ -37,7 +37,7 @@ func (h RealtimeIdentifyHandler) Handler(
 	msg := &pb.RealtimeEncryptMessage{
 		RoundID: roundId,
 		LastOp:  int32(globals.REAL_IDENTIFY),
-		Slots:   make([]*pb.RealtimeEncryptSlot, batchSize),
+		Slots:   make([]*pb.CmixMessage, batchSize),
 	}
 
 	// Get round
@@ -48,18 +48,24 @@ func (h RealtimeIdentifyHandler) Handler(
 	}
 
 	// Iterate over the input slots
+	cMixHash, _ := hash.NewCMixHash()
 	for i := range slots {
-		out := (*slots[i]).(*realtime.RealtimeSlot)
-		// Convert to RealtimeEncryptSlot
-		rId, _ := strconv.ParseUint(out.EncryptedRecipient.Text(10), 10, 64)
-		msgSlot := &pb.RealtimeEncryptSlot{
-			Slot:             out.Slot,
-			RecipientID:      rId,
-			EncryptedMessage: round.LastNode.EncryptedMessage[i].Bytes(),
+		out := (*slots[i]).(*realtime.Slot)
+		rID := out.EncryptedRecipient.Bytes()
+		encryptedMsg := round.LastNode.EncryptedMessage[i].Bytes()
+		cMixHash.Reset()
+		cMixHash.Write(rID)
+		cMixHash.Write(encryptedMsg)
+		// Convert to CmixMessage
+		msgSlot := &pb.CmixMessage{
+			SenderID:       0,
+			RecipientID:    rID,
+			MessagePayload: encryptedMsg,
+			Salt:           cMixHash.Sum(nil),
 		}
 
 		// Append the RealtimeEncryptSlot to the RealtimeEncryptMessage
-		msg.Slots[i] = msgSlot
+		msg.Slots[out.Slot] = msgSlot
 	}
 
 	// Advance internal state to the next phase

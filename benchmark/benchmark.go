@@ -174,8 +174,8 @@ func RevealStripTranslate(reveal, strip chan *services.Slot) {
 // Convert RTDecrypt output slot to RTPermute input slot
 func RTDecryptRTPermuteTranslate(decrypt, permute chan *services.Slot) {
 	for decryptSlot := range decrypt {
-		is := (*decryptSlot).(*realtime.RealtimeSlot)
-		ov := services.Slot(&realtime.RealtimeSlot{
+		is := (*decryptSlot).(*realtime.Slot)
+		ov := services.Slot(&realtime.Slot{
 			Slot:               is.Slot,
 			Message:            is.Message,
 			EncryptedRecipient: is.EncryptedRecipient,
@@ -187,8 +187,8 @@ func RTDecryptRTPermuteTranslate(decrypt, permute chan *services.Slot) {
 func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
 	outMsgs []*cyclic.Int) {
 	for permuteSlot := range permute {
-		esPrm := (*permuteSlot).(*realtime.RealtimeSlot)
-		ovPrm := services.Slot(&realtime.RealtimeSlot{
+		esPrm := (*permuteSlot).(*realtime.Slot)
+		ovPrm := services.Slot(&realtime.Slot{
 			Slot:               esPrm.Slot,
 			EncryptedRecipient: esPrm.EncryptedRecipient,
 		})
@@ -200,9 +200,9 @@ func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
 func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 	inMsgs []*cyclic.Int) {
 	for identifySlot := range identify {
-		esTmp := (*identifySlot).(*realtime.RealtimeSlot)
+		esTmp := (*identifySlot).(*realtime.Slot)
 		rID, _ := strconv.ParseUint(esTmp.EncryptedRecipient.Text(10), 10, 64)
-		inputMsgPostID := services.Slot(&realtime.RealtimeSlot{
+		inputMsgPostID := services.Slot(&realtime.Slot{
 			Slot:       esTmp.Slot,
 			CurrentID:  rID,
 			Message:    inMsgs[esTmp.Slot],
@@ -214,7 +214,7 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 
 func RTEncryptRTPeelTranslate(encrypt, peel chan *services.Slot) {
 	for encryptSlot := range encrypt {
-		is := realtime.RealtimeSlot(*((*encryptSlot).(*realtime.RealtimeSlot)))
+		is := realtime.Slot(*((*encryptSlot).(*realtime.Slot)))
 		ov := services.Slot(&is)
 		peel <- &ov
 	}
@@ -222,8 +222,8 @@ func RTEncryptRTPeelTranslate(encrypt, peel chan *services.Slot) {
 
 func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
 	for is := range in {
-		o := (*is).(*realtime.RealtimeSlot)
-		os := services.Slot(&realtime.RealtimeSlot{
+		o := (*is).(*realtime.Slot)
+		os := services.Slot(&realtime.Slot{
 			Slot:               o.Slot,
 			CurrentID:          o.CurrentID,
 			Message:            o.Message,
@@ -236,8 +236,8 @@ func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
 
 func RTEncryptRTEncryptTranslate(in, out chan *services.Slot) {
 	for is := range in {
-		o := (*is).(*realtime.RealtimeSlot)
-		os := services.Slot(&realtime.RealtimeSlot{
+		o := (*is).(*realtime.Slot)
+		os := services.Slot(&realtime.Slot{
 			Slot:       o.Slot,
 			CurrentID:  o.CurrentID,
 			Message:    o.Message,
@@ -388,7 +388,7 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 
 func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 	group *cyclic.Group, rounds []*globals.Round,
-	inputMsgs []realtime.RealtimeSlot, expectedOutputs []realtime.RealtimeSlot) {
+	inputMsgs []realtime.Slot, expectedOutputs []realtime.Slot) {
 
 	LastRound := rounds[nodeCount-1]
 
@@ -450,7 +450,7 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 
 	for i := uint64(0); i < BatchSize; i++ {
 		rtnRT := <-LNRTPeel.OutChannel
-		esRT := (*rtnRT).(*realtime.RealtimeSlot)
+		esRT := (*rtnRT).(*realtime.Slot)
 		// t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 		// 	esRT.Message.Text(10))
 
@@ -521,18 +521,18 @@ func CopyRounds(nodeCount int, r []*globals.Round) []*globals.Round {
 }
 
 func GenerateIOMessages(nodeCount int, batchSize uint64,
-	rounds []*globals.Round) ([]realtime.RealtimeSlot, []realtime.RealtimeSlot) {
-	inputMsgs := make([]realtime.RealtimeSlot, batchSize)
-	outputMsgs := make([]realtime.RealtimeSlot, batchSize)
+	rounds []*globals.Round) ([]realtime.Slot, []realtime.Slot) {
+	inputMsgs := make([]realtime.Slot, batchSize)
+	outputMsgs := make([]realtime.Slot, batchSize)
 	for i := uint64(0); i < batchSize; i++ {
-		inputMsgs[i] = realtime.RealtimeSlot{
+		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
 			CurrentID:          i + 1,
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
-		outputMsgs[i] = realtime.RealtimeSlot{
+		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
 			CurrentID: (i + 1) % 101,
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
@@ -540,7 +540,7 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 	}
 	for i := 0; i < nodeCount; i++ {
 		// Now apply  permutations list to outputMsgs
-		newOutMsgs := make([]realtime.RealtimeSlot, batchSize)
+		newOutMsgs := make([]realtime.Slot, batchSize)
 		for j := uint64(0); j < batchSize; j++ {
 			newOutMsgs[rounds[i].Permutations[j]] = outputMsgs[j]
 		}

@@ -34,10 +34,11 @@ func TestRealtimePermute(t *testing.T) {
 		chOut, RealtimeDecryptHandler{})
 
 	// Create a slot to pass into the TransmissionHandler
-	var slot services.Slot = &realtime.RealtimeSlot{
+	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
 		Message:            cyclic.NewInt(12),
 		EncryptedRecipient: cyclic.NewInt(7),
+		CurrentKey:         cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Permute's TransmissionHandler
@@ -47,8 +48,8 @@ func TestRealtimePermute(t *testing.T) {
 	received := <-chIn
 
 	// Convert type for comparison
-	expected := slot.(*realtime.RealtimeSlot)
-	actual := (*received).(*realtime.RealtimeSlot)
+	expected := slot.(*realtime.Slot)
+	actual := (*received).(*realtime.Slot)
 
 	// Compare actual/expected
 	if expected.Slot != actual.Slot {
