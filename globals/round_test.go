@@ -186,7 +186,7 @@ func TestNewRoundWithPhase(t *testing.T) {
 func TestSetPhase(t *testing.T) {
 	round := &Round{}
 	round.phaseCond = &sync.Cond{L: &sync.Mutex{}}
-	var phaseWaitCheck int = 0
+	phaseWaitCheck := 0
 
 	go func(r *Round, p *int) {
 		r.WaitUntilPhase(REAL_DECRYPT)
@@ -203,5 +203,25 @@ func TestSetPhase(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	if phaseWaitCheck != 1 {
 		t.Errorf("round.WaitUntilPhase did not complete!")
+	}
+}
+
+// Test happy path
+func TestRoundMap_DeleteRound(t *testing.T) {
+	rm := NewRoundMap()
+	roundId := "test"
+	rm.rounds[roundId] = NewRound(1)
+	rm.DeleteRound(roundId)
+	if rm.rounds[roundId] != nil {
+		t.Errorf("DeleteRound: Failed to delete round!")
+	}
+}
+
+// Test nil path
+func TestRound_GetChannelNil(t *testing.T) {
+	var r *Round = nil
+	c := r.GetChannel(PRECOMP_REVEAL)
+	if c == nil {
+		t.Errorf("GetChannel: Expected non-nil return for nil round!")
 	}
 }

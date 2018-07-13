@@ -393,20 +393,3 @@ func InitLastNode(round *Round) {
 		round.MIC_Verification[i] = false
 	}
 }
-
-func ResetLastNode(round *Round) {
-
-	jww.DEBUG.Printf("lastnode: %v", round.LastNode)
-
-	for i := uint64(0); i < round.BatchSize; i++ {
-		round.LastNode.MessagePrecomputation[i].SetBytes(cyclic.Max4kBitInt)
-		round.LastNode.RecipientPrecomputation[i].SetBytes(cyclic.Max4kBitInt)
-		round.LastNode.RoundMessagePrivateKey[i].SetBytes(cyclic.Max4kBitInt)
-		round.LastNode.RoundRecipientPrivateKey[i].SetBytes(cyclic.Max4kBitInt)
-		round.LastNode.RecipientCypherText[i].SetBytes(cyclic.Max4kBitInt)
-		round.LastNode.EncryptedRecipientPrecomputation[i].SetBytes(cyclic.Max4kBitInt)
-		round.LastNode.EncryptedMessagePrecomputation[i].SetBytes(cyclic.Max4kBitInt)
-		round.LastNode.EncryptedMessage[i].SetBytes(cyclic.Max4kBitInt)
-		round.MIC_Verification[i] = false
-	}
-}
