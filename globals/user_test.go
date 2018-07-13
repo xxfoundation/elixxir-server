@@ -7,25 +7,21 @@
 package globals
 
 import (
+	"gitlab.com/privategrity/crypto/cyclic"
+	"sync"
 	"testing"
 )
 
 // TestUserRegistry tests the constructors/getters/setters
 // surrounding the User struct and the UserRegistry interface
+// TODO: This test needs split up
 func TestUserRegistry(t *testing.T) {
-	Users = NewUserRegistry("cmix", "",
-		"cmix_server", "")
+	Users := UserRegistry(&UserMap{
+		userCollection: make(map[uint64]*User),
+		collectionLock: &sync.Mutex{},
+	})
 
-	// Loop from userDatabase.go to create and add users
-	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
-		"Mario", "Will", "Sydney", "Jon0"}
-
-	for i := 1; i <= len(nickList); i++ {
-		u := Users.NewUser("")
-		u.Nick = nickList[i-1]
-		Users.UpsertUser(u)
-	}
-	for i := len(nickList) + 1; i <= NUM_DEMO_USERS; i++ {
+	for i := 0; i < NUM_DEMO_USERS; i++ {
 		u := Users.NewUser("")
 		u.Nick = ""
 		Users.UpsertUser(u)
@@ -97,4 +93,47 @@ func TestUserRegistry(t *testing.T) {
 	}
 
 	println("User Test", pass, "out of", test, "tests passed.")
+}
+
+// Test happy path
+func TestForwardKey_DeepCopy(t *testing.T) {
+	fk := ForwardKey{
+		BaseKey:      cyclic.NewInt(10),
+		RecursiveKey: cyclic.NewInt(15),
+	}
+
+	nk := fk.DeepCopy()
+
+	if fk.RecursiveKey.Cmp(nk.RecursiveKey) != 0 {
+		t.Errorf("FK Deepcopy: Failed to copy recursive key!")
+	}
+	if fk.BaseKey.Cmp(nk.BaseKey) != 0 {
+		t.Errorf("FK Deepcopy: Failed to copy base key!")
+	}
+}
+
+// Test nil path
+func TestForwardKey_DeepCopyNil(t *testing.T) {
+	var fk *ForwardKey = nil
+
+	nk := fk.DeepCopy()
+
+	if nk != nil {
+		t.Errorf("FK Deepcopy: Expected nil copy!")
+	}
+}
+
+// Test happy path
+func TestUser_DeepCopy(t *testing.T) {
+	Users := UserRegistry(&UserMap{
+		userCollection: make(map[uint64]*User),
+		collectionLock: &sync.Mutex{},
+	})
+	user := Users.NewUser("t")
+	user.Transmission.BaseKey = cyclic.NewInt(66)
+
+	newUser := user.DeepCopy()
+	if user.Transmission.BaseKey.Cmp(newUser.Transmission.BaseKey) != 0 {
+		t.Errorf("User Deepcopy: Failed to copy keys!")
+	}
 }

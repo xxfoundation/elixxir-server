@@ -56,7 +56,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 		t.Errorf("Slot does not match!")
 	}
 	if expected.CurrentID != actual.CurrentID {
-		t.Errorf("RecipientID does not match!"+
+		t.Errorf("CurrentID does not match!"+
 			" Got %v, expected %v.",
 			actual.CurrentID,
 			expected.CurrentID)
