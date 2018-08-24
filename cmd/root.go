@@ -19,7 +19,6 @@ import (
 
 var cfgFile string
 var verbose bool
-var noRatchet bool
 var serverIdx int
 var batchSize uint64
 var nodeID uint64
