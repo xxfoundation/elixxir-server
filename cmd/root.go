@@ -14,13 +14,11 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/privategrity/crypto/forward"
 	"math"
 )
 
 var cfgFile string
 var verbose bool
-var noRatchet bool
 var serverIdx int
 var batchSize uint64
 var nodeID uint64
@@ -41,9 +39,6 @@ communications.`,
 		}
 		if !validConfig {
 			jww.FATAL.Panic("Invalid Config File")
-		}
-		if noRatchet {
-			forward.SetRatchetStatus(false)
 		}
 		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
 	},
@@ -76,8 +71,6 @@ func init() {
 		"config file (default is $HOME/.privategrity/server.yaml)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
-	rootCmd.Flags().BoolVarP(&noRatchet, "noratchet", "", false,
-		"Avoid ratcheting the keys for forward secrecy")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
 	rootCmd.Flags().Uint64VarP(&batchSize, "batch", "b", 1,
