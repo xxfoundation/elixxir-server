@@ -53,7 +53,7 @@ func NewUserRegistry(username, password,
 		MaxRetries:  10,
 		PoolTimeout: time.Duration(2) * time.Minute,
 		IdleTimeout: time.Duration(10) * time.Minute,
-		MaxAge:      time.Duration(1) * time.Hour,
+		MaxConnAge:  time.Duration(1) * time.Hour,
 	})
 	// Attempt to connect to the database and initialize the schema
 	err := createSchema(db)
