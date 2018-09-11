@@ -10,12 +10,15 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Determine whether a message is in the buffer for a given User
 // Return the message if so or a blank message if not
 func (s ServerImpl) ClientPoll(inputMsg *pb.ClientPollMessage) *pb.CmixMessage {
-	user, err := globals.Users.GetUser(inputMsg.UserID)
+	var userId id.UserID
+	copy(userId[:], inputMsg.UserID)
+	user, err := globals.Users.GetUser(userId)
 	// Verify the User exists
 	if err == nil {
 		select {

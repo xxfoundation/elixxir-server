@@ -21,8 +21,12 @@ func (s ServerImpl) ServerMetrics(msg *pb.ServerMetricsMessage) {
 	upSince := append(msg.UpSince, TimeUp)
 	if !globals.IsLastNode {
 		node.SendServerMetrics(Servers[len(upSince)],
-			&pb.ServerMetricsMessage{memUsage, threadUsage, cpuUsage,
-				upSince})
+			&pb.ServerMetricsMessage{
+				MemUsage:    memUsage,
+				ThreadUsage: threadUsage,
+				CpuUsage:    cpuUsage,
+				UpSince:     upSince,
+			})
 	} else {
 		LogServerMetrics(memUsage, threadUsage, cpuUsage, upSince)
 	}
@@ -54,8 +58,13 @@ func GetServerMetrics(servers []string) {
 		// else send to first node
 	} else {
 		node.SendServerMetrics(servers[0],
-			&pb.ServerMetricsMessage{memUsage,
-			threadUsage, cpuUsage, upSince})
+			&pb.ServerMetricsMessage{
+				MemUsage: memUsage,
+				ThreadUsage: threadUsage,
+				CpuUsage: cpuUsage,
+				UpSince: upSince,
+		})
+
 	}
 }
 

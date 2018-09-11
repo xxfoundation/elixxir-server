@@ -9,10 +9,10 @@ package globals
 import (
 	"crypto/sha256"
 	"errors"
-	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"sync"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Globally initiated UserRegistry
@@ -28,9 +28,8 @@ var idCounter = uint64(1)
 // Interface for User Registry operations
 type UserRegistry interface {
 	NewUser(address string) *User
-	DeleteUser(id uint64)
-	GetUser(id uint64) (user *User, err error)
-	GetNickList() (ids []uint64, nicks []string)
+	DeleteUser(id id.UserID)
+	GetUser(id id.UserID) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
 }
@@ -38,7 +37,7 @@ type UserRegistry interface {
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
-	userCollection map[uint64]*User
+	userCollection map[id.UserID]*User
 	collectionLock *sync.Mutex
 }
 
@@ -65,8 +64,8 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 // Struct representing a User in the system
 type User struct {
-	ID            uint64
-	HUID          uint64
+	ID            id.UserID
+	HUID          []byte
 	Address       string
 	Nick          string
 	Transmission  ForwardKey
@@ -101,7 +100,7 @@ func (m *UserMap) NewUser(address string) *User {
 	recept := new(ForwardKey)
 
 	// Generate user parameters
-	usr.ID = uint64(i)
+	usr.ID = id.NewUserIDFromUint(i, nil)
 	h.Write([]byte(string(20000 + i)))
 	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	h = sha256.New()
@@ -121,20 +120,20 @@ func (m *UserMap) NewUser(address string) *User {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserMap) DeleteUser(id uint64) {
+func (m *UserMap) DeleteUser(userId id.UserID) {
 	// If key does not exist, do nothing
 	m.collectionLock.Lock()
-	delete(m.userCollection, id)
+	delete(m.userCollection, userId)
 	m.collectionLock.Unlock()
 }
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserMap) GetUser(id uint64) (*User, error) {
+func (m *UserMap) GetUser(userId id.UserID) (*User, error) {
 	var u *User
 	var err error
 	m.collectionLock.Lock()
-	u, ok := m.userCollection[id]
+	u, ok := m.userCollection[userId]
 	m.collectionLock.Unlock()
 
 	if !ok {
@@ -156,26 +155,4 @@ func (m *UserMap) UpsertUser(user *User) {
 // CountUsers returns a count of the users in userCollection.
 func (m *UserMap) CountUsers() int {
 	return len(m.userCollection)
-}
-
-// GetNickList returns a slice of all the user IDs and a slice of the
-// corresponding nicknames of all the users in a user map.
-func (m *UserMap) GetNickList() (ids []uint64, nicks []string) {
-
-	userCount := m.CountUsers()
-
-	nicks = make([]string, 0, userCount)
-	ids = make([]uint64, 0, userCount)
-	m.collectionLock.Lock()
-	for _, user := range m.userCollection {
-		if user != nil {
-			nicks = append(nicks, user.Nick)
-			ids = append(ids, user.ID)
-		} else {
-			jww.FATAL.Panicf("A user was nil.")
-		}
-	}
-	m.collectionLock.Unlock()
-
-	return ids, nicks
 }

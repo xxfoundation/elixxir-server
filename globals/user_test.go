@@ -10,6 +10,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"sync"
 	"testing"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // TestUserRegistry tests the constructors/getters/setters
@@ -17,7 +18,7 @@ import (
 // TODO: This test needs split up
 func TestUserRegistry(t *testing.T) {
 	Users := UserRegistry(&UserMap{
-		userCollection: make(map[uint64]*User),
+		userCollection: make(map[id.UserID]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
@@ -28,7 +29,7 @@ func TestUserRegistry(t *testing.T) {
 	}
 
 	// TESTS Start here
-	test := 7
+	test := 6
 	pass := 0
 
 	numUsers := Users.CountUsers()
@@ -40,7 +41,7 @@ func TestUserRegistry(t *testing.T) {
 		pass++
 	}
 
-	usr9, _ := Users.GetUser(9)
+	usr9, _ := Users.GetUser(id.NewUserIDFromUint(9, t))
 
 	if usr9 == nil {
 		t.Errorf("Error fetching user!")
@@ -54,8 +55,8 @@ func TestUserRegistry(t *testing.T) {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
-	usr3, _ := Users.GetUser(3)
-	usr5, _ := Users.GetUser(5)
+	usr3, _ := Users.GetUser(id.NewUserIDFromUint(3, t))
+	usr5, _ := Users.GetUser(id.NewUserIDFromUint(5, t))
 
 	if usr3.Transmission.BaseKey == nil {
 		t.Errorf("Error Setting the Transmission Base Key")
@@ -65,14 +66,6 @@ func TestUserRegistry(t *testing.T) {
 
 	if usr3.Reception.BaseKey == usr5.Reception.BaseKey {
 		t.Errorf("Transmissions keys are the same and they should be different!")
-	} else {
-		pass++
-	}
-
-	ids, _ := Users.GetNickList()
-
-	if len(ids) != Users.CountUsers() {
-		t.Errorf("Nicklist is not ok! ")
 	} else {
 		pass++
 	}
@@ -126,7 +119,7 @@ func TestForwardKey_DeepCopyNil(t *testing.T) {
 // Test happy path
 func TestUser_DeepCopy(t *testing.T) {
 	Users := UserRegistry(&UserMap{
-		userCollection: make(map[uint64]*User),
+		userCollection: make(map[id.UserID]*User),
 		collectionLock: &sync.Mutex{},
 	})
 	user := Users.NewUser("t")

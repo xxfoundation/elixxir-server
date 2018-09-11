@@ -15,6 +15,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"time"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -37,9 +38,19 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
+		var userId id.UserID
+		// FIXME These should be the same length for the test.
+		// But they aren't. My workaround until I better understand the
+		// code's purpose is to copy to the end of the user ID instead of to the
+		// beginning.
+		// There's something odd going on with the types here. Some types are
+		// being conflated that shouldn't be.
+		srcLen := len(in.RecipientID)
+		dstLen := len(userId)
+		copy(userId[dstLen-srcLen:], in.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       uint64(i),
-			CurrentID:  cyclic.NewIntFromBytes(in.RecipientID).Uint64(),
+			CurrentID:  userId,
 			Message:    cyclic.NewIntFromBytes(in.MessagePayload),
 			CurrentKey: cyclic.NewMaxInt(),
 			Salt:       in.Salt,
@@ -90,9 +101,12 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to Slot
+		var userId id.UserID
+		// TODO Copy to the end of the slice, not the start?
+		copy(userId[:], out.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       i,
-			CurrentID:  cyclic.NewIntFromBytes(out.RecipientID).Uint64(),
+			CurrentID:  userId,
 			Message:    cyclic.NewIntFromBytes(out.MessagePayload),
 			CurrentKey: cyclic.NewMaxInt(),
 			Salt:       out.Salt,
@@ -134,8 +148,8 @@ func (h RealtimeEncryptHandler) Handler(
 		out := (*slots[i]).(*realtime.Slot)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
-			SenderID:       0,
-			RecipientID:    cyclic.NewIntFromUInt(out.CurrentID).Bytes(),
+			SenderID:       id.ZeroID[:],
+			RecipientID:    out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
 			Salt:           out.Salt,
 		}

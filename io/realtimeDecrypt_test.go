@@ -12,6 +12,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestRealtimeDecrypt(t *testing.T) {
@@ -32,7 +33,7 @@ func TestRealtimeDecrypt(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
-		CurrentID:          uint64(42),
+		CurrentID:          id.NewUserIDFromUint(42, t),
 		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(3),
 		CurrentKey: cyclic.NewIntFromString(

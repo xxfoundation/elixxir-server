@@ -9,6 +9,7 @@ package io
 import (
 	"testing"
 	"time"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestUserUpsertBroadcast(t *testing.T) {
@@ -18,7 +19,7 @@ func TestUserUpsertBroadcast(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		*d = 1
 	}(&done)
-	UserUpsertBroadcast(make([]byte, 0), make([]byte, 0))
+	UserUpsertBroadcast(id.ZeroID, make([]byte, 0))
 	if done == 1 {
 		t.Errorf("Could not broadcast upsert in less than 2 seconds!")
 	}

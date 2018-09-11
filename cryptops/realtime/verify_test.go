@@ -13,6 +13,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestRealTimeVerify(t *testing.T) {
@@ -46,7 +47,7 @@ func TestRealTimeVerify(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	recip, _ := format.NewRecipientPayload(42)
+	recip, _ := format.NewRecipientPayload(id.NewUserIDFromUint(42, t))
 	recip.GetRecipientInitVect().Set(cyclic.NewInt(1))
 	payloadMicList := [][]byte{
 		recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN),
@@ -116,7 +117,7 @@ func TestVerifyRun(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	recip, _ := format.NewRecipientPayload(42)
+	recip, _ := format.NewRecipientPayload(id.NewUserIDFromUint(42, t))
 	recip.GetRecipientInitVect().Set(cyclic.NewInt(1))
 	payloadMicList := [][]byte{
 		recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN),

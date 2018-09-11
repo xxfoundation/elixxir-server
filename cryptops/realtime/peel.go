@@ -12,6 +12,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Peel phase removes the Internode Keys by multiplying in the precomputation
@@ -38,7 +39,7 @@ func (p Peel) Build(g *cyclic.Group,
 		om[i] = &Slot{
 			Slot:      i,
 			Message:   cyclic.NewMaxInt(),
-			CurrentID: 0,
+			CurrentID: id.ZeroID,
 		}
 	}
 

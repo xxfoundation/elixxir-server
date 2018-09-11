@@ -12,6 +12,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestRealtimePeel(t *testing.T) {
@@ -36,7 +37,7 @@ func TestRealtimePeel(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
-		CurrentID:          uint64(42),
+		CurrentID:          id.NewUserIDFromUint(42, t),
 		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(42),
 	}
@@ -81,7 +82,7 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
 	handler := RealtimePeelHandler{}
-	userId := uint64(1)
+	userId := id.NewUserIDFromUint(1, t)
 	s := make([]*services.Slot, 1)
 	sl := &realtime.Slot{
 		EncryptedRecipient: cyclic.NewInt(10),

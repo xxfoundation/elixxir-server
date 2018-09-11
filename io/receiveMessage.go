@@ -12,6 +12,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 type ReceiveMessageHandler struct{}
@@ -27,9 +28,11 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	// Verify message fields are within the global cyclic group
 	if globals.Grp.Inside(recipientID) && globals.Grp.Inside(messagePayload) {
 		// Convert message to a Slot
+		var userId id.UserID
+		copy(userId[:], msg.SenderID)
 		inputMsg := realtime.Slot{
 			Slot:               0, // Set in RunRealTime() in node/node.go
-			CurrentID:          msg.SenderID,
+			CurrentID:          userId,
 			Message:            messagePayload,
 			EncryptedRecipient: recipientID,
 			CurrentKey:         cyclic.NewMaxInt(),

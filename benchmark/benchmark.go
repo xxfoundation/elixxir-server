@@ -17,7 +17,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 
 	"fmt"
-	"strconv"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -201,7 +201,8 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 	inMsgs []*cyclic.Int) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.Slot)
-		rID, _ := strconv.ParseUint(esTmp.EncryptedRecipient.Text(10), 10, 64)
+		var rID id.UserID
+		copy(rID[:], esTmp.EncryptedRecipient.LeftpadBytes(id.UserIDLen))
 		inputMsgPostID := services.Slot(&realtime.Slot{
 			Slot:       esTmp.Slot,
 			CurrentID:  rID,
@@ -461,7 +462,7 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 				expectedOutputs[i].Message.Text(10))
 		}
 		if esRT.CurrentID != expectedOutputs[esRT.Slot].CurrentID {
-			jww.FATAL.Panicf("RTPEEL %d failed RecipientID. Got: %d Expected: %d",
+			jww.FATAL.Panicf("RTPEEL %d failed RecipientID. Got: %v Expected: %v",
 				esRT.Slot, esRT.CurrentID, expectedOutputs[i].CurrentID)
 		}
 
@@ -527,14 +528,14 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          i + 1,
+			CurrentID:          id.NewUserIDFromUint(i + 1, nil),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: (i + 1) % 101,
+			CurrentID: id.NewUserIDFromUint((i + 1) % 101, nil),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}

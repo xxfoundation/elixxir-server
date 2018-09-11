@@ -11,6 +11,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestDecrypt(t *testing.T) {
@@ -27,7 +28,10 @@ func TestDecrypt(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
-	senderIds := [3]uint64{uint64(5), uint64(7), uint64(9)}
+	senderIds := [3]id.UserID{id.NewUserIDFromUint(5, t),
+		id.NewUserIDFromUint(7, t),
+		id.NewUserIDFromUint(9, t),
+	}
 
 	var im []services.Slot
 

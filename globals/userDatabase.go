@@ -15,12 +15,13 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"sync"
 	"time"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
 type UserDatabase struct {
 	db           *pg.DB                          // Stored database connection
-	userChannels map[uint64]chan *pb.CmixMessage // Map of UserId to chan
+	userChannels map[id.UserID]chan *pb.CmixMessage // Map of UserId to chan
 }
 
 // Struct representing a User in the database
@@ -28,7 +29,7 @@ type UserDB struct {
 	// Overwrite table name
 	tableName struct{} `sql:"users,alias:users"`
 
-	Id      uint64
+	Id      id.UserID
 	Address string
 	Nick    string
 
@@ -64,7 +65,7 @@ func NewUserRegistry(username, password,
 
 		// Generate hard-coded users.
 		// TODO fix this so they are created in database too
-		uc := make(map[uint64]*User)
+		uc := make(map[id.UserID]*User)
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
@@ -76,7 +77,7 @@ func NewUserRegistry(username, password,
 		jww.INFO.Println("Using database backend for UserRegistry!")
 		return UserRegistry(&UserDatabase{
 			db:           db,
-			userChannels: make(map[uint64]chan *pb.CmixMessage),
+			userChannels: make(map[id.UserID]chan *pb.CmixMessage),
 		})
 	}
 }
@@ -129,23 +130,23 @@ func (m *UserDatabase) NewUser(address string) *User {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserDatabase) DeleteUser(id uint64) {
+func (m *UserDatabase) DeleteUser(userId id.UserID) {
 	// Perform the delete for the given ID
-	user := UserDB{Id: id}
+	user := UserDB{Id: userId}
 	err := m.db.Delete(&user)
 
 	if err != nil {
 		// Non-fatal error, user probably doesn't exist in the database
-		jww.WARN.Printf("Unable to delete user %d! %v", id, err)
+		jww.WARN.Printf("Unable to delete user %q! %v", userId, err)
 	}
 }
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(id uint64) (*User, error) {
+func (m *UserDatabase) GetUser(userId id.UserID) (*User, error) {
 	// Perform the select for the given ID
 
-	user := UserDB{Id: id}
+	user := UserDB{Id: userId}
 	err := m.db.Select(&user)
 
 	if err != nil {
@@ -176,7 +177,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.ERROR.Printf("Unable to upsert user %d! %s", user.ID, err.Error())
+		jww.ERROR.Printf("Unable to upsert user %q! %s", user.ID, err.Error())
 	}
 }
 
@@ -188,25 +189,6 @@ func (m *UserDatabase) CountUsers() int {
 		return 0
 	}
 	return count
-}
-
-// GetNickList returns a list of userID/nick pairs.
-func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
-	var model []UserDB
-	err := m.db.Model(&model).Column("id", "nick").Select()
-
-	ids = make([]uint64, len(model))
-	nicks = make([]string, len(model))
-	if err != nil {
-		return ids, nicks
-	}
-
-	for i, user := range model {
-		ids[i] = user.Id
-		nicks[i] = user.Nick
-	}
-
-	return ids, nicks
 }
 
 // Create the database schema

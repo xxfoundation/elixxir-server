@@ -12,20 +12,21 @@ import (
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/server/globals"
 	"time"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Broadcast a UserUpsert message to all servers
-func UserUpsertBroadcast(userId, userPublicKey []byte) {
+func UserUpsertBroadcast(userId id.UserID, userPublicKey []byte) {
 	for i := 0; i < len(Servers); {
 		msg := pb.UpsertUserMessage{
 			NodeID:        globals.GetNodeID(),
-			UserID:        userId,
+			UserID:        userId[:],
 			UserPublicKey: userPublicKey,
 			Nonce:         make([]byte, 0),
 			DsaSignature:  make([]byte, 0),
 		}
 		_, err := node.SendUserUpsert(Servers[i], &msg)
-		jww.INFO.Printf("Sending Upsert User %d to %s", userId, Servers[i])
+		jww.INFO.Printf("Sending Upsert User %q to %s", userId, Servers[i])
 		if err != nil {
 			time.Sleep(250 * time.Millisecond)
 		} else {

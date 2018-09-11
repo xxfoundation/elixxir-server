@@ -11,6 +11,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	g "gitlab.com/privategrity/server/globals"
 	"testing"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestServerImpl_ClientPoll(t *testing.T) {
@@ -23,21 +24,24 @@ func TestServerImpl_ClientPoll(t *testing.T) {
 	user.MessageBuffer <- &pb.CmixMessage{MessagePayload: cyclic.NewInt(42).Bytes()}
 
 	// Get the message for the valid user via ClientPoll
-	msg := ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: user.ID})
+	msg := ServerImpl{}.ClientPoll(&pb.ClientPollMessage{
+		UserID: user.ID[:]})
 	// Make sure the message contains the same payload
 	if cyclic.NewIntFromBytes(msg.MessagePayload).Cmp(cyclic.NewInt(42)) != 0 {
 		t.Errorf("ClientPoll returned invalid MessagePayload!")
 	}
 
 	// Get the empty message for the valid user via ClientPoll
-	msg = ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: uint64(0)})
+	msg = ServerImpl{}.ClientPoll(&pb.ClientPollMessage{
+		UserID: id.ZeroID[:]})
 	// Make sure the message contains an empty payload because the buffer is empty
 	if len(msg.MessagePayload) > 0 {
 		t.Errorf("ClientPoll returned unexpected nonempty MessagePayload!")
 	}
 
 	// Get the empty message for an invalid user via ClientPoll
-	msg = ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: uint64(5)})
+	userId := id.NewUserIDFromUint(5, t)
+	msg = ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: userId[:],})
 	// Make sure the message contains an empty payload because the user is invalid
 	if len(msg.MessagePayload) > 0 {
 		t.Errorf("ClientPoll returned unexpected nonempty MessagePayload!")

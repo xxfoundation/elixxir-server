@@ -14,6 +14,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"time"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -56,7 +57,7 @@ func (h RealtimePeelHandler) Handler(
 			}
 
 			pbCmixMessage := pb.CmixMessage{
-				SenderID:       user.ID,
+				SenderID:       user.ID[:],
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				RecipientID:    make([]byte, 0), // Currently zero this field
 				Salt:           slot.Salt,
@@ -65,7 +66,8 @@ func (h RealtimePeelHandler) Handler(
 
 			for !addMessageToBuffer(user, &pbCmixMessage) {
 				<-user.MessageBuffer
-				if user.ID != uint64(35) {
+				// FIXME why is this code even here? why 35?
+				if user.ID != id.NewUserIDFromUint(35, nil) {
 					jww.WARN.Printf("Message dropped for user %v because"+
 						" message buffer is full", user.ID)
 				}

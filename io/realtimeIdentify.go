@@ -15,6 +15,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"time"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -58,7 +59,7 @@ func (h RealtimeIdentifyHandler) Handler(
 		cMixHash.Write(encryptedMsg)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
-			SenderID:       0,
+			SenderID:       id.ZeroID[:],
 			RecipientID:    rID,
 			MessagePayload: encryptedMsg,
 			Salt:           cMixHash.Sum(nil),
