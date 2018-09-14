@@ -842,7 +842,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	}
 
 	t.Logf("Final Results: Slot: %d, Recipient ID: %q, Message: %s\n",
-		esRT.Slot, esRT.CurrentID,
+		esRT.Slot, *esRT.CurrentID,
 		esRT.Message.Text(10))
 }
 

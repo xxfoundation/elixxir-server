@@ -73,20 +73,20 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	receivedMessage := <-MessageCh
 
 	// Verify that the received message holds the expected data
-	if receivedMessage.CurrentID != senderID {
+	if *receivedMessage.CurrentID != *senderID {
 		t.Errorf("Received sender ID %v, expected %v",
-			receivedMessage.CurrentID, senderID)
+			*receivedMessage.CurrentID, *senderID)
 	}
 	result := format.DeserializeMessage(format.MessageSerial{
 		Payload:   receivedMessage.Message,
 		Recipient: receivedMessage.EncryptedRecipient})
-	if result.GetSender() != senderID {
-		t.Errorf("Received sender ID in bytes %v, expected %v",
-			result.GetSender(), senderID)
+	if *result.GetSender() != *senderID {
+		t.Errorf("Received sender ID in bytes %q, expected %q",
+			*result.GetSender(), *senderID)
 	}
-	if result.GetRecipient() != recipientID {
-		t.Errorf("Received recipient ID %v, expected %v",
-			result.GetRecipient(), recipientID)
+	if *result.GetRecipient() != *recipientID {
+		t.Errorf("Received recipient ID %q, expected %q",
+			*result.GetRecipient(), *recipientID)
 	}
 	if result.GetPayload() != text {
 		t.Errorf("Received payload message %v, expected %v",

@@ -12,6 +12,7 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
+	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestRealtimePermute(t *testing.T) {
@@ -36,8 +37,11 @@ func TestRealtimePermute(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
-		Message:            cyclic.NewInt(12),
 		EncryptedRecipient: cyclic.NewInt(7),
+		Message:            cyclic.NewInt(12),
+		// TODO Should this really need to be populated? Will it always be
+		// populated in real usage?
+		CurrentID:          id.NewUserIDFromUint(5, t),
 		CurrentKey:         cyclic.NewInt(1),
 	}
 

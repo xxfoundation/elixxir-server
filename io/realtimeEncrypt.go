@@ -38,6 +38,9 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
+		// Ensure that the recipient ID populates the correct user ID length
+		// by leftpadding it with the appropriate length
+		in.RecipientID = append(make([]byte, id.UserIDLen - len(in.RecipientID)), in.RecipientID...)
 		userId, err := new(id.UserID).SetBytes(in.RecipientID)
 		if err != nil {
 			jww.ERROR.Printf("RealtimeEncrypt: Couldn't populate user ID from" +
