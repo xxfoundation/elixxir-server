@@ -16,8 +16,11 @@ import (
 // Determine whether a message is in the buffer for a given User
 // Return the message if so or a blank message if not
 func (s ServerImpl) ClientPoll(inputMsg *pb.ClientPollMessage) *pb.CmixMessage {
-	var userId id.UserID
-	copy(userId[:], inputMsg.UserID)
+	userId, err := new(id.UserID).SetBytes(inputMsg.UserID)
+	if err != nil {
+		jww.ERROR.Printf("ClientPoll: Couldn't create user ID from bytes: %v",
+			err.Error())
+	}
 	user, err := globals.Users.GetUser(userId)
 	// Verify the User exists
 	if err == nil {

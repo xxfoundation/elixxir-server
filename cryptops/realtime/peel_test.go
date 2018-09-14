@@ -28,7 +28,7 @@ func TestPeel(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(27), cyclic.NewInt(97), rng)
 
-	recipientIds := [3]id.UserID{
+	recipientIds := [3]*id.UserID{
 		id.NewUserIDFromUint(5, t),
 		id.NewUserIDFromUint(7, t),
 		id.NewUserIDFromUint(9, t),

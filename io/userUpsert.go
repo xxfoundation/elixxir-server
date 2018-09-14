@@ -16,7 +16,7 @@ import (
 )
 
 // Broadcast a UserUpsert message to all servers
-func UserUpsertBroadcast(userId id.UserID, userPublicKey []byte) {
+func UserUpsertBroadcast(userId *id.UserID, userPublicKey []byte) {
 	for i := 0; i < len(Servers); {
 		msg := pb.UpsertUserMessage{
 			NodeID:        globals.GetNodeID(),

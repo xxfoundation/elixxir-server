@@ -55,11 +55,11 @@ func TestRealtimeDecrypt(t *testing.T) {
 	if expected.Slot != actual.Slot {
 		t.Errorf("Slot does not match!")
 	}
-	if expected.CurrentID != actual.CurrentID {
+	if *expected.CurrentID != *actual.CurrentID {
 		t.Errorf("SenderID does not match!"+
-			" Got %v, expected %v.",
-			actual.CurrentID,
-			expected.CurrentID)
+			" Got %q, expected %q.",
+			*actual.CurrentID,
+			*expected.CurrentID)
 	}
 	if expected.Message.Text(10) !=
 		actual.Message.Text(10) {

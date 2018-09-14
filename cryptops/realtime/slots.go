@@ -16,7 +16,7 @@ type Slot struct {
 	// Encrypted or plaintext Message
 	Message *cyclic.Int
 	// Plaintext SenderID or RecipientID
-	CurrentID id.UserID
+	CurrentID *id.UserID
 	// TransmissionKey, ReceptionKey, etc
 	CurrentKey *cyclic.Int
 	// Salt for client operations (only for Decrypt and Encrypt Phases)

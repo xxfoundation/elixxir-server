@@ -28,8 +28,8 @@ var idCounter = uint64(1)
 // Interface for User Registry operations
 type UserRegistry interface {
 	NewUser(address string) *User
-	DeleteUser(id id.UserID)
-	GetUser(id id.UserID) (user *User, err error)
+	DeleteUser(id *id.UserID)
+	GetUser(id *id.UserID) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
 }
@@ -64,7 +64,7 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 // Struct representing a User in the system
 type User struct {
-	ID            id.UserID
+	ID            *id.UserID
 	HUID          []byte
 	Address       string
 	Nick          string
@@ -100,7 +100,7 @@ func (m *UserMap) NewUser(address string) *User {
 	recept := new(ForwardKey)
 
 	// Generate user parameters
-	usr.ID = id.NewUserIDFromUint(i, nil)
+	usr.ID = new(id.UserID).SetUints(&[4]uint64{0,0,0,i})
 	h.Write([]byte(string(20000 + i)))
 	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	h = sha256.New()
@@ -120,20 +120,20 @@ func (m *UserMap) NewUser(address string) *User {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserMap) DeleteUser(userId id.UserID) {
+func (m *UserMap) DeleteUser(userId *id.UserID) {
 	// If key does not exist, do nothing
 	m.collectionLock.Lock()
-	delete(m.userCollection, userId)
+	delete(m.userCollection, *userId)
 	m.collectionLock.Unlock()
 }
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserMap) GetUser(userId id.UserID) (*User, error) {
+func (m *UserMap) GetUser(userId *id.UserID) (*User, error) {
 	var u *User
 	var err error
 	m.collectionLock.Lock()
-	u, ok := m.userCollection[userId]
+	u, ok := m.userCollection[*userId]
 	m.collectionLock.Unlock()
 
 	if !ok {
@@ -148,7 +148,7 @@ func (m *UserMap) GetUser(userId id.UserID) (*User, error) {
 // already exists (Upsert operation).
 func (m *UserMap) UpsertUser(user *User) {
 	m.collectionLock.Lock()
-	m.userCollection[user.ID] = user
+	m.userCollection[*user.ID] = user
 	m.collectionLock.Unlock()
 }
 

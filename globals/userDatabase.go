@@ -29,7 +29,7 @@ type UserDB struct {
 	// Overwrite table name
 	tableName struct{} `sql:"users,alias:users"`
 
-	Id      id.UserID
+	Id      *id.UserID
 	Address string
 	Nick    string
 
@@ -119,18 +119,18 @@ func PopulateDummyUsers() {
 func (m *UserDatabase) NewUser(address string) *User {
 	newUser := UserRegistry(&UserMap{}).NewUser(address)
 	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[newUser.ID]; exists {
+	if userChannel, exists := m.userChannels[*newUser.ID]; exists {
 		// Add the old channel to the new User object if channel already exists
 		newUser.MessageBuffer = userChannel
 	} else {
 		// Otherwise add the new channel to the userChannels map
-		m.userChannels[newUser.ID] = newUser.MessageBuffer
+		m.userChannels[*newUser.ID] = newUser.MessageBuffer
 	}
 	return newUser
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserDatabase) DeleteUser(userId id.UserID) {
+func (m *UserDatabase) DeleteUser(userId *id.UserID) {
 	// Perform the delete for the given ID
 	user := UserDB{Id: userId}
 	err := m.db.Delete(&user)
@@ -143,7 +143,7 @@ func (m *UserDatabase) DeleteUser(userId id.UserID) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(userId id.UserID) (*User, error) {
+func (m *UserDatabase) GetUser(userId *id.UserID) (*User, error) {
 	// Perform the select for the given ID
 
 	user := UserDB{Id: userId}
@@ -274,14 +274,14 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser.PublicKey = cyclic.NewIntFromBytes(user.PublicKey)
 
 	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[user.Id]; exists {
+	if userChannel, exists := m.userChannels[*user.Id]; exists {
 		// Add the channel to the new User object if it already exists
 		newUser.MessageBuffer = userChannel
 	} else {
 		// Otherwise create a new channel for the new User object
 		newUser.MessageBuffer = make(chan *pb.CmixMessage, 100)
 		// And add it to the userChannels map
-		m.userChannels[user.Id] = newUser.MessageBuffer
+		m.userChannels[*user.Id] = newUser.MessageBuffer
 	}
 	return
 }

@@ -28,8 +28,11 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	// Verify message fields are within the global cyclic group
 	if globals.Grp.Inside(recipientID) && globals.Grp.Inside(messagePayload) {
 		// Convert message to a Slot
-		var userId id.UserID
-		copy(userId[:], msg.SenderID)
+		userId, err := new(id.UserID).SetBytes(msg.SenderID)
+		if err != nil {
+			jww.ERROR.Printf("ReceiveMessageFromClient: Couldn't set user ID" +
+				": %v", err.Error())
+		}
 		inputMsg := realtime.Slot{
 			Slot:               0, // Set in RunRealTime() in node/node.go
 			CurrentID:          userId,

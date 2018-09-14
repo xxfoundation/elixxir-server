@@ -38,16 +38,11 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
-		var userId id.UserID
-		// FIXME These should be the same length for the test.
-		// But they aren't. My workaround until I better understand the
-		// code's purpose is to copy to the end of the user ID instead of to the
-		// beginning.
-		// There's something odd going on with the types here. Some types are
-		// being conflated that shouldn't be.
-		srcLen := len(in.RecipientID)
-		dstLen := len(userId)
-		copy(userId[dstLen-srcLen:], in.RecipientID)
+		userId, err := new(id.UserID).SetBytes(in.RecipientID)
+		if err != nil {
+			jww.ERROR.Printf("RealtimeEncrypt: Couldn't populate user ID from" +
+				" bytes: %v", err.Error())
+		}
 		var slot services.Slot = &realtime.Slot{
 			Slot:       uint64(i),
 			CurrentID:  userId,
@@ -101,9 +96,11 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to Slot
-		var userId id.UserID
-		// TODO Copy to the end of the slice, not the start?
-		copy(userId[:], out.RecipientID)
+		userId, err := new(id.UserID).SetBytes(out.RecipientID)
+		if err != nil {
+			jww.ERROR.Printf("RealtimeEncryptLastNode: Couldn't create user" +
+				" ID from bytes: %v", err.Error())
+		}
 		var slot services.Slot = &realtime.Slot{
 			Slot:       i,
 			CurrentID:  userId,

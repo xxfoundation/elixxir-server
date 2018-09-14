@@ -201,8 +201,12 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 	inMsgs []*cyclic.Int) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.Slot)
-		var rID id.UserID
-		copy(rID[:], esTmp.EncryptedRecipient.LeftpadBytes(id.UserIDLen))
+		rID, err := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
+			LeftpadBytes(id.UserIDLen))
+		if err != nil {
+			jww.ERROR.Printf("RTIdentifyRTEncryptTranslate: Didn't set bytes" +
+				" of user id correctly: %v", err.Error())
+		}
 		inputMsgPostID := services.Slot(&realtime.Slot{
 			Slot:       esTmp.Slot,
 			CurrentID:  rID,
@@ -461,9 +465,9 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 				esRT.Message.Text(10),
 				expectedOutputs[i].Message.Text(10))
 		}
-		if esRT.CurrentID != expectedOutputs[esRT.Slot].CurrentID {
-			jww.FATAL.Panicf("RTPEEL %d failed RecipientID. Got: %v Expected: %v",
-				esRT.Slot, esRT.CurrentID, expectedOutputs[i].CurrentID)
+		if *esRT.CurrentID != *expectedOutputs[esRT.Slot].CurrentID {
+			jww.FATAL.Panicf("RTPEEL %d failed RecipientID. Got: %q Expected: %q",
+				esRT.Slot, *esRT.CurrentID, *expectedOutputs[i].CurrentID)
 		}
 
 		// t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
