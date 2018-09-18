@@ -64,18 +64,13 @@ const (
 const NUM_PHASES Phase = ERROR + 1
 
 //Array used to get the Phase Names for Printing
-var phaseNames [NUM_PHASES]string
+var phaseNames = [NUM_PHASES]string{"OFF", "PRECOMP_GENERATION",
+	"PRECOMP_SHARE", "PRECOMP_DECRYPT", "PRECOMP_PERMUTE",
+	"PRECOMP_ENCRYPT", "PRECOMP_REVEAL", "PRECOMP_STRIP",
+	"PRECOMP_COMPLETE", "REAL_DECRYPT", "REAL_PERMUTE",
+	"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "REAL_COMPLETE",
+	"ERROR"}
 
 func (p Phase) String() string {
-
-	if phaseNames[0] == "" {
-		phaseNames = [...]string{"OFF", "PRECOMP_GENERATION",
-			"PRECOMP_SHARE", "PRECOMP_DECRYPT", "PRECOMP_PERMUTE",
-			"PRECOMP_ENCRYPT", "PRECOMP_REVEAL", "PRECOMP_STRIP",
-			"PRECOMP_COMPLETE", "REAL_DECRYPT", "REAL_PERMUTE",
-			"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "REAL_COMPLETE",
-			"ERROR"}
-	}
-
 	return phaseNames[p]
 }
