@@ -11,11 +11,11 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/hash"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"time"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 // Blank struct for implementing services.BatchTransmission

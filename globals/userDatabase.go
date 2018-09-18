@@ -13,14 +13,14 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"sync"
 	"time"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
 type UserDatabase struct {
-	db           *pg.DB                          // Stored database connection
+	db           *pg.DB                             // Stored database connection
 	userChannels map[id.UserID]chan *pb.CmixMessage // Map of UserId to chan
 }
 

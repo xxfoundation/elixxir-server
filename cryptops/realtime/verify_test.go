@@ -9,11 +9,11 @@ package realtime
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/crypto/format"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/crypto/verification"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestRealTimeVerify(t *testing.T) {

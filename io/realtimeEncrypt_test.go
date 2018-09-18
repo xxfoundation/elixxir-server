@@ -8,11 +8,11 @@ package io
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestRealtimeEncrypt(t *testing.T) {

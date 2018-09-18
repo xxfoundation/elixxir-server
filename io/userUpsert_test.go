@@ -7,9 +7,9 @@
 package io
 
 import (
+	"gitlab.com/privategrity/crypto/id"
 	"testing"
 	"time"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestUserUpsertBroadcast(t *testing.T) {

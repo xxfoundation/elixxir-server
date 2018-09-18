@@ -10,9 +10,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 type ReceiveMessageHandler struct{}
@@ -30,7 +30,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 		// Convert message to a Slot
 		userId, err := new(id.UserID).SetBytes(msg.SenderID)
 		if err != nil {
-			jww.ERROR.Printf("ReceiveMessageFromClient: Couldn't set user ID" +
+			jww.ERROR.Printf("ReceiveMessageFromClient: Couldn't set user ID"+
 				": %v", err.Error())
 		}
 		inputMsg := realtime.Slot{

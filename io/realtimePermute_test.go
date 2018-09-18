@@ -8,11 +8,11 @@ package io
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestRealtimePermute(t *testing.T) {
@@ -41,8 +41,8 @@ func TestRealtimePermute(t *testing.T) {
 		Message:            cyclic.NewInt(12),
 		// TODO Should this really need to be populated? Will it always be
 		// populated in real usage?
-		CurrentID:          id.NewUserIDFromUint(5, t),
-		CurrentKey:         cyclic.NewInt(1),
+		CurrentID:  id.NewUserIDFromUint(5, t),
+		CurrentKey: cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Permute's TransmissionHandler

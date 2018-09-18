@@ -4,11 +4,11 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	//linuxproc "github.com/c9s/goprocinfo/linux"
+	"github.com/spf13/viper"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/server/globals"
-	"strconv"
 	"runtime"
-	"github.com/spf13/viper"
+	"strconv"
 )
 
 // Records current time and sends all recorded times to next node
@@ -59,11 +59,11 @@ func GetServerMetrics(servers []string) {
 	} else {
 		node.SendServerMetrics(servers[0],
 			&pb.ServerMetricsMessage{
-				MemUsage: memUsage,
+				MemUsage:    memUsage,
 				ThreadUsage: threadUsage,
-				CpuUsage: cpuUsage,
-				UpSince: upSince,
-		})
+				CpuUsage:    cpuUsage,
+				UpSince:     upSince,
+			})
 
 	}
 }

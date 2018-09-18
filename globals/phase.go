@@ -9,7 +9,6 @@ package globals
 type Phase uint8
 
 const (
-
 	// Off: An Initialized round which hasn't been started by the master yet
 	OFF Phase = iota
 

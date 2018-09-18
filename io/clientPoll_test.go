@@ -9,9 +9,9 @@ package io
 import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	g "gitlab.com/privategrity/server/globals"
 	"testing"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 func TestServerImpl_ClientPoll(t *testing.T) {
@@ -41,7 +41,7 @@ func TestServerImpl_ClientPoll(t *testing.T) {
 
 	// Get the empty message for an invalid user via ClientPoll
 	userId := id.NewUserIDFromUint(5, t)
-	msg = ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: userId[:],})
+	msg = ServerImpl{}.ClientPoll(&pb.ClientPollMessage{UserID: userId[:]})
 	// Make sure the message contains an empty payload because the user is invalid
 	if len(msg.MessagePayload) > 0 {
 		t.Errorf("ClientPoll returned unexpected nonempty MessagePayload!")

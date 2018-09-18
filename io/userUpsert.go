@@ -10,9 +10,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/globals"
 	"time"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 // Broadcast a UserUpsert message to all servers

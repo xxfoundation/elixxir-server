@@ -10,9 +10,9 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 // Peel phase removes the Internode Keys by multiplying in the precomputation

@@ -204,7 +204,7 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 		rID, err := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
 			LeftpadBytes(id.UserIDLen))
 		if err != nil {
-			jww.ERROR.Printf("RTIdentifyRTEncryptTranslate: Didn't set bytes" +
+			jww.ERROR.Printf("RTIdentifyRTEncryptTranslate: Didn't set bytes"+
 				" of user id correctly: %v", err.Error())
 		}
 		inputMsgPostID := services.Slot(&realtime.Slot{
@@ -532,14 +532,14 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          id.NewUserIDFromUint(i + 1, nil),
+			CurrentID:          id.NewUserIDFromUint(i+1, nil),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserIDFromUint((i + 1) % 101, nil),
+			CurrentID: id.NewUserIDFromUint((i+1)%101, nil),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}

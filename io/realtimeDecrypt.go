@@ -11,11 +11,11 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"time"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -45,7 +45,7 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 		in := input.Slots[i]
 		userId, err := new(id.UserID).SetBytes(in.SenderID)
 		if err != nil {
-			jww.ERROR.Printf("RealtimeDecrypt: Couldn't populate user ID from" +
+			jww.ERROR.Printf("RealtimeDecrypt: Couldn't populate user ID from"+
 				" bytes: %v", err.Error())
 		}
 		var slot services.Slot = &realtime.Slot{

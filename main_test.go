@@ -10,15 +10,15 @@ import (
 
 	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/benchmark"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"os"
-	"testing"
-	"gitlab.com/privategrity/crypto/id"
 	"runtime/debug"
+	"testing"
 )
 
 func TestMain(m *testing.M) {
@@ -870,14 +870,14 @@ func Test3NodeE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          id.NewUserIDFromUint(i + 1, t),
+			CurrentID:          id.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt(42 + int64(i)), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt(1 + int64(i)),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserIDFromUint(i + 1, t),
+			CurrentID: id.NewUserIDFromUint(i+1, t),
 			Message:   cyclic.NewInt(42 + int64(i)), // Meaning of Life
 		}
 	}
@@ -902,14 +902,14 @@ func Test1NodePermuteE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          id.NewUserIDFromUint(i + 1, t),
+			CurrentID:          id.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserIDFromUint((i + 1) % 101, t),
+			CurrentID: id.NewUserIDFromUint((i+1)%101, t),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
@@ -970,14 +970,14 @@ func TestRealPrimeE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          id.NewUserIDFromUint(i + 1, t),
+			CurrentID:          id.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserIDFromUint((i + 1) % 101, t),
+			CurrentID: id.NewUserIDFromUint((i+1)%101, t),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}

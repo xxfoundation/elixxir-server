@@ -8,9 +8,9 @@ package globals
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"sync"
 	"testing"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 // TestUserRegistry tests the constructors/getters/setters

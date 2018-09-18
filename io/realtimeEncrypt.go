@@ -11,11 +11,11 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"time"
-	"gitlab.com/privategrity/crypto/id"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -40,10 +40,10 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		in := input.Slots[i]
 		// Ensure that the recipient ID populates the correct user ID length
 		// by leftpadding it with the appropriate length
-		in.RecipientID = append(make([]byte, id.UserIDLen - len(in.RecipientID)), in.RecipientID...)
+		in.RecipientID = append(make([]byte, id.UserIDLen-len(in.RecipientID)), in.RecipientID...)
 		userId, err := new(id.UserID).SetBytes(in.RecipientID)
 		if err != nil {
-			jww.ERROR.Printf("RealtimeEncrypt: Couldn't populate user ID from" +
+			jww.ERROR.Printf("RealtimeEncrypt: Couldn't populate user ID from"+
 				" bytes: %v", err.Error())
 		}
 		var slot services.Slot = &realtime.Slot{
@@ -101,7 +101,7 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 		// Convert to Slot
 		userId, err := new(id.UserID).SetBytes(out.RecipientID)
 		if err != nil {
-			jww.ERROR.Printf("RealtimeEncryptLastNode: Couldn't create user" +
+			jww.ERROR.Printf("RealtimeEncryptLastNode: Couldn't create user"+
 				" ID from bytes: %v", err.Error())
 		}
 		var slot services.Slot = &realtime.Slot{
