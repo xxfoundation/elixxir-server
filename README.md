@@ -38,7 +38,7 @@ servers:
 
 To compile a binary that will run the server on your platform,
 you will need to run one of the commands in the following sections.
-The `gitlab-ci.yml` file also contains cross build instructions
+The `.gitlab-ci.yml` file also contains cross build instructions
 for all of these platforms.
 
 ### Linux
