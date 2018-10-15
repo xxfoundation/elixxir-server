@@ -7,6 +7,7 @@
 package globals
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -33,12 +34,16 @@ type UserRegistry interface {
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
+	InsertSalt(salt []byte) bool
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[uint64]*User
+	// Slice acting as the Salt table, containing only 256-bit salts
+	saltCollection [][]byte
+	// Lock for thread safety
 	collectionLock *sync.Mutex
 }
 
@@ -118,6 +123,22 @@ func (m *UserMap) NewUser(address string) *User {
 	usr.PublicKey = cyclic.NewMaxInt()
 	usr.MessageBuffer = make(chan *pb.CmixMessage, 50000)
 	return usr
+}
+
+// Inserts a unique salt into the salt table
+// Returns true if successful, else false
+func (m *UserMap) InsertSalt(salt []byte) bool {
+	// If salt already in the collection, reject
+	for _, x := range m.saltCollection {
+		if bytes.Equal(salt, x) {
+			jww.ERROR.Printf("Unable to insert salt: Salt has already been used")
+			return false
+		}
+	}
+
+	// Insert salt into the collection
+	m.saltCollection = append(m.saltCollection, salt)
+	return true
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.

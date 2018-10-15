@@ -137,3 +137,16 @@ func TestUser_DeepCopy(t *testing.T) {
 		t.Errorf("User Deepcopy: Failed to copy keys!")
 	}
 }
+
+// Test happy path and inserting a duplicate salt
+func TestUserMap_InsertSalt(t *testing.T) {
+	Users := UserRegistry(&UserMap{
+		saltCollection: make([][]byte, 1000),
+	})
+	if !Users.InsertSalt([]byte("test")) {
+		t.Errorf("InsertSalt: Expected success!")
+	}
+	if Users.InsertSalt([]byte("test")) {
+		t.Errorf("InsertSalt: Expected failure due to duplicate!")
+	}
+}
