@@ -14,6 +14,7 @@ import (
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"testing"
+	"bytes"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -51,7 +52,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	// Expected values
 	senderID := id.NewUserIDFromUint(66, t)
 	recipientID := id.NewUserIDFromUint(65, t)
-	text := "hey there, sailor. want to see my unencrypted message?"
+	text := []byte("hey there, sailor. want to see my unencrypted message?")
 
 	// Create an unencrypted message for testing
 	message, err := format.NewMessage(senderID, recipientID, text)
@@ -88,8 +89,8 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		t.Errorf("Received recipient ID %q, expected %q",
 			*result.GetRecipient(), *recipientID)
 	}
-	if result.GetPayload() != text {
-		t.Errorf("Received payload message %v, expected %v",
+	if !bytes.Equal(result.GetPayload(), text) {
+		t.Errorf("Received payload message %q, expected %q",
 			result.GetPayload(), text)
 	}
 }

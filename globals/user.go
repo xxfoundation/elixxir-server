@@ -97,7 +97,7 @@ func (m *UserMap) NewUser(address string) *User {
 	recept := new(ForwardKey)
 
 	// Generate user parameters
-	usr.ID = new(id.UserID).SetUints(&[8]uint64{0, 0, 0, 0, 0, 0, 0, i})
+	usr.ID = new(id.UserID).SetUints(&[4]uint64{0, 0, 0, i})
 	h.Write([]byte(string(20000 + i)))
 	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	h = sha256.New()
