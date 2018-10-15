@@ -104,7 +104,7 @@ func MonitorMemoryUsage() {
 				// append the function names of the last 10 executed functions
 				// to be printed
 				for i := 0; i < lenlookup; i++ {
-					funcNames += trncateFuncName(runtime.FuncForPC(thr.
+					funcNames += truncateFuncName(runtime.FuncForPC(thr.
 						Stack0[i]).Name())
 				}
 
@@ -119,7 +119,7 @@ func MonitorMemoryUsage() {
 
 }
 
-func trncateFuncName(name string) string {
+func truncateFuncName(name string) string {
 	if len(name) > 11 {
 		return name[0:7] + "..., "
 	}
