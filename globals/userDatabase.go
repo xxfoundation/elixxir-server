@@ -46,7 +46,9 @@ type SaltDB struct {
 	tableName struct{} `sql:"salts,alias:salts"`
 
 	// Primary key field containing the 256-bit salt
-	Salt []byte `sql:",pk"`
+	Salt []byte
+	// Contains the user id that the salt belongs to
+	UserId uint64
 }
 
 // Initialize the UserRegistry interface with appropriate backend
@@ -71,9 +73,8 @@ func NewUserRegistry(username, password,
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
 
-		// Generate hard-coded users.
 		uc := make(map[uint64]*User)
-		salts := make([][]byte, 1000)
+		salts := make(map[uint64][][]byte)
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
@@ -127,16 +128,21 @@ func PopulateDummyUsers() {
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserDatabase) InsertSalt(salt []byte) bool {
-	s := SaltDB{Salt: salt}
+func (m *UserDatabase) InsertSalt(userId uint64, salt []byte) bool {
+	// Create a salt object with the given UserID
+	s := SaltDB{UserId: userId}
 
-	// If salt already in the DB, reject
-	if err := m.db.Select(&s); err == nil {
-		jww.ERROR.Printf("Unable to insert salt: Salt has already been used")
+	// If the number of salts for the given UserId
+	// is greater than the maximum allowed, then reject
+	maxSalts := 300
+	if count, _ := m.db.Model(&s).Count(); count > maxSalts {
+		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
+			" been used for User %d", userId)
 		return false
 	}
 
 	// Insert salt into the DB
+	s.Salt = salt
 	err := m.db.Insert(&s)
 
 	// Verify there were no errors

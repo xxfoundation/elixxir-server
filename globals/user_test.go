@@ -138,15 +138,20 @@ func TestUser_DeepCopy(t *testing.T) {
 	}
 }
 
-// Test happy path and inserting a duplicate salt
+// Test happy path and inserting too many salts
 func TestUserMap_InsertSalt(t *testing.T) {
 	Users := UserRegistry(&UserMap{
-		saltCollection: make([][]byte, 1000),
+		saltCollection: make(map[uint64][][]byte),
 	})
-	if !Users.InsertSalt([]byte("test")) {
-		t.Errorf("InsertSalt: Expected success!")
+	// Insert like 300 salts, expect success
+	for i := 0; i <= 300; i++ {
+		if !Users.InsertSalt(1, []byte("test")) {
+			t.Errorf("InsertSalt: Expected success!")
+		}
 	}
-	if Users.InsertSalt([]byte("test")) {
-		t.Errorf("InsertSalt: Expected failure due to duplicate!")
+	// Now we have exceeded the max number, expect failure
+	if Users.InsertSalt(1, []byte("test")) {
+		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
+			" salts for one user!")
 	}
 }

@@ -7,7 +7,6 @@
 package globals
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -34,15 +33,15 @@ type UserRegistry interface {
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
-	InsertSalt(salt []byte) bool
+	InsertSalt(userId uint64, salt []byte) bool
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[uint64]*User
-	// Slice acting as the Salt table, containing only 256-bit salts
-	saltCollection [][]byte
+	// Map acting as the Salt table, containing UserID -> List of 256-bit salts
+	saltCollection map[uint64][][]byte
 	// Lock for thread safety
 	collectionLock *sync.Mutex
 }
@@ -127,17 +126,18 @@ func (m *UserMap) NewUser(address string) *User {
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserMap) InsertSalt(salt []byte) bool {
-	// If salt already in the collection, reject
-	for _, x := range m.saltCollection {
-		if bytes.Equal(salt, x) {
-			jww.ERROR.Printf("Unable to insert salt: Salt has already been used")
-			return false
-		}
+func (m *UserMap) InsertSalt(userId uint64, salt []byte) bool {
+	// If the number of salts for the given UserId
+	// is greater than the maximum allowed, then reject
+	maxSalts := 300
+	if len(m.saltCollection[userId]) > maxSalts {
+		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
+			" been used for User %d", userId)
+		return false
 	}
 
 	// Insert salt into the collection
-	m.saltCollection = append(m.saltCollection, salt)
+	m.saltCollection[userId] = append(m.saltCollection[userId], salt)
 	return true
 }
 
