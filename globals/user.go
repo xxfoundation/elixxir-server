@@ -33,12 +33,16 @@ type UserRegistry interface {
 	GetNickList() (ids []uint64, nicks []string)
 	UpsertUser(user *User)
 	CountUsers() int
+	InsertSalt(userId uint64, salt []byte) bool
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[uint64]*User
+	// Map acting as the Salt table, containing UserID -> List of 256-bit salts
+	saltCollection map[uint64][][]byte
+	// Lock for thread safety
 	collectionLock *sync.Mutex
 }
 
@@ -118,6 +122,23 @@ func (m *UserMap) NewUser(address string) *User {
 	usr.PublicKey = cyclic.NewMaxInt()
 	usr.MessageBuffer = make(chan *pb.CmixMessage, 50000)
 	return usr
+}
+
+// Inserts a unique salt into the salt table
+// Returns true if successful, else false
+func (m *UserMap) InsertSalt(userId uint64, salt []byte) bool {
+	// If the number of salts for the given UserId
+	// is greater than the maximum allowed, then reject
+	maxSalts := 300
+	if len(m.saltCollection[userId]) > maxSalts {
+		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
+			" been used for User %d", userId)
+		return false
+	}
+
+	// Insert salt into the collection
+	m.saltCollection[userId] = append(m.saltCollection[userId], salt)
+	return true
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.

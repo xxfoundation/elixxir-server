@@ -40,6 +40,17 @@ type UserDB struct {
 	PublicKey []byte
 }
 
+// Struct representing a Salt in the database
+type SaltDB struct {
+	// Overwrite table name
+	tableName struct{} `sql:"salts,alias:salts"`
+
+	// Primary key field containing the 256-bit salt
+	Salt []byte
+	// Contains the user id that the salt belongs to
+	UserId uint64
+}
+
 // Initialize the UserRegistry interface with appropriate backend
 func NewUserRegistry(username, password,
 	database, address string) UserRegistry {
@@ -62,12 +73,12 @@ func NewUserRegistry(username, password,
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
 
-		// Generate hard-coded users.
-		// TODO fix this so they are created in database too
 		uc := make(map[uint64]*User)
+		salts := make(map[uint64][][]byte)
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
+			saltCollection: salts,
 			collectionLock: &sync.Mutex{},
 		})
 	} else {
@@ -82,6 +93,7 @@ func NewUserRegistry(username, password,
 }
 
 // TODO: remove or improve this
+// Create dummy users to be manually inserted into the database
 func PopulateDummyUsers() {
 
 	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
@@ -112,6 +124,34 @@ func PopulateDummyUsers() {
 		u.Nick = ""
 		Users.UpsertUser(u)
 	}
+}
+
+// Inserts a unique salt into the salt table
+// Returns true if successful, else false
+func (m *UserDatabase) InsertSalt(userId uint64, salt []byte) bool {
+	// Create a salt object with the given UserID
+	s := SaltDB{UserId: userId}
+
+	// If the number of salts for the given UserId
+	// is greater than the maximum allowed, then reject
+	maxSalts := 300
+	if count, _ := m.db.Model(&s).Count(); count > maxSalts {
+		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
+			" been used for User %d", userId)
+		return false
+	}
+
+	// Insert salt into the DB
+	s.Salt = salt
+	err := m.db.Insert(&s)
+
+	// Verify there were no errors
+	if err != nil {
+		jww.ERROR.Printf("Unable to insert salt: %v", err)
+		return false
+	}
+
+	return true
 }
 
 // NewUser creates a new User object with default fields and given address.
@@ -211,7 +251,7 @@ func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
 
 // Create the database schema
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{&UserDB{}} {
+	for _, model := range []interface{}{&UserDB{}, &SaltDB{}} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			// Ignore create table if already exists?
 			IfNotExists: true,
@@ -302,9 +342,4 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 		m.userChannels[user.Id] = newUser.MessageBuffer
 	}
 	return
-}
-
-// TODO CREATE A REAL LOOKUP FUNCTION
-func (m *UserDatabase) LookupUser(huid uint64) (uint64, bool) {
-	return uint64(0), false
 }

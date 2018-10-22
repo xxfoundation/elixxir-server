@@ -137,3 +137,21 @@ func TestUser_DeepCopy(t *testing.T) {
 		t.Errorf("User Deepcopy: Failed to copy keys!")
 	}
 }
+
+// Test happy path and inserting too many salts
+func TestUserMap_InsertSalt(t *testing.T) {
+	Users := UserRegistry(&UserMap{
+		saltCollection: make(map[uint64][][]byte),
+	})
+	// Insert like 300 salts, expect success
+	for i := 0; i <= 300; i++ {
+		if !Users.InsertSalt(1, []byte("test")) {
+			t.Errorf("InsertSalt: Expected success!")
+		}
+	}
+	// Now we have exceeded the max number, expect failure
+	if Users.InsertSalt(1, []byte("test")) {
+		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
+			" salts for one user!")
+	}
+}
