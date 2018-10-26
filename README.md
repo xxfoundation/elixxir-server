@@ -3,16 +3,23 @@
 [![pipeline status](https://gitlab.com/privategrity/server/badges/master/pipeline.svg)](https://gitlab.com/privategrity/server/commits/master)
 [![coverage report](https://gitlab.com/privategrity/server/badges/master/coverage.svg)](https://gitlab.com/privategrity/server/commits/master)
 
-## Running the Command Line Client
+## Running the Server
 
-In project directory, run `go run main.go` with optional arguments that will
+In project directory, run `$ go run main.go` with optional arguments that will
 override the values set in the config file:
 
-`-i <INT>`: Index of the server to start in the list of servers in `server.yaml`
+|Long flag|Short flag|Description|Example|
+|---|---|---|---|
+|--index|-i|Index of the server to start in the list of servers in `server.yaml`|-i 0|
+|--batch|-b|Number of messages in a batch (correlated to anonymity set, 1 is the fastest and least anonymous)|-b 64|
+|--verbose|-v|Set this to log more messages for debugging|-v|
+|--config| |Path to configuration file|--config ~/.privategrity/server.yaml|
+|--nodeID|-n|Unique integer identifier for this node. Defaults to be equal to index|-n 125048|
+|--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
+|--version|-V|Print generated version information. To generate, run `$ go generate cmd/version.go`.|--version|
+|--help|-h|Print a help message|--help|
 
-`-b <INT>`: Batch size for the server
-
-`-v`      : Boolean indicating verbose logging
+Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go benchmark`.
 
 ## Config File
 
@@ -67,7 +74,7 @@ for a 32 bit version.
 GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
 
-## GODOC GENERATION
+## Godoc Generation
 
 
 - Open terminal and change current directory to your `go/src` directory
