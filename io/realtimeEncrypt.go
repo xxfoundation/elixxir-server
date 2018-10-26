@@ -41,11 +41,7 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		// Ensure that the recipient ID populates the correct user ID length
 		// by leftpadding it with the appropriate length
 		in.RecipientID = append(make([]byte, id.UserIDLen-len(in.RecipientID)), in.RecipientID...)
-		userId, err := new(id.UserID).SetBytes(in.RecipientID)
-		if err != nil {
-			jww.ERROR.Printf("RealtimeEncrypt: Couldn't populate user ID from"+
-				" bytes: %v", err.Error())
-		}
+		userId := new(id.UserID).SetBytes(in.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       uint64(i),
 			CurrentID:  userId,
@@ -99,11 +95,7 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to Slot
-		userId, err := new(id.UserID).SetBytes(out.RecipientID)
-		if err != nil {
-			jww.ERROR.Printf("RealtimeEncryptLastNode: Couldn't create user"+
-				" ID from bytes: %v", err.Error())
-		}
+		userId := new(id.UserID).SetBytes(out.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       i,
 			CurrentID:  userId,
