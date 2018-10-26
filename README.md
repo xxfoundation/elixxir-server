@@ -41,6 +41,30 @@ servers:
     - 0.0.0.0:11421
 ```
 
+## Project Structure
+
+`benchmark` is for all benchmarks that estimate the performance of the whole 
+server. Benchmarks that only test a small subset of the functionality should 
+use go test -bench for running and should exist in the package
+
+`cmd` handles command-line flags, configuration options, commands and 
+subcommands. This is where the functions that actually start a node are.
+
+`cryptops` contains the code that runs each phase of the mix network. 
+Precomputation phases are in `precomputation` and realtime phases are in 
+`realtime`.
+
+`globals` contains libraries and variables that many other packages need to 
+import, but that don't need to import any packages from `server` itself. In 
+general, you shouldn't put things here, and you should redesign things that 
+are here so that it makes sense for them to have their own packages.
+
+`io` sets up individual cryptops, phase transitions, and new rounds, and 
+handles communication between servers.
+
+`services` contains utilities for the cryptops, including the dispatcher that
+allocates cryptop work to different goroutines.
+
 ## Compiling the Binary
 
 To compile a binary that will run the server on your platform,
