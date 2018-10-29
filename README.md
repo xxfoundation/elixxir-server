@@ -5,8 +5,19 @@
 
 ## Running the Server
 
-In project directory, run `$ go run main.go` with optional arguments that will
-override the values set in the config file:
+First, make sure dependencies are installed into the vendor folder by running
+`glide up`. Then, in the project directory, run `go run main.go` with the
+appropriate arguments.
+
+If what you're working on requires you to change other repos, you can remove
+the other repo from the vendor folder and Go's build tools will look for those
+packages in your Go path instead. Knowing which dependencies to remove can be
+really helpful if you're changing a lot of repos at once.
+
+If glide isn't working and you don't know why, try removing glide.lock and
+~/.glide to brutally cleanse the cache.
+
+Many of these flags override the values set in the config file:
 
 |Long flag|Short flag|Description|Example|
 |---|---|---|---|
