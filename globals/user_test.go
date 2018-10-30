@@ -41,7 +41,8 @@ func TestUserRegistry(t *testing.T) {
 		pass++
 	}
 
-	usr9, _ := Users.GetUser(id.NewUserIDFromUint(9, t))
+	id9 := id.NewUserIDFromUint(9, t)
+	usr9, _ := Users.GetUser(id9)
 
 	if usr9 == nil {
 		t.Errorf("Error fetching user!")

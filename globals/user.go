@@ -9,7 +9,6 @@ package globals
 import (
 	"crypto/sha256"
 	"errors"
-	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/crypto/id"
 	"sync"
@@ -71,7 +70,6 @@ type User struct {
 	Transmission  ForwardKey
 	Reception     ForwardKey
 	PublicKey     *cyclic.Int
-	MessageBuffer chan *pb.CmixMessage
 }
 
 // DeepCopy creates a deep copy of a user and returns a pointer to the new copy
@@ -86,7 +84,6 @@ func (u *User) DeepCopy() *User {
 	newUser.Transmission = *u.Transmission.DeepCopy()
 	newUser.Reception = *u.Reception.DeepCopy()
 	newUser.PublicKey = cyclic.NewInt(0).Set(u.PublicKey)
-	newUser.MessageBuffer = u.MessageBuffer
 	return newUser
 }
 
@@ -115,7 +112,6 @@ func (m *UserMap) NewUser(address string) *User {
 	usr.Reception = *recept
 	usr.Transmission = *trans
 	usr.PublicKey = cyclic.NewMaxInt()
-	usr.MessageBuffer = make(chan *pb.CmixMessage, 50000)
 	return usr
 }
 

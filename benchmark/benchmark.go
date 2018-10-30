@@ -201,12 +201,8 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 	inMsgs []*cyclic.Int) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.Slot)
-		rID, err := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
+		rID := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
 			LeftpadBytes(id.UserIDLen))
-		if err != nil {
-			jww.ERROR.Printf("RTIdentifyRTEncryptTranslate: Didn't set bytes"+
-				" of user id correctly: %v", err.Error())
-		}
 		inputMsgPostID := services.Slot(&realtime.Slot{
 			Slot:       esTmp.Slot,
 			CurrentID:  rID,

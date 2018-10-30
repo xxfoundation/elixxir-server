@@ -17,7 +17,6 @@ import (
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"os"
-	"runtime/debug"
 	"testing"
 )
 
@@ -594,12 +593,8 @@ func TestEndToEndCryptops(t *testing.T) {
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.Slot)
-	rID, err := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
+	rID := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
 		LeftpadBytes(id.UserIDLen))
-	if err != nil {
-		jww.ERROR.Printf("UserID assignment error: %v at %v", err.Error(),
-			string(debug.Stack()))
-	}
 	copy(rID[:], esTmp.EncryptedRecipient.LeftpadBytes(id.UserIDLen))
 	inputMsgPostID := services.Slot(&realtime.Slot{
 		Slot:       esTmp.Slot,

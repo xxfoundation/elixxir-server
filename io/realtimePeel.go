@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
-	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -63,15 +62,6 @@ func (h RealtimePeelHandler) Handler(
 				Salt:           slot.Salt,
 			}
 			messageBatch = append(messageBatch, &pbCmixMessage)
-
-			for !addMessageToBuffer(user, &pbCmixMessage) {
-				<-user.MessageBuffer
-				// FIXME why is this code even here? why 35?
-				if user.ID != id.NewUserIDFromUint(35, nil) {
-					jww.WARN.Printf("Message dropped for user %v because"+
-						" message buffer is full", user.ID)
-				}
-			}
 		}
 	}
 	if globals.GatewayAddress != "" {
@@ -85,13 +75,4 @@ func (h RealtimePeelHandler) Handler(
 	jww.INFO.Printf("Finished RealtimePeel.Handler(RoundId: %s) in %d ms",
 		roundId, (endTime.Sub(startTime))/time.Millisecond)
 	jww.INFO.Printf("Realtime for Round %s Finished at %s!", roundId, endTime)
-}
-
-func addMessageToBuffer(user *globals.User, pbCmixMessage *pb.CmixMessage) bool {
-	select {
-	case user.MessageBuffer <- pbCmixMessage:
-		return true
-	default:
-		return false
-	}
 }

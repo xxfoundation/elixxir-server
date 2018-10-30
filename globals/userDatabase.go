@@ -118,14 +118,6 @@ func PopulateDummyUsers() {
 // NewUser creates a new User object with default fields and given address.
 func (m *UserDatabase) NewUser(address string) *User {
 	newUser := UserRegistry(&UserMap{}).NewUser(address)
-	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[*newUser.ID]; exists {
-		// Add the old channel to the new User object if channel already exists
-		newUser.MessageBuffer = userChannel
-	} else {
-		// Otherwise add the new channel to the userChannels map
-		m.userChannels[*newUser.ID] = newUser.MessageBuffer
-	}
 	return newUser
 }
 
@@ -273,16 +265,6 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 	newUser.PublicKey = cyclic.NewIntFromBytes(user.PublicKey)
 
-	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[*user.Id]; exists {
-		// Add the channel to the new User object if it already exists
-		newUser.MessageBuffer = userChannel
-	} else {
-		// Otherwise create a new channel for the new User object
-		newUser.MessageBuffer = make(chan *pb.CmixMessage, 100)
-		// And add it to the userChannels map
-		m.userChannels[*user.Id] = newUser.MessageBuffer
-	}
 	return
 }
 

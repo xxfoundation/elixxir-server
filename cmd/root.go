@@ -15,6 +15,11 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"math"
+
+	// net/http must be imported before net/http/pprof for the pprof import
+	// to automatically initialize its http handlers
+	"net/http"
+	_ "net/http/pprof"
 )
 
 var cfgFile string
@@ -24,6 +29,8 @@ var batchSize uint64
 var nodeID uint64
 var validConfig bool
 var showVer bool
+// If true, runs pprof http server
+var profile bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -40,6 +47,18 @@ communications.`,
 		if !validConfig {
 			jww.FATAL.Panic("Invalid Config File")
 		}
+		if profile {
+			go func() {
+				// Do not expose this port over the network by serving on
+				// ":8087" or "0.0.0.0:8087". If you wish to profile production
+				// servers, do it by SSHing into the server and using go tool
+				// pprof. This provides simple access control for the profiling
+				jww.FATAL.Println(http.ListenAndServe("localhost:8087", nil))
+			}()
+		}
+		// FIXME This way of getting the server index from the config file
+		// seems odd.
+		serverIdx := viper.GetInt("index")
 		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
 	},
 }
@@ -79,8 +98,12 @@ func init() {
 		math.MaxUint64, "Unique identifier for this node")
 	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
 		"Show the server version information.")
+	rootCmd.Flags().BoolVar(&profile, "profile", false,
+		"Runs a pprof server at localhost:8087 for profiling")
 	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
+	viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
+	viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
 }
 
 // initConfig reads in config file and ENV variables if set.
