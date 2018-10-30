@@ -11,6 +11,7 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -42,9 +43,10 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
+		userId := new(id.UserID).SetBytes(in.SenderID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:               uint64(i),
-			CurrentID:          in.SenderID,
+			CurrentID:          userId,
 			Message:            cyclic.NewIntFromBytes(in.MessagePayload),
 			EncryptedRecipient: cyclic.NewIntFromBytes(in.RecipientID),
 			CurrentKey:         cyclic.NewMaxInt(),
@@ -140,7 +142,7 @@ func (h RealtimeDecryptHandler) Handler(
 		out := (*slots[i]).(*realtime.Slot)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
-			SenderID:       out.CurrentID,
+			SenderID:       out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
 			RecipientID:    out.EncryptedRecipient.Bytes(),
 			Salt:           out.Salt,
@@ -191,7 +193,7 @@ func KickoffDecryptHandler(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := slots[i]
 		msgSlot := &pb.CmixMessage{
-			SenderID:       out.CurrentID,
+			SenderID:       out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
 			RecipientID:    out.EncryptedRecipient.Bytes(),
 			Salt:           out.Salt,

@@ -8,6 +8,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"testing"
@@ -27,7 +28,11 @@ func TestEncrypt(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
-	recipientIds := [3]uint64{uint64(5), uint64(7), uint64(9)}
+	recipientIds := [3]*id.UserID{
+		id.NewUserIDFromUint(5, t),
+		id.NewUserIDFromUint(7, t),
+		id.NewUserIDFromUint(9, t),
+	}
 
 	var im []services.Slot
 

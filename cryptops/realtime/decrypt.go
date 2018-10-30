@@ -24,6 +24,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -56,7 +57,7 @@ func (d Decrypt) Build(g *cyclic.Group,
 			Slot:               i,
 			Message:            cyclic.NewMaxInt(),
 			EncryptedRecipient: cyclic.NewMaxInt(),
-			CurrentID:          0,
+			CurrentID:          id.ZeroID,
 			CurrentKey:         cyclic.NewMaxInt(),
 			Salt:               make([]byte, 0),
 		}

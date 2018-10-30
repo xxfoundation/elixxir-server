@@ -34,7 +34,7 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.Slot,
 	msgList := make([]*realtime.Slot, batchSize)
 	for msg := range MessageCh {
 		jww.DEBUG.Printf("Adding message ("+
-			"%d/%d) from SenderID %d to Recipient %s...",
+			"%d/%d) from SenderID %q to Recipient %s...",
 			msgCount+1, batchSize, msg.CurrentID,
 			msg.EncryptedRecipient.Text(10))
 		msg.Slot = msgCount
@@ -196,11 +196,17 @@ func StartServer(serverIndex int, batchSize uint64) {
 	}
 
 	// Initialize the backend
+	dbAddresses := viper.GetStringSlice("dbAddresses")
+	dbAddress := ""
+	if (serverIndex >= 0) && (serverIndex < len(dbAddresses)) {
+		// There's a DB address for this server in the list and we can use it
+		dbAddress = dbAddresses[serverIndex]
+	}
 	globals.Users = globals.NewUserRegistry(
 		viper.GetString("dbUsername"),
 		viper.GetString("dbPassword"),
 		viper.GetString("dbName"),
-		viper.GetStringSlice("dbAddresses")[serverIndex],
+		dbAddress,
 	)
 	globals.PopulateDummyUsers()
 

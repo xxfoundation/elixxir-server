@@ -13,14 +13,16 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"sync"
 	"time"
+	"encoding/base64"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
 type UserDatabase struct {
-	db           *pg.DB                          // Stored database connection
-	userChannels map[uint64]chan *pb.CmixMessage // Map of UserId to chan
+	db           *pg.DB                             // Stored database connection
+	userChannels map[id.UserID]chan *pb.CmixMessage // Map of UserId to chan
 }
 
 // Struct representing a User in the database
@@ -28,7 +30,8 @@ type UserDB struct {
 	// Overwrite table name
 	tableName struct{} `sql:"users,alias:users"`
 
-	Id      uint64
+	// Convert between id.UserID and string using base64 StdEncoding
+	Id      string
 	Address string
 	Nick    string
 
@@ -48,7 +51,24 @@ type SaltDB struct {
 	// Primary key field containing the 256-bit salt
 	Salt []byte
 	// Contains the user id that the salt belongs to
-	UserId uint64
+	UserId string
+}
+
+func encodeUserID(userId *id.UserID) string {
+	return base64.StdEncoding.EncodeToString(userId.Bytes())
+}
+
+func decodeUserID(userIdDB string) *id.UserID {
+	userIdBytes, err := base64.StdEncoding.DecodeString(userIdDB)
+	// This should only happen if you intentionally put invalid user ID
+	// information in the database, which should never happen
+	if err != nil {
+		jww.ERROR.Print("decodeUserID: Got error decoding user ID. " +
+			"Returning zero ID instead")
+		return id.ZeroID
+	}
+
+	return new(id.UserID).SetBytes(userIdBytes)
 }
 
 // Initialize the UserRegistry interface with appropriate backend
@@ -73,8 +93,8 @@ func NewUserRegistry(username, password,
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
 
-		uc := make(map[uint64]*User)
-		salts := make(map[uint64][][]byte)
+		uc := make(map[id.UserID]*User)
+		salts := make(map[id.UserID][][]byte)
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
@@ -87,7 +107,7 @@ func NewUserRegistry(username, password,
 		jww.INFO.Println("Using database backend for UserRegistry!")
 		return UserRegistry(&UserDatabase{
 			db:           db,
-			userChannels: make(map[uint64]chan *pb.CmixMessage),
+			userChannels: make(map[id.UserID]chan *pb.CmixMessage),
 		})
 	}
 }
@@ -128,9 +148,11 @@ func PopulateDummyUsers() {
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserDatabase) InsertSalt(userId uint64, salt []byte) bool {
+func (m *UserDatabase) InsertSalt(userId *id.UserID, salt []byte) bool {
+	// Convert id.UserID to string for database lookup
+	userIdDB := encodeUserID(userId)
 	// Create a salt object with the given UserID
-	s := SaltDB{UserId: userId}
+	s := SaltDB{UserId: userIdDB}
 
 	// If the number of salts for the given UserId
 	// is greater than the maximum allowed, then reject
@@ -157,35 +179,29 @@ func (m *UserDatabase) InsertSalt(userId uint64, salt []byte) bool {
 // NewUser creates a new User object with default fields and given address.
 func (m *UserDatabase) NewUser(address string) *User {
 	newUser := UserRegistry(&UserMap{}).NewUser(address)
-	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[newUser.ID]; exists {
-		// Add the old channel to the new User object if channel already exists
-		newUser.MessageBuffer = userChannel
-	} else {
-		// Otherwise add the new channel to the userChannels map
-		m.userChannels[newUser.ID] = newUser.MessageBuffer
-	}
 	return newUser
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserDatabase) DeleteUser(id uint64) {
+func (m *UserDatabase) DeleteUser(userId *id.UserID) {
+	// Convert user ID to string for database lookup
+	userIdDB := encodeUserID(userId)
 	// Perform the delete for the given ID
-	user := UserDB{Id: id}
+	user := UserDB{Id: userIdDB}
 	err := m.db.Delete(&user)
 
 	if err != nil {
 		// Non-fatal error, user probably doesn't exist in the database
-		jww.WARN.Printf("Unable to delete user %d! %v", id, err)
+		jww.WARN.Printf("Unable to delete user %q! %v", userId, err)
 	}
 }
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(id uint64) (*User, error) {
+func (m *UserDatabase) GetUser(userId *id.UserID) (*User, error) {
 	// Perform the select for the given ID
-
-	user := UserDB{Id: id}
+	userIdDB := encodeUserID(userId)
+	user := UserDB{Id: userIdDB}
 	err := m.db.Select(&user)
 
 	if err != nil {
@@ -216,7 +232,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.ERROR.Printf("Unable to upsert user %d! %s", user.ID, err.Error())
+		jww.ERROR.Printf("Unable to upsert user %q! %s", user.ID, err.Error())
 	}
 }
 
@@ -228,25 +244,6 @@ func (m *UserDatabase) CountUsers() int {
 		return 0
 	}
 	return count
-}
-
-// GetNickList returns a list of userID/nick pairs.
-func (m *UserDatabase) GetNickList() (ids []uint64, nicks []string) {
-	var model []UserDB
-	err := m.db.Model(&model).Column("id", "nick").Select()
-
-	ids = make([]uint64, len(model))
-	nicks = make([]string, len(model))
-	if err != nil {
-		return ids, nicks
-	}
-
-	for i, user := range model {
-		ids[i] = user.Id
-		nicks[i] = user.Nick
-	}
-
-	return ids, nicks
 }
 
 // Create the database schema
@@ -300,7 +297,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
-	newUser.Id = user.ID
+	newUser.Id = encodeUserID(user.ID)
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
@@ -318,7 +315,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 
 	newUser = new(User)
-	newUser.ID = user.Id
+	newUser.ID = decodeUserID(user.Id)
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.Transmission = ForwardKey{
@@ -331,15 +328,5 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 	newUser.PublicKey = cyclic.NewIntFromBytes(user.PublicKey)
 
-	// Handle the conversion of the user's message buffer
-	if userChannel, exists := m.userChannels[user.Id]; exists {
-		// Add the channel to the new User object if it already exists
-		newUser.MessageBuffer = userChannel
-	} else {
-		// Otherwise create a new channel for the new User object
-		newUser.MessageBuffer = make(chan *pb.CmixMessage, 100)
-		// And add it to the userChannels map
-		m.userChannels[user.Id] = newUser.MessageBuffer
-	}
 	return
 }

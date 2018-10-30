@@ -11,6 +11,7 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -37,9 +38,13 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
+		// Ensure that the recipient ID populates the correct user ID length
+		// by leftpadding it with the appropriate length
+		in.RecipientID = append(make([]byte, id.UserIDLen-len(in.RecipientID)), in.RecipientID...)
+		userId := new(id.UserID).SetBytes(in.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       uint64(i),
-			CurrentID:  cyclic.NewIntFromBytes(in.RecipientID).Uint64(),
+			CurrentID:  userId,
 			Message:    cyclic.NewIntFromBytes(in.MessagePayload),
 			CurrentKey: cyclic.NewMaxInt(),
 			Salt:       in.Salt,
@@ -90,9 +95,10 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to Slot
+		userId := new(id.UserID).SetBytes(out.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       i,
-			CurrentID:  cyclic.NewIntFromBytes(out.RecipientID).Uint64(),
+			CurrentID:  userId,
 			Message:    cyclic.NewIntFromBytes(out.MessagePayload),
 			CurrentKey: cyclic.NewMaxInt(),
 			Salt:       out.Salt,
@@ -134,8 +140,8 @@ func (h RealtimeEncryptHandler) Handler(
 		out := (*slots[i]).(*realtime.Slot)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
-			SenderID:       0,
-			RecipientID:    cyclic.NewIntFromUInt(out.CurrentID).Bytes(),
+			SenderID:       id.ZeroID[:],
+			RecipientID:    out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
 			Salt:           out.Salt,
 		}

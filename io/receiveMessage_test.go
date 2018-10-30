@@ -10,9 +10,11 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/crypto/format"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"testing"
+	"bytes"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -48,9 +50,9 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	MessageCh = make(chan *realtime.Slot, 1)
 
 	// Expected values
-	senderID := uint64(66)
-	recipientID := uint64(65)
-	text := "hey there, sailor. want to see my unencrypted message?"
+	senderID := id.NewUserIDFromUint(66, t)
+	recipientID := id.NewUserIDFromUint(65, t)
+	text := []byte("hey there, sailor. want to see my unencrypted message?")
 
 	// Create an unencrypted message for testing
 	message, err := format.NewMessage(senderID, recipientID, text)
@@ -64,7 +66,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 
 	// Send the message to the server itself
 	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{
-		SenderID:       message[0].GetSenderIDUint(),
+		SenderID:       senderID[:],
 		MessagePayload: messageSerial.Payload.Bytes(),
 		RecipientID:    messageSerial.Recipient.Bytes(),
 	})
@@ -72,23 +74,23 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	receivedMessage := <-MessageCh
 
 	// Verify that the received message holds the expected data
-	if receivedMessage.CurrentID != senderID {
+	if *receivedMessage.CurrentID != *senderID {
 		t.Errorf("Received sender ID %v, expected %v",
-			receivedMessage.CurrentID, senderID)
+			*receivedMessage.CurrentID, *senderID)
 	}
-	result := format.DeserializeMessage(format.MessageSerial{receivedMessage.
-		Message,
-		receivedMessage.EncryptedRecipient})
-	if result.GetSenderIDUint() != senderID {
-		t.Errorf("Received sender ID in bytes %v, expected %v",
-			result.GetSenderIDUint(), senderID)
+	result := format.DeserializeMessage(format.MessageSerial{
+		Payload:   receivedMessage.Message,
+		Recipient: receivedMessage.EncryptedRecipient})
+	if *result.GetSender() != *senderID {
+		t.Errorf("Received sender ID in bytes %q, expected %q",
+			*result.GetSender(), *senderID)
 	}
-	if result.GetRecipientIDUint() != recipientID {
-		t.Errorf("Received recipient ID %v, expected %v",
-			result.GetRecipientIDUint(), recipientID)
+	if *result.GetRecipient() != *recipientID {
+		t.Errorf("Received recipient ID %q, expected %q",
+			*result.GetRecipient(), *recipientID)
 	}
-	if result.GetPayload() != text {
-		t.Errorf("Received payload message %v, expected %v",
+	if !bytes.Equal(result.GetPayload(), text) {
+		t.Errorf("Received payload message %q, expected %q",
 			result.GetPayload(), text)
 	}
 }

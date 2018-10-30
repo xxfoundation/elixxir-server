@@ -1,6 +1,9 @@
 package realtime
 
-import "gitlab.com/privategrity/crypto/cyclic"
+import (
+	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
+)
 
 // Slot is a general slot structure used by all other
 // realtime cryptops. The semantics of each element change and not
@@ -13,7 +16,7 @@ type Slot struct {
 	// Encrypted or plaintext Message
 	Message *cyclic.Int
 	// Plaintext SenderID or RecipientID
-	CurrentID uint64
+	CurrentID *id.UserID
 	// TransmissionKey, ReceptionKey, etc
 	CurrentKey *cyclic.Int
 	// Salt for client operations (only for Decrypt and Encrypt Phases)

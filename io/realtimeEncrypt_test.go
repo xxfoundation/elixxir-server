@@ -8,6 +8,7 @@ package io
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -34,11 +35,12 @@ func TestRealtimeEncrypt(t *testing.T) {
 		chOut, RealtimeIdentifyHandler{})
 	round.LastNode.EncryptedMessage[0] = cyclic.NewInt(7)
 	// Create a slot to pass into the TransmissionHandler
+	userId := id.NewUserIDFromUint(42, t)
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
-		CurrentID:          uint64(42),
+		CurrentID:          userId,
 		Message:            cyclic.NewInt(7),
-		EncryptedRecipient: cyclic.NewInt(42),
+		EncryptedRecipient: cyclic.NewIntFromBytes(userId[:]),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler
@@ -55,11 +57,11 @@ func TestRealtimeEncrypt(t *testing.T) {
 	if expected.Slot != actual.Slot {
 		t.Errorf("Slot does not match!")
 	}
-	if expected.CurrentID != actual.CurrentID {
+	if *expected.CurrentID != *actual.CurrentID {
 		t.Errorf("CurrentID does not match!"+
-			" Got %v, expected %v.",
-			actual.CurrentID,
-			expected.CurrentID)
+			" Got %q, expected %q.",
+			*actual.CurrentID,
+			*expected.CurrentID)
 	}
 	if expected.Message.Text(10) !=
 		actual.Message.Text(10) {

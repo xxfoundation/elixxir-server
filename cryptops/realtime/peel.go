@@ -10,6 +10,7 @@ package realtime
 
 import (
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 )
@@ -38,7 +39,7 @@ func (p Peel) Build(g *cyclic.Group,
 		om[i] = &Slot{
 			Slot:      i,
 			Message:   cyclic.NewMaxInt(),
-			CurrentID: 0,
+			CurrentID: id.ZeroID,
 		}
 	}
 

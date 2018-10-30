@@ -1,9 +1,9 @@
 package io
 
 import (
-	"testing"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/server/globals"
+	"testing"
 )
 
 func TestGetRoundtripPing(t *testing.T) {

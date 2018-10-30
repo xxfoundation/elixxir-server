@@ -10,13 +10,13 @@ import (
 
 	"fmt"
 	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/benchmark"
 	"gitlab.com/privategrity/server/cryptops/precomputation"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
 	"os"
-	"strconv"
 	"testing"
 )
 
@@ -527,7 +527,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	// ----- REALTIME ----- //
 	inputMsg := services.Slot(&realtime.Slot{
 		Slot:               0,
-		CurrentID:          1,
+		CurrentID:          id.NewUserIDFromUint(1, t),
 		Message:            cyclic.NewInt(31),
 		EncryptedRecipient: cyclic.NewInt(1),
 		CurrentKey:         cyclic.NewInt(1),
@@ -593,7 +593,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.Slot)
-	rID, _ := strconv.ParseUint(esTmp.EncryptedRecipient.Text(10), 10, 64)
+	rID := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
+		LeftpadBytes(id.UserIDLen))
+	copy(rID[:], esTmp.EncryptedRecipient.LeftpadBytes(id.UserIDLen))
 	inputMsgPostID := services.Slot(&realtime.Slot{
 		Slot:       esTmp.Slot,
 		CurrentID:  rID,
@@ -651,7 +653,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			esRT.Message.Text(10), expectedRTPeel[0].Text(10))
 	}
 
-	t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
+	t.Logf("Final Results: Slot: %d, Recipient ID: %q, Message: %s\n",
 		esRT.Slot, esRT.CurrentID,
 		esRT.Message.Text(10))
 }
@@ -816,7 +818,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 
 	inputMsg := services.Slot(&realtime.Slot{
 		Slot:               0,
-		CurrentID:          1,
+		CurrentID:          id.NewUserIDFromUint(1, t),
 		Message:            cyclic.NewInt(42), // Meaning of Life
 		EncryptedRecipient: cyclic.NewInt(1),
 		CurrentKey:         cyclic.NewInt(1),
@@ -834,8 +836,8 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 			esRT.Message.Text(10), expectedRTPeel[0].Text(10))
 	}
 
-	t.Logf("Final Results: Slot: %d, Recipient ID: %d, Message: %s\n",
-		esRT.Slot, esRT.CurrentID,
+	t.Logf("Final Results: Slot: %d, Recipient ID: %q, Message: %s\n",
+		esRT.Slot, *esRT.CurrentID,
 		esRT.Message.Text(10))
 }
 
@@ -863,14 +865,14 @@ func Test3NodeE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          i + 1,
+			CurrentID:          id.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt(42 + int64(i)), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt(1 + int64(i)),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: i + 1,
+			CurrentID: id.NewUserIDFromUint(i+1, t),
 			Message:   cyclic.NewInt(42 + int64(i)), // Meaning of Life
 		}
 	}
@@ -895,14 +897,14 @@ func Test1NodePermuteE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          i + 1,
+			CurrentID:          id.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: (i + 1) % 101,
+			CurrentID: id.NewUserIDFromUint((i+1)%101, t),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
@@ -963,14 +965,14 @@ func TestRealPrimeE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          i + 1,
+			CurrentID:          id.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: (i + 1) % 101,
+			CurrentID: id.NewUserIDFromUint((i+1)%101, t),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	pb "gitlab.com/privategrity/comms/mixmessages"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/hash"
+	"gitlab.com/privategrity/crypto/id"
 	"gitlab.com/privategrity/server/cryptops/realtime"
 	"gitlab.com/privategrity/server/globals"
 	"gitlab.com/privategrity/server/services"
@@ -58,7 +59,7 @@ func (h RealtimeIdentifyHandler) Handler(
 		cMixHash.Write(encryptedMsg)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
-			SenderID:       0,
+			SenderID:       id.ZeroID[:],
 			RecipientID:    rID,
 			MessagePayload: encryptedMsg,
 			Salt:           cMixHash.Sum(nil),
