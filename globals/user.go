@@ -12,6 +12,7 @@ import (
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/crypto/id"
 	"sync"
+	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Globally initiated UserRegistry
@@ -31,12 +32,16 @@ type UserRegistry interface {
 	GetUser(id *id.UserID) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
+	InsertSalt(userId *id.UserID, salt []byte) bool
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[id.UserID]*User
+	// Map acting as the Salt table, containing UserID -> List of 256-bit salts
+	saltCollection map[id.UserID][][]byte
+	// Lock for thread safety
 	collectionLock *sync.Mutex
 }
 
@@ -113,6 +118,23 @@ func (m *UserMap) NewUser(address string) *User {
 	usr.Transmission = *trans
 	usr.PublicKey = cyclic.NewMaxInt()
 	return usr
+}
+
+// Inserts a unique salt into the salt table
+// Returns true if successful, else false
+func (m *UserMap) InsertSalt(userId *id.UserID, salt []byte) bool {
+	// If the number of salts for the given UserId
+	// is greater than the maximum allowed, then reject
+	maxSalts := 300
+	if len(m.saltCollection[*userId]) > maxSalts {
+		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
+			" been used for User %q", *userId)
+		return false
+	}
+
+	// Insert salt into the collection
+	m.saltCollection[*userId] = append(m.saltCollection[*userId], salt)
+	return true
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.

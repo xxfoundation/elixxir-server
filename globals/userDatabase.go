@@ -16,6 +16,7 @@ import (
 	"gitlab.com/privategrity/crypto/id"
 	"sync"
 	"time"
+	"encoding/base64"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
@@ -29,7 +30,8 @@ type UserDB struct {
 	// Overwrite table name
 	tableName struct{} `sql:"users,alias:users"`
 
-	Id      *id.UserID
+	// Convert between id.UserID and string using base64 StdEncoding
+	Id      string
 	Address string
 	Nick    string
 
@@ -39,6 +41,34 @@ type UserDB struct {
 	ReceptionRecursiveKey    []byte
 
 	PublicKey []byte
+}
+
+// Struct representing a Salt in the database
+type SaltDB struct {
+	// Overwrite table name
+	tableName struct{} `sql:"salts,alias:salts"`
+
+	// Primary key field containing the 256-bit salt
+	Salt []byte
+	// Contains the user id that the salt belongs to
+	UserId string
+}
+
+func encodeUserID(userId *id.UserID) string {
+	return base64.StdEncoding.EncodeToString(userId.Bytes())
+}
+
+func decodeUserID(userIdDB string) *id.UserID {
+	userIdBytes, err := base64.StdEncoding.DecodeString(userIdDB)
+	// This should only happen if you intentionally put invalid user ID
+	// information in the database, which should never happen
+	if err != nil {
+		jww.ERROR.Print("decodeUserID: Got error decoding user ID. " +
+			"Returning zero ID instead")
+		return id.ZeroID
+	}
+
+	return new(id.UserID).SetBytes(userIdBytes)
 }
 
 // Initialize the UserRegistry interface with appropriate backend
@@ -63,12 +93,12 @@ func NewUserRegistry(username, password,
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
 
-		// Generate hard-coded users.
-		// TODO fix this so they are created in database too
 		uc := make(map[id.UserID]*User)
+		salts := make(map[id.UserID][][]byte)
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
+			saltCollection: salts,
 			collectionLock: &sync.Mutex{},
 		})
 	} else {
@@ -83,6 +113,7 @@ func NewUserRegistry(username, password,
 }
 
 // TODO: remove or improve this
+// Create dummy users to be manually inserted into the database
 func PopulateDummyUsers() {
 
 	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
@@ -115,6 +146,36 @@ func PopulateDummyUsers() {
 	}
 }
 
+// Inserts a unique salt into the salt table
+// Returns true if successful, else false
+func (m *UserDatabase) InsertSalt(userId *id.UserID, salt []byte) bool {
+	// Convert id.UserID to string for database lookup
+	userIdDB := encodeUserID(userId)
+	// Create a salt object with the given UserID
+	s := SaltDB{UserId: userIdDB}
+
+	// If the number of salts for the given UserId
+	// is greater than the maximum allowed, then reject
+	maxSalts := 300
+	if count, _ := m.db.Model(&s).Count(); count > maxSalts {
+		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
+			" been used for User %d", userId)
+		return false
+	}
+
+	// Insert salt into the DB
+	s.Salt = salt
+	err := m.db.Insert(&s)
+
+	// Verify there were no errors
+	if err != nil {
+		jww.ERROR.Printf("Unable to insert salt: %v", err)
+		return false
+	}
+
+	return true
+}
+
 // NewUser creates a new User object with default fields and given address.
 func (m *UserDatabase) NewUser(address string) *User {
 	newUser := UserRegistry(&UserMap{}).NewUser(address)
@@ -123,8 +184,10 @@ func (m *UserDatabase) NewUser(address string) *User {
 
 // DeleteUser deletes a user with the given ID from userCollection.
 func (m *UserDatabase) DeleteUser(userId *id.UserID) {
+	// Convert user ID to string for database lookup
+	userIdDB := encodeUserID(userId)
 	// Perform the delete for the given ID
-	user := UserDB{Id: userId}
+	user := UserDB{Id: userIdDB}
 	err := m.db.Delete(&user)
 
 	if err != nil {
@@ -137,8 +200,8 @@ func (m *UserDatabase) DeleteUser(userId *id.UserID) {
 // and a boolean for whether the user exists
 func (m *UserDatabase) GetUser(userId *id.UserID) (*User, error) {
 	// Perform the select for the given ID
-
-	user := UserDB{Id: userId}
+	userIdDB := encodeUserID(userId)
+	user := UserDB{Id: userIdDB}
 	err := m.db.Select(&user)
 
 	if err != nil {
@@ -185,7 +248,7 @@ func (m *UserDatabase) CountUsers() int {
 
 // Create the database schema
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{&UserDB{}} {
+	for _, model := range []interface{}{&UserDB{}, &SaltDB{}} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			// Ignore create table if already exists?
 			IfNotExists: true,
@@ -234,7 +297,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
-	newUser.Id = user.ID
+	newUser.Id = encodeUserID(user.ID)
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
@@ -252,7 +315,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 
 	newUser = new(User)
-	newUser.ID = user.Id
+	newUser.ID = decodeUserID(user.Id)
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.Transmission = ForwardKey{
@@ -266,9 +329,4 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser.PublicKey = cyclic.NewIntFromBytes(user.PublicKey)
 
 	return
-}
-
-// TODO CREATE A REAL LOOKUP FUNCTION
-func (m *UserDatabase) LookupUser(huid uint64) (uint64, bool) {
-	return uint64(0), false
 }
