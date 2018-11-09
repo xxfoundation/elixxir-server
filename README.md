@@ -46,7 +46,6 @@ dbPassword: ""
 dbName: "cmix_server"
 keyPath: "cmix.rip.key"
 certPath: "cmix.rip.crt"
-gatewayCertPath: "gateway.cmix.rip.crt"
 dbAddresses:
     - ""
 servers:
