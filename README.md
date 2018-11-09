@@ -44,12 +44,15 @@ batchSize: 1
 dbUsername: "cmix"
 dbPassword: ""
 dbName: "cmix_server"
+keyPath: "cmix.rip.key"
+certPath: "cmix.rip.crt"
+gatewayCertPath: "gateway.cmix.rip.crt"
 dbAddresses:
-    - ""
     - ""
 servers:
     - 0.0.0.0:11420
-    - 0.0.0.0:11421
+gateways:
+    - "0.0.0.0:8443"
 ```
 
 ## Project Structure

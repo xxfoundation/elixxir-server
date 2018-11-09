@@ -4,9 +4,12 @@ batchSize: 1
 dbUsername: "cmix"
 dbPassword: ""
 dbName: "cmix_server"
+keyPath: "cmix.rip.key"
+certPath: "cmix.rip.crt"
+gatewayCertPath: "gateway.cmix.rip.crt"
 dbAddresses:
     - ""
 servers:
-    - localhost:11420
+    - 0.0.0.0:11420
 gateways:
-    - "localhost:8443"
+    - "0.0.0.0:8443"
