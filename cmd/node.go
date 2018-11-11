@@ -256,9 +256,11 @@ func StartServer(serverIndex int, batchSize uint64) {
 	}
 
 	// Kick off Comms server
+	certPath := getFullPath(viper.GetString("certPath"))
+	keyPath := getFullPath(viper.GetString("keyPath"))
 	go node.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,
-	})
+	}, certPath, keyPath)
 
 	// TODO Replace these concepts with a better system
 	globals.IsLastNode = serverIndex == len(io.Servers)-1
