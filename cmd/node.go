@@ -10,6 +10,7 @@ package cmd
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/privategrity/comms/connect"
 	"gitlab.com/privategrity/comms/node"
 	"gitlab.com/privategrity/crypto/cyclic"
 	"gitlab.com/privategrity/server/cryptops/realtime"
@@ -258,6 +259,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Kick off Comms server
 	certPath := getFullPath(viper.GetString("certPath"))
 	keyPath := getFullPath(viper.GetString("keyPath"))
+	connect.ServerCertPath = certPath
 	go node.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,
 	}, certPath, keyPath)

@@ -152,7 +152,7 @@ func initConfig() {
 // Given a path, replace a "~" character
 // with the home directory to return a full file path
 func getFullPath(path string) string {
-	if path[0] == '~' {
+	if len(path) > 0 && path[0] == '~' {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
