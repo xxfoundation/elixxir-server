@@ -44,8 +44,8 @@ batchSize: 1
 dbUsername: "cmix"
 dbPassword: ""
 dbName: "cmix_server"
-keyPath: "cmix.rip.key"
-certPath: "cmix.rip.crt"
+keyPath: ""
+certPath: ""
 dbAddresses:
     - ""
 servers:
