@@ -23,10 +23,10 @@
 package realtime
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/crypto/id"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/id"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 )
 
 // Decrypt phase completely removes the encryption added by the sending client,

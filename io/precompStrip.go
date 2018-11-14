@@ -6,9 +6,9 @@
 package io
 
 import (
-	"gitlab.com/privategrity/server/cryptops/precomputation"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/server/cryptops/precomputation"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"time"

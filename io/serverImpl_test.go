@@ -7,9 +7,9 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/node"
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/server/globals"
 	"os"
 	"testing"
 )

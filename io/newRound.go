@@ -7,15 +7,15 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/node"
-	"gitlab.com/privategrity/server/cryptops"
-	"gitlab.com/privategrity/server/cryptops/precomputation"
-	"gitlab.com/privategrity/server/cryptops/realtime"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/server/cryptops"
+	"gitlab.com/elixxir/server/cryptops/precomputation"
+	"gitlab.com/elixxir/server/cryptops/realtime"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 
 	jww "github.com/spf13/jwalterweatherman"
-	pb "gitlab.com/privategrity/comms/mixmessages"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"time"
 )
 

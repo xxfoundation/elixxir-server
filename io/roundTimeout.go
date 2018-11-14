@@ -8,7 +8,7 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/elixxir/server/globals"
 	"time"
 )
 

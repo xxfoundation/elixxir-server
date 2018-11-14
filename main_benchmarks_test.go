@@ -6,8 +6,8 @@
 package main
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/benchmark"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/server/benchmark"
 	"testing"
 )
 

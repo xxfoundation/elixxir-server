@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/crypto/id"
+	"gitlab.com/elixxir/crypto/id"
 	"testing"
 	"time"
 )

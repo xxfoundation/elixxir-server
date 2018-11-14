@@ -9,9 +9,9 @@
 package realtime
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 )
 
 // Identify implements the Identify phase of the realtime processing.

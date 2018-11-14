@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/server/benchmark"
+	"gitlab.com/elixxir/server/benchmark"
 	"time"
 )
 

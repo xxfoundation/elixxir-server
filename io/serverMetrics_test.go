@@ -1,8 +1,8 @@
 package io
 
 import (
-	"gitlab.com/privategrity/comms/node"
-	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/server/globals"
 	"testing"
 )
 

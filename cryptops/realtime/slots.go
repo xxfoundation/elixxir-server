@@ -1,8 +1,8 @@
 package realtime
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/crypto/id"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/id"
 )
 
 // Slot is a general slot structure used by all other

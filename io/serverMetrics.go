@@ -2,11 +2,11 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	pb "gitlab.com/privategrity/comms/mixmessages"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	//linuxproc "github.com/c9s/goprocinfo/linux"
 	"github.com/spf13/viper"
-	"gitlab.com/privategrity/comms/node"
-	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/server/globals"
 	"runtime"
 	"strconv"
 )

@@ -6,9 +6,9 @@
 package precomputation
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 )
 
 // Encrypt implements the Encrypt Phase of the Precomputation. It adds the

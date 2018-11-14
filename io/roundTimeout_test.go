@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/privategrity/server/globals"
+	"gitlab.com/elixxir/server/globals"
 	"testing"
 	"time"
 )

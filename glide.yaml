@@ -1,10 +1,10 @@
-package: gitlab.com/privategrity/server
+package: gitlab.com/elixxir/server
 import:
-- package: gitlab.com/privategrity/crypto
+- package: gitlab.com/elixxir/crypto
   version: master
   repo: git@gitlab.com:privategrity/crypto
   vcs: git
-- package: gitlab.com/privategrity/comms
+- package: gitlab.com/elixxir/comms
   version: master
   repo: git@gitlab.com:privategrity/comms
   vcs: git

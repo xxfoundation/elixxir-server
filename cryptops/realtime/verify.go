@@ -10,11 +10,11 @@ package realtime
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/crypto/format"
-	"gitlab.com/privategrity/crypto/verification"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/format"
+	"gitlab.com/elixxir/crypto/verification"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 )
 
 // Identify implements the Verification of the MIC in realtime processing.

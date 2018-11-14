@@ -9,11 +9,11 @@ package cryptops
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/crypto/cyclic"
-	cmix "gitlab.com/privategrity/crypto/messaging"
-	"gitlab.com/privategrity/server/cryptops/realtime"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	cmix "gitlab.com/elixxir/crypto/messaging"
+	"gitlab.com/elixxir/server/cryptops/realtime"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 )
 
 //Denotes what kind of key will be
