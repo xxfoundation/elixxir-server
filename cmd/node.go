@@ -256,10 +256,11 @@ func StartServer(serverIndex int, batchSize uint64) {
 		globals.SetNodeID(viperNodeID)
 	}
 
-	// Kick off Comms server
 	certPath := getFullPath(viper.GetString("certPath"))
 	keyPath := getFullPath(viper.GetString("keyPath"))
+	// Set the serverCertPath explicitly to avoid data races
 	connect.ServerCertPath = certPath
+	// Kick off Comms server
 	go node.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,
 	}, certPath, keyPath)
