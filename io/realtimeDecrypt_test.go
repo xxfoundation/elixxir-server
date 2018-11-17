@@ -7,11 +7,11 @@
 package io
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/crypto/id"
-	"gitlab.com/privategrity/server/cryptops/realtime"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/id"
+	"gitlab.com/elixxir/server/cryptops/realtime"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 	"testing"
 )
 

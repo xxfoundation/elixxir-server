@@ -9,7 +9,7 @@
 package precomputation
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/cyclic"
 )
 
 // SlotGeneration is empty; no data being passed in or out of Generation.

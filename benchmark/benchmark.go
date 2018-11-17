@@ -8,16 +8,16 @@
 package benchmark
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/cryptops/precomputation"
-	"gitlab.com/privategrity/server/cryptops/realtime"
-	"gitlab.com/privategrity/server/globals"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/server/cryptops/precomputation"
+	"gitlab.com/elixxir/server/cryptops/realtime"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/services"
 
 	jww "github.com/spf13/jwalterweatherman"
 
 	"fmt"
-	"gitlab.com/privategrity/crypto/id"
+	"gitlab.com/elixxir/crypto/id"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +

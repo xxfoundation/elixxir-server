@@ -7,7 +7,7 @@
 package globals
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"sync"
 	"testing"
 	"time"

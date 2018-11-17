@@ -7,7 +7,7 @@
 // Package main needs no introduction.
 package main
 
-import "gitlab.com/privategrity/server/cmd"
+import "gitlab.com/elixxir/server/cmd"
 
 func main() {
 	cmd.Execute()

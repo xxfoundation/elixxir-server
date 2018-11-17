@@ -8,8 +8,8 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	pb "gitlab.com/privategrity/comms/mixmessages"
-	"gitlab.com/privategrity/server/globals"
+	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/server/globals"
 	"time"
 )
 

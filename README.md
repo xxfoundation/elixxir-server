@@ -1,7 +1,7 @@
-# privategrity/server
+# elixxir/server
 
-[![pipeline status](https://gitlab.com/privategrity/server/badges/master/pipeline.svg)](https://gitlab.com/privategrity/server/commits/master)
-[![coverage report](https://gitlab.com/privategrity/server/badges/master/coverage.svg)](https://gitlab.com/privategrity/server/commits/master)
+[![pipeline status](https://gitlab.com/elixxir/server/badges/master/pipeline.svg)](https://gitlab.com/elixxir/server/commits/master)
+[![coverage report](https://gitlab.com/elixxir/server/badges/master/coverage.svg)](https://gitlab.com/elixxir/server/commits/master)
 
 ## Running the Server
 
@@ -24,7 +24,7 @@ Many of these flags override the values set in the config file:
 |--index|-i|Index of the server to start in the list of servers in `server.yaml`|-i 0|
 |--batch|-b|Number of messages in a batch (correlated to anonymity set, 1 is the fastest and least anonymous)|-b 64|
 |--verbose|-v|Set this to log more messages for debugging|-v|
-|--config| |Path to configuration file|--config ~/.privategrity/server.yaml|
+|--config| |Path to configuration file|--config ~/.elixxir/server.yaml|
 |--nodeID|-n|Unique integer identifier for this node. Defaults to be equal to index|-n 125048|
 |--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
 |--version|-V|Print generated version information. To generate, run `$ go generate cmd/version.go`.|--version|
@@ -34,7 +34,7 @@ Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go be
 
 ## Config File
 
-Create a directory named `.privategrity` in your home directory with a file 
+Create a directory named `.elixxir` in your home directory with a file 
 called `server.yaml` as follows:
 
 ``` yaml

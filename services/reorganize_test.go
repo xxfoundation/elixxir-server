@@ -7,7 +7,7 @@
 package services
 
 import (
-	"gitlab.com/privategrity/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"testing"
 )
 

@@ -8,8 +8,8 @@ package globals
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/privategrity/crypto/cyclic"
-	"gitlab.com/privategrity/server/services"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/server/services"
 	"strconv"
 	"sync"
 	"sync/atomic"

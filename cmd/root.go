@@ -89,7 +89,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
-		"config file (default is $HOME/.privategrity/server.yaml)")
+		"config file (default is $HOME/.elixxir/server.yaml)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
 		"Verbose mode for debugging")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
@@ -119,7 +119,7 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		cfgFile = home + "/.privategrity/server.yaml"
+		cfgFile = home + "/.elixxir/server.yaml"
 
 	}
 
