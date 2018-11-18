@@ -258,8 +258,10 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	certPath := viper.GetString("certPath")
 	keyPath := viper.GetString("keyPath")
-	// Set the serverCertPath explicitly to avoid data races
+	gatewayCertPath := viper.GetString("gatewayCertPath")
+	// Set the certPaths explicitly to avoid data races
 	connect.ServerCertPath = certPath
+	connect.GatewayCertPath = gatewayCertPath
 	// Kick off Comms server
 	go node.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,

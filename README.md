@@ -46,6 +46,7 @@ dbPassword: ""
 dbName: "cmix_server"
 keyPath: ""
 certPath: ""
+gatewayCertPath: ""
 dbAddresses:
     - ""
 servers:
