@@ -20,7 +20,6 @@ import (
 	// to automatically initialize its http handlers
 	"net/http"
 	_ "net/http/pprof"
-	"strings"
 )
 
 var cfgFile string
@@ -147,22 +146,6 @@ func initConfig() {
 		validConfig = false
 	}
 
-}
-
-// Given a path, replace a "~" character
-// with the home directory to return a full file path
-func getFullPath(path string) string {
-	if len(path) > 0 && path[0] == '~' {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			jww.ERROR.Println(err)
-			os.Exit(1)
-		}
-		// Append the home directory to the path
-		return home + strings.TrimLeft(path, "~")
-	}
-	return path
 }
 
 // initLog initializes logging thresholds and the log path.

@@ -10,12 +10,12 @@ package cmd
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/comms/connect"
 	"math"
 	"runtime"
 	"strconv"
@@ -256,8 +256,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 		globals.SetNodeID(viperNodeID)
 	}
 
-	certPath := getFullPath(viper.GetString("certPath"))
-	keyPath := getFullPath(viper.GetString("keyPath"))
+	certPath := viper.GetString("certPath")
+	keyPath := viper.GetString("keyPath")
 	// Set the serverCertPath explicitly to avoid data races
 	connect.ServerCertPath = certPath
 	// Kick off Comms server
