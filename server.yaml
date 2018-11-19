@@ -16,3 +16,4 @@ keyPath: ""
 # Path to the server certificate file
 certPath: ""
 # Path to the gateway certificate file
+gatewayCertPath: ""

@@ -44,7 +44,6 @@ batchSize: 1
 dbUsername: "cmix"
 dbPassword: ""
 dbName: "cmix_server"
-gatewayCertPath: ""
 dbAddresses:
     - ""
 servers:
@@ -57,6 +56,7 @@ keyPath: ""
 # Path to the server certificate file
 certPath: ""
 # Path to the gateway certificate file
+gatewayCertPath: ""
 ```
 
 ## Project Structure
