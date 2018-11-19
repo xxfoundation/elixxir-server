@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 	// Kick off comms server
 	localServer := "localhost:5555"
 	go node.StartServer(localServer,
-		ServerImpl{Rounds: &globals.GlobalRoundMap})
+		ServerImpl{Rounds: &globals.GlobalRoundMap}, "", "")
 	// Next hop will be back to us
 	NextServer = localServer
 	os.Exit(m.Run())

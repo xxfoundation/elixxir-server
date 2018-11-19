@@ -29,6 +29,7 @@ var batchSize uint64
 var nodeID uint64
 var validConfig bool
 var showVer bool
+
 // If true, runs pprof http server
 var profile bool
 

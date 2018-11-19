@@ -4,11 +4,16 @@ batchSize: 1
 dbUsername: "cmix"
 dbPassword: ""
 dbName: "cmix_server"
-keyPath: "cmix.rip.key"
-certPath: "cmix.rip.crt"
 dbAddresses:
     - ""
 servers:
     - 0.0.0.0:11420
 gateways:
     - "0.0.0.0:8443"
+# === REQUIRED FOR ENABLING TLS ===
+# Path to the server private key file
+keyPath: ""
+# Path to the server certificate file
+certPath: ""
+# Path to the gateway certificate file
+gatewayCertPath: ""

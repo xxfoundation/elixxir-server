@@ -10,6 +10,7 @@ package cmd
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -255,10 +256,16 @@ func StartServer(serverIndex int, batchSize uint64) {
 		globals.SetNodeID(viperNodeID)
 	}
 
+	certPath := viper.GetString("certPath")
+	keyPath := viper.GetString("keyPath")
+	gatewayCertPath := viper.GetString("gatewayCertPath")
+	// Set the certPaths explicitly to avoid data races
+	connect.ServerCertPath = certPath
+	connect.GatewayCertPath = gatewayCertPath
 	// Kick off Comms server
 	go node.StartServer(localServer, io.ServerImpl{
 		Rounds: &globals.GlobalRoundMap,
-	})
+	}, certPath, keyPath)
 
 	// TODO Replace these concepts with a better system
 	globals.IsLastNode = serverIndex == len(io.Servers)-1
