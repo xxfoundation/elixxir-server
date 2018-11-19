@@ -35,7 +35,7 @@ Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go be
 ## Config File
 
 Create a directory named `.elixxir` in your home directory with a file 
-called `server.yaml` as follows:
+called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 
 ``` yaml
 logPath: "server.log"
@@ -44,8 +44,6 @@ batchSize: 1
 dbUsername: "cmix"
 dbPassword: ""
 dbName: "cmix_server"
-keyPath: ""
-certPath: ""
 gatewayCertPath: ""
 dbAddresses:
     - ""
@@ -53,6 +51,12 @@ servers:
     - 0.0.0.0:11420
 gateways:
     - "0.0.0.0:8443"
+# === REQUIRED FOR ENABLING TLS ===
+# Path to the server private key file
+keyPath: ""
+# Path to the server certificate file
+certPath: ""
+# Path to the gateway certificate file
 ```
 
 ## Project Structure
