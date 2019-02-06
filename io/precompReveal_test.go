@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestPrecompReveal(t *testing.T) {
@@ -18,7 +19,7 @@ func TestPrecompReveal(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	globals.IsLastNode = true
+	nodeid.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_REVEAL)

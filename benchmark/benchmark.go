@@ -17,7 +17,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 
 	"fmt"
-	"gitlab.com/elixxir/crypto/id"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +

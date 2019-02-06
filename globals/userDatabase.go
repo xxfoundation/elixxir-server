@@ -13,10 +13,10 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"sync"
 	"time"
 	"encoding/base64"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB

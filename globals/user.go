@@ -10,9 +10,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"sync"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Globally initiated UserRegistry

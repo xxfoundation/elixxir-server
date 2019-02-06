@@ -8,12 +8,12 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/format"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/crypto/verification"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"gitlab.com/elixxir/primitives/format"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 func TestRealTimeVerify(t *testing.T) {

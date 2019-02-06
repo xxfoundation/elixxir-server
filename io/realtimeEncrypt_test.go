@@ -8,11 +8,12 @@ package io
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestRealtimeEncrypt(t *testing.T) {
@@ -20,7 +21,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	globals.IsLastNode = true
+	nodeid.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 

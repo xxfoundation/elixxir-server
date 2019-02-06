@@ -11,11 +11,12 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"time"
+	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -151,7 +152,7 @@ func (h RealtimeEncryptHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if globals.IsLastNode {
+	if nodeid.IsLastNode {
 		// Transition to RealtimePeel phase
 		jww.INFO.Printf("Starting RealtimePeel Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

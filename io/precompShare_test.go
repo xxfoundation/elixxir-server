@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 type DummyPrecompShareHandler struct{}
@@ -53,7 +54,7 @@ func TestPrecompShare(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1)
-	globals.IsLastNode = false
+	nodeid.IsLastNode = false
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 

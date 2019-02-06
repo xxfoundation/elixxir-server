@@ -10,7 +10,6 @@ import (
 
 	"fmt"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/benchmark"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -18,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"os"
 	"testing"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 func TestMain(m *testing.M) {

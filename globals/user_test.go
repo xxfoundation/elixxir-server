@@ -8,9 +8,9 @@ package globals
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"sync"
 	"testing"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // TestUserRegistry tests the constructors/getters/setters

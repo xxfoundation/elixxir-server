@@ -24,9 +24,9 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Decrypt phase completely removes the encryption added by the sending client,

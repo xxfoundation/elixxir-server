@@ -12,9 +12,9 @@ import (
 	//linuxproc "github.com/c9s/goprocinfo/linux"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/server/globals"
 	"runtime"
 	"strconv"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Records current time and sends all recorded times to next node
@@ -25,7 +25,7 @@ func (s ServerImpl) ServerMetrics(msg *pb.ServerMetricsMessage) {
 	threadUsage := append(msg.ThreadUsage, uint32(runtime.NumGoroutine()))
 	cpuUsage := append(msg.CpuUsage, uint32(0))
 	upSince := append(msg.UpSince, TimeUp)
-	if !globals.IsLastNode {
+	if !nodeid.IsLastNode {
 		node.SendServerMetrics(Servers[len(upSince)],
 			&pb.ServerMetricsMessage{
 				MemUsage:    memUsage,

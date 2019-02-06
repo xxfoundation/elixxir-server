@@ -14,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Server-wide configured batch size
@@ -213,12 +214,12 @@ func NewRound(batchSize uint64) *Round {
 	case round = <-RoundRecycle:
 	default:
 		round = newRound(batchSize, OFF)
-		if IsLastNode {
+		if nodeid.IsLastNode {
 			InitLastNode(round)
 		}
 	}
 	round = newRound(batchSize, OFF)
-	if IsLastNode {
+	if nodeid.IsLastNode {
 		InitLastNode(round)
 	}
 

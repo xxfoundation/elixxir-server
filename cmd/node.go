@@ -23,6 +23,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // RunRealtime controls when realtime is kicked off and which
@@ -251,9 +252,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// ensure that the Node ID is populated
 	viperNodeID := uint64(viper.GetInt("nodeid"))
 	if viperNodeID == 0 {
-		globals.SetNodeID(uint64(serverIndex))
+		nodeid.SetNodeID(uint64(serverIndex))
 	} else {
-		globals.SetNodeID(viperNodeID)
+		nodeid.SetNodeID(viperNodeID)
 	}
 
 	certPath := viper.GetString("certPath")
@@ -268,7 +269,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	}, certPath, keyPath)
 
 	// TODO Replace these concepts with a better system
-	globals.IsLastNode = serverIndex == len(io.Servers)-1
+	nodeid.IsLastNode = serverIndex == len(io.Servers)-1
 	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 
 	// Block until we can reach every server
@@ -286,7 +287,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		messageBufferSize = 1000
 	}
 
-	if globals.IsLastNode {
+	if nodeid.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
 		io.RoundCh = make(chan *string, PRECOMP_BUFFER_SIZE)
 		io.MessageCh = make(chan *realtime.Slot, messageBufferSize)
@@ -303,7 +304,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 func run() {
 	io.TimeUp = time.Now().UnixNano()
 	// Run a roundtrip ping every couple seconds if last node
-	if globals.IsLastNode {
+	if nodeid.IsLastNode {
 		ticker := time.NewTicker(5 * time.Second)
 		quit := make(chan struct{})
 		go func() {

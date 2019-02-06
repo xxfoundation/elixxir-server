@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestPrecompEncrypt(t *testing.T) {
@@ -20,7 +21,7 @@ func TestPrecompEncrypt(t *testing.T) {
 	globals.InitLastNode(round)
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
-	globals.IsLastNode = true
+	nodeid.IsLastNode = true
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)

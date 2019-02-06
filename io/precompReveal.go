@@ -15,6 +15,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"time"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -142,7 +143,7 @@ func (h PrecompRevealHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if globals.IsLastNode {
+	if nodeid.IsLastNode {
 		// Transition to PrecompStrip phase
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_STRIP)

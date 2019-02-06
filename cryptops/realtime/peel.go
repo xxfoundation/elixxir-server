@@ -10,9 +10,9 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Peel phase removes the Internode Keys by multiplying in the precomputation
