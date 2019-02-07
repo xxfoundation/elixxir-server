@@ -57,7 +57,7 @@ func (d Decrypt) Build(g *cyclic.Group,
 			Slot:               i,
 			Message:            cyclic.NewMaxInt(),
 			EncryptedRecipient: cyclic.NewMaxInt(),
-			CurrentID:          id.ZeroID,
+			CurrentID:          userid.ZeroID,
 			CurrentKey:         cyclic.NewMaxInt(),
 			Salt:               make([]byte, 0),
 		}

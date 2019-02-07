@@ -18,7 +18,7 @@ import (
 // TODO: This test needs split up
 func TestUserRegistry(t *testing.T) {
 	Users := UserRegistry(&UserMap{
-		userCollection: make(map[id.UserID]*User),
+		userCollection: make(map[userid.UserID]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
@@ -41,7 +41,7 @@ func TestUserRegistry(t *testing.T) {
 		pass++
 	}
 
-	id9 := id.NewUserIDFromUint(9, t)
+	id9 := userid.NewUserIDFromUint(9, t)
 	usr9, _ := Users.GetUser(id9)
 
 	if usr9 == nil {
@@ -56,8 +56,8 @@ func TestUserRegistry(t *testing.T) {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
-	usr3, _ := Users.GetUser(id.NewUserIDFromUint(3, t))
-	usr5, _ := Users.GetUser(id.NewUserIDFromUint(5, t))
+	usr3, _ := Users.GetUser(userid.NewUserIDFromUint(3, t))
+	usr5, _ := Users.GetUser(userid.NewUserIDFromUint(5, t))
 
 	if usr3.Transmission.BaseKey == nil {
 		t.Errorf("Error Setting the Transmission Base Key")
@@ -120,7 +120,7 @@ func TestForwardKey_DeepCopyNil(t *testing.T) {
 // Test happy path
 func TestUser_DeepCopy(t *testing.T) {
 	Users := UserRegistry(&UserMap{
-		userCollection: make(map[id.UserID]*User),
+		userCollection: make(map[userid.UserID]*User),
 		collectionLock: &sync.Mutex{},
 	})
 	user := Users.NewUser("t")
@@ -135,16 +135,16 @@ func TestUser_DeepCopy(t *testing.T) {
 // Test happy path and inserting too many salts
 func TestUserMap_InsertSalt(t *testing.T) {
 	Users := UserRegistry(&UserMap{
-		saltCollection: make(map[id.UserID][][]byte),
+		saltCollection: make(map[userid.UserID][][]byte),
 	})
 	// Insert like 300 salts, expect success
 	for i := 0; i <= 300; i++ {
-		if !Users.InsertSalt(id.NewUserIDFromUint(1, t), []byte("test")) {
+		if !Users.InsertSalt(userid.NewUserIDFromUint(1, t), []byte("test")) {
 			t.Errorf("InsertSalt: Expected success!")
 		}
 	}
 	// Now we have exceeded the max number, expect failure
-	if Users.InsertSalt(id.NewUserIDFromUint(1, t), []byte("test")) {
+	if Users.InsertSalt(userid.NewUserIDFromUint(1, t), []byte("test")) {
 		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
 			" salts for one user!")
 	}

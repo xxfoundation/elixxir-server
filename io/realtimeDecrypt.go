@@ -44,7 +44,7 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
-		userId := new(id.UserID).SetBytes(in.SenderID)
+		userId := new(userid.UserID).SetBytes(in.SenderID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:               uint64(i),
 			CurrentID:          userId,

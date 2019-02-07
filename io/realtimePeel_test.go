@@ -38,7 +38,7 @@ func TestRealtimePeel(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
-		CurrentID:          id.NewUserIDFromUint(42, t),
+		CurrentID:          userid.NewUserIDFromUint(42, t),
 		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(42),
 	}
@@ -83,7 +83,7 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
 	handler := RealtimePeelHandler{}
-	userId := id.NewUserIDFromUint(1, t)
+	userId := userid.NewUserIDFromUint(1, t)
 	s := make([]*services.Slot, 1)
 	sl := &realtime.Slot{
 		EncryptedRecipient: cyclic.NewInt(10),

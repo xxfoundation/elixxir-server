@@ -34,7 +34,7 @@ func TestRealtimeDecrypt(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
-		CurrentID:          id.NewUserIDFromUint(42, t),
+		CurrentID:          userid.NewUserIDFromUint(42, t),
 		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(3),
 		CurrentKey: cyclic.NewIntFromString(

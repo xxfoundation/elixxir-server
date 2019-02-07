@@ -50,8 +50,8 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	MessageCh = make(chan *realtime.Slot, 1)
 
 	// Expected values
-	senderID := id.NewUserIDFromUint(66, t)
-	recipientID := id.NewUserIDFromUint(65, t)
+	senderID := userid.NewUserIDFromUint(66, t)
+	recipientID := userid.NewUserIDFromUint(65, t)
 	text := []byte("hey there, sailor. want to see my unencrypted message?")
 
 	// Create an unencrypted message for testing

@@ -42,7 +42,7 @@ func TestRealtimePermute(t *testing.T) {
 		Message:            cyclic.NewInt(12),
 		// TODO Should this really need to be populated? Will it always be
 		// populated in real usage?
-		CurrentID:  id.NewUserIDFromUint(5, t),
+		CurrentID:  userid.NewUserIDFromUint(5, t),
 		CurrentKey: cyclic.NewInt(1),
 	}
 

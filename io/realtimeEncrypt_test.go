@@ -36,7 +36,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 		chOut, RealtimeIdentifyHandler{})
 	round.LastNode.EncryptedMessage[0] = cyclic.NewInt(7)
 	// Create a slot to pass into the TransmissionHandler
-	userId := id.NewUserIDFromUint(42, t)
+	userId := userid.NewUserIDFromUint(42, t)
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
 		CurrentID:          userId,

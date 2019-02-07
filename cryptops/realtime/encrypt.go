@@ -39,7 +39,7 @@ func (e Encrypt) Build(g *cyclic.Group,
 		om[i] = &Slot{
 			Slot:       i,
 			Message:    cyclic.NewMaxInt(),
-			CurrentID:  id.ZeroID,
+			CurrentID:  userid.ZeroID,
 			CurrentKey: cyclic.NewMaxInt(),
 			Salt:       make([]byte, 0),
 		}

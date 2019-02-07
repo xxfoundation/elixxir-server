@@ -39,7 +39,7 @@ func (p Peel) Build(g *cyclic.Group,
 		om[i] = &Slot{
 			Slot:      i,
 			Message:   cyclic.NewMaxInt(),
-			CurrentID: id.ZeroID,
+			CurrentID: userid.ZeroID,
 		}
 	}
 
