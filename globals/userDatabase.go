@@ -116,8 +116,10 @@ func NewUserRegistry(username, password,
 // Create dummy users to be manually inserted into the database
 func PopulateDummyUsers() {
 
-	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
-		"Mario", "Will", "Sydney", "Jono"}
+	nickList := []string{"David", "Jim", "Ben", "Rick", "Steph", "Jake",
+		"Mario", "Spencer", "Stephanie", "Jono", "Amanda", "Margaux", "Kevin",
+		"Bruno", "Konstantino", "Bernardo", "Tigran", "Kate", "Katie", "Bryan",
+		"Will"}
 	channelList := []string{"#General", "#Engineering", "#Lunch", "#Random"}
 
 	// Deterministically create named users for demo
