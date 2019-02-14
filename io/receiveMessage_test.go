@@ -56,19 +56,19 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 
 	// Create an unencrypted message for testing
 	message, err := format.NewMessage(senderID, recipientID, text)
-	message[0].GetPayloadInitVect().SetBytes([]byte("abcdefghi"))
-	message[0].GetRecipientInitVect().SetBytes([]byte("fghijklmn"))
+	copy(message.GetPayloadInitVect(), []byte("abcdefghi"))
+	copy(message.GetRecipientInitVect(), []byte("fghijklmn"))
 
 	if err != nil {
 		t.Errorf("Couldn't construct message: %s", err.Error())
 	}
-	messageSerial := message[0].SerializeMessage()
+	messageSerial := message.SerializeMessage()
 
 	// Send the message to the server itself
 	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{
 		SenderID:       senderID[:],
-		MessagePayload: messageSerial.Payload.Bytes(),
-		RecipientID:    messageSerial.Recipient.Bytes(),
+		MessagePayload: messageSerial.Payload,
+		RecipientID:    messageSerial.Recipient,
 	})
 
 	receivedMessage := <-MessageCh
@@ -79,8 +79,8 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 			*receivedMessage.CurrentID, *senderID)
 	}
 	result := format.DeserializeMessage(format.MessageSerial{
-		Payload:   receivedMessage.Message,
-		Recipient: receivedMessage.EncryptedRecipient})
+		Payload:   receivedMessage.Message.LeftpadBytes(format.TOTAL_LEN),
+		Recipient: receivedMessage.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN)})
 	if *result.GetSender() != *senderID {
 		t.Errorf("Received sender ID in bytes %q, expected %q",
 			*result.GetSender(), *senderID)
@@ -89,7 +89,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		t.Errorf("Received recipient ID %q, expected %q",
 			*result.GetRecipient(), *recipientID)
 	}
-	if !bytes.Equal(result.GetPayload(), text) {
+	if !bytes.Contains(result.GetPayload(), text) {
 		t.Errorf("Received payload message %q, expected %q",
 			result.GetPayload(), text)
 	}

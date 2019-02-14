@@ -65,10 +65,10 @@ func (i Verify) Build(g *cyclic.Group,
 func (i Verify) Run(g *cyclic.Group,
 	in, out *Slot, keys *KeysVerify) services.Slot {
 
-	recip := format.DeserializeRecipient(in.EncryptedRecipient)
-	iv := recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN)
-	pmic := recip.GetRecipientMIC().LeftpadBytes(format.RMIC_LEN)
-	recpbytes := recip.GetRecipientID().LeftpadBytes(format.RID_LEN)
+	recip := format.DeserializeRecipient(in.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN))
+	iv := recip.GetRecipientInitVect()
+	pmic := recip.GetRecipientMIC()
+	recpbytes := recip.GetRecipientID()
 
 	recipientMicList := [][]byte{iv, recpbytes}
 

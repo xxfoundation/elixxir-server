@@ -9,11 +9,11 @@ package realtime
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/verification"
+	"gitlab.com/elixxir/primitives/format"
+	"gitlab.com/elixxir/primitives/userid"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
-	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/primitives/userid"
 )
 
 func TestRealTimeVerify(t *testing.T) {
@@ -48,21 +48,22 @@ func TestRealTimeVerify(t *testing.T) {
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
 	recip, _ := format.NewRecipientPayload(userid.NewUserIDFromUint(42, t))
-	recip.GetRecipientInitVect().Set(cyclic.NewInt(1))
+	newRecipientIV := make([]byte, format.RIV_LEN)
+	newRecipientIV[0] = 1
+	copy(recip.GetRecipientInitVect(), newRecipientIV)
 	payloadMicList := [][]byte{
-		recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN),
-		recip.GetRecipientID().LeftpadBytes(format.RID_LEN),
+		recip.GetRecipientInitVect(),
+		recip.GetRecipientID(),
 	}
-	recip.GetRecipientMIC().SetBytes(verification.GenerateMIC(payloadMicList,
-		format.RMIC_LEN))
+	copy(recip.GetRecipientMIC(), verification.GenerateMIC(payloadMicList, format.RMIC_LEN))
 
 	im = append(im, &Slot{
 		Slot:               0,
-		EncryptedRecipient: recip.SerializeRecipient()})
+		EncryptedRecipient: cyclic.NewIntFromBytes(recip.SerializeRecipient())})
 
 	im = append(im, &Slot{
 		Slot:               1,
-		EncryptedRecipient: recip.SerializeRecipient()})
+		EncryptedRecipient: cyclic.NewIntFromBytes(recip.SerializeRecipient())})
 
 	im = append(im, &Slot{
 		Slot:               2,
@@ -118,17 +119,17 @@ func TestVerifyRun(t *testing.T) {
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
 	recip, _ := format.NewRecipientPayload(userid.NewUserIDFromUint(42, t))
-	recip.GetRecipientInitVect().Set(cyclic.NewInt(1))
+	recip.GetRecipientInitVect()[0] = 1
+
 	payloadMicList := [][]byte{
-		recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN),
-		recip.GetRecipientID().LeftpadBytes(format.RID_LEN),
+		recip.GetRecipientInitVect(),
+		recip.GetRecipientID(),
 	}
-	recip.GetRecipientMIC().SetBytes(verification.GenerateMIC(payloadMicList,
-		format.RMIC_LEN))
+	copy(recip.GetRecipientMIC(), verification.GenerateMIC(payloadMicList, format.RMIC_LEN))
 
 	im := Slot{
 		Slot:               0,
-		EncryptedRecipient: recip.SerializeRecipient()}
+		EncryptedRecipient: cyclic.NewIntFromBytes(recip.SerializeRecipient())}
 
 	om := Slot{
 		Slot:               0,
