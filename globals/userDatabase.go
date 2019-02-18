@@ -7,6 +7,7 @@
 package globals
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -15,7 +16,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"sync"
 	"time"
-	"encoding/base64"
 	"gitlab.com/elixxir/primitives/userid"
 )
 
@@ -116,8 +116,10 @@ func NewUserRegistry(username, password,
 // Create dummy users to be manually inserted into the database
 func PopulateDummyUsers() {
 
-	nickList := []string{"David", "Jim", "Ben", "Rick", "Spencer", "Jake",
-		"Mario", "Will", "Sydney", "Jono"}
+	nickList := []string{"David", "Payments", "UDB", "Jim", "Ben", "Steph",
+		"Rick", "Jake", "Spencer", "Stephanie", "Mario", "Jono", "Amanda",
+		"Margaux", "Kevin", "Bruno", "Konstantino", "Bernardo", "Tigran",
+		"Kate", "Will", "Katie", "Bryan"}
 	channelList := []string{"#General", "#Engineering", "#Lunch", "#Random"}
 
 	// Deterministically create named users for demo
