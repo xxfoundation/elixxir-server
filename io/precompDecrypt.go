@@ -14,8 +14,8 @@ import (
 
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/id"
 	"time"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -157,7 +157,7 @@ func (h PrecompDecryptHandler) Handler(
 	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_PERMUTE)
 
 	sendTime := time.Now()
-	if nodeid.IsLastNode {
+	if id.IsLastNode {
 		// Transition to PrecompPermute phase
 		jww.INFO.Printf("Starting PrecompPermute Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

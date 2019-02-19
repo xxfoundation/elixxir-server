@@ -8,10 +8,10 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
-	"gitlab.com/elixxir/primitives/userid"
 )
 
 func TestEncrypt(t *testing.T) {
@@ -28,10 +28,10 @@ func TestEncrypt(t *testing.T) {
 
 	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
-	recipientIds := [3]*userid.UserID{
-		userid.NewUserIDFromUint(5, t),
-		userid.NewUserIDFromUint(7, t),
-		userid.NewUserIDFromUint(9, t),
+	recipientIds := [3]*id.User{
+		id.NewUserFromUint(5, t),
+		id.NewUserFromUint(7, t),
+		id.NewUserFromUint(9, t),
 	}
 
 	var im []services.Slot

@@ -14,15 +14,15 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"sync"
 	"time"
-	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
 type UserDatabase struct {
-	db           *pg.DB                             // Stored database connection
-	userChannels map[userid.UserID]chan *pb.CmixMessage // Map of UserId to chan
+	db           *pg.DB                           // Stored database connection
+	userChannels map[id.User]chan *pb.CmixMessage // Map of UserId to chan
 }
 
 // Struct representing a User in the database
@@ -30,7 +30,7 @@ type UserDB struct {
 	// Overwrite table name
 	tableName struct{} `sql:"users,alias:users"`
 
-	// Convert between id.UserID and string using base64 StdEncoding
+	// Convert between id.User and string using base64 StdEncoding
 	Id      string
 	Address string
 	Nick    string
@@ -54,21 +54,21 @@ type SaltDB struct {
 	UserId string
 }
 
-func encodeUserID(userId *userid.UserID) string {
+func encodeUser(userId *id.User) string {
 	return base64.StdEncoding.EncodeToString(userId.Bytes())
 }
 
-func decodeUserID(userIdDB string) *userid.UserID {
+func decodeUser(userIdDB string) *id.User {
 	userIdBytes, err := base64.StdEncoding.DecodeString(userIdDB)
 	// This should only happen if you intentionally put invalid user ID
 	// information in the database, which should never happen
 	if err != nil {
-		jww.ERROR.Print("decodeUserID: Got error decoding user ID. " +
+		jww.ERROR.Print("decodeUser: Got error decoding user ID. " +
 			"Returning zero ID instead")
-		return userid.ZeroID
+		return id.ZeroID
 	}
 
-	return new(userid.UserID).SetBytes(userIdBytes)
+	return new(id.User).SetBytes(userIdBytes)
 }
 
 // Initialize the UserRegistry interface with appropriate backend
@@ -93,8 +93,8 @@ func NewUserRegistry(username, password,
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
 
-		uc := make(map[userid.UserID]*User)
-		salts := make(map[userid.UserID][][]byte)
+		uc := make(map[id.User]*User)
+		salts := make(map[id.User][][]byte)
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
@@ -107,7 +107,7 @@ func NewUserRegistry(username, password,
 		jww.INFO.Println("Using database backend for UserRegistry!")
 		return UserRegistry(&UserDatabase{
 			db:           db,
-			userChannels: make(map[userid.UserID]chan *pb.CmixMessage),
+			userChannels: make(map[id.User]chan *pb.CmixMessage),
 		})
 	}
 }
@@ -150,10 +150,10 @@ func PopulateDummyUsers() {
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserDatabase) InsertSalt(userId *userid.UserID, salt []byte) bool {
-	// Convert id.UserID to string for database lookup
-	userIdDB := encodeUserID(userId)
-	// Create a salt object with the given UserID
+func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) bool {
+	// Convert id.User to string for database lookup
+	userIdDB := encodeUser(userId)
+	// Create a salt object with the given User
 	s := SaltDB{UserId: userIdDB}
 
 	// If the number of salts for the given UserId
@@ -185,9 +185,9 @@ func (m *UserDatabase) NewUser(address string) *User {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserDatabase) DeleteUser(userId *userid.UserID) {
+func (m *UserDatabase) DeleteUser(userId *id.User) {
 	// Convert user ID to string for database lookup
-	userIdDB := encodeUserID(userId)
+	userIdDB := encodeUser(userId)
 	// Perform the delete for the given ID
 	user := UserDB{Id: userIdDB}
 	err := m.db.Delete(&user)
@@ -200,9 +200,9 @@ func (m *UserDatabase) DeleteUser(userId *userid.UserID) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(userId *userid.UserID) (*User, error) {
+func (m *UserDatabase) GetUser(userId *id.User) (*User, error) {
 	// Perform the select for the given ID
-	userIdDB := encodeUserID(userId)
+	userIdDB := encodeUser(userId)
 	user := UserDB{Id: userIdDB}
 	err := m.db.Select(&user)
 
@@ -299,7 +299,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
-	newUser.Id = encodeUserID(user.ID)
+	newUser.Id = encodeUser(user.ID)
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
@@ -317,7 +317,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 
 	newUser = new(User)
-	newUser.ID = decodeUserID(user.Id)
+	newUser.ID = decodeUser(user.Id)
 	newUser.Address = user.Address
 	newUser.Nick = user.Nick
 	newUser.Transmission = ForwardKey{

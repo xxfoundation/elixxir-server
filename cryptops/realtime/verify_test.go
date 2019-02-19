@@ -10,7 +10,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/verification"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
@@ -47,7 +47,7 @@ func TestRealTimeVerify(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	recip, _ := format.NewRecipientPayload(userid.NewUserIDFromUint(42, t))
+	recip, _ := format.NewRecipientPayload(id.NewUserFromUint(42, t))
 	newRecipientIV := make([]byte, format.RIV_LEN)
 	newRecipientIV[0] = 1
 	copy(recip.GetRecipientInitVect(), newRecipientIV)
@@ -118,7 +118,7 @@ func TestVerifyRun(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	recip, _ := format.NewRecipientPayload(userid.NewUserIDFromUint(42, t))
+	recip, _ := format.NewRecipientPayload(id.NewUserFromUint(42, t))
 	recip.GetRecipientInitVect()[0] = 1
 
 	payloadMicList := [][]byte{

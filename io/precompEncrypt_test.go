@@ -7,11 +7,11 @@ package io
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestPrecompEncrypt(t *testing.T) {
@@ -21,7 +21,7 @@ func TestPrecompEncrypt(t *testing.T) {
 	globals.InitLastNode(round)
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
-	nodeid.IsLastNode = true
+	id.IsLastNode = true
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)

@@ -10,9 +10,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/primitives/userid"
 )
 
 type ReceiveMessageHandler struct{}
@@ -28,7 +28,7 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	// Verify message fields are within the global cyclic group
 	if globals.Grp.Inside(recipientID) && globals.Grp.Inside(messagePayload) {
 		// Convert message to a Slot
-		userId := new(userid.UserID).SetBytes(msg.SenderID)
+		userId := new(id.User).SetBytes(msg.SenderID)
 		inputMsg := realtime.Slot{
 			Slot:               0, // Set in RunRealTime() in node/node.go
 			CurrentID:          userId,

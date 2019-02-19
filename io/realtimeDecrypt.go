@@ -11,12 +11,11 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"time"
-	"gitlab.com/elixxir/primitives/userid"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -44,7 +43,7 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
-		userId := new(userid.UserID).SetBytes(in.SenderID)
+		userId := new(id.User).SetBytes(in.SenderID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:               uint64(i),
 			CurrentID:          userId,
@@ -157,7 +156,7 @@ func (h RealtimeDecryptHandler) Handler(
 	globals.GlobalRoundMap.SetPhase(roundID, globals.REAL_PERMUTE)
 
 	sendTime := time.Now()
-	if nodeid.IsLastNode {
+	if id.IsLastNode {
 		// Transition to RealtimePermute phase
 		jww.INFO.Printf("Starting RealtimePermute  Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

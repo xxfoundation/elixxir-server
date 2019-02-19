@@ -24,9 +24,9 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Decrypt phase completely removes the encryption added by the sending client,
@@ -57,7 +57,7 @@ func (d Decrypt) Build(g *cyclic.Group,
 			Slot:               i,
 			Message:            cyclic.NewMaxInt(),
 			EncryptedRecipient: cyclic.NewMaxInt(),
-			CurrentID:          userid.ZeroID,
+			CurrentID:          id.ZeroID,
 			CurrentKey:         cyclic.NewMaxInt(),
 			Salt:               make([]byte, 0),
 		}

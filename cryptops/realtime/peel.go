@@ -10,9 +10,9 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Peel phase removes the Internode Keys by multiplying in the precomputation
@@ -39,7 +39,7 @@ func (p Peel) Build(g *cyclic.Group,
 		om[i] = &Slot{
 			Slot:      i,
 			Message:   cyclic.NewMaxInt(),
-			CurrentID: userid.ZeroID,
+			CurrentID: id.ZeroID,
 		}
 	}
 

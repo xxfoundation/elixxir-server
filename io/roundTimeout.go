@@ -8,9 +8,9 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"time"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Errors a round after a certain time if its precomputation isn't done
@@ -21,7 +21,7 @@ func timeoutPrecomputation(roundId string, timeout time.Duration) {
 		if !success && round.GetPhase() < globals.PRECOMP_COMPLETE {
 			// Precomp wasn't totally complete before timeout. Set it to error
 			jww.ERROR.Printf("Precomputation incomplete: Timing out round %v"+
-				" on node %v with phase %v", roundId, nodeid.GetNodeID(),
+				" on node %v with phase %v", roundId, id.GetNodeID(),
 				round.GetPhase().String())
 			round.SetPhase(globals.ERROR)
 		}
@@ -30,7 +30,7 @@ func timeoutPrecomputation(roundId string, timeout time.Duration) {
 		round.WaitUntilPhase(globals.PRECOMP_COMPLETE)
 		jww.INFO.Printf("Waited until phase %v"+
 			" on node %v for round %v", round.GetPhase().String(),
-			nodeid.GetNodeID(),
+			id.GetNodeID(),
 			roundId)
 		success = true
 		timer.Stop()
@@ -45,7 +45,7 @@ func timeoutRealtime(roundId string, timeout time.Duration) {
 		if !success && round.GetPhase() < globals.REAL_COMPLETE {
 			// Realtime wasn't totally complete before timeout. Set it to error
 			jww.ERROR.Printf("Realtime incomplete: Timing out round %v on node"+
-				" %v with phase %v", roundId, nodeid.GetNodeID(),
+				" %v with phase %v", roundId, id.GetNodeID(),
 				round.GetPhase().String())
 			round.SetPhase(globals.ERROR)
 		}
@@ -54,7 +54,7 @@ func timeoutRealtime(roundId string, timeout time.Duration) {
 		round.WaitUntilPhase(globals.REAL_COMPLETE)
 		jww.INFO.Printf("Waited until phase %v"+
 			" on node %v for round %v", round.GetPhase().String(),
-			nodeid.GetNodeID(),
+			id.GetNodeID(),
 			roundId)
 		success = true
 		timer.Stop()

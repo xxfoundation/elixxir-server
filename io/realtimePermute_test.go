@@ -8,12 +8,11 @@ package io
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
-	"gitlab.com/elixxir/primitives/userid"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestRealtimePermute(t *testing.T) {
@@ -21,7 +20,7 @@ func TestRealtimePermute(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	nodeid.IsLastNode = true
+	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -42,7 +41,7 @@ func TestRealtimePermute(t *testing.T) {
 		Message:            cyclic.NewInt(12),
 		// TODO Should this really need to be populated? Will it always be
 		// populated in real usage?
-		CurrentID:  userid.NewUserIDFromUint(5, t),
+		CurrentID:  id.NewUserFromUint(5, t),
 		CurrentKey: cyclic.NewInt(1),
 	}
 

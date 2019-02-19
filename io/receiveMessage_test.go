@@ -11,7 +11,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"testing"
@@ -50,8 +50,8 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	MessageCh = make(chan *realtime.Slot, 1)
 
 	// Expected values
-	senderID := userid.NewUserIDFromUint(66, t)
-	recipientID := userid.NewUserIDFromUint(65, t)
+	senderID := id.NewUserFromUint(66, t)
+	recipientID := id.NewUserFromUint(65, t)
 	text := []byte("hey there, sailor. want to see my unencrypted message?")
 
 	// Create an unencrypted message for testing

@@ -10,9 +10,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/id"
 	"strconv"
 	"time"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Records current time and sends all recorded times to next node
@@ -20,7 +20,7 @@ func (s ServerImpl) RoundtripPing(msg *pb.TimePing) {
 	// record current time
 	times := append(msg.Times, time.Now().UnixNano())
 	// if not last node, send to next node. otherwise log results
-	if !nodeid.IsLastNode {
+	if !id.IsLastNode {
 		node.SendRoundtripPing(Servers[len(times)-1],
 			&pb.TimePing{
 				Times: times,

@@ -17,7 +17,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 
 	"fmt"
-	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/id"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -201,8 +201,8 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 	inMsgs []*cyclic.Int) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.Slot)
-		rID := new(userid.UserID).SetBytes(esTmp.EncryptedRecipient.
-			LeftpadBytes(userid.UserIDLen))
+		rID := new(id.User).SetBytes(esTmp.EncryptedRecipient.
+			LeftpadBytes(id.UserLen))
 		inputMsgPostID := services.Slot(&realtime.Slot{
 			Slot:       esTmp.Slot,
 			CurrentID:  rID,
@@ -528,14 +528,14 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          userid.NewUserIDFromUint(i+1, nil),
+			CurrentID:          id.NewUserFromUint(i+1, nil),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: userid.NewUserIDFromUint((i+1)%101, nil),
+			CurrentID: id.NewUserFromUint((i+1)%101, nil),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}

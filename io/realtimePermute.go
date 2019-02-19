@@ -11,11 +11,11 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"time"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -144,7 +144,7 @@ func (h RealtimePermuteHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if nodeid.IsLastNode {
+	if id.IsLastNode {
 		// Transition to RealtimeIdentify phase
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_IDENTIFY)

@@ -9,12 +9,12 @@ package globals
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Server-wide configured batch size
@@ -214,12 +214,12 @@ func NewRound(batchSize uint64) *Round {
 	case round = <-RoundRecycle:
 	default:
 		round = newRound(batchSize, OFF)
-		if nodeid.IsLastNode {
+		if id.IsLastNode {
 			InitLastNode(round)
 		}
 	}
 	round = newRound(batchSize, OFF)
-	if nodeid.IsLastNode {
+	if id.IsLastNode {
 		InitLastNode(round)
 	}
 

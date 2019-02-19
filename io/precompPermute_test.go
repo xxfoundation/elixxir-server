@@ -8,11 +8,11 @@ package io
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
-	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestPrecompPermute(t *testing.T) {
@@ -20,7 +20,7 @@ func TestPrecompPermute(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	nodeid.IsLastNode = true
+	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
