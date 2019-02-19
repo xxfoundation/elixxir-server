@@ -7,14 +7,14 @@
 package io
 
 import (
+	"bytes"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/format"
+	"gitlab.com/elixxir/primitives/userid"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"testing"
-	"bytes"
-	"gitlab.com/elixxir/primitives/userid"
-	"gitlab.com/elixxir/primitives/format"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -56,7 +56,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 
 	// Create an unencrypted message for testing
 	message, err := format.NewMessage(senderID, recipientID, text)
-	copy(message.GetPayloadInitVect(), []byte("abcdefghi"))
+	copy(message.GetMessageInitVect(), []byte("abcdefghi"))
 	copy(message.GetRecipientInitVect(), []byte("fghijklmn"))
 
 	if err != nil {
@@ -67,8 +67,8 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	// Send the message to the server itself
 	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{
 		SenderID:       senderID[:],
-		MessagePayload: messageSerial.Payload,
-		RecipientID:    messageSerial.Recipient,
+		MessagePayload: messageSerial.MessagePayload,
+		RecipientID:    messageSerial.RecipientPayload,
 	})
 
 	receivedMessage := <-MessageCh
@@ -79,8 +79,8 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 			*receivedMessage.CurrentID, *senderID)
 	}
 	result := format.DeserializeMessage(format.MessageSerial{
-		Payload:   receivedMessage.Message.LeftpadBytes(format.TOTAL_LEN),
-		Recipient: receivedMessage.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN)})
+		MessagePayload:   receivedMessage.Message.LeftpadBytes(format.TOTAL_LEN),
+		RecipientPayload: receivedMessage.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN)})
 	if *result.GetSender() != *senderID {
 		t.Errorf("Received sender ID in bytes %q, expected %q",
 			*result.GetSender(), *senderID)
