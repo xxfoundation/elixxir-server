@@ -8,11 +8,12 @@ package io
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestRealtimePeel(t *testing.T) {
@@ -20,7 +21,7 @@ func TestRealtimePeel(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	globals.IsLastNode = true
+	nodeid.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -37,7 +38,7 @@ func TestRealtimePeel(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:               uint64(0),
-		CurrentID:          id.NewUserIDFromUint(42, t),
+		CurrentID:          userid.NewUserIDFromUint(42, t),
 		Message:            cyclic.NewInt(7),
 		EncryptedRecipient: cyclic.NewInt(42),
 	}
@@ -77,12 +78,12 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	globals.IsLastNode = true
+	nodeid.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
 	handler := RealtimePeelHandler{}
-	userId := id.NewUserIDFromUint(1, t)
+	userId := userid.NewUserIDFromUint(1, t)
 	s := make([]*services.Slot, 1)
 	sl := &realtime.Slot{
 		EncryptedRecipient: cyclic.NewInt(10),

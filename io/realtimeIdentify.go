@@ -11,11 +11,11 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/hash"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"time"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -59,7 +59,7 @@ func (h RealtimeIdentifyHandler) Handler(
 		cMixHash.Write(encryptedMsg)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
-			SenderID:       id.ZeroID[:],
+			SenderID:       userid.ZeroID[:],
 			RecipientID:    rID,
 			MessagePayload: encryptedMsg,
 			Salt:           cMixHash.Sum(nil),

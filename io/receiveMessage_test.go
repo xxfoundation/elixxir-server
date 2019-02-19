@@ -9,12 +9,12 @@ package io
 import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/format"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"testing"
 	"bytes"
+	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/format"
 )
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -50,25 +50,25 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	MessageCh = make(chan *realtime.Slot, 1)
 
 	// Expected values
-	senderID := id.NewUserIDFromUint(66, t)
-	recipientID := id.NewUserIDFromUint(65, t)
+	senderID := userid.NewUserIDFromUint(66, t)
+	recipientID := userid.NewUserIDFromUint(65, t)
 	text := []byte("hey there, sailor. want to see my unencrypted message?")
 
 	// Create an unencrypted message for testing
 	message, err := format.NewMessage(senderID, recipientID, text)
-	message[0].GetPayloadInitVect().SetBytes([]byte("abcdefghi"))
-	message[0].GetRecipientInitVect().SetBytes([]byte("fghijklmn"))
+	copy(message.GetPayloadInitVect(), []byte("abcdefghi"))
+	copy(message.GetRecipientInitVect(), []byte("fghijklmn"))
 
 	if err != nil {
 		t.Errorf("Couldn't construct message: %s", err.Error())
 	}
-	messageSerial := message[0].SerializeMessage()
+	messageSerial := message.SerializeMessage()
 
 	// Send the message to the server itself
 	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{
 		SenderID:       senderID[:],
-		MessagePayload: messageSerial.Payload.Bytes(),
-		RecipientID:    messageSerial.Recipient.Bytes(),
+		MessagePayload: messageSerial.Payload,
+		RecipientID:    messageSerial.Recipient,
 	})
 
 	receivedMessage := <-MessageCh
@@ -79,8 +79,8 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 			*receivedMessage.CurrentID, *senderID)
 	}
 	result := format.DeserializeMessage(format.MessageSerial{
-		Payload:   receivedMessage.Message,
-		Recipient: receivedMessage.EncryptedRecipient})
+		Payload:   receivedMessage.Message.LeftpadBytes(format.TOTAL_LEN),
+		Recipient: receivedMessage.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN)})
 	if *result.GetSender() != *senderID {
 		t.Errorf("Received sender ID in bytes %q, expected %q",
 			*result.GetSender(), *senderID)
@@ -89,7 +89,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		t.Errorf("Received recipient ID %q, expected %q",
 			*result.GetRecipient(), *recipientID)
 	}
-	if !bytes.Equal(result.GetPayload(), text) {
+	if !bytes.Contains(result.GetPayload(), text) {
 		t.Errorf("Received payload message %q, expected %q",
 			result.GetPayload(), text)
 	}

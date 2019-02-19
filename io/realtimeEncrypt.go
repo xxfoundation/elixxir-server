@@ -11,11 +11,12 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"time"
+	"gitlab.com/elixxir/primitives/userid"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -40,8 +41,8 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		in := input.Slots[i]
 		// Ensure that the recipient ID populates the correct user ID length
 		// by leftpadding it with the appropriate length
-		in.RecipientID = append(make([]byte, id.UserIDLen-len(in.RecipientID)), in.RecipientID...)
-		userId := new(id.UserID).SetBytes(in.RecipientID)
+		in.RecipientID = append(make([]byte, userid.UserIDLen-len(in.RecipientID)), in.RecipientID...)
+		userId := new(userid.UserID).SetBytes(in.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       uint64(i),
 			CurrentID:  userId,
@@ -95,7 +96,7 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to Slot
-		userId := new(id.UserID).SetBytes(out.RecipientID)
+		userId := new(userid.UserID).SetBytes(out.RecipientID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       i,
 			CurrentID:  userId,
@@ -140,7 +141,7 @@ func (h RealtimeEncryptHandler) Handler(
 		out := (*slots[i]).(*realtime.Slot)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
-			SenderID:       id.ZeroID[:],
+			SenderID:       userid.ZeroID[:],
 			RecipientID:    out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
 			Salt:           out.Salt,
@@ -151,7 +152,7 @@ func (h RealtimeEncryptHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if globals.IsLastNode {
+	if nodeid.IsLastNode {
 		// Transition to RealtimePeel phase
 		jww.INFO.Printf("Starting RealtimePeel Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

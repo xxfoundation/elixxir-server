@@ -17,6 +17,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"time"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Comms method for kicking off a new round in CMIX
@@ -165,7 +166,7 @@ func (s ServerImpl) NewRound(clusterRoundID string) {
 
 	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 
-	if globals.IsLastNode {
+	if nodeid.IsLastNode {
 		// Create the controller for RealtimeIdentify
 		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
 			realtime.Identify{}, nil, nil, round)

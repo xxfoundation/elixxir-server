@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"time"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 // Blank struct for implementing services.BatchTransmission
@@ -143,7 +144,7 @@ func (h RealtimePermuteHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if globals.IsLastNode {
+	if nodeid.IsLastNode {
 		// Transition to RealtimeIdentify phase
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_IDENTIFY)

@@ -8,7 +8,7 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Slot is a general slot structure used by all other
@@ -22,7 +22,7 @@ type Slot struct {
 	// Encrypted or plaintext Message
 	Message *cyclic.Int
 	// Plaintext SenderID or RecipientID
-	CurrentID *id.UserID
+	CurrentID *userid.UserID
 	// TransmissionKey, ReceptionKey, etc
 	CurrentKey *cyclic.Int
 	// Salt for client operations (only for Decrypt and Encrypt Phases)

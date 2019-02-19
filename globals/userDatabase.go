@@ -14,15 +14,15 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"sync"
 	"time"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Struct implementing the UserRegistry Interface with an underlying DB
 type UserDatabase struct {
 	db           *pg.DB                             // Stored database connection
-	userChannels map[id.UserID]chan *pb.CmixMessage // Map of UserId to chan
+	userChannels map[userid.UserID]chan *pb.CmixMessage // Map of UserId to chan
 }
 
 // Struct representing a User in the database
@@ -54,21 +54,21 @@ type SaltDB struct {
 	UserId string
 }
 
-func encodeUserID(userId *id.UserID) string {
+func encodeUserID(userId *userid.UserID) string {
 	return base64.StdEncoding.EncodeToString(userId.Bytes())
 }
 
-func decodeUserID(userIdDB string) *id.UserID {
+func decodeUserID(userIdDB string) *userid.UserID {
 	userIdBytes, err := base64.StdEncoding.DecodeString(userIdDB)
 	// This should only happen if you intentionally put invalid user ID
 	// information in the database, which should never happen
 	if err != nil {
 		jww.ERROR.Print("decodeUserID: Got error decoding user ID. " +
 			"Returning zero ID instead")
-		return id.ZeroID
+		return userid.ZeroID
 	}
 
-	return new(id.UserID).SetBytes(userIdBytes)
+	return new(userid.UserID).SetBytes(userIdBytes)
 }
 
 // Initialize the UserRegistry interface with appropriate backend
@@ -93,8 +93,8 @@ func NewUserRegistry(username, password,
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
 
-		uc := make(map[id.UserID]*User)
-		salts := make(map[id.UserID][][]byte)
+		uc := make(map[userid.UserID]*User)
+		salts := make(map[userid.UserID][][]byte)
 
 		return UserRegistry(&UserMap{
 			userCollection: uc,
@@ -107,7 +107,7 @@ func NewUserRegistry(username, password,
 		jww.INFO.Println("Using database backend for UserRegistry!")
 		return UserRegistry(&UserDatabase{
 			db:           db,
-			userChannels: make(map[id.UserID]chan *pb.CmixMessage),
+			userChannels: make(map[userid.UserID]chan *pb.CmixMessage),
 		})
 	}
 }
@@ -150,7 +150,7 @@ func PopulateDummyUsers() {
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserDatabase) InsertSalt(userId *id.UserID, salt []byte) bool {
+func (m *UserDatabase) InsertSalt(userId *userid.UserID, salt []byte) bool {
 	// Convert id.UserID to string for database lookup
 	userIdDB := encodeUserID(userId)
 	// Create a salt object with the given UserID
@@ -185,7 +185,7 @@ func (m *UserDatabase) NewUser(address string) *User {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserDatabase) DeleteUser(userId *id.UserID) {
+func (m *UserDatabase) DeleteUser(userId *userid.UserID) {
 	// Convert user ID to string for database lookup
 	userIdDB := encodeUserID(userId)
 	// Perform the delete for the given ID
@@ -200,7 +200,7 @@ func (m *UserDatabase) DeleteUser(userId *id.UserID) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(userId *id.UserID) (*User, error) {
+func (m *UserDatabase) GetUser(userId *userid.UserID) (*User, error) {
 	// Perform the select for the given ID
 	userIdDB := encodeUserID(userId)
 	user := UserDB{Id: userIdDB}

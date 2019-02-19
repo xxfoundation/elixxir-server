@@ -10,7 +10,6 @@ import (
 
 	"fmt"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"gitlab.com/elixxir/server/benchmark"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -18,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"os"
 	"testing"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 func TestMain(m *testing.M) {
@@ -527,7 +527,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	// ----- REALTIME ----- //
 	inputMsg := services.Slot(&realtime.Slot{
 		Slot:               0,
-		CurrentID:          id.NewUserIDFromUint(1, t),
+		CurrentID:          userid.NewUserIDFromUint(1, t),
 		Message:            cyclic.NewInt(31),
 		EncryptedRecipient: cyclic.NewInt(1),
 		CurrentKey:         cyclic.NewInt(1),
@@ -593,9 +593,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.Slot)
-	rID := new(id.UserID).SetBytes(esTmp.EncryptedRecipient.
-		LeftpadBytes(id.UserIDLen))
-	copy(rID[:], esTmp.EncryptedRecipient.LeftpadBytes(id.UserIDLen))
+	rID := new(userid.UserID).SetBytes(esTmp.EncryptedRecipient.
+		LeftpadBytes(userid.UserIDLen))
+	copy(rID[:], esTmp.EncryptedRecipient.LeftpadBytes(userid.UserIDLen))
 	inputMsgPostID := services.Slot(&realtime.Slot{
 		Slot:       esTmp.Slot,
 		CurrentID:  rID,
@@ -818,7 +818,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 
 	inputMsg := services.Slot(&realtime.Slot{
 		Slot:               0,
-		CurrentID:          id.NewUserIDFromUint(1, t),
+		CurrentID:          userid.NewUserIDFromUint(1, t),
 		Message:            cyclic.NewInt(42), // Meaning of Life
 		EncryptedRecipient: cyclic.NewInt(1),
 		CurrentKey:         cyclic.NewInt(1),
@@ -865,14 +865,14 @@ func Test3NodeE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          id.NewUserIDFromUint(i+1, t),
+			CurrentID:          userid.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt(42 + int64(i)), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt(1 + int64(i)),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserIDFromUint(i+1, t),
+			CurrentID: userid.NewUserIDFromUint(i+1, t),
 			Message:   cyclic.NewInt(42 + int64(i)), // Meaning of Life
 		}
 	}
@@ -897,14 +897,14 @@ func Test1NodePermuteE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          id.NewUserIDFromUint(i+1, t),
+			CurrentID:          userid.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserIDFromUint((i+1)%101, t),
+			CurrentID: userid.NewUserIDFromUint((i+1)%101, t),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}
@@ -965,14 +965,14 @@ func TestRealPrimeE2E(t *testing.T) {
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
 			Slot:               i,
-			CurrentID:          id.NewUserIDFromUint(i+1, t),
+			CurrentID:          userid.NewUserIDFromUint(i+1, t),
 			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
 			CurrentKey:         cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserIDFromUint((i+1)%101, t),
+			CurrentID: userid.NewUserIDFromUint((i+1)%101, t),
 			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
 		}
 	}

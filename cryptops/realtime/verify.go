@@ -11,10 +11,10 @@ package realtime
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/format"
 	"gitlab.com/elixxir/crypto/verification"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/primitives/format"
 )
 
 // Identify implements the Verification of the MIC in realtime processing.
@@ -65,10 +65,10 @@ func (i Verify) Build(g *cyclic.Group,
 func (i Verify) Run(g *cyclic.Group,
 	in, out *Slot, keys *KeysVerify) services.Slot {
 
-	recip := format.DeserializeRecipient(in.EncryptedRecipient)
-	iv := recip.GetRecipientInitVect().LeftpadBytes(format.RIV_LEN)
-	pmic := recip.GetRecipientMIC().LeftpadBytes(format.RMIC_LEN)
-	recpbytes := recip.GetRecipientID().LeftpadBytes(format.RID_LEN)
+	recip := format.DeserializeRecipient(in.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN))
+	iv := recip.GetRecipientInitVect()
+	pmic := recip.GetRecipientMIC()
+	recpbytes := recip.GetRecipientID()
 
 	recipientMicList := [][]byte{iv, recpbytes}
 

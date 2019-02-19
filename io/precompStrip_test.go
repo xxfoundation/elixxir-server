@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"gitlab.com/elixxir/primitives/nodeid"
 )
 
 func TestPrecompStrip(t *testing.T) {
@@ -19,7 +20,7 @@ func TestPrecompStrip(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	globals.IsLastNode = true
+	nodeid.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -77,7 +78,7 @@ func TestPrecompStripHandler_Handler(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1)
 	globals.InitLastNode(round)
-	globals.IsLastNode = true
+	nodeid.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 

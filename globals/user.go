@@ -10,9 +10,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/id"
 	"sync"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/primitives/userid"
 )
 
 // Globally initiated UserRegistry
@@ -28,19 +28,19 @@ var idCounter = uint64(1)
 // Interface for User Registry operations
 type UserRegistry interface {
 	NewUser(address string) *User
-	DeleteUser(id *id.UserID)
-	GetUser(id *id.UserID) (user *User, err error)
+	DeleteUser(id *userid.UserID)
+	GetUser(id *userid.UserID) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
-	InsertSalt(userId *id.UserID, salt []byte) bool
+	InsertSalt(userId *userid.UserID, salt []byte) bool
 }
 
 // Struct implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
-	userCollection map[id.UserID]*User
+	userCollection map[userid.UserID]*User
 	// Map acting as the Salt table, containing UserID -> List of 256-bit salts
-	saltCollection map[id.UserID][][]byte
+	saltCollection map[userid.UserID][][]byte
 	// Lock for thread safety
 	collectionLock *sync.Mutex
 }
@@ -68,7 +68,7 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 // Struct representing a User in the system
 type User struct {
-	ID            *id.UserID
+	ID            *userid.UserID
 	HUID          []byte
 	Address       string
 	Nick          string
@@ -102,7 +102,7 @@ func (m *UserMap) NewUser(address string) *User {
 	recept := new(ForwardKey)
 
 	// Generate user parameters
-	usr.ID = new(id.UserID).SetUints(&[4]uint64{0, 0, 0, i})
+	usr.ID = new(userid.UserID).SetUints(&[4]uint64{0, 0, 0, i})
 	h.Write([]byte(string(20000 + i)))
 	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	h = sha256.New()
@@ -122,7 +122,7 @@ func (m *UserMap) NewUser(address string) *User {
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserMap) InsertSalt(userId *id.UserID, salt []byte) bool {
+func (m *UserMap) InsertSalt(userId *userid.UserID, salt []byte) bool {
 	// If the number of salts for the given UserId
 	// is greater than the maximum allowed, then reject
 	maxSalts := 300
@@ -138,7 +138,7 @@ func (m *UserMap) InsertSalt(userId *id.UserID, salt []byte) bool {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserMap) DeleteUser(userId *id.UserID) {
+func (m *UserMap) DeleteUser(userId *userid.UserID) {
 	// If key does not exist, do nothing
 	m.collectionLock.Lock()
 	delete(m.userCollection, *userId)
@@ -147,7 +147,7 @@ func (m *UserMap) DeleteUser(userId *id.UserID) {
 
 // GetUser returns a user with the given ID from userCollection
 // and a boolean for whether the user exists
-func (m *UserMap) GetUser(userId *id.UserID) (*User, error) {
+func (m *UserMap) GetUser(userId *userid.UserID) (*User, error) {
 	var u *User
 	var err error
 	m.collectionLock.Lock()
