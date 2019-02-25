@@ -45,8 +45,8 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 			Slot: i,
 			MessagePrecomputation:     cyclic.NewMaxInt(),
 			MessageCypher:             cyclic.NewMaxInt(),
-			RecipientIDPrecomputation: cyclic.NewMaxInt(),
-			RecipientIDCypher:         cyclic.NewMaxInt(),
+			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
+			AssociatedDataCypher:         cyclic.NewMaxInt(),
 		}
 	}
 
@@ -100,7 +100,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 
 	// Eq 13.19: Multiplies the Permuted Internode Recipient Key under
 	// Homomorphic Encryption into the Partial Encrypted Recipient Precomputation
-	g.Mul(in.RecipientIDCypher, tmp, out.RecipientIDCypher)
+	g.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
 
 	// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode Message
 	// Key
@@ -116,7 +116,7 @@ func (p Permute) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 
 	// Eq 13.23 Multiplies the Partial Cypher Text for the Permuted Internode
 	// Recipient Key into the Round Recipient Partial Cypher Text
-	g.Mul(in.RecipientIDPrecomputation, tmp, out.RecipientIDPrecomputation)
+	g.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
 
 	return out
 

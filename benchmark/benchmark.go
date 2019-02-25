@@ -133,9 +133,9 @@ func PermuteEncryptTranslate(permute, encrypt chan *services.Slot,
 		})
 		// Save LastNode Data to Round
 		i := is.Slot
-		round.LastNode.RecipientCypherText[i].Set(is.RecipientIDPrecomputation)
+		round.LastNode.RecipientCypherText[i].Set(is.AssociatedDataPrecomputation)
 		round.LastNode.EncryptedRecipientPrecomputation[i].Set(
-			is.RecipientIDCypher)
+			is.AssociatedDataCypher)
 		encrypt <- &se
 	}
 }
@@ -149,7 +149,7 @@ func EncryptRevealTranslate(encrypt, reveal chan *services.Slot,
 		sr := services.Slot(&precomputation.PrecomputationSlot{
 			Slot: i,
 			MessagePrecomputation:     is.MessagePrecomputation,
-			RecipientIDPrecomputation: round.LastNode.RecipientCypherText[i],
+			AssociatedDataPrecomputation: round.LastNode.RecipientCypherText[i],
 		})
 		round.LastNode.EncryptedMessagePrecomputation[i].Set(
 			is.MessageCypher)
@@ -165,7 +165,7 @@ func RevealStripTranslate(reveal, strip chan *services.Slot) {
 		ss := services.Slot(&precomputation.PrecomputationSlot{
 			Slot: i,
 			MessagePrecomputation:     is.MessagePrecomputation,
-			RecipientIDPrecomputation: is.RecipientIDPrecomputation,
+			AssociatedDataPrecomputation: is.AssociatedDataPrecomputation,
 		})
 		strip <- &ss
 	}
@@ -350,8 +350,8 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 			Slot:                      i,
 			MessageCypher:             cyclic.NewInt(1),
 			MessagePrecomputation:     cyclic.NewInt(1),
-			RecipientIDCypher:         cyclic.NewInt(1),
-			RecipientIDPrecomputation: cyclic.NewInt(1),
+			AssociatedDataCypher:         cyclic.NewInt(1),
+			AssociatedDataPrecomputation: cyclic.NewInt(1),
 		})
 		decrypts[0].InChannel <- &decMsg
 	}
@@ -362,13 +362,13 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 
 		LastRound.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
 		LastRound.LastNode.RecipientPrecomputation[es.Slot] =
-			es.RecipientIDPrecomputation
+			es.AssociatedDataPrecomputation
 
 		// TOOD: Consider moving this to the caller
 		// t.Logf("%d NODE STRIP:\n  MessagePrecomputation: %s, "+
 		// 	"RecipientPrecomputation: %s\n", nodeCount,
 		// 	es.MessagePrecomputation.Text(10),
-		// 	es.RecipientIDPrecomputation.Text(10))
+		// 	es.AssociatedDataPrecomputation.Text(10))
 
 		// Check precomputation, note that these are currently expected to be
 		// wrong under permutation
@@ -462,7 +462,7 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 				expectedOutputs[i].Message.Text(10))
 		}
 		if *esRT.CurrentID != *expectedOutputs[esRT.Slot].CurrentID {
-			jww.FATAL.Panicf("RTPEEL %d failed RecipientID. Got: %q Expected: %q",
+			jww.FATAL.Panicf("RTPEEL %d failed AssociatedData. Got: %q Expected: %q",
 				esRT.Slot, *esRT.CurrentID, *expectedOutputs[i].CurrentID)
 		}
 

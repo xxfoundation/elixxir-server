@@ -37,7 +37,7 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 		om[i] = &PrecomputationSlot{
 			Slot: i,
 			MessagePrecomputation:     cyclic.NewMaxInt(),
-			RecipientIDPrecomputation: cyclic.NewMaxInt(),
+			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
 		}
 	}
 
@@ -71,11 +71,11 @@ func (r Reveal) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 
 	// Eq 15.13 Root by cypher key to remove one layer of homomorphic
 	// encryption from partially encrypted recipient ID cypher text.
-	g.RootCoprime(in.RecipientIDPrecomputation, keys.Z,
-		out.RecipientIDPrecomputation)
+	g.RootCoprime(in.AssociatedDataPrecomputation, keys.Z,
+		out.AssociatedDataPrecomputation)
 
 	out.MessageCypher = in.MessageCypher
-	out.RecipientIDCypher = in.RecipientIDCypher
+	out.AssociatedDataCypher = in.AssociatedDataCypher
 
 	return out
 }

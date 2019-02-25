@@ -65,7 +65,7 @@ func TestRealtimeIdentify(t *testing.T) {
 	}
 	if expected.EncryptedRecipient.Cmp(
 		actual.EncryptedRecipient) != 0 {
-		t.Errorf("EncryptedRecipientID does not match!"+
+		t.Errorf("EncryptedAssociatedData does not match!"+
 			" Got %v, expected %v.",
 			actual.EncryptedRecipient.Text(10),
 			expected.EncryptedRecipient.Text(10))

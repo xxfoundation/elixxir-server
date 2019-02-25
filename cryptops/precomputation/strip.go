@@ -37,7 +37,7 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 		om[i] = &PrecomputationSlot{
 			Slot: i,
 			MessagePrecomputation:     round.LastNode.MessagePrecomputation[i],
-			RecipientIDPrecomputation: round.LastNode.RecipientPrecomputation[i],
+			AssociatedDataPrecomputation: round.LastNode.RecipientPrecomputation[i],
 		}
 	}
 
@@ -82,15 +82,15 @@ func (s Strip) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	//           keys.EncryptedRecipientKeys.Text(10))
 
 	// Eq 16.2: Invert the round recipient private key
-	g.Inverse(in.RecipientIDPrecomputation, tmp)
+	g.Inverse(in.AssociatedDataPrecomputation, tmp)
 
 	// Eq 16.2: Use the inverted round recipient private key to remove
 	//          the homomorphic encryption from encrypted recipient key and reveal
 	//          the recipient precomputation
-	g.Mul(tmp, keys.EncryptedRecipientKeys, out.RecipientIDPrecomputation)
+	g.Mul(tmp, keys.EncryptedRecipientKeys, out.AssociatedDataPrecomputation)
 
 	out.MessageCypher = in.MessageCypher
-	out.RecipientIDCypher = in.RecipientIDCypher
+	out.AssociatedDataCypher = in.AssociatedDataCypher
 
 	return out
 }

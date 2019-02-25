@@ -38,8 +38,8 @@ func TestPrecompReveal(t *testing.T) {
 	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot: uint64(0),
 		MessagePrecomputation:     cyclic.NewInt(3),
-		RecipientIDPrecomputation: cyclic.NewInt(10),
-		RecipientIDCypher:         cyclic.NewInt(1),
+		AssociatedDataPrecomputation: cyclic.NewInt(10),
+		AssociatedDataCypher:         cyclic.NewInt(1),
 		MessageCypher:             cyclic.NewInt(1),
 	}
 

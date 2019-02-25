@@ -38,9 +38,9 @@ func TestPrecompPermute(t *testing.T) {
 	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot:                      uint64(0),
 		MessageCypher:             cyclic.NewInt(12),
-		RecipientIDCypher:         cyclic.NewInt(7),
+		AssociatedDataCypher:         cyclic.NewInt(7),
 		MessagePrecomputation:     cyclic.NewInt(3),
-		RecipientIDPrecomputation: cyclic.NewInt(8)}
+		AssociatedDataPrecomputation: cyclic.NewInt(8)}
 
 	// Pass slot as input to Permute's TransmissionHandler
 	chOut <- &slot
@@ -63,12 +63,12 @@ func TestPrecompPermute(t *testing.T) {
 			actual.MessageCypher.Text(10),
 			expected.MessageCypher.Text(10))
 	}
-	if expected.RecipientIDCypher.Cmp(
-		actual.RecipientIDCypher) != 0 {
-		t.Errorf("RecipientIDCypher does not match!"+
+	if expected.AssociatedDataCypher.Cmp(
+		actual.AssociatedDataCypher) != 0 {
+		t.Errorf("AssociatedDataCypher does not match!"+
 			" Got %v, expected %v.",
-			actual.RecipientIDCypher.Text(10),
-			expected.RecipientIDCypher.Text(10))
+			actual.AssociatedDataCypher.Text(10),
+			expected.AssociatedDataCypher.Text(10))
 	}
 	if expected.MessagePrecomputation.Cmp(
 		actual.MessagePrecomputation) != 0 {
@@ -77,11 +77,11 @@ func TestPrecompPermute(t *testing.T) {
 			actual.MessagePrecomputation.Text(10),
 			expected.MessagePrecomputation.Text(10))
 	}
-	if expected.RecipientIDPrecomputation.Cmp(
-		actual.RecipientIDPrecomputation) != 0 {
-		t.Errorf("RecipientIDPrecomputation does not match!"+
+	if expected.AssociatedDataPrecomputation.Cmp(
+		actual.AssociatedDataPrecomputation) != 0 {
+		t.Errorf("AssociatedDataPrecomputation does not match!"+
 			" Got %v, expected %v.",
-			actual.RecipientIDPrecomputation.Text(10),
-			expected.RecipientIDPrecomputation.Text(10))
+			actual.AssociatedDataPrecomputation.Text(10),
+			expected.AssociatedDataPrecomputation.Text(10))
 	}
 }

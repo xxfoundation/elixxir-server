@@ -73,7 +73,7 @@ func (e Encrypt) Run(g *cyclic.Group, in *Slot,
 	g.Mul(encryptionKey, in.Message, in.Message)
 	g.Mul(keys.T, in.Message, out.Message)
 
-	// Pass through RecipientID
+	// Pass through AssociatedData
 	out.CurrentID = in.CurrentID
 	out.Salt = in.Salt
 

@@ -90,9 +90,9 @@ func TestDecrypt(t *testing.T) {
 			} else {
 				pass++
 			}
-			// Test EncryptedRecipientID results
+			// Test EncryptedAssociatedData results
 			if result[j+1].Cmp(rtnXtc.EncryptedRecipient) != 0 {
-				t.Errorf("Test of RealtimeDecrypt's EncryptedRecipientID output "+
+				t.Errorf("Test of RealtimeDecrypt's EncryptedAssociatedData output "+
 					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
 					i, j+1, result[j+1].Text(10), rtnXtc.EncryptedRecipient.Text(10))
 			} else {

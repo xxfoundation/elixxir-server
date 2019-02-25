@@ -86,9 +86,9 @@ func TestEncrypt(t *testing.T) {
 			}
 		}
 
-		// Test RecipientID pass through
+		// Test AssociatedData pass through
 		if recipientIds[i] != rtnXtc.CurrentID {
-			t.Errorf("Test of RealtimeEncrypt's RecipientID ouput failed on index %v.  Expected: %v Received: %v ",
+			t.Errorf("Test of RealtimeEncrypt's AssociatedData ouput failed on index %v.  Expected: %v Received: %v ",
 				i, recipientIds[i], rtnXtc.CurrentID)
 		} else {
 			pass++

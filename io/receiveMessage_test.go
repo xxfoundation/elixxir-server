@@ -68,7 +68,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{
 		SenderID:       senderID[:],
 		MessagePayload: messageSerial.MessagePayload,
-		RecipientID:    messageSerial.RecipientPayload,
+		AssociatedData:    messageSerial.RecipientPayload,
 	})
 
 	receivedMessage := <-MessageCh

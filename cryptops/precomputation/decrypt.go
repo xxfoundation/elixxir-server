@@ -45,8 +45,8 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 			Slot: i,
 			MessagePrecomputation:     cyclic.NewMaxInt(),
 			MessageCypher:             cyclic.NewMaxInt(),
-			RecipientIDPrecomputation: cyclic.NewMaxInt(),
-			RecipientIDCypher:         cyclic.NewMaxInt(),
+			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
+			AssociatedDataCypher:         cyclic.NewMaxInt(),
 		}
 	}
 
@@ -89,7 +89,7 @@ func (d Decrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	// Eq 12.3: Combine First Unpermuted Internode Recipient Keys
 	g.Exp(g.G, keys.Y_U, tmp)
 	g.Mul(keys.U_INV, tmp, tmp)
-	g.Mul(in.RecipientIDCypher, tmp, out.RecipientIDCypher)
+	g.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
 
 	// Eq 12.5: Combine Partial Message Cypher Text
 	g.Exp(keys.PublicCypherKey, keys.Y_R, tmp)
@@ -97,7 +97,7 @@ func (d Decrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 
 	// Eq 12.7: Combine Partial Recipient Cypher Text
 	g.Exp(keys.PublicCypherKey, keys.Y_U, tmp)
-	g.Mul(in.RecipientIDPrecomputation, tmp, out.RecipientIDPrecomputation)
+	g.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
 
 	return out
 

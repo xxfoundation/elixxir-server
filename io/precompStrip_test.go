@@ -38,9 +38,9 @@ func TestPrecompStrip(t *testing.T) {
 	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot:                      uint64(0),
 		MessageCypher:             cyclic.NewInt(12),
-		RecipientIDCypher:         cyclic.NewInt(7),
+		AssociatedDataCypher:         cyclic.NewInt(7),
 		MessagePrecomputation:     cyclic.NewInt(3),
-		RecipientIDPrecomputation: cyclic.NewInt(8)}
+		AssociatedDataPrecomputation: cyclic.NewInt(8)}
 
 	// Pass slot as input to Strip's TransmissionHandler
 	chOut <- &slot
@@ -63,12 +63,12 @@ func TestPrecompStrip(t *testing.T) {
 			actual.MessagePrecomputation.Text(10),
 			expected.MessagePrecomputation.Text(10))
 	}
-	if expected.RecipientIDPrecomputation.Text(10) !=
-		actual.RecipientIDPrecomputation.Text(10) {
-		t.Errorf("RecipientIDPrecomputation does not match!"+
+	if expected.AssociatedDataPrecomputation.Text(10) !=
+		actual.AssociatedDataPrecomputation.Text(10) {
+		t.Errorf("AssociatedDataPrecomputation does not match!"+
 			" Got %v, expected %v.",
-			actual.RecipientIDPrecomputation.Text(10),
-			expected.RecipientIDPrecomputation.Text(10))
+			actual.AssociatedDataPrecomputation.Text(10),
+			expected.AssociatedDataPrecomputation.Text(10))
 	}
 }
 
@@ -86,7 +86,7 @@ func TestPrecompStripHandler_Handler(t *testing.T) {
 	s := make([]*services.Slot, 1)
 	sl := &precomputation.PrecomputationSlot{
 		MessagePrecomputation:     cyclic.NewInt(10),
-		RecipientIDPrecomputation: cyclic.NewInt(10),
+		AssociatedDataPrecomputation: cyclic.NewInt(10),
 	}
 	slot := services.Slot(sl)
 	s[0] = &slot
@@ -102,7 +102,7 @@ func TestPrecompStripHandler_Handler(t *testing.T) {
 			" MessagePrecomputation!")
 	}
 	if round.LastNode.RecipientPrecomputation[0].Cmp(
-		sl.RecipientIDPrecomputation) != 0 {
+		sl.AssociatedDataPrecomputation) != 0 {
 		t.Errorf("PrecompStripHandler: Failed to save" +
 			" RecipientPrecomputation!")
 	}

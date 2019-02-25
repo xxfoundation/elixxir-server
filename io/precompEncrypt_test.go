@@ -38,8 +38,8 @@ func TestPrecompEncrypt(t *testing.T) {
 		Slot:                      uint64(0),
 		MessageCypher:             cyclic.NewInt(12),
 		MessagePrecomputation:     cyclic.NewInt(3),
-		RecipientIDCypher:         cyclic.NewInt(1),
-		RecipientIDPrecomputation: cyclic.NewInt(1),
+		AssociatedDataCypher:         cyclic.NewInt(1),
+		AssociatedDataPrecomputation: cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler

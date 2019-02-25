@@ -53,38 +53,38 @@ func TestPermute(t *testing.T) {
 	var inMessages []services.Slot
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
 		MessageCypher:             cyclic.NewInt(39),
-		RecipientIDCypher:         cyclic.NewInt(13),
+		AssociatedDataCypher:         cyclic.NewInt(13),
 		MessagePrecomputation:     cyclic.NewInt(41),
-		RecipientIDPrecomputation: cyclic.NewInt(74)})
+		AssociatedDataPrecomputation: cyclic.NewInt(74)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
 		MessageCypher:             cyclic.NewInt(86),
-		RecipientIDCypher:         cyclic.NewInt(87),
+		AssociatedDataCypher:         cyclic.NewInt(87),
 		MessagePrecomputation:     cyclic.NewInt(8),
-		RecipientIDPrecomputation: cyclic.NewInt(49)})
+		AssociatedDataPrecomputation: cyclic.NewInt(49)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
 		MessageCypher:             cyclic.NewInt(39),
-		RecipientIDCypher:         cyclic.NewInt(51),
+		AssociatedDataCypher:         cyclic.NewInt(51),
 		MessagePrecomputation:     cyclic.NewInt(91),
-		RecipientIDPrecomputation: cyclic.NewInt(73)})
+		AssociatedDataPrecomputation: cyclic.NewInt(73)})
 
 	expected := []PrecomputationSlot{
 		PrecomputationSlot{Slot: uint64(1),
 			MessageCypher:             cyclic.NewInt(71),
-			RecipientIDCypher:         cyclic.NewInt(60),
+			AssociatedDataCypher:         cyclic.NewInt(60),
 			MessagePrecomputation:     cyclic.NewInt(44),
-			RecipientIDPrecomputation: cyclic.NewInt(97)},
+			AssociatedDataPrecomputation: cyclic.NewInt(97)},
 		PrecomputationSlot{Slot: uint64(2),
 			MessageCypher:             cyclic.NewInt(79),
-			RecipientIDCypher:         cyclic.NewInt(16),
+			AssociatedDataCypher:         cyclic.NewInt(16),
 			MessagePrecomputation:     cyclic.NewInt(47),
-			RecipientIDPrecomputation: cyclic.NewInt(47)},
+			AssociatedDataPrecomputation: cyclic.NewInt(47)},
 		PrecomputationSlot{Slot: uint64(0),
 			MessageCypher:             cyclic.NewInt(78),
-			RecipientIDCypher:         cyclic.NewInt(34),
+			AssociatedDataCypher:         cyclic.NewInt(34),
 			MessagePrecomputation:     cyclic.NewInt(69),
-			RecipientIDPrecomputation: cyclic.NewInt(13)},
+			AssociatedDataPrecomputation: cyclic.NewInt(13)},
 	}
 	dispatch := services.DispatchCryptop(&group, Permute{}, nil, nil, round)
 
@@ -102,21 +102,21 @@ func TestPermute(t *testing.T) {
 				"Keys Test on index: %v; Expected: %v; Actual: %v\n", i,
 				expected[i].MessageCypher.Text(10),
 				act.MessageCypher.Text(10))
-		} else if act.RecipientIDCypher.Cmp(expected[i].RecipientIDCypher) != 0 {
+		} else if act.AssociatedDataCypher.Cmp(expected[i].AssociatedDataCypher) != 0 {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Recipient"+
 				"IDKeys Test on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].RecipientIDCypher.Text(10),
-				act.RecipientIDCypher.Text(10))
+				expected[i].AssociatedDataCypher.Text(10),
+				act.AssociatedDataCypher.Text(10))
 		} else if act.MessagePrecomputation.Cmp(expected[i].MessagePrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Message"+
 				"CypherText Test on index: %v; Expected: %v; Actual: %v\n", i,
 				expected[i].MessagePrecomputation.Text(10),
 				act.MessagePrecomputation.Text(10))
-		} else if act.RecipientIDPrecomputation.Cmp(expected[i].RecipientIDPrecomputation) != 0 {
+		} else if act.AssociatedDataPrecomputation.Cmp(expected[i].AssociatedDataPrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Permute's cryptop failed Recipient"+
 				"CypherText Test on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].RecipientIDPrecomputation.Text(10),
-				act.RecipientIDPrecomputation.Text(10))
+				expected[i].AssociatedDataPrecomputation.Text(10),
+				act.AssociatedDataPrecomputation.Text(10))
 		} else {
 			pass++
 		}
