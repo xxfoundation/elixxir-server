@@ -19,7 +19,7 @@ type ReceiveMessageHandler struct{}
 
 // Reception handler for ReceiveMessageFromClient
 func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
-	recipientID := cyclic.NewIntFromBytes(msg.RecipientID)
+	recipientID := cyclic.NewIntFromBytes(msg.AssociatedData)
 	messagePayload := cyclic.NewIntFromBytes(msg.MessagePayload)
 
 	jww.DEBUG.Printf("Received message from client: %v",
@@ -41,6 +41,6 @@ func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
 
 	} else {
 		jww.ERROR.Printf("Received message is not in the group: MsgPayload %v "+
-			"RecipientID %v", messagePayload.Text(10), recipientID.Text(10))
+			"AssociatedData %v", messagePayload.Text(10), recipientID.Text(10))
 	}
 }

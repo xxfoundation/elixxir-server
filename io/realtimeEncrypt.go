@@ -40,8 +40,8 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		in := input.Slots[i]
 		// Ensure that the recipient ID populates the correct user ID length
 		// by leftpadding it with the appropriate length
-		in.RecipientID = append(make([]byte, id.UserLen-len(in.RecipientID)), in.RecipientID...)
-		userId := new(id.User).SetBytes(in.RecipientID)
+		in.AssociatedData = append(make([]byte, id.UserLen-len(in.AssociatedData)), in.AssociatedData...)
+		userId := new(id.User).SetBytes(in.AssociatedData)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       uint64(i),
 			CurrentID:  userId,
@@ -95,7 +95,7 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to Slot
-		userId := new(id.User).SetBytes(out.RecipientID)
+		userId := new(id.User).SetBytes(out.AssociatedData)
 		var slot services.Slot = &realtime.Slot{
 			Slot:       i,
 			CurrentID:  userId,
@@ -141,7 +141,7 @@ func (h RealtimeEncryptHandler) Handler(
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
 			SenderID:       id.ZeroID[:],
-			RecipientID:    out.CurrentID[:],
+			AssociatedData:    out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
 			Salt:           out.Salt,
 		}

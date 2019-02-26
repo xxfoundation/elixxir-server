@@ -43,12 +43,12 @@ func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 			Slot: in.Slot,
 			MessageCypher: cyclic.NewIntFromBytes(
 				in.EncryptedMessageKeys),
-			RecipientIDCypher: cyclic.NewIntFromBytes(
-				in.EncryptedRecipientIDKeys),
+			AssociatedDataCypher: cyclic.NewIntFromBytes(
+				in.EncryptedAssociatedDataKeys),
 			MessagePrecomputation: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
-			RecipientIDPrecomputation: cyclic.NewIntFromBytes(
-				in.PartialRecipientIDCypherText),
+			AssociatedDataPrecomputation: cyclic.NewIntFromBytes(
+				in.PartialAssociatedDataCypherText),
 		}
 		// Pass slot as input to Decrypt's channel
 		chIn <- &slot
@@ -93,9 +93,9 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 		msgSlot := &pb.PrecompPermuteSlot{
 			Slot:                         out.Slot,
 			EncryptedMessageKeys:         out.EncryptedMessageKeys,
-			EncryptedRecipientIDKeys:     out.EncryptedRecipientIDKeys,
+			EncryptedAssociatedDataKeys:     out.EncryptedAssociatedDataKeys,
 			PartialMessageCypherText:     out.PartialMessageCypherText,
-			PartialRecipientIDCypherText: out.PartialRecipientIDCypherText,
+			PartialAssociatedDataCypherText: out.PartialAssociatedDataCypherText,
 		}
 
 		// Append the PrecompPermuteSlot to the PrecompPermuteMessage
@@ -144,9 +144,9 @@ func (h PrecompDecryptHandler) Handler(
 		msgSlot := &pb.PrecompDecryptSlot{
 			Slot:                         out.Slot,
 			EncryptedMessageKeys:         out.MessageCypher.Bytes(),
-			EncryptedRecipientIDKeys:     out.RecipientIDCypher.Bytes(),
+			EncryptedAssociatedDataKeys:     out.AssociatedDataCypher.Bytes(),
 			PartialMessageCypherText:     out.MessagePrecomputation.Bytes(),
-			PartialRecipientIDCypherText: out.RecipientIDPrecomputation.Bytes(),
+			PartialAssociatedDataCypherText: out.AssociatedDataPrecomputation.Bytes(),
 		}
 
 		// Append the PrecompDecryptSlot to the PrecompDecryptMessage

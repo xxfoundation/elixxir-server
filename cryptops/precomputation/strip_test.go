@@ -31,15 +31,15 @@ func TestStrip(t *testing.T) {
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
 		MessagePrecomputation:     cyclic.NewInt(39),
-		RecipientIDPrecomputation: cyclic.NewInt(13)})
+		AssociatedDataPrecomputation: cyclic.NewInt(13)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
 		MessagePrecomputation:     cyclic.NewInt(86),
-		RecipientIDPrecomputation: cyclic.NewInt(87)})
+		AssociatedDataPrecomputation: cyclic.NewInt(87)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
 		MessagePrecomputation:     cyclic.NewInt(39),
-		RecipientIDPrecomputation: cyclic.NewInt(51)})
+		AssociatedDataPrecomputation: cyclic.NewInt(51)})
 
 	globals.InitLastNode(round)
 	round.LastNode.EncryptedMessagePrecomputation[0] = cyclic.NewInt(41)
@@ -52,13 +52,13 @@ func TestStrip(t *testing.T) {
 	expected := []PrecomputationSlot{
 		PrecomputationSlot{Slot: uint64(0),
 			MessagePrecomputation:     cyclic.NewInt(98),
-			RecipientIDPrecomputation: cyclic.NewInt(21)},
+			AssociatedDataPrecomputation: cyclic.NewInt(21)},
 		PrecomputationSlot{Slot: uint64(1),
 			MessagePrecomputation:     cyclic.NewInt(51),
-			RecipientIDPrecomputation: cyclic.NewInt(12)},
+			AssociatedDataPrecomputation: cyclic.NewInt(12)},
 		PrecomputationSlot{Slot: uint64(2),
 			MessagePrecomputation:     cyclic.NewInt(135),
-			RecipientIDPrecomputation: cyclic.NewInt(138)},
+			AssociatedDataPrecomputation: cyclic.NewInt(138)},
 	}
 
 	dc := services.DispatchCryptop(&group, Strip{}, nil, nil, round)
@@ -79,13 +79,13 @@ func TestStrip(t *testing.T) {
 				"on index: %v; Expected: %v; Actual: %v\n", i,
 				expected[i].MessagePrecomputation.Text(10),
 				actual.MessagePrecomputation.Text(10))
-		} else if actual.RecipientIDPrecomputation.Cmp(
-			expected[i].RecipientIDPrecomputation) != 0 {
+		} else if actual.AssociatedDataPrecomputation.Cmp(
+			expected[i].AssociatedDataPrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Strip's cryptop failed"+
 				" RecipientPrecomputation "+
 				"on index: %v; Expected: %v; Actual: %v\n", i,
-				expected[i].RecipientIDPrecomputation.Text(10),
-				actual.RecipientIDPrecomputation.Text(10))
+				expected[i].AssociatedDataPrecomputation.Text(10),
+				actual.AssociatedDataPrecomputation.Text(10))
 		} else {
 			pass++
 		}

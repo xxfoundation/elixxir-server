@@ -60,7 +60,7 @@ func (h RealtimeIdentifyHandler) Handler(
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
 			SenderID:       id.ZeroID[:],
-			RecipientID:    rID,
+			AssociatedData:    rID,
 			MessagePayload: encryptedMsg,
 			Salt:           cMixHash.Sum(nil),
 		}

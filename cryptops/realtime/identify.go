@@ -65,7 +65,7 @@ func (i Identify) Run(g *cyclic.Group,
 	in, out *Slot, keys *KeysIdentify) services.Slot {
 
 	// Eq 5.1
-	// Multiply EncryptedRecipientID by the precomputed value
+	// Multiply EncryptedAssociatedData by the precomputed value
 	g.Mul(in.EncryptedRecipient, keys.RecipientPrecomputation,
 		out.EncryptedRecipient)
 

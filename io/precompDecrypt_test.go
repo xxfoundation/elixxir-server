@@ -34,9 +34,9 @@ func (h DummyPrecompDecryptHandler) Handler(
 		msgSlot := &pb.PrecompDecryptSlot{
 			Slot:                         out.Slot,
 			EncryptedMessageKeys:         out.MessageCypher.Bytes(),
-			EncryptedRecipientIDKeys:     out.RecipientIDCypher.Bytes(),
+			EncryptedAssociatedDataKeys:     out.AssociatedDataCypher.Bytes(),
 			PartialMessageCypherText:     out.MessagePrecomputation.Bytes(),
-			PartialRecipientIDCypherText: out.RecipientIDPrecomputation.Bytes(),
+			PartialAssociatedDataCypherText: out.AssociatedDataPrecomputation.Bytes(),
 		}
 
 		// Append the PrecompDecryptSlot to the PrecompDecryptMessage
@@ -71,9 +71,9 @@ func TestPrecompDecrypt(t *testing.T) {
 	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot:                      uint64(0),
 		MessageCypher:             cyclic.NewInt(12),
-		RecipientIDCypher:         cyclic.NewInt(7),
+		AssociatedDataCypher:         cyclic.NewInt(7),
 		MessagePrecomputation:     cyclic.NewInt(3),
-		RecipientIDPrecomputation: cyclic.NewInt(8)}
+		AssociatedDataPrecomputation: cyclic.NewInt(8)}
 
 	// Pass slot as input to Decrypt's TransmissionHandler
 	chOut <- &slot
@@ -96,12 +96,12 @@ func TestPrecompDecrypt(t *testing.T) {
 			actual.MessageCypher.Text(10),
 			expected.MessageCypher.Text(10))
 	}
-	if expected.RecipientIDCypher.Text(10) !=
-		actual.RecipientIDCypher.Text(10) {
-		t.Errorf("RecipientIDCypher does not match!"+
+	if expected.AssociatedDataCypher.Text(10) !=
+		actual.AssociatedDataCypher.Text(10) {
+		t.Errorf("AssociatedDataCypher does not match!"+
 			" Got %v, expected %v.",
-			actual.RecipientIDCypher.Text(10),
-			expected.RecipientIDCypher.Text(10))
+			actual.AssociatedDataCypher.Text(10),
+			expected.AssociatedDataCypher.Text(10))
 	}
 	if expected.MessagePrecomputation.Text(10) !=
 		actual.MessagePrecomputation.Text(10) {
@@ -110,11 +110,11 @@ func TestPrecompDecrypt(t *testing.T) {
 			actual.MessagePrecomputation.Text(10),
 			expected.MessagePrecomputation.Text(10))
 	}
-	if expected.RecipientIDPrecomputation.Text(10) !=
-		actual.RecipientIDPrecomputation.Text(10) {
-		t.Errorf("RecipientIDPrecomputation does not match!"+
+	if expected.AssociatedDataPrecomputation.Text(10) !=
+		actual.AssociatedDataPrecomputation.Text(10) {
+		t.Errorf("AssociatedDataPrecomputation does not match!"+
 			" Got %v, expected %v.",
-			actual.RecipientIDPrecomputation.Text(10),
-			expected.RecipientIDPrecomputation.Text(10))
+			actual.AssociatedDataPrecomputation.Text(10),
+			expected.AssociatedDataPrecomputation.Text(10))
 	}
 }

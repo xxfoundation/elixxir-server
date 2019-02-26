@@ -115,8 +115,8 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 			Slot:                         uint64(i),
 			EncryptedMessageKeys:         cyclic.NewInt(1).Bytes(),
 			PartialMessageCypherText:     cyclic.NewInt(1).Bytes(),
-			EncryptedRecipientIDKeys:     cyclic.NewInt(1).Bytes(),
-			PartialRecipientIDCypherText: cyclic.NewInt(1).Bytes(),
+			EncryptedAssociatedDataKeys:     cyclic.NewInt(1).Bytes(),
+			PartialAssociatedDataCypherText: cyclic.NewInt(1).Bytes(),
 		}
 		msg.Slots[i] = msgSlot
 	}

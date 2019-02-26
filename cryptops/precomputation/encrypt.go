@@ -90,8 +90,8 @@ func (e Encrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	// Public Key into the Partial Cypher Text.
 	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
-	out.RecipientIDCypher = in.RecipientIDCypher
-	out.RecipientIDPrecomputation = in.RecipientIDPrecomputation
+	out.AssociatedDataCypher = in.AssociatedDataCypher
+	out.AssociatedDataPrecomputation = in.AssociatedDataPrecomputation
 
 	return out
 

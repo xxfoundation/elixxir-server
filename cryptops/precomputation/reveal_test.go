@@ -31,17 +31,17 @@ func TestPrecomputationReveal(t *testing.T) {
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(0),
 		MessagePrecomputation:     cyclic.NewInt(int64(39)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(13))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(1),
 		MessagePrecomputation:     cyclic.NewInt(int64(86)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(87))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(2),
 		MessagePrecomputation:     cyclic.NewInt(int64(39)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(51))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(51))})
 
 	round.Z = cyclic.NewInt(53)
 
@@ -61,12 +61,12 @@ func TestPrecomputationReveal(t *testing.T) {
 		result := results[i]
 
 		if result[0].Cmp(rtn.MessagePrecomputation) != 0 ||
-			result[1].Cmp(rtn.RecipientIDPrecomputation) != 0 {
+			result[1].Cmp(rtn.AssociatedDataPrecomputation) != 0 {
 			t.Errorf("Test of PrecompReveal's cryptop failed on index: %v"+
 				" Expected: %v,%v Received: %v,%v ", i,
 				result[0].Text(10), result[1].Text(10),
 				rtn.MessagePrecomputation.Text(10),
-				rtn.RecipientIDPrecomputation.Text(10))
+				rtn.AssociatedDataPrecomputation.Text(10))
 		} else {
 			pass++
 		}
@@ -90,32 +90,32 @@ func TestPrecomputationRevealRun(t *testing.T) {
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(0),
 		MessagePrecomputation:     cyclic.NewInt(int64(39)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(13))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(1),
 		MessagePrecomputation:     cyclic.NewInt(int64(86)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(87))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot: uint64(2),
 		MessagePrecomputation:     cyclic.NewInt(int64(39)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(51))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(51))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot: uint64(1),
 		MessagePrecomputation:     cyclic.NewInt(int64(0)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot: uint64(2),
 		MessagePrecomputation:     cyclic.NewInt(int64(0)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot: uint64(0),
 		MessagePrecomputation:     cyclic.NewInt(int64(0)),
-		RecipientIDPrecomputation: cyclic.NewInt(int64(0))})
+		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
 
 	key := KeysReveal{
 		Z: cyclic.NewInt(53),
@@ -135,11 +135,11 @@ func TestPrecomputationRevealRun(t *testing.T) {
 
 	for i := uint64(0); i < bs; i++ {
 		if results[i][0].Cmp(om[i].MessagePrecomputation) != 0 ||
-			results[i][1].Cmp(om[i].RecipientIDPrecomputation) != 0 {
+			results[i][1].Cmp(om[i].AssociatedDataPrecomputation) != 0 {
 			t.Errorf("TestPrecomputationRevealRun - Expected: %v,%v Got: %v,%v",
 				results[i][0].Text(10), results[i][1].Text(10),
 				om[i].MessagePrecomputation.Text(10),
-				om[i].RecipientIDPrecomputation.Text(10))
+				om[i].AssociatedDataPrecomputation.Text(10))
 		}
 	}
 }

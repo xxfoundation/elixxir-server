@@ -335,8 +335,8 @@ func TestEndToEndCryptops(t *testing.T) {
 		Slot:                      0,
 		MessageCypher:             cyclic.NewInt(1),
 		MessagePrecomputation:     cyclic.NewInt(1),
-		RecipientIDCypher:         cyclic.NewInt(1),
-		RecipientIDPrecomputation: cyclic.NewInt(1),
+		AssociatedDataCypher:         cyclic.NewInt(1),
+		AssociatedDataPrecomputation: cyclic.NewInt(1),
 	}
 	Decrypt := services.DispatchCryptop(&grp, precomputation.Decrypt{},
 		nil, nil, round)
@@ -350,11 +350,11 @@ func TestEndToEndCryptops(t *testing.T) {
 		is := (*iv).(*precomputation.PrecomputationSlot)
 
 		t.Logf("DECRYPT:\n  MessageCypher: %s, "+
-			"RecipientIDCypher: %s,\n"+
-			"  MessagePrecomputation: %s, RecipientIDPrecomputation: %s\n",
-			is.MessageCypher.Text(10), is.RecipientIDCypher.Text(10),
+			"AssociatedDataCypher: %s,\n"+
+			"  MessagePrecomputation: %s, AssociatedDataPrecomputation: %s\n",
+			is.MessageCypher.Text(10), is.AssociatedDataCypher.Text(10),
 			is.MessagePrecomputation.Text(10),
-			is.RecipientIDPrecomputation.Text(10))
+			is.AssociatedDataPrecomputation.Text(10))
 
 		expectedDecrypt := []*cyclic.Int{
 			cyclic.NewInt(32), cyclic.NewInt(35),
@@ -364,17 +364,17 @@ func TestEndToEndCryptops(t *testing.T) {
 			t.Errorf("DECRYPT failed MessageCypher. Got: %s Expected: %s",
 				is.MessageCypher.Text(10), expectedDecrypt[0].Text(10))
 		}
-		if is.RecipientIDCypher.Cmp(expectedDecrypt[1]) != 0 {
-			t.Errorf("DECRYPT failed RecipientIDCypher. Got: %s Expected: %s",
-				is.RecipientIDCypher.Text(10), expectedDecrypt[1].Text(10))
+		if is.AssociatedDataCypher.Cmp(expectedDecrypt[1]) != 0 {
+			t.Errorf("DECRYPT failed AssociatedDataCypher. Got: %s Expected: %s",
+				is.AssociatedDataCypher.Text(10), expectedDecrypt[1].Text(10))
 		}
 		if is.MessagePrecomputation.Cmp(expectedDecrypt[2]) != 0 {
 			t.Errorf("DECRYPT failed MessagePrecomputation. Got: %s Expected: %s",
 				is.MessagePrecomputation.Text(10), expectedDecrypt[2].Text(10))
 		}
-		if is.RecipientIDPrecomputation.Cmp(expectedDecrypt[3]) != 0 {
-			t.Errorf("DECRYPT failed RecipientIDPrecomputation. Got: %s "+
-				"Expected: %s", is.RecipientIDPrecomputation.Text(10),
+		if is.AssociatedDataPrecomputation.Cmp(expectedDecrypt[3]) != 0 {
+			t.Errorf("DECRYPT failed AssociatedDataPrecomputation. Got: %s "+
+				"Expected: %s", is.AssociatedDataPrecomputation.Text(10),
 				expectedDecrypt[3].Text(10))
 		}
 
@@ -391,11 +391,11 @@ func TestEndToEndCryptops(t *testing.T) {
 		pm := (*iv).(*precomputation.PrecomputationSlot)
 
 		t.Logf("PERMUTE:\n  MessageCypher: %s, "+
-			"RecipientIDCypher: %s,\n"+
-			"  MessagePrecomputation: %s, RecipientIDPrecomputation: %s\n",
-			pm.MessageCypher.Text(10), pm.RecipientIDCypher.Text(10),
+			"AssociatedDataCypher: %s,\n"+
+			"  MessagePrecomputation: %s, AssociatedDataPrecomputation: %s\n",
+			pm.MessageCypher.Text(10), pm.AssociatedDataCypher.Text(10),
 			pm.MessagePrecomputation.Text(10),
-			pm.RecipientIDPrecomputation.Text(10))
+			pm.AssociatedDataPrecomputation.Text(10))
 
 		expectedPermute := []*cyclic.Int{
 			cyclic.NewInt(83), cyclic.NewInt(17),
@@ -405,26 +405,26 @@ func TestEndToEndCryptops(t *testing.T) {
 			t.Errorf("PERMUTE failed MessageCypher. Got: %s Expected: %s",
 				pm.MessageCypher.Text(10), expectedPermute[0].Text(10))
 		}
-		if pm.RecipientIDCypher.Cmp(expectedPermute[1]) != 0 {
-			t.Errorf("PERMUTE failed RecipientIDCypher. Got: %s Expected: %s",
-				pm.RecipientIDCypher.Text(10), expectedPermute[1].Text(10))
+		if pm.AssociatedDataCypher.Cmp(expectedPermute[1]) != 0 {
+			t.Errorf("PERMUTE failed AssociatedDataCypher. Got: %s Expected: %s",
+				pm.AssociatedDataCypher.Text(10), expectedPermute[1].Text(10))
 		}
 		if pm.MessagePrecomputation.Cmp(expectedPermute[2]) != 0 {
 			t.Errorf("PERMUTE failed MessagePrecomputation. Got: %s Expected: %s",
 				pm.MessagePrecomputation.Text(10), expectedPermute[2].Text(10))
 		}
-		if pm.RecipientIDPrecomputation.Cmp(expectedPermute[3]) != 0 {
-			t.Errorf("PERMUTE failed RecipientIDPrecomputation. Got: %s "+
-				"Expected: %s", pm.RecipientIDPrecomputation.Text(10),
+		if pm.AssociatedDataPrecomputation.Cmp(expectedPermute[3]) != 0 {
+			t.Errorf("PERMUTE failed AssociatedDataPrecomputation. Got: %s "+
+				"Expected: %s", pm.AssociatedDataPrecomputation.Text(10),
 				expectedPermute[3].Text(10))
 		}
 
 		// Save the results to LastNode, which we don't have to check
 		// because we are the only node
 		i := pm.Slot
-		round.LastNode.RecipientCypherText[i].Set(pm.RecipientIDPrecomputation)
+		round.LastNode.RecipientCypherText[i].Set(pm.AssociatedDataPrecomputation)
 		round.LastNode.EncryptedRecipientPrecomputation[i].Set(
-			pm.RecipientIDCypher)
+			pm.AssociatedDataCypher)
 
 		ov := services.Slot(pm)
 		out <- &ov
@@ -451,7 +451,7 @@ func TestEndToEndCryptops(t *testing.T) {
 				pm.MessageCypher.Text(10), expectedEncrypt[0].Text(10))
 		}
 		if pm.MessagePrecomputation.Cmp(expectedEncrypt[1]) != 0 {
-			t.Errorf("ENCRYPT failed RecipientIDCypher. Got: %s Expected: %s",
+			t.Errorf("ENCRYPT failed AssociatedDataCypher. Got: %s Expected: %s",
 				pm.MessagePrecomputation.Text(10), expectedEncrypt[1].Text(10))
 		}
 
@@ -471,8 +471,8 @@ func TestEndToEndCryptops(t *testing.T) {
 		pm := (*iv).(*precomputation.PrecomputationSlot)
 
 		t.Logf("REVEAL:\n  RoundMessagePrivateKey: %s, "+
-			"RoundRecipientPrivateKey: %s\n", pm.RecipientIDPrecomputation.Text(10),
-			pm.RecipientIDPrecomputation.Text(10))
+			"RoundRecipientPrivateKey: %s\n", pm.AssociatedDataPrecomputation.Text(10),
+			pm.AssociatedDataPrecomputation.Text(10))
 		expectedReveal := []*cyclic.Int{
 			cyclic.NewInt(20), cyclic.NewInt(68),
 		}
@@ -480,9 +480,9 @@ func TestEndToEndCryptops(t *testing.T) {
 			t.Errorf("REVEAL failed RoundMessagePrivateKey. Got: %s Expected: %s",
 				pm.MessagePrecomputation.Text(10), expectedReveal[0].Text(10))
 		}
-		if pm.RecipientIDPrecomputation.Cmp(expectedReveal[1]) != 0 {
+		if pm.AssociatedDataPrecomputation.Cmp(expectedReveal[1]) != 0 {
 			t.Errorf("REVEAL failed RoundRecipientPrivateKey. Got: %s Expected: %s",
-				pm.RecipientIDPrecomputation.Text(10), expectedReveal[1].Text(10))
+				pm.AssociatedDataPrecomputation.Text(10), expectedReveal[1].Text(10))
 		}
 
 		ov := services.Slot(pm)
@@ -495,11 +495,11 @@ func TestEndToEndCryptops(t *testing.T) {
 	es := (*rtn).(*precomputation.PrecomputationSlot)
 
 	round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
-	round.LastNode.RecipientPrecomputation[es.Slot] = es.RecipientIDPrecomputation
+	round.LastNode.RecipientPrecomputation[es.Slot] = es.AssociatedDataPrecomputation
 
 	t.Logf("STRIP:\n  MessagePrecomputation: %s, "+
 		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
-		es.RecipientIDPrecomputation.Text(10))
+		es.AssociatedDataPrecomputation.Text(10))
 	expectedStrip := []*cyclic.Int{
 		cyclic.NewInt(18), cyclic.NewInt(76),
 	}
@@ -507,9 +507,9 @@ func TestEndToEndCryptops(t *testing.T) {
 		t.Errorf("STRIP failed MessagePrecomputation. Got: %s Expected: %s",
 			es.MessagePrecomputation.Text(10), expectedStrip[0].Text(10))
 	}
-	if es.RecipientIDPrecomputation.Cmp(expectedStrip[1]) != 0 {
+	if es.AssociatedDataPrecomputation.Cmp(expectedStrip[1]) != 0 {
 		t.Errorf("STRIP failed RecipientPrecomputation. Got: %s Expected: %s",
-			es.RecipientIDPrecomputation.Text(10), expectedStrip[1].Text(10))
+			es.AssociatedDataPrecomputation.Text(10), expectedStrip[1].Text(10))
 	}
 
 	MP, RP := ComputeSingleNodePrecomputation(&grp, round)
@@ -519,9 +519,9 @@ func TestEndToEndCryptops(t *testing.T) {
 			MP.Text(10), es.MessagePrecomputation.Text(10))
 	}
 
-	if RP.Cmp(es.RecipientIDPrecomputation) != 0 {
+	if RP.Cmp(es.AssociatedDataPrecomputation) != 0 {
 		t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
-			RP.Text(10), es.RecipientIDPrecomputation.Text(10))
+			RP.Text(10), es.AssociatedDataPrecomputation.Text(10))
 	}
 
 	// ----- REALTIME ----- //
@@ -550,7 +550,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			EncryptedRecipient: is.EncryptedRecipient,
 		})
 
-		t.Logf("RTDECRYPT:\n  EncryptedMessage: %s, EncryptedRecipientID: %s\n",
+		t.Logf("RTDECRYPT:\n  EncryptedMessage: %s, EncryptedAssociatedData: %s\n",
 			is.Message.Text(10),
 			is.EncryptedRecipient.Text(10))
 		expectedRTDecrypt := []*cyclic.Int{
@@ -561,7 +561,7 @@ func TestEndToEndCryptops(t *testing.T) {
 				is.Message.Text(10), expectedRTDecrypt[0].Text(10))
 		}
 		if is.EncryptedRecipient.Cmp(expectedRTDecrypt[1]) != 0 {
-			t.Errorf("RTDECRYPT failed EncryptedRecipientID. Got: %s Expected: %s",
+			t.Errorf("RTDECRYPT failed EncryptedAssociatedData. Got: %s Expected: %s",
 				is.EncryptedRecipient.Text(10), expectedRTDecrypt[1].Text(10))
 		}
 
@@ -580,13 +580,13 @@ func TestEndToEndCryptops(t *testing.T) {
 		EncryptedRecipient: esPrm.EncryptedRecipient,
 	})
 	TmpMsg := esPrm.Message
-	t.Logf("RTPERMUTE:\n  EncryptedRecipientID: %s\n",
+	t.Logf("RTPERMUTE:\n  EncryptedAssociatedData: %s\n",
 		esPrm.EncryptedRecipient.Text(10))
 	expectedRTPermute := []*cyclic.Int{
 		cyclic.NewInt(4),
 	}
 	if esPrm.EncryptedRecipient.Cmp(expectedRTPermute[0]) != 0 {
-		t.Errorf("RTPERMUTE failed EncryptedRecipientID. Got: %s Expected: %s",
+		t.Errorf("RTPERMUTE failed EncryptedAssociatedData. Got: %s Expected: %s",
 			esPrm.EncryptedRecipient.Text(10), expectedRTPermute[0].Text(10))
 	}
 
@@ -602,13 +602,13 @@ func TestEndToEndCryptops(t *testing.T) {
 		Message:    TmpMsg,
 		CurrentKey: cyclic.NewInt(1),
 	})
-	t.Logf("RTIDENTIFY:\n  RecipientID: %s\n",
+	t.Logf("RTIDENTIFY:\n  AssociatedData: %s\n",
 		esTmp.EncryptedRecipient.Text(10))
 	expectedRTIdentify := []*cyclic.Int{
 		cyclic.NewInt(1),
 	}
 	if esTmp.EncryptedRecipient.Cmp(expectedRTIdentify[0]) != 0 {
-		t.Errorf("RTIDENTIFY failed EncryptedRecipientID. Got: %s Expected: %s",
+		t.Errorf("RTIDENTIFY failed EncryptedAssociatedData. Got: %s Expected: %s",
 			esTmp.EncryptedRecipient.Text(10), expectedRTIdentify[0].Text(10))
 	}
 
@@ -751,8 +751,8 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		Slot:                      0,
 		MessageCypher:             cyclic.NewInt(1),
 		MessagePrecomputation:     cyclic.NewInt(1),
-		RecipientIDCypher:         cyclic.NewInt(1),
-		RecipientIDPrecomputation: cyclic.NewInt(1),
+		AssociatedDataCypher:         cyclic.NewInt(1),
+		AssociatedDataPrecomputation: cyclic.NewInt(1),
 	})
 	N1Decrypt.InChannel <- &decMsg
 	rtn := <-N2Strip.OutChannel
@@ -760,10 +760,10 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 
 	Node2Round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
 	Node2Round.LastNode.RecipientPrecomputation[es.Slot] =
-		es.RecipientIDPrecomputation
+		es.AssociatedDataPrecomputation
 	t.Logf("2 NODE STRIP:\n  MessagePrecomputation: %s, "+
 		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
-		es.RecipientIDPrecomputation.Text(10))
+		es.AssociatedDataPrecomputation.Text(10))
 
 	// Check precomputation
 	MP, RP := ComputePrecomputation(&grp,
@@ -773,9 +773,9 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		t.Errorf("Message Precomputation Incorrect! Expected: %s, Received: %s\n",
 			MP.Text(10), es.MessagePrecomputation.Text(10))
 	}
-	if RP.Cmp(es.RecipientIDPrecomputation) != 0 {
+	if RP.Cmp(es.AssociatedDataPrecomputation) != 0 {
 		t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
-			RP.Text(10), es.RecipientIDPrecomputation.Text(10))
+			RP.Text(10), es.AssociatedDataPrecomputation.Text(10))
 	}
 
 	// ----- REALTIME ----- //

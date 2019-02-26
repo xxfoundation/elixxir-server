@@ -38,9 +38,9 @@ type PrecomputationSlot struct {
 	// Encrypted message key to round message private key
 	MessageCypher *cyclic.Int
 	// Receiptient ID partial cypher text, becomes recipient id precomputation
-	RecipientIDPrecomputation *cyclic.Int
+	AssociatedDataPrecomputation *cyclic.Int
 	// Encrypted recipient id key to round recipient id private key
-	RecipientIDCypher *cyclic.Int
+	AssociatedDataCypher *cyclic.Int
 }
 
 // SlotID functions return the Slot number

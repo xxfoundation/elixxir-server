@@ -70,7 +70,7 @@ func TestRealtimeDecrypt(t *testing.T) {
 	}
 	if expected.EncryptedRecipient.Text(10) !=
 		actual.EncryptedRecipient.Text(10) {
-		t.Errorf("EncryptedRecipientID does not match!"+
+		t.Errorf("EncryptedAssociatedData does not match!"+
 			" Got %v, expected %v.",
 			actual.EncryptedRecipient.Text(10),
 			expected.EncryptedRecipient.Text(10))

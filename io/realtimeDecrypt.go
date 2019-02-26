@@ -48,7 +48,7 @@ func (s ServerImpl) RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 			Slot:               uint64(i),
 			CurrentID:          userId,
 			Message:            cyclic.NewIntFromBytes(in.MessagePayload),
-			EncryptedRecipient: cyclic.NewIntFromBytes(in.RecipientID),
+			EncryptedRecipient: cyclic.NewIntFromBytes(in.AssociatedData),
 			CurrentKey:         cyclic.NewMaxInt(),
 			Salt:               in.Salt,
 			// TODO: How will we pass and verify the kmac?
@@ -96,7 +96,7 @@ func realtimeDecryptLastNode(roundId string, batchSize uint64,
 		msgSlot := &pb.RealtimePermuteSlot{
 			Slot:                 uint64(i),
 			EncryptedMessage:     out.MessagePayload,
-			EncryptedRecipientID: out.RecipientID,
+			EncryptedAssociatedData: out.AssociatedData,
 		}
 
 		// Append the RealtimePermuteSlot to the RealtimePermuteMessage
@@ -144,7 +144,7 @@ func (h RealtimeDecryptHandler) Handler(
 		msgSlot := &pb.CmixMessage{
 			SenderID:       out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
-			RecipientID:    out.EncryptedRecipient.Bytes(),
+			AssociatedData:    out.EncryptedRecipient.Bytes(),
 			Salt:           out.Salt,
 		}
 
@@ -195,7 +195,7 @@ func KickoffDecryptHandler(roundID string, batchSize uint64,
 		msgSlot := &pb.CmixMessage{
 			SenderID:       out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
-			RecipientID:    out.EncryptedRecipient.Bytes(),
+			AssociatedData:    out.EncryptedRecipient.Bytes(),
 			Salt:           out.Salt,
 		}
 
