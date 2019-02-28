@@ -6,7 +6,10 @@
 
 // Package services contains a dispatcher interface and functions which
 // facilitate communication between the different cryptop phases.
-// dispatchTransmission moves messages in the order that it receives them.
+// dispatchTransmission moves messages in slot order because the order that it
+// receives them is not controllable. This ordering is duplicative with
+// slotReorganizer, but our assumption is that this dispatch code may be replaced
+// in the future.
 package services
 
 import (
@@ -48,7 +51,7 @@ func (t *transmit) transmitter(bt BatchTransmission) {
 		select {
 		case in := <-t.inChannel:
 			// Append channel input to slots
-			slots[batchCntr] = in
+			slots[(*in).SlotID()] = in
 			batchCntr++
 
 		case killNotify = <-t.quit:
