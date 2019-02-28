@@ -6,6 +6,7 @@
 
 // Package services contains a dispatcher interface and functions which
 // facilitate communication between the different cryptop phases.
+// dispatchTransmission moves messages in the order that it receives them.
 package services
 
 import (
@@ -47,7 +48,7 @@ func (t *transmit) transmitter(bt BatchTransmission) {
 		select {
 		case in := <-t.inChannel:
 			// Append channel input to slots
-			slots[(*in).SlotID()] = in
+			slots[batchCntr] = in
 			batchCntr++
 
 		case killNotify = <-t.quit:
