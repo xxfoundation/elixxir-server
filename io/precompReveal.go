@@ -44,7 +44,7 @@ func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
 			MessagePrecomputation: cyclic.NewIntFromBytes(
 				in.PartialMessageCypherText),
 			AssociatedDataPrecomputation: cyclic.NewIntFromBytes(
-				in.PartialRecipientCypherText),
+				in.PartialAssociatedDataCypherText),
 		}
 		// Pass slot as input to Reveal's channel
 		chIn <- &slot
@@ -93,7 +93,7 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 			MessagePrecomputation: cyclic.NewIntFromBytes(
 				out.PartialMessageCypherText),
 			AssociatedDataPrecomputation: cyclic.NewIntFromBytes(
-				out.PartialRecipientCypherText),
+				out.PartialAssociatedDataCypherText),
 		}
 		// Pass slot as input to Strip's channel
 		stripChannel <- &slot
@@ -134,8 +134,8 @@ func (h PrecompRevealHandler) Handler(
 		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
 			Slot: out.Slot,
-			PartialMessageCypherText:   out.MessagePrecomputation.Bytes(),
-			PartialRecipientCypherText: out.AssociatedDataPrecomputation.Bytes(),
+			PartialMessageCypherText:        out.MessagePrecomputation.Bytes(),
+			PartialAssociatedDataCypherText: out.AssociatedDataPrecomputation.Bytes(),
 		}
 
 		// Put it into the slice
