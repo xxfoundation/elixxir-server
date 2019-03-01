@@ -36,9 +36,9 @@ func TestRealtimePermute(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
-		Slot:               uint64(0),
-		EncryptedRecipient: cyclic.NewInt(7),
-		Message:            cyclic.NewInt(12),
+		Slot:           uint64(0),
+		AssociatedData: cyclic.NewInt(7),
+		Message:        cyclic.NewInt(12),
 		// TODO Should this really need to be populated? Will it always be
 		// populated in real usage?
 		CurrentID:  id.NewUserFromUint(5, t),
@@ -66,11 +66,11 @@ func TestRealtimePermute(t *testing.T) {
 			actual.Message.Text(10),
 			expected.Message.Text(10))
 	}
-	if expected.EncryptedRecipient.Cmp(
-		actual.EncryptedRecipient) != 0 {
-		t.Errorf("EncryptedAssociatedData does not match!"+
+	if expected.AssociatedData.Cmp(
+		actual.AssociatedData) != 0 {
+		t.Errorf("AssociatedData does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedRecipient.Text(10),
-			expected.EncryptedRecipient.Text(10))
+			actual.AssociatedData.Text(10),
+			expected.AssociatedData.Text(10))
 	}
 }

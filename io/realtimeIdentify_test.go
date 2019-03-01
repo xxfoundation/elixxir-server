@@ -37,10 +37,10 @@ func TestRealtimeIdentify(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
-		Slot:               uint64(0),
-		Message:            cyclic.NewInt(12),
-		EncryptedRecipient: cyclic.NewInt(7),
-		CurrentKey:         cyclic.NewInt(1),
+		Slot:           uint64(0),
+		Message:        cyclic.NewInt(12),
+		AssociatedData: cyclic.NewInt(7),
+		CurrentKey:     cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Identify's TransmissionHandler
@@ -63,11 +63,11 @@ func TestRealtimeIdentify(t *testing.T) {
 			actual.CurrentID,
 			expected.CurrentID)
 	}
-	if expected.EncryptedRecipient.Cmp(
-		actual.EncryptedRecipient) != 0 {
-		t.Errorf("EncryptedAssociatedData does not match!"+
+	if expected.AssociatedData.Cmp(
+		actual.AssociatedData) != 0 {
+		t.Errorf("AssociatedData does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedRecipient.Text(10),
-			expected.EncryptedRecipient.Text(10))
+			actual.AssociatedData.Text(10),
+			expected.AssociatedData.Text(10))
 	}
 }

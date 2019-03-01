@@ -32,10 +32,10 @@ func TestRealtimeDecrypt(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
-		Slot:               uint64(0),
-		CurrentID:          id.NewUserFromUint(42, t),
-		Message:            cyclic.NewInt(7),
-		EncryptedRecipient: cyclic.NewInt(3),
+		Slot:           uint64(0),
+		CurrentID:      id.NewUserFromUint(42, t),
+		Message:        cyclic.NewInt(7),
+		AssociatedData: cyclic.NewInt(3),
 		CurrentKey: cyclic.NewIntFromString(
 			"C0DED00DC0DED00DC0DED00DC0DED00D", 16),
 	}
@@ -68,11 +68,11 @@ func TestRealtimeDecrypt(t *testing.T) {
 			actual.Message.Text(10),
 			expected.Message.Text(10))
 	}
-	if expected.EncryptedRecipient.Text(10) !=
-		actual.EncryptedRecipient.Text(10) {
-		t.Errorf("EncryptedAssociatedData does not match!"+
+	if expected.AssociatedData.Text(10) !=
+		actual.AssociatedData.Text(10) {
+		t.Errorf("AssociatedData does not match!"+
 			" Got %v, expected %v.",
-			actual.EncryptedRecipient.Text(10),
-			expected.EncryptedRecipient.Text(10))
+			actual.AssociatedData.Text(10),
+			expected.AssociatedData.Text(10))
 	}
 }

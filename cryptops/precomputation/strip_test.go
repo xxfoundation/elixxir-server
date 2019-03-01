@@ -30,34 +30,34 @@ func TestStrip(t *testing.T) {
 	var inMessages []services.Slot
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
-		MessagePrecomputation:     cyclic.NewInt(39),
+		MessagePrecomputation:        cyclic.NewInt(39),
 		AssociatedDataPrecomputation: cyclic.NewInt(13)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
-		MessagePrecomputation:     cyclic.NewInt(86),
+		MessagePrecomputation:        cyclic.NewInt(86),
 		AssociatedDataPrecomputation: cyclic.NewInt(87)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
-		MessagePrecomputation:     cyclic.NewInt(39),
+		MessagePrecomputation:        cyclic.NewInt(39),
 		AssociatedDataPrecomputation: cyclic.NewInt(51)})
 
 	globals.InitLastNode(round)
 	round.LastNode.EncryptedMessagePrecomputation[0] = cyclic.NewInt(41)
-	round.LastNode.EncryptedRecipientPrecomputation[0] = cyclic.NewInt(74)
+	round.LastNode.EncryptedAssociatedDataPrecomputation[0] = cyclic.NewInt(74)
 	round.LastNode.EncryptedMessagePrecomputation[1] = cyclic.NewInt(8)
-	round.LastNode.EncryptedRecipientPrecomputation[1] = cyclic.NewInt(49)
+	round.LastNode.EncryptedAssociatedDataPrecomputation[1] = cyclic.NewInt(49)
 	round.LastNode.EncryptedMessagePrecomputation[2] = cyclic.NewInt(91)
-	round.LastNode.EncryptedRecipientPrecomputation[2] = cyclic.NewInt(73)
+	round.LastNode.EncryptedAssociatedDataPrecomputation[2] = cyclic.NewInt(73)
 
 	expected := []PrecomputationSlot{
 		PrecomputationSlot{Slot: uint64(0),
-			MessagePrecomputation:     cyclic.NewInt(98),
+			MessagePrecomputation:        cyclic.NewInt(98),
 			AssociatedDataPrecomputation: cyclic.NewInt(21)},
 		PrecomputationSlot{Slot: uint64(1),
-			MessagePrecomputation:     cyclic.NewInt(51),
+			MessagePrecomputation:        cyclic.NewInt(51),
 			AssociatedDataPrecomputation: cyclic.NewInt(12)},
 		PrecomputationSlot{Slot: uint64(2),
-			MessagePrecomputation:     cyclic.NewInt(135),
+			MessagePrecomputation:        cyclic.NewInt(135),
 			AssociatedDataPrecomputation: cyclic.NewInt(138)},
 	}
 
@@ -82,7 +82,7 @@ func TestStrip(t *testing.T) {
 		} else if actual.AssociatedDataPrecomputation.Cmp(
 			expected[i].AssociatedDataPrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Strip's cryptop failed"+
-				" RecipientPrecomputation "+
+				" AssociatedDataPrecomputation "+
 				"on index: %v; Expected: %v; Actual: %v\n", i,
 				expected[i].AssociatedDataPrecomputation.Text(10),
 				actual.AssociatedDataPrecomputation.Text(10))

@@ -29,24 +29,24 @@ func TestPrecompDecrypt(t *testing.T) {
 	var im []services.Slot
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                      uint64(0),
-		MessageCypher:             cyclic.NewInt(12),
+		Slot:                         uint64(0),
+		MessageCypher:                cyclic.NewInt(12),
 		AssociatedDataCypher:         cyclic.NewInt(7),
-		MessagePrecomputation:     cyclic.NewInt(3),
+		MessagePrecomputation:        cyclic.NewInt(3),
 		AssociatedDataPrecomputation: cyclic.NewInt(8)})
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                      uint64(1),
-		MessageCypher:             cyclic.NewInt(2),
+		Slot:                         uint64(1),
+		MessageCypher:                cyclic.NewInt(2),
 		AssociatedDataCypher:         cyclic.NewInt(4),
-		MessagePrecomputation:     cyclic.NewInt(9),
+		MessagePrecomputation:        cyclic.NewInt(9),
 		AssociatedDataPrecomputation: cyclic.NewInt(16)})
 
 	im = append(im, &PrecomputationSlot{
-		Slot:                      uint64(2),
-		MessageCypher:             cyclic.NewInt(14),
+		Slot:                         uint64(2),
+		MessageCypher:                cyclic.NewInt(14),
 		AssociatedDataCypher:         cyclic.NewInt(99),
-		MessagePrecomputation:     cyclic.NewInt(96),
+		MessagePrecomputation:        cyclic.NewInt(96),
 		AssociatedDataPrecomputation: cyclic.NewInt(5)})
 
 	round.R_INV[0] = cyclic.NewInt(5)

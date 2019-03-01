@@ -55,20 +55,19 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	text := []byte("hey there, sailor. want to see my unencrypted message?")
 
 	// Create an unencrypted message for testing
-	message, err := format.NewMessage(senderID, recipientID, text)
-	copy(message.GetMessageInitVect(), []byte("abcdefghi"))
-	copy(message.GetRecipientInitVect(), []byte("fghijklmn"))
+	message := format.NewMessage()
+	message.SetSender(senderID)
+	message.SetRecipient(recipientID)
+	message.SetPayload(text)
 
-	if err != nil {
-		t.Errorf("Couldn't construct message: %s", err.Error())
-	}
-	messageSerial := message.SerializeMessage()
+	payload := message.SerializePayload()
+	associatedData := message.SerializeAssociatedData()
 
 	// Send the message to the server itself
 	ServerImpl{}.ReceiveMessageFromClient(&pb.CmixMessage{
 		SenderID:       senderID[:],
-		MessagePayload: messageSerial.MessagePayload,
-		AssociatedData:    messageSerial.RecipientPayload,
+		MessagePayload: payload,
+		AssociatedData: associatedData,
 	})
 
 	receivedMessage := <-MessageCh
@@ -78,19 +77,19 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		t.Errorf("Received sender ID %v, expected %v",
 			*receivedMessage.CurrentID, *senderID)
 	}
-	result := format.DeserializeMessage(format.MessageSerial{
-		MessagePayload:   receivedMessage.Message.LeftpadBytes(format.TOTAL_LEN),
-		RecipientPayload: receivedMessage.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN)})
-	if *result.GetSender() != *senderID {
+	resultPayload := format.DeserializePayload(receivedMessage.Message.Bytes())
+	resultAssociatedData := format.DeserializeAssociatedData(receivedMessage.AssociatedData.Bytes())
+
+	if *resultPayload.GetSender() != *senderID {
 		t.Errorf("Received sender ID in bytes %q, expected %q",
-			*result.GetSender(), *senderID)
+			*resultPayload.GetSender(), *senderID)
 	}
-	if *result.GetRecipient() != *recipientID {
+	if *resultAssociatedData.GetRecipient() != *recipientID {
 		t.Errorf("Received recipient ID %q, expected %q",
-			*result.GetRecipient(), *recipientID)
+			*resultAssociatedData.GetRecipient(), *recipientID)
 	}
-	if !bytes.Contains(result.GetPayload(), text) {
+	if !bytes.Contains(resultPayload.GetPayload(), text) {
 		t.Errorf("Received payload message %q, expected %q",
-			result.GetPayload(), text)
+			resultPayload.GetPayload(), text)
 	}
 }

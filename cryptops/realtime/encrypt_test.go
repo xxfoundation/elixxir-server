@@ -34,23 +34,32 @@ func TestEncrypt(t *testing.T) {
 		id.NewUserFromUint(9, t),
 	}
 
+	associatedDatas := [3]*cyclic.Int{
+		cyclic.NewInt(int64(42)),
+		cyclic.NewInt(int64(84)),
+		cyclic.NewInt(int64(126)),
+	}
+
 	var im []services.Slot
 
 	im = append(im, &Slot{
 		Slot:       uint64(0),
 		CurrentID:  recipientIds[0],
+		AssociatedData: associatedDatas[0],
 		Message:    cyclic.NewInt(int64(39)),
 		CurrentKey: cyclic.NewInt(int64(65))})
 
 	im = append(im, &Slot{
 		Slot:       uint64(1),
 		CurrentID:  recipientIds[1],
+		AssociatedData: associatedDatas[1],
 		Message:    cyclic.NewInt(int64(86)),
 		CurrentKey: cyclic.NewInt(int64(44))})
 
 	im = append(im, &Slot{
 		Slot:       uint64(2),
 		CurrentID:  recipientIds[2],
+		AssociatedData: associatedDatas[2],
 		Message:    cyclic.NewInt(int64(66)),
 		CurrentKey: cyclic.NewInt(int64(94))})
 
@@ -86,10 +95,18 @@ func TestEncrypt(t *testing.T) {
 			}
 		}
 
-		// Test AssociatedData pass through
+		// Test CurrentID pass through
 		if recipientIds[i] != rtnXtc.CurrentID {
 			t.Errorf("Test of RealtimeEncrypt's AssociatedData ouput failed on index %v.  Expected: %v Received: %v ",
 				i, recipientIds[i], rtnXtc.CurrentID)
+		} else {
+			pass++
+		}
+
+		// Test AssociatedData pass through
+		if associatedDatas[i].Cmp(rtnXtc.AssociatedData) != 0 {
+			t.Errorf("Test of RealtimeEncrypt's AssociatedData ouput failed on index %v.  Expected: %v Received: %v ",
+				i, associatedDatas[i], rtnXtc.AssociatedData)
 		} else {
 			pass++
 		}
