@@ -29,18 +29,18 @@ var RoundRecycle chan *Round
 type LastNode struct {
 	// Message Decryption key, AKA PiRST_Inv
 	MessagePrecomputation []*cyclic.Int
-	// Recipient ID Decryption Key, AKA PiUV_Inv
-	RecipientPrecomputation []*cyclic.Int
+	// AssociatedData Decryption Key, AKA PiUV_Inv
+	AssociatedDataPrecomputation []*cyclic.Int
 	// Round Message Private Key
 	RoundMessagePrivateKey []*cyclic.Int
-	// Round Recipient Private Key
-	RoundRecipientPrivateKey []*cyclic.Int
+	// Round AssociatedData Private Key
+	RoundAssociatedDataPrivateKey []*cyclic.Int
 
-	// These are technically temp values, representing recipient info
+	// These are technically temp values, representing associated data
 	// Encrypted under homomorphic encryption that later get revealed
-	RecipientCypherText              []*cyclic.Int
-	EncryptedRecipientPrecomputation []*cyclic.Int
-	EncryptedMessagePrecomputation   []*cyclic.Int
+	AssociatedDataCypherText              []*cyclic.Int
+	EncryptedAssociatedDataPrecomputation []*cyclic.Int
+	EncryptedMessagePrecomputation        []*cyclic.Int
 
 	// Temp value storing EncryptedMessages after RealtimePermute
 	// in order to be passed into RealtimeEncrypt after RealtimeIdentify
@@ -52,12 +52,12 @@ type Round struct {
 	R            []*cyclic.Int // First unpermuted internode message key
 	S            []*cyclic.Int // Permuted internode message key
 	T            []*cyclic.Int // Second unpermuted internode message key
-	V            []*cyclic.Int // Unpermuted internode recipient key
+	V            []*cyclic.Int // Unpermuted internode associated data key
 	U            []*cyclic.Int // Permuted *cyclic.Internode receipient key
 	R_INV        []*cyclic.Int // First Inverse unpermuted internode message key
 	S_INV        []*cyclic.Int // Permuted Inverse internode message key
 	T_INV        []*cyclic.Int // Second Inverse unpermuted internode message key
-	V_INV        []*cyclic.Int // Unpermuted Inverse internode recipient key
+	V_INV        []*cyclic.Int // Unpermuted Inverse internode associated data key
 	U_INV        []*cyclic.Int // Permuted Inverse *cyclic.Internode receipient key
 	Permutations []uint64      // Permutation array, messages at index i become
 	// messages at index Permutations[i]
@@ -317,7 +317,7 @@ func newRound(batchSize uint64, p Phase) *Round {
 		NR.Permutations[i] = i
 
 		NR.LastNode.MessagePrecomputation = nil
-		NR.LastNode.RecipientPrecomputation = nil
+		NR.LastNode.AssociatedDataPrecomputation = nil
 
 		NR.MIC_Verification[i] = true
 	}
@@ -372,11 +372,11 @@ func ResetRound(NR *Round) {
 
 func InitLastNode(round *Round) {
 	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RecipientPrecomputation = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.AssociatedDataPrecomputation = make([]*cyclic.Int, round.BatchSize)
 	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RoundRecipientPrivateKey = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.RecipientCypherText = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.EncryptedRecipientPrecomputation = make([]*cyclic.Int,
+	round.LastNode.RoundAssociatedDataPrivateKey = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.AssociatedDataCypherText = make([]*cyclic.Int, round.BatchSize)
+	round.LastNode.EncryptedAssociatedDataPrecomputation = make([]*cyclic.Int,
 		round.BatchSize)
 	round.LastNode.EncryptedMessagePrecomputation = make([]*cyclic.Int,
 		round.BatchSize)
@@ -384,11 +384,11 @@ func InitLastNode(round *Round) {
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.AssociatedDataPrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundRecipientPrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.RecipientCypherText[i] = cyclic.NewMaxInt()
-		round.LastNode.EncryptedRecipientPrecomputation[i] = cyclic.NewMaxInt()
+		round.LastNode.RoundAssociatedDataPrivateKey[i] = cyclic.NewMaxInt()
+		round.LastNode.AssociatedDataCypherText[i] = cyclic.NewMaxInt()
+		round.LastNode.EncryptedAssociatedDataPrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
 		round.LastNode.EncryptedMessage[i] = cyclic.NewMaxInt()
 		round.MIC_Verification[i] = false

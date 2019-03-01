@@ -13,7 +13,7 @@ import (
 )
 
 // Reveal implements the Reveal phase of the precomputation. It removes the
-// cypher keys from the message and recipient cypher text, revealing the
+// cypher keys from the message and associated data cypher text, revealing the
 // private keys for the round
 type Reveal struct{}
 
@@ -60,7 +60,7 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 }
 
 // Input: Partial message cypher text, from Encrypt Phase
-//        Partial recipient ID cypher text, from Permute Phase
+//        Partial associated data cypher text, from Permute Phase
 // This phase removes the homomorphic encryption from these two quantities.
 func (r Reveal) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	keys *KeysReveal) services.Slot {
@@ -70,7 +70,7 @@ func (r Reveal) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	g.RootCoprime(in.MessagePrecomputation, keys.Z, out.MessagePrecomputation)
 
 	// Eq 15.13 Root by cypher key to remove one layer of homomorphic
-	// encryption from partially encrypted recipient ID cypher text.
+	// encryption from partially encrypted associated data cypher text.
 	g.RootCoprime(in.AssociatedDataPrecomputation, keys.Z,
 		out.AssociatedDataPrecomputation)
 

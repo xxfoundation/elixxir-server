@@ -12,7 +12,7 @@ import (
 )
 
 // Strip phase inverts the Round Private Keys and used to remove the Homomorphic Encryption from
-// the Encrypted Message Keys and the Encrypted Recipient Keys, revealing completed precomputation
+// the Encrypted Message Keys and the Encrypted AssociatedData Keys, revealing completed precomputation
 type Strip struct{}
 
 // KeysStrip holds the keys used by the Strip Operation
@@ -20,7 +20,7 @@ type KeysStrip struct {
 	// Eq 16.1
 	EncryptedMessageKeys *cyclic.Int
 	// Eq 16.2
-	EncryptedRecipientKeys *cyclic.Int
+	EncryptedAssociatedDataKeys *cyclic.Int
 }
 
 // Allocated memory and arranges key objects for the Precomputation Strip Phase
@@ -37,7 +37,7 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 		om[i] = &PrecomputationSlot{
 			Slot: i,
 			MessagePrecomputation:     round.LastNode.MessagePrecomputation[i],
-			AssociatedDataPrecomputation: round.LastNode.RecipientPrecomputation[i],
+			AssociatedDataPrecomputation: round.LastNode.AssociatedDataPrecomputation[i],
 		}
 	}
 
@@ -46,8 +46,8 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	// Link the keys for stripping
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysStrip{
-			EncryptedMessageKeys:   round.LastNode.EncryptedMessagePrecomputation[i],
-			EncryptedRecipientKeys: round.LastNode.EncryptedRecipientPrecomputation[i],
+			EncryptedMessageKeys:        round.LastNode.EncryptedMessagePrecomputation[i],
+			EncryptedAssociatedDataKeys: round.LastNode.EncryptedAssociatedDataPrecomputation[i],
 		}
 		keys[i] = keySlc
 
@@ -63,7 +63,7 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 	return &db
 }
 
-// Remove Homomorphic Encryption to reveal the Message and Recipient Precomputation
+// Remove Homomorphic Encryption to reveal the Message and AssociatedData Precomputation
 func (s Strip) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	keys *KeysStrip) services.Slot {
 
@@ -78,16 +78,16 @@ func (s Strip) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	//          the message precomputation
 	g.Mul(tmp, keys.EncryptedMessageKeys, out.MessagePrecomputation)
 
-	//fmt.Printf("EncryptedRecipientKeys: %s \n",
-	//           keys.EncryptedRecipientKeys.Text(10))
+	//fmt.Printf("EncryptedAssociatedDataKeys: %s \n",
+	//           keys.EncryptedAssociatedDataKeys.Text(10))
 
-	// Eq 16.2: Invert the round recipient private key
+	// Eq 16.2: Invert the round associated data private key
 	g.Inverse(in.AssociatedDataPrecomputation, tmp)
 
-	// Eq 16.2: Use the inverted round recipient private key to remove
-	//          the homomorphic encryption from encrypted recipient key and reveal
-	//          the recipient precomputation
-	g.Mul(tmp, keys.EncryptedRecipientKeys, out.AssociatedDataPrecomputation)
+	// Eq 16.2: Use the inverted round associated data private key to remove
+	//          the homomorphic encryption from encrypted associated data key
+	//          and reveal the associated data precomputation
+	g.Mul(tmp, keys.EncryptedAssociatedDataKeys, out.AssociatedDataPrecomputation)
 
 	out.MessageCypher = in.MessageCypher
 	out.AssociatedDataCypher = in.AssociatedDataCypher

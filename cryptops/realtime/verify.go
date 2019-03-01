@@ -39,7 +39,7 @@ func (i Verify) Build(g *cyclic.Group,
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{Slot: i,
-			EncryptedRecipient: cyclic.NewMaxInt(),
+			AssociatedData: cyclic.NewMaxInt(),
 		}
 	}
 
@@ -65,12 +65,14 @@ func (i Verify) Build(g *cyclic.Group,
 func (i Verify) Run(g *cyclic.Group,
 	in, out *Slot, keys *KeysVerify) services.Slot {
 
-	recip := format.DeserializeRecipient(in.EncryptedRecipient.LeftpadBytes(format.TOTAL_LEN))
-	iv := recip.GetRecipientInitVect()
-	pmic := recip.GetRecipientMIC()
-	recpbytes := recip.GetRecipientID()
+	associatedData := format.DeserializeAssociatedData(in.AssociatedData.Bytes())
+	recpbytes := associatedData.GetRecipientID()
+	keyprint := associatedData.GetKeyFingerprint()
+	timestamp := associatedData.GetTimestamp()
+	mac := associatedData.GetMAC()
+	pmic := associatedData.GetRecipientMIC()
 
-	recipientMicList := [][]byte{iv, recpbytes}
+	recipientMicList := [][]byte{recpbytes, keyprint, timestamp, mac}
 
 	valid := verification.CheckMic(recipientMicList, pmic)
 
@@ -82,7 +84,7 @@ func (i Verify) Run(g *cyclic.Group,
 		*keys.Verification = true
 	}
 
-	out.EncryptedRecipient.SetBytes(recpbytes)
+	out.AssociatedData = in.AssociatedData
 
 	return out
 }

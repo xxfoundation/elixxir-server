@@ -52,15 +52,15 @@ func (h RealtimeIdentifyHandler) Handler(
 	cMixHash, _ := hash.NewCMixHash()
 	for i := range slots {
 		out := (*slots[i]).(*realtime.Slot)
-		rID := out.EncryptedRecipient.Bytes()
+		associatedData := out.AssociatedData.Bytes()
 		encryptedMsg := round.LastNode.EncryptedMessage[i].Bytes()
 		cMixHash.Reset()
-		cMixHash.Write(rID)
+		cMixHash.Write(associatedData)
 		cMixHash.Write(encryptedMsg)
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
 			SenderID:       id.ZeroID[:],
-			AssociatedData:    rID,
+			AssociatedData: associatedData,
 			MessagePayload: encryptedMsg,
 			Salt:           cMixHash.Sum(nil),
 		}

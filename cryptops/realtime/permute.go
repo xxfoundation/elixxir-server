@@ -15,7 +15,7 @@ import (
 )
 
 // The realtime Permute phase blindly permutes, then re-encrypts messages
-// and recipient IDs to prevent other nodes or outside actors from knowing
+// and associated data to prevent other nodes or outside actors from knowing
 // the origin of the messages.
 type Permute struct{}
 
@@ -53,9 +53,9 @@ func (p Permute) Build(g *cyclic.Group,
 	return &db
 }
 
-// Input: Encrypted message, from Decrypt Phase
-//        Encrypted recipient ID, from Decrypt Phase
-// This phase permutes the message and the recipient ID and encrypts
+// Input: Encrypted Message, from Decrypt Phase
+//        Encrypted AssociatedData, from Decrypt Phase
+// This phase permutes the message and the associated data and encrypts
 // them with their respective permuted internode keys.
 func (p Permute) Run(g *cyclic.Group, in, out *Slot,
 	keys *KeysPermute) services.Slot {
@@ -64,10 +64,10 @@ func (p Permute) Run(g *cyclic.Group, in, out *Slot,
 	// secret to the previous node
 	g.Mul(in.Message, keys.S, out.Message)
 
-	// Eq 4.12 Multiply the recipient ID by
+	// Eq 4.12 Multiply the associated data by
 	// its permuted key making the permutation
 	// secret to the previous node
-	g.Mul(in.EncryptedRecipient, keys.V, out.EncryptedRecipient)
+	g.Mul(in.AssociatedData, keys.V, out.AssociatedData)
 
 	return out
 }
@@ -76,9 +76,9 @@ func buildCryptoPermute(round *globals.Round, outMessages []services.Slot) {
 	// Prepare the permuted output messages
 	for i := uint64(0); i < round.BatchSize; i++ {
 		slot := &Slot{
-			Slot:               round.Permutations[i],
-			Message:            cyclic.NewMaxInt(),
-			EncryptedRecipient: cyclic.NewMaxInt(),
+			Slot:           round.Permutations[i],
+			Message:        cyclic.NewMaxInt(),
+			AssociatedData: cyclic.NewMaxInt(),
 		}
 		// If this is the last node, save the EncryptedMessage
 		if round.LastNode.EncryptedMessage != nil {

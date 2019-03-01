@@ -11,6 +11,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -38,16 +39,16 @@ func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
-		// Ensure that the recipient ID populates the correct user ID length
-		// by leftpadding it with the appropriate length
-		in.AssociatedData = append(make([]byte, id.UserLen-len(in.AssociatedData)), in.AssociatedData...)
-		userId := new(id.User).SetBytes(in.AssociatedData)
+		// Get recipient from AssociatedData
+		associatedData := format.DeserializeAssociatedData(in.AssociatedData)
+		userId := associatedData.GetRecipient()
 		var slot services.Slot = &realtime.Slot{
-			Slot:       uint64(i),
-			CurrentID:  userId,
-			Message:    cyclic.NewIntFromBytes(in.MessagePayload),
-			CurrentKey: cyclic.NewMaxInt(),
-			Salt:       in.Salt,
+			Slot:           uint64(i),
+			CurrentID:      userId,
+			AssociatedData: cyclic.NewIntFromBytes(in.AssociatedData),
+			Message:        cyclic.NewIntFromBytes(in.MessagePayload),
+			CurrentKey:     cyclic.NewMaxInt(),
+			Salt:           in.Salt,
 		}
 		// Pass slot as input to Encrypt's channel
 		chIn <- &slot
@@ -95,13 +96,16 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	for i := uint64(0); i < batchSize; i++ {
 		out := input.Slots[i]
 		// Convert to Slot
-		userId := new(id.User).SetBytes(out.AssociatedData)
+		// Get recipient from AssociatedData
+		associatedData := format.DeserializeAssociatedData(out.AssociatedData)
+		userId := associatedData.GetRecipient()
 		var slot services.Slot = &realtime.Slot{
-			Slot:       i,
-			CurrentID:  userId,
-			Message:    cyclic.NewIntFromBytes(out.MessagePayload),
-			CurrentKey: cyclic.NewMaxInt(),
-			Salt:       out.Salt,
+			Slot:           i,
+			CurrentID:      userId,
+			AssociatedData: cyclic.NewIntFromBytes(out.AssociatedData),
+			Message:        cyclic.NewIntFromBytes(out.MessagePayload),
+			CurrentKey:     cyclic.NewMaxInt(),
+			Salt:           out.Salt,
 		}
 		// Pass slot as input to Peel's channel
 		peelChannel <- &slot
@@ -141,7 +145,7 @@ func (h RealtimeEncryptHandler) Handler(
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
 			SenderID:       id.ZeroID[:],
-			AssociatedData:    out.CurrentID[:],
+			AssociatedData: out.AssociatedData.Bytes(),
 			MessagePayload: out.Message.Bytes(),
 			Salt:           out.Salt,
 		}

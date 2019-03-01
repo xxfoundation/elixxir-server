@@ -12,7 +12,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
-// Permute phase permutes the message keys, the recipient keys, and their cypher
+// Permute phase permutes the message keys, the associated data keys, and their cypher
 // text, while multiplying in its own keys.
 type Permute struct{}
 
@@ -22,11 +22,11 @@ type KeysPermute struct {
 	CypherPublicKey *cyclic.Int
 	// Encrypted Inverse Permuted Internode Message Key
 	S_INV *cyclic.Int
-	// Encrypted Inverse Permuted Internode Recipient Key
+	// Encrypted Inverse Permuted Internode AssociatedData Key
 	V_INV *cyclic.Int
 	// Permuted Internode Message Partial Cypher Text
 	Y_S *cyclic.Int
-	// Permuted Internode Recipient Partial Cypher Text
+	// Permuted Internode AssociatedData Partial Cypher Text
 	Y_V *cyclic.Int
 }
 
@@ -43,8 +43,8 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
 			Slot: i,
-			MessagePrecomputation:     cyclic.NewMaxInt(),
-			MessageCypher:             cyclic.NewMaxInt(),
+			MessagePrecomputation:        cyclic.NewMaxInt(),
+			MessageCypher:                cyclic.NewMaxInt(),
 			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
 			AssociatedDataCypher:         cyclic.NewMaxInt(),
 		}
@@ -93,13 +93,13 @@ func (p Permute) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	// Encryption into the Partial Encrypted Message Precomputation
 	g.Mul(in.MessageCypher, tmp, out.MessageCypher)
 
-	// Eq 11.1: Encrypt the Permuted Internode Recipient Key under Homomorphic
+	// Eq 11.1: Encrypt the Permuted Internode AssociatedData Key under Homomorphic
 	// Encryption
 	g.Exp(g.G, keys.Y_V, tmp)
 	g.Mul(keys.V_INV, tmp, tmp)
 
-	// Eq 13.19: Multiplies the Permuted Internode Recipient Key under
-	// Homomorphic Encryption into the Partial Encrypted Recipient Precomputation
+	// Eq 13.19: Multiplies the Permuted Internode AssociatedData Key under
+	// Homomorphic Encryption into the Partial Encrypted AssociatedData Precomputation
 	g.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
 
 	// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode Message
@@ -111,11 +111,11 @@ func (p Permute) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
 	// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode
-	// Recipient Key
+	// AssociatedData Key
 	g.Exp(keys.CypherPublicKey, keys.Y_V, tmp)
 
 	// Eq 13.23 Multiplies the Partial Cypher Text for the Permuted Internode
-	// Recipient Key into the Round Recipient Partial Cypher Text
+	// AssociatedData Key into the Round AssociatedData Partial Cypher Text
 	g.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
 
 	return out
