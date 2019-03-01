@@ -89,8 +89,8 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
 			Slot: out.Slot,
-			PartialMessageCypherText:   out.PartialMessageCypherText,
-			PartialRecipientCypherText: round.LastNode.RecipientCypherText[i].Bytes(),
+			PartialMessageCypherText:        out.PartialMessageCypherText,
+			PartialAssociatedDataCypherText: round.LastNode.RecipientCypherText[i].Bytes(),
 		}
 
 		// Save the Message Precomputation
