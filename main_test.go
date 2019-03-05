@@ -264,6 +264,9 @@ func TestEndToEndCryptops(t *testing.T) {
 		rng)
 	round := globals.NewRound(batchSize)
 	round.CypherPublicKey = cyclic.NewInt(3)
+	// p=101 -> 7 bits, so exponents can be of 6 bits at most
+	// Overwrite default value of round
+	round.ExpSize = uint32(6)
 
 	// We are the last node, so allocate the arrays for LastNode
 	globals.InitLastNode(round)
@@ -674,6 +677,11 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	Node1Round.CypherPublicKey = cyclic.NewInt(0)
 	Node2Round.CypherPublicKey = cyclic.NewInt(0)
 
+	// p=101 -> 7 bits, so exponents can be of 6 bits at most
+	// Overwrite default value of rounds
+	Node1Round.ExpSize = uint32(6)
+	Node2Round.ExpSize = uint32(6)
+
 	// Allocate the arrays for LastNode
 	globals.InitLastNode(Node2Round)
 
@@ -682,6 +690,15 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		nil, nil, Node1Round)
 	N2Generation := services.DispatchCryptop(&grp, precomputation.Generation{},
 		nil, nil, Node2Round)
+	// Since round.Z is generated on creation of the Generation precomp,
+	// need to loop the generation here until a valid Z is produced
+	maxInt := cyclic.NewMaxInt()
+	for Node1Round.Z.Cmp(maxInt) == 0 || Node2Round.Z.Cmp(maxInt) == 0 {
+		N1Generation = services.DispatchCryptop(&grp, precomputation.Generation{},
+			nil, nil, Node1Round)
+		N2Generation = services.DispatchCryptop(&grp, precomputation.Generation{},
+			nil, nil, Node2Round)
+	}
 
 	N1Share := services.DispatchCryptop(&grp, precomputation.Share{}, nil, nil,
 		Node1Round)

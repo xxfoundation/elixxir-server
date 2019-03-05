@@ -92,17 +92,32 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 	for i := 0; i < nodeCount; i++ {
 		rounds[i] = globals.NewRound(BatchSize)
 		rounds[i].CypherPublicKey = cyclic.NewInt(0)
+
+		// Overwrite default value of rounds ExpSize if group prime is small
+		prime := cyclic.NewMaxInt()
+		group.GetP(prime)
+		expSize := prime.BitLen() - 1
+		if expSize < 256 {
+			rounds[i].ExpSize = uint32(expSize)
+		}
+
 		// Last Node initialization
 		if i == (nodeCount - 1) {
 			globals.InitLastNode(rounds[i])
 		}
 	}
 
+	maxInt := cyclic.NewMaxInt()
 	// Run the GENERATION step
 	generations := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		generations[i] = services.DispatchCryptop(group,
-			precomputation.Generation{}, nil, nil, rounds[i])
+		// Since round.Z is generated on creation of the Generation precomp,
+		// need to loop the generation here until a valid Z is produced
+		// This will only happen for small groups
+		for rounds[i].Z.Cmp(maxInt) == 0 || rounds[i].Z.Cmp(maxInt) == 0 {
+			generations[i] = services.DispatchCryptop(group,
+				precomputation.Generation{}, nil, nil, rounds[i])
+		}
 	}
 	for i := 0; i < nodeCount; i++ {
 		for j := uint64(0); j < BatchSize; j++ {

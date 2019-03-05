@@ -76,6 +76,9 @@ type Round struct {
 	// Size of batch
 	BatchSize uint64
 
+	// Size of exponents in bits
+	ExpSize uint32
+
 	// Phase fields
 	phase     Phase
 	phaseCond *sync.Cond
@@ -289,6 +292,7 @@ func newRound(batchSize uint64, p Phase) *Round {
 		Y_U: make([]*cyclic.Int, batchSize),
 
 		BatchSize: batchSize,
+		ExpSize: uint32(256),
 
 		MIC_Verification: make([]bool, batchSize)}
 
