@@ -134,6 +134,6 @@ func buildCryptoGeneration(g *cyclic.Group, round *globals.Round) {
 	cyclic.Shuffle(&round.Permutations)
 
 	// Generate the Private Cypher Key
-	g.FindSmallCoprimeInverse(round.Z, 256)
+	g.FindSmallCoprimeInverse(round.Z, round.ExpSize)
 
 }
