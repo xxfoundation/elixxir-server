@@ -690,6 +690,15 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		nil, nil, Node1Round)
 	N2Generation := services.DispatchCryptop(&grp, precomputation.Generation{},
 		nil, nil, Node2Round)
+	// Since round.Z is generated on creation of the Generation precomp,
+	// need to loop the generation here until a valid Z is produced
+	maxInt := cyclic.NewMaxInt()
+	for Node1Round.Z.Cmp(maxInt) == 0 || Node2Round.Z.Cmp(maxInt) == 0 {
+		N1Generation = services.DispatchCryptop(&grp, precomputation.Generation{},
+			nil, nil, Node1Round)
+		N2Generation = services.DispatchCryptop(&grp, precomputation.Generation{},
+			nil, nil, Node2Round)
+	}
 
 	N1Share := services.DispatchCryptop(&grp, precomputation.Share{}, nil, nil,
 		Node1Round)

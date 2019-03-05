@@ -107,11 +107,17 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 		}
 	}
 
+	maxInt := cyclic.NewMaxInt()
 	// Run the GENERATION step
 	generations := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		generations[i] = services.DispatchCryptop(group,
-			precomputation.Generation{}, nil, nil, rounds[i])
+		// Since round.Z is generated on creation of the Generation precomp,
+		// need to loop the generation here until a valid Z is produced
+		// This will only happen for small groups
+		for rounds[i].Z.Cmp(maxInt) == 0 || rounds[i].Z.Cmp(maxInt) == 0 {
+			generations[i] = services.DispatchCryptop(group,
+				precomputation.Generation{}, nil, nil, rounds[i])
+		}
 	}
 	for i := 0; i < nodeCount; i++ {
 		for j := uint64(0); j < BatchSize; j++ {
