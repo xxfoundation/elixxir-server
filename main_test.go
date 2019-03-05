@@ -264,6 +264,9 @@ func TestEndToEndCryptops(t *testing.T) {
 		rng)
 	round := globals.NewRound(batchSize)
 	round.CypherPublicKey = cyclic.NewInt(3)
+	// p=101 -> 7 bits, so exponents can be of 6 bits at most
+	// Overwrite default value of round
+	round.ExpSize = uint32(6)
 
 	// We are the last node, so allocate the arrays for LastNode
 	globals.InitLastNode(round)
@@ -673,6 +676,11 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	Node2Round := globals.NewRound(batchSize)
 	Node1Round.CypherPublicKey = cyclic.NewInt(0)
 	Node2Round.CypherPublicKey = cyclic.NewInt(0)
+
+	// p=101 -> 7 bits, so exponents can be of 6 bits at most
+	// Overwrite default value of rounds
+	Node1Round.ExpSize = uint32(6)
+	Node2Round.ExpSize = uint32(6)
 
 	// Allocate the arrays for LastNode
 	globals.InitLastNode(Node2Round)

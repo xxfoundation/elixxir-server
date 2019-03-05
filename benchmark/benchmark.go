@@ -92,6 +92,15 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 	for i := 0; i < nodeCount; i++ {
 		rounds[i] = globals.NewRound(BatchSize)
 		rounds[i].CypherPublicKey = cyclic.NewInt(0)
+
+		// Overwrite default value of rounds ExpSize if group prime is small
+		prime := cyclic.NewMaxInt()
+		group.GetP(prime)
+		expSize := prime.BitLen() - 1
+		if expSize < 256 {
+			rounds[i].ExpSize = uint32(expSize)
+		}
+
 		// Last Node initialization
 		if i == (nodeCount - 1) {
 			globals.InitLastNode(rounds[i])
