@@ -7,12 +7,14 @@
 package globals
 
 import (
+	"crypto/dsa"
 	"crypto/sha256"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
+	"time"
 )
 
 // Globally initiated UserRegistry
@@ -27,7 +29,7 @@ var idCounter = uint64(1)
 
 // Interface for User Registry operations
 type UserRegistry interface {
-	NewUser(address string) *User
+	NewUser() *User
 	DeleteUser(id *id.User)
 	GetUser(id *id.User) (user *User, err error)
 	UpsertUser(user *User)
@@ -68,13 +70,13 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 // Struct representing a User in the system
 type User struct {
-	ID           *id.User
-	HUID         []byte
-	Address      string
-	Nick         string
-	Transmission ForwardKey
-	Reception    ForwardKey
-	PublicKey    *cyclic.Int
+	ID             *id.User
+	HUID           []byte
+	Transmission   ForwardKey
+	Reception      ForwardKey
+	PublicKey      *dsa.PublicKey
+	Nonce          []byte
+	NonceTimestamp time.Time
 }
 
 // DeepCopy creates a deep copy of a user and returns a pointer to the new copy
@@ -84,16 +86,14 @@ func (u *User) DeepCopy() *User {
 	}
 	newUser := new(User)
 	newUser.ID = u.ID
-	newUser.Address = u.Address
-	newUser.Nick = u.Nick
 	newUser.Transmission = *u.Transmission.DeepCopy()
 	newUser.Reception = *u.Reception.DeepCopy()
-	newUser.PublicKey = cyclic.NewInt(0).Set(u.PublicKey)
+	newUser.PublicKey = new(dsa.PublicKey(*u.PublicKey))
 	return newUser
 }
 
 // NewUser creates a new User object with default fields and given address.
-func (m *UserMap) NewUser(address string) *User {
+func (m *UserMap) NewUser() *User {
 	idCounter++
 	usr := new(User)
 	h := sha256.New()
@@ -116,7 +116,7 @@ func (m *UserMap) NewUser(address string) *User {
 	recept.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	usr.Reception = *recept
 	usr.Transmission = *trans
-	usr.PublicKey = cyclic.NewMaxInt()
+	usr.PublicKey = new(dsa.PublicKey)
 	return usr
 }
 

@@ -7,6 +7,7 @@
 package globals
 
 import (
+	"crypto/dsa"
 	"encoding/base64"
 	"fmt"
 	"github.com/go-pg/pg"
@@ -15,6 +16,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
+	"math/big"
 	"sync"
 	"time"
 )
@@ -31,16 +33,23 @@ type UserDB struct {
 	tableName struct{} `sql:"users,alias:users"`
 
 	// Convert between id.User and string using base64 StdEncoding
-	Id      string
-	Address string
-	Nick    string
+	Id string
 
+	// Keys
 	TransmissionBaseKey      []byte
 	TransmissionRecursiveKey []byte
 	ReceptionBaseKey         []byte
 	ReceptionRecursiveKey    []byte
 
-	PublicKey []byte
+	// DSA Public Key
+	PubKeyY []byte
+	PubKeyP []byte
+	PubKeyQ []byte
+	PubKeyG []byte
+
+	// Nonce
+	Nonce          []byte
+	NonceTimestamp time.Time
 }
 
 // Struct representing a Salt in the database
@@ -112,38 +121,16 @@ func NewUserRegistry(username, password,
 	}
 }
 
-// TODO: remove or improve this
 // Create dummy users to be manually inserted into the database
 func PopulateDummyUsers() {
-
-	nickList := []string{"David", "Payments", "UDB", "Jim", "Ben", "Steph",
-		"Rick", "Jake", "Spencer", "Stephanie", "Mario", "Jono", "Amanda",
-		"Margaux", "Kevin", "Bruno", "Konstantino", "Bernardo", "Tigran",
-		"Kate", "Will", "Katie", "Bryan"}
-	channelList := []string{"#General", "#Engineering", "#Lunch", "#Random"}
-
 	// Deterministically create named users for demo
-	for i := 0; i < len(nickList); i++ {
-		u := Users.NewUser("")
-		u.Nick = nickList[i]
-		Users.UpsertUser(u)
-	}
-	// Extra un-named users for demo expansion
-	for i := len(nickList) + 1; i <= NUM_DEMO_USERS; i++ {
-		u := Users.NewUser("")
-		u.Nick = ""
+	for i := 0; i < NUM_DEMO_USERS; i++ {
+		u := Users.NewUser()
 		Users.UpsertUser(u)
 	}
 	// Named channel bot users
-	for i := 0; i < len(channelList); i++ {
-		u := Users.NewUser("")
-		u.Nick = channelList[i]
-		Users.UpsertUser(u)
-	}
-	// Extra un-named users for demo expansion
-	for i := len(channelList) + 1; i <= NUM_DEMO_CHANNELS; i++ {
-		u := Users.NewUser("")
-		u.Nick = ""
+	for i := 0; i < NUM_DEMO_CHANNELS; i++ {
+		u := Users.NewUser()
 		Users.UpsertUser(u)
 	}
 }
@@ -179,8 +166,8 @@ func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) bool {
 }
 
 // NewUser creates a new User object with default fields and given address.
-func (m *UserDatabase) NewUser(address string) *User {
-	newUser := UserRegistry(&UserMap{}).NewUser(address)
+func (m *UserDatabase) NewUser() *User {
+	newUser := UserRegistry(&UserMap{}).NewUser()
 	return newUser
 }
 
@@ -300,13 +287,16 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	}
 	newUser = new(UserDB)
 	newUser.Id = encodeUser(user.ID)
-	newUser.Address = user.Address
-	newUser.Nick = user.Nick
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
 	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
 	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
 	newUser.ReceptionRecursiveKey = user.Reception.RecursiveKey.Bytes()
-	newUser.PublicKey = user.PublicKey.Bytes()
+	newUser.PubKeyY = user.PublicKey.Y.Bytes()
+	newUser.PubKeyP = user.PublicKey.P.Bytes()
+	newUser.PubKeyQ = user.PublicKey.Q.Bytes()
+	newUser.PubKeyG = user.PublicKey.G.Bytes()
+	newUser.Nonce = user.Nonce
+	newUser.NonceTimestamp = user.NonceTimestamp
 	return
 }
 
@@ -315,20 +305,30 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	if user == nil {
 		return nil
 	}
-
 	newUser = new(User)
 	newUser.ID = decodeUser(user.Id)
-	newUser.Address = user.Address
-	newUser.Nick = user.Nick
+
 	newUser.Transmission = ForwardKey{
 		BaseKey:      cyclic.NewIntFromBytes(user.TransmissionBaseKey),
 		RecursiveKey: cyclic.NewIntFromBytes(user.TransmissionRecursiveKey),
 	}
+
 	newUser.Reception = ForwardKey{
 		BaseKey:      cyclic.NewIntFromBytes(user.ReceptionBaseKey),
 		RecursiveKey: cyclic.NewIntFromBytes(user.ReceptionRecursiveKey),
 	}
-	newUser.PublicKey = cyclic.NewIntFromBytes(user.PublicKey)
+
+	newUser.PublicKey = &dsa.PublicKey{
+		Y: new(big.Int).SetBytes(user.PubKeyY),
+		Parameters: dsa.Parameters{
+			P: new(big.Int).SetBytes(user.PubKeyP),
+			Q: new(big.Int).SetBytes(user.PubKeyQ),
+			G: new(big.Int).SetBytes(user.PubKeyG),
+		},
+	}
+
+	newUser.Nonce = user.Nonce
+	newUser.NonceTimestamp = user.NonceTimestamp
 
 	return
 }
