@@ -116,7 +116,10 @@ func (m *UserMap) NewUser() *User {
 	recept.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
 	usr.Reception = *recept
 	usr.Transmission = *trans
+
 	usr.PublicKey = new(dsa.PublicKey)
+	usr.Nonce = make([]byte, 0)
+	usr.NonceTimestamp = *new(time.Time)
 	return usr
 }
 
