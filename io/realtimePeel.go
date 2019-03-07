@@ -47,7 +47,7 @@ func (h RealtimePeelHandler) Handler(
 		} else {
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
 				slot.Message.Text(10))
-			user, err := globals.Users.GetUser(slot.CurrentID)
+			_, err := globals.Users.GetUser(slot.CurrentID)
 
 			if err != nil {
 				jww.ERROR.Printf("Could not store message for invalid"+
@@ -56,7 +56,7 @@ func (h RealtimePeelHandler) Handler(
 			}
 
 			pbCmixMessage := pb.CmixMessage{
-				SenderID:       user.ID[:],
+				SenderID:       make([]byte, 0),
 				MessagePayload: slot.Message.LeftpadBytes(512),
 				AssociatedData: slot.AssociatedData.LeftpadBytes(512),
 				Salt:           slot.Salt,
