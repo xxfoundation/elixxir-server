@@ -13,6 +13,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
+	"math/big"
 	"sync"
 	"time"
 )
@@ -88,7 +89,16 @@ func (u *User) DeepCopy() *User {
 	newUser.ID = u.ID
 	newUser.Transmission = *u.Transmission.DeepCopy()
 	newUser.Reception = *u.Reception.DeepCopy()
-	newUser.PublicKey = new(dsa.PublicKey(*u.PublicKey))
+
+	newUser.PublicKey = new(dsa.PublicKey)
+	newUser.PublicKey.Y = u.PublicKey.Y
+	newUser.PublicKey.P = u.PublicKey.P
+	newUser.PublicKey.Q = u.PublicKey.Q
+	newUser.PublicKey.G = u.PublicKey.G
+
+	newUser.Nonce = make([]byte, len(u.Nonce))
+	copy(newUser.Nonce, u.Nonce)
+	newUser.NonceTimestamp = u.NonceTimestamp
 	return newUser
 }
 
@@ -118,6 +128,11 @@ func (m *UserMap) NewUser() *User {
 	usr.Transmission = *trans
 
 	usr.PublicKey = new(dsa.PublicKey)
+	usr.PublicKey.Y = new(big.Int)
+	usr.PublicKey.P = new(big.Int)
+	usr.PublicKey.Q = new(big.Int)
+	usr.PublicKey.G = new(big.Int)
+
 	usr.Nonce = make([]byte, 0)
 	usr.NonceTimestamp = *new(time.Time)
 	return usr
