@@ -11,7 +11,6 @@ import (
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
-	"strconv"
 	"testing"
 )
 
@@ -64,8 +63,7 @@ func TestGenerateClientKey(t *testing.T) {
 	// same. This should ensure that userID is used where it should be and
 	// slotID is used where it should be.
 	for i := uint64(0); i < batchSize+1; i++ {
-		userAddress := strconv.FormatUint(i, 10)
-		users = append(users, globals.Users.NewUser(userAddress))
+		users = append(users, globals.Users.NewUser())
 	}
 
 	users[1].Reception.BaseKey = cyclic.NewIntFromString(

@@ -23,8 +23,7 @@ func TestUserRegistry(t *testing.T) {
 	})
 
 	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := Users.NewUser("")
-		u.Nick = ""
+		u := Users.NewUser()
 		Users.UpsertUser(u)
 	}
 
@@ -123,7 +122,7 @@ func TestUser_DeepCopy(t *testing.T) {
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
-	user := Users.NewUser("t")
+	user := Users.NewUser()
 	user.Transmission.BaseKey = cyclic.NewInt(66)
 
 	newUser := user.DeepCopy()
