@@ -7,6 +7,7 @@
 package globals
 
 import (
+	"bytes"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/primitives/id"
@@ -164,5 +165,34 @@ func TestUserMap_GetUserByNonce(t *testing.T) {
 	_, err := Users.GetUserByNonce(user.Nonce)
 	if err != nil {
 		t.Errorf("GetUserByNonce: Expected to find user by nonce!")
+	}
+}
+
+// Make sure the nonce converts correctly to and from storage
+func TestUserNonceConversion(t *testing.T) {
+	Users := UserRegistry(&UserMap{
+		userCollection: make(map[id.User]*User),
+		collectionLock: &sync.Mutex{},
+	})
+
+	user := Users.NewUser()
+	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	Users.UpsertUser(user)
+
+	testUser, _ := Users.GetUser(user.ID)
+
+	if bytes.Compare(testUser.Nonce.Bytes(), user.Nonce.Bytes()) != 0 {
+		t.Errorf("UserNonceConversion: Expected nonces to match! %v %v",
+			cyclic.NewIntFromBytes(testUser.Nonce.Bytes()),
+			cyclic.NewIntFromBytes(user.Nonce.Bytes()))
+	}
+	if testUser.Nonce.GenTime != user.Nonce.GenTime {
+		t.Errorf("UserNonceConversion: Expected GenTime to match!")
+	}
+	if testUser.Nonce.TTL != user.Nonce.TTL {
+		t.Errorf("UserNonceConversion: Expected TTL to match!")
+	}
+	if testUser.Nonce.ExpiryTime != user.Nonce.ExpiryTime {
+		t.Errorf("UserNonceConversion: Expected ExpiryTime to match!")
 	}
 }

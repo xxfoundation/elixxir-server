@@ -99,7 +99,7 @@ func (u *User) DeepCopy() *User {
 		ExpiryTime: u.Nonce.ExpiryTime,
 		TTL:        u.Nonce.TTL,
 	}
-	copy(u.Nonce.Bytes(), newUser.Nonce.Bytes())
+	copy(u.Nonce.Value[:], newUser.Nonce.Value[:])
 	return newUser
 }
 
