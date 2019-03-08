@@ -179,20 +179,22 @@ func TestUserNonceConversion(t *testing.T) {
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
 	Users.UpsertUser(user)
 
-	testUser, _ := Users.GetUser(user.ID)
-
-	if bytes.Compare(testUser.Nonce.Bytes(), user.Nonce.Bytes()) != 0 {
+	testUser, _ := Users.GetUserByNonce(user.Nonce)
+	if bytes.Equal(testUser.Nonce.Bytes(), user.Nonce.Bytes()) {
 		t.Errorf("UserNonceConversion: Expected nonces to match! %v %v",
 			cyclic.NewIntFromBytes(testUser.Nonce.Bytes()),
 			cyclic.NewIntFromBytes(user.Nonce.Bytes()))
 	}
-	if testUser.Nonce.GenTime != user.Nonce.GenTime {
-		t.Errorf("UserNonceConversion: Expected GenTime to match!")
+	if !testUser.Nonce.GenTime.Equal(user.Nonce.GenTime) {
+		t.Errorf("UserNonceConversion: Expected GenTime to match! %v %v",
+			testUser.Nonce.GenTime, user.Nonce.GenTime)
 	}
 	if testUser.Nonce.TTL != user.Nonce.TTL {
-		t.Errorf("UserNonceConversion: Expected TTL to match!")
+		t.Errorf("UserNonceConversion: Expected TTL to match! %v %v",
+			testUser.Nonce.TTL, user.Nonce.TTL)
 	}
-	if testUser.Nonce.ExpiryTime != user.Nonce.ExpiryTime {
-		t.Errorf("UserNonceConversion: Expected ExpiryTime to match!")
+	if !testUser.Nonce.ExpiryTime.Equal(user.Nonce.ExpiryTime) {
+		t.Errorf("UserNonceConversion: Expected ExpiryTime to match! %v %v",
+			testUser.Nonce.ExpiryTime, user.Nonce.ExpiryTime)
 	}
 }

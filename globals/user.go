@@ -99,7 +99,7 @@ func (u *User) DeepCopy() *User {
 		ExpiryTime: u.Nonce.ExpiryTime,
 		TTL:        u.Nonce.TTL,
 	}
-	copy(u.Nonce.Value[:], newUser.Nonce.Value[:])
+	copy(u.Nonce.Bytes(), newUser.Nonce.Bytes())
 	return newUser
 }
 
@@ -183,7 +183,7 @@ func (m *UserMap) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
 	m.collectionLock.Lock()
 	// Iterate over the map to find user with matching nonce
 	for _, value := range m.userCollection {
-		if bytes.Compare(value.Nonce.Bytes(), nonce.Bytes()) == 0 {
+		if bytes.Equal(value.Nonce.Bytes(), nonce.Bytes()) {
 			ok = true
 			u = value
 		}

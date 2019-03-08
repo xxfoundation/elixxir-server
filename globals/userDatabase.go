@@ -203,8 +203,9 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 // GetUser returns a user with a matching nonce from user database
 func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
 	// Perform the select for the given nonce
-	u := UserDB{Nonce: nonce.Bytes()}
-	err = m.db.Select(&u)
+	u := UserDB{}
+	_, err = m.db.QueryOne(&u, `SELECT * FROM USERS WHERE nonce = ?`,
+		nonce.Bytes())
 
 	if err != nil {
 		// If there was an error, no user for the given nonce was found
@@ -223,13 +224,16 @@ func (m *UserDatabase) UpsertUser(user *User) {
 	_, err := m.db.Model(dbUser).
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
-		Set("address = EXCLUDED.address," +
-			"nick = EXCLUDED.nick," +
-			"transmission_base_key = EXCLUDED.transmission_base_key," +
+		Set("transmission_base_key = EXCLUDED.transmission_base_key," +
 			"transmission_recursive_key = EXCLUDED.transmission_recursive_key," +
 			"reception_base_key = EXCLUDED.reception_base_key," +
 			"reception_recursive_key = EXCLUDED.reception_recursive_key," +
-			"public_key = EXCLUDED.public_key").
+			"pub_keyy = EXCLUDED.pub_keyy," +
+			"pub_keyp = EXCLUDED.pub_keyp," +
+			"pub_keyq = EXCLUDED.pub_keyq," +
+			"pub_keyg = EXCLUDED.pub_keyg," +
+			"nonce = EXCLUDED.nonce," +
+			"nonce_timestamp = EXCLUDED.nonce_timestamp").
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
@@ -338,9 +342,9 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 
 	newUser.Nonce = nonce.Nonce{
 		GenTime:    user.NonceTimestamp,
-		ExpiryTime: user.NonceTimestamp.Add(nonce.RegistrationTTL),
-		TTL:        nonce.RegistrationTTL,
+		ExpiryTime: user.NonceTimestamp.Add(nonce.RegistrationTTL * time.Second),
+		TTL:        nonce.RegistrationTTL * time.Second,
 	}
-	copy(user.Nonce, newUser.Nonce.Value[:])
+	copy(user.Nonce, newUser.Nonce.Bytes())
 	return
 }
