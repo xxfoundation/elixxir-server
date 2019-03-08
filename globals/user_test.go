@@ -8,6 +8,7 @@ package globals
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
 	"testing"
@@ -146,5 +147,22 @@ func TestUserMap_InsertSalt(t *testing.T) {
 	if Users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
 		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
 			" salts for one user!")
+	}
+}
+
+// Test happy path
+func TestUserMap_GetUserByNonce(t *testing.T) {
+	Users := UserRegistry(&UserMap{
+		userCollection: make(map[id.User]*User),
+		collectionLock: &sync.Mutex{},
+	})
+
+	user := Users.NewUser()
+	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	Users.UpsertUser(user)
+
+	_, err := Users.GetUserByNonce(user.Nonce)
+	if err != nil {
+		t.Errorf("GetUserByNonce: Expected to find user by nonce!")
 	}
 }

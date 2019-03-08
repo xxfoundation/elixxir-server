@@ -112,6 +112,13 @@ func (s ServerImpl) ConfirmNonce(hash, R,
 			errors.New("nonce does not exist")
 	}
 
+	// Verify nonce has not expired
+	if !n.IsValid() {
+		jww.ERROR.Printf("Nonce is expired: %s", n.Bytes())
+		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
+			errors.New("nonce is expired")
+	}
+
 	// Verify signed nonce using Client public key
 	valid := user.PublicKey.Verify(hash, signature.DSASignature{
 		R: cyclic.NewIntFromBytes(R),
