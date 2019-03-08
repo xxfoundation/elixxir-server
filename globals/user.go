@@ -7,6 +7,7 @@
 package globals
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -32,6 +33,7 @@ type UserRegistry interface {
 	NewUser() *User
 	DeleteUser(id *id.User)
 	GetUser(id *id.User) (user *User, err error)
+	GetUserByNonce(nonce nonce.Nonce) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
 	InsertSalt(user *id.User, salt []byte) bool
@@ -160,20 +162,40 @@ func (m *UserMap) DeleteUser(user *id.User) {
 }
 
 // GetUser returns a user with the given ID from userCollection
-// and a boolean for whether the user exists
-func (m *UserMap) GetUser(user *id.User) (*User, error) {
-	var u *User
-	var err error
+func (m *UserMap) GetUser(id *id.User) (user *User, err error) {
 	m.collectionLock.Lock()
-	u, ok := m.userCollection[*user]
+	u, ok := m.userCollection[*id]
 	m.collectionLock.Unlock()
 
 	if !ok {
 		err = errors.New("unable to lookup user in ram user registry")
 	} else {
-		u = u.DeepCopy()
+		user = u.DeepCopy()
 	}
-	return u, err
+	return
+}
+
+// GetUser returns a user with a matching nonce from userCollection
+func (m *UserMap) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
+	var u *User
+	ok := false
+
+	m.collectionLock.Lock()
+	// Iterate over the map to find user with matching nonce
+	for _, value := range m.userCollection {
+		if bytes.Compare(value.Nonce.Bytes(), nonce.Bytes()) == 0 {
+			ok = true
+			u = value
+		}
+	}
+	m.collectionLock.Unlock()
+
+	if !ok {
+		err = errors.New("unable to lookup user by nonce in ram user registry")
+	} else {
+		user = u.DeepCopy()
+	}
+	return
 }
 
 // UpsertUser inserts given user into userCollection or update the user if it

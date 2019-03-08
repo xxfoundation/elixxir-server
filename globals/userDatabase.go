@@ -185,21 +185,33 @@ func (m *UserDatabase) DeleteUser(userId *id.User) {
 	}
 }
 
-// GetUser returns a user with the given ID from userCollection
-// and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(userId *id.User) (*User, error) {
+// GetUser returns a user with the given ID from user database
+func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 	// Perform the select for the given ID
-	userIdDB := encodeUser(userId)
-	user := UserDB{Id: userIdDB}
-	err := m.db.Select(&user)
+	userIdDB := encodeUser(id)
+	u := UserDB{Id: userIdDB}
+	err = m.db.Select(&user)
 
 	if err != nil {
 		// If there was an error, no user for the given ID was found
-		// So we will return nil, false, similar to map behavior
 		return nil, err
 	}
 	// If we found a user for the given ID, return it
-	return m.convertDbToUser(&user), nil
+	return m.convertDbToUser(&u), nil
+}
+
+// GetUser returns a user with a matching nonce from user database
+func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
+	// Perform the select for the given nonce
+	u := UserDB{Nonce: nonce.Bytes()}
+	err = m.db.Select(&user)
+
+	if err != nil {
+		// If there was an error, no user for the given nonce was found
+		return nil, err
+	}
+	// If we found a user for the given ID, return it
+	return m.convertDbToUser(&u), nil
 }
 
 // UpsertUser inserts given user into the database or update the user if it
