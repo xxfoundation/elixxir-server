@@ -11,10 +11,10 @@ import (
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
-	"time"
 )
 
 // Globally initiated UserRegistry
@@ -70,13 +70,12 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 // Struct representing a User in the system
 type User struct {
-	ID             *id.User
-	HUID           []byte
-	Transmission   ForwardKey
-	Reception      ForwardKey
-	PublicKey      *signature.DSAPublicKey
-	Nonce          []byte
-	NonceTimestamp time.Time
+	ID           *id.User
+	HUID         []byte
+	Transmission ForwardKey
+	Reception    ForwardKey
+	PublicKey    *signature.DSAPublicKey
+	Nonce        nonce.Nonce
 }
 
 // DeepCopy creates a deep copy of a user and returns a pointer to the new copy
@@ -93,9 +92,12 @@ func (u *User) DeepCopy() *User {
 		CustomDSAParams(u.PublicKey.GetP(), u.PublicKey.GetQ(),
 			u.PublicKey.GetG()), u.PublicKey.GetY())
 
-	newUser.Nonce = make([]byte, len(u.Nonce))
-	copy(newUser.Nonce, u.Nonce)
-	newUser.NonceTimestamp = u.NonceTimestamp
+	newUser.Nonce = nonce.Nonce{
+		GenTime:    u.Nonce.GenTime,
+		ExpiryTime: u.Nonce.ExpiryTime,
+		TTL:        u.Nonce.TTL,
+	}
+	copy(u.Nonce.Bytes(), newUser.Nonce.Bytes())
 	return newUser
 }
 
@@ -128,8 +130,7 @@ func (m *UserMap) NewUser() *User {
 		signature.CustomDSAParams(
 			cyclic.NewInt(0), cyclic.NewInt(0), cyclic.NewInt(0)),
 		cyclic.NewInt(0))
-	usr.Nonce = make([]byte, 0)
-	usr.NonceTimestamp = *new(time.Time)
+	usr.Nonce = *new(nonce.Nonce)
 	return usr
 }
 

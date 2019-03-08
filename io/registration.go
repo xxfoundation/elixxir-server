@@ -12,7 +12,10 @@ import (
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nonce"
+	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/server/globals"
 )
 
 // Hardcoded DSA keypair for server
@@ -65,14 +68,29 @@ func (s ServerImpl) RequestNonce(salt, Y, P, Q, G,
 		return make([]byte, 0), errors.New("signed public key is invalid")
 	}
 
-	// Generate UserID by hashing salt and Client public key
+	// Assemble Client public key
+	userPublicKey := signature.ReconstructPublicKey(
+		signature.CustomDSAParams(
+			cyclic.NewIntFromBytes(P),
+			cyclic.NewIntFromBytes(Q),
+			cyclic.NewIntFromBytes(G)),
+		cyclic.NewIntFromBytes(Y))
 
-	// Store UserID and Client public key in user database
+	// Generate UserID
+	userId := registration.GenUserID(userPublicKey, salt)
 
-	// Generate and store a nonce (with a TTL) in user database
+	// Generate a nonce with a timestamp
+	userNonce := nonce.NewNonce(nonce.RegistrationTTL)
+
+	// Store user information in the database
+	newUser := globals.Users.NewUser()
+	newUser.Nonce = userNonce
+	newUser.ID = userId
+	newUser.PublicKey = userPublicKey
+	globals.Users.UpsertUser(newUser)
 
 	// Return nonce to Client with empty error field
-	return make([]byte, 0), nil
+	return userNonce.Bytes(), nil
 }
 
 // Handle confirmation of nonce from Client

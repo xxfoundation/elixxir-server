@@ -14,6 +14,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
@@ -294,8 +295,8 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	newUser.PubKeyP = user.PublicKey.GetP().Bytes()
 	newUser.PubKeyQ = user.PublicKey.GetQ().Bytes()
 	newUser.PubKeyG = user.PublicKey.GetG().Bytes()
-	newUser.Nonce = user.Nonce
-	newUser.NonceTimestamp = user.NonceTimestamp
+	newUser.Nonce = user.Nonce.Bytes()
+	newUser.NonceTimestamp = user.Nonce.GenTime
 	return
 }
 
@@ -323,8 +324,11 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 			cyclic.NewIntFromBytes(user.PubKeyG)),
 		cyclic.NewIntFromBytes(user.PubKeyY))
 
-	newUser.Nonce = user.Nonce
-	newUser.NonceTimestamp = user.NonceTimestamp
-
+	newUser.Nonce = nonce.Nonce{
+		GenTime:    user.NonceTimestamp,
+		ExpiryTime: user.NonceTimestamp.Add(nonce.RegistrationTTL),
+		TTL:        nonce.RegistrationTTL,
+	}
+	copy(user.Nonce, newUser.Nonce.Bytes())
 	return
 }
