@@ -7,13 +7,12 @@
 package globals
 
 import (
-	"crypto/dsa"
 	"crypto/sha256"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
-	"math/big"
 	"sync"
 	"time"
 )
@@ -75,7 +74,7 @@ type User struct {
 	HUID           []byte
 	Transmission   ForwardKey
 	Reception      ForwardKey
-	PublicKey      *dsa.PublicKey
+	PublicKey      *signature.DSAPublicKey
 	Nonce          []byte
 	NonceTimestamp time.Time
 }
@@ -90,11 +89,9 @@ func (u *User) DeepCopy() *User {
 	newUser.Transmission = *u.Transmission.DeepCopy()
 	newUser.Reception = *u.Reception.DeepCopy()
 
-	newUser.PublicKey = new(dsa.PublicKey)
-	newUser.PublicKey.Y = u.PublicKey.Y
-	newUser.PublicKey.P = u.PublicKey.P
-	newUser.PublicKey.Q = u.PublicKey.Q
-	newUser.PublicKey.G = u.PublicKey.G
+	newUser.PublicKey = signature.ReconstructPublicKey(signature.
+		CustomDSAParams(u.PublicKey.GetP(), u.PublicKey.GetQ(),
+			u.PublicKey.GetG()), u.PublicKey.GetY())
 
 	newUser.Nonce = make([]byte, len(u.Nonce))
 	copy(newUser.Nonce, u.Nonce)
@@ -127,12 +124,10 @@ func (m *UserMap) NewUser() *User {
 	usr.Reception = *recept
 	usr.Transmission = *trans
 
-	usr.PublicKey = new(dsa.PublicKey)
-	usr.PublicKey.Y = new(big.Int)
-	usr.PublicKey.P = new(big.Int)
-	usr.PublicKey.Q = new(big.Int)
-	usr.PublicKey.G = new(big.Int)
-
+	usr.PublicKey = signature.ReconstructPublicKey(
+		signature.CustomDSAParams(
+			cyclic.NewInt(0), cyclic.NewInt(0), cyclic.NewInt(0)),
+		cyclic.NewInt(0))
 	usr.Nonce = make([]byte, 0)
 	usr.NonceTimestamp = *new(time.Time)
 	return usr

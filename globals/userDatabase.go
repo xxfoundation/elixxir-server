@@ -7,7 +7,6 @@
 package globals
 
 import (
-	"crypto/dsa"
 	"encoding/base64"
 	"fmt"
 	"github.com/go-pg/pg"
@@ -15,8 +14,8 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
-	"math/big"
 	"sync"
 	"time"
 )
@@ -291,10 +290,10 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
 	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
 	newUser.ReceptionRecursiveKey = user.Reception.RecursiveKey.Bytes()
-	newUser.PubKeyY = user.PublicKey.Y.Bytes()
-	newUser.PubKeyP = user.PublicKey.P.Bytes()
-	newUser.PubKeyQ = user.PublicKey.Q.Bytes()
-	newUser.PubKeyG = user.PublicKey.G.Bytes()
+	newUser.PubKeyY = user.PublicKey.GetY().Bytes()
+	newUser.PubKeyP = user.PublicKey.GetP().Bytes()
+	newUser.PubKeyQ = user.PublicKey.GetQ().Bytes()
+	newUser.PubKeyG = user.PublicKey.GetG().Bytes()
 	newUser.Nonce = user.Nonce
 	newUser.NonceTimestamp = user.NonceTimestamp
 	return
@@ -318,14 +317,11 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 		RecursiveKey: cyclic.NewIntFromBytes(user.ReceptionRecursiveKey),
 	}
 
-	newUser.PublicKey = &dsa.PublicKey{
-		Y: new(big.Int).SetBytes(user.PubKeyY),
-		Parameters: dsa.Parameters{
-			P: new(big.Int).SetBytes(user.PubKeyP),
-			Q: new(big.Int).SetBytes(user.PubKeyQ),
-			G: new(big.Int).SetBytes(user.PubKeyG),
-		},
-	}
+	newUser.PublicKey = signature.ReconstructPublicKey(
+		signature.CustomDSAParams(cyclic.NewIntFromBytes(user.PubKeyP),
+			cyclic.NewIntFromBytes(user.PubKeyQ),
+			cyclic.NewIntFromBytes(user.PubKeyG)),
+		cyclic.NewIntFromBytes(user.PubKeyY))
 
 	newUser.Nonce = user.Nonce
 	newUser.NonceTimestamp = user.NonceTimestamp
