@@ -190,7 +190,7 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 	// Perform the select for the given ID
 	userIdDB := encodeUser(id)
 	u := UserDB{Id: userIdDB}
-	err = m.db.Select(&user)
+	err = m.db.Select(&u)
 
 	if err != nil {
 		// If there was an error, no user for the given ID was found
@@ -204,7 +204,7 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
 	// Perform the select for the given nonce
 	u := UserDB{Nonce: nonce.Bytes()}
-	err = m.db.Select(&user)
+	err = m.db.Select(&u)
 
 	if err != nil {
 		// If there was an error, no user for the given nonce was found
