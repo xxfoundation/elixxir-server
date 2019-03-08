@@ -9,7 +9,7 @@
 package io
 
 // Handle nonce request from Client
-func (s ServerImpl) RequestNonce(salt, diffieKey, Y, P, Q, G,
+func (s ServerImpl) RequestNonce(salt, Y, P, Q, G,
 	hash, R, S []byte) ([]byte, error) {
 
 	// Verify signed public key using hardcoded RegistrationServer public key
