@@ -23,14 +23,14 @@ import (
 type PrecompPermuteHandler struct{}
 
 // ReceptionHandler for PrecompPermuteMessages
-func (s ServerImpl) PrecompPermute(input *pb.PrecompPermuteMessage) {
+func PrecompPermute(input *pb.PrecompPermuteMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting PrecompPermute(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
 	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_PERMUTE)
+	chIn := GetChannel(input.RoundID, globals.PRECOMP_PERMUTE)
 
 	// Store when the operation started
 	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
@@ -152,10 +152,10 @@ func (h PrecompPermuteHandler) Handler(
 		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompPermuteSlot
 		msgSlot := &pb.PrecompPermuteSlot{
-			Slot:                         out.Slot,
-			EncryptedMessageKeys:         out.MessageCypher.Bytes(),
+			Slot:                            out.Slot,
+			EncryptedMessageKeys:            out.MessageCypher.Bytes(),
 			EncryptedAssociatedDataKeys:     out.AssociatedDataCypher.Bytes(),
-			PartialMessageCypherText:     out.MessagePrecomputation.Bytes(),
+			PartialMessageCypherText:        out.MessagePrecomputation.Bytes(),
 			PartialAssociatedDataCypherText: out.AssociatedDataPrecomputation.Bytes(),
 		}
 

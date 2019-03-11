@@ -18,7 +18,7 @@ import (
 type ReceiveMessageHandler struct{}
 
 // Reception handler for ReceiveMessageFromClient
-func (s ServerImpl) ReceiveMessageFromClient(msg *pb.CmixMessage) {
+func ReceiveMessageFromClient(msg *pb.CmixMessage) {
 	recipientID := cyclic.NewIntFromBytes(msg.AssociatedData)
 	messagePayload := cyclic.NewIntFromBytes(msg.MessagePayload)
 

@@ -18,7 +18,7 @@ import (
 )
 
 // Records current time and sends all recorded times to next node
-func (s ServerImpl) ServerMetrics(msg *pb.ServerMetricsMessage) {
+func ServerMetrics(msg *pb.ServerMetricsMessage) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	memUsage := append(msg.MemUsage, uint32((m.Alloc+m.HeapAlloc)/1024/1024))

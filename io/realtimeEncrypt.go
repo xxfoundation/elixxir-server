@@ -22,13 +22,13 @@ import (
 type RealtimeEncryptHandler struct{}
 
 // ReceptionHandler for RealtimeEncryptMessages
-func (s ServerImpl) RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
+func RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimeEncrypt(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.REAL_ENCRYPT)
+	chIn := GetChannel(input.RoundID, globals.REAL_ENCRYPT)
 
 	// Store when the operation started
 	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
@@ -141,7 +141,7 @@ func (h RealtimeEncryptHandler) Handler(
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
 			SenderID:       id.ZeroID[:],
-			AssociatedData:    out.CurrentID[:],
+			AssociatedData: out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
 			Salt:           out.Salt,
 		}
