@@ -29,22 +29,23 @@ var MessageCh chan *realtime.Slot // Message queuing
 
 // Struct implementing node.ServerHandler interface
 type ServerImpl struct {
+
 	// Pointer to the global map of RoundID -> Rounds
 	Rounds *globals.RoundMap
 }
 
-// Get the respective channel for the given roundId and chanId combination
-func (s ServerImpl) GetChannel(roundId string, chanId globals.Phase) chan<- *services.Slot {
-	round := s.Rounds.GetRound(roundId)
+// Get the respective channel for the given roundID and chanId combination
+func (s ServerImpl) GetChannel(roundID string, chanId globals.Phase) chan<- *services.Slot {
+	round := s.Rounds.GetRound(roundID)
 	curPhase := round.GetPhase()
 	if chanId != curPhase && curPhase != globals.ERROR {
 		jww.FATAL.Panicf("Round %s trying to start phase %s, but on phase %s!",
-			roundId, chanId.String(), curPhase.String())
+			roundID, chanId.String(), curPhase.String())
 	}
 	return round.GetChannel(chanId)
 }
 
 // Set the CypherPublicKey for the server to the given value
-func (s ServerImpl) SetPublicKey(roundId string, newKey []byte) {
-	s.Rounds.GetRound(roundId).CypherPublicKey.SetBytes(newKey)
+func (s ServerImpl) SetPublicKey(roundID string, newKey []byte) {
+	s.Rounds.GetRound(roundID).CypherPublicKey.SetBytes(newKey)
 }
