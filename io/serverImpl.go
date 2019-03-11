@@ -36,7 +36,7 @@ func NewServerImplementation() *node.Implementation {
 	impl.Functions.ServerMetrics = ServerMetrics
 	impl.Functions.NewRound = NewRound
 	impl.Functions.StartRound = StartRound
-	//impl.Functions.GetRoundBufferInfo = GetRoundBufferInfo
+	impl.Functions.GetRoundBufferInfo = GetRoundBufferInfo
 	impl.Functions.SetPublicKey = SetPublicKey
 	impl.Functions.PrecompDecrypt = PrecompDecrypt
 	impl.Functions.PrecompEncrypt = PrecompEncrypt
