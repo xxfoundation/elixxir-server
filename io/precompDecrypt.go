@@ -22,14 +22,14 @@ import (
 type PrecompDecryptHandler struct{}
 
 // ReceptionHandler for PrecompDecryptMessages
-func (s ServerImpl) PrecompDecrypt(input *pb.PrecompDecryptMessage) {
+func PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting PrecompDecrypt(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
 	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
+	chIn := GetChannel(input.RoundID, globals.PRECOMP_DECRYPT)
 
 	// Store when the operation started
 	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
@@ -91,10 +91,10 @@ func precompDecryptLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to PrecompPermuteSlot
 		msgSlot := &pb.PrecompPermuteSlot{
-			Slot:                         out.Slot,
-			EncryptedMessageKeys:         out.EncryptedMessageKeys,
+			Slot:                            out.Slot,
+			EncryptedMessageKeys:            out.EncryptedMessageKeys,
 			EncryptedAssociatedDataKeys:     out.EncryptedAssociatedDataKeys,
-			PartialMessageCypherText:     out.PartialMessageCypherText,
+			PartialMessageCypherText:        out.PartialMessageCypherText,
 			PartialAssociatedDataCypherText: out.PartialAssociatedDataCypherText,
 		}
 
@@ -142,10 +142,10 @@ func (h PrecompDecryptHandler) Handler(
 		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompDecryptSlot
 		msgSlot := &pb.PrecompDecryptSlot{
-			Slot:                         out.Slot,
-			EncryptedMessageKeys:         out.MessageCypher.Bytes(),
+			Slot:                            out.Slot,
+			EncryptedMessageKeys:            out.MessageCypher.Bytes(),
 			EncryptedAssociatedDataKeys:     out.AssociatedDataCypher.Bytes(),
-			PartialMessageCypherText:     out.MessagePrecomputation.Bytes(),
+			PartialMessageCypherText:        out.MessagePrecomputation.Bytes(),
 			PartialAssociatedDataCypherText: out.AssociatedDataPrecomputation.Bytes(),
 		}
 

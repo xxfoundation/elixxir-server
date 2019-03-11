@@ -22,7 +22,7 @@ import (
 type RealtimePermuteHandler struct{}
 
 // ReceptionHandler for RealtimePermuteMessages
-func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
+func RealtimePermute(input *pb.RealtimePermuteMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimePermute(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -33,7 +33,7 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		REAL_PERMUTE] = startTime
 
 	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
+	chIn := GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent Slot
@@ -134,8 +134,8 @@ func (h RealtimePermuteHandler) Handler(
 		out := (*slots[i]).(*realtime.Slot)
 		// Convert to RealtimePermuteSlot
 		msgSlot := &pb.RealtimePermuteSlot{
-			Slot:                 out.Slot,
-			EncryptedMessage:     out.Message.Bytes(),
+			Slot:                    out.Slot,
+			EncryptedMessage:        out.Message.Bytes(),
 			EncryptedAssociatedData: out.EncryptedRecipient.Bytes(),
 		}
 

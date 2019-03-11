@@ -264,9 +264,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	connect.ServerCertPath = certPath
 	connect.GatewayCertPath = gatewayCertPath
 	// Kick off Comms server
-	go node.StartServer(localServer, io.ServerImpl{
-		Rounds: &globals.GlobalRoundMap,
-	}, certPath, keyPath)
+	go node.StartServer(localServer, io.NewServerImplementation(), certPath,
+		keyPath)
 
 	// TODO Replace these concepts with a better system
 	id.IsLastNode = serverIndex == len(io.Servers)-1

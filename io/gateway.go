@@ -15,7 +15,7 @@ import (
 
 // Start round receives a list of CmixMessages and sends them to the
 // ReceiveMessageFromClient handler.
-func (m ServerImpl) StartRound(messages *pb.InputMessages) {
+func StartRound(messages *pb.InputMessages) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting StartRound(...) at %s",
 		startTime.Format(time.RFC3339))
@@ -32,7 +32,7 @@ func (m ServerImpl) StartRound(messages *pb.InputMessages) {
 
 	// Keep going even if we have an error.
 	for i := range cMixMsgs {
-		m.ReceiveMessageFromClient(cMixMsgs[i])
+		ReceiveMessageFromClient(cMixMsgs[i])
 	}
 
 	endTime := time.Now()

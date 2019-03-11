@@ -19,7 +19,7 @@ func TestGetRoundtripPing(t *testing.T) {
 	// Kick off comms server
 	for i := range servers {
 		go node.StartServer(servers[i],
-			ServerImpl{Rounds: &globals.GlobalRoundMap}, "", "")
+			NewServerImplementation(), "", "")
 		if i == len(servers)-1 {
 			NextServer = servers[0]
 		} else {

@@ -16,7 +16,7 @@ import (
 )
 
 // Records current time and sends all recorded times to next node
-func (s ServerImpl) RoundtripPing(msg *pb.TimePing) {
+func RoundtripPing(msg *pb.TimePing) {
 	// record current time
 	times := append(msg.Times, time.Now().UnixNano())
 	// if not last node, send to next node. otherwise log results
