@@ -11,6 +11,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/hash"
+	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -52,7 +53,7 @@ func (h RealtimeIdentifyHandler) Handler(
 	cMixHash, _ := hash.NewCMixHash()
 	for i := range slots {
 		out := (*slots[i]).(*realtime.Slot)
-		associatedData := out.AssociatedData.Bytes()
+		associatedData := out.AssociatedData.LeftpadBytes(uint64(format.TOTAL_LEN))
 		encryptedMsg := round.LastNode.EncryptedMessage[i].Bytes()
 		cMixHash.Reset()
 		cMixHash.Write(associatedData)

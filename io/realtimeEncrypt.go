@@ -145,7 +145,7 @@ func (h RealtimeEncryptHandler) Handler(
 		// Convert to CmixMessage
 		msgSlot := &pb.CmixMessage{
 			SenderID:       id.ZeroID[:],
-			AssociatedData: out.AssociatedData.Bytes(),
+			AssociatedData: out.AssociatedData.LeftpadBytes(uint64(format.TOTAL_LEN)),
 			MessagePayload: out.Message.Bytes(),
 			Salt:           out.Salt,
 		}

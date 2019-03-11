@@ -65,7 +65,7 @@ func (i Verify) Build(g *cyclic.Group,
 func (i Verify) Run(g *cyclic.Group,
 	in, out *Slot, keys *KeysVerify) services.Slot {
 
-	associatedData := format.DeserializeAssociatedData(in.AssociatedData.Bytes())
+	associatedData := format.DeserializeAssociatedData(in.AssociatedData.LeftpadBytes(uint64(format.TOTAL_LEN)))
 	recpbytes := associatedData.GetRecipientID()
 	keyprint := associatedData.GetKeyFingerprint()
 	timestamp := associatedData.GetTimestamp()

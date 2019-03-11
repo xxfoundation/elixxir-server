@@ -10,6 +10,7 @@ import (
 	"bytes"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/e2e"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -58,7 +59,11 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	message := format.NewMessage()
 	message.SetSender(senderID)
 	message.SetRecipient(recipientID)
-	message.SetPayload(text)
+	message.SetPayloadData(text)
+
+	// Correctly pad unencrypted message
+	paddedPayload, _ := e2e.Pad(message.GetPayload(), format.TOTAL_LEN)
+	message.SetPayload(paddedPayload)
 
 	payload := message.SerializePayload()
 	associatedData := message.SerializeAssociatedData()
@@ -77,8 +82,12 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		t.Errorf("Received sender ID %v, expected %v",
 			*receivedMessage.CurrentID, *senderID)
 	}
-	resultPayload := format.DeserializePayload(receivedMessage.Message.Bytes())
-	resultAssociatedData := format.DeserializeAssociatedData(receivedMessage.AssociatedData.Bytes())
+	resultPayload := format.DeserializePayload(receivedMessage.Message.LeftpadBytes(uint64(format.TOTAL_LEN)))
+	resultAssociatedData := format.DeserializeAssociatedData(receivedMessage.AssociatedData.LeftpadBytes(uint64(format.TOTAL_LEN)))
+
+	// Correctly unpad unencrypted message
+	unpaddedPayload, _ := e2e.Unpad(resultPayload.SerializePayload())
+	resultPayload.SetSplitPayload(unpaddedPayload)
 
 	if *resultPayload.GetSender() != *senderID {
 		t.Errorf("Received sender ID in bytes %q, expected %q",
@@ -88,7 +97,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 		t.Errorf("Received recipient ID %q, expected %q",
 			*resultAssociatedData.GetRecipient(), *recipientID)
 	}
-	if !bytes.Contains(resultPayload.GetPayload(), text) {
+	if !bytes.Contains(resultPayload.GetPayloadData(), text) {
 		t.Errorf("Received payload message %q, expected %q",
 			resultPayload.GetPayload(), text)
 	}
