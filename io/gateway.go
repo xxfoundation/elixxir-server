@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var GetRoundBufferInfoTimeout = "90s"
+var GetRoundBufferInfoTimeout = "1s"
 
 // Start round receives a list of CmixMessages and sends them to the
 // ReceiveMessageFromClient handler.
