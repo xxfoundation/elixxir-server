@@ -134,10 +134,11 @@ func ConfirmNonce(hash, R,
 
 	// Concatenate Client public key byte slices
 	data := make([]byte, 0)
+	params := user.PublicKey.GetParams()
 	data = append(data, user.PublicKey.GetY().Bytes()...)
-	data = append(data, user.PublicKey.GetP().Bytes()...)
-	data = append(data, user.PublicKey.GetQ().Bytes()...)
-	data = append(data, user.PublicKey.GetG().Bytes()...)
+	data = append(data, params.GetP().Bytes()...)
+	data = append(data, params.GetQ().Bytes()...)
+	data = append(data, params.GetG().Bytes()...)
 
 	// Use hardcoded Server private key to sign Client public key
 	sig, err := privateKey.Sign(data, rand.Reader)

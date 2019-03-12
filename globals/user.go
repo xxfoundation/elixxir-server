@@ -90,9 +90,10 @@ func (u *User) DeepCopy() *User {
 	newUser.Transmission = *u.Transmission.DeepCopy()
 	newUser.Reception = *u.Reception.DeepCopy()
 
+	params := u.PublicKey.GetParams()
 	newUser.PublicKey = signature.ReconstructPublicKey(signature.
-		CustomDSAParams(u.PublicKey.GetP(), u.PublicKey.GetQ(),
-			u.PublicKey.GetG()), u.PublicKey.GetY())
+		CustomDSAParams(params.GetP(), params.GetQ(),
+			params.GetG()), u.PublicKey.GetY())
 
 	newUser.Nonce = nonce.Nonce{
 		GenTime:    u.Nonce.GenTime,

@@ -302,15 +302,16 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
+	params := user.PublicKey.GetParams()
 	newUser.Id = encodeUser(user.ID)
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
 	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
 	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
 	newUser.ReceptionRecursiveKey = user.Reception.RecursiveKey.Bytes()
 	newUser.PubKeyY = user.PublicKey.GetY().Bytes()
-	newUser.PubKeyP = user.PublicKey.GetP().Bytes()
-	newUser.PubKeyQ = user.PublicKey.GetQ().Bytes()
-	newUser.PubKeyG = user.PublicKey.GetG().Bytes()
+	newUser.PubKeyP = params.GetP().Bytes()
+	newUser.PubKeyQ = params.GetQ().Bytes()
+	newUser.PubKeyG = params.GetG().Bytes()
 	newUser.Nonce = user.Nonce.Bytes()
 	newUser.NonceTimestamp = user.Nonce.GenTime
 	return
