@@ -7,6 +7,7 @@
 package realtime
 
 import (
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/verification"
 	"gitlab.com/elixxir/primitives/format"
@@ -50,11 +51,19 @@ func TestRealTimeVerify(t *testing.T) {
 	user := id.NewUserFromUint(42, t)
 	assocData := format.NewAssociatedData()
 	assocData.SetRecipient(user)
-	data, _ := cyclic.GenerateRandomBytes(format.AD_KEYFP_LEN)
+
+	csprig := csprng.NewSystemRNG()
+
+	data := make([]byte, format.AD_KEYFP_LEN)
+	csprig.Read(data)
 	assocData.SetKeyFingerprint(data)
-	data, _ = cyclic.GenerateRandomBytes(format.AD_TIMESTAMP_LEN)
+
+	data = make([]byte, format.AD_TIMESTAMP_LEN)
+	csprig.Read(data)
 	assocData.SetTimestamp(data)
-	data, _ = cyclic.GenerateRandomBytes(format.AD_MAC_LEN)
+
+	data = make([]byte, format.AD_MAC_LEN)
+	csprig.Read(data)
 	assocData.SetMAC(data)
 
 	payloadMicList := [][]byte{
@@ -129,11 +138,19 @@ func TestVerifyRun(t *testing.T) {
 	user := id.NewUserFromUint(42, t)
 	assocData := format.NewAssociatedData()
 	assocData.SetRecipient(user)
-	data, _ := cyclic.GenerateRandomBytes(format.AD_KEYFP_LEN)
+
+	csprig := csprng.NewSystemRNG()
+
+	data := make([]byte, format.AD_KEYFP_LEN)
+	csprig.Read(data)
 	assocData.SetKeyFingerprint(data)
-	data, _ = cyclic.GenerateRandomBytes(format.AD_TIMESTAMP_LEN)
+
+	data = make([]byte, format.AD_TIMESTAMP_LEN)
+	csprig.Read(data)
 	assocData.SetTimestamp(data)
-	data, _ = cyclic.GenerateRandomBytes(format.AD_MAC_LEN)
+
+	data = make([]byte, format.AD_MAC_LEN)
+	csprig.Read(data)
 	assocData.SetMAC(data)
 
 	payloadMicList := [][]byte{
