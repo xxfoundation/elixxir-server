@@ -7,6 +7,7 @@
 package realtime
 
 import (
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/verification"
 	"gitlab.com/elixxir/primitives/format"
@@ -47,27 +48,43 @@ func TestRealTimeVerify(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	recip, _ := format.NewRecipientPayload(id.NewUserFromUint(42, t))
-	newRecipientIV := make([]byte, format.RIV_LEN)
-	newRecipientIV[0] = 1
-	copy(recip.GetRecipientInitVect(), newRecipientIV)
+	user := id.NewUserFromUint(42, t)
+	assocData := format.NewAssociatedData()
+	assocData.SetRecipient(user)
+
+	csprig := csprng.NewSystemRNG()
+
+	data := make([]byte, format.AD_KEYFP_LEN)
+	csprig.Read(data)
+	assocData.SetKeyFingerprint(data)
+
+	data = make([]byte, format.AD_TIMESTAMP_LEN)
+	csprig.Read(data)
+	assocData.SetTimestamp(data)
+
+	data = make([]byte, format.AD_MAC_LEN)
+	csprig.Read(data)
+	assocData.SetMAC(data)
+
 	payloadMicList := [][]byte{
-		recip.GetRecipientInitVect(),
-		recip.GetRecipientID(),
+		assocData.GetRecipientID(),
+		assocData.GetKeyFingerprint(),
+		assocData.GetTimestamp(),
+		assocData.GetMAC(),
 	}
-	copy(recip.GetRecipientMIC(), verification.GenerateMIC(payloadMicList, format.RMIC_LEN))
+	copy(assocData.GetRecipientMIC(), verification.GenerateMIC(payloadMicList, uint64(format.AD_RMIC_LEN)))
 
 	im = append(im, &Slot{
-		Slot:               0,
-		EncryptedRecipient: cyclic.NewIntFromBytes(recip.SerializeRecipient())})
+		Slot:           0,
+		AssociatedData: cyclic.NewIntFromBytes(assocData.SerializeAssociatedData())})
 
 	im = append(im, &Slot{
-		Slot:               1,
-		EncryptedRecipient: cyclic.NewIntFromBytes(recip.SerializeRecipient())})
+		Slot:           1,
+		AssociatedData: cyclic.NewIntFromBytes(assocData.SerializeAssociatedData())})
 
 	im = append(im, &Slot{
-		Slot:               2,
-		EncryptedRecipient: cyclic.NewInt(0)})
+		Slot:           2,
+		AssociatedData: cyclic.NewInt(0)})
 
 	ExpectedOutputs := []bool{true, true, false}
 
@@ -118,22 +135,39 @@ func TestVerifyRun(t *testing.T) {
 		cyclic.NewInt(23),
 		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
 
-	recip, _ := format.NewRecipientPayload(id.NewUserFromUint(42, t))
-	recip.GetRecipientInitVect()[0] = 1
+	user := id.NewUserFromUint(42, t)
+	assocData := format.NewAssociatedData()
+	assocData.SetRecipient(user)
+
+	csprig := csprng.NewSystemRNG()
+
+	data := make([]byte, format.AD_KEYFP_LEN)
+	csprig.Read(data)
+	assocData.SetKeyFingerprint(data)
+
+	data = make([]byte, format.AD_TIMESTAMP_LEN)
+	csprig.Read(data)
+	assocData.SetTimestamp(data)
+
+	data = make([]byte, format.AD_MAC_LEN)
+	csprig.Read(data)
+	assocData.SetMAC(data)
 
 	payloadMicList := [][]byte{
-		recip.GetRecipientInitVect(),
-		recip.GetRecipientID(),
+		assocData.GetRecipientID(),
+		assocData.GetKeyFingerprint(),
+		assocData.GetTimestamp(),
+		assocData.GetMAC(),
 	}
-	copy(recip.GetRecipientMIC(), verification.GenerateMIC(payloadMicList, format.RMIC_LEN))
+	copy(assocData.GetRecipientMIC(), verification.GenerateMIC(payloadMicList, uint64(format.AD_RMIC_LEN)))
 
 	im := Slot{
-		Slot:               0,
-		EncryptedRecipient: cyclic.NewIntFromBytes(recip.SerializeRecipient())}
+		Slot:           0,
+		AssociatedData: cyclic.NewIntFromBytes(assocData.SerializeAssociatedData())}
 
 	om := Slot{
-		Slot:               0,
-		EncryptedRecipient: cyclic.NewInt(0)}
+		Slot:           0,
+		AssociatedData: cyclic.NewInt(0)}
 
 	verify := Verify{}
 	verify.Run(&grp, &im, &om, &keys)
@@ -144,12 +178,12 @@ func TestVerifyRun(t *testing.T) {
 	}
 
 	im = Slot{
-		Slot:               0,
-		EncryptedRecipient: cyclic.NewInt(0)}
+		Slot:           0,
+		AssociatedData: cyclic.NewInt(0)}
 
 	om = Slot{
-		Slot:               0,
-		EncryptedRecipient: cyclic.NewInt(0)}
+		Slot:           0,
+		AssociatedData: cyclic.NewInt(0)}
 
 	verify.Run(&grp, &im, &om, &keys)
 

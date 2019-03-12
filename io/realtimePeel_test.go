@@ -8,6 +8,7 @@ package io
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -34,12 +35,15 @@ func TestRealtimePeel(t *testing.T) {
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
 		chOut, RealtimeEncryptHandler{})
 
+	user := id.NewUserFromUint(42, t)
+	associatedData := format.NewAssociatedData()
+	associatedData.SetRecipient(user)
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
-		Slot:               uint64(0),
-		CurrentID:          id.NewUserFromUint(42, t),
-		Message:            cyclic.NewInt(7),
-		EncryptedRecipient: cyclic.NewInt(42),
+		Slot:           uint64(0),
+		CurrentID:      user,
+		Message:        cyclic.NewInt(7),
+		AssociatedData: cyclic.NewIntFromBytes(associatedData.SerializeAssociatedData()),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler
@@ -85,10 +89,10 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	userId := id.NewUserFromUint(1, t)
 	s := make([]*services.Slot, 1)
 	sl := &realtime.Slot{
-		EncryptedRecipient: cyclic.NewInt(10),
-		Message:            cyclic.NewInt(5),
-		CurrentID:          userId,
-		CurrentKey:         cyclic.NewInt(20),
+		AssociatedData: cyclic.NewInt(10),
+		Message:        cyclic.NewInt(5),
+		CurrentID:      userId,
+		CurrentKey:     cyclic.NewInt(20),
 	}
 	slot := services.Slot(sl)
 	s[0] = &slot

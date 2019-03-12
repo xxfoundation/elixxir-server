@@ -23,7 +23,7 @@ import (
 type PrecompShareHandler struct{}
 
 // ReceptionHandler for PrecompShareMessages
-func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
+func PrecompShare(input *pb.PrecompShareMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting PrecompShare(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -34,7 +34,7 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 		PRECOMP_SHARE] = startTime
 
 	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_SHARE)
+	chIn := GetChannel(input.RoundID, globals.PRECOMP_SHARE)
 	// Iterate through the Slots in the PrecompShareMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotShare
@@ -57,13 +57,13 @@ func (s ServerImpl) PrecompShare(input *pb.PrecompShareMessage) {
 }
 
 // TODO finish implementing this stubbed-out method
-func (s ServerImpl) PrecompShareCompare(*pb.PrecompShareCompareMessage) {}
+func PrecompShareCompare(*pb.PrecompShareCompareMessage) {}
 
 // TODO finish implementing this stubbed-out method
-func (s ServerImpl) PrecompShareConfirm(*pb.PrecompShareConfirmMessage) {}
+func PrecompShareConfirm(*pb.PrecompShareConfirmMessage) {}
 
 // TODO finish implementing this stubbed-out method
-func (s ServerImpl) PrecompShareInit(*pb.PrecompShareInitMessage) {}
+func PrecompShareInit(*pb.PrecompShareInitMessage) {}
 
 // Transition to PrecompDecrypt phase on the last node
 func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
@@ -112,9 +112,9 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 	for i := uint64(0); i < batchSize; i++ {
 		// Convert to PrecompDecryptSlot
 		msgSlot := &pb.PrecompDecryptSlot{
-			Slot:                         uint64(i),
-			EncryptedMessageKeys:         cyclic.NewInt(1).Bytes(),
-			PartialMessageCypherText:     cyclic.NewInt(1).Bytes(),
+			Slot:                            uint64(i),
+			EncryptedMessageKeys:            cyclic.NewInt(1).Bytes(),
+			PartialMessageCypherText:        cyclic.NewInt(1).Bytes(),
 			EncryptedAssociatedDataKeys:     cyclic.NewInt(1).Bytes(),
 			PartialAssociatedDataCypherText: cyclic.NewInt(1).Bytes(),
 		}

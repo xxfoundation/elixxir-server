@@ -22,7 +22,7 @@ import (
 type RealtimePermuteHandler struct{}
 
 // ReceptionHandler for RealtimePermuteMessages
-func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
+func RealtimePermute(input *pb.RealtimePermuteMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimePermute(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -33,7 +33,7 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 		REAL_PERMUTE] = startTime
 
 	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.REAL_PERMUTE)
+	chIn := GetChannel(input.RoundID, globals.REAL_PERMUTE)
 	// Iterate through the Slots in the RealtimePermuteMessage
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent Slot
@@ -42,7 +42,7 @@ func (s ServerImpl) RealtimePermute(input *pb.RealtimePermuteMessage) {
 			Slot: in.Slot,
 			Message: cyclic.NewIntFromBytes(
 				in.EncryptedMessage),
-			EncryptedRecipient: cyclic.NewIntFromBytes(
+			AssociatedData: cyclic.NewIntFromBytes(
 				in.EncryptedAssociatedData),
 		}
 		// Pass slot as input to Permute's channel
@@ -92,8 +92,8 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to Slot
 		var slot services.Slot = &realtime.Slot{
-			Slot:               out.Slot,
-			EncryptedRecipient: cyclic.NewIntFromBytes(out.EncryptedAssociatedData),
+			Slot:           out.Slot,
+			AssociatedData: cyclic.NewIntFromBytes(out.EncryptedAssociatedData),
 		}
 		// Save EncryptedMessages for the Identify->Encrypt transition
 		round.LastNode.EncryptedMessage[i] = cyclic.NewIntFromBytes(out.EncryptedMessage)
@@ -134,9 +134,9 @@ func (h RealtimePermuteHandler) Handler(
 		out := (*slots[i]).(*realtime.Slot)
 		// Convert to RealtimePermuteSlot
 		msgSlot := &pb.RealtimePermuteSlot{
-			Slot:                 out.Slot,
-			EncryptedMessage:     out.Message.Bytes(),
-			EncryptedAssociatedData: out.EncryptedRecipient.Bytes(),
+			Slot:                    out.Slot,
+			EncryptedMessage:        out.Message.Bytes(),
+			EncryptedAssociatedData: out.AssociatedData.Bytes(),
 		}
 
 		// Append the RealtimePermuteSlot to the RealtimePermuteMessage

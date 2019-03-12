@@ -22,13 +22,13 @@ import (
 type PrecompEncryptHandler struct{}
 
 // ReceptionHandler for PrecompEncryptMessages
-func (s ServerImpl) PrecompEncrypt(input *pb.PrecompEncryptMessage) {
+func PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting PrecompEncrypt(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
-	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT)
+	chIn := GetChannel(input.RoundID, globals.PRECOMP_ENCRYPT)
 
 	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
 		PRECOMP_ENCRYPT] = startTime
@@ -88,9 +88,9 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
-			Slot: out.Slot,
+			Slot:                            out.Slot,
 			PartialMessageCypherText:        out.PartialMessageCypherText,
-			PartialAssociatedDataCypherText: round.LastNode.RecipientCypherText[i].Bytes(),
+			PartialAssociatedDataCypherText: round.LastNode.AssociatedDataCypherText[i].Bytes(),
 		}
 
 		// Save the Message Precomputation

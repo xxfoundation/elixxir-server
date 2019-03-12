@@ -32,10 +32,10 @@ func (h DummyPrecompDecryptHandler) Handler(
 		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompDecryptSlot
 		msgSlot := &pb.PrecompDecryptSlot{
-			Slot:                         out.Slot,
-			EncryptedMessageKeys:         out.MessageCypher.Bytes(),
+			Slot:                            out.Slot,
+			EncryptedMessageKeys:            out.MessageCypher.Bytes(),
 			EncryptedAssociatedDataKeys:     out.AssociatedDataCypher.Bytes(),
-			PartialMessageCypherText:     out.MessagePrecomputation.Bytes(),
+			PartialMessageCypherText:        out.MessagePrecomputation.Bytes(),
 			PartialAssociatedDataCypherText: out.AssociatedDataPrecomputation.Bytes(),
 		}
 
@@ -69,10 +69,10 @@ func TestPrecompDecrypt(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
-		Slot:                      uint64(0),
-		MessageCypher:             cyclic.NewInt(12),
+		Slot:                         uint64(0),
+		MessageCypher:                cyclic.NewInt(12),
 		AssociatedDataCypher:         cyclic.NewInt(7),
-		MessagePrecomputation:     cyclic.NewInt(3),
+		MessagePrecomputation:        cyclic.NewInt(3),
 		AssociatedDataPrecomputation: cyclic.NewInt(8)}
 
 	// Pass slot as input to Decrypt's TransmissionHandler

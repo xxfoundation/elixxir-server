@@ -36,9 +36,9 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.Slot,
 	msgList := make([]*realtime.Slot, batchSize)
 	for msg := range MessageCh {
 		jww.DEBUG.Printf("Adding message ("+
-			"%d/%d) from SenderID %q to Recipient %s...",
+			"%d/%d) from SenderID %q with Associated Data %s...",
 			msgCount+1, batchSize, msg.CurrentID,
-			msg.EncryptedRecipient.Text(10))
+			msg.AssociatedData.Text(10))
 		msg.Slot = msgCount
 		msgList[msgCount] = msg
 		msgCount = msgCount + 1
@@ -47,16 +47,16 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.Slot,
 			msgCount = uint64(0)
 			// Pass the batch queue into Realtime and begin
 
-			roundId := *(<-RoundCh)
+			roundID := *(<-RoundCh)
 			// Keep reading until we get a valid round
-			for globals.GlobalRoundMap.GetRound(roundId) == nil {
-				roundId = *(<-RoundCh)
+			for globals.GlobalRoundMap.GetRound(roundID) == nil {
+				roundID = *(<-RoundCh)
 			}
 
 			startTime := time.Now()
 			jww.INFO.Printf("Realtime phase with Round ID %s started at %s\n",
-				roundId, startTime.Format(time.RFC3339))
-			io.KickoffDecryptHandler(roundId, batchSize, msgList)
+				roundID, startTime.Format(time.RFC3339))
+			io.KickoffDecryptHandler(roundID, batchSize, msgList)
 
 			// Signal the precomputation thread to run
 			realtimeSignal.L.Lock()
@@ -64,18 +64,18 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.Slot,
 			realtimeSignal.L.Unlock()
 
 			// Wait for the realtime phase to complete and record the elapsed time
-			go func(roundId string, startTime time.Time) {
+			go func(roundID string, startTime time.Time) {
 				// Since we just started, it is safe not to check for nil here.
 				// this is still technically a race cond, though
-				round := globals.GlobalRoundMap.GetRound(roundId)
+				round := globals.GlobalRoundMap.GetRound(roundID)
 				round.WaitUntilPhase(globals.REAL_COMPLETE)
 				endTime := time.Now()
 				jww.INFO.Printf("Realtime phase with Round ID %s finished at %s!\n",
-					roundId, endTime.Format(time.RFC3339))
+					roundID, endTime.Format(time.RFC3339))
 				jww.INFO.Printf("Realtime phase completed in %d ms",
 					int64(endTime.Sub(startTime)/time.Millisecond))
-				globals.GlobalRoundMap.DeleteRound(roundId)
-			}(roundId, startTime)
+				globals.GlobalRoundMap.DeleteRound(roundID)
+			}(roundID, startTime)
 		}
 	}
 }
@@ -120,37 +120,37 @@ func RunPrecomputation(RoundCh chan *string, realtimeSignal *sync.Cond) {
 		for checkPrecompBuffer(len(RoundCh), int(atomic.LoadInt32(&numRunning))) {
 			// Begin the round on all nodes
 			startTime := time.Now()
-			roundId := globals.PeekNextRoundID()
+			roundID := globals.PeekNextRoundID()
 
 			jww.INFO.Printf("Precomputation phase with Round ID %s started at %s\n",
-				roundId, startTime.Format(time.RFC3339))
+				roundID, startTime.Format(time.RFC3339))
 			atomic.AddInt32(&numRunning, int32(1))
-			io.BeginNewRound(io.Servers, roundId)
+			io.BeginNewRound(io.Servers, roundID)
 			// Wait for round to be in the PRECOMP_COMPLETE state before
 			// adding it to the round map
 			go func(RoundCh chan *string, precompChan chan bool,
-				roundId string, startTime time.Time) {
+				roundID string, startTime time.Time) {
 
-				round := globals.GlobalRoundMap.GetRound(roundId)
+				round := globals.GlobalRoundMap.GetRound(roundID)
 
 				// Wait until the round completes to continue
 				round.WaitUntilPhase(globals.PRECOMP_COMPLETE)
 				atomic.AddInt32(&numRunning, int32(-1))
 				if round.GetPhase() == globals.ERROR {
 					jww.ERROR.Printf("Error occurred during precomputation"+
-						" of round %s, round aborted", roundId)
+						" of round %s, round aborted", roundID)
 				} else {
 					endTime := time.Now()
 					jww.INFO.Printf("Precomputation phase with Round ID %s finished at %s!\n",
-						roundId, endTime.Format(time.RFC3339))
+						roundID, endTime.Format(time.RFC3339))
 					jww.INFO.Printf("Precomputation phase completed in %d ms",
 						int64(endTime.Sub(startTime)/time.Millisecond))
 
-					RoundCh <- &roundId
+					RoundCh <- &roundID
 					precompChan <- true
 				}
 
-			}(RoundCh, precompChan, roundId, startTime)
+			}(RoundCh, precompChan, roundID, startTime)
 		}
 	}
 }
@@ -264,9 +264,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	connect.ServerCertPath = certPath
 	connect.GatewayCertPath = gatewayCertPath
 	// Kick off Comms server
-	go node.StartServer(localServer, io.ServerImpl{
-		Rounds: &globals.GlobalRoundMap,
-	}, certPath, keyPath)
+	go node.StartServer(localServer, io.NewServerImplementation(), certPath,
+		keyPath)
 
 	// TODO Replace these concepts with a better system
 	id.IsLastNode = serverIndex == len(io.Servers)-1

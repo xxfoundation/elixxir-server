@@ -52,38 +52,38 @@ func TestPermute(t *testing.T) {
 
 	var inMessages []services.Slot
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
-		MessageCypher:             cyclic.NewInt(39),
+		MessageCypher:                cyclic.NewInt(39),
 		AssociatedDataCypher:         cyclic.NewInt(13),
-		MessagePrecomputation:     cyclic.NewInt(41),
+		MessagePrecomputation:        cyclic.NewInt(41),
 		AssociatedDataPrecomputation: cyclic.NewInt(74)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
-		MessageCypher:             cyclic.NewInt(86),
+		MessageCypher:                cyclic.NewInt(86),
 		AssociatedDataCypher:         cyclic.NewInt(87),
-		MessagePrecomputation:     cyclic.NewInt(8),
+		MessagePrecomputation:        cyclic.NewInt(8),
 		AssociatedDataPrecomputation: cyclic.NewInt(49)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
-		MessageCypher:             cyclic.NewInt(39),
+		MessageCypher:                cyclic.NewInt(39),
 		AssociatedDataCypher:         cyclic.NewInt(51),
-		MessagePrecomputation:     cyclic.NewInt(91),
+		MessagePrecomputation:        cyclic.NewInt(91),
 		AssociatedDataPrecomputation: cyclic.NewInt(73)})
 
 	expected := []PrecomputationSlot{
 		PrecomputationSlot{Slot: uint64(1),
-			MessageCypher:             cyclic.NewInt(71),
+			MessageCypher:                cyclic.NewInt(71),
 			AssociatedDataCypher:         cyclic.NewInt(60),
-			MessagePrecomputation:     cyclic.NewInt(44),
+			MessagePrecomputation:        cyclic.NewInt(44),
 			AssociatedDataPrecomputation: cyclic.NewInt(97)},
 		PrecomputationSlot{Slot: uint64(2),
-			MessageCypher:             cyclic.NewInt(79),
+			MessageCypher:                cyclic.NewInt(79),
 			AssociatedDataCypher:         cyclic.NewInt(16),
-			MessagePrecomputation:     cyclic.NewInt(47),
+			MessagePrecomputation:        cyclic.NewInt(47),
 			AssociatedDataPrecomputation: cyclic.NewInt(47)},
 		PrecomputationSlot{Slot: uint64(0),
-			MessageCypher:             cyclic.NewInt(78),
+			MessageCypher:                cyclic.NewInt(78),
 			AssociatedDataCypher:         cyclic.NewInt(34),
-			MessagePrecomputation:     cyclic.NewInt(69),
+			MessagePrecomputation:        cyclic.NewInt(69),
 			AssociatedDataPrecomputation: cyclic.NewInt(13)},
 	}
 	dispatch := services.DispatchCryptop(&group, Permute{}, nil, nil, round)

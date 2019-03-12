@@ -37,9 +37,10 @@ func (p Peel) Build(g *cyclic.Group,
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{
-			Slot:      i,
-			Message:   cyclic.NewMaxInt(),
-			CurrentID: id.ZeroID,
+			Slot:           i,
+			AssociatedData: cyclic.NewMaxInt(),
+			Message:        cyclic.NewMaxInt(),
+			CurrentID:      id.ZeroID,
 		}
 	}
 
@@ -68,7 +69,8 @@ func (p Peel) Run(g *cyclic.Group,
 	// Eq 7.1: Multiply in the precomputation
 	g.Mul(in.Message, keys.MessagePrecomputation, out.Message)
 
-	// Pass through SenderID
+	// Pass through AssociatedData and RecipientID
+	out.AssociatedData = in.AssociatedData
 	out.CurrentID = in.CurrentID
 	out.Salt = in.Salt
 

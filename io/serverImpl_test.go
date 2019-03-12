@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 	// Kick off comms server
 	localServer := "localhost:5555"
 	go node.StartServer(localServer,
-		ServerImpl{Rounds: &globals.GlobalRoundMap}, "", "")
+		NewServerImplementation(), "", "")
 	// Next hop will be back to us
 	NextServer = localServer
 	os.Exit(m.Run())
@@ -34,10 +34,9 @@ func TestServerImpl_SetPublicKey(t *testing.T) {
 	globals.GlobalRoundMap.AddRound(roundId,
 		globals.NewRound(5))
 
-	impl := ServerImpl{Rounds: &globals.GlobalRoundMap}
-	impl.SetPublicKey(roundId, expected.Bytes())
+	SetPublicKey(roundId, expected.Bytes())
 
-	actual := impl.Rounds.GetRound(roundId).CypherPublicKey
+	actual := globals.GlobalRoundMap.GetRound(roundId).CypherPublicKey
 	if actual.Cmp(expected) != 0 {
 		t.Errorf("SetPublicKey: Values did not match!"+
 			" Expected %s Actual %s", expected.Text(10),

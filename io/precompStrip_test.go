@@ -36,10 +36,10 @@ func TestPrecompStrip(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
-		Slot:                      uint64(0),
-		MessageCypher:             cyclic.NewInt(12),
+		Slot:                         uint64(0),
+		MessageCypher:                cyclic.NewInt(12),
 		AssociatedDataCypher:         cyclic.NewInt(7),
-		MessagePrecomputation:     cyclic.NewInt(3),
+		MessagePrecomputation:        cyclic.NewInt(3),
 		AssociatedDataPrecomputation: cyclic.NewInt(8)}
 
 	// Pass slot as input to Strip's TransmissionHandler
@@ -85,7 +85,7 @@ func TestPrecompStripHandler_Handler(t *testing.T) {
 	handler := PrecompStripHandler{}
 	s := make([]*services.Slot, 1)
 	sl := &precomputation.PrecomputationSlot{
-		MessagePrecomputation:     cyclic.NewInt(10),
+		MessagePrecomputation:        cyclic.NewInt(10),
 		AssociatedDataPrecomputation: cyclic.NewInt(10),
 	}
 	slot := services.Slot(sl)
@@ -101,9 +101,9 @@ func TestPrecompStripHandler_Handler(t *testing.T) {
 		t.Errorf("PrecompStripHandler: Failed to save" +
 			" MessagePrecomputation!")
 	}
-	if round.LastNode.RecipientPrecomputation[0].Cmp(
+	if round.LastNode.AssociatedDataPrecomputation[0].Cmp(
 		sl.AssociatedDataPrecomputation) != 0 {
 		t.Errorf("PrecompStripHandler: Failed to save" +
-			" RecipientPrecomputation!")
+			" AssociatedDataPrecomputation!")
 	}
 }

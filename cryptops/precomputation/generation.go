@@ -7,6 +7,8 @@
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -108,19 +110,46 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 
 	// Generates a random value within the group for every private key
 
-	yr, _ := cyclic.GenerateRandomKey(32)
+	csprig := csprng.NewSystemRNG()
+
+	yr := make([]byte, 32)
+	_, err := csprig.Read(yr)
+
+	if err != nil {
+		jww.FATAL.Panicf("Count not generate key yr: %s", err.Error())
+	}
 	keys.Y_R.SetBytes(yr)
 
-	ys, _ := cyclic.GenerateRandomKey(16)
+	ys := make([]byte, 32)
+	_, err = csprig.Read(ys)
+
+	if err != nil {
+		jww.FATAL.Panicf("Count not generate key ys: %s", err.Error())
+	}
 	keys.Y_S.SetBytes(ys)
 
-	yt, _ := cyclic.GenerateRandomKey(32)
+	yt := make([]byte, 32)
+	_, err = csprig.Read(yt)
+
+	if err != nil {
+		jww.FATAL.Panicf("Count not generate key yt: %s", err.Error())
+	}
 	keys.Y_T.SetBytes(yt)
 
-	yu, _ := cyclic.GenerateRandomKey(32)
+	yu := make([]byte, 32)
+	_, err = csprig.Read(yu)
+
+	if err != nil {
+		jww.FATAL.Panicf("Count not generate key: %s yu", err.Error())
+	}
 	keys.Y_U.SetBytes(yu)
 
-	yv, _ := cyclic.GenerateRandomKey(16)
+	yv := make([]byte, 16)
+	_, err = csprig.Read(yv)
+
+	if err != nil {
+		jww.FATAL.Panicf("Count not generate key: %s yv", err.Error())
+	}
 	keys.Y_V.SetBytes(yv)
 
 	return out

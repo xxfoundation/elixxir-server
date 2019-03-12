@@ -21,7 +21,7 @@ import (
 )
 
 // Comms method for kicking off a new round in CMIX
-func (s ServerImpl) NewRound(clusterRoundID string) {
+func NewRound(clusterRoundID string) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting NewRound(RoundId: %s) at %s",
 		clusterRoundID,

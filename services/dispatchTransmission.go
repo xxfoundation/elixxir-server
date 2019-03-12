@@ -8,14 +8,15 @@
 // facilitate communication between the different cryptop phases.
 // dispatchTransmission moves messages in slot order because the order that it
 // receives them is not controllable. This ordering is duplicative with
-// slotReorganizer, but our assumption is that this dispatch code may be replaced
-// in the future.
+// slotReorganizer, but our assumption is that this dispatch code may be
+// replaced in the future.
 package services
 
 import (
 	"sync/atomic"
 )
 
+// BatchTransmission is used to transmit batches over the network
 type BatchTransmission interface {
 	Handler(roundId string, batchSize uint64, slots []*Slot)
 }
@@ -79,20 +80,23 @@ func (t *transmit) transmitter(bt BatchTransmission) {
 	}
 }
 
-// Creates the TransmissionHandler for the given BatchTransmission using the given channel
-func BatchTransmissionDispatch(roundId string, batchSize uint64, inCh chan *Slot, bt BatchTransmission) *ThreadController {
+// BatchTransmissionDispatch creates the TransmissionHandler for the given
+// BatchTransmission using the given channel
+func BatchTransmissionDispatch(roundID string, batchSize uint64,
+	inCh chan *Slot, bt BatchTransmission) *ThreadController {
 	// Creates a channel for force quitting the dispatched operation
 	chQuit := make(chan chan bool, 1)
 
 	// Creates the internal dispatch structure
-	t := &transmit{inChannel: inCh, quit: chQuit, batchSize: batchSize, roundId: roundId, locker: 1}
+	t := &transmit{inChannel: inCh, quit: chQuit, batchSize: batchSize,
+		roundId: roundID, locker: 1}
 
 	// Runs the dispatcher
 	go t.transmitter(bt)
 
 	// Creates the  dispatch control structure
-	dc := &ThreadController{InChannel: inCh, OutChannel: nil, quitChannel: chQuit,
-		threadLocker: &t.locker, numThreads: 1}
+	dc := &ThreadController{InChannel: inCh, OutChannel: nil,
+		quitChannel: chQuit, threadLocker: &t.locker, numThreads: 1}
 
 	return dc
 }

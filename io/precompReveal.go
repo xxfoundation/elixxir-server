@@ -22,14 +22,14 @@ import (
 type PrecompRevealHandler struct{}
 
 // ReceptionHandler for PrecompRevealMessages
-func (s ServerImpl) PrecompReveal(input *pb.PrecompRevealMessage) {
+func PrecompReveal(input *pb.PrecompRevealMessage) {
 	startTime := time.Now()
 	jww.INFO.Printf("Starting PrecompReveal(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
 		startTime.Format(time.RFC3339))
 
 	// Get the input channel for the cryptop
-	chIn := s.GetChannel(input.RoundID, globals.PRECOMP_REVEAL)
+	chIn := GetChannel(input.RoundID, globals.PRECOMP_REVEAL)
 
 	// Store when the operation started
 	globals.GlobalRoundMap.GetRound(input.RoundID).CryptopStartTimes[globals.
@@ -133,7 +133,7 @@ func (h PrecompRevealHandler) Handler(
 		out := (*slots[i]).(*precomputation.PrecomputationSlot)
 		// Convert to PrecompRevealSlot
 		msgSlot := &pb.PrecompRevealSlot{
-			Slot: out.Slot,
+			Slot:                            out.Slot,
 			PartialMessageCypherText:        out.MessagePrecomputation.Bytes(),
 			PartialAssociatedDataCypherText: out.AssociatedDataPrecomputation.Bytes(),
 		}
