@@ -7,15 +7,15 @@
 package globals
 
 import (
-	"crypto/dsa"
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nonce"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
-	"math/big"
 	"sync"
-	"time"
 )
 
 // Globally initiated UserRegistry
@@ -33,6 +33,7 @@ type UserRegistry interface {
 	NewUser() *User
 	DeleteUser(id *id.User)
 	GetUser(id *id.User) (user *User, err error)
+	GetUserByNonce(nonce nonce.Nonce) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
 	InsertSalt(user *id.User, salt []byte) bool
@@ -71,13 +72,12 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 
 // Struct representing a User in the system
 type User struct {
-	ID             *id.User
-	HUID           []byte
-	Transmission   ForwardKey
-	Reception      ForwardKey
-	PublicKey      *dsa.PublicKey
-	Nonce          []byte
-	NonceTimestamp time.Time
+	ID           *id.User
+	HUID         []byte
+	Transmission ForwardKey
+	Reception    ForwardKey
+	PublicKey    *signature.DSAPublicKey
+	Nonce        nonce.Nonce
 }
 
 // DeepCopy creates a deep copy of a user and returns a pointer to the new copy
@@ -90,15 +90,17 @@ func (u *User) DeepCopy() *User {
 	newUser.Transmission = *u.Transmission.DeepCopy()
 	newUser.Reception = *u.Reception.DeepCopy()
 
-	newUser.PublicKey = new(dsa.PublicKey)
-	newUser.PublicKey.Y = u.PublicKey.Y
-	newUser.PublicKey.P = u.PublicKey.P
-	newUser.PublicKey.Q = u.PublicKey.Q
-	newUser.PublicKey.G = u.PublicKey.G
+	params := u.PublicKey.GetParams()
+	newUser.PublicKey = signature.ReconstructPublicKey(signature.
+		CustomDSAParams(params.GetP(), params.GetQ(),
+			params.GetG()), u.PublicKey.GetY())
 
-	newUser.Nonce = make([]byte, len(u.Nonce))
-	copy(newUser.Nonce, u.Nonce)
-	newUser.NonceTimestamp = u.NonceTimestamp
+	newUser.Nonce = nonce.Nonce{
+		GenTime:    u.Nonce.GenTime,
+		ExpiryTime: u.Nonce.ExpiryTime,
+		TTL:        u.Nonce.TTL,
+	}
+	copy(u.Nonce.Bytes(), newUser.Nonce.Bytes())
 	return newUser
 }
 
@@ -127,14 +129,11 @@ func (m *UserMap) NewUser() *User {
 	usr.Reception = *recept
 	usr.Transmission = *trans
 
-	usr.PublicKey = new(dsa.PublicKey)
-	usr.PublicKey.Y = new(big.Int)
-	usr.PublicKey.P = new(big.Int)
-	usr.PublicKey.Q = new(big.Int)
-	usr.PublicKey.G = new(big.Int)
-
-	usr.Nonce = make([]byte, 0)
-	usr.NonceTimestamp = *new(time.Time)
+	usr.PublicKey = signature.ReconstructPublicKey(
+		signature.CustomDSAParams(
+			cyclic.NewInt(0), cyclic.NewInt(0), cyclic.NewInt(0)),
+		cyclic.NewInt(0))
+	usr.Nonce = *new(nonce.Nonce)
 	return usr
 }
 
@@ -164,20 +163,40 @@ func (m *UserMap) DeleteUser(user *id.User) {
 }
 
 // GetUser returns a user with the given ID from userCollection
-// and a boolean for whether the user exists
-func (m *UserMap) GetUser(user *id.User) (*User, error) {
-	var u *User
-	var err error
+func (m *UserMap) GetUser(id *id.User) (user *User, err error) {
 	m.collectionLock.Lock()
-	u, ok := m.userCollection[*user]
+	u, ok := m.userCollection[*id]
 	m.collectionLock.Unlock()
 
 	if !ok {
 		err = errors.New("unable to lookup user in ram user registry")
 	} else {
-		u = u.DeepCopy()
+		user = u.DeepCopy()
 	}
-	return u, err
+	return
+}
+
+// GetUser returns a user with a matching nonce from userCollection
+func (m *UserMap) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
+	var u *User
+	ok := false
+
+	m.collectionLock.Lock()
+	// Iterate over the map to find user with matching nonce
+	for _, value := range m.userCollection {
+		if bytes.Equal(value.Nonce.Bytes(), nonce.Bytes()) {
+			ok = true
+			u = value
+		}
+	}
+	m.collectionLock.Unlock()
+
+	if !ok {
+		err = errors.New("unable to lookup user by nonce in ram user registry")
+	} else {
+		user = u.DeepCopy()
+	}
+	return
 }
 
 // UpsertUser inserts given user into userCollection or update the user if it

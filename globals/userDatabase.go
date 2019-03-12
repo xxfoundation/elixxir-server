@@ -7,7 +7,6 @@
 package globals
 
 import (
-	"crypto/dsa"
 	"encoding/base64"
 	"fmt"
 	"github.com/go-pg/pg"
@@ -15,8 +14,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nonce"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
-	"math/big"
 	"sync"
 	"time"
 )
@@ -185,21 +185,34 @@ func (m *UserDatabase) DeleteUser(userId *id.User) {
 	}
 }
 
-// GetUser returns a user with the given ID from userCollection
-// and a boolean for whether the user exists
-func (m *UserDatabase) GetUser(userId *id.User) (*User, error) {
+// GetUser returns a user with the given ID from user database
+func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 	// Perform the select for the given ID
-	userIdDB := encodeUser(userId)
-	user := UserDB{Id: userIdDB}
-	err := m.db.Select(&user)
+	userIdDB := encodeUser(id)
+	u := UserDB{Id: userIdDB}
+	err = m.db.Select(&u)
 
 	if err != nil {
 		// If there was an error, no user for the given ID was found
-		// So we will return nil, false, similar to map behavior
 		return nil, err
 	}
 	// If we found a user for the given ID, return it
-	return m.convertDbToUser(&user), nil
+	return m.convertDbToUser(&u), nil
+}
+
+// GetUser returns a user with a matching nonce from user database
+func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
+	// Perform the select for the given nonce
+	u := UserDB{}
+	_, err = m.db.QueryOne(&u, `SELECT * FROM USERS WHERE nonce = ?`,
+		nonce.Bytes())
+
+	if err != nil {
+		// If there was an error, no user for the given nonce was found
+		return nil, err
+	}
+	// If we found a user for the given ID, return it
+	return m.convertDbToUser(&u), nil
 }
 
 // UpsertUser inserts given user into the database or update the user if it
@@ -211,13 +224,16 @@ func (m *UserDatabase) UpsertUser(user *User) {
 	_, err := m.db.Model(dbUser).
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
-		Set("address = EXCLUDED.address," +
-			"nick = EXCLUDED.nick," +
-			"transmission_base_key = EXCLUDED.transmission_base_key," +
+		Set("transmission_base_key = EXCLUDED.transmission_base_key," +
 			"transmission_recursive_key = EXCLUDED.transmission_recursive_key," +
 			"reception_base_key = EXCLUDED.reception_base_key," +
 			"reception_recursive_key = EXCLUDED.reception_recursive_key," +
-			"public_key = EXCLUDED.public_key").
+			"pub_keyy = EXCLUDED.pub_keyy," +
+			"pub_keyp = EXCLUDED.pub_keyp," +
+			"pub_keyq = EXCLUDED.pub_keyq," +
+			"pub_keyg = EXCLUDED.pub_keyg," +
+			"nonce = EXCLUDED.nonce," +
+			"nonce_timestamp = EXCLUDED.nonce_timestamp").
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
@@ -286,17 +302,18 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
+	params := user.PublicKey.GetParams()
 	newUser.Id = encodeUser(user.ID)
 	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
 	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
 	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
 	newUser.ReceptionRecursiveKey = user.Reception.RecursiveKey.Bytes()
-	newUser.PubKeyY = user.PublicKey.Y.Bytes()
-	newUser.PubKeyP = user.PublicKey.P.Bytes()
-	newUser.PubKeyQ = user.PublicKey.Q.Bytes()
-	newUser.PubKeyG = user.PublicKey.G.Bytes()
-	newUser.Nonce = user.Nonce
-	newUser.NonceTimestamp = user.NonceTimestamp
+	newUser.PubKeyY = user.PublicKey.GetY().Bytes()
+	newUser.PubKeyP = params.GetP().Bytes()
+	newUser.PubKeyQ = params.GetQ().Bytes()
+	newUser.PubKeyG = params.GetG().Bytes()
+	newUser.Nonce = user.Nonce.Bytes()
+	newUser.NonceTimestamp = user.Nonce.GenTime
 	return
 }
 
@@ -318,17 +335,17 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 		RecursiveKey: cyclic.NewIntFromBytes(user.ReceptionRecursiveKey),
 	}
 
-	newUser.PublicKey = &dsa.PublicKey{
-		Y: new(big.Int).SetBytes(user.PubKeyY),
-		Parameters: dsa.Parameters{
-			P: new(big.Int).SetBytes(user.PubKeyP),
-			Q: new(big.Int).SetBytes(user.PubKeyQ),
-			G: new(big.Int).SetBytes(user.PubKeyG),
-		},
+	newUser.PublicKey = signature.ReconstructPublicKey(
+		signature.CustomDSAParams(cyclic.NewIntFromBytes(user.PubKeyP),
+			cyclic.NewIntFromBytes(user.PubKeyQ),
+			cyclic.NewIntFromBytes(user.PubKeyG)),
+		cyclic.NewIntFromBytes(user.PubKeyY))
+
+	newUser.Nonce = nonce.Nonce{
+		GenTime:    user.NonceTimestamp,
+		ExpiryTime: user.NonceTimestamp.Add(nonce.RegistrationTTL * time.Second),
+		TTL:        nonce.RegistrationTTL * time.Second,
 	}
-
-	newUser.Nonce = user.Nonce
-	newUser.NonceTimestamp = user.NonceTimestamp
-
+	copy(user.Nonce, newUser.Nonce.Bytes())
 	return
 }

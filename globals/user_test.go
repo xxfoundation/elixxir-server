@@ -7,7 +7,9 @@
 package globals
 
 import (
+	"bytes"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
 	"testing"
@@ -146,5 +148,53 @@ func TestUserMap_InsertSalt(t *testing.T) {
 	if Users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
 		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
 			" salts for one user!")
+	}
+}
+
+// Test happy path
+func TestUserMap_GetUserByNonce(t *testing.T) {
+	Users := UserRegistry(&UserMap{
+		userCollection: make(map[id.User]*User),
+		collectionLock: &sync.Mutex{},
+	})
+
+	user := Users.NewUser()
+	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	Users.UpsertUser(user)
+
+	_, err := Users.GetUserByNonce(user.Nonce)
+	if err != nil {
+		t.Errorf("GetUserByNonce: Expected to find user by nonce!")
+	}
+}
+
+// Make sure the nonce converts correctly to and from storage
+func TestUserNonceConversion(t *testing.T) {
+	Users := UserRegistry(&UserMap{
+		userCollection: make(map[id.User]*User),
+		collectionLock: &sync.Mutex{},
+	})
+
+	user := Users.NewUser()
+	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	Users.UpsertUser(user)
+
+	testUser, _ := Users.GetUserByNonce(user.Nonce)
+	if bytes.Equal(testUser.Nonce.Bytes(), user.Nonce.Bytes()) {
+		t.Errorf("UserNonceConversion: Expected nonces to match! %v %v",
+			cyclic.NewIntFromBytes(testUser.Nonce.Bytes()),
+			cyclic.NewIntFromBytes(user.Nonce.Bytes()))
+	}
+	if !testUser.Nonce.GenTime.Equal(user.Nonce.GenTime) {
+		t.Errorf("UserNonceConversion: Expected GenTime to match! %v %v",
+			testUser.Nonce.GenTime, user.Nonce.GenTime)
+	}
+	if testUser.Nonce.TTL != user.Nonce.TTL {
+		t.Errorf("UserNonceConversion: Expected TTL to match! %v %v",
+			testUser.Nonce.TTL, user.Nonce.TTL)
+	}
+	if !testUser.Nonce.ExpiryTime.Equal(user.Nonce.ExpiryTime) {
+		t.Errorf("UserNonceConversion: Expected ExpiryTime to match! %v %v",
+			testUser.Nonce.ExpiryTime, user.Nonce.ExpiryTime)
 	}
 }
