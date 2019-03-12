@@ -9,6 +9,7 @@
 package io
 
 import (
+	"bytes"
 	"crypto/rand"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -49,8 +50,13 @@ var registrationPublicKey = signature.ReconstructPublicKey(
 		"26463486228990882175412961082117137129236932723218315229770483288885959850107032025589742791223153420660263350741272032644251726448226821113652426407751193610917557252606720692673230795937716224132057988622950839933054136803749612534401778283421126049147077636399968571534289591857614581770480134396036385489740402012223687706110013677953603225892166382503261546944881593648396200024140871260398637499841743509851955620853951655918063387917465276101165812190169399925746034743728536253929853239613918426568522563185456387365104515482472761127162554264087060221287919020535388758461876720271863904323144519014259335081", 10))
 
 // Handle nonce request from Client
-func RequestNonce(salt, Y, P, Q, G,
-	hash, R, S []byte) ([]byte, error) {
+func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
+
+	// Verify signed public key using hardcoded RegistrationServer public key
+	valid := registrationPublicKey.Verify(hash, signature.DSASignature{
+		R: cyclic.NewIntFromBytes(R),
+		S: cyclic.NewIntFromBytes(S),
+	})
 
 	// Concatenate Client public key byte slices
 	data := make([]byte, 0)
@@ -59,13 +65,8 @@ func RequestNonce(salt, Y, P, Q, G,
 	data = append(data, Q...)
 	data = append(data, G...)
 
-	// Verify signed public key using hardcoded RegistrationServer public key
-	valid := registrationPublicKey.Verify(data, signature.DSASignature{
-		R: cyclic.NewIntFromBytes(R),
-		S: cyclic.NewIntFromBytes(S),
-	})
-
-	if !valid {
+	// Ensure that the data in the hash is identical to the Client public key
+	if !valid || !bytes.Equal(data, hash) {
 		// Invalid signed Client public key, return an error
 		jww.ERROR.Printf("Unable to verify signed public key!")
 		return make([]byte, 0), errors.New("signed public key is invalid")
@@ -97,8 +98,7 @@ func RequestNonce(salt, Y, P, Q, G,
 }
 
 // Handle confirmation of nonce from Client
-func ConfirmNonce(hash, R,
-	S []byte) ([]byte, []byte, []byte, error) {
+func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 
 	// Obtain the user from the database
 	n := nonce.Nonce{}
