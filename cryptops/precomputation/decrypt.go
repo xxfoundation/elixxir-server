@@ -24,9 +24,9 @@ type KeysDecrypt struct {
 	R_INV *cyclic.Int
 	// Message Private Key
 	Y_R *cyclic.Int
-	// Recipient Public Key Inverse
+	// AssociatedData Public Key Inverse
 	U_INV *cyclic.Int
-	// Recipient Private Key
+	// AssociatedData Private Key
 	Y_U *cyclic.Int
 }
 
@@ -42,9 +42,9 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
-			Slot: i,
-			MessagePrecomputation:     cyclic.NewMaxInt(),
-			MessageCypher:             cyclic.NewMaxInt(),
+			Slot:                         i,
+			MessagePrecomputation:        cyclic.NewMaxInt(),
+			MessageCypher:                cyclic.NewMaxInt(),
 			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
 			AssociatedDataCypher:         cyclic.NewMaxInt(),
 		}
@@ -86,7 +86,7 @@ func (d Decrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	g.Mul(keys.R_INV, tmp, tmp)
 	g.Mul(in.MessageCypher, tmp, out.MessageCypher)
 
-	// Eq 12.3: Combine First Unpermuted Internode Recipient Keys
+	// Eq 12.3: Combine First Unpermuted Internode AssociatedData Keys
 	g.Exp(g.G, keys.Y_U, tmp)
 	g.Mul(keys.U_INV, tmp, tmp)
 	g.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
@@ -95,7 +95,7 @@ func (d Decrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
 	g.Exp(keys.PublicCypherKey, keys.Y_R, tmp)
 	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
-	// Eq 12.7: Combine Partial Recipient Cypher Text
+	// Eq 12.7: Combine Partial AssociatedData Cypher Text
 	g.Exp(keys.PublicCypherKey, keys.Y_U, tmp)
 	g.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
 

@@ -42,7 +42,7 @@ func RealtimePermute(input *pb.RealtimePermuteMessage) {
 			Slot: in.Slot,
 			Message: cyclic.NewIntFromBytes(
 				in.EncryptedMessage),
-			EncryptedRecipient: cyclic.NewIntFromBytes(
+			AssociatedData: cyclic.NewIntFromBytes(
 				in.EncryptedAssociatedData),
 		}
 		// Pass slot as input to Permute's channel
@@ -92,8 +92,8 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 		out := input.Slots[i]
 		// Convert to Slot
 		var slot services.Slot = &realtime.Slot{
-			Slot:               out.Slot,
-			EncryptedRecipient: cyclic.NewIntFromBytes(out.EncryptedAssociatedData),
+			Slot:           out.Slot,
+			AssociatedData: cyclic.NewIntFromBytes(out.EncryptedAssociatedData),
 		}
 		// Save EncryptedMessages for the Identify->Encrypt transition
 		round.LastNode.EncryptedMessage[i] = cyclic.NewIntFromBytes(out.EncryptedMessage)
@@ -136,7 +136,7 @@ func (h RealtimePermuteHandler) Handler(
 		msgSlot := &pb.RealtimePermuteSlot{
 			Slot:                    out.Slot,
 			EncryptedMessage:        out.Message.Bytes(),
-			EncryptedAssociatedData: out.EncryptedRecipient.Bytes(),
+			EncryptedAssociatedData: out.AssociatedData.Bytes(),
 		}
 
 		// Append the RealtimePermuteSlot to the RealtimePermuteMessage

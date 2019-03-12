@@ -10,6 +10,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -47,7 +48,7 @@ func (h RealtimePeelHandler) Handler(
 		} else {
 			jww.DEBUG.Printf("EncryptedMessage Result: %s",
 				slot.Message.Text(10))
-			user, err := globals.Users.GetUser(slot.CurrentID)
+			_, err := globals.Users.GetUser(slot.CurrentID)
 
 			if err != nil {
 				jww.ERROR.Printf("Could not store message for invalid"+
@@ -56,9 +57,9 @@ func (h RealtimePeelHandler) Handler(
 			}
 
 			pbCmixMessage := pb.CmixMessage{
-				SenderID:       user.ID[:],
-				MessagePayload: slot.Message.LeftpadBytes(512),
-				AssociatedData:    make([]byte, 0), // Currently zero this field
+				SenderID:       make([]byte, 0),
+				MessagePayload: slot.Message.LeftpadBytes(uint64(format.TOTAL_LEN)),
+				AssociatedData: slot.AssociatedData.LeftpadBytes(uint64(format.TOTAL_LEN)),
 				Salt:           slot.Salt,
 			}
 			messageBatch = append(messageBatch, &pbCmixMessage)

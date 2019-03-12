@@ -15,15 +15,15 @@ import (
 )
 
 // Identify implements the Identify phase of the realtime processing.
-// It removes the keys U and V that encrypt the recipient ID, so that we can
+// It removes the keys U and V that encrypt the AssociatedData, so that we can
 // start sending the ciphertext to the correct recipient.
 type Identify struct{}
 
 // KeysIdentify holds the key needed for the realtime Identify phase
 type KeysIdentify struct {
-	// Result of the precomputation for the recipient ID
+	// Result of the precomputation for the AssociatedData
 	// One of the two results of the precomputation
-	RecipientPrecomputation *cyclic.Int
+	AssociatedDataPrecomputation *cyclic.Int
 }
 
 // Pre-allocate memory and arrange key objects for realtime Identify phase
@@ -38,7 +38,7 @@ func (i Identify) Build(g *cyclic.Group,
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{Slot: i,
-			EncryptedRecipient: cyclic.NewMaxInt(),
+			AssociatedData: cyclic.NewMaxInt(),
 		}
 	}
 
@@ -47,7 +47,7 @@ func (i Identify) Build(g *cyclic.Group,
 	// Prepare the correct keys
 	for i := uint64(0); i < round.BatchSize; i++ {
 		keySlc := &KeysIdentify{
-			RecipientPrecomputation: round.RecipientPrecomputation[i]}
+			AssociatedDataPrecomputation: round.AssociatedDataPrecomputation[i]}
 		keys[i] = keySlc
 	}
 
@@ -59,15 +59,15 @@ func (i Identify) Build(g *cyclic.Group,
 	return &db
 }
 
-// Input: Encrypted Recipient ID, from Permute phase
-// This phase decrypts the recipient ID, identifying the recipient
+// Input: Encrypted AssociatedData, from Permute phase
+// This phase decrypts the AssociatedData, making it possible to identify the recipient
 func (i Identify) Run(g *cyclic.Group,
 	in, out *Slot, keys *KeysIdentify) services.Slot {
 
 	// Eq 5.1
-	// Multiply EncryptedAssociatedData by the precomputed value
-	g.Mul(in.EncryptedRecipient, keys.RecipientPrecomputation,
-		out.EncryptedRecipient)
+	// Multiply AssociatedData by the precomputed value
+	g.Mul(in.AssociatedData, keys.AssociatedDataPrecomputation,
+		out.AssociatedData)
 
 	return out
 }

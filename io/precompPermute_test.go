@@ -36,10 +36,10 @@ func TestPrecompPermute(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
-		Slot:                      uint64(0),
-		MessageCypher:             cyclic.NewInt(12),
+		Slot:                         uint64(0),
+		MessageCypher:                cyclic.NewInt(12),
 		AssociatedDataCypher:         cyclic.NewInt(7),
-		MessagePrecomputation:     cyclic.NewInt(3),
+		MessagePrecomputation:        cyclic.NewInt(3),
 		AssociatedDataPrecomputation: cyclic.NewInt(8)}
 
 	// Pass slot as input to Permute's TransmissionHandler

@@ -45,12 +45,12 @@ func RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 		in := input.Slots[i]
 		userId := new(id.User).SetBytes(in.SenderID)
 		var slot services.Slot = &realtime.Slot{
-			Slot:               uint64(i),
-			CurrentID:          userId,
-			Message:            cyclic.NewIntFromBytes(in.MessagePayload),
-			EncryptedRecipient: cyclic.NewIntFromBytes(in.AssociatedData),
-			CurrentKey:         cyclic.NewMaxInt(),
-			Salt:               in.Salt,
+			Slot:           uint64(i),
+			CurrentID:      userId,
+			Message:        cyclic.NewIntFromBytes(in.MessagePayload),
+			AssociatedData: cyclic.NewIntFromBytes(in.AssociatedData),
+			CurrentKey:     cyclic.NewMaxInt(),
+			Salt:           in.Salt,
 			// TODO: How will we pass and verify the kmac?
 		}
 		// Pass slot as input to Decrypt's channel
@@ -144,7 +144,7 @@ func (h RealtimeDecryptHandler) Handler(
 		msgSlot := &pb.CmixMessage{
 			SenderID:       out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
-			AssociatedData: out.EncryptedRecipient.Bytes(),
+			AssociatedData: out.AssociatedData.Bytes(),
 			Salt:           out.Salt,
 		}
 
@@ -195,7 +195,7 @@ func KickoffDecryptHandler(roundID string, batchSize uint64,
 		msgSlot := &pb.CmixMessage{
 			SenderID:       out.CurrentID[:],
 			MessagePayload: out.Message.Bytes(),
-			AssociatedData: out.EncryptedRecipient.Bytes(),
+			AssociatedData: out.AssociatedData.Bytes(),
 			Salt:           out.Salt,
 		}
 

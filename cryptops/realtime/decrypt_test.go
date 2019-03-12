@@ -36,25 +36,25 @@ func TestDecrypt(t *testing.T) {
 	var im []services.Slot
 
 	im = append(im, &Slot{
-		Slot:               uint64(0),
-		CurrentID:          senderIds[0],
-		Message:            cyclic.NewInt(int64(39)),
-		CurrentKey:         cyclic.NewInt(int64(65)),
-		EncryptedRecipient: cyclic.NewInt(7)})
+		Slot:           uint64(0),
+		CurrentID:      senderIds[0],
+		Message:        cyclic.NewInt(int64(39)),
+		CurrentKey:     cyclic.NewInt(int64(65)),
+		AssociatedData: cyclic.NewInt(7)})
 
 	im = append(im, &Slot{
-		Slot:               uint64(1),
-		CurrentID:          senderIds[1],
-		Message:            cyclic.NewInt(int64(86)),
-		CurrentKey:         cyclic.NewInt(int64(44)),
-		EncryptedRecipient: cyclic.NewInt(51)})
+		Slot:           uint64(1),
+		CurrentID:      senderIds[1],
+		Message:        cyclic.NewInt(int64(86)),
+		CurrentKey:     cyclic.NewInt(int64(44)),
+		AssociatedData: cyclic.NewInt(51)})
 
 	im = append(im, &Slot{
-		Slot:               uint64(2),
-		CurrentID:          senderIds[2],
-		Message:            cyclic.NewInt(int64(66)),
-		CurrentKey:         cyclic.NewInt(int64(94)),
-		EncryptedRecipient: cyclic.NewInt(23)})
+		Slot:           uint64(2),
+		CurrentID:      senderIds[2],
+		Message:        cyclic.NewInt(int64(66)),
+		CurrentKey:     cyclic.NewInt(int64(94)),
+		AssociatedData: cyclic.NewInt(23)})
 
 	// Set the keys
 	round.R[0] = cyclic.NewInt(52)
@@ -90,11 +90,11 @@ func TestDecrypt(t *testing.T) {
 			} else {
 				pass++
 			}
-			// Test EncryptedAssociatedData results
-			if result[j+1].Cmp(rtnXtc.EncryptedRecipient) != 0 {
-				t.Errorf("Test of RealtimeDecrypt's EncryptedAssociatedData output "+
+			// Test AssociatedData results
+			if result[j+1].Cmp(rtnXtc.AssociatedData) != 0 {
+				t.Errorf("Test of RealtimeDecrypt's AssociatedData output "+
 					"failed on index: %v on value: %v.  Expected: %v Received: %v ",
-					i, j+1, result[j+1].Text(10), rtnXtc.EncryptedRecipient.Text(10))
+					i, j+1, result[j+1].Text(10), rtnXtc.AssociatedData.Text(10))
 			} else {
 				pass++
 			}

@@ -17,9 +17,9 @@ func TestRealTimeIdentify(t *testing.T) {
 	var im []services.Slot
 	batchSize := uint64(2)
 	round := globals.NewRound(batchSize)
-	round.RecipientPrecomputation = make([]*cyclic.Int, batchSize)
-	round.RecipientPrecomputation[0] = cyclic.NewInt(42)
-	round.RecipientPrecomputation[1] = cyclic.NewInt(42)
+	round.AssociatedDataPrecomputation = make([]*cyclic.Int, batchSize)
+	round.AssociatedDataPrecomputation[0] = cyclic.NewInt(42)
+	round.AssociatedDataPrecomputation[1] = cyclic.NewInt(42)
 
 	grp := cyclic.NewGroup(cyclic.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
@@ -49,16 +49,16 @@ func TestRealTimeIdentify(t *testing.T) {
 
 	invsprecomp := grp.Inverse(cyclic.NewInt(42), cyclic.NewInt(0))
 
-	encrRecp := grp.Mul(cyclic.NewInt(42),
+	encrAD := grp.Mul(cyclic.NewInt(42),
 		invsprecomp, cyclic.NewInt(0))
 
 	im = append(im, &Slot{
-		Slot:               0,
-		EncryptedRecipient: encrRecp})
+		Slot:           0,
+		AssociatedData: encrAD})
 
 	im = append(im, &Slot{
-		Slot:               1,
-		EncryptedRecipient: encrRecp})
+		Slot:           1,
+		AssociatedData: encrAD})
 
 	ExpectedOutputs := []*cyclic.Int{cyclic.NewInt(42), cyclic.NewInt(42)}
 
@@ -71,9 +71,9 @@ func TestRealTimeIdentify(t *testing.T) {
 		rtn := (*trn).(*Slot)
 		ExpectedOutput := ExpectedOutputs[i]
 
-		if rtn.EncryptedRecipient.Cmp(ExpectedOutput) != 0 {
+		if rtn.AssociatedData.Cmp(ExpectedOutput) != 0 {
 			t.Errorf("%v - Expected: %v, Got: %v", i, ExpectedOutput.Text(10),
-				rtn.EncryptedRecipient.Text(10))
+				rtn.AssociatedData.Text(10))
 		}
 	}
 }
@@ -81,7 +81,7 @@ func TestRealTimeIdentify(t *testing.T) {
 // Smoke test test the identify function
 func TestIdentifyRun(t *testing.T) {
 	keys := KeysIdentify{
-		RecipientPrecomputation: cyclic.NewInt(69)}
+		AssociatedDataPrecomputation: cyclic.NewInt(69)}
 
 	grp := cyclic.NewGroup(cyclic.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
@@ -111,25 +111,25 @@ func TestIdentifyRun(t *testing.T) {
 
 	invsprecomp := grp.Inverse(cyclic.NewInt(69), cyclic.NewInt(0))
 
-	encrRecp := grp.Mul(cyclic.NewInt(42),
+	encrAD := grp.Mul(cyclic.NewInt(42),
 		invsprecomp, cyclic.NewInt(0))
 
 	im := Slot{
-		Slot:               0,
-		EncryptedRecipient: encrRecp}
+		Slot:           0,
+		AssociatedData: encrAD}
 
 	om := Slot{
-		Slot:               0,
-		EncryptedRecipient: cyclic.NewInt(0)}
+		Slot:           0,
+		AssociatedData: cyclic.NewInt(0)}
 
 	ExpectedOutput := cyclic.NewInt(42)
 
-	// Identify(&grp, EncryptedRecipient, DecryptedRecipient, RecipientPrecomp)
+	// Identify(&grp, AssociatedData, DecryptedRecipient, RecipientPrecomp)
 	identify := Identify{}
 	identify.Run(&grp, &im, &om, &keys)
 
-	if om.EncryptedRecipient.Cmp(ExpectedOutput) != 0 {
+	if om.AssociatedData.Cmp(ExpectedOutput) != 0 {
 		t.Errorf("Expected: %v, Got: %v", ExpectedOutput.Text(10),
-			om.EncryptedRecipient.Text(10))
+			om.AssociatedData.Text(10))
 	}
 }

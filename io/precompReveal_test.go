@@ -36,11 +36,11 @@ func TestPrecompReveal(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
-		Slot: uint64(0),
-		MessagePrecomputation:     cyclic.NewInt(3),
+		Slot:                         uint64(0),
+		MessagePrecomputation:        cyclic.NewInt(3),
 		AssociatedDataPrecomputation: cyclic.NewInt(10),
 		AssociatedDataCypher:         cyclic.NewInt(1),
-		MessageCypher:             cyclic.NewInt(1),
+		MessageCypher:                cyclic.NewInt(1),
 	}
 
 	// Pass slot as input to Reveal's TransmissionHandler

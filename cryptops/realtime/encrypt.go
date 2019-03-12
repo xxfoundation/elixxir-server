@@ -37,11 +37,12 @@ func (e Encrypt) Build(g *cyclic.Group,
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{
-			Slot:       i,
-			Message:    cyclic.NewMaxInt(),
-			CurrentID:  id.ZeroID,
-			CurrentKey: cyclic.NewMaxInt(),
-			Salt:       make([]byte, 0),
+			Slot:           i,
+			Message:        cyclic.NewMaxInt(),
+			AssociatedData: cyclic.NewMaxInt(),
+			CurrentID:      id.ZeroID,
+			CurrentKey:     cyclic.NewMaxInt(),
+			Salt:           make([]byte, 0),
 		}
 	}
 
@@ -73,8 +74,9 @@ func (e Encrypt) Run(g *cyclic.Group, in *Slot,
 	g.Mul(encryptionKey, in.Message, in.Message)
 	g.Mul(keys.T, in.Message, out.Message)
 
-	// Pass through AssociatedData
+	// Pass through CurrentID and AssociatedData
 	out.CurrentID = in.CurrentID
+	out.AssociatedData = in.AssociatedData
 	out.Salt = in.Salt
 
 	return out

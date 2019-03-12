@@ -29,18 +29,18 @@ func TestPrecomputationReveal(t *testing.T) {
 		cyclic.NewInt(29), rng)
 
 	im = append(im, &PrecomputationSlot{
-		Slot: uint64(0),
-		MessagePrecomputation:     cyclic.NewInt(int64(39)),
+		Slot:                         uint64(0),
+		MessagePrecomputation:        cyclic.NewInt(int64(39)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
-		Slot: uint64(1),
-		MessagePrecomputation:     cyclic.NewInt(int64(86)),
+		Slot:                         uint64(1),
+		MessagePrecomputation:        cyclic.NewInt(int64(86)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
-		Slot: uint64(2),
-		MessagePrecomputation:     cyclic.NewInt(int64(39)),
+		Slot:                         uint64(2),
+		MessagePrecomputation:        cyclic.NewInt(int64(39)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(51))})
 
 	round.Z = cyclic.NewInt(53)
@@ -88,33 +88,33 @@ func TestPrecomputationRevealRun(t *testing.T) {
 		cyclic.NewInt(29), rng)
 
 	im = append(im, &PrecomputationSlot{
-		Slot: uint64(0),
-		MessagePrecomputation:     cyclic.NewInt(int64(39)),
+		Slot:                         uint64(0),
+		MessagePrecomputation:        cyclic.NewInt(int64(39)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
-		Slot: uint64(1),
-		MessagePrecomputation:     cyclic.NewInt(int64(86)),
+		Slot:                         uint64(1),
+		MessagePrecomputation:        cyclic.NewInt(int64(86)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
-		Slot: uint64(2),
-		MessagePrecomputation:     cyclic.NewInt(int64(39)),
+		Slot:                         uint64(2),
+		MessagePrecomputation:        cyclic.NewInt(int64(39)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(51))})
 
 	om = append(om, &PrecomputationSlot{
-		Slot: uint64(1),
-		MessagePrecomputation:     cyclic.NewInt(int64(0)),
+		Slot:                         uint64(1),
+		MessagePrecomputation:        cyclic.NewInt(int64(0)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
 
 	om = append(om, &PrecomputationSlot{
-		Slot: uint64(2),
-		MessagePrecomputation:     cyclic.NewInt(int64(0)),
+		Slot:                         uint64(2),
+		MessagePrecomputation:        cyclic.NewInt(int64(0)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
 
 	om = append(om, &PrecomputationSlot{
-		Slot: uint64(0),
-		MessagePrecomputation:     cyclic.NewInt(int64(0)),
+		Slot:                         uint64(0),
+		MessagePrecomputation:        cyclic.NewInt(int64(0)),
 		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
 
 	key := KeysReveal{

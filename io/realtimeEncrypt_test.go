@@ -8,6 +8,7 @@ package io
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -36,11 +37,13 @@ func TestRealtimeEncrypt(t *testing.T) {
 	round.LastNode.EncryptedMessage[0] = cyclic.NewInt(7)
 	// Create a slot to pass into the TransmissionHandler
 	userId := id.NewUserFromUint(42, t)
+	associatedData := format.NewAssociatedData()
+	associatedData.SetRecipient(userId)
 	var slot services.Slot = &realtime.Slot{
-		Slot:               uint64(0),
-		CurrentID:          userId,
-		Message:            cyclic.NewInt(7),
-		EncryptedRecipient: cyclic.NewIntFromBytes(userId[:]),
+		Slot:           uint64(0),
+		CurrentID:      userId,
+		Message:        cyclic.NewInt(7),
+		AssociatedData: cyclic.NewIntFromBytes(associatedData.SerializeAssociatedData()),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler

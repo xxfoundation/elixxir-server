@@ -17,11 +17,11 @@ import (
 // as the data travels through realtime.
 type Slot struct {
 	Slot uint64
-	// Encrypted AssociatedData
-	EncryptedRecipient *cyclic.Int
+	// Encrypted or plaintext AssociatedData
+	AssociatedData *cyclic.Int
 	// Encrypted or plaintext Message
 	Message *cyclic.Int
-	// Plaintext SenderID or AssociatedData
+	// Plaintext SenderID or RecipientID
 	CurrentID *id.User
 	// TransmissionKey, ReceptionKey, etc
 	CurrentKey *cyclic.Int

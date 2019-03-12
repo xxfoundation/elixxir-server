@@ -6,9 +6,8 @@
 package main
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
-
 	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/benchmark"
@@ -30,7 +29,7 @@ func TestMain(m *testing.M) {
 // the precomputation should be without any sharing computations for a
 // single node system. In other words, it multiplies the R, S, T
 // keys together for the message precomputation, and it does the same for
-// the U, V keys to make the recipient id precomputation.
+// the U, V keys to make the associated data precomputation.
 func ComputeSingleNodePrecomputation(g *cyclic.Group, round *globals.Round) (
 	*cyclic.Int, *cyclic.Int) {
 	MP := cyclic.NewInt(1)
@@ -161,7 +160,7 @@ func RootingTestDouble(g *cyclic.Group) {
 
 	g.RootCoprime(CTXT, Z, gY1Y2c)
 
-	fmt.Printf("ROUND RECIPIENT PRIVATE KEY: %s,\n", gY1Y2c.Text(10))
+	fmt.Printf("ROUND ASSOCIATED DATA PRIVATE KEY: %s,\n", gY1Y2c.Text(10))
 
 	g.Inverse(gY1Y2c, IVS)
 
@@ -254,6 +253,18 @@ func RootingTestTriple(g *cyclic.Group) {
 // Perform an end to end test of the precomputation with batchsize 1,
 // then use it to send the message through a 1-node system to smoke test
 // the cryptographic operations.
+// NOTE: This test will not use real associated data, i.e., the recipientID value
+// is not set in associated data.
+// Trying to do this would lead to many changes:
+// Firstly because the recipientID is place on bytes 2:33 of 256,
+// meaning the Associated Data representation in the group
+// would be much bigger than the hardcoded P value of 101
+// Secondly, the first byte of the Associated Data is randomly generated,
+// so the expected values throughout the pipeline would need to be calculated on the fly
+// Not having proper Associated Data is not an issue in this particular test,
+// because here only cryptops are chained
+// The actual extraction of recipientID from associated data only occurs in transmit
+// handlers from the io package
 func TestEndToEndCryptops(t *testing.T) {
 
 	// Init, we use a small prime to make it easier to run the numbers
@@ -335,9 +346,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	// DECRYPT PHASE
 	var decMsg services.Slot
 	decMsg = &precomputation.PrecomputationSlot{
-		Slot:                      0,
-		MessageCypher:             cyclic.NewInt(1),
-		MessagePrecomputation:     cyclic.NewInt(1),
+		Slot:                         0,
+		MessageCypher:                cyclic.NewInt(1),
+		MessagePrecomputation:        cyclic.NewInt(1),
 		AssociatedDataCypher:         cyclic.NewInt(1),
 		AssociatedDataPrecomputation: cyclic.NewInt(1),
 	}
@@ -425,8 +436,8 @@ func TestEndToEndCryptops(t *testing.T) {
 		// Save the results to LastNode, which we don't have to check
 		// because we are the only node
 		i := pm.Slot
-		round.LastNode.RecipientCypherText[i].Set(pm.AssociatedDataPrecomputation)
-		round.LastNode.EncryptedRecipientPrecomputation[i].Set(
+		round.LastNode.AssociatedDataCypherText[i].Set(pm.AssociatedDataPrecomputation)
+		round.LastNode.EncryptedAssociatedDataPrecomputation[i].Set(
 			pm.AssociatedDataCypher)
 
 		ov := services.Slot(pm)
@@ -474,7 +485,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		pm := (*iv).(*precomputation.PrecomputationSlot)
 
 		t.Logf("REVEAL:\n  RoundMessagePrivateKey: %s, "+
-			"RoundRecipientPrivateKey: %s\n", pm.AssociatedDataPrecomputation.Text(10),
+			"RoundAssociatedDataPrivateKey: %s\n", pm.AssociatedDataPrecomputation.Text(10),
 			pm.AssociatedDataPrecomputation.Text(10))
 		expectedReveal := []*cyclic.Int{
 			cyclic.NewInt(20), cyclic.NewInt(68),
@@ -484,7 +495,7 @@ func TestEndToEndCryptops(t *testing.T) {
 				pm.MessagePrecomputation.Text(10), expectedReveal[0].Text(10))
 		}
 		if pm.AssociatedDataPrecomputation.Cmp(expectedReveal[1]) != 0 {
-			t.Errorf("REVEAL failed RoundRecipientPrivateKey. Got: %s Expected: %s",
+			t.Errorf("REVEAL failed RoundAssociatedDataPrivateKey. Got: %s Expected: %s",
 				pm.AssociatedDataPrecomputation.Text(10), expectedReveal[1].Text(10))
 		}
 
@@ -498,10 +509,10 @@ func TestEndToEndCryptops(t *testing.T) {
 	es := (*rtn).(*precomputation.PrecomputationSlot)
 
 	round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
-	round.LastNode.RecipientPrecomputation[es.Slot] = es.AssociatedDataPrecomputation
+	round.LastNode.AssociatedDataPrecomputation[es.Slot] = es.AssociatedDataPrecomputation
 
 	t.Logf("STRIP:\n  MessagePrecomputation: %s, "+
-		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
+		"AssociatedDataPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
 		es.AssociatedDataPrecomputation.Text(10))
 	expectedStrip := []*cyclic.Int{
 		cyclic.NewInt(18), cyclic.NewInt(76),
@@ -511,7 +522,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			es.MessagePrecomputation.Text(10), expectedStrip[0].Text(10))
 	}
 	if es.AssociatedDataPrecomputation.Cmp(expectedStrip[1]) != 0 {
-		t.Errorf("STRIP failed RecipientPrecomputation. Got: %s Expected: %s",
+		t.Errorf("STRIP failed AssociatedDataPrecomputation. Got: %s Expected: %s",
 			es.AssociatedDataPrecomputation.Text(10), expectedStrip[1].Text(10))
 	}
 
@@ -523,17 +534,17 @@ func TestEndToEndCryptops(t *testing.T) {
 	}
 
 	if RP.Cmp(es.AssociatedDataPrecomputation) != 0 {
-		t.Errorf("Recipient Precomputation Incorrect! Expected: %s, Received: %s\n",
+		t.Errorf("Associated Data Precomputation Incorrect! Expected: %s, Received: %s\n",
 			RP.Text(10), es.AssociatedDataPrecomputation.Text(10))
 	}
 
 	// ----- REALTIME ----- //
 	inputMsg := services.Slot(&realtime.Slot{
-		Slot:               0,
-		CurrentID:          id.NewUserFromUint(1, t),
-		Message:            cyclic.NewInt(31),
-		EncryptedRecipient: cyclic.NewInt(1),
-		CurrentKey:         cyclic.NewInt(1),
+		Slot:           0,
+		CurrentID:      id.NewUserFromUint(1, t),
+		Message:        cyclic.NewInt(31),
+		AssociatedData: cyclic.NewInt(1),
+		CurrentKey:     cyclic.NewInt(1),
 	})
 
 	// DECRYPT PHASE
@@ -548,14 +559,14 @@ func TestEndToEndCryptops(t *testing.T) {
 		iv := <-in
 		is := (*iv).(*realtime.Slot)
 		ov := services.Slot(&realtime.Slot{
-			Slot:               is.Slot,
-			Message:            is.Message,
-			EncryptedRecipient: is.EncryptedRecipient,
+			Slot:           is.Slot,
+			Message:        is.Message,
+			AssociatedData: is.AssociatedData,
 		})
 
-		t.Logf("RTDECRYPT:\n  EncryptedMessage: %s, EncryptedAssociatedData: %s\n",
+		t.Logf("RTDECRYPT:\n  EncryptedMessage: %s, AssociatedData: %s\n",
 			is.Message.Text(10),
-			is.EncryptedRecipient.Text(10))
+			is.AssociatedData.Text(10))
 		expectedRTDecrypt := []*cyclic.Int{
 			cyclic.NewInt(75), cyclic.NewInt(72),
 		}
@@ -563,9 +574,9 @@ func TestEndToEndCryptops(t *testing.T) {
 			t.Errorf("RTDECRYPT failed EncryptedMessage. Got: %s Expected: %s",
 				is.Message.Text(10), expectedRTDecrypt[0].Text(10))
 		}
-		if is.EncryptedRecipient.Cmp(expectedRTDecrypt[1]) != 0 {
-			t.Errorf("RTDECRYPT failed EncryptedAssociatedData. Got: %s Expected: %s",
-				is.EncryptedRecipient.Text(10), expectedRTDecrypt[1].Text(10))
+		if is.AssociatedData.Cmp(expectedRTDecrypt[1]) != 0 {
+			t.Errorf("RTDECRYPT failed AssociatedData. Got: %s Expected: %s",
+				is.AssociatedData.Text(10), expectedRTDecrypt[1].Text(10))
 		}
 
 		out <- &ov
@@ -579,26 +590,26 @@ func TestEndToEndCryptops(t *testing.T) {
 	rtnPrm := <-RTPermute.OutChannel
 	esPrm := (*rtnPrm).(*realtime.Slot)
 	ovPrm := services.Slot(&realtime.Slot{
-		Slot:               esPrm.Slot,
-		EncryptedRecipient: esPrm.EncryptedRecipient,
+		Slot:           esPrm.Slot,
+		AssociatedData: esPrm.AssociatedData,
 	})
 	TmpMsg := esPrm.Message
-	t.Logf("RTPERMUTE:\n  EncryptedAssociatedData: %s\n",
-		esPrm.EncryptedRecipient.Text(10))
+	t.Logf("RTPERMUTE:\n  AssociatedData: %s\n",
+		esPrm.AssociatedData.Text(10))
 	expectedRTPermute := []*cyclic.Int{
 		cyclic.NewInt(4),
 	}
-	if esPrm.EncryptedRecipient.Cmp(expectedRTPermute[0]) != 0 {
-		t.Errorf("RTPERMUTE failed EncryptedAssociatedData. Got: %s Expected: %s",
-			esPrm.EncryptedRecipient.Text(10), expectedRTPermute[0].Text(10))
+	if esPrm.AssociatedData.Cmp(expectedRTPermute[0]) != 0 {
+		t.Errorf("RTPERMUTE failed AssociatedData. Got: %s Expected: %s",
+			esPrm.AssociatedData.Text(10), expectedRTPermute[0].Text(10))
 	}
 
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.Slot)
-	rID := new(id.User).SetBytes(esTmp.EncryptedRecipient.
+	rID := new(id.User).SetBytes(esTmp.AssociatedData.
 		LeftpadBytes(id.UserLen))
-	copy(rID[:], esTmp.EncryptedRecipient.LeftpadBytes(id.UserLen))
+	copy(rID[:], esTmp.AssociatedData.LeftpadBytes(id.UserLen))
 	inputMsgPostID := services.Slot(&realtime.Slot{
 		Slot:       esTmp.Slot,
 		CurrentID:  rID,
@@ -606,13 +617,13 @@ func TestEndToEndCryptops(t *testing.T) {
 		CurrentKey: cyclic.NewInt(1),
 	})
 	t.Logf("RTIDENTIFY:\n  AssociatedData: %s\n",
-		esTmp.EncryptedRecipient.Text(10))
+		esTmp.AssociatedData.Text(10))
 	expectedRTIdentify := []*cyclic.Int{
 		cyclic.NewInt(1),
 	}
-	if esTmp.EncryptedRecipient.Cmp(expectedRTIdentify[0]) != 0 {
-		t.Errorf("RTIDENTIFY failed EncryptedAssociatedData. Got: %s Expected: %s",
-			esTmp.EncryptedRecipient.Text(10), expectedRTIdentify[0].Text(10))
+	if esTmp.AssociatedData.Cmp(expectedRTIdentify[0]) != 0 {
+		t.Errorf("RTIDENTIFY failed AssociatedData. Got: %s Expected: %s",
+			esTmp.AssociatedData.Text(10), expectedRTIdentify[0].Text(10))
 	}
 
 	// ENCRYPT PHASE
@@ -765,9 +776,9 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 
 	// Now finish precomputation
 	decMsg := services.Slot(&precomputation.PrecomputationSlot{
-		Slot:                      0,
-		MessageCypher:             cyclic.NewInt(1),
-		MessagePrecomputation:     cyclic.NewInt(1),
+		Slot:                         0,
+		MessageCypher:                cyclic.NewInt(1),
+		MessagePrecomputation:        cyclic.NewInt(1),
 		AssociatedDataCypher:         cyclic.NewInt(1),
 		AssociatedDataPrecomputation: cyclic.NewInt(1),
 	})
@@ -776,10 +787,10 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	es := (*rtn).(*precomputation.PrecomputationSlot)
 
 	Node2Round.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
-	Node2Round.LastNode.RecipientPrecomputation[es.Slot] =
+	Node2Round.LastNode.AssociatedDataPrecomputation[es.Slot] =
 		es.AssociatedDataPrecomputation
 	t.Logf("2 NODE STRIP:\n  MessagePrecomputation: %s, "+
-		"RecipientPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
+		"AssociatedDataPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
 		es.AssociatedDataPrecomputation.Text(10))
 
 	// Check precomputation
@@ -834,11 +845,11 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		N2RTPeel.InChannel)
 
 	inputMsg := services.Slot(&realtime.Slot{
-		Slot:               0,
-		CurrentID:          id.NewUserFromUint(1, t),
-		Message:            cyclic.NewInt(42), // Meaning of Life
-		EncryptedRecipient: cyclic.NewInt(1),
-		CurrentKey:         cyclic.NewInt(1),
+		Slot:           0,
+		CurrentID:      id.NewUserFromUint(1, t),
+		Message:        cyclic.NewInt(42), // Meaning of Life
+		AssociatedData: cyclic.NewInt(1),
+		CurrentKey:     cyclic.NewInt(1),
 	})
 	N1RTDecrypt.InChannel <- &inputMsg
 	rtnRT := <-N2RTPeel.OutChannel
@@ -881,11 +892,11 @@ func Test3NodeE2E(t *testing.T) {
 	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
-			Slot:               i,
-			CurrentID:          id.NewUserFromUint(i+1, t),
-			Message:            cyclic.NewInt(42 + int64(i)), // Meaning of Life
-			EncryptedRecipient: cyclic.NewInt(1 + int64(i)),
-			CurrentKey:         cyclic.NewInt(1),
+			Slot:           i,
+			CurrentID:      id.NewUserFromUint(i+1, t),
+			Message:        cyclic.NewInt(42 + int64(i)), // Meaning of Life
+			AssociatedData: cyclic.NewInt(1 + int64(i)),
+			CurrentKey:     cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
@@ -913,11 +924,11 @@ func Test1NodePermuteE2E(t *testing.T) {
 	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
-			Slot:               i,
-			CurrentID:          id.NewUserFromUint(i+1, t),
-			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
-			CurrentKey:         cyclic.NewInt(1),
+			Slot:           i,
+			CurrentID:      id.NewUserFromUint(i+1, t),
+			Message:        cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			AssociatedData: cyclic.NewInt((1 + int64(i)) % 101),
+			CurrentKey:     cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
@@ -981,11 +992,11 @@ func TestRealPrimeE2E(t *testing.T) {
 	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
-			Slot:               i,
-			CurrentID:          id.NewUserFromUint(i+1, t),
-			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
-			CurrentKey:         cyclic.NewInt(1),
+			Slot:           i,
+			CurrentID:      id.NewUserFromUint(i+1, t),
+			Message:        cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			AssociatedData: cyclic.NewInt((1 + int64(i)) % 101),
+			CurrentKey:     cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,

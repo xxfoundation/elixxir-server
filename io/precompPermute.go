@@ -63,7 +63,7 @@ func PrecompPermute(input *pb.PrecompPermuteMessage) {
 		(endTime.Sub(startTime))/time.Millisecond)
 }
 
-// Save the recipient cyphertext and the encrypted recipient precomputation,
+// Save the AssociatedData cyphertext and the encrypted AssociatedData precomputation,
 // Send the encrypted message keys and partial message cypher text to the first
 // nodes Encrypt handler
 // Transition to PrecompEncrypt phase on the last node
@@ -102,10 +102,10 @@ func precompPermuteLastNode(roundId string, batchSize uint64,
 			PartialMessageCypherText: out.PartialMessageCypherText,
 		}
 
-		// Save the Recipient ID CypherText and Precomputation
-		round.LastNode.RecipientCypherText[i].SetBytes(
+		// Save the AssociatedData CypherText and Precomputation
+		round.LastNode.AssociatedDataCypherText[i].SetBytes(
 			out.PartialAssociatedDataCypherText)
-		round.LastNode.EncryptedRecipientPrecomputation[i].SetBytes(
+		round.LastNode.EncryptedAssociatedDataPrecomputation[i].SetBytes(
 			out.EncryptedAssociatedDataKeys)
 
 		// Append the PrecompEncryptSlot to the PrecompEncryptMessage

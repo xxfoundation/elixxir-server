@@ -15,7 +15,7 @@
 // The Permute phase mixes the slots, discarding information regarding who
 // the sender is, while encrypting with permuted internode keys.
 //
-// The Identify phase fully decrypts all internode keys from the recipient.
+// The Identify phase fully decrypts all internode keys from the associated data.
 //
 // The Encrypt phase encrypts for the recipient.
 //
@@ -38,7 +38,7 @@ type Decrypt struct{}
 type KeysDecrypt struct {
 	// First Unpermuted Internode Message Key
 	R *cyclic.Int
-	// Unpermuted Internode Recipient Key
+	// Unpermuted Internode AssociatedData Key
 	U *cyclic.Int
 }
 
@@ -54,12 +54,12 @@ func (d Decrypt) Build(g *cyclic.Group,
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{
-			Slot:               i,
-			Message:            cyclic.NewMaxInt(),
-			EncryptedRecipient: cyclic.NewMaxInt(),
-			CurrentID:          id.ZeroID,
-			CurrentKey:         cyclic.NewMaxInt(),
-			Salt:               make([]byte, 0),
+			Slot:           i,
+			Message:        cyclic.NewMaxInt(),
+			AssociatedData: cyclic.NewMaxInt(),
+			CurrentID:      id.ZeroID,
+			CurrentKey:     cyclic.NewMaxInt(),
+			Salt:           make([]byte, 0),
 		}
 	}
 
@@ -94,11 +94,11 @@ func (d Decrypt) Run(g *cyclic.Group, in *Slot, out *Slot,
 	g.Mul(decryptionKey, in.Message, in.Message)
 	g.Mul(in.Message, keys.R, out.Message)
 
-	// Eq 3.3: Modulo Multiplies the Unpermuted Internode Recipient Key together
+	// Eq 3.3: Modulo Multiplies the Unpermuted Internode AssociatedData Key together
 	// with with Transmission key before modulo multiplying into the
-	// EncryptedRecipient
-	g.Mul(decryptionKey, in.EncryptedRecipient, in.EncryptedRecipient)
-	g.Mul(in.EncryptedRecipient, keys.U, out.EncryptedRecipient)
+	// AssociatedData
+	g.Mul(decryptionKey, in.AssociatedData, in.AssociatedData)
+	g.Mul(in.AssociatedData, keys.U, out.AssociatedData)
 
 	// Pass through SenderID and Salt to the next node
 	out.CurrentID = in.CurrentID

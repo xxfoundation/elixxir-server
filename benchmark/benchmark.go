@@ -148,8 +148,8 @@ func PermuteEncryptTranslate(permute, encrypt chan *services.Slot,
 		})
 		// Save LastNode Data to Round
 		i := is.Slot
-		round.LastNode.RecipientCypherText[i].Set(is.AssociatedDataPrecomputation)
-		round.LastNode.EncryptedRecipientPrecomputation[i].Set(
+		round.LastNode.AssociatedDataCypherText[i].Set(is.AssociatedDataPrecomputation)
+		round.LastNode.EncryptedAssociatedDataPrecomputation[i].Set(
 			is.AssociatedDataCypher)
 		encrypt <- &se
 	}
@@ -162,9 +162,9 @@ func EncryptRevealTranslate(encrypt, reveal chan *services.Slot,
 		is := (*encryptSlot).(*precomputation.PrecomputationSlot)
 		i := is.Slot
 		sr := services.Slot(&precomputation.PrecomputationSlot{
-			Slot: i,
-			MessagePrecomputation:     is.MessagePrecomputation,
-			AssociatedDataPrecomputation: round.LastNode.RecipientCypherText[i],
+			Slot:                         i,
+			MessagePrecomputation:        is.MessagePrecomputation,
+			AssociatedDataPrecomputation: round.LastNode.AssociatedDataCypherText[i],
 		})
 		round.LastNode.EncryptedMessagePrecomputation[i].Set(
 			is.MessageCypher)
@@ -178,8 +178,8 @@ func RevealStripTranslate(reveal, strip chan *services.Slot) {
 		is := (*revealSlot).(*precomputation.PrecomputationSlot)
 		i := is.Slot
 		ss := services.Slot(&precomputation.PrecomputationSlot{
-			Slot: i,
-			MessagePrecomputation:     is.MessagePrecomputation,
+			Slot:                         i,
+			MessagePrecomputation:        is.MessagePrecomputation,
 			AssociatedDataPrecomputation: is.AssociatedDataPrecomputation,
 		})
 		strip <- &ss
@@ -191,9 +191,9 @@ func RTDecryptRTPermuteTranslate(decrypt, permute chan *services.Slot) {
 	for decryptSlot := range decrypt {
 		is := (*decryptSlot).(*realtime.Slot)
 		ov := services.Slot(&realtime.Slot{
-			Slot:               is.Slot,
-			Message:            is.Message,
-			EncryptedRecipient: is.EncryptedRecipient,
+			Slot:           is.Slot,
+			Message:        is.Message,
+			AssociatedData: is.AssociatedData,
 		})
 		permute <- &ov
 	}
@@ -204,8 +204,8 @@ func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
 	for permuteSlot := range permute {
 		esPrm := (*permuteSlot).(*realtime.Slot)
 		ovPrm := services.Slot(&realtime.Slot{
-			Slot:               esPrm.Slot,
-			EncryptedRecipient: esPrm.EncryptedRecipient,
+			Slot:           esPrm.Slot,
+			AssociatedData: esPrm.AssociatedData,
 		})
 		outMsgs[esPrm.Slot].Set(esPrm.Message)
 		identify <- &ovPrm
@@ -216,7 +216,11 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 	inMsgs []*cyclic.Int) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.Slot)
-		rID := new(id.User).SetBytes(esTmp.EncryptedRecipient.
+		// TODO this will need to eventually be changed to be the actual
+		// extraction of RID from associated data
+		// HOWEVER, this will significantly change the main test using this
+		// benchmark function, as was commented in: TestEndToEndCryptops
+		rID := new(id.User).SetBytes(esTmp.AssociatedData.
 			LeftpadBytes(id.UserLen))
 		inputMsgPostID := services.Slot(&realtime.Slot{
 			Slot:       esTmp.Slot,
@@ -240,11 +244,11 @@ func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
 	for is := range in {
 		o := (*is).(*realtime.Slot)
 		os := services.Slot(&realtime.Slot{
-			Slot:               o.Slot,
-			CurrentID:          o.CurrentID,
-			Message:            o.Message,
-			EncryptedRecipient: o.EncryptedRecipient,
-			CurrentKey:         cyclic.NewInt(1), // WTF? FIXME
+			Slot:           o.Slot,
+			CurrentID:      o.CurrentID,
+			Message:        o.Message,
+			AssociatedData: o.AssociatedData,
+			CurrentKey:     cyclic.NewInt(1), // WTF? FIXME
 		})
 		out <- &os
 	}
@@ -362,9 +366,9 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 	// Now finish precomputation
 	for i := uint64(0); i < BatchSize; i++ {
 		decMsg := services.Slot(&precomputation.PrecomputationSlot{
-			Slot:                      i,
-			MessageCypher:             cyclic.NewInt(1),
-			MessagePrecomputation:     cyclic.NewInt(1),
+			Slot:                         i,
+			MessageCypher:                cyclic.NewInt(1),
+			MessagePrecomputation:        cyclic.NewInt(1),
 			AssociatedDataCypher:         cyclic.NewInt(1),
 			AssociatedDataPrecomputation: cyclic.NewInt(1),
 		})
@@ -376,12 +380,12 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 		es := (*rtn).(*precomputation.PrecomputationSlot)
 
 		LastRound.LastNode.MessagePrecomputation[es.Slot] = es.MessagePrecomputation
-		LastRound.LastNode.RecipientPrecomputation[es.Slot] =
+		LastRound.LastNode.AssociatedDataPrecomputation[es.Slot] =
 			es.AssociatedDataPrecomputation
 
 		// TOOD: Consider moving this to the caller
 		// t.Logf("%d NODE STRIP:\n  MessagePrecomputation: %s, "+
-		// 	"RecipientPrecomputation: %s\n", nodeCount,
+		// 	"AssociatedDataPrecomputation: %s\n", nodeCount,
 		// 	es.MessagePrecomputation.Text(10),
 		// 	es.AssociatedDataPrecomputation.Text(10))
 
@@ -394,10 +398,10 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 		// 		"Received: %s\n",
 		// 		MP.Text(10), es.MessagePrecomputation.Text(10))
 		// }
-		// if RP.Cmp(es.RecipientPrecomputation) != 0 {
+		// if RP.Cmp(es.AssociatedDataPrecomputation) != 0 {
 		// 	t.Logf("Recipient Precomputation Incorrect! Expected: %s,"+
 		// 		" Received: %s\n",
-		// 		RP.Text(10), es.RecipientPrecomputation.Text(10))
+		// 		RP.Text(10), es.AssociatedDataPrecomputation.Text(10))
 		// }
 	}
 }
@@ -514,16 +518,16 @@ func CopyRounds(nodeCount int, r []*globals.Round) []*globals.Round {
 			if (i + 1) == nodeCount {
 				tmp[i].LastNode.MessagePrecomputation[j].Set(
 					r[i].LastNode.MessagePrecomputation[j])
-				tmp[i].LastNode.RecipientPrecomputation[j].Set(
-					r[i].LastNode.RecipientPrecomputation[j])
+				tmp[i].LastNode.AssociatedDataPrecomputation[j].Set(
+					r[i].LastNode.AssociatedDataPrecomputation[j])
 				tmp[i].LastNode.RoundMessagePrivateKey[j].Set(
 					r[i].LastNode.RoundMessagePrivateKey[j])
-				tmp[i].LastNode.RoundRecipientPrivateKey[j].Set(
-					r[i].LastNode.RoundRecipientPrivateKey[j])
-				tmp[i].LastNode.RecipientCypherText[j].Set(
-					r[i].LastNode.RecipientCypherText[j])
-				tmp[i].LastNode.EncryptedRecipientPrecomputation[j].Set(
-					r[i].LastNode.EncryptedRecipientPrecomputation[j])
+				tmp[i].LastNode.RoundAssociatedDataPrivateKey[j].Set(
+					r[i].LastNode.RoundAssociatedDataPrivateKey[j])
+				tmp[i].LastNode.AssociatedDataCypherText[j].Set(
+					r[i].LastNode.AssociatedDataCypherText[j])
+				tmp[i].LastNode.EncryptedAssociatedDataPrecomputation[j].Set(
+					r[i].LastNode.EncryptedAssociatedDataPrecomputation[j])
 				tmp[i].LastNode.EncryptedMessagePrecomputation[j].Set(
 					r[i].LastNode.EncryptedMessagePrecomputation[j])
 				tmp[i].LastNode.EncryptedMessage[j].Set(
@@ -542,11 +546,11 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 	outputMsgs := make([]realtime.Slot, batchSize)
 	for i := uint64(0); i < batchSize; i++ {
 		inputMsgs[i] = realtime.Slot{
-			Slot:               i,
-			CurrentID:          id.NewUserFromUint(i+1, nil),
-			Message:            cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			EncryptedRecipient: cyclic.NewInt((1 + int64(i)) % 101),
-			CurrentKey:         cyclic.NewInt(1),
+			Slot:           i,
+			CurrentID:      id.NewUserFromUint(i+1, nil),
+			Message:        cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			AssociatedData: cyclic.NewInt((1 + int64(i)) % 101),
+			CurrentKey:     cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
