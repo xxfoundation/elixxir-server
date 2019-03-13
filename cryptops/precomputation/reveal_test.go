@@ -14,7 +14,7 @@ import (
 
 func TestPrecomputationReveal(t *testing.T) {
 
-	test := 6
+	test := 3
 	pass := 0
 
 	bs := uint64(3)
@@ -25,7 +25,7 @@ func TestPrecomputationReveal(t *testing.T) {
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
 	im = append(im, &PrecomputationSlot{
@@ -46,9 +46,9 @@ func TestPrecomputationReveal(t *testing.T) {
 	round.Z = cyclic.NewInt(53)
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(60), cyclic.NewInt(77)},
-		{cyclic.NewInt(34), cyclic.NewInt(95)},
-		{cyclic.NewInt(60), cyclic.NewInt(66)},
+		{cyclic.NewInt(53), cyclic.NewInt(14)},
+		{cyclic.NewInt(11), cyclic.NewInt(10)},
+		{cyclic.NewInt(53), cyclic.NewInt(68)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Reveal{}, nil, nil, round)

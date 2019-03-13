@@ -26,7 +26,7 @@ func TestRealTimePermute(t *testing.T) {
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23),
 		cyclic.NewInt(29), rng)
 
 	im = append(im, &Slot{
@@ -57,9 +57,9 @@ func TestRealTimePermute(t *testing.T) {
 	round.V[2] = cyclic.NewInt(11)
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(47), cyclic.NewInt(70)},
-		{cyclic.NewInt(44), cyclic.NewInt(58)},
-		{cyclic.NewInt(56), cyclic.NewInt(56)},
+		{cyclic.NewInt(34), cyclic.NewInt(34)},
+		{cyclic.NewInt(31), cyclic.NewInt(31)},
+		{cyclic.NewInt(25), cyclic.NewInt(26)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Permute{}, nil, nil, round)

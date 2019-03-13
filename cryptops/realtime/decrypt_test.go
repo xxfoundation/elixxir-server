@@ -26,7 +26,7 @@ func TestDecrypt(t *testing.T) {
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
 	senderIds := [3]*id.User{id.NewUserFromUint(5, t),
 		id.NewUserFromUint(7, t),
@@ -66,9 +66,9 @@ func TestDecrypt(t *testing.T) {
 	round.U[2] = cyclic.NewInt(20)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(15), cyclic.NewInt(84)},
-		{cyclic.NewInt(65), cyclic.NewInt(17)},
-		{cyclic.NewInt(69), cyclic.NewInt(12)},
+		{cyclic.NewInt(103), cyclic.NewInt(97)},
+		{cyclic.NewInt(84), cyclic.NewInt(57)},
+		{cyclic.NewInt(85), cyclic.NewInt(12)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Decrypt{}, nil, nil, round)
