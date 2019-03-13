@@ -24,7 +24,7 @@ func TestPermute(t *testing.T) {
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	group := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
+	group := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23),
 		cyclic.NewInt(27), rng)
 
 	round.Permutations[0] = 1
@@ -71,20 +71,20 @@ func TestPermute(t *testing.T) {
 
 	expected := []PrecomputationSlot{
 		PrecomputationSlot{Slot: uint64(1),
-			MessageCypher:                cyclic.NewInt(71),
-			AssociatedDataCypher:         cyclic.NewInt(60),
-			MessagePrecomputation:        cyclic.NewInt(44),
-			AssociatedDataPrecomputation: cyclic.NewInt(97)},
+			MessageCypher:                cyclic.NewInt(56),
+			AssociatedDataCypher:         cyclic.NewInt(35),
+			MessagePrecomputation:        cyclic.NewInt(56),
+			AssociatedDataPrecomputation: cyclic.NewInt(89)},
 		PrecomputationSlot{Slot: uint64(2),
-			MessageCypher:                cyclic.NewInt(79),
-			AssociatedDataCypher:         cyclic.NewInt(16),
-			MessagePrecomputation:        cyclic.NewInt(47),
-			AssociatedDataPrecomputation: cyclic.NewInt(47)},
+			MessageCypher:                cyclic.NewInt(60),
+			AssociatedDataCypher:         cyclic.NewInt(97),
+			MessagePrecomputation:        cyclic.NewInt(92),
+			AssociatedDataPrecomputation: cyclic.NewInt(48)},
 		PrecomputationSlot{Slot: uint64(0),
-			MessageCypher:                cyclic.NewInt(78),
-			AssociatedDataCypher:         cyclic.NewInt(34),
-			MessagePrecomputation:        cyclic.NewInt(69),
-			AssociatedDataPrecomputation: cyclic.NewInt(13)},
+			MessageCypher:                cyclic.NewInt(34),
+			AssociatedDataCypher:         cyclic.NewInt(98),
+			MessagePrecomputation:        cyclic.NewInt(58),
+			AssociatedDataPrecomputation: cyclic.NewInt(16)},
 	}
 	dispatch := services.DispatchCryptop(&group, Permute{}, nil, nil, round)
 

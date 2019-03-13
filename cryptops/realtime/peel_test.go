@@ -26,7 +26,7 @@ func TestPeel(t *testing.T) {
 
 	rng := cyclic.NewRandom(cyclic.NewInt(5), cyclic.NewInt(1000))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(27), cyclic.NewInt(97), rng)
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(27), cyclic.NewInt(97), rng)
 
 	recipientIds := [3]*id.User{
 		id.NewUserFromUint(5, t),
@@ -58,9 +58,9 @@ func TestPeel(t *testing.T) {
 	round.LastNode.MessagePrecomputation[2] = cyclic.NewInt(47)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(74)},
-		{cyclic.NewInt(19)},
-		{cyclic.NewInt(72)},
+		{cyclic.NewInt(7)},
+		{cyclic.NewInt(80)},
+		{cyclic.NewInt(106)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Peel{}, nil, nil, round)

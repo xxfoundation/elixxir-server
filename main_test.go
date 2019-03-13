@@ -258,7 +258,7 @@ func RootingTestTriple(g *cyclic.Group) {
 // Trying to do this would lead to many changes:
 // Firstly because the recipientID is place on bytes 2:33 of 256,
 // meaning the Associated Data representation in the group
-// would be much bigger than the hardcoded P value of 101
+// would be much bigger than the hardcoded P value of 107
 // Secondly, the first byte of the Associated Data is randomly generated,
 // so the expected values throughout the pipeline would need to be calculated on the fly
 // Not having proper Associated Data is not an issue in this particular test,
@@ -271,11 +271,11 @@ func TestEndToEndCryptops(t *testing.T) {
 	// when debugging
 	batchSize := uint64(1)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
 	round := globals.NewRound(batchSize)
 	round.CypherPublicKey = cyclic.NewInt(3)
-	// p=101 -> 7 bits, so exponents can be of 6 bits at most
+	// p=107 -> 7 bits, so exponents can be of 6 bits at most
 	// Overwrite default value of round
 	round.ExpSize = uint32(6)
 
@@ -338,7 +338,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	t.Logf("SHARE:\n")
 	t.Logf("%v", benchmark.RoundText(&grp, round))
 
-	if shareResult.PartialRoundPublicCypherKey.Cmp(cyclic.NewInt(20)) != 0 {
+	if shareResult.PartialRoundPublicCypherKey.Cmp(cyclic.NewInt(69)) != 0 {
 		t.Errorf("SHARE failed, expected 20, got %s",
 			shareResult.PartialRoundPublicCypherKey.Text(10))
 	}
@@ -371,8 +371,8 @@ func TestEndToEndCryptops(t *testing.T) {
 			is.AssociatedDataPrecomputation.Text(10))
 
 		expectedDecrypt := []*cyclic.Int{
-			cyclic.NewInt(32), cyclic.NewInt(35),
-			cyclic.NewInt(30), cyclic.NewInt(45),
+			cyclic.NewInt(5), cyclic.NewInt(17),
+			cyclic.NewInt(79), cyclic.NewInt(36),
 		}
 		if is.MessageCypher.Cmp(expectedDecrypt[0]) != 0 {
 			t.Errorf("DECRYPT failed MessageCypher. Got: %s Expected: %s",
@@ -412,8 +412,8 @@ func TestEndToEndCryptops(t *testing.T) {
 			pm.AssociatedDataPrecomputation.Text(10))
 
 		expectedPermute := []*cyclic.Int{
-			cyclic.NewInt(83), cyclic.NewInt(17),
-			cyclic.NewInt(1), cyclic.NewInt(88),
+			cyclic.NewInt(23), cyclic.NewInt(61),
+			cyclic.NewInt(39), cyclic.NewInt(85),
 		}
 		if pm.MessageCypher.Cmp(expectedPermute[0]) != 0 {
 			t.Errorf("PERMUTE failed MessageCypher. Got: %s Expected: %s",
@@ -458,7 +458,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			pm.MessagePrecomputation.Text(10))
 
 		expectedEncrypt := []*cyclic.Int{
-			cyclic.NewInt(57), cyclic.NewInt(9),
+			cyclic.NewInt(19), cyclic.NewInt(27),
 		}
 		if pm.MessageCypher.Cmp(expectedEncrypt[0]) != 0 {
 			t.Errorf("ENCRYPT failed MessageCypher. Got: %s Expected: %s",
@@ -488,7 +488,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			"RoundAssociatedDataPrivateKey: %s\n", pm.AssociatedDataPrecomputation.Text(10),
 			pm.AssociatedDataPrecomputation.Text(10))
 		expectedReveal := []*cyclic.Int{
-			cyclic.NewInt(20), cyclic.NewInt(68),
+			cyclic.NewInt(42), cyclic.NewInt(13),
 		}
 		if pm.MessagePrecomputation.Cmp(expectedReveal[0]) != 0 {
 			t.Errorf("REVEAL failed RoundMessagePrivateKey. Got: %s Expected: %s",
@@ -515,7 +515,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		"AssociatedDataPrecomputation: %s\n", es.MessagePrecomputation.Text(10),
 		es.AssociatedDataPrecomputation.Text(10))
 	expectedStrip := []*cyclic.Int{
-		cyclic.NewInt(18), cyclic.NewInt(76),
+		cyclic.NewInt(3), cyclic.NewInt(87),
 	}
 	if es.MessagePrecomputation.Cmp(expectedStrip[0]) != 0 {
 		t.Errorf("STRIP failed MessagePrecomputation. Got: %s Expected: %s",
@@ -568,7 +568,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			is.Message.Text(10),
 			is.AssociatedData.Text(10))
 		expectedRTDecrypt := []*cyclic.Int{
-			cyclic.NewInt(75), cyclic.NewInt(72),
+			cyclic.NewInt(15), cyclic.NewInt(72),
 		}
 		if is.Message.Cmp(expectedRTDecrypt[0]) != 0 {
 			t.Errorf("RTDECRYPT failed EncryptedMessage. Got: %s Expected: %s",
@@ -597,7 +597,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	t.Logf("RTPERMUTE:\n  AssociatedData: %s\n",
 		esPrm.AssociatedData.Text(10))
 	expectedRTPermute := []*cyclic.Int{
-		cyclic.NewInt(4),
+		cyclic.NewInt(13),
 	}
 	if esPrm.AssociatedData.Cmp(expectedRTPermute[0]) != 0 {
 		t.Errorf("RTPERMUTE failed AssociatedData. Got: %s Expected: %s",
@@ -619,7 +619,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	t.Logf("RTIDENTIFY:\n  AssociatedData: %s\n",
 		esTmp.AssociatedData.Text(10))
 	expectedRTIdentify := []*cyclic.Int{
-		cyclic.NewInt(1),
+		cyclic.NewInt(61),
 	}
 	if esTmp.AssociatedData.Cmp(expectedRTIdentify[0]) != 0 {
 		t.Errorf("RTIDENTIFY failed AssociatedData. Got: %s Expected: %s",
@@ -642,7 +642,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		t.Logf("RTENCRYPT:\n  EncryptedMessage: %s\n",
 			is.Message.Text(10))
 		expectedRTEncrypt := []*cyclic.Int{
-			cyclic.NewInt(41),
+			cyclic.NewInt(42),
 		}
 		if is.Message.Cmp(expectedRTEncrypt[0]) != 0 {
 			t.Errorf("RTENCRYPT failed EncryptedMessage. Got: %s Expected: %s",
@@ -660,7 +660,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	t.Logf("RTPEEL:\n  EncryptedMessage: %s\n",
 		esRT.Message.Text(10))
 	expectedRTPeel := []*cyclic.Int{
-		cyclic.NewInt(31),
+		cyclic.NewInt(19),
 	}
 	if esRT.Message.Cmp(expectedRTPeel[0]) != 0 {
 		t.Errorf("RTPEEL failed EncryptedMessage. Got: %s Expected: %s",
@@ -681,14 +681,14 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	// when debugging
 	batchSize := uint64(1)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
 	Node1Round := globals.NewRound(batchSize)
 	Node2Round := globals.NewRound(batchSize)
 	Node1Round.CypherPublicKey = cyclic.NewInt(0)
 	Node2Round.CypherPublicKey = cyclic.NewInt(0)
 
-	// p=101 -> 7 bits, so exponents can be of 6 bits at most
+	// p=107 -> 7 bits, so exponents can be of 6 bits at most
 	// Overwrite default value of rounds
 	Node1Round.ExpSize = uint32(6)
 	Node2Round.ExpSize = uint32(6)
@@ -886,7 +886,7 @@ func Test3NodeE2E(t *testing.T) {
 	nodeCount := 3
 	BatchSize := uint64(1)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4),
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(5), cyclic.NewInt(4),
 		rng)
 	inputMsgs := make([]realtime.Slot, BatchSize)
 	outputMsgs := make([]realtime.Slot, BatchSize)
@@ -912,7 +912,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 	nodeCount := 1
 	BatchSize := uint64(100)
 
-	primeStrng := "101"
+	primeStrng := "107"
 
 	prime := cyclic.NewInt(0)
 	prime.SetString(primeStrng, 10)
@@ -926,14 +926,14 @@ func Test1NodePermuteE2E(t *testing.T) {
 		inputMsgs[i] = realtime.Slot{
 			Slot:           i,
 			CurrentID:      id.NewUserFromUint(i+1, t),
-			Message:        cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			AssociatedData: cyclic.NewInt((1 + int64(i)) % 101),
+			Message:        cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
+			AssociatedData: cyclic.NewInt((1 + int64(i)) % 107),
 			CurrentKey:     cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserFromUint((i+1)%101, t),
-			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			CurrentID: id.NewUserFromUint((i+1)%107, t),
+			Message:   cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
 		}
 	}
 	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)
@@ -994,14 +994,14 @@ func TestRealPrimeE2E(t *testing.T) {
 		inputMsgs[i] = realtime.Slot{
 			Slot:           i,
 			CurrentID:      id.NewUserFromUint(i+1, t),
-			Message:        cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			AssociatedData: cyclic.NewInt((1 + int64(i)) % 101),
+			Message:        cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
+			AssociatedData: cyclic.NewInt((1 + int64(i)) % 107),
 			CurrentKey:     cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserFromUint((i+1)%101, t),
-			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			CurrentID: id.NewUserFromUint((i+1)%107, t),
+			Message:   cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
 		}
 	}
 	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)

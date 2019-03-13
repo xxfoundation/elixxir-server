@@ -24,28 +24,28 @@ func TestShare(t *testing.T) {
 
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23), cyclic.NewInt(27), rng)
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23), cyclic.NewInt(27), rng)
 
 	var im []services.Slot
 
 	im = append(im, &SlotShare{
-		Slot: uint64(0),
+		Slot:                        uint64(0),
 		PartialRoundPublicCypherKey: cyclic.NewInt(int64(39))})
 
 	im = append(im, &SlotShare{
-		Slot: uint64(1),
+		Slot:                        uint64(1),
 		PartialRoundPublicCypherKey: cyclic.NewInt(int64(86))})
 
 	im = append(im, &SlotShare{
-		Slot: uint64(1),
+		Slot:                        uint64(1),
 		PartialRoundPublicCypherKey: cyclic.NewInt(int64(66))})
 
 	round.Z = cyclic.NewInt(53)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(69)},
-		{cyclic.NewInt(42)},
-		{cyclic.NewInt(51)},
+		{cyclic.NewInt(1)},
+		{cyclic.NewInt(1)},
+		{cyclic.NewInt(106)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Share{}, nil, nil, round)

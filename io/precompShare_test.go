@@ -60,7 +60,7 @@ func TestPrecompShare(t *testing.T) {
 
 	// Set up Grp
 	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(5), cyclic.NewInt(4), rng)
+	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(5), cyclic.NewInt(4), rng)
 	globals.Grp = &grp
 
 	// Create the test channels
@@ -75,7 +75,7 @@ func TestPrecompShare(t *testing.T) {
 
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.SlotShare{
-		Slot: uint64(0),
+		Slot:                        uint64(0),
 		PartialRoundPublicCypherKey: cyclic.NewInt(3),
 	}
 

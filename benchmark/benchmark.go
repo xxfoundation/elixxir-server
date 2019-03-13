@@ -68,7 +68,7 @@ var MAXGENERATION = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 
 // Convert the round object into a string we can print
 func RoundText(g *cyclic.Group, n *globals.Round) string {
-	outStr := fmt.Sprintf("\tPrime: 101, Generator: %s, CypherPublicKey: %s, "+
+	outStr := fmt.Sprintf("\tPrime: 107, Generator: %s, CypherPublicKey: %s, "+
 		"Z: %s\n", g.G.Text(10), n.CypherPublicKey.Text(10), n.Z.Text(10))
 	outStr += fmt.Sprintf("\tPermutations: %v\n", n.Permutations)
 	rfmt := "\tRound[%d]: R(%s, %s, %s) S(%s, %s, %s) T(%s, %s, %s) \n" +
@@ -548,14 +548,14 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 		inputMsgs[i] = realtime.Slot{
 			Slot:           i,
 			CurrentID:      id.NewUserFromUint(i+1, nil),
-			Message:        cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
-			AssociatedData: cyclic.NewInt((1 + int64(i)) % 101),
+			Message:        cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
+			AssociatedData: cyclic.NewInt((1 + int64(i)) % 107),
 			CurrentKey:     cyclic.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserFromUint((i+1)%101, nil),
-			Message:   cyclic.NewInt((42 + int64(i)) % 101), // Meaning of Life
+			CurrentID: id.NewUserFromUint((i+1)%107, nil),
+			Message:   cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
 		}
 	}
 	for i := 0; i < nodeCount; i++ {
