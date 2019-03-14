@@ -56,7 +56,8 @@ func TestRealTimeVerify(t *testing.T) {
 
 	data := make([]byte, format.AD_KEYFP_LEN)
 	csprig.Read(data)
-	assocData.SetKeyFingerprint(data)
+	fp := format.NewFingerprint(data)
+	assocData.SetKeyFingerprint(*fp)
 
 	data = make([]byte, format.AD_TIMESTAMP_LEN)
 	csprig.Read(data)
@@ -66,9 +67,10 @@ func TestRealTimeVerify(t *testing.T) {
 	csprig.Read(data)
 	assocData.SetMAC(data)
 
+	*fp = assocData.GetKeyFingerprint()
 	payloadMicList := [][]byte{
 		assocData.GetRecipientID(),
-		assocData.GetKeyFingerprint(),
+		fp[:],
 		assocData.GetTimestamp(),
 		assocData.GetMAC(),
 	}
@@ -143,7 +145,9 @@ func TestVerifyRun(t *testing.T) {
 
 	data := make([]byte, format.AD_KEYFP_LEN)
 	csprig.Read(data)
-	assocData.SetKeyFingerprint(data)
+	csprig.Read(data)
+	fp := format.NewFingerprint(data)
+	assocData.SetKeyFingerprint(*fp)
 
 	data = make([]byte, format.AD_TIMESTAMP_LEN)
 	csprig.Read(data)
@@ -155,7 +159,7 @@ func TestVerifyRun(t *testing.T) {
 
 	payloadMicList := [][]byte{
 		assocData.GetRecipientID(),
-		assocData.GetKeyFingerprint(),
+		fp[:],
 		assocData.GetTimestamp(),
 		assocData.GetMAC(),
 	}
