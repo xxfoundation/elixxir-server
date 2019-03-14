@@ -72,7 +72,7 @@ func (i Verify) Run(g *cyclic.Group,
 	mac := associatedData.GetMAC()
 	pmic := associatedData.GetRecipientMIC()
 
-	recipientMicList := [][]byte{recpbytes, keyprint, timestamp, mac}
+	recipientMicList := [][]byte{recpbytes, keyprint[:], timestamp, mac}
 
 	valid := verification.CheckMic(recipientMicList, pmic)
 
