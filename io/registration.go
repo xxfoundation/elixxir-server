@@ -11,9 +11,11 @@ package io
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature"
@@ -89,11 +91,18 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 	// Generate a nonce with a timestamp
 	userNonce := nonce.NewNonce(nonce.RegistrationTTL)
 
+	// Generate user CMIX keys
+	b, _ := hash2.NewCMixHash()
+	baseTKey := registration.GenerateBaseKey(&dsaGrp, userPublicKey, privateKey, b)
+	baseRKey := registration.GenerateBaseKey(&dsaGrp, userPublicKey, privateKey, sha256.New())
+
 	// Store user information in the database
 	newUser := globals.Users.NewUser()
 	newUser.Nonce = userNonce
 	newUser.ID = userId
 	newUser.PublicKey = userPublicKey
+	newUser.Transmission.BaseKey = baseTKey
+	newUser.Reception.BaseKey = baseRKey
 	globals.Users.UpsertUser(newUser)
 
 	// Return nonce to Client with empty error field
