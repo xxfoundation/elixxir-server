@@ -308,7 +308,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
 	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
 	newUser.ReceptionRecursiveKey = user.Reception.RecursiveKey.Bytes()
-	newUser.PubKeyY = user.PublicKey.GetY().Bytes()
+	newUser.PubKeyY = user.PublicKey.GetKey().Bytes()
 	newUser.PubKeyP = params.GetP().Bytes()
 	newUser.PubKeyQ = params.GetQ().Bytes()
 	newUser.PubKeyG = params.GetG().Bytes()
