@@ -147,7 +147,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 	// Concatenate Client public key byte slices
 	data := make([]byte, 0)
 	params := user.PublicKey.GetParams()
-	data = append(data, user.PublicKey.GetY().Bytes()...)
+	data = append(data, user.PublicKey.GetKey().Bytes()...)
 	data = append(data, params.GetP().Bytes()...)
 	data = append(data, params.GetQ().Bytes()...)
 	data = append(data, params.GetG().Bytes()...)
