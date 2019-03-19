@@ -114,19 +114,19 @@ func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 
 	// Obtain the user from the database
 	n := nonce.Nonce{}
-	copy(hash, n.Bytes())
+	copy(n.Value[:], hash)
 	user, err := globals.Users.GetUserByNonce(n)
 
 	if err != nil {
 		// Invalid nonce, return an error
-		jww.ERROR.Printf("Unable to find nonce: %s", n.Bytes())
+		jww.ERROR.Printf("Unable to find nonce: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			errors.New("nonce does not exist")
 	}
 
 	// Verify nonce has not expired
-	if !n.IsValid() {
-		jww.ERROR.Printf("Nonce is expired: %s", n.Bytes())
+	if !user.Nonce.IsValid() {
+		jww.ERROR.Printf("Nonce is expired: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			errors.New("nonce is expired")
 	}
@@ -139,7 +139,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 
 	if !valid {
 		// Invalid signed nonce, return an error
-		jww.ERROR.Printf("Unable to verify nonce: %s", n.Bytes())
+		jww.ERROR.Printf("Unable to verify nonce: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			errors.New("signed nonce is invalid")
 	}
