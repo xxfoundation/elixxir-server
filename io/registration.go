@@ -24,6 +24,7 @@ import (
 
 // DSA Params
 var dsaParams = signature.GetDefaultDSAParams()
+
 // DSA Group
 var dsaGrp = cyclic.NewGroup(dsaParams.GetP(), cyclic.NewInt(2),
 	dsaParams.GetG(), cyclic.NewRandom(cyclic.NewInt(2), dsaParams.GetP()))
@@ -110,7 +111,8 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 }
 
 // Handle confirmation of nonce from Client
-func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
+func ConfirmNonce(hash, R, S []byte) ([]byte,
+	[]byte, []byte, []byte, []byte, []byte, []byte, error) {
 
 	// Obtain the user from the database
 	n := nonce.Nonce{}
@@ -121,6 +123,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 		// Invalid nonce, return an error
 		jww.ERROR.Printf("Unable to find nonce: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
+			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			errors.New("nonce does not exist")
 	}
 
@@ -128,6 +131,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 	if !user.Nonce.IsValid() {
 		jww.ERROR.Printf("Nonce is expired: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
+			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			errors.New("nonce is expired")
 	}
 
@@ -141,6 +145,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 		// Invalid signed nonce, return an error
 		jww.ERROR.Printf("Unable to verify nonce: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
+			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			errors.New("signed nonce is invalid")
 	}
 
@@ -158,9 +163,12 @@ func ConfirmNonce(hash, R, S []byte) ([]byte, []byte, []byte, error) {
 		// Unable to sign public key, return an error
 		jww.ERROR.Printf("Error signing client public key: %s", err)
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
+			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			errors.New("unable to sign client public key")
 	}
 
 	// Return signed Client public key to Client with empty error field
-	return data, sig.R.Bytes(), sig.S.Bytes(), nil
+	return data, sig.R.Bytes(), sig.S.Bytes(), publicKey.GetKey().Bytes(),
+		dsaParams.GetP().Bytes(), dsaParams.GetQ().Bytes(),
+		dsaParams.GetG().Bytes(), nil
 }

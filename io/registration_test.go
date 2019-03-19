@@ -98,7 +98,7 @@ func TestConfirmNonce(t *testing.T) {
 		t.Errorf("Error signing data")
 	}
 
-	_, _, _, err2 := ConfirmNonce(user.Nonce.Bytes(), sign.R.Bytes(), sign.S.Bytes())
+	_, _, _, _, _, _, _, err2 := ConfirmNonce(user.Nonce.Bytes(), sign.R.Bytes(), sign.S.Bytes())
 	if err2 != nil {
 		t.Errorf("Error in ConfirmNonce")
 	}
@@ -123,12 +123,13 @@ func TestConfirmNonce_Expired(t *testing.T) {
 	}
 
 	// Wait for nonce to expire
-	wait := time.After(time.Duration(2)*time.Second)
+	wait := time.After(time.Duration(2) * time.Second)
 	select {
 	case <-wait:
 	}
 
-	_, _, _, err2 := ConfirmNonce(user.Nonce.Bytes(), sign.R.Bytes(), sign.S.Bytes())
+	_, _, _, _, _, _, _, err2 := ConfirmNonce(user.Nonce.Bytes(),
+		sign.R.Bytes(), sign.S.Bytes())
 	if err2 == nil {
 		t.Errorf("ConfirmNonce: Expected expired nonce")
 	}
@@ -142,7 +143,7 @@ func TestConfirmNonce_BadSignature(t *testing.T) {
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
 	globals.Users.UpsertUser(user)
 
-	_, _, _, err := ConfirmNonce(user.Nonce.Bytes(), make([]byte, 0),
+	_, _, _, _, _, _, _, err := ConfirmNonce(user.Nonce.Bytes(), make([]byte, 0),
 		make([]byte, 0))
 	if err == nil {
 		t.Errorf("ConfirmNonce: Expected bad signature!")
