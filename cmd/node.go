@@ -13,11 +13,11 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
-	"math"
 	"runtime"
 	"strconv"
 	"strings"
@@ -210,7 +210,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		viper.GetString("dbName"),
 		dbAddress,
 	)
-	globals.PopulateDummyUsers()
+	globals.PopulateDummyUsers(globals.GetGroup())
 
 	// Get all servers
 	io.Servers = getServers(serverIndex)
@@ -234,13 +234,10 @@ func StartServer(serverIndex int, batchSize uint64) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	prime := cyclic.NewInt(0)
+	prime := large.NewInt(0)
 	prime.SetString(primeString, 16)
 	// one := cyclic.NewInt(1)
-	rngmax := cyclic.NewIntFromUInt(math.MaxUint64)
-	rngmax.Mul(rngmax, prime)
-	rng := cyclic.NewRandom(cyclic.NewInt(0), rngmax)
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(2), cyclic.NewInt(4), rng)
+	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(4))
 
 	globals.SetGroup(&grp)
 
