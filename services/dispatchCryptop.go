@@ -89,7 +89,7 @@ func (d *dispatch) dispatcher() {
 
 			out := (*d.DispatchBuilder.Output)[(*in).SlotID()]
 
-			inputs[1] = reflect.ValueOf((*in))
+			inputs[1] = reflect.ValueOf(*in)
 			inputs[2] = reflect.ValueOf(out)
 			inputs[3] = reflect.ValueOf((*d.DispatchBuilder.Keys)[(*in).SlotID()])
 

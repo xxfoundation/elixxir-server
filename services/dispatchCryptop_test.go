@@ -8,6 +8,7 @@ package services
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ type Test struct{}
 type SlotTest struct {
 	slot uint64
 
-	A *cyclic.Int
+	A *large.Int
 }
 
 func (ts SlotTest) SlotID() uint64 {
@@ -27,16 +28,16 @@ type KeysTest struct {
 	R *cyclic.Int
 }
 
-func (cry Test) Run(g *cyclic.Group, in, out *SlotTest, keys *KeysTest) Slot {
+func (cry Test) Run(grp *cyclic.Group, in, out *SlotTest, keys *KeysTest) Slot {
 
-	out.A.Add(in.A, keys.R)
+	out.A.Add(in.A, keys.R.GetLargeInt())
 
-	keys.R.Set(cyclic.NewInt(15))
+	grp.Set(keys.R, grp.NewInt(15))
 
 	return out
 }
 
-func (cry Test) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
+func (cry Test) Build(grp *cyclic.Group, face interface{}) *DispatchBuilder {
 
 	bs := uint64(4)
 
@@ -45,7 +46,7 @@ func (cry Test) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 	om := make([]Slot, bs)
 
 	for i := uint64(0); i < bs; i++ {
-		om[i] = &SlotTest{slot: i, A: cyclic.NewMaxInt()}
+		om[i] = &SlotTest{slot: i, A: large.NewMaxInt()}
 	}
 
 	keys := make([]NodeKeys, bs)
@@ -54,7 +55,7 @@ func (cry Test) Build(g *cyclic.Group, face interface{}) *DispatchBuilder {
 		keys[i] = &KeysTest{R: round[i]}
 	}
 
-	db := DispatchBuilder{BatchSize: bs, Keys: &keys, Output: &om, G: g}
+	db := DispatchBuilder{BatchSize: bs, Keys: &keys, Output: &om, G: grp}
 
 	return &db
 }
@@ -64,6 +65,8 @@ func TestDispatchCryptop(t *testing.T) {
 	test := 10
 	pass := 0
 
+	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(5), large.NewInt(12))
+
 	bs := uint64(4)
 
 	round := make([]*cyclic.Int, bs)
@@ -72,19 +75,14 @@ func TestDispatchCryptop(t *testing.T) {
 
 	i := uint64(0)
 	for i < bs {
-		im = append(im, &SlotTest{slot: uint64(i), A: cyclic.NewInt(int64(i + 1))})
-		round[i] = cyclic.NewInt(int64(2 * (i + 1)))
+		im = append(im, &SlotTest{slot: uint64(i), A: large.NewInt(int64(i + 1))})
+		round[i] = grp.NewInt(int64(2 * (i + 1)))
 		i++
 	}
 
-	result := []*cyclic.Int{
-		cyclic.NewInt(18), cyclic.NewInt(21), cyclic.NewInt(24),
-		cyclic.NewInt(27),
+	result := []*large.Int{
+		large.NewInt(18), large.NewInt(21), large.NewInt(24), large.NewInt(27),
 	}
-
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-
-	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12), rng)
 
 	dc1 := DispatchCryptop(&grp, Test{}, nil, nil, round)
 	dc2 := DispatchCryptop(&grp, Test{}, dc1.OutChannel, nil, round)
@@ -108,7 +106,7 @@ func TestDispatchCryptop(t *testing.T) {
 			pass++
 		}
 
-		if round[i].Int64() != 15 {
+		if round[i].GetLargeInt().Int64() != 15 {
 			t.Errorf("Test of Dispatcher pass by reference failed at index"+
 				": %v Expected: %v;"+
 				" Actual: %v", i, 15, round[i].Text(10))
@@ -132,9 +130,7 @@ func TestDispatchController_IsAlive(t *testing.T) {
 
 	round := make([]*cyclic.Int, 4)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-
-	grp := cyclic.NewGroup(cyclic.NewInt(11), cyclic.NewInt(5), cyclic.NewInt(12), rng)
+	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(5), large.NewInt(12))
 
 	dc := DispatchCryptop(&grp, Test{}, nil, nil, round)
 
