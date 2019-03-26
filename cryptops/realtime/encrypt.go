@@ -26,7 +26,7 @@ type KeysEncrypt struct {
 }
 
 // Allocated memory and arranges key objects for the Realtime Encrypt Phase
-func (e Encrypt) Build(g *cyclic.Group,
+func (e Encrypt) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
@@ -38,10 +38,10 @@ func (e Encrypt) Build(g *cyclic.Group,
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{
 			Slot:           i,
-			Message:        cyclic.NewMaxInt(),
-			AssociatedData: cyclic.NewMaxInt(),
+			Message:        grp.NewMaxInt(),
+			AssociatedData: grp.NewMaxInt(),
 			CurrentID:      id.ZeroID,
-			CurrentKey:     cyclic.NewMaxInt(),
+			CurrentKey:     grp.NewMaxInt(),
 			Salt:           make([]byte, 0),
 		}
 	}
@@ -57,7 +57,7 @@ func (e Encrypt) Build(g *cyclic.Group,
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize,
-		Keys: &keys, Output: &om, G: g}
+		Keys: &keys, Output: &om, G: grp}
 
 	return &db
 

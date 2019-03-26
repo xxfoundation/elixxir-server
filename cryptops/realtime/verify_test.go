@@ -9,6 +9,7 @@ package realtime
 import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/verification"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
@@ -19,10 +20,8 @@ import (
 
 func TestRealTimeVerify(t *testing.T) {
 	var im []services.Slot
-	batchSize := uint64(2)
-	round := globals.NewRound(batchSize)
 
-	grp := cyclic.NewGroup(cyclic.NewIntFromString(
+	grp := cyclic.NewGroup(large.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
 			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
 			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
@@ -44,9 +43,11 @@ func TestRealTimeVerify(t *testing.T) {
 			"287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED"+
 			"1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9"+
 			"93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199"+
-			"FFFFFFFFFFFFFFFF", 16), cyclic.NewInt(5),
-		cyclic.NewInt(23),
-		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
+			"FFFFFFFFFFFFFFFF", 16), large.NewInt(5),
+		large.NewInt(23))
+
+	batchSize := uint64(2)
+	round := globals.NewRound(batchSize, &grp)
 
 	user := id.NewUserFromUint(42, t)
 	assocData := format.NewAssociatedData()
@@ -55,16 +56,16 @@ func TestRealTimeVerify(t *testing.T) {
 	csprig := csprng.NewSystemRNG()
 
 	data := make([]byte, format.AD_KEYFP_LEN)
-	csprig.Read(data)
+	_, _ = csprig.Read(data)
 	fp := format.NewFingerprint(data)
 	assocData.SetKeyFingerprint(*fp)
 
 	data = make([]byte, format.AD_TIMESTAMP_LEN)
-	csprig.Read(data)
+	_, _ = csprig.Read(data)
 	assocData.SetTimestamp(data)
 
 	data = make([]byte, format.AD_MAC_LEN)
-	csprig.Read(data)
+	_, _ = csprig.Read(data)
 	assocData.SetMAC(data)
 
 	*fp = assocData.GetKeyFingerprint()
@@ -78,15 +79,15 @@ func TestRealTimeVerify(t *testing.T) {
 
 	im = append(im, &Slot{
 		Slot:           0,
-		AssociatedData: cyclic.NewIntFromBytes(assocData.SerializeAssociatedData())})
+		AssociatedData: grp.NewIntFromBytes(assocData.SerializeAssociatedData())})
 
 	im = append(im, &Slot{
 		Slot:           1,
-		AssociatedData: cyclic.NewIntFromBytes(assocData.SerializeAssociatedData())})
+		AssociatedData: grp.NewIntFromBytes(assocData.SerializeAssociatedData())})
 
 	im = append(im, &Slot{
 		Slot:           2,
-		AssociatedData: cyclic.NewInt(0)})
+		AssociatedData: grp.NewInt(0)})
 
 	ExpectedOutputs := []bool{true, true, false}
 
@@ -111,7 +112,7 @@ func TestVerifyRun(t *testing.T) {
 	keys := KeysVerify{
 		Verification: new(bool)}
 
-	grp := cyclic.NewGroup(cyclic.NewIntFromString(
+	grp := cyclic.NewGroup(large.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
 			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
 			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
@@ -133,9 +134,8 @@ func TestVerifyRun(t *testing.T) {
 			"287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED"+
 			"1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9"+
 			"93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199"+
-			"FFFFFFFFFFFFFFFF", 16), cyclic.NewInt(5),
-		cyclic.NewInt(23),
-		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
+			"FFFFFFFFFFFFFFFF", 16), large.NewInt(5),
+		large.NewInt(23))
 
 	user := id.NewUserFromUint(42, t)
 	assocData := format.NewAssociatedData()
@@ -144,17 +144,17 @@ func TestVerifyRun(t *testing.T) {
 	csprig := csprng.NewSystemRNG()
 
 	data := make([]byte, format.AD_KEYFP_LEN)
-	csprig.Read(data)
-	csprig.Read(data)
+	_, _ = csprig.Read(data)
+	_, _ = csprig.Read(data)
 	fp := format.NewFingerprint(data)
 	assocData.SetKeyFingerprint(*fp)
 
 	data = make([]byte, format.AD_TIMESTAMP_LEN)
-	csprig.Read(data)
+	_, _ = csprig.Read(data)
 	assocData.SetTimestamp(data)
 
 	data = make([]byte, format.AD_MAC_LEN)
-	csprig.Read(data)
+	_, _ = csprig.Read(data)
 	assocData.SetMAC(data)
 
 	payloadMicList := [][]byte{
@@ -167,11 +167,11 @@ func TestVerifyRun(t *testing.T) {
 
 	im := Slot{
 		Slot:           0,
-		AssociatedData: cyclic.NewIntFromBytes(assocData.SerializeAssociatedData())}
+		AssociatedData: grp.NewIntFromBytes(assocData.SerializeAssociatedData())}
 
 	om := Slot{
 		Slot:           0,
-		AssociatedData: cyclic.NewInt(0)}
+		AssociatedData: grp.NewInt(0)}
 
 	verify := Verify{}
 	verify.Run(&grp, &im, &om, &keys)
@@ -183,11 +183,11 @@ func TestVerifyRun(t *testing.T) {
 
 	im = Slot{
 		Slot:           0,
-		AssociatedData: cyclic.NewInt(0)}
+		AssociatedData: grp.NewInt(0)}
 
 	om = Slot{
 		Slot:           0,
-		AssociatedData: cyclic.NewInt(0)}
+		AssociatedData: grp.NewInt(0)}
 
 	verify.Run(&grp, &im, &om, &keys)
 

@@ -26,7 +26,7 @@ type KeysPeel struct {
 }
 
 // Allocated memory and arranges key objects for the Realtime Peel Phase
-func (p Peel) Build(g *cyclic.Group,
+func (p Peel) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
@@ -38,8 +38,8 @@ func (p Peel) Build(g *cyclic.Group,
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{
 			Slot:           i,
-			AssociatedData: cyclic.NewMaxInt(),
-			Message:        cyclic.NewMaxInt(),
+			AssociatedData: grp.NewMaxInt(),
+			Message:        grp.NewMaxInt(),
 			CurrentID:      id.ZeroID,
 		}
 	}
@@ -55,7 +55,7 @@ func (p Peel) Build(g *cyclic.Group,
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize,
-		Keys: &keys, Output: &om, G: g}
+		Keys: &keys, Output: &om, G: grp}
 
 	return &db
 

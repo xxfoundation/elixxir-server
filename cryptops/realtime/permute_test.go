@@ -8,6 +8,7 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
@@ -18,48 +19,46 @@ func TestRealTimePermute(t *testing.T) {
 	test := 6
 	pass := 0
 
-	bs := uint64(3)
-
-	round := globals.NewRound(bs)
-
 	var im []services.Slot
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(23),
+		large.NewInt(29))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23),
-		cyclic.NewInt(29), rng)
+	bs := uint64(3)
+
+	round := globals.NewRound(bs, &grp)
 
 	im = append(im, &Slot{
 		Slot:           uint64(0),
-		Message:        cyclic.NewInt(int64(39)),
-		AssociatedData: cyclic.NewInt(int64(13))})
+		Message:        grp.NewInt(int64(39)),
+		AssociatedData: grp.NewInt(int64(13))})
 
 	im = append(im, &Slot{
 		Slot:           uint64(1),
-		Message:        cyclic.NewInt(int64(86)),
-		AssociatedData: cyclic.NewInt(int64(87))})
+		Message:        grp.NewInt(int64(86)),
+		AssociatedData: grp.NewInt(int64(87))})
 
 	im = append(im, &Slot{
 		Slot:           uint64(2),
-		Message:        cyclic.NewInt(int64(39)),
-		AssociatedData: cyclic.NewInt(int64(51))})
+		Message:        grp.NewInt(int64(39)),
+		AssociatedData: grp.NewInt(int64(51))})
 
 	round.Permutations[0] = 1
 	round.Permutations[1] = 2
 	round.Permutations[2] = 0
 
-	round.S[0] = cyclic.NewInt(53)
-	round.S[1] = cyclic.NewInt(24)
-	round.S[2] = cyclic.NewInt(61)
+	round.S[0] = grp.NewInt(53)
+	round.S[1] = grp.NewInt(24)
+	round.S[2] = grp.NewInt(61)
 
-	round.V[0] = cyclic.NewInt(52)
-	round.V[1] = cyclic.NewInt(68)
-	round.V[2] = cyclic.NewInt(11)
+	round.V[0] = grp.NewInt(52)
+	round.V[1] = grp.NewInt(68)
+	round.V[2] = grp.NewInt(11)
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(34), cyclic.NewInt(34)},
-		{cyclic.NewInt(31), cyclic.NewInt(31)},
-		{cyclic.NewInt(25), cyclic.NewInt(26)},
+		{grp.NewInt(34), grp.NewInt(34)},
+		{grp.NewInt(31), grp.NewInt(31)},
+		{grp.NewInt(25), grp.NewInt(26)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Permute{}, nil, nil, round)
@@ -99,57 +98,55 @@ func TestRealtimePermuteRun(t *testing.T) {
 	var im []*Slot
 	var om []*Slot
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
-		cyclic.NewInt(29), rng)
+	grp := cyclic.NewGroup(large.NewInt(101), large.NewInt(23),
+		large.NewInt(29))
 
 	im = append(im, &Slot{
 		Slot:           uint64(0),
-		Message:        cyclic.NewInt(int64(39)),
-		AssociatedData: cyclic.NewInt(int64(13))})
+		Message:        grp.NewInt(int64(39)),
+		AssociatedData: grp.NewInt(int64(13))})
 
 	im = append(im, &Slot{
 		Slot:           uint64(1),
-		Message:        cyclic.NewInt(int64(86)),
-		AssociatedData: cyclic.NewInt(int64(87))})
+		Message:        grp.NewInt(int64(86)),
+		AssociatedData: grp.NewInt(int64(87))})
 
 	im = append(im, &Slot{
 		Slot:           uint64(2),
-		Message:        cyclic.NewInt(int64(39)),
-		AssociatedData: cyclic.NewInt(int64(51))})
+		Message:        grp.NewInt(int64(39)),
+		AssociatedData: grp.NewInt(int64(51))})
 
 	om = append(om, &Slot{
 		Slot:           uint64(1),
-		Message:        cyclic.NewInt(int64(0)),
-		AssociatedData: cyclic.NewInt(int64(0))})
+		Message:        grp.NewInt(int64(0)),
+		AssociatedData: grp.NewInt(int64(0))})
 
 	om = append(om, &Slot{
 		Slot:           uint64(2),
-		Message:        cyclic.NewInt(int64(0)),
-		AssociatedData: cyclic.NewInt(int64(0))})
+		Message:        grp.NewInt(int64(0)),
+		AssociatedData: grp.NewInt(int64(0))})
 
 	om = append(om, &Slot{
 		Slot:           uint64(0),
-		Message:        cyclic.NewInt(int64(0)),
-		AssociatedData: cyclic.NewInt(int64(0))})
+		Message:        grp.NewInt(int64(0)),
+		AssociatedData: grp.NewInt(int64(0))})
 
 	keys := []KeysPermute{
 		{
-			S: cyclic.NewInt(53),
-			V: cyclic.NewInt(52)},
+			S: grp.NewInt(53),
+			V: grp.NewInt(52)},
 		{
-			S: cyclic.NewInt(24),
-			V: cyclic.NewInt(68)},
+			S: grp.NewInt(24),
+			V: grp.NewInt(68)},
 		{
-			S: cyclic.NewInt(61),
-			V: cyclic.NewInt(11)},
+			S: grp.NewInt(61),
+			V: grp.NewInt(11)},
 	}
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(47), cyclic.NewInt(70)},
-		{cyclic.NewInt(44), cyclic.NewInt(58)},
-		{cyclic.NewInt(56), cyclic.NewInt(56)},
+		{grp.NewInt(47), grp.NewInt(70)},
+		{grp.NewInt(44), grp.NewInt(58)},
+		{grp.NewInt(56), grp.NewInt(56)},
 	}
 
 	permute := Permute{}

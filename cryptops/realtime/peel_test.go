@@ -8,6 +8,7 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -20,13 +21,12 @@ func TestPeel(t *testing.T) {
 	test := 6
 	pass := 0
 
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(27),
+		large.NewInt(97))
+
 	bs := uint64(3)
 
-	round := globals.NewRound(bs)
-
-	rng := cyclic.NewRandom(cyclic.NewInt(5), cyclic.NewInt(1000))
-
-	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(27), cyclic.NewInt(97), rng)
+	round := globals.NewRound(bs, &grp)
 
 	recipientIds := [3]*id.User{
 		id.NewUserFromUint(5, t),
@@ -39,28 +39,28 @@ func TestPeel(t *testing.T) {
 	im = append(im, &Slot{
 		Slot:      uint64(0),
 		CurrentID: recipientIds[0],
-		Message:   cyclic.NewInt(int64(39))})
+		Message:   grp.NewInt(int64(39))})
 
 	im = append(im, &Slot{
 		Slot:      uint64(1),
 		CurrentID: recipientIds[1],
-		Message:   cyclic.NewInt(int64(86))})
+		Message:   grp.NewInt(int64(86))})
 
 	im = append(im, &Slot{
 		Slot:      uint64(2),
 		CurrentID: recipientIds[2],
-		Message:   cyclic.NewInt(int64(66))})
+		Message:   grp.NewInt(int64(66))})
 
 	// Set the keys
 	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
-	round.LastNode.MessagePrecomputation[0] = cyclic.NewInt(77)
-	round.LastNode.MessagePrecomputation[1] = cyclic.NewInt(93)
-	round.LastNode.MessagePrecomputation[2] = cyclic.NewInt(47)
+	round.LastNode.MessagePrecomputation[0] = grp.NewInt(77)
+	round.LastNode.MessagePrecomputation[1] = grp.NewInt(93)
+	round.LastNode.MessagePrecomputation[2] = grp.NewInt(47)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(7)},
-		{cyclic.NewInt(80)},
-		{cyclic.NewInt(106)},
+		{grp.NewInt(7)},
+		{grp.NewInt(80)},
+		{grp.NewInt(106)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Peel{}, nil, nil, round)

@@ -27,7 +27,7 @@ type KeysIdentify struct {
 }
 
 // Pre-allocate memory and arrange key objects for realtime Identify phase
-func (i Identify) Build(g *cyclic.Group,
+func (i Identify) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
 	// The empty interface should be castable to a Round
@@ -38,7 +38,7 @@ func (i Identify) Build(g *cyclic.Group,
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{Slot: i,
-			AssociatedData: cyclic.NewMaxInt(),
+			AssociatedData: grp.NewMaxInt(),
 		}
 	}
 
@@ -54,7 +54,7 @@ func (i Identify) Build(g *cyclic.Group,
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
-		Output:    &om, G: g}
+		Output:    &om, G: grp}
 
 	return &db
 }
