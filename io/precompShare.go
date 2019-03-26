@@ -8,7 +8,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -41,7 +40,7 @@ func PrecompShare(input *pb.PrecompShareMessage) {
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.SlotShare{
 			Slot: in.Slot,
-			PartialRoundPublicCypherKey: cyclic.NewIntFromBytes(
+			PartialRoundPublicCypherKey: globals.GetGroup().NewIntFromBytes(
 				in.PartialRoundPublicCypherKey),
 		}
 		// Pass slot as input to Share's channel
@@ -113,10 +112,10 @@ func precompShareLastNode(roundId string, input *pb.PrecompShareMessage) {
 		// Convert to PrecompDecryptSlot
 		msgSlot := &pb.PrecompDecryptSlot{
 			Slot:                            uint64(i),
-			EncryptedMessageKeys:            cyclic.NewInt(1).Bytes(),
-			PartialMessageCypherText:        cyclic.NewInt(1).Bytes(),
-			EncryptedAssociatedDataKeys:     cyclic.NewInt(1).Bytes(),
-			PartialAssociatedDataCypherText: cyclic.NewInt(1).Bytes(),
+			EncryptedMessageKeys:            globals.GetGroup().NewInt(1).Bytes(),
+			PartialMessageCypherText:        globals.GetGroup().NewInt(1).Bytes(),
+			EncryptedAssociatedDataKeys:     globals.GetGroup().NewInt(1).Bytes(),
+			PartialAssociatedDataCypherText: globals.GetGroup().NewInt(1).Bytes(),
 		}
 		msg.Slots[i] = msgSlot
 	}
@@ -171,7 +170,7 @@ func (h PrecompShareHandler) Handler(
 
 	sendTime := time.Now()
 	// Returns whether this is the first time Share is being run TODO Something better
-	IsFirstRun := (*slots[0]).(*precomputation.SlotShare).PartialRoundPublicCypherKey.Cmp(globals.Grp.G) == 0
+	IsFirstRun := (*slots[0]).(*precomputation.SlotShare).PartialRoundPublicCypherKey.Cmp(globals.GetGroup().GetGCyclic()) == 0
 
 	// Advance internal state to the next phase
 	if id.IsLastNode && IsFirstRun {

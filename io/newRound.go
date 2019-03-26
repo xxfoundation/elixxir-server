@@ -37,7 +37,7 @@ func NewRound(clusterRoundID string) {
 	}
 
 	// Create a new Round
-	round := globals.NewRound(batchSize)
+	round := globals.NewRound(batchSize, globals.GetGroup())
 
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -52,7 +52,7 @@ func NewRound(clusterRoundID string) {
 
 	// Create the controller for PrecompShare
 	// Note: Share requires a batchSize of 1
-	precompShareController := services.DispatchCryptopSized(globals.Grp,
+	precompShareController := services.DispatchCryptopSized(globals.GetGroup(),
 		precomputation.Share{}, nil, nil, uint64(1), round)
 	// Add the inChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_SHARE, precompShareController.InChannel)
@@ -62,7 +62,7 @@ func NewRound(clusterRoundID string) {
 		precompShareController.OutChannel, PrecompShareHandler{})
 
 	// Create the controller for PrecompDecrypt
-	precompDecryptController := services.DispatchCryptop(globals.Grp,
+	precompDecryptController := services.DispatchCryptop(globals.GetGroup(),
 		precomputation.Decrypt{}, nil, nil, round)
 	// Add the InChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_DECRYPT, precompDecryptController.InChannel)
@@ -71,7 +71,7 @@ func NewRound(clusterRoundID string) {
 		precompDecryptController.OutChannel, PrecompDecryptHandler{})
 
 	// Create the controller for PrecompEncrypt
-	precompEncryptController := services.DispatchCryptop(globals.Grp,
+	precompEncryptController := services.DispatchCryptop(globals.GetGroup(),
 		precomputation.Encrypt{}, nil, nil, round)
 	// Add the InChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_ENCRYPT, precompEncryptController.InChannel)
@@ -80,7 +80,7 @@ func NewRound(clusterRoundID string) {
 		precompEncryptController.OutChannel, PrecompEncryptHandler{})
 
 	// Create the controller for PrecompReveal
-	precompRevealController := services.DispatchCryptop(globals.Grp,
+	precompRevealController := services.DispatchCryptop(globals.GetGroup(),
 		precomputation.Reveal{}, nil, nil, round)
 	// Add the InChannel from the controller to round
 	round.AddChannel(globals.PRECOMP_REVEAL, precompRevealController.InChannel)
@@ -89,7 +89,7 @@ func NewRound(clusterRoundID string) {
 		precompRevealController.OutChannel, PrecompRevealHandler{})
 
 	// Create the dispatch controller for PrecompPermute
-	precompPermuteController := services.DispatchCryptop(globals.Grp,
+	precompPermuteController := services.DispatchCryptop(globals.GetGroup(),
 		precomputation.Permute{}, nil, nil, round)
 	// Hook up the dispatcher's input to the round
 	round.AddChannel(globals.PRECOMP_PERMUTE,
@@ -106,10 +106,10 @@ func NewRound(clusterRoundID string) {
 	receptionKeygenInit := make([]interface{}, 2)
 	receptionKeygenInit[0] = round
 	receptionKeygenInit[1] = cryptops.TRANSMISSION
-	realtimeReceptionKeygen := services.DispatchCryptop(globals.Grp,
+	realtimeReceptionKeygen := services.DispatchCryptop(globals.GetGroup(),
 		cryptops.GenerateClientKey{}, nil, nil, receptionKeygenInit)
 	// Create the controller for RealtimeDecrypt
-	realtimeDecryptController := services.DispatchCryptop(globals.Grp,
+	realtimeDecryptController := services.DispatchCryptop(globals.GetGroup(),
 		realtime.Decrypt{}, realtimeReceptionKeygen.OutChannel, nil, round)
 	// Add the InChannel from the keygen controller to round
 	round.AddChannel(globals.REAL_DECRYPT, realtimeReceptionKeygen.InChannel)
@@ -121,10 +121,10 @@ func NewRound(clusterRoundID string) {
 	transmissionKeygenInit := make([]interface{}, 2)
 	transmissionKeygenInit[0] = round
 	transmissionKeygenInit[1] = cryptops.RECEPTION
-	realtimeTransmissionKeygen := services.DispatchCryptop(globals.Grp,
+	realtimeTransmissionKeygen := services.DispatchCryptop(globals.GetGroup(),
 		cryptops.GenerateClientKey{}, nil, nil, transmissionKeygenInit)
 	// Create the controller for RealtimeEncrypt
-	realtimeEncryptController := services.DispatchCryptop(globals.Grp,
+	realtimeEncryptController := services.DispatchCryptop(globals.GetGroup(),
 		realtime.Encrypt{}, realtimeTransmissionKeygen.OutChannel, nil, round)
 	// Add the InChannel from the keygen controller to round
 	round.AddChannel(globals.REAL_ENCRYPT, realtimeTransmissionKeygen.InChannel)
@@ -133,7 +133,7 @@ func NewRound(clusterRoundID string) {
 		realtimeEncryptController.OutChannel, RealtimeEncryptHandler{})
 
 	// Create the dispatch controller for RealtimePermute
-	realtimePermuteController := services.DispatchCryptop(globals.Grp,
+	realtimePermuteController := services.DispatchCryptop(globals.GetGroup(),
 		realtime.Permute{}, nil, nil, round)
 	// Hook up the dispatcher's input to the round
 	round.AddChannel(globals.REAL_PERMUTE,
@@ -147,7 +147,7 @@ func NewRound(clusterRoundID string) {
 		RealtimePermuteHandler{})
 
 	// Create the dispatch controller for PrecompGeneration
-	precompGenerationController := services.DispatchCryptop(globals.Grp,
+	precompGenerationController := services.DispatchCryptop(globals.GetGroup(),
 		precomputation.Generation{}, nil, nil, round)
 
 	genstart := time.Now()
@@ -168,20 +168,20 @@ func NewRound(clusterRoundID string) {
 
 	if id.IsLastNode {
 		// Create the controller for RealtimeIdentify
-		realtimeIdentifyController := services.DispatchCryptop(globals.Grp,
+		realtimeIdentifyController := services.DispatchCryptop(globals.GetGroup(),
 			realtime.Identify{}, nil, nil, round)
 		// Add the InChannel from the controller to round
 		round.AddChannel(globals.REAL_IDENTIFY,
 			realtimeIdentifyController.InChannel)
 		//Add Verify on the end of Identify
-		realtimeVerifyController := services.DispatchCryptop(globals.Grp,
+		realtimeVerifyController := services.DispatchCryptop(globals.GetGroup(),
 			realtime.Verify{}, realtimeIdentifyController.OutChannel, nil, round)
 		// Kick off RealtimeIdentify Transmission Handler
 		services.BatchTransmissionDispatch(roundId, batchSize,
 			realtimeVerifyController.OutChannel, RealtimeIdentifyHandler{})
 
 		// Create the controller for RealtimePeel
-		realtimePeelController := services.DispatchCryptop(globals.Grp,
+		realtimePeelController := services.DispatchCryptop(globals.GetGroup(),
 			realtime.Peel{}, nil, nil, round)
 		// Add the InChannel from the controller to round
 		round.AddChannel(globals.REAL_PEEL, realtimePeelController.InChannel)
@@ -190,7 +190,7 @@ func NewRound(clusterRoundID string) {
 			realtimePeelController.OutChannel, RealtimePeelHandler{})
 
 		// Create the controller for PrecompStrip
-		precompStripController := services.DispatchCryptop(globals.Grp,
+		precompStripController := services.DispatchCryptop(globals.GetGroup(),
 			precomputation.Strip{}, nil, nil, round)
 		// Add the InChannel from the controller to round
 		round.AddChannel(globals.PRECOMP_STRIP, precompStripController.InChannel)
@@ -200,7 +200,7 @@ func NewRound(clusterRoundID string) {
 
 		jww.INFO.Println("Beginning PrecompShare Phase...")
 		shareMsg := services.Slot(&precomputation.SlotShare{
-			PartialRoundPublicCypherKey: globals.Grp.G})
+			PartialRoundPublicCypherKey: globals.GetGroup().GetGCyclic()})
 		// Note: Share requires a batchSize of 1
 		PrecompShareHandler{}.Handler(roundId, uint64(1),
 			[]*services.Slot{&shareMsg})

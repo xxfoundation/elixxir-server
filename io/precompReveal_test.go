@@ -6,7 +6,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
@@ -17,8 +16,8 @@ import (
 func TestPrecompReveal(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -37,10 +36,10 @@ func TestPrecompReveal(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot:                         uint64(0),
-		MessagePrecomputation:        cyclic.NewInt(3),
-		AssociatedDataPrecomputation: cyclic.NewInt(10),
-		AssociatedDataCypher:         cyclic.NewInt(1),
-		MessageCypher:                cyclic.NewInt(1),
+		MessagePrecomputation:        globals.GetGroup().NewInt(3),
+		AssociatedDataPrecomputation: globals.GetGroup().NewInt(10),
+		AssociatedDataCypher:         globals.GetGroup().NewInt(1),
+		MessageCypher:                globals.GetGroup().NewInt(1),
 	}
 
 	// Pass slot as input to Reveal's TransmissionHandler

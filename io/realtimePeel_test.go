@@ -7,7 +7,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -19,8 +18,8 @@ import (
 func TestRealtimePeel(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -42,8 +41,8 @@ func TestRealtimePeel(t *testing.T) {
 	var slot services.Slot = &realtime.Slot{
 		Slot:           uint64(0),
 		CurrentID:      user,
-		Message:        cyclic.NewInt(7),
-		AssociatedData: cyclic.NewIntFromBytes(associatedData.SerializeAssociatedData()),
+		Message:        globals.GetGroup().NewInt(7),
+		AssociatedData: globals.GetGroup().NewIntFromBytes(associatedData.SerializeAssociatedData()),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler
@@ -79,8 +78,8 @@ func TestRealtimePeel(t *testing.T) {
 func TestRealtimePeelHandler_Handler(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -89,10 +88,10 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	userId := id.NewUserFromUint(1, t)
 	s := make([]*services.Slot, 1)
 	sl := &realtime.Slot{
-		AssociatedData: cyclic.NewInt(10),
-		Message:        cyclic.NewInt(5),
+		AssociatedData: globals.GetGroup().NewInt(10),
+		Message:        globals.GetGroup().NewInt(5),
 		CurrentID:      userId,
-		CurrentKey:     cyclic.NewInt(20),
+		CurrentKey:     globals.GetGroup().NewInt(20),
 	}
 	slot := services.Slot(sl)
 	s[0] = &slot
@@ -101,7 +100,7 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	round.MIC_Verification[sl.Slot] = true
 	// User registry must be initialized
 	globals.Users = globals.NewUserRegistry("", "", "", "")
-	globals.PopulateDummyUsers()
+	globals.PopulateDummyUsers(globals.GetGroup())
 
 	handler.Handler(roundId, 1, s)
 

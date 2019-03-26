@@ -67,5 +67,5 @@ func GetChannel(roundID string, chanId globals.Phase) chan<- *services.Slot {
 
 // Set the CypherPublicKey for the server to the given value
 func SetPublicKey(roundID string, newKey []byte) {
-	globals.GlobalRoundMap.GetRound(roundID).CypherPublicKey.SetBytes(newKey)
+	globals.GetGroup().SetBytes(globals.GlobalRoundMap.GetRound(roundID).CypherPublicKey, newKey)
 }

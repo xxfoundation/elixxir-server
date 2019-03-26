@@ -16,6 +16,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	hash2 "gitlab.com/elixxir/crypto/hash"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature"
@@ -26,12 +27,12 @@ import (
 var dsaParams = signature.GetDefaultDSAParams()
 
 // DSA Group
-var dsaGrp = cyclic.NewGroup(dsaParams.GetP(), cyclic.NewInt(2),
-	dsaParams.GetG(), cyclic.NewRandom(cyclic.NewInt(2), dsaParams.GetP()))
+var dsaGrp = cyclic.NewGroup(dsaParams.GetP(), large.NewInt(2),
+	dsaParams.GetG())
 
 // Hardcoded DSA public key for Server
 var publicKey = signature.ReconstructPublicKey(dsaParams,
-	cyclic.NewIntFromString("5c73ff5a2b9eea19d180334a60fa0299dbd4a4b724506cc0fd15f3ffd7b755c6"+
+	large.NewIntFromString("5c73ff5a2b9eea19d180334a60fa0299dbd4a4b724506cc0fd15f3ffd7b755c6"+
 		"67cf0ce08a7a366b6bec808a6846d5aa1d047144048fa52522b083c7512dabf5"+
 		"595204f7ca125618c27842b0658c05fe619a1400cc710b109f0f3b9dcf9faa35"+
 		"4407a9c2b914584792cd60f0bc3c9cb6a6cadac80cfe259c4da5b2a56ce685ed"+
@@ -42,11 +43,11 @@ var publicKey = signature.ReconstructPublicKey(dsaParams,
 
 // Hardcoded DSA private key for Server
 var privateKey = signature.ReconstructPrivateKey(publicKey,
-	cyclic.NewIntFromString("7d169c3b371a2546c272e5ca37549c65c6a27708d87465d1b60261adf440483e", 16))
+	large.NewIntFromString("7d169c3b371a2546c272e5ca37549c65c6a27708d87465d1b60261adf440483e", 16))
 
 // Hardcoded DSA public key for RegistrationServer
 var registrationPublicKey = signature.ReconstructPublicKey(dsaParams,
-	cyclic.NewIntFromString("1ae3fd4e9829fb464459e05bca392bec5067152fb43a569ad3c3b68bbcad84f0"+
+	large.NewIntFromString("1ae3fd4e9829fb464459e05bca392bec5067152fb43a569ad3c3b68bbcad84f0"+
 		"ff8d31c767da3eabcfc0870d82b39568610b52f2b72b493bbede6e952c9a7fd4"+
 		"4a8161e62a9046828c4a65f401b2f054ebf7376e89dab547d8a3c3d46891e78a"+
 		"cfc4015713cbfb5b0b6cab0f8dfb46b891f3542046ace4cab984d5dfef4f52d4"+
@@ -60,8 +61,8 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 
 	// Verify signed public key using hardcoded RegistrationServer public key
 	valid := registrationPublicKey.Verify(hash, signature.DSASignature{
-		R: cyclic.NewIntFromBytes(R),
-		S: cyclic.NewIntFromBytes(S),
+		R: large.NewIntFromBytes(R),
+		S: large.NewIntFromBytes(S),
 	})
 
 	// Concatenate Client public key byte slices
@@ -81,10 +82,10 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 	// Assemble Client public key
 	userPublicKey := signature.ReconstructPublicKey(
 		signature.CustomDSAParams(
-			cyclic.NewIntFromBytes(P),
-			cyclic.NewIntFromBytes(Q),
-			cyclic.NewIntFromBytes(G)),
-		cyclic.NewIntFromBytes(Y))
+			large.NewIntFromBytes(P),
+			large.NewIntFromBytes(Q),
+			large.NewIntFromBytes(G)),
+		large.NewIntFromBytes(Y))
 
 	// Generate UserID
 	userId := registration.GenUserID(userPublicKey, salt)
@@ -98,7 +99,7 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 	baseRKey := registration.GenerateBaseKey(&dsaGrp, userPublicKey, privateKey, sha256.New())
 
 	// Store user information in the database
-	newUser := globals.Users.NewUser()
+	newUser := globals.Users.NewUser(&dsaGrp)
 	newUser.Nonce = userNonce
 	newUser.ID = userId
 	newUser.PublicKey = userPublicKey
@@ -137,8 +138,8 @@ func ConfirmNonce(hash, R, S []byte) ([]byte,
 
 	// Verify signed nonce using Client public key
 	valid := user.PublicKey.Verify(hash, signature.DSASignature{
-		R: cyclic.NewIntFromBytes(R),
-		S: cyclic.NewIntFromBytes(S),
+		R: large.NewIntFromBytes(R),
+		S: large.NewIntFromBytes(S),
 	})
 
 	if !valid {

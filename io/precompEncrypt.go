@@ -7,7 +7,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -40,9 +39,10 @@ func PrecompEncrypt(input *pb.PrecompEncryptMessage) {
 		// Convert input message to equivalent SlotEncrypt
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.PrecomputationSlot{
-			Slot:          in.Slot,
-			MessageCypher: cyclic.NewIntFromBytes(in.EncryptedMessageKeys),
-			MessagePrecomputation: cyclic.NewIntFromBytes(
+			Slot: in.Slot,
+			MessageCypher: globals.GetGroup().NewIntFromBytes(
+				in.EncryptedMessageKeys),
+			MessagePrecomputation: globals.GetGroup().NewIntFromBytes(
 				in.PartialMessageCypherText),
 		}
 		// Pass slot as input to Encrypt's channel
@@ -94,7 +94,8 @@ func precompEncryptLastNode(roundId string, batchSize uint64,
 		}
 
 		// Save the Message Precomputation
-		round.LastNode.EncryptedMessagePrecomputation[i].SetBytes(
+		globals.GetGroup().SetBytes(
+			round.LastNode.EncryptedMessagePrecomputation[i],
 			out.EncryptedMessageKeys)
 
 		// Append the PrecompRevealSlot to the PrecompRevealMessage

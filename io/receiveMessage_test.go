@@ -11,6 +11,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/e2e"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -44,10 +45,10 @@ var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 // Test that we can receive an unencrypted message on the server
 func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	// Set up the necessary globals
-	g := cyclic.NewGroup(cyclic.NewIntFromString(
-		PRIME, 16), cyclic.NewInt(0), cyclic.NewInt(5),
-		cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000)))
-	globals.Grp = &g
+	grp := cyclic.NewGroup(large.NewIntFromString(PRIME, 16),
+		large.NewInt(0), large.NewInt(5))
+	globals.Clear(t)
+	globals.SetGroup(&grp)
 	MessageCh = make(chan *realtime.Slot, 1)
 
 	// Expected values

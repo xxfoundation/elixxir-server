@@ -13,7 +13,7 @@ import (
 )
 
 func TestTimeoutRound(t *testing.T) {
-	round := globals.NewRound(1)
+	round := globals.NewRound(1, globals.GetGroup())
 	roundId := "neil"
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	// Timeout quickly, but slow enough to run WaitUntilPhase func
@@ -25,8 +25,8 @@ func TestTimeoutRound(t *testing.T) {
 		t.Error("Precomputation: Round didn't time out")
 	}
 
-	globals.ResetRound(round)
-	round = globals.NewRound(1)
+	globals.ResetRound(round, globals.GetGroup())
+	round = globals.NewRound(1, globals.GetGroup())
 	roundId2 := "neal"
 	globals.GlobalRoundMap.AddRound(roundId2, round)
 	timeoutRealtime(roundId2, myTimeout)
@@ -37,7 +37,7 @@ func TestTimeoutRound(t *testing.T) {
 }
 
 func TestNotTimeoutRound(t *testing.T) {
-	round := globals.NewRound(1)
+	round := globals.NewRound(1, globals.GetGroup())
 	roundId := "neil"
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -47,9 +47,9 @@ func TestNotTimeoutRound(t *testing.T) {
 		t.Error("Realtime: Round timed out")
 	}
 
-	globals.ResetRound(round)
+	globals.ResetRound(round, globals.GetGroup())
 	roundId2 := "neal"
-	round = globals.NewRound(1)
+	round = globals.NewRound(1, globals.GetGroup())
 	globals.GlobalRoundMap.AddRound(roundId2, round)
 	timeoutPrecomputation(roundId2, time.Minute)
 	time.Sleep(time.Second)
