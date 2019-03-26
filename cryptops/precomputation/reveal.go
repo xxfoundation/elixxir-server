@@ -25,7 +25,7 @@ type KeysReveal struct {
 }
 
 // Pre-allocate memory and arrange key objects for Precomputation Reveal phase
-func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (r Reveal) Build(grp *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// The empty interface should be castable to a Round
 	round := face.(*globals.Round)
@@ -36,8 +36,8 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
 			Slot:                         i,
-			MessagePrecomputation:        cyclic.NewMaxInt(),
-			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
+			MessagePrecomputation:        grp.NewMaxInt(),
+			AssociatedDataPrecomputation: grp.NewMaxInt(),
 		}
 	}
 
@@ -53,7 +53,7 @@ func (r Reveal) Build(g *cyclic.Group, face interface{}) *services.DispatchBuild
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
 		Output:    &om,
-		G:         g,
+		G:         grp,
 	}
 
 	return &db

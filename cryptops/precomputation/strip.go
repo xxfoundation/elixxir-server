@@ -64,30 +64,30 @@ func (s Strip) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 }
 
 // Remove Homomorphic Encryption to reveal the Message and AssociatedData Precomputation
-func (s Strip) Run(g *cyclic.Group, in, out *PrecomputationSlot,
+func (s Strip) Run(grp *cyclic.Group, in, out *PrecomputationSlot,
 	keys *KeysStrip) services.Slot {
 
 	// Create Temporary variable
-	tmp := cyclic.NewMaxInt()
+	tmp := grp.NewMaxInt()
 
 	// Eq 16.1: Invert the round message private key
-	g.Inverse(in.MessagePrecomputation, tmp)
+	grp.Inverse(in.MessagePrecomputation, tmp)
 
 	// Eq 16.1: Use the inverted round message private key to remove the
 	//          homomorphic encryption from encrypted message key and reveal
 	//          the message precomputation
-	g.Mul(tmp, keys.EncryptedMessageKeys, out.MessagePrecomputation)
+	grp.Mul(tmp, keys.EncryptedMessageKeys, out.MessagePrecomputation)
 
 	//fmt.Printf("EncryptedAssociatedDataKeys: %s \n",
 	//           keys.EncryptedAssociatedDataKeys.Text(10))
 
 	// Eq 16.2: Invert the round associated data private key
-	g.Inverse(in.AssociatedDataPrecomputation, tmp)
+	grp.Inverse(in.AssociatedDataPrecomputation, tmp)
 
 	// Eq 16.2: Use the inverted round associated data private key to remove
 	//          the homomorphic encryption from encrypted associated data key
 	//          and reveal the associated data precomputation
-	g.Mul(tmp, keys.EncryptedAssociatedDataKeys, out.AssociatedDataPrecomputation)
+	grp.Mul(tmp, keys.EncryptedAssociatedDataKeys, out.AssociatedDataPrecomputation)
 
 	out.MessageCypher = in.MessageCypher
 	out.AssociatedDataCypher = in.AssociatedDataCypher

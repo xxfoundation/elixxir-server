@@ -3,6 +3,7 @@ package globals
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"testing"
 )
 
 var grp *cyclic.Group
@@ -19,4 +20,8 @@ func SetGroup(g *cyclic.Group) {
 // Retrieves set global group.
 func GetGroup() *cyclic.Group {
 	return grp
+}
+
+func Clear(t *testing.T) {
+	grp = nil
 }

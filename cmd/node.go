@@ -84,10 +84,10 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.Slot,
 // the length of the RoundCh and creates new rounds and kicks of precomputation
 // whenever it falls below a threshold.
 
-// Number of currentlyexecutingg precomputations
+// Number of currently executing precomputations
 var numRunning = int32(0)
 
-// Maximum number of simultanously run precomputation
+// Maximum number of simultaneously run precomputation
 var numPrecompSimultaneous int
 
 // Size of the buffer for input messages

@@ -32,7 +32,7 @@ type KeysDecrypt struct {
 
 // Allocated memory and arranges key objects for the Precomputation
 // Decrypt Phase
-func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (d Decrypt) Build(grp *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -43,10 +43,10 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
 			Slot:                         i,
-			MessagePrecomputation:        cyclic.NewMaxInt(),
-			MessageCypher:                cyclic.NewMaxInt(),
-			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
-			AssociatedDataCypher:         cyclic.NewMaxInt(),
+			MessagePrecomputation:        grp.NewMaxInt(),
+			MessageCypher:                grp.NewMaxInt(),
+			AssociatedDataPrecomputation: grp.NewMaxInt(),
+			AssociatedDataCypher:         grp.NewMaxInt(),
 		}
 	}
 
@@ -68,36 +68,36 @@ func (d Decrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
 		Output:    &om,
-		G:         g,
+		G:         grp,
 	}
 
 	return &db
 }
 
 // Multiplies in own Encrypted Keys and Partial Cypher Texts
-func (d Decrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
+func (d Decrypt) Run(grp *cyclic.Group, in, out *PrecomputationSlot,
 	keys *KeysDecrypt) services.Slot {
 
 	// Create Temporary variable
-	tmp := cyclic.NewMaxInt()
+	tmp := grp.NewMaxInt()
 
 	// Eq 12.1: Combine First Unpermuted Internode Message Keys
-	g.Exp(g.G, keys.Y_R, tmp)
-	g.Mul(keys.R_INV, tmp, tmp)
-	g.Mul(in.MessageCypher, tmp, out.MessageCypher)
+	grp.Exp(grp.GetGCyclic(), keys.Y_R, tmp)
+	grp.Mul(keys.R_INV, tmp, tmp)
+	grp.Mul(in.MessageCypher, tmp, out.MessageCypher)
 
 	// Eq 12.3: Combine First Unpermuted Internode AssociatedData Keys
-	g.Exp(g.G, keys.Y_U, tmp)
-	g.Mul(keys.U_INV, tmp, tmp)
-	g.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
+	grp.Exp(grp.GetGCyclic(), keys.Y_U, tmp)
+	grp.Mul(keys.U_INV, tmp, tmp)
+	grp.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
 
 	// Eq 12.5: Combine Partial Message Cypher Text
-	g.Exp(keys.PublicCypherKey, keys.Y_R, tmp)
-	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
+	grp.Exp(keys.PublicCypherKey, keys.Y_R, tmp)
+	grp.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
 	// Eq 12.7: Combine Partial AssociatedData Cypher Text
-	g.Exp(keys.PublicCypherKey, keys.Y_U, tmp)
-	g.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
+	grp.Exp(keys.PublicCypherKey, keys.Y_U, tmp)
+	grp.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
 
 	return out
 

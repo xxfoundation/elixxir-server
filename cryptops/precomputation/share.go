@@ -21,7 +21,7 @@ type KeysShare struct {
 }
 
 // Allocated memory and arranges key objects for the Precomputation Share Phase
-func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (s Share) Build(grp *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -31,8 +31,8 @@ func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &SlotShare{
-			Slot: i,
-			PartialRoundPublicCypherKey: cyclic.NewMaxInt(),
+			Slot:                        i,
+			PartialRoundPublicCypherKey: grp.NewMaxInt(),
 		}
 	}
 
@@ -46,10 +46,11 @@ func (s Share) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilde
 		keys[i] = keySlc
 	}
 
-	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: g}
+	db := services.DispatchBuilder{
+		BatchSize: round.BatchSize, Keys: &keys, Output: &om, G: grp,
+	}
 
 	return &db
-
 }
 
 // Partial Public Cypher Key is passed from node to node, each raising it
