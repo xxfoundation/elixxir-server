@@ -14,6 +14,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
@@ -21,13 +22,13 @@ import (
 	"time"
 )
 
-// Struct implementing the UserRegistry Interface with an underlying DB
+// Structure implementing the UserRegistry Interface with an underlying DB.
 type UserDatabase struct {
 	db           *pg.DB                           // Stored database connection
 	userChannels map[id.User]chan *pb.CmixMessage // Map of UserId to chan
 }
 
-// Struct representing a User in the database
+// Structure representing a User in the database.
 type UserDB struct {
 	// Overwrite table name
 	tableName struct{} `sql:"users,alias:users"`
@@ -52,7 +53,7 @@ type UserDB struct {
 	NonceTimestamp time.Time
 }
 
-// Struct representing a Salt in the database
+// Structure representing a Salt in the database.
 type SaltDB struct {
 	// Overwrite table name
 	tableName struct{} `sql:"salts,alias:salts"`
@@ -122,15 +123,15 @@ func NewUserRegistry(username, password,
 }
 
 // Create dummy users to be manually inserted into the database
-func PopulateDummyUsers() {
+func PopulateDummyUsers(grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := Users.NewUser()
+		u := Users.NewUser(grp)
 		Users.UpsertUser(u)
 	}
 	// Named channel bot users
 	for i := 0; i < NUM_DEMO_CHANNELS; i++ {
-		u := Users.NewUser()
+		u := Users.NewUser(grp)
 		Users.UpsertUser(u)
 	}
 }
@@ -166,8 +167,8 @@ func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) bool {
 }
 
 // NewUser creates a new User object with default fields and given address.
-func (m *UserDatabase) NewUser() *User {
-	newUser := UserRegistry(&UserMap{}).NewUser()
+func (m *UserDatabase) NewUser(grp *cyclic.Group) *User {
+	newUser := UserRegistry(&UserMap{}).NewUser(grp)
 	return newUser
 }
 
@@ -326,20 +327,23 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser.ID = decodeUser(user.Id)
 
 	newUser.Transmission = ForwardKey{
-		BaseKey:      cyclic.NewIntFromBytes(user.TransmissionBaseKey),
-		RecursiveKey: cyclic.NewIntFromBytes(user.TransmissionRecursiveKey),
+		BaseKey:      grp.NewIntFromBytes(user.TransmissionBaseKey),
+		RecursiveKey: grp.NewIntFromBytes(user.TransmissionRecursiveKey),
 	}
 
 	newUser.Reception = ForwardKey{
-		BaseKey:      cyclic.NewIntFromBytes(user.ReceptionBaseKey),
-		RecursiveKey: cyclic.NewIntFromBytes(user.ReceptionRecursiveKey),
+		BaseKey:      grp.NewIntFromBytes(user.ReceptionBaseKey),
+		RecursiveKey: grp.NewIntFromBytes(user.ReceptionRecursiveKey),
 	}
 
 	newUser.PublicKey = signature.ReconstructPublicKey(
-		signature.CustomDSAParams(cyclic.NewIntFromBytes(user.PubKeyP),
-			cyclic.NewIntFromBytes(user.PubKeyQ),
-			cyclic.NewIntFromBytes(user.PubKeyG)),
-		cyclic.NewIntFromBytes(user.PubKeyY))
+		signature.CustomDSAParams(
+			large.NewIntFromBytes(user.PubKeyP),
+			large.NewIntFromBytes(user.PubKeyQ),
+			large.NewIntFromBytes(user.PubKeyG),
+		),
+		large.NewIntFromBytes(user.PubKeyY),
+	)
 
 	newUser.Nonce = nonce.Nonce{
 		GenTime:    user.NonceTimestamp,

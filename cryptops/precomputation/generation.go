@@ -118,7 +118,7 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	if err != nil {
 		jww.FATAL.Panicf("Count not generate key yr: %s", err.Error())
 	}
-	keys.Y_R.SetBytes(yr)
+	g.SetBytes(keys.Y_R, yr)
 
 	ys := make([]byte, 32)
 	_, err = csprig.Read(ys)
@@ -126,7 +126,7 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	if err != nil {
 		jww.FATAL.Panicf("Count not generate key ys: %s", err.Error())
 	}
-	keys.Y_S.SetBytes(ys)
+	g.SetBytes(keys.Y_S, ys)
 
 	yt := make([]byte, 32)
 	_, err = csprig.Read(yt)
@@ -134,7 +134,7 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	if err != nil {
 		jww.FATAL.Panicf("Count not generate key yt: %s", err.Error())
 	}
-	keys.Y_T.SetBytes(yt)
+	g.SetBytes(keys.Y_T, yt)
 
 	yu := make([]byte, 32)
 	_, err = csprig.Read(yu)
@@ -142,7 +142,7 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	if err != nil {
 		jww.FATAL.Panicf("Count not generate key: %s yu", err.Error())
 	}
-	keys.Y_U.SetBytes(yu)
+	g.SetBytes(keys.Y_U, yu)
 
 	yv := make([]byte, 16)
 	_, err = csprig.Read(yv)
@@ -150,7 +150,7 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 	if err != nil {
 		jww.FATAL.Panicf("Count not generate key: %s yv", err.Error())
 	}
-	keys.Y_V.SetBytes(yv)
+	g.SetBytes(keys.Y_V, yv)
 
 	return out
 

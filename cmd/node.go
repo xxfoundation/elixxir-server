@@ -241,7 +241,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	rngmax.Mul(rngmax, prime)
 	rng := cyclic.NewRandom(cyclic.NewInt(0), rngmax)
 	grp := cyclic.NewGroup(prime, cyclic.NewInt(2), cyclic.NewInt(4), rng)
-	globals.Grp = &grp
+
+	globals.SetGroup(&grp)
 
 	// Start mix servers on localServer
 	localServer := io.Servers[serverIndex]

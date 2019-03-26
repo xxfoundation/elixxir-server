@@ -8,7 +8,6 @@ package globals
 
 import (
 	"bytes"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
@@ -19,13 +18,15 @@ import (
 // surrounding the User struct and the UserRegistry interface
 // TODO: This test needs split up
 func TestUserRegistry(t *testing.T) {
+	InitCrypto()
+
 	Users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
 	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := Users.NewUser()
+		u := Users.NewUser(Group)
 		Users.UpsertUser(u)
 	}
 
@@ -92,9 +93,11 @@ func TestUserRegistry(t *testing.T) {
 
 // Test happy path
 func TestForwardKey_DeepCopy(t *testing.T) {
+	InitCrypto()
+
 	fk := ForwardKey{
-		BaseKey:      cyclic.NewInt(10),
-		RecursiveKey: cyclic.NewInt(15),
+		BaseKey:      Group.NewInt(10),
+		RecursiveKey: Group.NewInt(15),
 	}
 
 	nk := fk.DeepCopy()
@@ -120,12 +123,15 @@ func TestForwardKey_DeepCopyNil(t *testing.T) {
 
 // Test happy path
 func TestUser_DeepCopy(t *testing.T) {
+	InitCrypto()
+
 	Users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
-	user := Users.NewUser()
-	user.Transmission.BaseKey = cyclic.NewInt(66)
+
+	user := Users.NewUser(Group)
+	user.Transmission.BaseKey = Group.NewInt(66)
 
 	newUser := user.DeepCopy()
 	if user.Transmission.BaseKey.Cmp(newUser.Transmission.BaseKey) != 0 {
@@ -153,12 +159,14 @@ func TestUserMap_InsertSalt(t *testing.T) {
 
 // Test happy path
 func TestUserMap_GetUserByNonce(t *testing.T) {
+	InitCrypto()
+
 	Users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
-	user := Users.NewUser()
+	user := Users.NewUser(Group)
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
 	Users.UpsertUser(user)
 
@@ -170,20 +178,22 @@ func TestUserMap_GetUserByNonce(t *testing.T) {
 
 // Make sure the nonce converts correctly to and from storage
 func TestUserNonceConversion(t *testing.T) {
+	InitCrypto()
+
 	Users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
-	user := Users.NewUser()
+	user := Users.NewUser(Group)
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
 	Users.UpsertUser(user)
 
 	testUser, _ := Users.GetUserByNonce(user.Nonce)
 	if bytes.Equal(testUser.Nonce.Bytes(), user.Nonce.Bytes()) {
 		t.Errorf("UserNonceConversion: Expected nonces to match! %v %v",
-			cyclic.NewIntFromBytes(testUser.Nonce.Bytes()),
-			cyclic.NewIntFromBytes(user.Nonce.Bytes()))
+			Group.NewIntFromBytes(testUser.Nonce.Bytes()),
+			Group.NewIntFromBytes(user.Nonce.Bytes()))
 	}
 	if !testUser.Nonce.GenTime.Equal(user.Nonce.GenTime) {
 		t.Errorf("UserNonceConversion: Expected GenTime to match! %v %v",
