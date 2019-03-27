@@ -21,66 +21,66 @@ func TestPrecompDecrypt(t *testing.T) {
 	pass := 0
 	batchSize := uint64(3)
 	grp := cyclic.NewGroup(large.NewInt(17), large.NewInt(5), large.NewInt(7))
-	round := globals.NewRound(batchSize, &grp)
 	globals.Clear(t)
 	globals.SetGroup(&grp)
+	round := globals.NewRound(batchSize, globals.GetGroup())
 
-	round.CypherPublicKey = grp.NewInt(13)
+	round.CypherPublicKey = globals.GetGroup().NewInt(13)
 
 	var im []services.Slot
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(0),
-		MessageCypher:                grp.NewInt(12),
-		AssociatedDataCypher:         grp.NewInt(7),
-		MessagePrecomputation:        grp.NewInt(3),
-		AssociatedDataPrecomputation: grp.NewInt(8),
+		MessageCypher:                globals.GetGroup().NewInt(12),
+		AssociatedDataCypher:         globals.GetGroup().NewInt(7),
+		MessagePrecomputation:        globals.GetGroup().NewInt(3),
+		AssociatedDataPrecomputation: globals.GetGroup().NewInt(8),
 	})
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(1),
-		MessageCypher:                grp.NewInt(2),
-		AssociatedDataCypher:         grp.NewInt(4),
-		MessagePrecomputation:        grp.NewInt(9),
-		AssociatedDataPrecomputation: grp.NewInt(16),
+		MessageCypher:                globals.GetGroup().NewInt(2),
+		AssociatedDataCypher:         globals.GetGroup().NewInt(4),
+		MessagePrecomputation:        globals.GetGroup().NewInt(9),
+		AssociatedDataPrecomputation: globals.GetGroup().NewInt(16),
 	})
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(2),
-		MessageCypher:                grp.NewInt(14),
-		AssociatedDataCypher:         grp.NewInt(99),
-		MessagePrecomputation:        grp.NewInt(96),
-		AssociatedDataPrecomputation: grp.NewInt(5),
+		MessageCypher:                globals.GetGroup().NewInt(14),
+		AssociatedDataCypher:         globals.GetGroup().NewInt(99),
+		MessagePrecomputation:        globals.GetGroup().NewInt(96),
+		AssociatedDataPrecomputation: globals.GetGroup().NewInt(5),
 	})
 
-	round.R_INV[0] = grp.NewInt(5)
-	round.U_INV[0] = grp.NewInt(9)
-	round.Y_R[0] = grp.NewInt(15)
-	round.Y_U[0] = grp.NewInt(2)
+	round.R_INV[0] = globals.GetGroup().NewInt(5)
+	round.U_INV[0] = globals.GetGroup().NewInt(9)
+	round.Y_R[0] = globals.GetGroup().NewInt(15)
+	round.Y_U[0] = globals.GetGroup().NewInt(2)
 
-	round.R_INV[1] = grp.NewInt(8)
-	round.U_INV[1] = grp.NewInt(1)
-	round.Y_R[1] = grp.NewInt(13)
-	round.Y_U[1] = grp.NewInt(6)
+	round.R_INV[1] = globals.GetGroup().NewInt(8)
+	round.U_INV[1] = globals.GetGroup().NewInt(1)
+	round.Y_R[1] = globals.GetGroup().NewInt(13)
+	round.Y_U[1] = globals.GetGroup().NewInt(6)
 
-	round.R_INV[2] = grp.NewInt(38)
-	round.U_INV[2] = grp.NewInt(100)
-	round.Y_R[2] = grp.NewInt(44)
-	round.Y_U[2] = grp.NewInt(32)
+	round.R_INV[2] = globals.GetGroup().NewInt(38)
+	round.U_INV[2] = globals.GetGroup().NewInt(100)
+	round.Y_R[2] = globals.GetGroup().NewInt(44)
+	round.Y_U[2] = globals.GetGroup().NewInt(32)
 
 	expected := [][]*cyclic.Int{{
-		grp.NewInt(11), grp.NewInt(10),
-		grp.NewInt(12), grp.NewInt(9),
+		globals.GetGroup().NewInt(11), globals.GetGroup().NewInt(10),
+		globals.GetGroup().NewInt(12), globals.GetGroup().NewInt(9),
 	}, {
-		grp.NewInt(11), grp.NewInt(2),
-		grp.NewInt(15), grp.NewInt(1),
+		globals.GetGroup().NewInt(11), globals.GetGroup().NewInt(2),
+		globals.GetGroup().NewInt(15), globals.GetGroup().NewInt(1),
 	}, {
-		grp.NewInt(14), grp.NewInt(6),
-		grp.NewInt(11), grp.NewInt(5),
+		globals.GetGroup().NewInt(14), globals.GetGroup().NewInt(6),
+		globals.GetGroup().NewInt(11), globals.GetGroup().NewInt(5),
 	}}
 
 	dispatch := services.DispatchCryptop(
-		&grp, Decrypt{}, nil, nil, round)
+		globals.GetGroup(), Decrypt{}, nil, nil, round)
 
 	for i := 0; i < len(im); i++ {
 
