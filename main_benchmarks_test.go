@@ -7,6 +7,7 @@ package main
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/benchmark"
 	"testing"
 )
@@ -19,12 +20,10 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 			b.Skip("Skipping test due to short mode flag")
 		}
 	}
-	prime := cyclic.NewInt(0)
+	prime := large.NewInt(0)
 	prime.SetString(benchmark.PRIME, 16)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
+	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 
 	rounds := benchmark.GenerateRounds(nodeCount, batchSize, &grp)
 
@@ -41,7 +40,7 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tmpRounds := benchmark.CopyRounds(nodeCount, rounds)
+		tmpRounds := benchmark.CopyRounds(nodeCount, rounds, &grp)
 		inputMsgs, outputMsgs := benchmark.GenerateIOMessages(nodeCount, batchSize,
 			tmpRounds)
 
@@ -52,13 +51,10 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 
 // Tempate function for running the variations of GenerateRounds
 func RoundGeneratorBenchmark(nodeCount int, batchSize uint64, b *testing.B) {
-	prime := cyclic.NewInt(0)
+	prime := large.NewInt(0)
 	prime.SetString(benchmark.PRIME, 16)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
-
+	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		benchmark.GenerateRounds(nodeCount, batchSize, &grp)
@@ -73,12 +69,10 @@ func Precomp(nodeCount int, batchSize uint64, b *testing.B) {
 			b.Skip("Skipping test due to short mode flag")
 		}
 	}
-	prime := cyclic.NewInt(0)
+	prime := large.NewInt(0)
 	prime.SetString(benchmark.PRIME, 16)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
+	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 	rounds := benchmark.GenerateRounds(nodeCount, batchSize, &grp)
 
 	b.ResetTimer()
