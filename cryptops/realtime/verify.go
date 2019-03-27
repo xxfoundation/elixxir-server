@@ -32,14 +32,15 @@ type KeysVerify struct {
 func (i Verify) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
-	// The empty interface should be castable to a Round
+	// The empty interface should be able to be casted to a Round
 	round := face.(*globals.Round)
 
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)
 
-	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &Slot{Slot: i,
+	for j := uint64(0); j < round.BatchSize; j++ {
+		om[j] = &Slot{
+			Slot:           j,
 			AssociatedData: grp.NewMaxInt(),
 		}
 	}
@@ -47,10 +48,11 @@ func (i Verify) Build(grp *cyclic.Group,
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Prepare the correct keys
-	for i := uint64(0); i < round.BatchSize; i++ {
+	for j := uint64(0); j < round.BatchSize; j++ {
 		keySlc := &KeysVerify{
-			Verification: &round.MIC_Verification[i]}
-		keys[i] = keySlc
+			Verification: &round.MIC_Verification[j],
+		}
+		keys[j] = keySlc
 	}
 
 	db := services.DispatchBuilder{

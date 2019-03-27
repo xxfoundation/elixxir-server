@@ -15,21 +15,17 @@ import (
 
 func TestEncrypt(t *testing.T) {
 	// NOTE: Does not test correctness
-
-	test := 3
-	pass := 0
-
 	var im []services.Slot
 
 	grp := cyclic.NewGroup(
-		large.NewInt(107), large.NewInt(23), large.NewInt(55))
+		large.NewInt(107), large.NewInt(55), large.NewInt(23))
 
 	globals.Clear(t)
 	globals.SetGroup(&grp)
 
-	bs := uint64(3)
+	batchSize := uint64(3)
 
-	round := globals.NewRound(bs, &grp)
+	round := globals.NewRound(batchSize, &grp)
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                  uint64(0),
@@ -65,9 +61,10 @@ func TestEncrypt(t *testing.T) {
 		{grp.NewInt(96), grp.NewInt(78)},
 	}
 
-	dc := services.DispatchCryptop(&grp, Encrypt{}, nil, nil, round)
+	dc := services.DispatchCryptop(
+		&grp, Encrypt{}, nil, nil, round)
 
-	for i := uint64(0); i < bs; i++ {
+	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(im[i])
 		actual := <-dc.OutChannel
 
@@ -79,16 +76,11 @@ func TestEncrypt(t *testing.T) {
 			t.Errorf("Test of Precomputation Encrypt's cryptop failed Keys Test on index: %v"+
 				"\n\tExpected: %#v\n\tActual:   %#v", i, expectedVal[0].Text(10),
 				act.MessageCypher.Text(10))
-		} else if expectedVal[1].Cmp(act.MessagePrecomputation) != 0 {
+		}
+		if expectedVal[1].Cmp(act.MessagePrecomputation) != 0 {
 			t.Errorf("Test of Precomputation Encrypt's cryptop failed Cypher Text Test on index: %v"+
 				"\n\tExpected: %#v\n\tActual:   %#v", i, expectedVal[1].Text(10),
 				act.MessagePrecomputation.Text(10))
-		} else {
-			pass++
 		}
-
 	}
-
-	println("Precomputation Encrypt", pass, "out of", test, "tests passed.")
-
 }

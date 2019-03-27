@@ -49,15 +49,19 @@ func TestStrip(t *testing.T) {
 	round.LastNode.EncryptedAssociatedDataPrecomputation[2] = grp.NewInt(73)
 
 	expected := []PrecomputationSlot{
-		PrecomputationSlot{Slot: uint64(0),
+		{
+			Slot:                         uint64(0),
 			MessagePrecomputation:        grp.NewInt(98),
-			AssociatedDataPrecomputation: grp.NewInt(21)},
-		PrecomputationSlot{Slot: uint64(1),
+			AssociatedDataPrecomputation: grp.NewInt(21),
+		}, {
+			Slot:                         uint64(1),
 			MessagePrecomputation:        grp.NewInt(51),
-			AssociatedDataPrecomputation: grp.NewInt(12)},
-		PrecomputationSlot{Slot: uint64(2),
+			AssociatedDataPrecomputation: grp.NewInt(12),
+		}, {
+			Slot:                         uint64(2),
 			MessagePrecomputation:        grp.NewInt(135),
-			AssociatedDataPrecomputation: grp.NewInt(138)},
+			AssociatedDataPrecomputation: grp.NewInt(138),
+		},
 	}
 
 	dc := services.DispatchCryptop(&grp, Strip{}, nil, nil, round)

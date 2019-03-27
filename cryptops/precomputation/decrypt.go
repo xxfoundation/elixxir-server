@@ -30,8 +30,8 @@ type KeysDecrypt struct {
 	Y_U *cyclic.Int
 }
 
-// Allocated memory and arranges key objects for the Precomputation
-// Decrypt Phase
+// Allocated memory and arranges key objects for the Precomputation Decrypt
+// Phase.
 func (d Decrypt) Build(grp *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface

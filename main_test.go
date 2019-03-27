@@ -251,7 +251,7 @@ func RootingTestTriple(grp *cyclic.Group) {
 		RSLT.Text(10), K1K2K3.Text(10))
 }
 
-// Perform an end to end test of the precomputation with batchsize 1,
+// Perform an end to end test of the precomputation with batch size 1,
 // then use it to send the message through a 1-node system to smoke test
 // the cryptographic operations.
 // NOTE: This test will not use real associated data, i.e., the recipientID value
@@ -271,7 +271,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
 	batchSize := uint64(1)
-	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(5), large.NewInt(4))
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(4), large.NewInt(5))
 	round := globals.NewRound(batchSize, &grp)
 	round.CypherPublicKey = grp.NewInt(3)
 	// p=107 -> 7 bits, so exponents can be of 6 bits at most
@@ -334,7 +334,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
 	grp.Set(round.CypherPublicKey, shareResult.PartialRoundPublicCypherKey)
 
-	t.Logf("SHARE:\n%#v", benchmark.RoundText(&grp, round))
+	t.Logf("SHARE:\n%v", benchmark.RoundText(&grp, round))
 
 	if shareResult.PartialRoundPublicCypherKey.Cmp(grp.NewInt(69)) != 0 {
 		t.Errorf("SHARE failed\n\texpected: %#v\n\treceived: %#v", 20,
@@ -669,7 +669,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		esRT.Message.Text(10))
 }
 
-// Perform an end to end test of the precomputation with batchsize 1,
+// Perform an end to end test of the precomputation with batch size 1,
 // then use it to send the message through a 2-node system to smoke test
 // the cryptographic operations.
 func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
@@ -677,7 +677,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
 	batchSize := uint64(1)
-	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(5), large.NewInt(4))
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(4), large.NewInt(5))
 	Node1Round := globals.NewRound(batchSize, &grp)
 	Node2Round := globals.NewRound(batchSize, &grp)
 	Node1Round.CypherPublicKey = grp.NewInt(0)
@@ -736,9 +736,9 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 
 	go benchmark.RevealStripTranslate(N2Reveal.OutChannel, N2Strip.InChannel)
 	go benchmark.EncryptRevealTranslate(N2Encrypt.OutChannel, N1Reveal.InChannel,
-		Node2Round)
+		Node2Round, &grp)
 	go benchmark.PermuteEncryptTranslate(N2Permute.OutChannel, N1Encrypt.InChannel,
-		Node2Round)
+		Node2Round, &grp)
 
 	// Run Generate
 	genMsg := services.Slot(&precomputation.SlotGeneration{Slot: 0})
@@ -827,15 +827,15 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		nil, nil, Node2Round)
 
 	go benchmark.RTEncryptRTEncryptTranslate(N1RTEncrypt.OutChannel,
-		N2RTEncrypt.InChannel)
+		N2RTEncrypt.InChannel, &grp)
 	go benchmark.RTDecryptRTDecryptTranslate(N1RTDecrypt.OutChannel,
-		N2RTDecrypt.InChannel)
+		N2RTDecrypt.InChannel, &grp)
 	go benchmark.RTDecryptRTPermuteTranslate(N2RTDecrypt.OutChannel,
 		N1RTPermute.InChannel)
 	go benchmark.RTPermuteRTIdentifyTranslate(N2RTPermute.OutChannel,
-		N2RTIdentify.InChannel, IntermediateMsgs)
+		N2RTIdentify.InChannel, IntermediateMsgs, &grp)
 	go benchmark.RTIdentifyRTEncryptTranslate(N2RTIdentify.OutChannel,
-		N1RTEncrypt.InChannel, IntermediateMsgs)
+		N1RTEncrypt.InChannel, IntermediateMsgs, &grp)
 	go benchmark.RTEncryptRTPeelTranslate(N2RTEncrypt.OutChannel,
 		N2RTPeel.InChannel)
 
@@ -864,7 +864,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		esRT.Message.Text(10))
 }
 
-// Perform an end to end test of the precomputation with batchsize 1,
+// Perform an end to end test of the precomputation with batch size 1,
 // then use it to send the message through a 2-node system to smoke test
 // the cryptographic operations.
 func MultiNodeTest(nodeCount int, BatchSize uint64,
@@ -880,7 +880,7 @@ func MultiNodeTest(nodeCount int, BatchSize uint64,
 func Test3NodeE2E(t *testing.T) {
 	nodeCount := 3
 	BatchSize := uint64(1)
-	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(5), large.NewInt(4))
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(4), large.NewInt(5))
 	inputMsgs := make([]realtime.Slot, BatchSize)
 	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
@@ -910,7 +910,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 	prime := large.NewInt(0)
 	prime.SetString(primeStrng, 10)
 
-	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
+	grp := cyclic.NewGroup(prime, large.NewInt(4), large.NewInt(5))
 	inputMsgs := make([]realtime.Slot, BatchSize)
 	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
@@ -975,7 +975,7 @@ func TestRealPrimeE2E(t *testing.T) {
 	prime := large.NewInt(0)
 	prime.SetString(primeStrng, 16)
 
-	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
+	grp := cyclic.NewGroup(prime, large.NewInt(4), large.NewInt(5))
 	inputMsgs := make([]realtime.Slot, BatchSize)
 	outputMsgs := make([]realtime.Slot, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {

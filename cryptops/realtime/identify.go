@@ -36,8 +36,9 @@ func (i Identify) Build(grp *cyclic.Group,
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)
 
-	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &Slot{Slot: i,
+	for j := uint64(0); j < round.BatchSize; j++ {
+		om[j] = &Slot{
+			Slot:           j,
 			AssociatedData: grp.NewMaxInt(),
 		}
 	}
@@ -45,10 +46,11 @@ func (i Identify) Build(grp *cyclic.Group,
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Prepare the correct keys
-	for i := uint64(0); i < round.BatchSize; i++ {
+	for j := uint64(0); j < round.BatchSize; j++ {
 		keySlc := &KeysIdentify{
-			AssociatedDataPrecomputation: round.AssociatedDataPrecomputation[i]}
-		keys[i] = keySlc
+			AssociatedDataPrecomputation: round.AssociatedDataPrecomputation[j],
+		}
+		keys[j] = keySlc
 	}
 
 	db := services.DispatchBuilder{

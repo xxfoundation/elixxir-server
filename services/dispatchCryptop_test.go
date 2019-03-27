@@ -93,7 +93,7 @@ func TestDispatchCryptop(t *testing.T) {
 		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")
 	}
 
-	for i := uint64(0); i < bs; i++ {
+	for i = uint64(0); i < bs; i++ {
 		dc1.InChannel <- &im[i]
 		trn := <-dc2.OutChannel
 

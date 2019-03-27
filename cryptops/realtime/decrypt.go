@@ -30,8 +30,8 @@ import (
 )
 
 // Decrypt phase completely removes the encryption added by the sending client,
-// while adding in the First Unpermuted Internode Keys.  Becasue the unpermutted
-// keys are added simultaniously, no entropy is lost.
+// while adding in the First Unpermuted Internode Keys. Because the un-permuted
+// keys are added simultaneously, no entropy is lost.
 type Decrypt struct{}
 
 // KeysDecrypt holds the keys used by the Decrypt Operation

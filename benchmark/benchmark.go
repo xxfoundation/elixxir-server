@@ -139,7 +139,7 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 
 // Convert Permute output slot to Encrypt input slot
 func PermuteEncryptTranslate(permute, encrypt chan *services.Slot,
-	round *globals.Round) {
+	round *globals.Round, grp *cyclic.Group) {
 	for permuteSlot := range permute {
 		is := (*permuteSlot).(*precomputation.PrecomputationSlot)
 		se := services.Slot(&precomputation.PrecomputationSlot{
@@ -149,15 +149,15 @@ func PermuteEncryptTranslate(permute, encrypt chan *services.Slot,
 		})
 		// Save LastNode Data to Round
 		i := is.Slot
-		group.Set(round.LastNode.AssociatedDataCypherText[i], is.AssociatedDataPrecomputation)
-		group.Set(round.LastNode.EncryptedAssociatedDataPrecomputation[i], is.AssociatedDataCypher)
+		grp.Set(round.LastNode.AssociatedDataCypherText[i], is.AssociatedDataPrecomputation)
+		grp.Set(round.LastNode.EncryptedAssociatedDataPrecomputation[i], is.AssociatedDataCypher)
 		encrypt <- &se
 	}
 }
 
 // Convert Encrypt output slot to Reveal input slot
 func EncryptRevealTranslate(encrypt, reveal chan *services.Slot,
-	round *globals.Round) {
+	round *globals.Round, grp *cyclic.Group) {
 	for encryptSlot := range encrypt {
 		is := (*encryptSlot).(*precomputation.PrecomputationSlot)
 		i := is.Slot
@@ -166,7 +166,7 @@ func EncryptRevealTranslate(encrypt, reveal chan *services.Slot,
 			MessagePrecomputation:        is.MessagePrecomputation,
 			AssociatedDataPrecomputation: round.LastNode.AssociatedDataCypherText[i],
 		})
-		group.Set(round.LastNode.EncryptedMessagePrecomputation[i], is.MessageCypher)
+		grp.Set(round.LastNode.EncryptedMessagePrecomputation[i], is.MessageCypher)
 		reveal <- &sr
 	}
 }
@@ -199,20 +199,20 @@ func RTDecryptRTPermuteTranslate(decrypt, permute chan *services.Slot) {
 }
 
 func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
-	outMsgs []*cyclic.Int) {
+	outMsgs []*cyclic.Int, grp *cyclic.Group) {
 	for permuteSlot := range permute {
 		esPrm := (*permuteSlot).(*realtime.Slot)
 		ovPrm := services.Slot(&realtime.Slot{
 			Slot:           esPrm.Slot,
 			AssociatedData: esPrm.AssociatedData,
 		})
-		group.Set(outMsgs[esPrm.Slot], esPrm.Message)
+		grp.Set(outMsgs[esPrm.Slot], esPrm.Message)
 		identify <- &ovPrm
 	}
 }
 
 func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
-	inMsgs []*cyclic.Int) {
+	inMsgs []*cyclic.Int, grp *cyclic.Group) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.Slot)
 		// TODO this will need to eventually be changed to be the actual
@@ -226,7 +226,7 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 			Slot:       esTmp.Slot,
 			CurrentID:  rID,
 			Message:    inMsgs[esTmp.Slot],
-			CurrentKey: group.NewInt(1),
+			CurrentKey: grp.NewInt(1),
 		})
 		encrypt <- &inputMsgPostID
 	}
@@ -240,7 +240,7 @@ func RTEncryptRTPeelTranslate(encrypt, peel chan *services.Slot) {
 	}
 }
 
-func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
+func RTDecryptRTDecryptTranslate(in, out chan *services.Slot, grp *cyclic.Group) {
 	for is := range in {
 		o := (*is).(*realtime.Slot)
 		os := services.Slot(&realtime.Slot{
@@ -248,20 +248,20 @@ func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
 			CurrentID:      o.CurrentID,
 			Message:        o.Message,
 			AssociatedData: o.AssociatedData,
-			CurrentKey:     group.NewInt(1), // WTF? FIXME
+			CurrentKey:     grp.NewInt(1), // WTF? FIXME
 		})
 		out <- &os
 	}
 }
 
-func RTEncryptRTEncryptTranslate(in, out chan *services.Slot) {
+func RTEncryptRTEncryptTranslate(in, out chan *services.Slot, grp *cyclic.Group) {
 	for is := range in {
 		o := (*is).(*realtime.Slot)
 		os := services.Slot(&realtime.Slot{
 			Slot:       o.Slot,
 			CurrentID:  o.CurrentID,
 			Message:    o.Message,
-			CurrentKey: group.NewInt(1), // FIXME
+			CurrentKey: grp.NewInt(1), // FIXME
 		})
 		out <- &os
 	}
@@ -338,9 +338,9 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 	go RevealStripTranslate(reveals[nodeCount-1].OutChannel,
 		LNStrip.InChannel)
 	go EncryptRevealTranslate(encrypts[nodeCount-1].OutChannel,
-		reveals[0].InChannel, LastRound)
+		reveals[0].InChannel, LastRound, grp)
 	go PermuteEncryptTranslate(permutes[nodeCount-1].OutChannel,
-		encrypts[0].InChannel, LastRound)
+		encrypts[0].InChannel, LastRound, grp)
 	//go DecryptPermuteTranslate(decrypts[nodeCount-1].OutChannel,
 	//	permutes[0].InChannel)
 
@@ -440,9 +440,9 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 
 		if i != 0 {
 			go RTEncryptRTEncryptTranslate(rtencrypts[i-1].OutChannel,
-				rtencrypts[i].InChannel)
+				rtencrypts[i].InChannel, grp)
 			go RTDecryptRTDecryptTranslate(rtdecrypts[i-1].OutChannel,
-				rtdecrypts[i].InChannel)
+				rtdecrypts[i].InChannel, grp)
 		}
 	}
 
@@ -454,9 +454,9 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 	go RTDecryptRTPermuteTranslate(rtdecrypts[nodeCount-1].OutChannel,
 		rtpermutes[0].InChannel)
 	go RTPermuteRTIdentifyTranslate(reorgs[nodeCount-1].OutChannel,
-		LNRTIdentify.InChannel, IntermediateMsgs)
+		LNRTIdentify.InChannel, IntermediateMsgs, grp)
 	go RTIdentifyRTEncryptTranslate(LNRTIdentify.OutChannel,
-		rtencrypts[0].InChannel, IntermediateMsgs)
+		rtencrypts[0].InChannel, IntermediateMsgs, grp)
 	go RTEncryptRTPeelTranslate(rtencrypts[nodeCount-1].OutChannel,
 		LNRTPeel.InChannel)
 

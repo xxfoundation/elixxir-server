@@ -33,7 +33,7 @@ var showVer bool
 // If true, runs pprof http server
 var profile bool
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any sub-commands
 var rootCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Runs a server node for cMix anonymous communication platform",
@@ -57,9 +57,8 @@ communications.`,
 				jww.FATAL.Println(http.ListenAndServe("localhost:8087", nil))
 			}()
 		}
-		// FIXME This way of getting the server index from the config file
-		// seems odd.
-		serverIdx := viper.GetInt("index")
+		// FIXME This way of getting the server index from the config file seems odd.
+		serverIdx = viper.GetInt("index")
 		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
 	},
 }
@@ -141,7 +140,7 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err != nil {
+	if err = viper.ReadInConfig(); err != nil {
 		jww.ERROR.Printf("Unable to read config file (%s): %s", cfgFile, err.Error())
 		validConfig = false
 	}

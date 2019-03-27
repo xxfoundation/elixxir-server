@@ -20,75 +20,59 @@ import (
 func TestUserRegistry(t *testing.T) {
 	InitCrypto()
 
-	Users := UserRegistry(&UserMap{
+	users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
 	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := Users.NewUser(Group)
-		Users.UpsertUser(u)
+		u := users.NewUser(Group)
+		users.UpsertUser(u)
 	}
 
 	// TESTS Start here
-	test := 6
-	pass := 0
 
-	numUsers := Users.CountUsers()
+	numUsers := users.CountUsers()
 
 	if numUsers != NUM_DEMO_USERS {
 		t.Errorf("Count users is not working correctly. "+
 			"Expected: %v Actual: %v", NUM_DEMO_USERS, numUsers)
-	} else {
-		pass++
 	}
 
 	id9 := id.NewUserFromUint(9, t)
-	usr9, _ := Users.GetUser(id9)
+	usr9, _ := users.GetUser(id9)
 
 	if usr9 == nil {
 		t.Errorf("Error fetching user!")
-	} else {
-		pass++
 	}
 
-	getUser, err := Users.GetUser(usr9.ID)
+	getUser, err := users.GetUser(usr9.ID)
 
 	if (err != nil) || getUser.ID != usr9.ID {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
-	usr3, _ := Users.GetUser(id.NewUserFromUint(3, t))
-	usr5, _ := Users.GetUser(id.NewUserFromUint(5, t))
+	usr3, _ := users.GetUser(id.NewUserFromUint(3, t))
+	usr5, _ := users.GetUser(id.NewUserFromUint(5, t))
 
 	if usr3.Transmission.BaseKey == nil {
 		t.Errorf("Error Setting the Transmission Base Key")
-	} else {
-		pass++
 	}
 
 	if usr3.Reception.BaseKey == usr5.Reception.BaseKey {
 		t.Errorf("Transmissions keys are the same and they should be different!")
-	} else {
-		pass++
 	}
 
-	Users.DeleteUser(usr9.ID)
+	users.DeleteUser(usr9.ID)
 
-	if Users.CountUsers() != NUM_DEMO_USERS-1 {
+	if users.CountUsers() != NUM_DEMO_USERS-1 {
 		t.Errorf("User has not been deleted correctly. "+
-			"Expected # of users: %v Actual: %v", NUM_DEMO_USERS-1, Users.CountUsers())
-	} else {
-		pass++
+			"Expected # of users: %v Actual: %v", NUM_DEMO_USERS-1, users.CountUsers())
 	}
 
-	if _, userExists := Users.GetUser(usr9.ID); userExists == nil {
+	if _, userExists := users.GetUser(usr9.ID); userExists == nil {
 		t.Errorf("DeleteUser: Excepted zero value for deleted user lookup!")
-	} else {
-		pass++
 	}
-
-	println("User Test", pass, "out of", test, "tests passed.")
 }
 
 // Test happy path
@@ -125,12 +109,12 @@ func TestForwardKey_DeepCopyNil(t *testing.T) {
 func TestUser_DeepCopy(t *testing.T) {
 	InitCrypto()
 
-	Users := UserRegistry(&UserMap{
+	users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
-	user := Users.NewUser(Group)
+	user := users.NewUser(Group)
 	user.Transmission.BaseKey = Group.NewInt(66)
 
 	newUser := user.DeepCopy()
@@ -141,17 +125,17 @@ func TestUser_DeepCopy(t *testing.T) {
 
 // Test happy path and inserting too many salts
 func TestUserMap_InsertSalt(t *testing.T) {
-	Users := UserRegistry(&UserMap{
+	users := UserRegistry(&UserMap{
 		saltCollection: make(map[id.User][][]byte),
 	})
 	// Insert like 300 salts, expect success
 	for i := 0; i <= 300; i++ {
-		if !Users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
+		if !users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
 			t.Errorf("InsertSalt: Expected success!")
 		}
 	}
 	// Now we have exceeded the max number, expect failure
-	if Users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
+	if users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
 		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
 			" salts for one user!")
 	}
@@ -161,16 +145,16 @@ func TestUserMap_InsertSalt(t *testing.T) {
 func TestUserMap_GetUserByNonce(t *testing.T) {
 	InitCrypto()
 
-	Users := UserRegistry(&UserMap{
+	users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
-	user := Users.NewUser(Group)
+	user := users.NewUser(Group)
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
-	Users.UpsertUser(user)
+	users.UpsertUser(user)
 
-	_, err := Users.GetUserByNonce(user.Nonce)
+	_, err := users.GetUserByNonce(user.Nonce)
 	if err != nil {
 		t.Errorf("GetUserByNonce: Expected to find user by nonce!")
 	}
@@ -180,16 +164,16 @@ func TestUserMap_GetUserByNonce(t *testing.T) {
 func TestUserNonceConversion(t *testing.T) {
 	InitCrypto()
 
-	Users := UserRegistry(&UserMap{
+	users := UserRegistry(&UserMap{
 		userCollection: make(map[id.User]*User),
 		collectionLock: &sync.Mutex{},
 	})
 
-	user := Users.NewUser(Group)
+	user := users.NewUser(Group)
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
-	Users.UpsertUser(user)
+	users.UpsertUser(user)
 
-	testUser, _ := Users.GetUserByNonce(user.Nonce)
+	testUser, _ := users.GetUserByNonce(user.Nonce)
 	if bytes.Equal(testUser.Nonce.Bytes(), user.Nonce.Bytes()) {
 		t.Errorf("UserNonceConversion: Expected nonces to match! %v %v",
 			Group.NewIntFromBytes(testUser.Nonce.Bytes()),

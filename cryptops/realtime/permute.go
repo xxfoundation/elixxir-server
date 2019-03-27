@@ -28,7 +28,7 @@ type KeysPermute struct {
 // Pre-allocate memory and arrange key objects for Realtime Permute phase
 func (p Permute) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
-	// The empty interface should be castable to a Round
+	// The empty interface should be able to be casted to a Round
 	round := face.(*globals.Round)
 
 	// Allocate messages for output

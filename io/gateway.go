@@ -57,6 +57,6 @@ func GetRoundBufferInfo() (int, error) {
 	case _ = <-c:
 		return len(RoundCh), nil
 	case <-time.After(tout):
-		return len(RoundCh), errors.New("Round buffer is empty!")
+		return len(RoundCh), errors.New("round buffer is empty")
 	}
 }

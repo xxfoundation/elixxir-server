@@ -45,8 +45,8 @@ func InitCrypto() {
 	g := large.NewIntFromString(gString, base)
 	q := large.NewIntFromString(qString, base)
 
-	grp := cyclic.NewGroup(p, g, q)
-	Group = &grp
+	grpObject := cyclic.NewGroup(p, g, q)
+	Group = &grpObject
 }
 
 // TestNewRound tests that the round constructor really only returns

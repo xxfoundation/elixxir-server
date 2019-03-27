@@ -300,7 +300,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 // Main server loop
 func run() {
 	io.TimeUp = time.Now().UnixNano()
-	// Run a roundtrip ping every couple seconds if last node
+	// Run a round trip ping every couple seconds if last node
 	if id.IsLastNode {
 		ticker := time.NewTicker(5 * time.Second)
 		quit := make(chan struct{})
@@ -308,7 +308,7 @@ func run() {
 			for {
 				select {
 				case <-ticker.C:
-					jww.DEBUG.Print("Starting Roundtrip Ping")
+					jww.DEBUG.Print("Starting Round-Trip Ping")
 					io.GetRoundtripPing(io.Servers)
 					io.GetServerMetrics(io.Servers)
 				case <-quit:
@@ -323,7 +323,6 @@ func run() {
 		// Blocks forever as a keepalive
 		select {}
 	}
-	jww.ERROR.Printf("Node Exiting without error")
 }
 
 // getServers pulls a string slice of server ports from the config file and
