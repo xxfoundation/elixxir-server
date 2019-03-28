@@ -6,7 +6,6 @@
 package main
 
 import (
-	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -68,7 +67,7 @@ func ComputePrecomputation(grp *cyclic.Group, rounds []*globals.Round) (
 
 // End to end test of the mathematical functions required to "share" 1
 // key (i.e., R)
-func RootingTest(grp *cyclic.Group) {
+func RootingTest(grp *cyclic.Group, t *testing.T) {
 
 	K1 := grp.NewInt(94)
 
@@ -91,7 +90,7 @@ func RootingTest(grp *cyclic.Group) {
 	grp.Exp(grp.GetGCyclic(), Z, gZ)
 	grp.RootCoprime(gZ, Z, RSLT)
 
-	fmt.Printf("GENERATOR:\n\texpected: %#v\n\treceived: %#v\n",
+	t.Logf("GENERATOR:\n\texpected: %#v\n\treceived: %#v\n",
 		grp.GetGCyclic().Text(10), RSLT.Text(10))
 
 	grp.Exp(grp.GetGCyclic(), Y1, gY1)
@@ -106,14 +105,14 @@ func RootingTest(grp *cyclic.Group) {
 
 	grp.Mul(MSG, IVS, RSLT)
 
-	fmt.Printf("ROOT TEST:\n\texpected: %#v\n\treceived: %#v",
+	t.Logf("ROOT TEST:\n\texpected: %#v\n\treceived: %#v",
 		gY1.Text(10), gY1c.Text(10))
 
 }
 
 // End to end test of the mathematical functions required to "share" 2 keys
 // (i.e., UV)
-func RootingTestDouble(grp *cyclic.Group) {
+func RootingTestDouble(grp *cyclic.Group, t *testing.T) {
 
 	K1 := grp.NewInt(94)
 	K2 := grp.NewInt(18)
@@ -161,7 +160,7 @@ func RootingTestDouble(grp *cyclic.Group) {
 
 	grp.RootCoprime(CTXT, Z, gY1Y2c)
 
-	fmt.Printf("ROUND ASSOCIATED DATA PRIVATE KEY:\n\t%#v,\n", gY1Y2c.Text(10))
+	t.Logf("ROUND ASSOCIATED DATA PRIVATE KEY:\n\t%#v,\n", gY1Y2c.Text(10))
 
 	grp.Inverse(gY1Y2c, IVS)
 
@@ -169,14 +168,14 @@ func RootingTestDouble(grp *cyclic.Group) {
 
 	grp.Mul(K1, K2, K1K2)
 
-	fmt.Printf("ROOT TEST DOUBLE:\n\texpected: %#v\n\treceived: %#v",
+	t.Logf("ROOT TEST DOUBLE:\n\texpected: %#v\n\treceived: %#v",
 		RSLT.Text(10), K1K2.Text(10))
 
 }
 
 // End to end test of the mathematical functions required to "share" 3 keys
 // (i.e., RST)
-func RootingTestTriple(grp *cyclic.Group) {
+func RootingTestTriple(grp *cyclic.Group, t *testing.T) {
 
 	K1 := grp.NewInt(26)
 	K2 := grp.NewInt(77)
@@ -247,7 +246,7 @@ func RootingTestTriple(grp *cyclic.Group) {
 	grp.Mul(K1, K2, K1K2)
 	grp.Mul(K1K2, K3, K1K2K3)
 
-	fmt.Printf("ROOT TEST TRIPLE:\n\texpected: %#v\n\treceived: %#v",
+	t.Logf("ROOT TEST TRIPLE:\n\texpected: %#v\n\treceived: %#v",
 		RSLT.Text(10), K1K2K3.Text(10))
 }
 
@@ -295,9 +294,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	_ = <-Generation.OutChannel
 
 	// These produce useful printouts when the test fails.
-	RootingTest(&grp)
-	RootingTestDouble(&grp)
-	RootingTestTriple(&grp)
+	RootingTest(&grp, t)
+	RootingTestDouble(&grp, t)
+	RootingTestTriple(&grp, t)
 
 	// Overwrite the generated keys. Note the use of Set to make sure the
 	// pointers remain unchanged.
