@@ -210,17 +210,6 @@ func StartServer(serverIndex int, batchSize uint64) {
 		viper.GetString("dbName"),
 		dbAddress,
 	)
-	globals.PopulateDummyUsers(globals.GetGroup())
-
-	// Get all servers
-	io.Servers = getServers(serverIndex)
-
-	serverList := viper.GetStringSlice("servers")[0]
-	for i := 1; i < len(viper.GetStringSlice("servers")); i++ {
-		serverList = serverList + "," + viper.GetStringSlice("servers")[i]
-	}
-	jww.INFO.Print("Server list: " + serverList)
-
 	// TODO Generate globals.Grp somewhere intelligent
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -239,7 +228,20 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// one := cyclic.NewInt(1)
 	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(4))
 
+	// Set group globally
 	globals.SetGroup(&grp)
+
+	// Populate users using group
+	globals.PopulateDummyUsers(globals.GetGroup())
+
+	// Get all servers
+	io.Servers = getServers(serverIndex)
+
+	serverList := viper.GetStringSlice("servers")[0]
+	for i := 1; i < len(viper.GetStringSlice("servers")); i++ {
+		serverList = serverList + "," + viper.GetStringSlice("servers")[i]
+	}
+	jww.INFO.Print("Server list: " + serverList)
 
 	// Start mix servers on localServer
 	localServer := io.Servers[serverIndex]
