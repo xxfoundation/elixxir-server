@@ -57,6 +57,8 @@ keyPath: ""
 certPath: ""
 # Path to the gateway certificate file
 gatewayCertPath: ""
+# Skip registration server check when registering users
+skipReg: "false"
 ```
 
 ## Project Structure
