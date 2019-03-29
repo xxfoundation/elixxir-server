@@ -257,6 +257,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 		id.SetNodeID(viperNodeID)
 	}
 
+	// Set skipReg from config file
+	globals.SkipRegServer = viper.GetBool("skipReg")
+
 	certPath := viper.GetString("certPath")
 	keyPath := viper.GetString("keyPath")
 	gatewayCertPath := viper.GetString("gatewayCertPath")

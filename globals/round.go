@@ -23,6 +23,9 @@ var BatchSize uint64
 // Server-wide gateway
 var GatewayAddress string = ""
 
+// Skip registration server config
+var SkipRegServer bool
+
 var RoundRecycle chan *Round
 
 // LastNode contains precomputations held only by the last node
