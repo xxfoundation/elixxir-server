@@ -19,3 +19,7 @@ import:
 - package: github.com/go-pg/pg
   subpackages:
   - github.com/jinzhu/inflection
+- package: github.com/cznic/mathutil
+  version: master
+  repo: https://github.com/cznic/mathutil.git
+  vcs: git
