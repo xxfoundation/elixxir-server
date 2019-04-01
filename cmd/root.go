@@ -8,6 +8,7 @@
 package cmd
 
 import (
+	"gitlab.com/elixxir/server/globals"
 	"os"
 
 	"github.com/mitchellh/go-homedir"
@@ -145,6 +146,12 @@ func initConfig() {
 		validConfig = false
 	}
 
+	// Temporarily need to get group as JSON data into viper
+	json, err := globals.InitGroup().MarshalJSON()
+	if err != nil {
+		// panic
+	}
+	viper.Set("group", string(json))
 }
 
 // initLog initializes logging thresholds and the log path.
