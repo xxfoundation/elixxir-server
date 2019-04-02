@@ -7,7 +7,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -19,8 +18,8 @@ import (
 func TestRealtimeEncrypt(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -34,7 +33,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 	// Kick off RealtimeEncrypt Transmission Handler
 	services.BatchTransmissionDispatch(roundId, round.BatchSize,
 		chOut, RealtimeIdentifyHandler{})
-	round.LastNode.EncryptedMessage[0] = cyclic.NewInt(7)
+	round.LastNode.EncryptedMessage[0] = globals.GetGroup().NewInt(7)
 	// Create a slot to pass into the TransmissionHandler
 	userId := id.NewUserFromUint(42, t)
 	associatedData := format.NewAssociatedData()
@@ -42,8 +41,8 @@ func TestRealtimeEncrypt(t *testing.T) {
 	var slot services.Slot = &realtime.Slot{
 		Slot:           uint64(0),
 		CurrentID:      userId,
-		Message:        cyclic.NewInt(7),
-		AssociatedData: cyclic.NewIntFromBytes(associatedData.SerializeAssociatedData()),
+		Message:        globals.GetGroup().NewInt(7),
+		AssociatedData: globals.GetGroup().NewIntFromBytes(associatedData.SerializeAssociatedData()),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler

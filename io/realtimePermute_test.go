@@ -7,7 +7,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -18,8 +17,8 @@ import (
 func TestRealtimePermute(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -37,12 +36,12 @@ func TestRealtimePermute(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:           uint64(0),
-		AssociatedData: cyclic.NewInt(7),
-		Message:        cyclic.NewInt(12),
+		AssociatedData: globals.GetGroup().NewInt(7),
+		Message:        globals.GetGroup().NewInt(12),
 		// TODO Should this really need to be populated? Will it always be
 		// populated in real usage?
 		CurrentID:  id.NewUserFromUint(5, t),
-		CurrentKey: cyclic.NewInt(1),
+		CurrentKey: globals.GetGroup().NewInt(1),
 	}
 
 	// Pass slot as input to Permute's TransmissionHandler

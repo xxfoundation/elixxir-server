@@ -26,7 +26,7 @@ type KeysEncrypt struct {
 }
 
 // Allocated memory and arranges key objects for the Precomputation Encrypt Phase
-func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (e Encrypt) Build(grp *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -37,8 +37,8 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
 			Slot:                  i,
-			MessageCypher:         cyclic.NewMaxInt(),
-			MessagePrecomputation: cyclic.NewMaxInt(),
+			MessageCypher:         grp.NewMaxInt(),
+			MessagePrecomputation: grp.NewMaxInt(),
 		}
 	}
 
@@ -58,7 +58,7 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
 		Output:    &om,
-		G:         g,
+		G:         grp,
 	}
 
 	return &db
@@ -68,27 +68,27 @@ func (e Encrypt) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 // multiplies in its Encrypted
 // Second Unpermuted Message Keys and the associated Private Keys
 // into the Partial Message Cypher Test.
-func (e Encrypt) Run(g *cyclic.Group, in, out *PrecomputationSlot,
+func (e Encrypt) Run(grp *cyclic.Group, in, out *PrecomputationSlot,
 	keys *KeysEncrypt) services.Slot {
 
 	// Create Temporary variable
-	tmp := cyclic.NewMaxInt()
+	tmp := grp.NewMaxInt()
 
-	// Eq 11.1: Homomorphicly encrypt the Inverse Second Unpermuted
+	// Eq 11.1: Homomorphically encrypt the Inverse Second Unpermuted
 	//          Internode Message Key.
-	g.Exp(g.G, keys.Y_T, tmp)
-	g.Mul(keys.T_INV, tmp, tmp)
+	grp.Exp(grp.GetGCyclic(), keys.Y_T, tmp)
+	grp.Mul(keys.T_INV, tmp, tmp)
 
 	// Eq 14.5: Multiply the encrypted Inverse Second Unpermuted
 	//          Internode Message Key into the partial precomputation.
-	g.Mul(in.MessageCypher, tmp, out.MessageCypher)
+	grp.Mul(in.MessageCypher, tmp, out.MessageCypher)
 
 	// Eq 11.2: Create the Inverse Second Unpermuted Internode Message Public Key.
-	g.Exp(keys.CypherPublicKey, keys.Y_T, tmp)
+	grp.Exp(keys.CypherPublicKey, keys.Y_T, tmp)
 
 	// Multiply cypher the Inverse Second Unpermuted Internode Message
 	// Public Key into the Partial Cypher Text.
-	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
+	grp.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
 	out.AssociatedDataCypher = in.AssociatedDataCypher
 	out.AssociatedDataPrecomputation = in.AssociatedDataPrecomputation

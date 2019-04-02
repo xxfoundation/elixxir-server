@@ -68,7 +68,7 @@ type dispatch struct {
 	locker *uint32
 }
 
-// dispatcher is the function which actually does the dispatching
+// Dispatcher is the function which actually does the dispatching.
 func (d *dispatch) dispatcher() {
 	q := false
 
@@ -89,7 +89,7 @@ func (d *dispatch) dispatcher() {
 
 			out := (*d.DispatchBuilder.Output)[(*in).SlotID()]
 
-			inputs[1] = reflect.ValueOf((*in))
+			inputs[1] = reflect.ValueOf(*in)
 			inputs[2] = reflect.ValueOf(out)
 			inputs[3] = reflect.ValueOf((*d.DispatchBuilder.Keys)[(*in).SlotID()])
 
@@ -109,7 +109,7 @@ func (d *dispatch) dispatcher() {
 
 	}
 
-	//close the channels
+	// close the channels
 	// FIXME: This prevents double-close when chaining, perhaps senders should
 	//        Always be responsible for closing their channels?
 	//close(d.inChannel)
@@ -152,22 +152,22 @@ func DispatchCryptopSized(g *cyclic.Group, cryptop CryptographicOperation, chIn,
 		db.BatchSize = batchSize
 	}
 
-	//Creates a channel for input if none is provided
+	// Creates a channel for input if none is provided
 	if chIn == nil {
 		chIn = make(chan *Slot, db.BatchSize)
 	}
 
-	//Creates a channel for output if none is provided
+	// Creates a channel for output if none is provided
 	if chOut == nil {
 		chOut = make(chan *Slot, db.BatchSize)
 	}
 
-	//Creates a channel for force quitting the dispatched operation
+	// Creates a channel for force quitting the dispatched operation
 	chQuit := make(chan chan bool, 1)
 
 	//build the data used to run the cryptop
 
-	//Creates the internal dispatch structure
+	// Creates the internal dispatch structure
 	numThreads := uint32(runtime.NumCPU())
 
 	if uint64(numThreads) > db.BatchSize {
@@ -176,41 +176,52 @@ func DispatchCryptopSized(g *cyclic.Group, cryptop CryptographicOperation, chIn,
 
 	locker := uint32(numThreads)
 
-	batchPerThread := batchsizePerThread(numThreads, db.BatchSize)
+	batchPerThread := batchSizePerThread(numThreads, db.BatchSize)
 
 	for i := uint32(0); i < numThreads; i++ {
-		//build dispatcher for thread
-		d := &dispatch{cryptop: cryptop, DispatchBuilder: *db,
-			inChannel: chIn, outChannel: chOut, quit: chQuit, batchCntr: 0,
-			locker: &locker}
+		// Build dispatcher for thread
+		d := &dispatch{
+			cryptop:         cryptop,
+			DispatchBuilder: *db,
+			inChannel:       chIn,
+			outChannel:      chOut,
+			quit:            chQuit,
+			batchCntr:       0,
+			locker:          &locker,
+		}
 		d.BatchSize = batchPerThread[i]
 
-		//runs the dispatcher for current thread
+		// Runs the dispatcher for current thread
 		go d.dispatcher()
 	}
 
-	//creates the  dispatch control structure
-	dc := &ThreadController{InChannel: chIn, OutChannel: chOut, quitChannel: chQuit,
-		threadLocker: &locker, numThreads: numThreads}
+	// Creates the  dispatch control structure
+	dc := &ThreadController{
+		InChannel:    chIn,
+		OutChannel:   chOut,
+		quitChannel:  chQuit,
+		threadLocker: &locker,
+		numThreads:   numThreads,
+	}
 
 	return dc
 
 }
 
-func batchsizePerThread(numThreads uint32, batchsize uint64) []uint64 {
-	base := uint64(math.Floor(float64(batchsize) / float64(numThreads)))
+func batchSizePerThread(numThreads uint32, batchSize uint64) []uint64 {
+	base := uint64(math.Floor(float64(batchSize) / float64(numThreads)))
 
-	batchlist := make([]uint64, numThreads)
+	batchList := make([]uint64, numThreads)
 
 	for i := uint32(0); i < numThreads; i++ {
-		batchlist[i] = base
+		batchList[i] = base
 	}
 
-	delta := batchsize - uint64(numThreads)*base
+	delta := batchSize - uint64(numThreads)*base
 
 	for i := uint64(0); i < delta; i++ {
-		batchlist[i]++
+		batchList[i]++
 	}
 
-	return batchlist
+	return batchList
 }

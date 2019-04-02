@@ -17,7 +17,6 @@ import (
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
-	"math"
 	"runtime"
 	"strconv"
 	"strings"
@@ -84,10 +83,10 @@ func RunRealTime(batchSize uint64, MessageCh chan *realtime.Slot,
 // the length of the RoundCh and creates new rounds and kicks of precomputation
 // whenever it falls below a threshold.
 
-// Number of currentlyexecutingg precomputations
+// Number of currently executing precomputations
 var numRunning = int32(0)
 
-// Maximum number of simultanously run precomputation
+// Maximum number of simultaneously run precomputation
 var numPrecompSimultaneous int
 
 // Size of the buffer for input messages
@@ -210,7 +209,21 @@ func StartServer(serverIndex int, batchSize uint64) {
 		viper.GetString("dbName"),
 		dbAddress,
 	)
-	globals.PopulateDummyUsers()
+
+	// Load group from viper
+	grp := cyclic.Group{}
+	grpBuff := []byte(viper.GetString("group"))
+	err := grp.UnmarshalJSON(grpBuff)
+	if err != nil {
+		jww.FATAL.Panicf("Could Not Decode group from JSON: %s\n", err.Error())
+		return
+	}
+
+	// Set group globally
+	globals.SetGroup(&grp)
+
+	// Populate users using group
+	globals.PopulateDummyUsers(globals.GetGroup())
 
 	// Get all servers
 	io.Servers = getServers(serverIndex)
@@ -220,28 +233,6 @@ func StartServer(serverIndex int, batchSize uint64) {
 		serverList = serverList + "," + viper.GetStringSlice("servers")[i]
 	}
 	jww.INFO.Print("Server list: " + serverList)
-
-	// TODO Generate globals.Grp somewhere intelligent
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-
-	prime := cyclic.NewInt(0)
-	prime.SetString(primeString, 16)
-	// one := cyclic.NewInt(1)
-	rngmax := cyclic.NewIntFromUInt(math.MaxUint64)
-	rngmax.Mul(rngmax, prime)
-	rng := cyclic.NewRandom(cyclic.NewInt(0), rngmax)
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(2), cyclic.NewInt(4), rng)
-	globals.Grp = &grp
 
 	// Start mix servers on localServer
 	localServer := io.Servers[serverIndex]
@@ -302,7 +293,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 // Main server loop
 func run() {
 	io.TimeUp = time.Now().UnixNano()
-	// Run a roundtrip ping every couple seconds if last node
+	// Run a round trip ping every couple seconds if last node
 	if id.IsLastNode {
 		ticker := time.NewTicker(5 * time.Second)
 		quit := make(chan struct{})
@@ -310,7 +301,7 @@ func run() {
 			for {
 				select {
 				case <-ticker.C:
-					jww.DEBUG.Print("Starting Roundtrip Ping")
+					jww.DEBUG.Print("Starting Round-Trip Ping")
 					io.GetRoundtripPing(io.Servers)
 					io.GetServerMetrics(io.Servers)
 				case <-quit:
@@ -325,7 +316,6 @@ func run() {
 		// Blocks forever as a keepalive
 		select {}
 	}
-	jww.ERROR.Printf("Node Exiting without error")
 }
 
 // getServers pulls a string slice of server ports from the config file and

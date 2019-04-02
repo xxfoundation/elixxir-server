@@ -53,12 +53,12 @@ type Round struct {
 	S            []*cyclic.Int // Permuted internode message key
 	T            []*cyclic.Int // Second unpermuted internode message key
 	V            []*cyclic.Int // Unpermuted internode associated data key
-	U            []*cyclic.Int // Permuted *cyclic.Internode receipient key
+	U            []*cyclic.Int // Permuted *cyclic.Internode recipient key
 	R_INV        []*cyclic.Int // First Inverse unpermuted internode message key
 	S_INV        []*cyclic.Int // Permuted Inverse internode message key
 	T_INV        []*cyclic.Int // Second Inverse unpermuted internode message key
 	V_INV        []*cyclic.Int // Unpermuted Inverse internode associated data key
-	U_INV        []*cyclic.Int // Permuted Inverse *cyclic.Internode receipient key
+	U_INV        []*cyclic.Int // Permuted Inverse *cyclic.Internode recipient key
 	Permutations []uint64      // Permutation array, messages at index i become
 	// messages at index Permutations[i]
 	CypherPublicKey *cyclic.Int // Global Cypher Key
@@ -93,9 +93,6 @@ type Round struct {
 	CryptopStartTimes [NUM_PHASES]time.Time
 }
 
-// Grp is the cyclic group that all operations are done within
-var Grp *cyclic.Group
-
 // Global instance of RoundMap
 var GlobalRoundMap RoundMap
 
@@ -107,7 +104,7 @@ func getAndIncrementRoundCounter() uint64 {
 	return globalRoundCounter
 }
 
-// FIXME, maybe: This is used by last node to precalc the round id
+// FIXME, maybe: This is used by last node to pre-calculate the round id
 func PeekNextRoundID() string {
 	return strconv.FormatUint(globalRoundCounter, 36)
 }
@@ -211,27 +208,27 @@ func (round *Round) WaitUntilPhase(phase Phase) {
 
 // NewRound constructs an empty round for a given batch size, with all
 // numbers being initialized to 0.
-func NewRound(batchSize uint64) *Round {
+func NewRound(batchSize uint64, g *cyclic.Group) *Round {
 	var round *Round
 	select {
 	case round = <-RoundRecycle:
 	default:
-		round = newRound(batchSize, OFF)
+		round = newRound(batchSize, OFF, g)
 		if id.IsLastNode {
-			InitLastNode(round)
+			InitLastNode(round, g)
 		}
 	}
-	round = newRound(batchSize, OFF)
+	round = newRound(batchSize, OFF, g)
 	if id.IsLastNode {
-		InitLastNode(round)
+		InitLastNode(round, g)
 	}
 
 	return round
 }
 
 //Creates a new Round at any phase
-func NewRoundWithPhase(batchSize uint64, p Phase) *Round {
-	return newRound(batchSize, p)
+func NewRoundWithPhase(batchSize uint64, p Phase, g *cyclic.Group) *Round {
+	return newRound(batchSize, p, g)
 }
 
 // Returns a copy of the current phase
@@ -266,7 +263,7 @@ func (round *Round) SetPhase(p Phase) {
 }
 
 // Unexported underlying function to initialize a new round
-func newRound(batchSize uint64, p Phase) *Round {
+func newRound(batchSize uint64, p Phase, g *cyclic.Group) *Round {
 	NR := Round{
 		R: make([]*cyclic.Int, batchSize),
 		S: make([]*cyclic.Int, batchSize),
@@ -280,8 +277,8 @@ func newRound(batchSize uint64, p Phase) *Round {
 		V_INV: make([]*cyclic.Int, batchSize),
 		U_INV: make([]*cyclic.Int, batchSize),
 
-		CypherPublicKey: cyclic.NewMaxInt(),
-		Z:               cyclic.NewMaxInt(),
+		CypherPublicKey: g.NewMaxInt(),
+		Z:               g.NewMaxInt(),
 
 		Permutations: make([]uint64, batchSize),
 
@@ -294,29 +291,30 @@ func newRound(batchSize uint64, p Phase) *Round {
 		BatchSize: batchSize,
 		ExpSize:   uint32(256),
 
-		MIC_Verification: make([]bool, batchSize)}
+		MIC_Verification: make([]bool, batchSize),
+	}
 
-	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
-	NR.Z.SetBytes(cyclic.Max4kBitInt)
+	g.Set(NR.CypherPublicKey, g.NewMaxInt())
+	g.Set(NR.Z, g.NewMaxInt())
 
 	for i := uint64(0); i < batchSize; i++ {
-		NR.R[i] = cyclic.NewMaxInt()
-		NR.S[i] = cyclic.NewMaxInt()
-		NR.T[i] = cyclic.NewMaxInt()
-		NR.V[i] = cyclic.NewMaxInt()
-		NR.U[i] = cyclic.NewMaxInt()
+		NR.R[i] = g.NewMaxInt()
+		NR.S[i] = g.NewMaxInt()
+		NR.T[i] = g.NewMaxInt()
+		NR.V[i] = g.NewMaxInt()
+		NR.U[i] = g.NewMaxInt()
 
-		NR.R_INV[i] = cyclic.NewMaxInt()
-		NR.S_INV[i] = cyclic.NewMaxInt()
-		NR.T_INV[i] = cyclic.NewMaxInt()
-		NR.V_INV[i] = cyclic.NewMaxInt()
-		NR.U_INV[i] = cyclic.NewMaxInt()
+		NR.R_INV[i] = g.NewMaxInt()
+		NR.S_INV[i] = g.NewMaxInt()
+		NR.T_INV[i] = g.NewMaxInt()
+		NR.V_INV[i] = g.NewMaxInt()
+		NR.U_INV[i] = g.NewMaxInt()
 
-		NR.Y_R[i] = cyclic.NewMaxInt()
-		NR.Y_S[i] = cyclic.NewMaxInt()
-		NR.Y_T[i] = cyclic.NewMaxInt()
-		NR.Y_V[i] = cyclic.NewMaxInt()
-		NR.Y_U[i] = cyclic.NewMaxInt()
+		NR.Y_R[i] = g.NewMaxInt()
+		NR.Y_S[i] = g.NewMaxInt()
+		NR.Y_T[i] = g.NewMaxInt()
+		NR.Y_V[i] = g.NewMaxInt()
+		NR.Y_U[i] = g.NewMaxInt()
 
 		NR.Permutations[i] = i
 
@@ -335,29 +333,29 @@ func newRound(batchSize uint64, p Phase) *Round {
 	return &NR
 }
 
-func ResetRound(NR *Round) {
+func ResetRound(NR *Round, g *cyclic.Group) {
 	batchSize := NR.BatchSize
-	NR.CypherPublicKey.SetBytes(cyclic.Max4kBitInt)
-	NR.Z.SetBytes(cyclic.Max4kBitInt)
+	NR.CypherPublicKey = g.Set(NR.CypherPublicKey, g.NewMaxInt())
+	NR.Z = g.Set(NR.Z, g.NewMaxInt())
 
 	for i := uint64(0); i < batchSize; i++ {
-		NR.R[i].SetBytes(cyclic.Max4kBitInt)
-		NR.S[i].SetBytes(cyclic.Max4kBitInt)
-		NR.T[i].SetBytes(cyclic.Max4kBitInt)
-		NR.V[i].SetBytes(cyclic.Max4kBitInt)
-		NR.U[i].SetBytes(cyclic.Max4kBitInt)
+		g.SetBytes(NR.R[i], g.GetPSub1().Bytes())
+		g.Set(NR.S[i], g.NewMaxInt())
+		g.Set(NR.T[i], g.NewMaxInt())
+		g.Set(NR.V[i], g.NewMaxInt())
+		g.Set(NR.U[i], g.NewMaxInt())
 
-		NR.R_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.S_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.T_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.V_INV[i].SetBytes(cyclic.Max4kBitInt)
-		NR.U_INV[i].SetBytes(cyclic.Max4kBitInt)
+		g.Set(NR.R_INV[i], g.NewMaxInt())
+		g.Set(NR.S_INV[i], g.NewMaxInt())
+		g.Set(NR.T_INV[i], g.NewMaxInt())
+		g.Set(NR.V_INV[i], g.NewMaxInt())
+		g.Set(NR.U_INV[i], g.NewMaxInt())
 
-		NR.Y_R[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_S[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_T[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_V[i].SetBytes(cyclic.Max4kBitInt)
-		NR.Y_U[i].SetBytes(cyclic.Max4kBitInt)
+		g.Set(NR.Y_R[i], g.NewMaxInt())
+		g.Set(NR.Y_S[i], g.NewMaxInt())
+		g.Set(NR.Y_T[i], g.NewMaxInt())
+		g.Set(NR.Y_V[i], g.NewMaxInt())
+		g.Set(NR.Y_U[i], g.NewMaxInt())
 
 		NR.Permutations[i] = i
 
@@ -374,7 +372,7 @@ func ResetRound(NR *Round) {
 	}
 }
 
-func InitLastNode(round *Round) {
+func InitLastNode(round *Round, g *cyclic.Group) {
 	round.LastNode.MessagePrecomputation = make([]*cyclic.Int, round.BatchSize)
 	round.LastNode.AssociatedDataPrecomputation = make([]*cyclic.Int, round.BatchSize)
 	round.LastNode.RoundMessagePrivateKey = make([]*cyclic.Int, round.BatchSize)
@@ -387,14 +385,14 @@ func InitLastNode(round *Round) {
 	round.LastNode.EncryptedMessage = make([]*cyclic.Int, round.BatchSize)
 
 	for i := uint64(0); i < round.BatchSize; i++ {
-		round.LastNode.MessagePrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.AssociatedDataPrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundMessagePrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.RoundAssociatedDataPrivateKey[i] = cyclic.NewMaxInt()
-		round.LastNode.AssociatedDataCypherText[i] = cyclic.NewMaxInt()
-		round.LastNode.EncryptedAssociatedDataPrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.EncryptedMessagePrecomputation[i] = cyclic.NewMaxInt()
-		round.LastNode.EncryptedMessage[i] = cyclic.NewMaxInt()
+		round.LastNode.MessagePrecomputation[i] = g.NewMaxInt()
+		round.LastNode.AssociatedDataPrecomputation[i] = g.NewMaxInt()
+		round.LastNode.RoundMessagePrivateKey[i] = g.NewMaxInt()
+		round.LastNode.RoundAssociatedDataPrivateKey[i] = g.NewMaxInt()
+		round.LastNode.AssociatedDataCypherText[i] = g.NewMaxInt()
+		round.LastNode.EncryptedAssociatedDataPrecomputation[i] = g.NewMaxInt()
+		round.LastNode.EncryptedMessagePrecomputation[i] = g.NewMaxInt()
+		round.LastNode.EncryptedMessage[i] = g.NewMaxInt()
 		round.MIC_Verification[i] = false
 	}
 }

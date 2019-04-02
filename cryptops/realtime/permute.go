@@ -26,16 +26,16 @@ type KeysPermute struct {
 }
 
 // Pre-allocate memory and arrange key objects for Realtime Permute phase
-func (p Permute) Build(g *cyclic.Group,
+func (p Permute) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
-	// The empty interface should be castable to a Round
+	// The empty interface should be able to be casted to a Round
 	round := face.(*globals.Round)
 
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)
 
 	// BEGIN CRYPTOGRAPHIC PORTION OF BUILD
-	buildCryptoPermute(round, om)
+	buildCryptoPermute(round, om, grp)
 	// END CRYPTOGRAPHIC PORTION OF BUILD
 
 	keys := make([]services.NodeKeys, round.BatchSize)
@@ -48,7 +48,7 @@ func (p Permute) Build(g *cyclic.Group,
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize, Keys: &keys,
-		Output: &om, G: g}
+		Output: &om, G: grp}
 
 	return &db
 }
@@ -72,13 +72,14 @@ func (p Permute) Run(g *cyclic.Group, in, out *Slot,
 	return out
 }
 
-func buildCryptoPermute(round *globals.Round, outMessages []services.Slot) {
+func buildCryptoPermute(round *globals.Round, outMessages []services.Slot,
+	grp *cyclic.Group) {
 	// Prepare the permuted output messages
 	for i := uint64(0); i < round.BatchSize; i++ {
 		slot := &Slot{
 			Slot:           round.Permutations[i],
-			Message:        cyclic.NewMaxInt(),
-			AssociatedData: cyclic.NewMaxInt(),
+			Message:        grp.NewMaxInt(),
+			AssociatedData: grp.NewMaxInt(),
 		}
 		// If this is the last node, save the EncryptedMessage
 		if round.LastNode.EncryptedMessage != nil {

@@ -9,7 +9,6 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -19,14 +18,14 @@ type ReceiveMessageHandler struct{}
 
 // Reception handler for ReceiveMessageFromClient
 func ReceiveMessageFromClient(msg *pb.CmixMessage) {
-	associatedData := cyclic.NewIntFromBytes(msg.AssociatedData)
-	messagePayload := cyclic.NewIntFromBytes(msg.MessagePayload)
+	associatedData := globals.GetGroup().NewIntFromBytes(msg.AssociatedData)
+	messagePayload := globals.GetGroup().NewIntFromBytes(msg.MessagePayload)
 
 	jww.DEBUG.Printf("Received message from client: %v",
 		messagePayload.Text(10))
 
 	// Verify message fields are within the global cyclic group
-	if globals.Grp.Inside(associatedData) && globals.Grp.Inside(messagePayload) {
+	if globals.GetGroup().Inside(associatedData.GetLargeInt()) && globals.GetGroup().Inside(messagePayload.GetLargeInt()) {
 		// Convert message to a Slot
 		userId := new(id.User).SetBytes(msg.SenderID)
 		inputMsg := realtime.Slot{
@@ -34,7 +33,7 @@ func ReceiveMessageFromClient(msg *pb.CmixMessage) {
 			CurrentID:      userId,
 			Message:        messagePayload,
 			AssociatedData: associatedData,
-			CurrentKey:     cyclic.NewMaxInt(),
+			CurrentKey:     globals.GetGroup().NewMaxInt(),
 			Salt:           msg.Salt,
 		}
 		MessageCh <- &inputMsg

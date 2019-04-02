@@ -56,10 +56,10 @@ func GetServerMetrics(servers []string) {
 	if len(servers) < 2 {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
-		memUsage := append(memUsage, uint32((m.Alloc+m.HeapAlloc)/1024/1024))
-		threadUsage := append(threadUsage, uint32(runtime.NumGoroutine()))
-		cpuUsage := append(cpuUsage, uint32(0))
-		upSince := append(upSince, TimeUp)
+		memUsage = append(memUsage, uint32((m.Alloc+m.HeapAlloc)/1024/1024))
+		threadUsage = append(threadUsage, uint32(runtime.NumGoroutine()))
+		cpuUsage = append(cpuUsage, uint32(0))
+		upSince = append(upSince, TimeUp)
 		LogServerMetrics(memUsage, threadUsage, cpuUsage, upSince)
 		// else send to first node
 	} else {

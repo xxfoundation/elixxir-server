@@ -15,8 +15,8 @@ import (
 
 // Amount of memory allocation required before the system triggers a
 // performance alert
-const DELTA_MEMORY_THREASHOLD = int64(1024) * int64(1024) * int64(100) //100MiB
-const MIN_MEMORY_TRIGGER = int64(1024) * int64(1024) * int64(1024)     //1GiB
+const DELTA_MEMORY_THRESHOLD = int64(1024) * int64(1024) * int64(100) //100MiB
+const MIN_MEMORY_TRIGGER = int64(1024) * int64(1024) * int64(1024)    //1GiB
 
 // Time between performance checks
 const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
@@ -38,10 +38,16 @@ func MonitorMemoryUsage() {
 
 	var lastTrigger = time.Now()
 
-	//Null profile record for comparison
-	minMemoryUse := runtime.MemProfileRecord{0, 0, 0, 0, [32]uintptr{}}
+	// Null profile record for comparison
+	minMemoryUse := runtime.MemProfileRecord{
+		AllocBytes:   0,
+		FreeBytes:    0,
+		AllocObjects: 0,
+		FreeObjects:  0,
+		Stack0:       [32]uintptr{},
+	}
 
-	//Slice to store the threads with the top memory usage
+	// Slice to store the threads with the top memory usage
 	highestMemUsage := make([]*runtime.MemProfileRecord, 10)
 
 	for {
@@ -86,7 +92,7 @@ func MonitorMemoryUsage() {
 		memoryDelta := memoryAllocated - numMemory
 
 		//check if the change in memory usage warrants an update
-		if memoryDelta > DELTA_MEMORY_THREASHOLD && MIN_MEMORY_TRIGGER < memoryAllocated {
+		if memoryDelta > DELTA_MEMORY_THRESHOLD && MIN_MEMORY_TRIGGER < memoryAllocated {
 
 			lastTrigger = triggerTime
 
@@ -103,13 +109,13 @@ func MonitorMemoryUsage() {
 
 				//Get a list of the last 10 executed functions
 				var funcNames string
-				lenlookup := len(thr.Stack0)
-				if lenlookup > 10 {
-					lenlookup = 10
+				lenLookup := len(thr.Stack0)
+				if lenLookup > 10 {
+					lenLookup = 10
 				}
 				// append the function names of the last 10 executed functions
 				// to be printed
-				for i := 0; i < lenlookup; i++ {
+				for i := 0; i < lenLookup; i++ {
 					funcNames += truncateFuncName(runtime.FuncForPC(thr.
 						Stack0[i]).Name())
 				}

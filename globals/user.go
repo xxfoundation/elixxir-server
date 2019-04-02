@@ -12,6 +12,7 @@ import (
 	"errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
@@ -30,7 +31,7 @@ var idCounter = uint64(1)
 
 // Interface for User Registry operations
 type UserRegistry interface {
-	NewUser() *User
+	NewUser(grp *cyclic.Group) *User
 	DeleteUser(id *id.User)
 	GetUser(id *id.User) (user *User, err error)
 	GetUserByNonce(nonce nonce.Nonce) (user *User, err error)
@@ -39,7 +40,7 @@ type UserRegistry interface {
 	InsertSalt(user *id.User, salt []byte) bool
 }
 
-// Struct implementing the UserRegistry Interface with an underlying Map
+// Structure implementing the UserRegistry Interface with an underlying Map
 type UserMap struct {
 	// Map acting as the User Registry containing User -> ID mapping
 	userCollection map[id.User]*User
@@ -61,16 +62,16 @@ func (fk *ForwardKey) DeepCopy() *ForwardKey {
 	if fk == nil {
 		return nil
 	}
+
 	nfk := ForwardKey{
-		cyclic.NewInt(0),
-		cyclic.NewInt(0),
+		fk.BaseKey.DeepCopy(),
+		fk.RecursiveKey.DeepCopy(),
 	}
-	nfk.BaseKey.Set(fk.BaseKey)
-	nfk.RecursiveKey.Set(fk.RecursiveKey)
+
 	return &nfk
 }
 
-// Struct representing a User in the system
+// Structure representing a User in the system
 type User struct {
 	ID           *id.User
 	HUID         []byte
@@ -105,7 +106,7 @@ func (u *User) DeepCopy() *User {
 }
 
 // NewUser creates a new User object with default fields and given address.
-func (m *UserMap) NewUser() *User {
+func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	idCounter++
 	usr := new(User)
 	h := sha256.New()
@@ -115,25 +116,34 @@ func (m *UserMap) NewUser() *User {
 
 	// Generate user parameters
 	usr.ID = new(id.User).SetUints(&[4]uint64{0, 0, 0, i})
+
 	h.Write([]byte(string(20000 + i)))
-	trans.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	trans.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
+
 	h = sha256.New()
 	h.Write([]byte(string(30000 + i)))
-	trans.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	trans.RecursiveKey = grp.NewIntFromBytes(h.Sum(nil))
+
 	h = sha256.New()
 	h.Write([]byte(string(40000 + i)))
-	recept.BaseKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	recept.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
+
 	h = sha256.New()
 	h.Write([]byte(string(50000 + i)))
-	recept.RecursiveKey = cyclic.NewIntFromBytes(h.Sum(nil))
+	recept.RecursiveKey = grp.NewIntFromBytes(h.Sum(nil))
+
 	usr.Reception = *recept
 	usr.Transmission = *trans
 
 	usr.PublicKey = signature.ReconstructPublicKey(
 		signature.CustomDSAParams(
-			cyclic.NewInt(0), cyclic.NewInt(0), cyclic.NewInt(0)),
-		cyclic.NewInt(0))
+			large.NewInt(0), large.NewInt(0), large.NewInt(0),
+		),
+		large.NewInt(0),
+	)
+
 	usr.Nonce = *new(nonce.Nonce)
+
 	return usr
 }
 

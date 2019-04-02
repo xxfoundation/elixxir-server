@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -45,9 +44,9 @@ func RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		var slot services.Slot = &realtime.Slot{
 			Slot:           uint64(i),
 			CurrentID:      userId,
-			AssociatedData: cyclic.NewIntFromBytes(in.AssociatedData),
-			Message:        cyclic.NewIntFromBytes(in.MessagePayload),
-			CurrentKey:     cyclic.NewMaxInt(),
+			AssociatedData: globals.GetGroup().NewIntFromBytes(in.AssociatedData),
+			Message:        globals.GetGroup().NewIntFromBytes(in.MessagePayload),
+			CurrentKey:     globals.GetGroup().NewMaxInt(),
 			Salt:           in.Salt,
 		}
 		// Pass slot as input to Encrypt's channel
@@ -102,9 +101,9 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 		var slot services.Slot = &realtime.Slot{
 			Slot:           i,
 			CurrentID:      userId,
-			AssociatedData: cyclic.NewIntFromBytes(out.AssociatedData),
-			Message:        cyclic.NewIntFromBytes(out.MessagePayload),
-			CurrentKey:     cyclic.NewMaxInt(),
+			AssociatedData: globals.GetGroup().NewIntFromBytes(out.AssociatedData),
+			Message:        globals.GetGroup().NewIntFromBytes(out.MessagePayload),
+			CurrentKey:     globals.GetGroup().NewMaxInt(),
 			Salt:           out.Salt,
 		}
 		// Pass slot as input to Peel's channel

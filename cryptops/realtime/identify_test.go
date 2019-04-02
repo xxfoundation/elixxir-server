@@ -8,6 +8,7 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
@@ -15,13 +16,8 @@ import (
 
 func TestRealTimeIdentify(t *testing.T) {
 	var im []services.Slot
-	batchSize := uint64(2)
-	round := globals.NewRound(batchSize)
-	round.AssociatedDataPrecomputation = make([]*cyclic.Int, batchSize)
-	round.AssociatedDataPrecomputation[0] = cyclic.NewInt(42)
-	round.AssociatedDataPrecomputation[1] = cyclic.NewInt(42)
 
-	grp := cyclic.NewGroup(cyclic.NewIntFromString(
+	grp := cyclic.NewGroup(large.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
 			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
 			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
@@ -43,14 +39,18 @@ func TestRealTimeIdentify(t *testing.T) {
 			"287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED"+
 			"1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9"+
 			"93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199"+
-			"FFFFFFFFFFFFFFFF", 16), cyclic.NewInt(5),
-		cyclic.NewInt(23),
-		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
+			"FFFFFFFFFFFFFFFF", 16), large.NewInt(5),
+		large.NewInt(23))
 
-	invsprecomp := grp.Inverse(cyclic.NewInt(42), cyclic.NewInt(0))
+	batchSize := uint64(2)
+	round := globals.NewRound(batchSize, &grp)
+	round.AssociatedDataPrecomputation = make([]*cyclic.Int, batchSize)
+	round.AssociatedDataPrecomputation[0] = grp.NewInt(42)
+	round.AssociatedDataPrecomputation[1] = grp.NewInt(42)
 
-	encrAD := grp.Mul(cyclic.NewInt(42),
-		invsprecomp, cyclic.NewInt(0))
+	invsprecomp := grp.Inverse(grp.NewInt(42), grp.NewInt(0))
+
+	encrAD := grp.Mul(grp.NewInt(42), invsprecomp, grp.NewInt(0))
 
 	im = append(im, &Slot{
 		Slot:           0,
@@ -60,7 +60,7 @@ func TestRealTimeIdentify(t *testing.T) {
 		Slot:           1,
 		AssociatedData: encrAD})
 
-	ExpectedOutputs := []*cyclic.Int{cyclic.NewInt(42), cyclic.NewInt(42)}
+	ExpectedOutputs := []*cyclic.Int{grp.NewInt(42), grp.NewInt(42)}
 
 	dc := services.DispatchCryptop(&grp, Identify{}, nil, nil, round)
 
@@ -80,10 +80,8 @@ func TestRealTimeIdentify(t *testing.T) {
 
 // Smoke test test the identify function
 func TestIdentifyRun(t *testing.T) {
-	keys := KeysIdentify{
-		AssociatedDataPrecomputation: cyclic.NewInt(69)}
 
-	grp := cyclic.NewGroup(cyclic.NewIntFromString(
+	grp := cyclic.NewGroup(large.NewIntFromString(
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1"+
 			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD"+
 			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245"+
@@ -105,24 +103,27 @@ func TestIdentifyRun(t *testing.T) {
 			"287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED"+
 			"1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA9"+
 			"93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199"+
-			"FFFFFFFFFFFFFFFF", 16), cyclic.NewInt(5),
-		cyclic.NewInt(23),
-		cyclic.NewRandom(cyclic.NewInt(1), cyclic.NewInt(42)))
+			"FFFFFFFFFFFFFFFF", 16), large.NewInt(5),
+		large.NewInt(23))
 
-	invsprecomp := grp.Inverse(cyclic.NewInt(69), cyclic.NewInt(0))
+	keys := KeysIdentify{
+		AssociatedDataPrecomputation: grp.NewInt(69)}
 
-	encrAD := grp.Mul(cyclic.NewInt(42),
-		invsprecomp, cyclic.NewInt(0))
+	invsprecomp := grp.Inverse(grp.NewInt(69), grp.NewInt(0))
+
+	encrAD := grp.Mul(grp.NewInt(42), invsprecomp, grp.NewInt(0))
 
 	im := Slot{
 		Slot:           0,
-		AssociatedData: encrAD}
+		AssociatedData: encrAD,
+	}
 
 	om := Slot{
 		Slot:           0,
-		AssociatedData: cyclic.NewInt(0)}
+		AssociatedData: grp.NewInt(0),
+	}
 
-	ExpectedOutput := cyclic.NewInt(42)
+	ExpectedOutput := grp.NewInt(42)
 
 	// Identify(&grp, AssociatedData, DecryptedRecipient, RecipientPrecomp)
 	identify := Identify{}

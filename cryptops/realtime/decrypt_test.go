@@ -8,6 +8,7 @@ package realtime
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -20,13 +21,12 @@ func TestDecrypt(t *testing.T) {
 	test := 9
 	pass := 0
 
-	bs := uint64(3)
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(23),
+		large.NewInt(27))
 
-	round := globals.NewRound(bs)
+	batchSize := uint64(3)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-
-	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23), cyclic.NewInt(27), rng)
+	round := globals.NewRound(batchSize, &grp)
 
 	senderIds := [3]*id.User{id.NewUserFromUint(5, t),
 		id.NewUserFromUint(7, t),
@@ -38,42 +38,42 @@ func TestDecrypt(t *testing.T) {
 	im = append(im, &Slot{
 		Slot:           uint64(0),
 		CurrentID:      senderIds[0],
-		Message:        cyclic.NewInt(int64(39)),
-		CurrentKey:     cyclic.NewInt(int64(65)),
-		AssociatedData: cyclic.NewInt(7)})
+		Message:        grp.NewInt(int64(39)),
+		CurrentKey:     grp.NewInt(int64(65)),
+		AssociatedData: grp.NewInt(7)})
 
 	im = append(im, &Slot{
 		Slot:           uint64(1),
 		CurrentID:      senderIds[1],
-		Message:        cyclic.NewInt(int64(86)),
-		CurrentKey:     cyclic.NewInt(int64(44)),
-		AssociatedData: cyclic.NewInt(51)})
+		Message:        grp.NewInt(int64(86)),
+		CurrentKey:     grp.NewInt(int64(44)),
+		AssociatedData: grp.NewInt(51)})
 
 	im = append(im, &Slot{
 		Slot:           uint64(2),
 		CurrentID:      senderIds[2],
-		Message:        cyclic.NewInt(int64(66)),
-		CurrentKey:     cyclic.NewInt(int64(94)),
-		AssociatedData: cyclic.NewInt(23)})
+		Message:        grp.NewInt(int64(66)),
+		CurrentKey:     grp.NewInt(int64(94)),
+		AssociatedData: grp.NewInt(23)})
 
 	// Set the keys
-	round.R[0] = cyclic.NewInt(52)
-	round.R[1] = cyclic.NewInt(68)
-	round.R[2] = cyclic.NewInt(11)
+	round.R[0] = grp.NewInt(52)
+	round.R[1] = grp.NewInt(68)
+	round.R[2] = grp.NewInt(11)
 
-	round.U[0] = cyclic.NewInt(67)
-	round.U[1] = cyclic.NewInt(88)
-	round.U[2] = cyclic.NewInt(20)
+	round.U[0] = grp.NewInt(67)
+	round.U[1] = grp.NewInt(88)
+	round.U[2] = grp.NewInt(20)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(103), cyclic.NewInt(97)},
-		{cyclic.NewInt(84), cyclic.NewInt(57)},
-		{cyclic.NewInt(85), cyclic.NewInt(12)},
+		{grp.NewInt(103), grp.NewInt(97)},
+		{grp.NewInt(84), grp.NewInt(57)},
+		{grp.NewInt(85), grp.NewInt(12)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Decrypt{}, nil, nil, round)
 
-	for i := uint64(0); i < bs; i++ {
+	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(im[i])
 		rtn := <-dc.OutChannel
 

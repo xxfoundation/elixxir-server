@@ -1,7 +1,7 @@
 # Dispatcher
 
 The dispatcher provides an interface for running slot-based
-cryptographic operations. These cryptographics operations are run in
+cryptographic operations. These cryptographic operations are run in
 the context of a slot inside of a specific round in the cMix system,
 as such they can be run in separate processes. The job of the
 dispatcher is to manage this parallelism, providing a channel into and
