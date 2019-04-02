@@ -7,9 +7,9 @@
 package io
 
 import (
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/crypto/messaging"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/server/globals"
@@ -24,7 +24,7 @@ func TestRequestNonce(t *testing.T) {
 	rng := csprng.NewSystemRNG()
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
-	salt := messaging.NewSalt(rng, 32)
+	salt := cmix.NewSalt(rng, 32)
 
 	hash := append(pubKey.GetKey().Bytes(), dsaParams.GetP().Bytes()...)
 	hash = append(hash, dsaParams.GetQ().Bytes()...)
@@ -54,7 +54,7 @@ func TestRequestNonce_BadSignature(t *testing.T) {
 	rng := csprng.NewSystemRNG()
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
-	salt := messaging.NewSalt(rng, 32)
+	salt := cmix.NewSalt(rng, 32)
 	regPrivKey := dsaParams.PrivateKeyGen(rng)
 
 	hash := append(pubKey.GetKey().Bytes(), dsaParams.GetP().Bytes()...)
