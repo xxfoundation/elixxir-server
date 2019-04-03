@@ -75,20 +75,20 @@ func TestPermute(t *testing.T) {
 			Slot:                         uint64(1),
 			MessageCypher:                grp.NewInt(56),
 			AssociatedDataCypher:         grp.NewInt(35),
-			MessagePrecomputation:        grp.NewInt(56),
-			AssociatedDataPrecomputation: grp.NewInt(89),
+			MessagePrecomputation:        grp.NewInt(41),
+			AssociatedDataPrecomputation: grp.NewInt(33),
 		}, {
 			Slot:                         uint64(2),
 			MessageCypher:                grp.NewInt(60),
 			AssociatedDataCypher:         grp.NewInt(97),
-			MessagePrecomputation:        grp.NewInt(92),
-			AssociatedDataPrecomputation: grp.NewInt(48),
+			MessagePrecomputation:        grp.NewInt(99),
+			AssociatedDataPrecomputation: grp.NewInt(49),
 		}, {
 			Slot:                         uint64(0),
 			MessageCypher:                grp.NewInt(34),
 			AssociatedDataCypher:         grp.NewInt(98),
-			MessagePrecomputation:        grp.NewInt(58),
-			AssociatedDataPrecomputation: grp.NewInt(16),
+			MessagePrecomputation:        grp.NewInt(91),
+			AssociatedDataPrecomputation: grp.NewInt(34),
 		},
 	}
 	dispatch := services.DispatchCryptop(

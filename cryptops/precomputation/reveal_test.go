@@ -8,11 +8,10 @@ package precomputation
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/services"
 	"testing"
 )
 
+/*
 func TestPrecomputationReveal(t *testing.T) {
 
 	test := 3
@@ -73,7 +72,7 @@ func TestPrecomputationReveal(t *testing.T) {
 
 	println("PrecompReveal", pass, "out of", test, "tests passed.")
 
-}
+}*/
 
 func TestPrecomputationRevealRun(t *testing.T) {
 	bs := uint64(3)
@@ -101,18 +100,18 @@ func TestPrecomputationRevealRun(t *testing.T) {
 
 	om = append(om, &PrecomputationSlot{
 		Slot:                         uint64(1),
-		MessagePrecomputation:        grp.NewInt(int64(0)),
-		AssociatedDataPrecomputation: grp.NewInt(int64(0))})
+		MessagePrecomputation:        grp.NewInt(int64(1)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(1))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot:                         uint64(2),
-		MessagePrecomputation:        grp.NewInt(int64(0)),
-		AssociatedDataPrecomputation: grp.NewInt(int64(0))})
+		MessagePrecomputation:        grp.NewInt(int64(1)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(1))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot:                         uint64(0),
-		MessagePrecomputation:        grp.NewInt(int64(0)),
-		AssociatedDataPrecomputation: grp.NewInt(int64(0))})
+		MessagePrecomputation:        grp.NewInt(int64(1)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(1))})
 
 	key := KeysReveal{
 		Z: grp.NewInt(53),

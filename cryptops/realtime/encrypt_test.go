@@ -37,7 +37,7 @@ func TestEncrypt(t *testing.T) {
 	associatedDatas := [3]*cyclic.Int{
 		grp.NewInt(int64(42)),
 		grp.NewInt(int64(84)),
-		grp.NewInt(int64(126)),
+		grp.NewInt(int64(106)),
 	}
 
 	var im []services.Slot

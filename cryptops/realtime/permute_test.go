@@ -118,18 +118,18 @@ func TestRealtimePermuteRun(t *testing.T) {
 
 	om = append(om, &Slot{
 		Slot:           uint64(1),
-		Message:        grp.NewInt(int64(0)),
-		AssociatedData: grp.NewInt(int64(0))})
+		Message:        grp.NewInt(int64(1)),
+		AssociatedData: grp.NewInt(int64(1))})
 
 	om = append(om, &Slot{
 		Slot:           uint64(2),
-		Message:        grp.NewInt(int64(0)),
-		AssociatedData: grp.NewInt(int64(0))})
+		Message:        grp.NewInt(int64(1)),
+		AssociatedData: grp.NewInt(int64(1))})
 
 	om = append(om, &Slot{
 		Slot:           uint64(0),
-		Message:        grp.NewInt(int64(0)),
-		AssociatedData: grp.NewInt(int64(0))})
+		Message:        grp.NewInt(int64(1)),
+		AssociatedData: grp.NewInt(int64(1))})
 
 	keys := []KeysPermute{
 		{

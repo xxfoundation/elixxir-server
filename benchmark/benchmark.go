@@ -94,7 +94,7 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 	rounds := make([]*globals.Round, nodeCount)
 	for i := 0; i < nodeCount; i++ {
 		rounds[i] = globals.NewRound(BatchSize, grp)
-		rounds[i].CypherPublicKey = grp.NewInt(0)
+		rounds[i].CypherPublicKey = grp.NewInt(1)
 
 		// Overwrite default value of rounds ExpSize if group prime is small
 		expSize := grp.GetP().BitLen() - 1
@@ -351,7 +351,7 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 	shares[0].InChannel <- &shareMsg
 	shareResultSlot := <-shares[nodeCount-1].OutChannel
 	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
-	PublicCypherKey := grp.NewInt(0)
+	PublicCypherKey := grp.NewInt(1)
 	group.Set(PublicCypherKey, shareResult.PartialRoundPublicCypherKey)
 	for i := 0; i < nodeCount; i++ {
 		group.Set(rounds[i].CypherPublicKey, PublicCypherKey)
@@ -415,7 +415,7 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 	// ----- REALTIME ----- //
 	IntermediateMsgs := make([]*cyclic.Int, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
-		IntermediateMsgs[i] = grp.NewInt(0)
+		IntermediateMsgs[i] = grp.NewInt(1)
 	}
 	rtdecrypts := make([]*services.ThreadController, nodeCount)
 	rtpermutes := make([]*services.ThreadController, nodeCount)

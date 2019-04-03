@@ -48,9 +48,9 @@ func TestRealTimeIdentify(t *testing.T) {
 	round.AssociatedDataPrecomputation[0] = grp.NewInt(42)
 	round.AssociatedDataPrecomputation[1] = grp.NewInt(42)
 
-	invsprecomp := grp.Inverse(grp.NewInt(42), grp.NewInt(0))
+	invsprecomp := grp.Inverse(grp.NewInt(42), grp.NewInt(1))
 
-	encrAD := grp.Mul(grp.NewInt(42), invsprecomp, grp.NewInt(0))
+	encrAD := grp.Mul(grp.NewInt(42), invsprecomp, grp.NewInt(1))
 
 	im = append(im, &Slot{
 		Slot:           0,
@@ -109,9 +109,9 @@ func TestIdentifyRun(t *testing.T) {
 	keys := KeysIdentify{
 		AssociatedDataPrecomputation: grp.NewInt(69)}
 
-	invsprecomp := grp.Inverse(grp.NewInt(69), grp.NewInt(0))
+	invsprecomp := grp.Inverse(grp.NewInt(69), grp.NewInt(1))
 
-	encrAD := grp.Mul(grp.NewInt(42), invsprecomp, grp.NewInt(0))
+	encrAD := grp.Mul(grp.NewInt(42), invsprecomp, grp.NewInt(1))
 
 	im := Slot{
 		Slot:           0,
@@ -120,7 +120,7 @@ func TestIdentifyRun(t *testing.T) {
 
 	om := Slot{
 		Slot:           0,
-		AssociatedData: grp.NewInt(0),
+		AssociatedData: grp.NewInt(1),
 	}
 
 	ExpectedOutput := grp.NewInt(42)

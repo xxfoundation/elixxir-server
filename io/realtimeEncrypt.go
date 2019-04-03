@@ -23,6 +23,7 @@ type RealtimeEncryptHandler struct{}
 
 // ReceptionHandler for RealtimeEncryptMessages
 func RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
+	grp := globals.InitGroup()
 	startTime := time.Now()
 	jww.INFO.Printf("Starting RealtimeEncrypt(RoundId: %s, Phase: %s) at %s",
 		input.RoundID, globals.Phase(input.LastOp).String(),
@@ -44,9 +45,9 @@ func RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 		var slot services.Slot = &realtime.Slot{
 			Slot:           uint64(i),
 			CurrentID:      userId,
-			AssociatedData: globals.GetGroup().NewIntFromBytes(in.AssociatedData),
-			Message:        globals.GetGroup().NewIntFromBytes(in.MessagePayload),
-			CurrentKey:     globals.GetGroup().NewMaxInt(),
+			AssociatedData: grp.NewIntFromBytes(in.AssociatedData),
+			Message:        grp.NewIntFromBytes(in.MessagePayload),
+			CurrentKey:     grp.NewMaxInt(),
 			Salt:           in.Salt,
 		}
 		// Pass slot as input to Encrypt's channel
@@ -64,7 +65,7 @@ func RealtimeEncrypt(input *pb.RealtimeEncryptMessage) {
 // Transition to RealtimePeel phase on the last node
 func realtimeEncryptLastNode(roundID string, batchSize uint64,
 	input *pb.RealtimeEncryptMessage) {
-
+	grp := globals.InitGroup()
 	startTime := time.Now()
 	jww.INFO.Printf("[Last Node] Initializing RealtimePeel(RoundId: %s, "+
 		"Phase: %s) at %s",
@@ -101,9 +102,9 @@ func realtimeEncryptLastNode(roundID string, batchSize uint64,
 		var slot services.Slot = &realtime.Slot{
 			Slot:           i,
 			CurrentID:      userId,
-			AssociatedData: globals.GetGroup().NewIntFromBytes(out.AssociatedData),
-			Message:        globals.GetGroup().NewIntFromBytes(out.MessagePayload),
-			CurrentKey:     globals.GetGroup().NewMaxInt(),
+			AssociatedData: grp.NewIntFromBytes(out.AssociatedData),
+			Message:        grp.NewIntFromBytes(out.MessagePayload),
+			CurrentKey:     grp.NewMaxInt(),
 			Salt:           out.Salt,
 		}
 		// Pass slot as input to Peel's channel

@@ -16,10 +16,11 @@ import (
 )
 
 func TestRealtimePeel(t *testing.T) {
+	grp := globals.InitGroup()
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1, globals.GetGroup())
-	globals.InitLastNode(round, globals.GetGroup())
+	round := globals.NewRound(1, grp)
+	globals.InitLastNode(round, grp)
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -41,8 +42,8 @@ func TestRealtimePeel(t *testing.T) {
 	var slot services.Slot = &realtime.Slot{
 		Slot:           uint64(0),
 		CurrentID:      user,
-		Message:        globals.GetGroup().NewInt(7),
-		AssociatedData: globals.GetGroup().NewIntFromBytes(associatedData.SerializeAssociatedData()),
+		Message:        grp.NewInt(7),
+		AssociatedData: grp.NewIntFromBytes(associatedData.SerializeAssociatedData()),
 	}
 
 	// Pass slot as input to Encrypt's TransmissionHandler
@@ -76,6 +77,7 @@ func TestRealtimePeel(t *testing.T) {
 
 // Smoke test
 func TestRealtimePeelHandler_Handler(t *testing.T) {
+	grp := globals.InitGroup()
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1, globals.GetGroup())
@@ -100,7 +102,7 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	round.MIC_Verification[sl.Slot] = true
 	// User registry must be initialized
 	globals.Users = globals.NewUserRegistry("", "", "", "")
-	globals.PopulateDummyUsers(globals.GetGroup())
+	globals.PopulateDummyUsers(grp)
 
 	handler.Handler(roundId, 1, s)
 

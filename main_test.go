@@ -75,17 +75,17 @@ func RootingTest(grp *cyclic.Group, t *testing.T) {
 
 	Y1 := grp.NewInt(79)
 
-	gZ := grp.NewInt(0)
+	gZ := grp.NewInt(1)
 
-	gY1 := grp.NewInt(0)
+	gY1 := grp.NewInt(1)
 
-	MSG := grp.NewInt(0)
-	CTXT := grp.NewInt(0)
+	MSG := grp.NewInt(1)
+	CTXT := grp.NewInt(1)
 
-	IVS := grp.NewInt(0)
-	gY1c := grp.NewInt(0)
+	IVS := grp.NewInt(1)
+	gY1c := grp.NewInt(1)
 
-	RSLT := grp.NewInt(0)
+	RSLT := grp.NewInt(1)
 
 	grp.Exp(grp.GetGCyclic(), Z, gZ)
 	grp.RootCoprime(gZ, Z, RSLT)
@@ -122,26 +122,26 @@ func RootingTestDouble(grp *cyclic.Group, t *testing.T) {
 	Y1 := grp.NewInt(87)
 	Y2 := grp.NewInt(79)
 
-	gZ := grp.NewInt(0)
+	gZ := grp.NewInt(1)
 
-	gY1 := grp.NewInt(0)
-	gY2 := grp.NewInt(0)
+	gY1 := grp.NewInt(1)
+	gY2 := grp.NewInt(1)
 
-	K2gY2 := grp.NewInt(0)
+	K2gY2 := grp.NewInt(1)
 
-	gZY1 := grp.NewInt(0)
-	gZY2 := grp.NewInt(0)
+	gZY1 := grp.NewInt(1)
+	gZY2 := grp.NewInt(1)
 
-	K1gY1 := grp.NewInt(0)
-	K1K2gY1Y2 := grp.NewInt(0)
-	CTXT := grp.NewInt(0)
+	K1gY1 := grp.NewInt(1)
+	K1K2gY1Y2 := grp.NewInt(1)
+	CTXT := grp.NewInt(1)
 
-	IVS := grp.NewInt(0)
-	gY1Y2c := grp.NewInt(0)
+	IVS := grp.NewInt(1)
+	gY1Y2c := grp.NewInt(1)
 
-	RSLT := grp.NewInt(0)
+	RSLT := grp.NewInt(1)
 
-	K1K2 := grp.NewInt(0)
+	K1K2 := grp.NewInt(1)
 
 	grp.Exp(grp.GetGCyclic(), Y1, gY1)
 	grp.Mul(K1, gY1, K1gY1)
@@ -187,34 +187,34 @@ func RootingTestTriple(grp *cyclic.Group, t *testing.T) {
 	Y2 := grp.NewInt(81)
 	Y3 := grp.NewInt(13)
 
-	gZ := grp.NewInt(0)
+	gZ := grp.NewInt(1)
 
-	gY1 := grp.NewInt(0)
-	gY2 := grp.NewInt(0)
-	gY3 := grp.NewInt(0)
+	gY1 := grp.NewInt(1)
+	gY2 := grp.NewInt(1)
+	gY3 := grp.NewInt(1)
 
-	K1gY1 := grp.NewInt(0)
-	K2gY2 := grp.NewInt(0)
-	K3gY3 := grp.NewInt(0)
+	K1gY1 := grp.NewInt(1)
+	K2gY2 := grp.NewInt(1)
+	K3gY3 := grp.NewInt(1)
 
-	gZY1 := grp.NewInt(0)
-	gZY2 := grp.NewInt(0)
-	gZY3 := grp.NewInt(0)
+	gZY1 := grp.NewInt(1)
+	gZY2 := grp.NewInt(1)
+	gZY3 := grp.NewInt(1)
 
-	gZY1Y2 := grp.NewInt(0)
+	gZY1Y2 := grp.NewInt(1)
 
-	K1K2gY1Y2 := grp.NewInt(0)
-	K1K2K3gY1Y2Y3 := grp.NewInt(0)
+	K1K2gY1Y2 := grp.NewInt(1)
+	K1K2K3gY1Y2Y3 := grp.NewInt(1)
 
-	CTXT := grp.NewInt(0)
+	CTXT := grp.NewInt(1)
 
-	IVS := grp.NewInt(0)
-	gY1Y2Y3c := grp.NewInt(0)
+	IVS := grp.NewInt(1)
+	gY1Y2Y3c := grp.NewInt(1)
 
-	RSLT := grp.NewInt(0)
+	RSLT := grp.NewInt(1)
 
-	K1K2 := grp.NewInt(0)
-	K1K2K3 := grp.NewInt(0)
+	K1K2 := grp.NewInt(1)
+	K1K2K3 := grp.NewInt(1)
 
 	grp.Exp(grp.GetGCyclic(), Y1, gY1)
 	grp.Mul(K1, gY1, K1gY1)
@@ -679,8 +679,8 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(4), large.NewInt(5))
 	Node1Round := globals.NewRound(batchSize, &grp)
 	Node2Round := globals.NewRound(batchSize, &grp)
-	Node1Round.CypherPublicKey = grp.NewInt(0)
-	Node2Round.CypherPublicKey = grp.NewInt(0)
+	Node1Round.CypherPublicKey = grp.NewInt(1)
+	Node2Round.CypherPublicKey = grp.NewInt(1)
 
 	// p=107 -> 7 bits, so exponents can be of 6 bits at most
 	// Overwrite default value of rounds
@@ -759,7 +759,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	N1Share.InChannel <- &shareMsg
 	shareResultSlot := <-N2Share.OutChannel
 	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
-	PublicCypherKey := grp.NewInt(0)
+	PublicCypherKey := grp.NewInt(1)
 	grp.Set(PublicCypherKey, shareResult.PartialRoundPublicCypherKey)
 	grp.Set(Node1Round.CypherPublicKey, PublicCypherKey)
 	grp.Set(Node2Round.CypherPublicKey, PublicCypherKey)
@@ -802,7 +802,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 
 	// ----- REALTIME ----- //
 	IntermediateMsgs := make([]*cyclic.Int, 1)
-	IntermediateMsgs[0] = grp.NewInt(0)
+	IntermediateMsgs[0] = grp.NewInt(1)
 
 	N1RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
 		nil, nil, Node1Round)
@@ -916,14 +916,14 @@ func Test1NodePermuteE2E(t *testing.T) {
 		inputMsgs[i] = realtime.Slot{
 			Slot:           i,
 			CurrentID:      id.NewUserFromUint(i+1, t),
-			Message:        grp.NewInt((42 + int64(i)) % 107), // Meaning of Life
-			AssociatedData: grp.NewInt((1 + int64(i)) % 107),
+			Message:        grp.NewInt((42+int64(i))%106 + 1), // Meaning of Life
+			AssociatedData: grp.NewInt((1+int64(i))%106 + 1),
 			CurrentKey:     grp.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
-			CurrentID: id.NewUserFromUint((i+1)%107, t),
-			Message:   grp.NewInt((42 + int64(i)) % 107), // Meaning of Life
+			CurrentID: id.NewUserFromUint((i+1)%106+1, t),
+			Message:   grp.NewInt((42+int64(i))%106 + 1), // Meaning of Life
 		}
 	}
 	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)

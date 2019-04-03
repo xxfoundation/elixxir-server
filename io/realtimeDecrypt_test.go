@@ -15,6 +15,7 @@ import (
 )
 
 func TestRealtimeDecrypt(t *testing.T) {
+	globals.InitGroup()
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1, globals.GetGroup())
@@ -35,8 +36,7 @@ func TestRealtimeDecrypt(t *testing.T) {
 		CurrentID:      id.NewUserFromUint(42, t),
 		Message:        globals.GetGroup().NewInt(7),
 		AssociatedData: globals.GetGroup().NewInt(3),
-		CurrentKey: globals.GetGroup().NewIntFromString(
-			"C0DED00DC0DED00DC0DED00DC0DED00D", 16),
+		CurrentKey:     globals.GetGroup().NewInt(55),
 	}
 
 	slots := [1]*realtime.Slot{slot.(*realtime.Slot)}

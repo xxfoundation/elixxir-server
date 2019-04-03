@@ -58,7 +58,7 @@ func TestNewRound(t *testing.T) {
 	size := uint64(42)
 	actual = NewRound(size, Group)
 
-	zero := Group.NewInt(0)
+	zero := Group.NewInt(1)
 	zero = Group.NewMaxInt()
 
 	if zero.Cmp(actual.CypherPublicKey) != 0 {
@@ -150,7 +150,7 @@ func TestNewRoundWithPhase(t *testing.T) {
 	for p := OFF; p < NUM_PHASES; p++ {
 		actual = NewRoundWithPhase(size, p, Group)
 
-		zero := Group.NewInt(0)
+		zero := Group.NewInt(1)
 		Group.Set(zero, Group.NewMaxInt())
 
 		if zero.Cmp(actual.CypherPublicKey) != 0 {

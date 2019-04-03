@@ -87,7 +87,7 @@ func TestRealTimeVerify(t *testing.T) {
 
 	im = append(im, &Slot{
 		Slot:           2,
-		AssociatedData: grp.NewInt(0)})
+		AssociatedData: grp.NewInt(1)})
 
 	ExpectedOutputs := []bool{true, true, false}
 
@@ -171,7 +171,7 @@ func TestVerifyRun(t *testing.T) {
 
 	om := Slot{
 		Slot:           0,
-		AssociatedData: grp.NewInt(0)}
+		AssociatedData: grp.NewInt(1)}
 
 	verify := Verify{}
 	verify.Run(&grp, &im, &om, &keys)
@@ -183,11 +183,11 @@ func TestVerifyRun(t *testing.T) {
 
 	im = Slot{
 		Slot:           0,
-		AssociatedData: grp.NewInt(0)}
+		AssociatedData: grp.NewInt(1)}
 
 	om = Slot{
 		Slot:           0,
-		AssociatedData: grp.NewInt(0)}
+		AssociatedData: grp.NewInt(1)}
 
 	verify.Run(&grp, &im, &om, &keys)
 

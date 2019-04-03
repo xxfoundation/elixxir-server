@@ -32,7 +32,7 @@ func (cry Test) Run(grp *cyclic.Group, in, out *SlotTest, keys *KeysTest) Slot {
 
 	out.A.Add(in.A, keys.R.GetLargeInt())
 
-	grp.Set(keys.R, grp.NewInt(15))
+	grp.Set(keys.R, grp.NewInt(7))
 
 	return out
 }
@@ -81,7 +81,7 @@ func TestDispatchCryptop(t *testing.T) {
 	}
 
 	result := []*large.Int{
-		large.NewInt(18), large.NewInt(21), large.NewInt(24), large.NewInt(27),
+		large.NewInt(10), large.NewInt(13), large.NewInt(16), large.NewInt(19),
 	}
 
 	dc1 := DispatchCryptop(&grp, Test{}, nil, nil, round)
@@ -106,7 +106,7 @@ func TestDispatchCryptop(t *testing.T) {
 			pass++
 		}
 
-		if round[i].GetLargeInt().Int64() != 15 {
+		if round[i].GetLargeInt().Int64() != 7 {
 			t.Errorf("Test of Dispatcher pass by reference failed at index"+
 				": %v Expected: %v;"+
 				" Actual: %v", i, 15, round[i].Text(10))
