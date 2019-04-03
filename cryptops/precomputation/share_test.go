@@ -24,7 +24,7 @@ func TestShare(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := globals.NewRound(bs, &grp)
+	round := globals.NewRound(bs, grp)
 
 	var im []services.Slot
 
@@ -48,7 +48,7 @@ func TestShare(t *testing.T) {
 		{grp.NewInt(106)},
 	}
 
-	dc := services.DispatchCryptop(&grp, Share{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Share{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- &(im[i])

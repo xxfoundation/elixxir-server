@@ -20,10 +20,10 @@ func TestPrecompDecrypt(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewInt(117), large.NewInt(7), large.NewInt(5))
 
 	globals.Clear(t)
-	globals.SetGroup(&grp)
+	globals.SetGroup(grp)
 
 	batchSize := uint64(3)
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	round.CypherPublicKey = grp.NewInt(13)
 
@@ -80,7 +80,7 @@ func TestPrecompDecrypt(t *testing.T) {
 	}}
 
 	dispatch := services.DispatchCryptop(
-		&grp, Decrypt{}, nil, nil, round)
+		grp, Decrypt{}, nil, nil, round)
 
 	for i := 0; i < len(im); i++ {
 

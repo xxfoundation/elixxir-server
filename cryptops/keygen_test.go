@@ -47,14 +47,14 @@ func TestGenerateClientKey(t *testing.T) {
 	grp := cyclic.NewGroup(prime, large.NewInt(55), large.NewInt(33))
 
 	batchSize := uint64(3)
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	face := make([]interface{}, 2)
 
 	face[0] = round
 	face[1] = RECEPTION
 
-	dc := services.DispatchCryptop(&grp, GenerateClientKey{}, nil, nil,
+	dc := services.DispatchCryptop(grp, GenerateClientKey{}, nil, nil,
 		face)
 
 	// Create user registry, where Run() gets its pair of keys.
@@ -63,7 +63,7 @@ func TestGenerateClientKey(t *testing.T) {
 	// same. This should ensure that userID is used where it should be and
 	// slotID is used where it should be.
 	for i := uint64(0); i < batchSize+1; i++ {
-		users = append(users, globals.Users.NewUser(&grp))
+		users = append(users, globals.Users.NewUser(grp))
 	}
 
 	users[1].Reception.BaseKey = grp.NewIntFromString(

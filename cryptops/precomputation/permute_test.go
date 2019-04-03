@@ -20,7 +20,7 @@ func TestPermute(t *testing.T) {
 
 	batchSize := uint64(3)
 
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	round.Permutations[0] = 1
 	round.Permutations[1] = 2
@@ -92,7 +92,7 @@ func TestPermute(t *testing.T) {
 		},
 	}
 	dispatch := services.DispatchCryptop(
-		&grp, Permute{}, nil, nil, round)
+		grp, Permute{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dispatch.InChannel <- &(inMessages[i])

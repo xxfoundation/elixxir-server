@@ -126,7 +126,7 @@ func TestPrecomputationRevealRun(t *testing.T) {
 	reveal := Reveal{}
 
 	for i := uint64(0); i < bs; i++ {
-		reveal.Run(&grp, im[i], om[i], &key)
+		reveal.Run(grp, im[i], om[i], &key)
 	}
 
 	for i := uint64(0); i < bs; i++ {

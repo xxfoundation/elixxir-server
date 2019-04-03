@@ -25,7 +25,7 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 
 	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 
-	rounds := benchmark.GenerateRounds(nodeCount, batchSize, &grp)
+	rounds := benchmark.GenerateRounds(nodeCount, batchSize, grp)
 
 	// Rewrite permutation pattern
 	for i := 0; i < nodeCount; i++ {
@@ -36,15 +36,15 @@ func Realtime(nodeCount int, batchSize uint64, b *testing.B) {
 		}
 	}
 
-	benchmark.MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+	benchmark.MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		tmpRounds := benchmark.CopyRounds(nodeCount, rounds, &grp)
+		tmpRounds := benchmark.CopyRounds(nodeCount, rounds, grp)
 		inputMsgs, outputMsgs := benchmark.GenerateIOMessages(nodeCount, batchSize,
 			tmpRounds)
 
-		benchmark.MultiNodeRealtime(nodeCount, batchSize, &grp, tmpRounds,
+		benchmark.MultiNodeRealtime(nodeCount, batchSize, grp, tmpRounds,
 			inputMsgs, outputMsgs)
 	}
 }
@@ -57,7 +57,7 @@ func RoundGeneratorBenchmark(nodeCount int, batchSize uint64, b *testing.B) {
 	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		benchmark.GenerateRounds(nodeCount, batchSize, &grp)
+		benchmark.GenerateRounds(nodeCount, batchSize, grp)
 	}
 }
 
@@ -73,11 +73,11 @@ func Precomp(nodeCount int, batchSize uint64, b *testing.B) {
 	prime.SetString(benchmark.PRIME, 16)
 
 	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
-	rounds := benchmark.GenerateRounds(nodeCount, batchSize, &grp)
+	rounds := benchmark.GenerateRounds(nodeCount, batchSize, grp)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		benchmark.MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+		benchmark.MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
 	}
 }
 

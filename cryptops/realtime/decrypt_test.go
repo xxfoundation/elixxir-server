@@ -26,7 +26,7 @@ func TestDecrypt(t *testing.T) {
 
 	batchSize := uint64(3)
 
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	senderIds := [3]*id.User{id.NewUserFromUint(5, t),
 		id.NewUserFromUint(7, t),
@@ -71,7 +71,7 @@ func TestDecrypt(t *testing.T) {
 		{grp.NewInt(85), grp.NewInt(12)},
 	}
 
-	dc := services.DispatchCryptop(&grp, Decrypt{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Decrypt{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(im[i])

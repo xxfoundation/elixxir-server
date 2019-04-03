@@ -24,7 +24,7 @@ func TestStrip(t *testing.T) {
 
 	batchSize := uint64(3)
 
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	var inMessages []services.Slot
 
@@ -40,7 +40,7 @@ func TestStrip(t *testing.T) {
 		MessagePrecomputation:        grp.NewInt(39),
 		AssociatedDataPrecomputation: grp.NewInt(51)})
 
-	globals.InitLastNode(round, &grp)
+	globals.InitLastNode(round, grp)
 	round.LastNode.EncryptedMessagePrecomputation[0] = grp.NewInt(41)
 	round.LastNode.EncryptedAssociatedDataPrecomputation[0] = grp.NewInt(74)
 	round.LastNode.EncryptedMessagePrecomputation[1] = grp.NewInt(8)
@@ -64,7 +64,7 @@ func TestStrip(t *testing.T) {
 		},
 	}
 
-	dc := services.DispatchCryptop(&grp, Strip{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Strip{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(inMessages[i])

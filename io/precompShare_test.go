@@ -55,7 +55,7 @@ func TestPrecompShare(t *testing.T) {
 	// Set up Grp
 	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(5), large.NewInt(4))
 	globals.Clear(t)
-	globals.SetGroup(&grp)
+	globals.SetGroup(grp)
 
 	// Create a new Round
 	roundId := "test"

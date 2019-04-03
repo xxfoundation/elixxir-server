@@ -21,11 +21,11 @@ func TestEncrypt(t *testing.T) {
 		large.NewInt(107), large.NewInt(55), large.NewInt(23))
 
 	globals.Clear(t)
-	globals.SetGroup(&grp)
+	globals.SetGroup(grp)
 
 	batchSize := uint64(3)
 
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                  uint64(0),
@@ -62,7 +62,7 @@ func TestEncrypt(t *testing.T) {
 	}
 
 	dc := services.DispatchCryptop(
-		&grp, Encrypt{}, nil, nil, round)
+		grp, Encrypt{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(im[i])

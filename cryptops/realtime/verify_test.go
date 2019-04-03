@@ -47,7 +47,7 @@ func TestRealTimeVerify(t *testing.T) {
 		large.NewInt(23))
 
 	batchSize := uint64(2)
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	user := id.NewUserFromUint(42, t)
 	assocData := format.NewAssociatedData()
@@ -91,7 +91,7 @@ func TestRealTimeVerify(t *testing.T) {
 
 	ExpectedOutputs := []bool{true, true, false}
 
-	dc := services.DispatchCryptop(&grp, Verify{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Verify{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &im[i]
@@ -174,7 +174,7 @@ func TestVerifyRun(t *testing.T) {
 		AssociatedData: grp.NewInt(1)}
 
 	verify := Verify{}
-	verify.Run(&grp, &im, &om, &keys)
+	verify.Run(grp, &im, &om, &keys)
 
 	if !*keys.Verification {
 		t.Errorf("Expected: %v, Got: %v", true,
@@ -189,7 +189,7 @@ func TestVerifyRun(t *testing.T) {
 		Slot:           0,
 		AssociatedData: grp.NewInt(1)}
 
-	verify.Run(&grp, &im, &om, &keys)
+	verify.Run(grp, &im, &om, &keys)
 
 	if *keys.Verification {
 		t.Errorf("Expected: %v, Got: %v", false,

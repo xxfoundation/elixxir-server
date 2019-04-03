@@ -45,7 +45,7 @@ func InitCrypto() *cyclic.Group {
 	q := large.NewIntFromString(qString, base)
 
 	grp := cyclic.NewGroup(p, g, q)
-	return &grp
+	return grp
 }
 
 type DummyPrecompDecryptHandler struct{}
