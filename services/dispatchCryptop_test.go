@@ -84,8 +84,8 @@ func TestDispatchCryptop(t *testing.T) {
 		large.NewInt(10), large.NewInt(13), large.NewInt(16), large.NewInt(19),
 	}
 
-	dc1 := DispatchCryptop(&grp, Test{}, nil, nil, round)
-	dc2 := DispatchCryptop(&grp, Test{}, dc1.OutChannel, nil, round)
+	dc1 := DispatchCryptop(grp, Test{}, nil, nil, round)
+	dc2 := DispatchCryptop(grp, Test{}, dc1.OutChannel, nil, round)
 
 	if dc1.IsAlive() && dc2.IsAlive() {
 		pass++
@@ -132,7 +132,7 @@ func TestDispatchController_IsAlive(t *testing.T) {
 
 	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(5), large.NewInt(12))
 
-	dc := DispatchCryptop(&grp, Test{}, nil, nil, round)
+	dc := DispatchCryptop(grp, Test{}, nil, nil, round)
 
 	if !dc.IsAlive() {
 		t.Errorf("IsAlive: Expected dispatch to be alive after initialization!")

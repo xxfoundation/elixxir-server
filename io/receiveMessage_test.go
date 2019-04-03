@@ -48,7 +48,7 @@ func TestServerImpl_ReceiveMessageFromClient(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(PRIME, 16),
 		large.NewInt(0), large.NewInt(5))
 	globals.Clear(t)
-	globals.SetGroup(&grp)
+	globals.SetGroup(grp)
 	MessageCh = make(chan *realtime.Slot, 1)
 
 	// Expected values

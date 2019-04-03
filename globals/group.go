@@ -58,6 +58,6 @@ func InitGroup() *cyclic.Group{
 
 	grp := cyclic.NewGroup(p, g, q)
 
-	return &grp
+	return grp
 }
 

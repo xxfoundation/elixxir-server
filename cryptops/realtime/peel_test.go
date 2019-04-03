@@ -26,7 +26,7 @@ func TestPeel(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := globals.NewRound(bs, &grp)
+	round := globals.NewRound(bs, grp)
 
 	recipientIds := [3]*id.User{
 		id.NewUserFromUint(5, t),
@@ -63,7 +63,7 @@ func TestPeel(t *testing.T) {
 		{grp.NewInt(106)},
 	}
 
-	dc := services.DispatchCryptop(&grp, Peel{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Peel{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- &(im[i])

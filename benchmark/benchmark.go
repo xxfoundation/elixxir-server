@@ -584,10 +584,10 @@ func PrecompIterations(nodeCount int, batchSize uint64, iterations int) {
 	prime.SetString(PRIME, 16)
 
 	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
-	rounds := GenerateRounds(nodeCount, batchSize, &grp)
+	rounds := GenerateRounds(nodeCount, batchSize, grp)
 
 	for i := 0; i < iterations; i++ {
-		MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+		MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
 	}
 }
 
@@ -598,7 +598,7 @@ func RealtimeIterations(nodeCount int, batchSize uint64, iterations int) {
 
 	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 
-	rounds := GenerateRounds(nodeCount, batchSize, &grp)
+	rounds := GenerateRounds(nodeCount, batchSize, grp)
 
 	// Rewrite permutation pattern
 	for i := 0; i < nodeCount; i++ {
@@ -609,13 +609,13 @@ func RealtimeIterations(nodeCount int, batchSize uint64, iterations int) {
 		}
 	}
 
-	MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+	MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
 
 	for i := 0; i < iterations; i++ {
-		tmpRounds := CopyRounds(nodeCount, rounds, &grp)
+		tmpRounds := CopyRounds(nodeCount, rounds, grp)
 		inputMsgs, outputMsgs := GenerateIOMessages(nodeCount, batchSize, tmpRounds)
 
-		MultiNodeRealtime(nodeCount, batchSize, &grp, tmpRounds, inputMsgs,
+		MultiNodeRealtime(nodeCount, batchSize, grp, tmpRounds, inputMsgs,
 			outputMsgs)
 	}
 }

@@ -271,19 +271,19 @@ func TestEndToEndCryptops(t *testing.T) {
 	// when debugging
 	batchSize := uint64(1)
 	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(4), large.NewInt(5))
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 	round.CypherPublicKey = grp.NewInt(3)
 	// p=107 -> 7 bits, so exponents can be of 6 bits at most
 	// Overwrite default value of round
 	round.ExpSize = uint32(6)
 
 	// We are the last node, so allocate the arrays for LastNode
-	globals.InitLastNode(round, &grp)
+	globals.InitLastNode(round, grp)
 
 	// ----- PRECOMPUTATION ----- //
 
 	// GENERATION PHASE
-	Generation := services.DispatchCryptop(&grp, precomputation.Generation{},
+	Generation := services.DispatchCryptop(grp, precomputation.Generation{},
 		nil, nil, round)
 
 	var inMessages []services.Slot
@@ -294,9 +294,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	_ = <-Generation.OutChannel
 
 	// These produce useful printouts when the test fails.
-	RootingTest(&grp, t)
-	RootingTestDouble(&grp, t)
-	RootingTestTriple(&grp, t)
+	RootingTest(grp, t)
+	RootingTestDouble(grp, t)
+	RootingTestTriple(grp, t)
 
 	// Overwrite the generated keys. Note the use of Set to make sure the
 	// pointers remain unchanged.
@@ -326,14 +326,14 @@ func TestEndToEndCryptops(t *testing.T) {
 	var shareMsg services.Slot
 	shareMsg = &precomputation.SlotShare{Slot: 0,
 		PartialRoundPublicCypherKey: grp.GetGCyclic()}
-	Share := services.DispatchCryptop(&grp, precomputation.Share{}, nil, nil,
+	Share := services.DispatchCryptop(grp, precomputation.Share{}, nil, nil,
 		round)
 	Share.InChannel <- &shareMsg
 	shareResultSlot := <-Share.OutChannel
 	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
 	grp.Set(round.CypherPublicKey, shareResult.PartialRoundPublicCypherKey)
 
-	t.Logf("SHARE:\n%v", benchmark.RoundText(&grp, round))
+	t.Logf("SHARE:\n%v", benchmark.RoundText(grp, round))
 
 	if shareResult.PartialRoundPublicCypherKey.Cmp(grp.NewInt(69)) != 0 {
 		t.Errorf("SHARE failed\n\texpected: %#v\n\treceived: %#v", 20,
@@ -349,11 +349,11 @@ func TestEndToEndCryptops(t *testing.T) {
 		AssociatedDataCypher:         grp.NewInt(1),
 		AssociatedDataPrecomputation: grp.NewInt(1),
 	}
-	Decrypt := services.DispatchCryptop(&grp, precomputation.Decrypt{},
+	Decrypt := services.DispatchCryptop(grp, precomputation.Decrypt{},
 		nil, nil, round)
 
 	// PERMUTE PHASE
-	Permute := services.DispatchCryptop(&grp, precomputation.Permute{},
+	Permute := services.DispatchCryptop(grp, precomputation.Permute{},
 		nil, nil, round)
 
 	go func(in, out chan *services.Slot) {
@@ -393,7 +393,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	}(Decrypt.OutChannel, Permute.InChannel)
 
 	// // ENCRYPT PHASE
-	Encrypt := services.DispatchCryptop(&grp, precomputation.Encrypt{},
+	Encrypt := services.DispatchCryptop(grp, precomputation.Encrypt{},
 		nil, nil, round)
 
 	go func(in, out chan *services.Slot) {
@@ -441,7 +441,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	}(Permute.OutChannel, Encrypt.InChannel)
 
 	// REVEAL PHASE
-	Reveal := services.DispatchCryptop(&grp, precomputation.Reveal{},
+	Reveal := services.DispatchCryptop(grp, precomputation.Reveal{},
 		nil, nil, round)
 
 	go func(in, out chan *services.Slot) {
@@ -473,7 +473,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	}(Encrypt.OutChannel, Reveal.InChannel)
 
 	// STRIP PHASE
-	Strip := services.DispatchCryptop(&grp, precomputation.Strip{},
+	Strip := services.DispatchCryptop(grp, precomputation.Strip{},
 		nil, nil, round)
 
 	go func(in, out chan *services.Slot) {
@@ -522,7 +522,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			expectedStrip[1].Text(10), es.AssociatedDataPrecomputation.Text(10))
 	}
 
-	MP, RP := ComputeSingleNodePrecomputation(&grp, round)
+	MP, RP := ComputeSingleNodePrecomputation(grp, round)
 
 	if MP.Cmp(es.MessagePrecomputation) != 0 {
 		t.Errorf("Message Precomputation Incorrect!\n\texpected: %#v\n\treceived: %#v",
@@ -544,11 +544,11 @@ func TestEndToEndCryptops(t *testing.T) {
 	})
 
 	// DECRYPT PHASE
-	RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
+	RTDecrypt := services.DispatchCryptop(grp, realtime.Decrypt{},
 		nil, nil, round)
 
 	// PERMUTE PHASE
-	RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
+	RTPermute := services.DispatchCryptop(grp, realtime.Permute{},
 		nil, nil, round)
 
 	go func(in, out chan *services.Slot) {
@@ -579,7 +579,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	}(RTDecrypt.OutChannel, RTPermute.InChannel)
 
 	// IDENTIFY PHASE
-	RTIdentify := services.DispatchCryptop(&grp, realtime.Identify{},
+	RTIdentify := services.DispatchCryptop(grp, realtime.Identify{},
 		nil, nil, round)
 
 	RTDecrypt.InChannel <- &inputMsg
@@ -623,11 +623,11 @@ func TestEndToEndCryptops(t *testing.T) {
 	}
 
 	// ENCRYPT PHASE
-	RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
+	RTEncrypt := services.DispatchCryptop(grp, realtime.Encrypt{},
 		nil, nil, round)
 
 	// PEEL PHASE
-	RTPeel := services.DispatchCryptop(&grp, realtime.Peel{},
+	RTPeel := services.DispatchCryptop(grp, realtime.Peel{},
 		nil, nil, round)
 
 	go func(in, out chan *services.Slot) {
@@ -677,8 +677,8 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	// when debugging
 	batchSize := uint64(1)
 	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(4), large.NewInt(5))
-	Node1Round := globals.NewRound(batchSize, &grp)
-	Node2Round := globals.NewRound(batchSize, &grp)
+	Node1Round := globals.NewRound(batchSize, grp)
+	Node2Round := globals.NewRound(batchSize, grp)
 	Node1Round.CypherPublicKey = grp.NewInt(1)
 	Node2Round.CypherPublicKey = grp.NewInt(1)
 
@@ -688,56 +688,56 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	Node2Round.ExpSize = uint32(6)
 
 	// Allocate the arrays for LastNode
-	globals.InitLastNode(Node2Round, &grp)
+	globals.InitLastNode(Node2Round, grp)
 
 	// ----- PRECOMPUTATION ----- //
-	N1Generation := services.DispatchCryptop(&grp, precomputation.Generation{},
+	N1Generation := services.DispatchCryptop(grp, precomputation.Generation{},
 		nil, nil, Node1Round)
-	N2Generation := services.DispatchCryptop(&grp, precomputation.Generation{},
+	N2Generation := services.DispatchCryptop(grp, precomputation.Generation{},
 		nil, nil, Node2Round)
 	// Since round.Z is generated on creation of the Generation precomp,
 	// need to loop the generation here until a valid Z is produced
 	maxInt := grp.NewMaxInt()
 	for Node1Round.Z.Cmp(maxInt) == 0 || Node2Round.Z.Cmp(maxInt) == 0 {
-		N1Generation = services.DispatchCryptop(&grp, precomputation.Generation{},
+		N1Generation = services.DispatchCryptop(grp, precomputation.Generation{},
 			nil, nil, Node1Round)
-		N2Generation = services.DispatchCryptop(&grp, precomputation.Generation{},
+		N2Generation = services.DispatchCryptop(grp, precomputation.Generation{},
 			nil, nil, Node2Round)
 	}
 
-	N1Share := services.DispatchCryptop(&grp, precomputation.Share{}, nil, nil,
+	N1Share := services.DispatchCryptop(grp, precomputation.Share{}, nil, nil,
 		Node1Round)
-	N2Share := services.DispatchCryptop(&grp, precomputation.Share{},
+	N2Share := services.DispatchCryptop(grp, precomputation.Share{},
 		N1Share.OutChannel, nil, Node2Round)
 
-	N1Decrypt := services.DispatchCryptop(&grp, precomputation.Decrypt{},
+	N1Decrypt := services.DispatchCryptop(grp, precomputation.Decrypt{},
 		nil, nil, Node1Round)
-	N2Decrypt := services.DispatchCryptop(&grp, precomputation.Decrypt{},
+	N2Decrypt := services.DispatchCryptop(grp, precomputation.Decrypt{},
 		N1Decrypt.OutChannel, nil, Node2Round)
 
-	N1Permute := services.DispatchCryptop(&grp, precomputation.Permute{},
+	N1Permute := services.DispatchCryptop(grp, precomputation.Permute{},
 		N2Decrypt.OutChannel, nil, Node1Round)
-	N2Permute := services.DispatchCryptop(&grp, precomputation.Permute{},
+	N2Permute := services.DispatchCryptop(grp, precomputation.Permute{},
 		N1Permute.OutChannel, nil, Node2Round)
 
-	N1Encrypt := services.DispatchCryptop(&grp, precomputation.Encrypt{},
+	N1Encrypt := services.DispatchCryptop(grp, precomputation.Encrypt{},
 		nil, nil, Node1Round)
-	N2Encrypt := services.DispatchCryptop(&grp, precomputation.Encrypt{},
+	N2Encrypt := services.DispatchCryptop(grp, precomputation.Encrypt{},
 		N1Encrypt.OutChannel, nil, Node2Round)
 
-	N1Reveal := services.DispatchCryptop(&grp, precomputation.Reveal{},
+	N1Reveal := services.DispatchCryptop(grp, precomputation.Reveal{},
 		nil, nil, Node1Round)
-	N2Reveal := services.DispatchCryptop(&grp, precomputation.Reveal{},
+	N2Reveal := services.DispatchCryptop(grp, precomputation.Reveal{},
 		N1Reveal.OutChannel, nil, Node2Round)
 
-	N2Strip := services.DispatchCryptop(&grp, precomputation.Strip{},
+	N2Strip := services.DispatchCryptop(grp, precomputation.Strip{},
 		nil, nil, Node2Round)
 
 	go benchmark.RevealStripTranslate(N2Reveal.OutChannel, N2Strip.InChannel)
 	go benchmark.EncryptRevealTranslate(N2Encrypt.OutChannel, N1Reveal.InChannel,
-		Node2Round, &grp)
+		Node2Round, grp)
 	go benchmark.PermuteEncryptTranslate(N2Permute.OutChannel, N1Encrypt.InChannel,
-		Node2Round, &grp)
+		Node2Round, grp)
 
 	// Run Generate
 	genMsg := services.Slot(&precomputation.SlotGeneration{Slot: 0})
@@ -747,8 +747,8 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	_ = <-N2Generation.OutChannel
 
 	t.Logf("2 NODE GENERATION RESULTS: \n")
-	t.Logf("%v", benchmark.RoundText(&grp, Node1Round))
-	t.Logf("%v", benchmark.RoundText(&grp, Node2Round))
+	t.Logf("%v", benchmark.RoundText(grp, Node1Round))
+	t.Logf("%v", benchmark.RoundText(grp, Node2Round))
 
 	// TODO: Pre-can the keys to use here if necessary.
 
@@ -765,8 +765,8 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	grp.Set(Node2Round.CypherPublicKey, PublicCypherKey)
 
 	t.Logf("2 NODE SHARE RESULTS: \n")
-	t.Logf("%v", benchmark.RoundText(&grp, Node2Round))
-	t.Logf("%v", benchmark.RoundText(&grp, Node1Round))
+	t.Logf("%v", benchmark.RoundText(grp, Node2Round))
+	t.Logf("%v", benchmark.RoundText(grp, Node1Round))
 
 	// Now finish precomputation
 	decMsg := services.Slot(&precomputation.PrecomputationSlot{
@@ -788,7 +788,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 		es.AssociatedDataPrecomputation.Text(10))
 
 	// Check precomputation
-	MP, RP := ComputePrecomputation(&grp,
+	MP, RP := ComputePrecomputation(grp,
 		[]*globals.Round{Node1Round, Node2Round})
 
 	if MP.Cmp(es.MessagePrecomputation) != 0 {
@@ -804,37 +804,37 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	IntermediateMsgs := make([]*cyclic.Int, 1)
 	IntermediateMsgs[0] = grp.NewInt(1)
 
-	N1RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
+	N1RTDecrypt := services.DispatchCryptop(grp, realtime.Decrypt{},
 		nil, nil, Node1Round)
-	N2RTDecrypt := services.DispatchCryptop(&grp, realtime.Decrypt{},
+	N2RTDecrypt := services.DispatchCryptop(grp, realtime.Decrypt{},
 		nil, nil, Node2Round)
 
-	N1RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
+	N1RTPermute := services.DispatchCryptop(grp, realtime.Permute{},
 		nil, nil, Node1Round)
-	N2RTPermute := services.DispatchCryptop(&grp, realtime.Permute{},
+	N2RTPermute := services.DispatchCryptop(grp, realtime.Permute{},
 		N1RTPermute.OutChannel, nil, Node2Round)
 
-	N2RTIdentify := services.DispatchCryptop(&grp, realtime.Identify{},
+	N2RTIdentify := services.DispatchCryptop(grp, realtime.Identify{},
 		nil, nil, Node2Round)
 
-	N1RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
+	N1RTEncrypt := services.DispatchCryptop(grp, realtime.Encrypt{},
 		nil, nil, Node1Round)
-	N2RTEncrypt := services.DispatchCryptop(&grp, realtime.Encrypt{},
+	N2RTEncrypt := services.DispatchCryptop(grp, realtime.Encrypt{},
 		nil, nil, Node2Round)
 
-	N2RTPeel := services.DispatchCryptop(&grp, realtime.Peel{},
+	N2RTPeel := services.DispatchCryptop(grp, realtime.Peel{},
 		nil, nil, Node2Round)
 
 	go benchmark.RTEncryptRTEncryptTranslate(N1RTEncrypt.OutChannel,
-		N2RTEncrypt.InChannel, &grp)
+		N2RTEncrypt.InChannel, grp)
 	go benchmark.RTDecryptRTDecryptTranslate(N1RTDecrypt.OutChannel,
-		N2RTDecrypt.InChannel, &grp)
+		N2RTDecrypt.InChannel, grp)
 	go benchmark.RTDecryptRTPermuteTranslate(N2RTDecrypt.OutChannel,
 		N1RTPermute.InChannel)
 	go benchmark.RTPermuteRTIdentifyTranslate(N2RTPermute.OutChannel,
-		N2RTIdentify.InChannel, IntermediateMsgs, &grp)
+		N2RTIdentify.InChannel, IntermediateMsgs, grp)
 	go benchmark.RTIdentifyRTEncryptTranslate(N2RTIdentify.OutChannel,
-		N1RTEncrypt.InChannel, IntermediateMsgs, &grp)
+		N1RTEncrypt.InChannel, IntermediateMsgs, grp)
 	go benchmark.RTEncryptRTPeelTranslate(N2RTEncrypt.OutChannel,
 		N2RTPeel.InChannel)
 
@@ -896,8 +896,8 @@ func Test3NodeE2E(t *testing.T) {
 			Message:   grp.NewInt(42 + int64(i)), // Meaning of Life
 		}
 	}
-	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)
-	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
+	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, grp)
+	MultiNodeTest(nodeCount, BatchSize, grp, rounds, inputMsgs, outputMsgs, t)
 }
 
 func Test1NodePermuteE2E(t *testing.T) {
@@ -926,7 +926,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 			Message:   grp.NewInt((42+int64(i))%106 + 1), // Meaning of Life
 		}
 	}
-	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)
+	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, grp)
 	for i := 0; i < nodeCount; i++ {
 		for j := uint64(0); j < BatchSize; j++ {
 			// Shift by 1
@@ -941,7 +941,7 @@ func Test1NodePermuteE2E(t *testing.T) {
 		outputMsgs = newOutMsgs
 	}
 
-	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
+	MultiNodeTest(nodeCount, BatchSize, grp, rounds, inputMsgs, outputMsgs, t)
 }
 
 func TestRealPrimeE2E(t *testing.T) {
@@ -991,7 +991,7 @@ func TestRealPrimeE2E(t *testing.T) {
 			Message:   grp.NewInt((42 + int64(i)) % 107), // Meaning of Life
 		}
 	}
-	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, &grp)
+	rounds := benchmark.GenerateRounds(nodeCount, BatchSize, grp)
 	for i := 0; i < nodeCount; i++ {
 		for j := uint64(0); j < BatchSize; j++ {
 			// Shift by 1
@@ -1006,7 +1006,7 @@ func TestRealPrimeE2E(t *testing.T) {
 		outputMsgs = newOutMsgs
 	}
 
-	MultiNodeTest(nodeCount, BatchSize, &grp, rounds, inputMsgs, outputMsgs, t)
+	MultiNodeTest(nodeCount, BatchSize, grp, rounds, inputMsgs, outputMsgs, t)
 }
 
 // Call the main benchmark tests so we get coverage for it

@@ -43,7 +43,7 @@ func TestRealTimeIdentify(t *testing.T) {
 		large.NewInt(23))
 
 	batchSize := uint64(2)
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 	round.AssociatedDataPrecomputation = make([]*cyclic.Int, batchSize)
 	round.AssociatedDataPrecomputation[0] = grp.NewInt(42)
 	round.AssociatedDataPrecomputation[1] = grp.NewInt(42)
@@ -62,7 +62,7 @@ func TestRealTimeIdentify(t *testing.T) {
 
 	ExpectedOutputs := []*cyclic.Int{grp.NewInt(42), grp.NewInt(42)}
 
-	dc := services.DispatchCryptop(&grp, Identify{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Identify{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &im[i]
@@ -127,7 +127,7 @@ func TestIdentifyRun(t *testing.T) {
 
 	// Identify(&grp, AssociatedData, DecryptedRecipient, RecipientPrecomp)
 	identify := Identify{}
-	identify.Run(&grp, &im, &om, &keys)
+	identify.Run(grp, &im, &om, &keys)
 
 	if om.AssociatedData.Cmp(ExpectedOutput) != 0 {
 		t.Errorf("Expected: %v, Got: %v", ExpectedOutput.Text(10),

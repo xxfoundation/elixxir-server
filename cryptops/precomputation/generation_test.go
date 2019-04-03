@@ -49,7 +49,7 @@ func TestGeneration(t *testing.T) {
 
 	batchSize := uint64(4)
 
-	round := globals.NewRound(batchSize, &grp)
+	round := globals.NewRound(batchSize, grp)
 
 	var inMessages []services.Slot
 
@@ -57,7 +57,7 @@ func TestGeneration(t *testing.T) {
 		inMessages = append(inMessages, &SlotGeneration{Slot: i})
 	}
 
-	dc := services.DispatchCryptop(&grp, Generation{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Generation{}, nil, nil, round)
 
 	testOK := true
 	for i := uint64(0); i < batchSize; i++ {

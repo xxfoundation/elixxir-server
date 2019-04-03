@@ -26,7 +26,7 @@ func TestRealTimePermute(t *testing.T) {
 
 	bs := uint64(3)
 
-	round := globals.NewRound(bs, &grp)
+	round := globals.NewRound(bs, grp)
 
 	im = append(im, &Slot{
 		Slot:           uint64(0),
@@ -61,7 +61,7 @@ func TestRealTimePermute(t *testing.T) {
 		{grp.NewInt(25), grp.NewInt(26)},
 	}
 
-	dc := services.DispatchCryptop(&grp, Permute{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Permute{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- &im[i]
@@ -152,7 +152,7 @@ func TestRealtimePermuteRun(t *testing.T) {
 	permute := Permute{}
 
 	for i := uint64(0); i < bs; i++ {
-		permute.Run(&grp, im[i], om[i], &keys[i])
+		permute.Run(grp, im[i], om[i], &keys[i])
 	}
 
 	for i := uint64(0); i < bs; i++ {

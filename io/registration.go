@@ -95,11 +95,11 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 
 	// Generate user CMIX keys
 	b, _ := hash2.NewCMixHash()
-	baseTKey := registration.GenerateBaseKey(&dsaGrp, userPublicKey, privateKey, b)
-	baseRKey := registration.GenerateBaseKey(&dsaGrp, userPublicKey, privateKey, sha256.New())
+	baseTKey := registration.GenerateBaseKey(dsaGrp, userPublicKey, privateKey, b)
+	baseRKey := registration.GenerateBaseKey(dsaGrp, userPublicKey, privateKey, sha256.New())
 
 	// Store user information in the database
-	newUser := globals.Users.NewUser(&dsaGrp)
+	newUser := globals.Users.NewUser(dsaGrp)
 	newUser.Nonce = userNonce
 	newUser.ID = userId
 	newUser.PublicKey = userPublicKey
