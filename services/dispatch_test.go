@@ -84,10 +84,10 @@ var ModuleA = Module{
 		}
 		return nil
 	},
-	Cryptop:    Add,
-	InputSize:  8,
-	NumThreads: 8,
-	Name:       "ModuleA",
+	Cryptop:        Add,
+	AssignmentSize: 8,
+	NumThreads:     8,
+	Name:           "ModuleA",
 }
 
 var ModuleB = Module{
@@ -106,10 +106,10 @@ var ModuleB = Module{
 
 		return nil
 	},
-	Cryptop:    MultiMul,
-	InputSize:  MultiMul.GetMinSize(),
-	NumThreads: 2,
-	Name:       "ModuleB",
+	Cryptop:        MultiMul,
+	AssignmentSize: MultiMul.GetMinSize(),
+	NumThreads:     2,
+	Name:           "ModuleB",
 }
 
 var ModuleC = Module{
@@ -127,10 +127,10 @@ var ModuleC = Module{
 
 		return nil
 	},
-	Cryptop:    ModMul,
-	NumThreads: 3,
-	InputSize:  2,
-	Name:       "ModuleC",
+	Cryptop:        ModMul,
+	NumThreads:     3,
+	AssignmentSize: 2,
+	Name:           "ModuleC",
 }
 
 var ModuleD = Module{
@@ -147,10 +147,11 @@ var ModuleD = Module{
 		}
 		return nil
 	},
-	Cryptop:    Sub,
-	NumThreads: 5,
-	InputSize:  7,
-	Name:       "ModuleD",
+	Cryptop:        Sub,
+	NumThreads:     5,
+	AssignmentSize: 14,
+	ChunkSize:      7,
+	Name:           "ModuleD",
 }
 
 func TestGraph(t *testing.T) {
@@ -191,8 +192,8 @@ func TestGraph(t *testing.T) {
 
 		// This is probably the problem - we're ranging over a channel that
 		// doesn't get closed properly. So the range won't finish.
-		for lot := range g.LotDoneChannel() {
-			for i := lot.Begin(); i < lot.End(); i++ {
+		for chunk := range g.ChunkDoneChannel() {
+			for i := chunk.Begin(); i < chunk.End(); i++ {
 				// Compute expected result for this slot
 				A := stream.A[i]
 				B := stream.B[i]

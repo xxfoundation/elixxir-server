@@ -28,12 +28,12 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 
 				for _, om := range m.outputModules {
 
-					chunkList := om.PrimeOutputs(chunk)
+					chunkList, numComplete := om.PrimeOutputs(chunk)
 					for _, r := range chunkList {
 						om.input <- r
 					}
 
-					fin := om.DenoteCompleted(len(chunkList))
+					fin := om.DenoteCompleted(numComplete)
 
 					if fin {
 						// Here the receiver is closing the input, from multiple senders? This is extremely likely to be wrong

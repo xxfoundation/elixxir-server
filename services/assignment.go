@@ -10,8 +10,10 @@ import (
 type assignment struct {
 	//Beginning of the region defined by the chunk
 	start uint32
+	//Size of the assignment
+	assignmentSize uint32
 	//Size of the chunk
-	size uint32
+	chunkSize uint32
 
 	//atomic compatible count of completion of chunk
 	count *uint32
@@ -26,14 +28,15 @@ type assignmentList struct {
 	assignmentsCompleted *uint32
 }
 
-func newAssignment(start uint32, max uint32, size uint32) *assignment {
+func newAssignment(start, max, assignmentSize, chunkSize uint32) *assignment {
 	var count uint32
 
 	return &assignment{
-		start:    start,
-		count:    &count,
-		maxCount: max,
-		size:     size,
+		start:          start,
+		count:          &count,
+		maxCount:       max,
+		assignmentSize: assignmentSize,
+		chunkSize:      chunkSize,
 	}
 }
 
@@ -46,7 +49,7 @@ func (a *assignment) Enqueue(weight uint32) bool {
 		cnt := cntOld + weight
 
 		if cnt > a.maxCount {
-			panic(fmt.Sprintf("assignment size overflow, Expected: <=%v, Got: %v from Weight: %v off %v", a.maxCount, cnt, weight, cntOld))
+			panic(fmt.Sprintf("assignment assignmentSize overflow, Expected: <=%v, Got: %v from Weight: %v off %v", a.maxCount, cnt, weight, cntOld))
 		} else if cnt == a.maxCount {
 			ready = true
 		} else {
@@ -59,17 +62,23 @@ func (a *assignment) Enqueue(weight uint32) bool {
 	return ready
 }
 
-func (a *assignment) GetChunk() Chunk {
-	return Chunk{a.start, a.start + uint32(a.size)}
+func (a *assignment) GetChunk() []Chunk {
+	var chunks []Chunk
+	for p := a.start; p < a.start+uint32(a.assignmentSize); p += a.chunkSize {
+		chunks = append(chunks, Chunk{p, p + a.chunkSize})
+	}
+	return chunks
 }
 
 // This method name doesn't seem quite right
-func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
+func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, int) {
 	position := c.Begin()
 
 	var cList []Chunk
 
 	denoted := c.Len()
+
+	numComplete := 0
 
 	for denoted > 0 {
 		assignmentNum := uint32(math.Floor(float64(position) / float64(al.assignmentSize)))
@@ -82,13 +91,13 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 		ready := al.assignments[assignmentNum].Enqueue(weight)
 
 		if ready {
-
-			cList = append(cList, al.assignments[assignmentNum].GetChunk())
+			numComplete++
+			cList = append(cList, al.assignments[assignmentNum].GetChunk()...)
 		}
 		position += weight
 		denoted -= weight
 	}
-	return cList
+	return cList, numComplete
 }
 
 func (al *assignmentList) DenoteCompleted(numCompleted int) bool {

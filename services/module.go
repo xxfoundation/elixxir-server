@@ -15,7 +15,8 @@ type Module struct {
 	Adapt   adapter
 	Cryptop cryptops.Cryptop
 
-	InputSize uint32
+	AssignmentSize uint32
+	ChunkSize      uint32
 
 	Name string
 
