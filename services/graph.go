@@ -73,39 +73,11 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 
 	//Find expanded batch assignmentSize
 	integers := make([]uint32, len(g.modules)+1)
+	var modulesAtBatchSize []*Module
 
 	for itr, m := range g.modules {
 		if m.NumThreads == 0 {
 			panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
-		}
-		if m.AssignmentSize == 0 {
-			m.AssignmentSize = m.Cryptop.GetMinSize()
-		}
-		integers[itr-1] = m.AssignmentSize
-	}
-
-	integers[len(integers)-1] = globals.MinSlotSize
-	lcm := globals.LCM(integers)
-
-	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
-
-	g.batchSize = batchSize
-	g.expandBatchSize = expandBatchSize
-
-	g.outputModule = &Module{
-		AssignmentSize: globals.MinSlotSize,
-		inputModules:   []*Module{g.lastModule},
-		Name:           "Output",
-	}
-
-	g.lastModule.outputModules = append(g.lastModule.outputModules, g.outputModule)
-	g.add(g.outputModule)
-
-	/*build assignments*/
-	for _, m := range g.modules {
-
-		if m.ChunkSize == 0 {
-			m.ChunkSize = m.AssignmentSize
 		}
 
 		if m.AssignmentSize%m.ChunkSize != 0 {
@@ -122,6 +94,42 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 			panic(fmt.Sprintf("ChunkSize (%v) must be <= AssignmentSize (%v), "+
 				"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
 		}
+
+		if m.ChunkSize == 0 {
+			m.ChunkSize = globals.MinSlotSize
+		}
+		if m.AssignmentSize == 0 {
+			integers[itr-1] = m.ChunkSize
+			modulesAtBatchSize = append(modulesAtBatchSize, m)
+		} else {
+			integers[itr-1] = m.AssignmentSize
+		}
+
+	}
+
+	integers[len(integers)-1] = globals.MinSlotSize
+	lcm := globals.LCM(integers)
+
+	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
+
+	g.batchSize = batchSize
+	g.expandBatchSize = expandBatchSize
+
+	for _, m := range modulesAtBatchSize {
+		m.AssignmentSize = expandBatchSize
+	}
+
+	g.outputModule = &Module{
+		AssignmentSize: globals.MinSlotSize,
+		inputModules:   []*Module{g.lastModule},
+		Name:           "Output",
+	}
+
+	g.lastModule.outputModules = append(g.lastModule.outputModules, g.outputModule)
+	g.add(g.outputModule)
+
+	/*build assignments*/
+	for _, m := range g.modules {
 
 		numJobs := uint32(expandBatchSize / m.AssignmentSize)
 
@@ -227,7 +235,7 @@ func (g *Graph) Send(sr Chunk) {
 		// Ideally, only the sender closes, and only if there's one sender.
 		// Does commenting this fix the double close?
 		// It does not.
-        g.firstModule.closeInput()
+		g.firstModule.closeInput()
 	}
 }
 
