@@ -79,7 +79,12 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 			panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
 		}
 		if m.AssignmentSize == 0 {
-			m.AssignmentSize = m.Cryptop.GetMinSize()
+			// use default value: whole batch
+			m.AssignmentSize = batchSize
+		}
+		if m.ChunkSize == 0 {
+			// use default value: minimum size of cryptop
+			m.ChunkSize = m.Cryptop.GetMinSize()
 		}
 		integers[itr-1] = m.AssignmentSize
 	}
