@@ -7,6 +7,7 @@ package precomputation
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
@@ -18,37 +19,36 @@ func TestShare(t *testing.T) {
 	test := 3
 	pass := 0
 
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(23),
+		large.NewInt(27))
+
 	bs := uint64(3)
 
-	round := globals.NewRound(bs)
-
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-
-	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23), cyclic.NewInt(27), rng)
+	round := globals.NewRound(bs, grp)
 
 	var im []services.Slot
 
 	im = append(im, &SlotShare{
 		Slot:                        uint64(0),
-		PartialRoundPublicCypherKey: cyclic.NewInt(int64(39))})
+		PartialRoundPublicCypherKey: grp.NewInt(int64(39))})
 
 	im = append(im, &SlotShare{
 		Slot:                        uint64(1),
-		PartialRoundPublicCypherKey: cyclic.NewInt(int64(86))})
+		PartialRoundPublicCypherKey: grp.NewInt(int64(86))})
 
 	im = append(im, &SlotShare{
 		Slot:                        uint64(1),
-		PartialRoundPublicCypherKey: cyclic.NewInt(int64(66))})
+		PartialRoundPublicCypherKey: grp.NewInt(int64(66))})
 
-	round.Z = cyclic.NewInt(53)
+	round.Z = grp.NewInt(53)
 
 	expected := [][]*cyclic.Int{
-		{cyclic.NewInt(1)},
-		{cyclic.NewInt(1)},
-		{cyclic.NewInt(106)},
+		{grp.NewInt(1)},
+		{grp.NewInt(1)},
+		{grp.NewInt(106)},
 	}
 
-	dc := services.DispatchCryptop(&grp, Share{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Share{}, nil, nil, round)
 
 	for i := uint64(0); i < bs; i++ {
 		dc.InChannel <- &(im[i])

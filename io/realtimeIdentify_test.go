@@ -7,7 +7,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -19,8 +18,8 @@ import (
 func TestRealtimeIdentify(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -38,9 +37,9 @@ func TestRealtimeIdentify(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &realtime.Slot{
 		Slot:           uint64(0),
-		Message:        cyclic.NewInt(12),
-		AssociatedData: cyclic.NewInt(7),
-		CurrentKey:     cyclic.NewInt(1),
+		Message:        globals.GetGroup().NewInt(12),
+		AssociatedData: globals.GetGroup().NewInt(7),
+		CurrentKey:     globals.GetGroup().NewInt(1),
 	}
 
 	// Pass slot as input to Identify's TransmissionHandler

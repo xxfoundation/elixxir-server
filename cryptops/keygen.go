@@ -9,8 +9,8 @@ package cryptops
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
-	cmix "gitlab.com/elixxir/crypto/messaging"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -72,7 +72,12 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 		om[i] = &realtime.Slot{}
 	}
 
-	return &services.DispatchBuilder{round.BatchSize, &keys, &om, group}
+	return &services.DispatchBuilder{
+		BatchSize: round.BatchSize,
+		Keys:      &keys,
+		Output:    &om,
+		G:         group,
+	}
 }
 
 // Run() generates a client key (either transmission or reception) through
@@ -80,7 +85,7 @@ func (g GenerateClientKey) Build(group *cyclic.Group,
 // when the first node receives the message from the client, and the reception
 // key is used after the realtime Peel phase, when the client is receiving the
 // message from the last node.
-func (g GenerateClientKey) Run(group *cyclic.Group, in,
+func (g GenerateClientKey) Run(grp *cyclic.Group, in,
 	out *realtime.Slot,
 	keys *KeysGenerateClientKey) services.Slot {
 	// This cryptop gets user information from the user registry, which is
@@ -92,7 +97,7 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 		jww.INFO.Printf("GenerateClientKey Run: Got lookup"+
 			" failure on %v, using a random key to destroy the data. Error: %s",
 			in.CurrentID, err.Error())
-		group.Random(in.CurrentKey)
+		grp.Random(in.CurrentKey)
 		return in
 	}
 
@@ -101,8 +106,8 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
 	if keys.keySelection == TRANSMISSION {
 		baseKey := user.Transmission.BaseKey
-		decryptionKey := cmix.NewDecryptionKey(in.Salt, baseKey, group)
-		in.CurrentKey.Set(decryptionKey)
+		decryptionKey := cmix.NewDecryptionKey(in.Salt, baseKey, grp)
+		grp.Set(in.CurrentKey, decryptionKey)
 	} else if keys.keySelection == RECEPTION {
 		if !*keys.verification {
 			jww.ERROR.Printf(
@@ -110,8 +115,8 @@ func (g GenerateClientKey) Run(group *cyclic.Group, in,
 					"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
 		} else {
 			baseKey := user.Reception.BaseKey
-			encryptionKey := cmix.NewEncryptionKey(in.Salt, baseKey, group)
-			in.CurrentKey.Set(encryptionKey)
+			encryptionKey := cmix.NewEncryptionKey(in.Salt, baseKey, grp)
+			grp.Set(in.CurrentKey, encryptionKey)
 		}
 
 	} else {

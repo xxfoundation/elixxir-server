@@ -32,7 +32,7 @@ type KeysPermute struct {
 
 // Allocated memory and arranges key objects for the Precomputation
 // Permute Phase
-func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuilder {
+func (p Permute) Build(grp *cyclic.Group, face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
 	round := face.(*globals.Round)
@@ -43,10 +43,10 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &PrecomputationSlot{
 			Slot:                         i,
-			MessagePrecomputation:        cyclic.NewMaxInt(),
-			MessageCypher:                cyclic.NewMaxInt(),
-			AssociatedDataPrecomputation: cyclic.NewMaxInt(),
-			AssociatedDataCypher:         cyclic.NewMaxInt(),
+			MessagePrecomputation:        grp.NewMaxInt(),
+			MessageCypher:                grp.NewMaxInt(),
+			AssociatedDataPrecomputation: grp.NewMaxInt(),
+			AssociatedDataCypher:         grp.NewMaxInt(),
 		}
 	}
 
@@ -70,7 +70,7 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
 		Output:    &om,
-		G:         g,
+		G:         grp,
 	}
 
 	return &db
@@ -78,45 +78,45 @@ func (p Permute) Build(g *cyclic.Group, face interface{}) *services.DispatchBuil
 }
 
 // Permutes the four results of the Decrypt phase and multiplies in own keys
-func (p Permute) Run(g *cyclic.Group, in, out *PrecomputationSlot,
+func (p Permute) Run(grp *cyclic.Group, in, out *PrecomputationSlot,
 	keys *KeysPermute) services.Slot {
 
 	// Create Temporary variable
-	tmp := cyclic.NewMaxInt()
+	tmp := grp.NewMaxInt()
 
 	// Eq 11.1: Encrypt the Permuted Internode Message Key under
 	// Homomorphic Encryption
-	g.Exp(g.G, keys.Y_S, tmp)
-	g.Mul(keys.S_INV, tmp, tmp)
+	grp.Exp(grp.GetGCyclic(), keys.Y_S, tmp)
+	grp.Mul(keys.S_INV, tmp, tmp)
 
 	// Eq 13.17: Multiplies the Permuted Internode Message Key under Homomorphic
 	// Encryption into the Partial Encrypted Message Precomputation
-	g.Mul(in.MessageCypher, tmp, out.MessageCypher)
+	grp.Mul(in.MessageCypher, tmp, out.MessageCypher)
 
 	// Eq 11.1: Encrypt the Permuted Internode AssociatedData Key under Homomorphic
 	// Encryption
-	g.Exp(g.G, keys.Y_V, tmp)
-	g.Mul(keys.V_INV, tmp, tmp)
+	grp.Exp(grp.GetGCyclic(), keys.Y_V, tmp)
+	grp.Mul(keys.V_INV, tmp, tmp)
 
 	// Eq 13.19: Multiplies the Permuted Internode AssociatedData Key under
 	// Homomorphic Encryption into the Partial Encrypted AssociatedData Precomputation
-	g.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
+	grp.Mul(in.AssociatedDataCypher, tmp, out.AssociatedDataCypher)
 
 	// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode Message
 	// Key
-	g.Exp(keys.CypherPublicKey, keys.Y_S, tmp)
+	grp.Exp(keys.CypherPublicKey, keys.Y_S, tmp)
 
 	// Eq 13.21: Multiplies the Partial Cypher Text for the Permuted Internode
 	// Message Key into the Round Message Partial Cypher Text
-	g.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
+	grp.Mul(in.MessagePrecomputation, tmp, out.MessagePrecomputation)
 
 	// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode
 	// AssociatedData Key
-	g.Exp(keys.CypherPublicKey, keys.Y_V, tmp)
+	grp.Exp(keys.CypherPublicKey, keys.Y_V, tmp)
 
 	// Eq 13.23 Multiplies the Partial Cypher Text for the Permuted Internode
 	// AssociatedData Key into the Round AssociatedData Partial Cypher Text
-	g.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
+	grp.Mul(in.AssociatedDataPrecomputation, tmp, out.AssociatedDataPrecomputation)
 
 	return out
 

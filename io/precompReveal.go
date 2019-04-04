@@ -7,7 +7,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -41,9 +40,9 @@ func PrecompReveal(input *pb.PrecompRevealMessage) {
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.PrecomputationSlot{
 			Slot: in.Slot,
-			MessagePrecomputation: cyclic.NewIntFromBytes(
+			MessagePrecomputation: globals.GetGroup().NewIntFromBytes(
 				in.PartialMessageCypherText),
-			AssociatedDataPrecomputation: cyclic.NewIntFromBytes(
+			AssociatedDataPrecomputation: globals.GetGroup().NewIntFromBytes(
 				in.PartialAssociatedDataCypherText),
 		}
 		// Pass slot as input to Reveal's channel
@@ -90,9 +89,9 @@ func precompRevealLastNode(roundId string, batchSize uint64,
 		// Convert to SlotStripIn
 		var slot services.Slot = &precomputation.PrecomputationSlot{
 			Slot: out.Slot,
-			MessagePrecomputation: cyclic.NewIntFromBytes(
+			MessagePrecomputation: globals.GetGroup().NewIntFromBytes(
 				out.PartialMessageCypherText),
-			AssociatedDataPrecomputation: cyclic.NewIntFromBytes(
+			AssociatedDataPrecomputation: globals.GetGroup().NewIntFromBytes(
 				out.PartialAssociatedDataCypherText),
 		}
 		// Pass slot as input to Strip's channel

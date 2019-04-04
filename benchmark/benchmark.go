@@ -8,17 +8,19 @@
 package benchmark
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 
-	jww "github.com/spf13/jwalterweatherman"
-
 	"fmt"
 	"gitlab.com/elixxir/primitives/id"
 )
+
+var group *cyclic.Group
 
 var PRIME = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -69,7 +71,7 @@ var MAXGENERATION = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 // Convert the round object into a string we can print
 func RoundText(g *cyclic.Group, n *globals.Round) string {
 	outStr := fmt.Sprintf("\tPrime: 107, Generator: %s, CypherPublicKey: %s, "+
-		"Z: %s\n", g.G.Text(10), n.CypherPublicKey.Text(10), n.Z.Text(10))
+		"Z: %s\n", g.GetG().Text(10), n.CypherPublicKey.Text(10), n.Z.Text(10))
 	outStr += fmt.Sprintf("\tPermutations: %v\n", n.Permutations)
 	rfmt := "\tRound[%d]: R(%s, %s, %s) S(%s, %s, %s) T(%s, %s, %s) \n" +
 		"\t\t  U(%s, %s, %s) V(%s, %s, %s) \n"
@@ -87,27 +89,26 @@ func RoundText(g *cyclic.Group, n *globals.Round) string {
 // Helper function to initialize round keys. Useful when you only need to edit 1
 // element (e.g., the Permutation) in the set of keys held in round
 func GenerateRounds(nodeCount int, BatchSize uint64,
-	group *cyclic.Group) []*globals.Round {
+	grp *cyclic.Group) []*globals.Round {
+	group = grp
 	rounds := make([]*globals.Round, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		rounds[i] = globals.NewRound(BatchSize)
-		rounds[i].CypherPublicKey = cyclic.NewInt(0)
+		rounds[i] = globals.NewRound(BatchSize, grp)
+		rounds[i].CypherPublicKey = grp.NewInt(1)
 
 		// Overwrite default value of rounds ExpSize if group prime is small
-		prime := cyclic.NewMaxInt()
-		group.GetP(prime)
-		expSize := prime.BitLen() - 1
+		expSize := grp.GetP().BitLen() - 1
 		if expSize < 256 {
 			rounds[i].ExpSize = uint32(expSize)
 		}
 
 		// Last Node initialization
 		if i == (nodeCount - 1) {
-			globals.InitLastNode(rounds[i])
+			globals.InitLastNode(rounds[i], grp)
 		}
 	}
 
-	maxInt := cyclic.NewMaxInt()
+	maxInt := grp.NewMaxInt()
 	// Run the GENERATION step
 	generations := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
@@ -115,7 +116,7 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 		// need to loop the generation here until a valid Z is produced
 		// This will only happen for small groups
 		for rounds[i].Z.Cmp(maxInt) == 0 || rounds[i].Z.Cmp(maxInt) == 0 {
-			generations[i] = services.DispatchCryptop(group,
+			generations[i] = services.DispatchCryptop(grp,
 				precomputation.Generation{}, nil, nil, rounds[i])
 		}
 	}
@@ -138,7 +139,7 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 
 // Convert Permute output slot to Encrypt input slot
 func PermuteEncryptTranslate(permute, encrypt chan *services.Slot,
-	round *globals.Round) {
+	round *globals.Round, grp *cyclic.Group) {
 	for permuteSlot := range permute {
 		is := (*permuteSlot).(*precomputation.PrecomputationSlot)
 		se := services.Slot(&precomputation.PrecomputationSlot{
@@ -148,16 +149,15 @@ func PermuteEncryptTranslate(permute, encrypt chan *services.Slot,
 		})
 		// Save LastNode Data to Round
 		i := is.Slot
-		round.LastNode.AssociatedDataCypherText[i].Set(is.AssociatedDataPrecomputation)
-		round.LastNode.EncryptedAssociatedDataPrecomputation[i].Set(
-			is.AssociatedDataCypher)
+		grp.Set(round.LastNode.AssociatedDataCypherText[i], is.AssociatedDataPrecomputation)
+		grp.Set(round.LastNode.EncryptedAssociatedDataPrecomputation[i], is.AssociatedDataCypher)
 		encrypt <- &se
 	}
 }
 
 // Convert Encrypt output slot to Reveal input slot
 func EncryptRevealTranslate(encrypt, reveal chan *services.Slot,
-	round *globals.Round) {
+	round *globals.Round, grp *cyclic.Group) {
 	for encryptSlot := range encrypt {
 		is := (*encryptSlot).(*precomputation.PrecomputationSlot)
 		i := is.Slot
@@ -166,8 +166,7 @@ func EncryptRevealTranslate(encrypt, reveal chan *services.Slot,
 			MessagePrecomputation:        is.MessagePrecomputation,
 			AssociatedDataPrecomputation: round.LastNode.AssociatedDataCypherText[i],
 		})
-		round.LastNode.EncryptedMessagePrecomputation[i].Set(
-			is.MessageCypher)
+		grp.Set(round.LastNode.EncryptedMessagePrecomputation[i], is.MessageCypher)
 		reveal <- &sr
 	}
 }
@@ -200,20 +199,20 @@ func RTDecryptRTPermuteTranslate(decrypt, permute chan *services.Slot) {
 }
 
 func RTPermuteRTIdentifyTranslate(permute, identify chan *services.Slot,
-	outMsgs []*cyclic.Int) {
+	outMsgs []*cyclic.Int, grp *cyclic.Group) {
 	for permuteSlot := range permute {
 		esPrm := (*permuteSlot).(*realtime.Slot)
 		ovPrm := services.Slot(&realtime.Slot{
 			Slot:           esPrm.Slot,
 			AssociatedData: esPrm.AssociatedData,
 		})
-		outMsgs[esPrm.Slot].Set(esPrm.Message)
+		grp.Set(outMsgs[esPrm.Slot], esPrm.Message)
 		identify <- &ovPrm
 	}
 }
 
 func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
-	inMsgs []*cyclic.Int) {
+	inMsgs []*cyclic.Int, grp *cyclic.Group) {
 	for identifySlot := range identify {
 		esTmp := (*identifySlot).(*realtime.Slot)
 		// TODO this will need to eventually be changed to be the actual
@@ -222,11 +221,12 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 		// benchmark function, as was commented in: TestEndToEndCryptops
 		rID := new(id.User).SetBytes(esTmp.AssociatedData.
 			LeftpadBytes(id.UserLen))
+
 		inputMsgPostID := services.Slot(&realtime.Slot{
 			Slot:       esTmp.Slot,
 			CurrentID:  rID,
 			Message:    inMsgs[esTmp.Slot],
-			CurrentKey: cyclic.NewInt(1),
+			CurrentKey: grp.NewInt(1),
 		})
 		encrypt <- &inputMsgPostID
 	}
@@ -240,7 +240,7 @@ func RTEncryptRTPeelTranslate(encrypt, peel chan *services.Slot) {
 	}
 }
 
-func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
+func RTDecryptRTDecryptTranslate(in, out chan *services.Slot, grp *cyclic.Group) {
 	for is := range in {
 		o := (*is).(*realtime.Slot)
 		os := services.Slot(&realtime.Slot{
@@ -248,27 +248,27 @@ func RTDecryptRTDecryptTranslate(in, out chan *services.Slot) {
 			CurrentID:      o.CurrentID,
 			Message:        o.Message,
 			AssociatedData: o.AssociatedData,
-			CurrentKey:     cyclic.NewInt(1), // WTF? FIXME
+			CurrentKey:     grp.NewInt(1), // WTF? FIXME
 		})
 		out <- &os
 	}
 }
 
-func RTEncryptRTEncryptTranslate(in, out chan *services.Slot) {
+func RTEncryptRTEncryptTranslate(in, out chan *services.Slot, grp *cyclic.Group) {
 	for is := range in {
 		o := (*is).(*realtime.Slot)
 		os := services.Slot(&realtime.Slot{
 			Slot:       o.Slot,
 			CurrentID:  o.CurrentID,
 			Message:    o.Message,
-			CurrentKey: cyclic.NewInt(1), // FIXME
+			CurrentKey: grp.NewInt(1), // FIXME
 		})
 		out <- &os
 	}
 }
 
 func MultiNodePrecomp(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, rounds []*globals.Round) {
+	grp *cyclic.Group, rounds []*globals.Round) {
 	LastRound := rounds[nodeCount-1]
 
 	// ----- PRECOMPUTATION ----- //
@@ -284,93 +284,93 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 	for i := 0; i < nodeCount; i++ {
 		if i == 0 {
 			if nodeCount == 1 {
-				shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+				shares[i] = services.DispatchCryptop(grp, precomputation.Share{},
 					nil, nil, rounds[i])
-				decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+				decrypts[i] = services.DispatchCryptop(grp, precomputation.Decrypt{},
 					nil, decrPerm, rounds[i])
-				permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+				permutes[i] = services.DispatchCryptop(grp, precomputation.Permute{},
 					decrPerm, nil, rounds[i])
-				encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+				encrypts[i] = services.DispatchCryptop(grp, precomputation.Encrypt{},
 					nil, nil, rounds[i])
-				reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+				reveals[i] = services.DispatchCryptop(grp, precomputation.Reveal{},
 					nil, nil, rounds[i])
 			} else {
-				shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+				shares[i] = services.DispatchCryptop(grp, precomputation.Share{},
 					nil, nil, rounds[i])
-				decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+				decrypts[i] = services.DispatchCryptop(grp, precomputation.Decrypt{},
 					nil, nil, rounds[i])
-				permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+				permutes[i] = services.DispatchCryptop(grp, precomputation.Permute{},
 					decrPerm, nil, rounds[i])
-				encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+				encrypts[i] = services.DispatchCryptop(grp, precomputation.Encrypt{},
 					nil, nil, rounds[i])
-				reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+				reveals[i] = services.DispatchCryptop(grp, precomputation.Reveal{},
 					nil, nil, rounds[i])
 			}
 
 		} else if i < (nodeCount - 1) {
-			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+			shares[i] = services.DispatchCryptop(grp, precomputation.Share{},
 				shares[i-1].OutChannel, nil, rounds[i])
-			decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+			decrypts[i] = services.DispatchCryptop(grp, precomputation.Decrypt{},
 				decrypts[i-1].OutChannel, nil, rounds[i])
-			permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+			permutes[i] = services.DispatchCryptop(grp, precomputation.Permute{},
 				permutes[i-1].OutChannel, nil, rounds[i])
-			encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+			encrypts[i] = services.DispatchCryptop(grp, precomputation.Encrypt{},
 				encrypts[i-1].OutChannel, nil, rounds[i])
-			reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+			reveals[i] = services.DispatchCryptop(grp, precomputation.Reveal{},
 				reveals[i-1].OutChannel, nil, rounds[i])
 		} else {
-			shares[i] = services.DispatchCryptop(group, precomputation.Share{},
+			shares[i] = services.DispatchCryptop(grp, precomputation.Share{},
 				shares[i-1].OutChannel, nil, rounds[i])
-			decrypts[i] = services.DispatchCryptop(group, precomputation.Decrypt{},
+			decrypts[i] = services.DispatchCryptop(grp, precomputation.Decrypt{},
 				decrypts[i-1].OutChannel, decrPerm, rounds[i])
-			permutes[i] = services.DispatchCryptop(group, precomputation.Permute{},
+			permutes[i] = services.DispatchCryptop(grp, precomputation.Permute{},
 				permutes[i-1].OutChannel, nil, rounds[i])
-			encrypts[i] = services.DispatchCryptop(group, precomputation.Encrypt{},
+			encrypts[i] = services.DispatchCryptop(grp, precomputation.Encrypt{},
 				encrypts[i-1].OutChannel, nil, rounds[i])
-			reveals[i] = services.DispatchCryptop(group, precomputation.Reveal{},
+			reveals[i] = services.DispatchCryptop(grp, precomputation.Reveal{},
 				reveals[i-1].OutChannel, nil, rounds[i])
 		}
 	}
 
-	LNStrip := services.DispatchCryptop(group, precomputation.Strip{},
+	LNStrip := services.DispatchCryptop(grp, precomputation.Strip{},
 		nil, nil, LastRound)
 
 	go RevealStripTranslate(reveals[nodeCount-1].OutChannel,
 		LNStrip.InChannel)
 	go EncryptRevealTranslate(encrypts[nodeCount-1].OutChannel,
-		reveals[0].InChannel, LastRound)
+		reveals[0].InChannel, LastRound, grp)
 	go PermuteEncryptTranslate(permutes[nodeCount-1].OutChannel,
-		encrypts[0].InChannel, LastRound)
+		encrypts[0].InChannel, LastRound, grp)
 	//go DecryptPermuteTranslate(decrypts[nodeCount-1].OutChannel,
 	//	permutes[0].InChannel)
 
 	// Run Share -- Then save the result to both rounds
 	// Note that the outchannel for N1Share is the input channel for N2share
 	shareMsg := services.Slot(&precomputation.SlotShare{
-		PartialRoundPublicCypherKey: group.G})
+		PartialRoundPublicCypherKey: grp.GetGCyclic()})
 	shares[0].InChannel <- &shareMsg
 	shareResultSlot := <-shares[nodeCount-1].OutChannel
 	shareResult := (*shareResultSlot).(*precomputation.SlotShare)
-	PublicCypherKey := cyclic.NewInt(0)
-	PublicCypherKey.Set(shareResult.PartialRoundPublicCypherKey)
+	PublicCypherKey := grp.NewInt(1)
+	group.Set(PublicCypherKey, shareResult.PartialRoundPublicCypherKey)
 	for i := 0; i < nodeCount; i++ {
-		rounds[i].CypherPublicKey.Set(PublicCypherKey)
+		group.Set(rounds[i].CypherPublicKey, PublicCypherKey)
 	}
 
 	// TODO: Consider moving to caller
 	// t.Logf("%d NODE SHARE RESULTS: \n", nodeCount)
 	// for i := 0; i < nodeCount; i++ {
-	// 	t.Logf("%v", RoundText(group, rounds[i]))
+	// 	t.Logf("%v", RoundText(grp, rounds[i]))
 	// }
 
 	// Now finish precomputation
 	for i := uint64(0); i < BatchSize; i++ {
 		decMsg := services.Slot(&precomputation.PrecomputationSlot{
 			Slot:                         i,
-			MessageCypher:                cyclic.NewInt(1),
-			MessagePrecomputation:        cyclic.NewInt(1),
-			AssociatedDataCypher:         cyclic.NewInt(1),
-			AssociatedDataPrecomputation: cyclic.NewInt(1),
+			MessageCypher:                grp.NewInt(1),
+			MessagePrecomputation:        grp.NewInt(1),
+			AssociatedDataCypher:         grp.NewInt(1),
+			AssociatedDataPrecomputation: grp.NewInt(1),
 		})
 		decrypts[0].InChannel <- &decMsg
 	}
@@ -383,7 +383,7 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 		LastRound.LastNode.AssociatedDataPrecomputation[es.Slot] =
 			es.AssociatedDataPrecomputation
 
-		// TOOD: Consider moving this to the caller
+		// TODO: Consider moving this to the caller
 		// t.Logf("%d NODE STRIP:\n  MessagePrecomputation: %s, "+
 		// 	"AssociatedDataPrecomputation: %s\n", nodeCount,
 		// 	es.MessagePrecomputation.Text(10),
@@ -391,7 +391,7 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 
 		// Check precomputation, note that these are currently expected to be
 		// wrong under permutation
-		// MP, RP := ComputePrecomputation(group, rounds)
+		// MP, RP := ComputePrecomputation(grp, rounds)
 
 		// if MP.Cmp(es.MessagePrecomputation) != 0 {
 		// 	t.Logf("Message Precomputation Incorrect! Expected: %s, "+
@@ -407,7 +407,7 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 }
 
 func MultiNodeRealtime(nodeCount int, BatchSize uint64,
-	group *cyclic.Group, rounds []*globals.Round,
+	grp *cyclic.Group, rounds []*globals.Round,
 	inputMsgs []realtime.Slot, expectedOutputs []realtime.Slot) {
 
 	LastRound := rounds[nodeCount-1]
@@ -415,48 +415,48 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 	// ----- REALTIME ----- //
 	IntermediateMsgs := make([]*cyclic.Int, BatchSize)
 	for i := uint64(0); i < BatchSize; i++ {
-		IntermediateMsgs[i] = cyclic.NewInt(0)
+		IntermediateMsgs[i] = grp.NewInt(1)
 	}
 	rtdecrypts := make([]*services.ThreadController, nodeCount)
 	rtpermutes := make([]*services.ThreadController, nodeCount)
 	reorgs := make([]*services.ThreadController, nodeCount)
 	rtencrypts := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		rtdecrypts[i] = services.DispatchCryptop(group,
+		rtdecrypts[i] = services.DispatchCryptop(grp,
 			realtime.Decrypt{}, nil, nil, rounds[i])
 
 		// NOTE: Permute -> reorg -> Permute -> ... -> reorg -> Identify
 		reorgs[i] = services.NewSlotReorganizer(nil, nil, BatchSize)
 		if i == 0 {
-			rtpermutes[i] = services.DispatchCryptop(group,
+			rtpermutes[i] = services.DispatchCryptop(grp,
 				realtime.Permute{}, nil, reorgs[i].InChannel, rounds[i])
 		} else {
-			rtpermutes[i] = services.DispatchCryptop(group,
+			rtpermutes[i] = services.DispatchCryptop(grp,
 				realtime.Permute{}, reorgs[i-1].OutChannel, reorgs[i].InChannel,
 				rounds[i])
 		}
-		rtencrypts[i] = services.DispatchCryptop(group,
+		rtencrypts[i] = services.DispatchCryptop(grp,
 			realtime.Encrypt{}, nil, nil, rounds[i])
 
 		if i != 0 {
 			go RTEncryptRTEncryptTranslate(rtencrypts[i-1].OutChannel,
-				rtencrypts[i].InChannel)
+				rtencrypts[i].InChannel, grp)
 			go RTDecryptRTDecryptTranslate(rtdecrypts[i-1].OutChannel,
-				rtdecrypts[i].InChannel)
+				rtdecrypts[i].InChannel, grp)
 		}
 	}
 
-	LNRTIdentify := services.DispatchCryptop(group,
+	LNRTIdentify := services.DispatchCryptop(grp,
 		realtime.Identify{}, nil, nil, LastRound)
-	LNRTPeel := services.DispatchCryptop(group,
+	LNRTPeel := services.DispatchCryptop(grp,
 		realtime.Peel{}, nil, nil, LastRound)
 
 	go RTDecryptRTPermuteTranslate(rtdecrypts[nodeCount-1].OutChannel,
 		rtpermutes[0].InChannel)
 	go RTPermuteRTIdentifyTranslate(reorgs[nodeCount-1].OutChannel,
-		LNRTIdentify.InChannel, IntermediateMsgs)
+		LNRTIdentify.InChannel, IntermediateMsgs, grp)
 	go RTIdentifyRTEncryptTranslate(LNRTIdentify.OutChannel,
-		rtencrypts[0].InChannel, IntermediateMsgs)
+		rtencrypts[0].InChannel, IntermediateMsgs, grp)
 	go RTEncryptRTPeelTranslate(rtencrypts[nodeCount-1].OutChannel,
 		LNRTPeel.InChannel)
 
@@ -491,52 +491,58 @@ func MultiNodeRealtime(nodeCount int, BatchSize uint64,
 
 }
 
-func CopyRounds(nodeCount int, r []*globals.Round) []*globals.Round {
+func CopyRounds(nodeCount int, r []*globals.Round,
+	grp *cyclic.Group) []*globals.Round {
 	tmp := make([]*globals.Round, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		tmp[i] = globals.NewRound(r[i].BatchSize)
+		tmp[i] = globals.NewRound(r[i].BatchSize, grp)
+
 		if (i + 1) == nodeCount {
-			globals.InitLastNode(tmp[i])
+			globals.InitLastNode(tmp[i], grp)
 		}
+
 		for j := uint64(0); j < r[i].BatchSize; j++ {
-			tmp[i].R[j].Set(r[i].R[j])
-			tmp[i].S[j].Set(r[i].S[j])
-			tmp[i].T[j].Set(r[i].T[j])
-			tmp[i].V[j].Set(r[i].V[j])
-			tmp[i].U[j].Set(r[i].U[j])
-			tmp[i].R_INV[j].Set(r[i].R_INV[j])
-			tmp[i].S_INV[j].Set(r[i].S_INV[j])
-			tmp[i].T_INV[j].Set(r[i].T_INV[j])
-			tmp[i].V_INV[j].Set(r[i].V_INV[j])
-			tmp[i].U_INV[j].Set(r[i].U_INV[j])
-			tmp[i].Y_R[j].Set(r[i].Y_R[j])
-			tmp[i].Y_S[j].Set(r[i].Y_S[j])
-			tmp[i].Y_T[j].Set(r[i].Y_T[j])
-			tmp[i].Y_V[j].Set(r[i].Y_V[j])
-			tmp[i].Y_U[j].Set(r[i].Y_U[j])
+			group.Set(tmp[i].R[j], r[i].R[j])
+			group.Set(tmp[i].S[j], r[i].S[j])
+			group.Set(tmp[i].T[j], r[i].T[j])
+			group.Set(tmp[i].V[j], r[i].V[j])
+			group.Set(tmp[i].U[j], r[i].U[j])
+			group.Set(tmp[i].R_INV[j], r[i].R_INV[j])
+			group.Set(tmp[i].S_INV[j], r[i].S_INV[j])
+			group.Set(tmp[i].T_INV[j], r[i].T_INV[j])
+			group.Set(tmp[i].V_INV[j], r[i].V_INV[j])
+			group.Set(tmp[i].U_INV[j], r[i].U_INV[j])
+			group.Set(tmp[i].Y_R[j], r[i].Y_R[j])
+			group.Set(tmp[i].Y_S[j], r[i].Y_S[j])
+			group.Set(tmp[i].Y_T[j], r[i].Y_T[j])
+			group.Set(tmp[i].Y_V[j], r[i].Y_V[j])
+			group.Set(tmp[i].Y_U[j], r[i].Y_U[j])
 			tmp[i].Permutations[j] = r[i].Permutations[j]
+
 			if (i + 1) == nodeCount {
-				tmp[i].LastNode.MessagePrecomputation[j].Set(
+				group.Set(tmp[i].LastNode.MessagePrecomputation[j],
 					r[i].LastNode.MessagePrecomputation[j])
-				tmp[i].LastNode.AssociatedDataPrecomputation[j].Set(
+				group.Set(tmp[i].LastNode.AssociatedDataPrecomputation[j],
 					r[i].LastNode.AssociatedDataPrecomputation[j])
-				tmp[i].LastNode.RoundMessagePrivateKey[j].Set(
+				group.Set(tmp[i].LastNode.RoundMessagePrivateKey[j],
 					r[i].LastNode.RoundMessagePrivateKey[j])
-				tmp[i].LastNode.RoundAssociatedDataPrivateKey[j].Set(
+				group.Set(tmp[i].LastNode.RoundAssociatedDataPrivateKey[j],
 					r[i].LastNode.RoundAssociatedDataPrivateKey[j])
-				tmp[i].LastNode.AssociatedDataCypherText[j].Set(
+				group.Set(tmp[i].LastNode.AssociatedDataCypherText[j],
 					r[i].LastNode.AssociatedDataCypherText[j])
-				tmp[i].LastNode.EncryptedAssociatedDataPrecomputation[j].Set(
+				group.Set(tmp[i].LastNode.EncryptedAssociatedDataPrecomputation[j],
 					r[i].LastNode.EncryptedAssociatedDataPrecomputation[j])
-				tmp[i].LastNode.EncryptedMessagePrecomputation[j].Set(
+				group.Set(tmp[i].LastNode.EncryptedMessagePrecomputation[j],
 					r[i].LastNode.EncryptedMessagePrecomputation[j])
-				tmp[i].LastNode.EncryptedMessage[j].Set(
+				group.Set(tmp[i].LastNode.EncryptedMessage[j],
 					r[i].LastNode.EncryptedMessage[j])
 			}
 		}
-		tmp[i].CypherPublicKey.Set(r[i].CypherPublicKey)
-		tmp[i].Z.Set(r[i].Z)
+
+		group.Set(tmp[i].CypherPublicKey, r[i].CypherPublicKey)
+		group.Set(tmp[i].Z, r[i].Z)
 	}
+
 	return tmp
 }
 
@@ -548,14 +554,14 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 		inputMsgs[i] = realtime.Slot{
 			Slot:           i,
 			CurrentID:      id.NewUserFromUint(i+1, nil),
-			Message:        cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
-			AssociatedData: cyclic.NewInt((1 + int64(i)) % 107),
-			CurrentKey:     cyclic.NewInt(1),
+			Message:        group.NewInt((42 + int64(i)) % 107), // Meaning of Life
+			AssociatedData: group.NewInt((1 + int64(i)) % 107),
+			CurrentKey:     group.NewInt(1),
 		}
 		outputMsgs[i] = realtime.Slot{
 			Slot:      i,
 			CurrentID: id.NewUserFromUint((i+1)%107, nil),
-			Message:   cyclic.NewInt((42 + int64(i)) % 107), // Meaning of Life
+			Message:   group.NewInt((42 + int64(i)) % 107), // Meaning of Life
 		}
 	}
 	for i := 0; i < nodeCount; i++ {
@@ -574,30 +580,25 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 
 // Template function for running precomputation
 func PrecompIterations(nodeCount int, batchSize uint64, iterations int) {
-	prime := cyclic.NewInt(0)
+	prime := large.NewInt(0)
 	prime.SetString(PRIME, 16)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0),
-		cyclic.NewIntFromString(MAXGENERATION, 16))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
-	rounds := GenerateRounds(nodeCount, batchSize, &grp)
+	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
+	rounds := GenerateRounds(nodeCount, batchSize, grp)
 
 	for i := 0; i < iterations; i++ {
-		MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+		MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
 	}
 }
 
 // Run realtime simulation for given number of of iterations
 func RealtimeIterations(nodeCount int, batchSize uint64, iterations int) {
-	prime := cyclic.NewInt(0)
+	prime := large.NewInt(0)
 	prime.SetString(PRIME, 16)
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(prime, cyclic.NewInt(5), cyclic.NewInt(4),
-		rng)
+	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 
-	rounds := GenerateRounds(nodeCount, batchSize, &grp)
+	rounds := GenerateRounds(nodeCount, batchSize, grp)
 
 	// Rewrite permutation pattern
 	for i := 0; i < nodeCount; i++ {
@@ -608,13 +609,13 @@ func RealtimeIterations(nodeCount int, batchSize uint64, iterations int) {
 		}
 	}
 
-	MultiNodePrecomp(nodeCount, batchSize, &grp, rounds)
+	MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
 
 	for i := 0; i < iterations; i++ {
-		tmpRounds := CopyRounds(nodeCount, rounds)
+		tmpRounds := CopyRounds(nodeCount, rounds, grp)
 		inputMsgs, outputMsgs := GenerateIOMessages(nodeCount, batchSize, tmpRounds)
 
-		MultiNodeRealtime(nodeCount, batchSize, &grp, tmpRounds, inputMsgs,
+		MultiNodeRealtime(nodeCount, batchSize, grp, tmpRounds, inputMsgs,
 			outputMsgs)
 	}
 }

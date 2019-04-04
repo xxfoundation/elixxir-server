@@ -30,8 +30,8 @@ import (
 )
 
 // Decrypt phase completely removes the encryption added by the sending client,
-// while adding in the First Unpermuted Internode Keys.  Becasue the unpermutted
-// keys are added simultaniously, no entropy is lost.
+// while adding in the First Unpermuted Internode Keys. Because the un-permuted
+// keys are added simultaneously, no entropy is lost.
 type Decrypt struct{}
 
 // KeysDecrypt holds the keys used by the Decrypt Operation
@@ -43,7 +43,7 @@ type KeysDecrypt struct {
 }
 
 // Allocated memory and arranges key objects for the Realtime Decrypt Phase
-func (d Decrypt) Build(g *cyclic.Group,
+func (d Decrypt) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
 	// Get round from the empty interface
@@ -55,10 +55,10 @@ func (d Decrypt) Build(g *cyclic.Group,
 	for i := uint64(0); i < round.BatchSize; i++ {
 		om[i] = &Slot{
 			Slot:           i,
-			Message:        cyclic.NewMaxInt(),
-			AssociatedData: cyclic.NewMaxInt(),
+			Message:        grp.NewMaxInt(),
+			AssociatedData: grp.NewMaxInt(),
 			CurrentID:      id.ZeroID,
-			CurrentKey:     cyclic.NewMaxInt(),
+			CurrentKey:     grp.NewMaxInt(),
 			Salt:           make([]byte, 0),
 		}
 	}
@@ -75,7 +75,7 @@ func (d Decrypt) Build(g *cyclic.Group,
 	}
 
 	db := services.DispatchBuilder{BatchSize: round.BatchSize,
-		Keys: &keys, Output: &om, G: g}
+		Keys: &keys, Output: &om, G: grp}
 
 	return &db
 

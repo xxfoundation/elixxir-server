@@ -24,7 +24,7 @@ var Servers []string
 var TimeUp int64
 
 // These channels are used by LastNode to control when realtime and
-// precomutation are kicked off
+// precomputation are kicked off
 var RoundCh chan *string          // Strings identifying rounds to be used
 var MessageCh chan *realtime.Slot // Message queuing
 
@@ -67,5 +67,5 @@ func GetChannel(roundID string, chanId globals.Phase) chan<- *services.Slot {
 
 // Set the CypherPublicKey for the server to the given value
 func SetPublicKey(roundID string, newKey []byte) {
-	globals.GlobalRoundMap.GetRound(roundID).CypherPublicKey.SetBytes(newKey)
+	globals.GetGroup().SetBytes(globals.GlobalRoundMap.GetRound(roundID).CypherPublicKey, newKey)
 }

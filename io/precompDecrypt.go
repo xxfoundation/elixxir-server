@@ -7,7 +7,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -41,13 +40,13 @@ func PrecompDecrypt(input *pb.PrecompDecryptMessage) {
 		in := input.Slots[i]
 		var slot services.Slot = &precomputation.PrecomputationSlot{
 			Slot: in.Slot,
-			MessageCypher: cyclic.NewIntFromBytes(
+			MessageCypher: globals.GetGroup().NewIntFromBytes(
 				in.EncryptedMessageKeys),
-			AssociatedDataCypher: cyclic.NewIntFromBytes(
+			AssociatedDataCypher: globals.GetGroup().NewIntFromBytes(
 				in.EncryptedAssociatedDataKeys),
-			MessagePrecomputation: cyclic.NewIntFromBytes(
+			MessagePrecomputation: globals.GetGroup().NewIntFromBytes(
 				in.PartialMessageCypherText),
-			AssociatedDataPrecomputation: cyclic.NewIntFromBytes(
+			AssociatedDataPrecomputation: globals.GetGroup().NewIntFromBytes(
 				in.PartialAssociatedDataCypherText),
 		}
 		// Pass slot as input to Decrypt's channel

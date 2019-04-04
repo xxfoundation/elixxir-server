@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -40,9 +39,9 @@ func RealtimePermute(input *pb.RealtimePermuteMessage) {
 		in := input.Slots[i]
 		var slot services.Slot = &realtime.Slot{
 			Slot: in.Slot,
-			Message: cyclic.NewIntFromBytes(
+			Message: globals.GetGroup().NewIntFromBytes(
 				in.EncryptedMessage),
-			AssociatedData: cyclic.NewIntFromBytes(
+			AssociatedData: globals.GetGroup().NewIntFromBytes(
 				in.EncryptedAssociatedData),
 		}
 		// Pass slot as input to Permute's channel
@@ -93,10 +92,10 @@ func realtimePermuteLastNode(roundId string, batchSize uint64,
 		// Convert to Slot
 		var slot services.Slot = &realtime.Slot{
 			Slot:           out.Slot,
-			AssociatedData: cyclic.NewIntFromBytes(out.EncryptedAssociatedData),
+			AssociatedData: globals.GetGroup().NewIntFromBytes(out.EncryptedAssociatedData),
 		}
 		// Save EncryptedMessages for the Identify->Encrypt transition
-		round.LastNode.EncryptedMessage[i] = cyclic.NewIntFromBytes(out.EncryptedMessage)
+		round.LastNode.EncryptedMessage[i] = globals.GetGroup().NewIntFromBytes(out.EncryptedMessage)
 		// Pass slot as input to Identify's channel
 		identifyChannel <- &slot
 	}

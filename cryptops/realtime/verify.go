@@ -11,6 +11,7 @@ package realtime
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/verification"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/server/globals"
@@ -28,41 +29,43 @@ type KeysVerify struct {
 }
 
 // Pre-allocate memory and arrange key objects for realtime Verify
-func (i Verify) Build(g *cyclic.Group,
+func (i Verify) Build(grp *cyclic.Group,
 	face interface{}) *services.DispatchBuilder {
 
-	// The empty interface should be castable to a Round
+	// The empty interface should be able to be casted to a Round
 	round := face.(*globals.Round)
 
 	// Allocate messages for output
 	om := make([]services.Slot, round.BatchSize)
 
-	for i := uint64(0); i < round.BatchSize; i++ {
-		om[i] = &Slot{Slot: i,
-			AssociatedData: cyclic.NewMaxInt(),
+	for j := uint64(0); j < round.BatchSize; j++ {
+		om[j] = &Slot{
+			Slot:           j,
+			AssociatedData: grp.NewMaxInt(),
 		}
 	}
 
 	keys := make([]services.NodeKeys, round.BatchSize)
 
 	// Prepare the correct keys
-	for i := uint64(0); i < round.BatchSize; i++ {
+	for j := uint64(0); j < round.BatchSize; j++ {
 		keySlc := &KeysVerify{
-			Verification: &round.MIC_Verification[i]}
-		keys[i] = keySlc
+			Verification: &round.MIC_Verification[j],
+		}
+		keys[j] = keySlc
 	}
 
 	db := services.DispatchBuilder{
 		BatchSize: round.BatchSize,
 		Keys:      &keys,
-		Output:    &om, G: g}
+		Output:    &om, G: grp}
 
 	return &db
 }
 
 // Input: Decrypted Recipient ID Payload, from Identify phase
 // This verifies the decrypted payload matches its MIC
-func (i Verify) Run(g *cyclic.Group,
+func (i Verify) Run(grp *cyclic.Group,
 	in, out *Slot, keys *KeysVerify) services.Slot {
 
 	associatedData := format.DeserializeAssociatedData(in.AssociatedData.LeftpadBytes(uint64(format.TOTAL_LEN)))
@@ -78,7 +81,7 @@ func (i Verify) Run(g *cyclic.Group,
 
 	if !valid {
 		jww.WARN.Printf("Recipient MIC failed, Recipient ID read as %v",
-			cyclic.NewIntFromBytes(recpbytes).Text(10))
+			large.NewIntFromBytes(recpbytes).Text(10))
 		*keys.Verification = false
 	} else {
 		*keys.Verification = true

@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -47,9 +46,9 @@ func RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 		var slot services.Slot = &realtime.Slot{
 			Slot:           uint64(i),
 			CurrentID:      userId,
-			Message:        cyclic.NewIntFromBytes(in.MessagePayload),
-			AssociatedData: cyclic.NewIntFromBytes(in.AssociatedData),
-			CurrentKey:     cyclic.NewMaxInt(),
+			Message:        globals.GetGroup().NewIntFromBytes(in.MessagePayload),
+			AssociatedData: globals.GetGroup().NewIntFromBytes(in.AssociatedData),
+			CurrentKey:     globals.GetGroup().NewMaxInt(),
 			Salt:           in.Salt,
 			// TODO: How will we pass and verify the kmac?
 		}

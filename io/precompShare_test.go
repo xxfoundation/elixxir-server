@@ -10,6 +10,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
@@ -51,17 +52,17 @@ func (h DummyPrecompShareHandler) Handler(
 }
 
 func TestPrecompShare(t *testing.T) {
+	// Set up Grp
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(5), large.NewInt(4))
+	globals.Clear(t)
+	globals.SetGroup(grp)
+
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
+	round := globals.NewRound(1, globals.GetGroup())
 	id.IsLastNode = false
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
-
-	// Set up Grp
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(5), cyclic.NewInt(4), rng)
-	globals.Grp = &grp
 
 	// Create the test channels
 	chIn := make(chan *services.Slot, round.BatchSize)
@@ -76,7 +77,7 @@ func TestPrecompShare(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.SlotShare{
 		Slot:                        uint64(0),
-		PartialRoundPublicCypherKey: cyclic.NewInt(3),
+		PartialRoundPublicCypherKey: globals.GetGroup().NewInt(3),
 	}
 
 	// Pass slot as input to Share's TransmissionHandler

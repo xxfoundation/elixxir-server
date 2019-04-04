@@ -7,48 +7,46 @@ package precomputation
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/crypto/large"
 	"testing"
 )
 
+/*
 func TestPrecomputationReveal(t *testing.T) {
 
 	test := 3
 	pass := 0
 
-	bs := uint64(3)
-
-	round := globals.NewRound(bs)
-
 	var im []services.Slot
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
+	grp := cyclic.NewGroup(large.NewInt(107), large.NewInt(23),
+		large.NewInt(29))
 
-	grp := cyclic.NewGroup(cyclic.NewInt(107), cyclic.NewInt(23),
-		cyclic.NewInt(29), rng)
+	bs := uint64(3)
+
+	round := globals.NewRound(bs, &grp)
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(0),
-		MessagePrecomputation:        cyclic.NewInt(int64(39)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(13))})
+		MessagePrecomputation:        grp.NewInt(int64(39)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(1),
-		MessagePrecomputation:        cyclic.NewInt(int64(86)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(87))})
+		MessagePrecomputation:        grp.NewInt(int64(86)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(2),
-		MessagePrecomputation:        cyclic.NewInt(int64(39)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(51))})
+		MessagePrecomputation:        grp.NewInt(int64(39)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(51))})
 
-	round.Z = cyclic.NewInt(53)
+	round.Z = grp.NewInt(53)
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(53), cyclic.NewInt(14)},
-		{cyclic.NewInt(11), cyclic.NewInt(10)},
-		{cyclic.NewInt(53), cyclic.NewInt(68)},
+		{grp.NewInt(53), grp.NewInt(14)},
+		{grp.NewInt(11), grp.NewInt(10)},
+		{grp.NewInt(53), grp.NewInt(68)},
 	}
 
 	dc := services.DispatchCryptop(&grp, Reveal{}, nil, nil, round)
@@ -74,7 +72,7 @@ func TestPrecomputationReveal(t *testing.T) {
 
 	println("PrecompReveal", pass, "out of", test, "tests passed.")
 
-}
+}*/
 
 func TestPrecomputationRevealRun(t *testing.T) {
 	bs := uint64(3)
@@ -82,55 +80,53 @@ func TestPrecomputationRevealRun(t *testing.T) {
 	var im []*PrecomputationSlot
 	var om []*PrecomputationSlot
 
-	rng := cyclic.NewRandom(cyclic.NewInt(0), cyclic.NewInt(1000))
-
-	grp := cyclic.NewGroup(cyclic.NewInt(101), cyclic.NewInt(23),
-		cyclic.NewInt(29), rng)
+	grp := cyclic.NewGroup(large.NewInt(101), large.NewInt(23),
+		large.NewInt(29))
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(0),
-		MessagePrecomputation:        cyclic.NewInt(int64(39)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(13))})
+		MessagePrecomputation:        grp.NewInt(int64(39)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(13))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(1),
-		MessagePrecomputation:        cyclic.NewInt(int64(86)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(87))})
+		MessagePrecomputation:        grp.NewInt(int64(86)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(87))})
 
 	im = append(im, &PrecomputationSlot{
 		Slot:                         uint64(2),
-		MessagePrecomputation:        cyclic.NewInt(int64(39)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(51))})
+		MessagePrecomputation:        grp.NewInt(int64(39)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(51))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot:                         uint64(1),
-		MessagePrecomputation:        cyclic.NewInt(int64(0)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
+		MessagePrecomputation:        grp.NewInt(int64(1)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(1))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot:                         uint64(2),
-		MessagePrecomputation:        cyclic.NewInt(int64(0)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
+		MessagePrecomputation:        grp.NewInt(int64(1)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(1))})
 
 	om = append(om, &PrecomputationSlot{
 		Slot:                         uint64(0),
-		MessagePrecomputation:        cyclic.NewInt(int64(0)),
-		AssociatedDataPrecomputation: cyclic.NewInt(int64(0))})
+		MessagePrecomputation:        grp.NewInt(int64(1)),
+		AssociatedDataPrecomputation: grp.NewInt(int64(1))})
 
 	key := KeysReveal{
-		Z: cyclic.NewInt(53),
+		Z: grp.NewInt(53),
 	}
 
 	results := [][]*cyclic.Int{
-		{cyclic.NewInt(60), cyclic.NewInt(77)},
-		{cyclic.NewInt(34), cyclic.NewInt(95)},
-		{cyclic.NewInt(60), cyclic.NewInt(66)},
+		{grp.NewInt(60), grp.NewInt(77)},
+		{grp.NewInt(34), grp.NewInt(95)},
+		{grp.NewInt(60), grp.NewInt(66)},
 	}
 
 	reveal := Reveal{}
 
 	for i := uint64(0); i < bs; i++ {
-		reveal.Run(&grp, im[i], om[i], &key)
+		reveal.Run(grp, im[i], om[i], &key)
 	}
 
 	for i := uint64(0); i < bs; i++ {

@@ -8,7 +8,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"os"
 	"testing"
@@ -29,10 +28,10 @@ func TestMain(m *testing.M) {
 
 func TestServerImpl_SetPublicKey(t *testing.T) {
 	roundId := "test"
-	expected := cyclic.NewInt(5)
+	expected := globals.GetGroup().NewInt(5)
 	globals.GlobalRoundMap = globals.NewRoundMap()
 	globals.GlobalRoundMap.AddRound(roundId,
-		globals.NewRound(5))
+		globals.NewRound(5, globals.GetGroup()))
 
 	SetPublicKey(roundId, expected.Bytes())
 

@@ -7,9 +7,9 @@
 package io
 
 import (
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/messaging"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/server/globals"
@@ -20,11 +20,11 @@ import (
 // Test request nonce
 func TestRequestNonce(t *testing.T) {
 	regPrivKey := signature.ReconstructPrivateKey(registrationPublicKey,
-		cyclic.NewIntFromString("dab0febfab103729077ad4927754f6390e366fdf4c58e8d40dadb3e94c444b54", 16))
+		large.NewIntFromString("dab0febfab103729077ad4927754f6390e366fdf4c58e8d40dadb3e94c444b54", 16))
 	rng := csprng.NewSystemRNG()
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
-	salt := messaging.NewSalt(rng, 32)
+	salt := cmix.NewSalt(rng, 32)
 
 	hash := append(pubKey.GetKey().Bytes(), dsaParams.GetP().Bytes()...)
 	hash = append(hash, dsaParams.GetQ().Bytes()...)
@@ -54,7 +54,7 @@ func TestRequestNonce_BadSignature(t *testing.T) {
 	rng := csprng.NewSystemRNG()
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
-	salt := messaging.NewSalt(rng, 32)
+	salt := cmix.NewSalt(rng, 32)
 	regPrivKey := dsaParams.PrivateKeyGen(rng)
 
 	hash := append(pubKey.GetKey().Bytes(), dsaParams.GetP().Bytes()...)
@@ -84,7 +84,7 @@ func TestRequestNonce_BadSignature(t *testing.T) {
 func TestConfirmNonce(t *testing.T) {
 	globals.Users = globals.NewUserRegistry("", "", "", "")
 
-	user := globals.Users.NewUser()
+	user := globals.Users.NewUser(globals.GetGroup())
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
 	globals.Users.UpsertUser(user)
 
@@ -108,7 +108,7 @@ func TestConfirmNonce(t *testing.T) {
 func TestConfirmNonce_Expired(t *testing.T) {
 	globals.Users = globals.NewUserRegistry("", "", "", "")
 
-	user := globals.Users.NewUser()
+	user := globals.Users.NewUser(globals.GetGroup())
 	user.Nonce = nonce.NewNonce(1)
 	globals.Users.UpsertUser(user)
 
@@ -139,7 +139,7 @@ func TestConfirmNonce_Expired(t *testing.T) {
 func TestConfirmNonce_BadSignature(t *testing.T) {
 	globals.Users = globals.NewUserRegistry("", "", "", "")
 
-	user := globals.Users.NewUser()
+	user := globals.Users.NewUser(globals.GetGroup())
 	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
 	globals.Users.UpsertUser(user)
 

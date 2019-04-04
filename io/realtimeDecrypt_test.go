@@ -7,7 +7,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
@@ -16,10 +15,11 @@ import (
 )
 
 func TestRealtimeDecrypt(t *testing.T) {
+	globals.InitGroup()
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -34,10 +34,9 @@ func TestRealtimeDecrypt(t *testing.T) {
 	var slot services.Slot = &realtime.Slot{
 		Slot:           uint64(0),
 		CurrentID:      id.NewUserFromUint(42, t),
-		Message:        cyclic.NewInt(7),
-		AssociatedData: cyclic.NewInt(3),
-		CurrentKey: cyclic.NewIntFromString(
-			"C0DED00DC0DED00DC0DED00DC0DED00D", 16),
+		Message:        globals.GetGroup().NewInt(7),
+		AssociatedData: globals.GetGroup().NewInt(3),
+		CurrentKey:     globals.GetGroup().NewInt(55),
 	}
 
 	slots := [1]*realtime.Slot{slot.(*realtime.Slot)}

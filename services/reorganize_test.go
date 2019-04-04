@@ -36,32 +36,23 @@ func TestReorganizeSlots(t *testing.T) {
 		shuffledTestSlots[i] = &slot
 	}
 
-	tests := 100
-	pass := 0
-
-	for i := 0; i < tests; i++ {
+	for i := 0; i < 100; i++ {
 		tc := NewSlotReorganizer(nil, nil, batchSize)
 
 		cyclic.Shuffle(&testUints)
-		for i := uint64(0); i < batchSize; i++ {
-			tc.InChannel <- shuffledTestSlots[i]
+		for j := uint64(0); j < batchSize; j++ {
+			tc.InChannel <- shuffledTestSlots[j]
 		}
-		for i := uint64(0); i < batchSize; i++ {
-			shuffledTestSlots[i] = <-tc.OutChannel
+		for j := uint64(0); j < batchSize; j++ {
+			shuffledTestSlots[j] = <-tc.OutChannel
 		}
 
 		// See if the list is in order
-		for i := uint64(1); i < batchSize; i++ {
-			if (*shuffledTestSlots[i]).SlotID() <= (*shuffledTestSlots[i-1]).SlotID() {
-				t.Errorf("Slice of slots was not in order at index %v\n", i-1)
+		for j := uint64(1); j < batchSize; j++ {
+			if (*shuffledTestSlots[j]).SlotID() <= (*shuffledTestSlots[j-1]).SlotID() {
+				t.Errorf("Slice of slots was not in order at index %v\n", j-1)
 				printListOfSlots(shuffledTestSlots, t)
 			}
 		}
-
-		if !t.Failed() {
-			pass++
-		}
 	}
-
-	println("Reorganize Slots:", pass, "out of", tests, "passed.")
 }

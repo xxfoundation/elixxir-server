@@ -7,7 +7,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
@@ -18,8 +17,8 @@ import (
 func TestPrecompPermute(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
-	round := globals.NewRound(1)
-	globals.InitLastNode(round)
+	round := globals.NewRound(1, globals.GetGroup())
+	globals.InitLastNode(round, globals.GetGroup())
 	id.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -37,10 +36,10 @@ func TestPrecompPermute(t *testing.T) {
 	// Create a slot to pass into the TransmissionHandler
 	var slot services.Slot = &precomputation.PrecomputationSlot{
 		Slot:                         uint64(0),
-		MessageCypher:                cyclic.NewInt(12),
-		AssociatedDataCypher:         cyclic.NewInt(7),
-		MessagePrecomputation:        cyclic.NewInt(3),
-		AssociatedDataPrecomputation: cyclic.NewInt(8)}
+		MessageCypher:                globals.GetGroup().NewInt(12),
+		AssociatedDataCypher:         globals.GetGroup().NewInt(7),
+		MessagePrecomputation:        globals.GetGroup().NewInt(3),
+		AssociatedDataPrecomputation: globals.GetGroup().NewInt(8)}
 
 	// Pass slot as input to Permute's TransmissionHandler
 	chOut <- &slot

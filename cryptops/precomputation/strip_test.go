@@ -7,6 +7,7 @@ package precomputation
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
 	"testing"
@@ -18,50 +19,52 @@ func TestStrip(t *testing.T) {
 	test := 3
 	pass := 0
 
+	grp := cyclic.NewGroup(large.NewInt(199), large.NewInt(11),
+		large.NewInt(13))
+
 	batchSize := uint64(3)
 
-	round := globals.NewRound(batchSize)
-
-	rng := cyclic.NewRandom(cyclic.NewInt(2), cyclic.NewInt(2000))
-
-	group := cyclic.NewGroup(cyclic.NewInt(199), cyclic.NewInt(11),
-		cyclic.NewInt(13), rng)
+	round := globals.NewRound(batchSize, grp)
 
 	var inMessages []services.Slot
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(0),
-		MessagePrecomputation:        cyclic.NewInt(39),
-		AssociatedDataPrecomputation: cyclic.NewInt(13)})
+		MessagePrecomputation:        grp.NewInt(39),
+		AssociatedDataPrecomputation: grp.NewInt(13)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(1),
-		MessagePrecomputation:        cyclic.NewInt(86),
-		AssociatedDataPrecomputation: cyclic.NewInt(87)})
+		MessagePrecomputation:        grp.NewInt(86),
+		AssociatedDataPrecomputation: grp.NewInt(87)})
 
 	inMessages = append(inMessages, &PrecomputationSlot{Slot: uint64(2),
-		MessagePrecomputation:        cyclic.NewInt(39),
-		AssociatedDataPrecomputation: cyclic.NewInt(51)})
+		MessagePrecomputation:        grp.NewInt(39),
+		AssociatedDataPrecomputation: grp.NewInt(51)})
 
-	globals.InitLastNode(round)
-	round.LastNode.EncryptedMessagePrecomputation[0] = cyclic.NewInt(41)
-	round.LastNode.EncryptedAssociatedDataPrecomputation[0] = cyclic.NewInt(74)
-	round.LastNode.EncryptedMessagePrecomputation[1] = cyclic.NewInt(8)
-	round.LastNode.EncryptedAssociatedDataPrecomputation[1] = cyclic.NewInt(49)
-	round.LastNode.EncryptedMessagePrecomputation[2] = cyclic.NewInt(91)
-	round.LastNode.EncryptedAssociatedDataPrecomputation[2] = cyclic.NewInt(73)
+	globals.InitLastNode(round, grp)
+	round.LastNode.EncryptedMessagePrecomputation[0] = grp.NewInt(41)
+	round.LastNode.EncryptedAssociatedDataPrecomputation[0] = grp.NewInt(74)
+	round.LastNode.EncryptedMessagePrecomputation[1] = grp.NewInt(8)
+	round.LastNode.EncryptedAssociatedDataPrecomputation[1] = grp.NewInt(49)
+	round.LastNode.EncryptedMessagePrecomputation[2] = grp.NewInt(91)
+	round.LastNode.EncryptedAssociatedDataPrecomputation[2] = grp.NewInt(73)
 
 	expected := []PrecomputationSlot{
-		PrecomputationSlot{Slot: uint64(0),
-			MessagePrecomputation:        cyclic.NewInt(98),
-			AssociatedDataPrecomputation: cyclic.NewInt(21)},
-		PrecomputationSlot{Slot: uint64(1),
-			MessagePrecomputation:        cyclic.NewInt(51),
-			AssociatedDataPrecomputation: cyclic.NewInt(12)},
-		PrecomputationSlot{Slot: uint64(2),
-			MessagePrecomputation:        cyclic.NewInt(135),
-			AssociatedDataPrecomputation: cyclic.NewInt(138)},
+		{
+			Slot:                         uint64(0),
+			MessagePrecomputation:        grp.NewInt(98),
+			AssociatedDataPrecomputation: grp.NewInt(21),
+		}, {
+			Slot:                         uint64(1),
+			MessagePrecomputation:        grp.NewInt(51),
+			AssociatedDataPrecomputation: grp.NewInt(12),
+		}, {
+			Slot:                         uint64(2),
+			MessagePrecomputation:        grp.NewInt(135),
+			AssociatedDataPrecomputation: grp.NewInt(138),
+		},
 	}
 
-	dc := services.DispatchCryptop(&group, Strip{}, nil, nil, round)
+	dc := services.DispatchCryptop(grp, Strip{}, nil, nil, round)
 
 	for i := uint64(0); i < batchSize; i++ {
 		dc.InChannel <- &(inMessages[i])

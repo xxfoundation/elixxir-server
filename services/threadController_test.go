@@ -51,9 +51,6 @@ func threadtest(td *ThreadController) {
 
 func TestThreadController(t *testing.T) {
 
-	pass := 0
-	test := 12
-
 	inputSlc := make([]slottst, 10)
 
 	for i := 0; i < len(inputSlc); i++ {
@@ -65,7 +62,7 @@ func TestThreadController(t *testing.T) {
 	tc := &ThreadController{threadLocker: &tl, InChannel: make(chan *Slot, 10),
 		OutChannel: make(chan *Slot, 10), quitChannel: make(chan chan bool, 1)}
 
-	//run threadtest
+	//run thread test
 	go threadtest(tc)
 
 	for i := 0; i < len(inputSlc); i++ {
@@ -77,25 +74,17 @@ func TestThreadController(t *testing.T) {
 		//compare out with input slice
 		if inputSlc[i].SlotID() != (*out).SlotID() {
 			t.Errorf("ThreadController test failed! Expected val: %v Actual: %v", inputSlc[i], out)
-		} else {
-			pass++
 		}
 	}
 
-	if tc.IsAlive() {
-		pass++
-	} else {
+	if !tc.IsAlive() {
 		t.Errorf("IsAlive: threadController should be alive since it has just been initialized")
 	}
 
 	tc.Kill(true)
 
-	if !tc.IsAlive() {
-		pass++
-	} else {
+	if tc.IsAlive() {
 		t.Errorf("Kill: threadController should NOT be alive after executing the kill statement")
 	}
-
-	println("threadController: ", pass, "out of", test, "tests passed.")
 
 }
