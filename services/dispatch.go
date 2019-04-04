@@ -17,7 +17,7 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 		case chunk, ok := <-m.input:
 			if !ok {
 
-				m.denoteClose(threadID, nil)
+				m.state.denoteClose(threadID, nil)
 				done = true
 			} else {
 				err := m.Adapt(s, m.Cryptop, chunk)
@@ -28,20 +28,20 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 
 				for _, om := range m.outputModules {
 
-					chunkList, numComplete := om.PrimeOutputs(chunk)
+					chunkList, numComplete := om.assignmentList.PrimeOutputs(chunk)
 					for _, r := range chunkList {
 						om.input <- r
 					}
 
-					fin := om.DenoteCompleted(numComplete)
+					fin := om.assignmentList.DenoteCompleted(numComplete)
 
 					if fin {
 						om.closeInput()
 					}
 				}
 			}
-		case killNotify := <-m.threads[threadID]:
-			m.denoteClose(threadID, killNotify)
+		case killNotify := <-m.state.threads[threadID]:
+			m.state.denoteClose(threadID, killNotify)
 			done = true
 			for _, om := range m.outputModules {
 				om.closeInput()
@@ -49,7 +49,7 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 		}
 	}
 	//check to ensure all output channels are closed.  Only has an effect on errors/failures.
-	if !m.AnyRunning() {
+	if !m.state.AnyRunning() {
 		for _, om := range m.outputModules {
 			om.closeInput()
 		}

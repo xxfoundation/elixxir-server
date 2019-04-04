@@ -22,9 +22,9 @@ type assignment struct {
 
 //Defines a set of assignments to be processed by a module
 type assignmentList struct {
-	assignments          []*assignment
-	assignmentSize       uint32
-	assignmentsCompleted *uint32
+	assignments []*assignment
+	size        uint32
+	completed   *uint32
 }
 
 func newAssignment(start, max, assignmentSize, chunkSize uint32) *assignment {
@@ -44,7 +44,7 @@ func (a *assignment) Enqueue(weight uint32) bool {
 	cnt := atomic.AddUint32(a.count, weight)
 
 	if cnt > a.maxCount {
-		panic(fmt.Sprintf("assignment assignmentSize overflow, Expected: <=%v, Got: %v from Weight: %v", a.maxCount, cnt, weight))
+		panic(fmt.Sprintf("assignment size overflow, Expected: <=%v, Got: %v from Weight: %v", a.maxCount, cnt, weight))
 	} else {
 		return cnt == a.maxCount
 	}
@@ -69,8 +69,8 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, int) {
 	numComplete := 0
 
 	for undenotedComplete > 0 {
-		assignmentNum := position / al.assignmentSize;
-		weight := (assignmentNum+1)*al.assignmentSize - position
+		assignmentNum := position / al.size
+		weight := (assignmentNum+1)*al.size - position
 
 		if weight > undenotedComplete {
 			weight = undenotedComplete
@@ -90,7 +90,7 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, int) {
 
 func (al *assignmentList) DenoteCompleted(numCompleted int) bool {
 
-	result := atomic.AddUint32(al.assignmentsCompleted, uint32(numCompleted))
+	result := atomic.AddUint32(al.completed, uint32(numCompleted))
 	if result > uint32(len(al.assignments)) {
 		panic("completed more assignments then possible")
 	} else {

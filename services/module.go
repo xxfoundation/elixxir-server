@@ -22,7 +22,7 @@ type Module struct {
 
 	NumThreads uint32
 
-	moduleState
+	state moduleState
 
 	//Private
 	input         OutputNotify
@@ -32,7 +32,7 @@ type Module struct {
 	inputModules  []*Module
 	outputModules []*Module
 
-	assignmentList
+	assignmentList assignmentList
 }
 
 func (m *Module) closeInput() {
