@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"math"
 	"sync/atomic"
 )
 
@@ -70,7 +69,7 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, int) {
 	numComplete := 0
 
 	for denoted > 0 {
-		assignmentNum := uint32(math.Floor(float64(position) / float64(al.assignmentSize)))
+		assignmentNum := position / al.assignmentSize;
 		weight := (assignmentNum+1)*al.assignmentSize - position
 
 		if weight > denoted {
