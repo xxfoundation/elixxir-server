@@ -71,7 +71,7 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 
 	//TODO: Check that the graph meets more criteria
 
-	//Find expanded batch assignmentSize
+	//Find expanded batch size
 	integers := make([]uint32, len(g.modules)+1)
 	var modulesAtBatchSize []*Module
 
@@ -80,26 +80,31 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 			panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
 		}
 
-		if m.AssignmentSize%m.ChunkSize != 0 {
-			panic(fmt.Sprintf("Chunk assignmentSize (%v) must be a factor or AssignmentSize (%v), "+
-				"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
-		}
-
-		if m.ChunkSize < globals.MinSlotSize {
-			panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
-				"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, globals.MinSlotSize, g.roundID, g.phase, m.Name))
-		}
-
-		if m.ChunkSize > m.AssignmentSize {
-			panic(fmt.Sprintf("ChunkSize (%v) must be <= AssignmentSize (%v), "+
-				"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
-		}
-
 		if m.ChunkSize == 0 {
-			m.ChunkSize = globals.MinSlotSize
+			if m.AssignmentSize != 0 {
+				m.ChunkSize = m.AssignmentSize
+			}
+		} else {
+			if m.ChunkSize < globals.MinSlotSize {
+				panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
+					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, globals.MinSlotSize, g.roundID, g.phase, m.Name))
+			}
+
+			if m.AssignmentSize%m.ChunkSize != 0 {
+				panic(fmt.Sprintf("Chunk size (%v) must be a factor or AssignmentSize (%v), "+
+					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
+			}
+
+			if m.ChunkSize > m.AssignmentSize {
+				panic(fmt.Sprintf("ChunkSize (%v) must be <= AssignmentSize (%v), "+
+					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
+			}
 		}
+
 		if m.AssignmentSize == 0 {
-			integers[itr-1] = m.ChunkSize
+			if m.ChunkSize != 0 {
+				integers[itr-1] = m.ChunkSize
+			}
 			modulesAtBatchSize = append(modulesAtBatchSize, m)
 		} else {
 			integers[itr-1] = m.AssignmentSize
@@ -117,10 +122,14 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 
 	for _, m := range modulesAtBatchSize {
 		m.AssignmentSize = expandBatchSize
+		if m.ChunkSize == 0 {
+			m.ChunkSize = expandBatchSize
+		}
 	}
 
 	g.outputModule = &Module{
 		AssignmentSize: globals.MinSlotSize,
+		ChunkSize:      globals.MinSlotSize,
 		inputModules:   []*Module{g.lastModule},
 		Name:           "Output",
 	}
@@ -140,14 +149,14 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 
 		jobMaxCount := m.AssignmentSize * numInputModules
 
-		m.assignments = make([]*assignment, numJobs)
+		m.assignmentList.assignments = make([]*assignment, numJobs)
 
-		m.assignmentSize = m.AssignmentSize
+		m.assignmentList.size = m.AssignmentSize
 
-		m.assignmentsCompleted = new(uint32)
+		m.assignmentList.completed = new(uint32)
 
 		for j := uint32(0); j < numJobs; j++ {
-			m.assignments[j] = newAssignment(uint32(j*m.AssignmentSize), jobMaxCount, m.AssignmentSize, m.ChunkSize)
+			m.assignmentList.assignments[j] = newAssignment(uint32(j*m.AssignmentSize), jobMaxCount, m.AssignmentSize, m.ChunkSize)
 		}
 	}
 	g.built = true
@@ -173,10 +182,10 @@ func (g *Graph) Run() {
 
 	for _, m := range g.modules {
 
-		m.numTh = uint8(m.NumThreads)
-		m.moduleState.Init()
+		m.state.numTh = uint8(m.NumThreads)
+		m.state.Init()
 
-		for i := uint8(0); i < m.numTh; i++ {
+		for i := uint8(0); i < m.state.numTh; i++ {
 			go dispatch(g, m, uint8(i))
 		}
 	}
@@ -222,13 +231,13 @@ func (g *Graph) GetStream() Stream {
 
 func (g *Graph) Send(sr Chunk) {
 
-	srList, numComplete := g.firstModule.PrimeOutputs(sr)
+	srList, numComplete := g.firstModule.assignmentList.PrimeOutputs(sr)
 
 	for _, r := range srList {
 		g.firstModule.input <- r
 	}
 
-	done := g.firstModule.DenoteCompleted(numComplete)
+	done := g.firstModule.assignmentList.DenoteCompleted(numComplete)
 
 	if done {
 		// FIXME: Perhaps not the correct place to close the channel.
@@ -256,7 +265,7 @@ func (g *Graph) Len() uint32 {
 func (g *Graph) Kill() bool {
 	success := true
 	for _, m := range g.modules {
-		success = success && m.Kill(time.Millisecond*10)
+		success = success && m.state.Kill(time.Millisecond*10)
 	}
 	return success
 }
