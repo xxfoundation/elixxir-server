@@ -71,20 +71,43 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 
 	//TODO: Check that the graph meets more criteria
 
-	//Find expanded batch size
+	//Find expanded batch assignmentSize
 	integers := make([]uint32, len(g.modules)+1)
+	var modulesAtBatchSize []*Module
 
 	for itr, m := range g.modules {
 		if m.NumThreads == 0 {
 			panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
 		}
-		if m.InputSize == 0 {
-			m.InputSize = m.Cryptop.GetMinSize()
+
+		if m.AssignmentSize%m.ChunkSize != 0 {
+			panic(fmt.Sprintf("Chunk assignmentSize (%v) must be a factor or AssignmentSize (%v), "+
+				"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
 		}
-		integers[itr-1] = m.InputSize
+
+		if m.ChunkSize < globals.MinSlotSize {
+			panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
+				"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, globals.MinSlotSize, g.roundID, g.phase, m.Name))
+		}
+
+		if m.ChunkSize > m.AssignmentSize {
+			panic(fmt.Sprintf("ChunkSize (%v) must be <= AssignmentSize (%v), "+
+				"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
+		}
+
+		if m.ChunkSize == 0 {
+			m.ChunkSize = globals.MinSlotSize
+		}
+		if m.AssignmentSize == 0 {
+			integers[itr-1] = m.ChunkSize
+			modulesAtBatchSize = append(modulesAtBatchSize, m)
+		} else {
+			integers[itr-1] = m.AssignmentSize
+		}
+
 	}
 
-	integers[len(integers)-1] = globals.MinSlotRange
+	integers[len(integers)-1] = globals.MinSlotSize
 	lcm := globals.LCM(integers)
 
 	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
@@ -92,10 +115,14 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 	g.batchSize = batchSize
 	g.expandBatchSize = expandBatchSize
 
+	for _, m := range modulesAtBatchSize {
+		m.AssignmentSize = expandBatchSize
+	}
+
 	g.outputModule = &Module{
-		InputSize:    globals.MinSlotRange,
-		inputModules: []*Module{g.lastModule},
-		Name:         "Output",
+		AssignmentSize: globals.MinSlotSize,
+		inputModules:   []*Module{g.lastModule},
+		Name:           "Output",
 	}
 
 	g.lastModule.outputModules = append(g.lastModule.outputModules, g.outputModule)
@@ -103,36 +130,31 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 
 	/*build assignments*/
 	for _, m := range g.modules {
-		inputSize := m.InputSize
 
-		if inputSize < globals.MinSlotRange {
-			inputSize = globals.MinSlotRange
-		}
-
-		numJobs := uint32(expandBatchSize / inputSize)
+		numJobs := uint32(expandBatchSize / m.AssignmentSize)
 
 		numInputModules := uint32(len(m.inputModules))
 		if numInputModules < 1 {
 			numInputModules = 1
 		}
 
-		jobMaxCount := inputSize * numInputModules
+		jobMaxCount := m.AssignmentSize * numInputModules
 
 		m.assignments = make([]*assignment, numJobs)
 
-		m.assignmentSize = inputSize
+		m.assignmentSize = m.AssignmentSize
 
 		m.assignmentsCompleted = new(uint32)
 
 		for j := uint32(0); j < numJobs; j++ {
-			m.assignments[j] = newAssignment(uint32(j*inputSize), jobMaxCount, inputSize)
+			m.assignments[j] = newAssignment(uint32(j*m.AssignmentSize), jobMaxCount, m.AssignmentSize, m.ChunkSize)
 		}
 	}
 	g.built = true
 
 	//populate channels
 	for _, m := range g.modules {
-		m.input = make(OutputNotify)
+		m.input = make(OutputNotify, 8)
 	}
 
 	g.outputChannel = g.outputModule.input
@@ -200,25 +222,25 @@ func (g *Graph) GetStream() Stream {
 
 func (g *Graph) Send(sr Chunk) {
 
-	srList := g.firstModule.PrimeOutputs(sr)
+	srList, numComplete := g.firstModule.PrimeOutputs(sr)
 
 	for _, r := range srList {
 		g.firstModule.input <- r
 	}
 
-	done := g.firstModule.DenoteCompleted(len(srList))
+	done := g.firstModule.DenoteCompleted(numComplete)
 
 	if done {
 		// FIXME: Perhaps not the correct place to close the channel.
 		// Ideally, only the sender closes, and only if there's one sender.
 		// Does commenting this fix the double close?
 		// It does not.
-		close(g.firstModule.input)
+		g.firstModule.closeInput()
 	}
 }
 
 // Outputs from the last op in the graph get sent on this channel.
-func (g *Graph) LotDoneChannel() OutputNotify {
+func (g *Graph) ChunkDoneChannel() OutputNotify {
 	return g.outputChannel
 }
 

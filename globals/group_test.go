@@ -8,12 +8,12 @@ import (
 
 // Tests that the group that is set is the same that is retrieved.
 func TestSetGroup_GetGroup(t *testing.T) {
-	InitCrypto()
+	group := InitCrypto()
 
-	SetGroup(Group)
+	SetGroup(group)
 
-	if !reflect.DeepEqual(GetGroup(), Group) {
-		t.Errorf("The group returned by GetGroup() does not match the set group\n\trecieved: %#v\n\texpected:%v", GetGroup(), Group)
+	if !reflect.DeepEqual(GetGroup(), group) {
+		t.Errorf("The group returned by GetGroup() does not match the set group\n\trecieved: %#v\n\texpected:%v", GetGroup(), group)
 	}
 }
 
@@ -27,9 +27,9 @@ func TestSetGroup_Again(t *testing.T) {
 		}
 	}()
 
-	InitCrypto()
+	group := InitCrypto()
 
-	SetGroup(Group)
+	SetGroup(group)
 
-	SetGroup(Group)
+	SetGroup(group)
 }

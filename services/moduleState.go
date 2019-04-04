@@ -66,7 +66,7 @@ func (ms *moduleState) denoteClose(thread uint8, killnotify chan bool) bool {
 
 	flagInv := ^flag
 
-	for atomic.CompareAndSwapUint64(ms.states, state, state&flagInv) {
+	for !atomic.CompareAndSwapUint64(ms.states, state, state&flagInv) {
 		state = atomic.LoadUint64(ms.states)
 	}
 	if killnotify != nil {

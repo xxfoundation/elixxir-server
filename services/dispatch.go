@@ -28,19 +28,14 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 
 				for _, om := range m.outputModules {
 
-					chunkList := om.PrimeOutputs(chunk)
+					chunkList, numComplete := om.PrimeOutputs(chunk)
 					for _, r := range chunkList {
 						om.input <- r
 					}
 
-					fin := om.DenoteCompleted(len(chunkList))
+					fin := om.DenoteCompleted(numComplete)
 
 					if fin {
-						// Here the receiver is closing the input, from multiple senders? This is extremely likely to be wrong
-						// Although, it seems like closing the channels might be coupled to killing the worker threads somehow?
-						// We need to remove that dependency ASAP. Receiving a
-						// kill signal should just cause any workers to
-						// immediately return at the next opportunity.
 						om.closeInput()
 					}
 				}
