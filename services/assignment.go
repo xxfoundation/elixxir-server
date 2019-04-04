@@ -64,16 +64,16 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, int) {
 
 	var cList []Chunk
 
-	denoted := c.Len()
+	undenotedComplete := c.Len()
 
 	numComplete := 0
 
-	for denoted > 0 {
+	for undenotedComplete > 0 {
 		assignmentNum := position / al.assignmentSize;
 		weight := (assignmentNum+1)*al.assignmentSize - position
 
-		if weight > denoted {
-			weight = denoted
+		if weight > undenotedComplete {
+			weight = undenotedComplete
 		}
 
 		ready := al.assignments[assignmentNum].Enqueue(weight)
@@ -83,25 +83,12 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, int) {
 			cList = append(cList, al.assignments[assignmentNum].GetChunk()...)
 		}
 		position += weight
-		denoted -= weight
+		undenotedComplete -= weight
 	}
 	return cList, numComplete
 }
 
 func (al *assignmentList) DenoteCompleted(numCompleted int) bool {
-
-	/*	for !swapComplete {
-		completedOld := atomic.LoadUint32(al.assignmentsCompleted)
-		completed := completedOld + nc
-
-		if completed == uint32(len(al.assignments)) {
-			done = true
-		} else if completed > uint32(len(al.assignments)) {
-			panic("completed more assignments then possible")
-		}
-
-		swapComplete = atomic.CompareAndSwapUint32(al.assignmentsCompleted, completedOld, completed)
-	}*/
 
 	result := atomic.AddUint32(al.assignmentsCompleted, uint32(numCompleted))
 	if result > uint32(len(al.assignments)) {

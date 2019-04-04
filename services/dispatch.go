@@ -36,7 +36,6 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 					fin := om.DenoteCompleted(numComplete)
 
 					if fin {
-						println("Finished",om.Name)
 						om.closeInput()
 					}
 				}

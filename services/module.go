@@ -36,13 +36,10 @@ type Module struct {
 }
 
 func (m *Module) closeInput() {
-	println("About to lock", m.Name)
 	m.inputLock.Lock()
-    println("locked it", m.Name)
 	if !m.inputClosed {
 		// Commenting this does prevent the send on closed channel, but also causes the program to not terminate
 		close(m.input)
 	}
 	m.inputLock.Unlock()
-	println("Unlocked it", m.Name)
 }
