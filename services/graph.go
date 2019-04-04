@@ -146,7 +146,7 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 
 	//populate channels
 	for _, m := range g.modules {
-		m.input = make(OutputNotify)
+		m.input = make(OutputNotify, 8)
 	}
 
 	g.outputChannel = g.outputModule.input
