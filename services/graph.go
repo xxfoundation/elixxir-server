@@ -227,7 +227,7 @@ func (g *Graph) Send(sr Chunk) {
 		// Ideally, only the sender closes, and only if there's one sender.
 		// Does commenting this fix the double close?
 		// It does not.
-		close(g.firstModule.input)
+        g.firstModule.closeInput()
 	}
 }
 

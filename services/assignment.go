@@ -41,25 +41,14 @@ func newAssignment(start, max, assignmentSize, chunkSize uint32) *assignment {
 }
 
 func (a *assignment) Enqueue(weight uint32) bool {
-	end := false
-	var ready bool
 
-	for !end {
-		cntOld := atomic.LoadUint32(a.count)
-		cnt := cntOld + weight
+	cnt := atomic.AddUint32(a.count, weight)
 
-		if cnt > a.maxCount {
-			panic(fmt.Sprintf("assignment assignmentSize overflow, Expected: <=%v, Got: %v from Weight: %v off %v", a.maxCount, cnt, weight, cntOld))
-		} else if cnt == a.maxCount {
-			ready = true
-		} else {
-			ready = false
-		}
-
-		end = atomic.CompareAndSwapUint32(a.count, cntOld, cnt)
+	if cnt > a.maxCount {
+		panic(fmt.Sprintf("assignment assignmentSize overflow, Expected: <=%v, Got: %v from Weight: %v", a.maxCount, cnt, weight))
+	} else {
+		return cnt == a.maxCount
 	}
-
-	return ready
 }
 
 func (a *assignment) GetChunk() []Chunk {
@@ -101,13 +90,8 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, int) {
 }
 
 func (al *assignmentList) DenoteCompleted(numCompleted int) bool {
-	swapComplete := false
 
-	done := false
-
-	nc := uint32(numCompleted)
-
-	for !swapComplete {
+	/*	for !swapComplete {
 		completedOld := atomic.LoadUint32(al.assignmentsCompleted)
 		completed := completedOld + nc
 
@@ -118,7 +102,12 @@ func (al *assignmentList) DenoteCompleted(numCompleted int) bool {
 		}
 
 		swapComplete = atomic.CompareAndSwapUint32(al.assignmentsCompleted, completedOld, completed)
-	}
+	}*/
 
-	return done
+	result := atomic.AddUint32(al.assignmentsCompleted, uint32(numCompleted))
+	if result > uint32(len(al.assignments)) {
+		panic("completed more assignments then possible")
+	} else {
+		return result == uint32(len(al.assignments))
+	}
 }
