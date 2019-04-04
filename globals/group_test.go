@@ -13,7 +13,7 @@ func TestSetGroup_GetGroup(t *testing.T) {
 	SetGroup(group)
 
 	if !reflect.DeepEqual(GetGroup(), group) {
-		t.Errorf("The group returned by GetGroup() does not match the set group\n\trecieved: %#v\n\texpected:%v", GetGroup(), Group)
+		t.Errorf("The group returned by GetGroup() does not match the set group\n\trecieved: %#v\n\texpected:%v", GetGroup(), group)
 	}
 }
 
