@@ -46,7 +46,7 @@ func NewGraph(callback ErrorCallback) *Graph {
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize uint32, stream Stream) {
+func (g *Graph) Build(batchSize uint32, stream Stream)uint32 {
 
 	g.stream = stream
 
@@ -81,17 +81,17 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 		} else {
 			if m.ChunkSize < globals.MinSlotSize {
 				panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
-					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, globals.MinSlotSize, g.roundID, g.phase, m.Name))
+					"Module: %s", m.ChunkSize, globals.MinSlotSize, m.Name))
 			}
 
 			if m.AssignmentSize%m.ChunkSize != 0 {
 				panic(fmt.Sprintf("Chunk size (%v) must be a factor or AssignmentSize (%v), "+
-					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
+					"Module: %s", m.ChunkSize, m.AssignmentSize, m.Name))
 			}
 
 			if m.ChunkSize > m.AssignmentSize {
 				panic(fmt.Sprintf("ChunkSize (%v) must be <= AssignmentSize (%v), "+
-					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
+					"Module: %s", m.ChunkSize, m.AssignmentSize, m.Name))
 			}
 		}
 
@@ -163,6 +163,8 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 	g.outputChannel = g.outputModule.input
 
 	delete(g.modules, g.outputModule.id)
+
+	return lcm
 }
 
 func (g *Graph) Run() {

@@ -4,9 +4,7 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package cmix
-
-import "gitlab.com/elixxir/server/services"
+package node
 
 type Phase uint8
 
@@ -74,15 +72,4 @@ var phaseNames = [NUM_PHASES]string{"OFF", "PRECOMP_GENERATION",
 
 	func (p Phase) String() string {
 	return phaseNames[p]
-}
-
-type PhaseMap struct{
-	m map[Phase]*services.Graph
-}
-
-func NewPhaseMap(graphs ...*services.Graph)PhaseMap{
-	pm := PhaseMap{m:make(map[Phase]*services.Graph)}
-	for _, g := range graphs{
-		_, ok := pm.m[]
-	}
 }

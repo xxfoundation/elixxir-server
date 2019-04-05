@@ -1,7 +1,7 @@
 logPath: "server.log"
 verbose: "false"
 batchSize: 1
-dbUsername: "cmix"
+dbUsername: "node"
 dbPassword: ""
 dbName: "cmix_server"
 dbAddresses:
