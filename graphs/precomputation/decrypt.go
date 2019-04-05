@@ -7,21 +7,23 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
-//This file implements the Graph for the Precomputation Decrypt phase
+// This file implements the Graph for the Precomputation Decrypt phase
 // Decrypt phase transforms first unpermuted internode keys
 // and partial cypher texts into the data that the permute phase needs
 
-//Stream holding data containing keys and inputs used by decrypt
+// Stream holding data containing keys and inputs used by decrypt
 type DecryptStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
 
+	//Link to round object
 	R *cyclic.IntBuffer
 	U *cyclic.IntBuffer
 
 	Y_R *cyclic.IntBuffer
 	Y_U *cyclic.IntBuffer
 
+	//Unique to stream
 	KeysMsg   *cyclic.IntBuffer
 	CypherMsg *cyclic.IntBuffer
 	KeysAD    *cyclic.IntBuffer
@@ -43,10 +45,10 @@ func (s *DecryptStream) Link(batchSize uint32, source ...interface{}) {
 	s.Y_R = round.Y_R.GetSubBuffer(0, batchSize)
 	s.Y_U = round.Y_U.GetSubBuffer(0, batchSize)
 
-	s.KeysMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+	s.KeysMsg   = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.KeysAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+	s.KeysAD    = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+	s.CypherAD  = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 }
 
 //Sole module in Precomputation Decrypt implementing cryptops.Elgamal
