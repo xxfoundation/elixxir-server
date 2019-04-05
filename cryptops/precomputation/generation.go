@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/crypto/shuffle"
 )
 
 // Generation phase generates all the keys used in the encryption.
@@ -160,7 +161,7 @@ func (gen Generation) Run(g *cyclic.Group, in, out *SlotGeneration,
 func buildCryptoGeneration(g *cyclic.Group, round *globals.Round) {
 
 	// Make the Permutation
-	cyclic.Shuffle(&round.Permutations)
+	shuffle.Shuffle(&round.Permutations)
 
 	// Generate the Private Cypher Key
 	g.FindSmallCoprimeInverse(round.Z, round.ExpSize)

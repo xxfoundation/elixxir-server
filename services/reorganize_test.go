@@ -7,8 +7,8 @@
 package services
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
 	"testing"
+	"gitlab.com/elixxir/crypto/shuffle"
 )
 
 type mockSlot struct {
@@ -39,7 +39,7 @@ func TestReorganizeSlots(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		tc := NewSlotReorganizer(nil, nil, batchSize)
 
-		cyclic.Shuffle(&testUints)
+		shuffle.Shuffle(&testUints)
 		for j := uint64(0); j < batchSize; j++ {
 			tc.InChannel <- shuffledTestSlots[j]
 		}
