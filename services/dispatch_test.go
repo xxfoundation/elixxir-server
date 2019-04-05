@@ -73,7 +73,7 @@ var PanicHandler ErrorCallback = func(err error) {
 var ModuleA = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(AddSignature)
+		f, ok2 := cryptop.(AddPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
@@ -93,7 +93,7 @@ var ModuleA = Module{
 var ModuleB = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, sRange Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(MultiMulSignature)
+		f, ok2 := cryptop.(MultiMulPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
@@ -115,7 +115,7 @@ var ModuleB = Module{
 var ModuleC = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(ModMulSignature)
+		f, ok2 := cryptop.(ModMulPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
@@ -136,7 +136,7 @@ var ModuleC = Module{
 var ModuleD = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(SubSignature)
+		f, ok2 := cryptop.(SubPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
@@ -221,61 +221,61 @@ func TestGraph(t *testing.T) {
 	<-endCh
 }
 
-type AddSignature func(X, Y int) int
+type AddPrototype func(X, Y int) int
 
-var Add AddSignature = func(X, Y int) int {
+var Add AddPrototype = func(X, Y int) int {
 	return X + Y
 }
 
-func (AddSignature) GetName() string {
+func (AddPrototype) GetName() string {
 	return "Add"
 }
 
-func (AddSignature) GetMinSize() uint32 {
+func (AddPrototype) GetMinSize() uint32 {
 	return 1
 }
 
-type ModMulSignature func(X, Y, P int) int
+type ModMulPrototype func(X, Y, P int) int
 
-var ModMul ModMulSignature = func(X, Y, P int) int {
+var ModMul ModMulPrototype = func(X, Y, P int) int {
 	return int(math.Abs(float64(X*Y))) % P
 }
 
-func (ModMulSignature) GetName() string {
+func (ModMulPrototype) GetName() string {
 	return "ModMul"
 }
 
-func (ModMulSignature) GetMinSize() uint32 {
+func (ModMulPrototype) GetMinSize() uint32 {
 	return 1
 }
 
-type MultiMulSignature func(X, Y, Z []int) []int
+type MultiMulPrototype func(X, Y, Z []int) []int
 
-var MultiMul MultiMulSignature = func(X, Y, Z []int) []int {
+var MultiMul MultiMulPrototype = func(X, Y, Z []int) []int {
 	for i := range Z {
 		Z[i] = X[i] * Y[i]
 	}
 	return Z
 }
 
-func (MultiMulSignature) GetName() string {
+func (MultiMulPrototype) GetName() string {
 	return "Mul"
 }
 
-func (MultiMulSignature) GetMinSize() uint32 {
+func (MultiMulPrototype) GetMinSize() uint32 {
 	return 4
 }
 
-type SubSignature func(X, Y int) int
+type SubPrototype func(X, Y int) int
 
-var Sub SubSignature = func(X, Y int) int {
+var Sub SubPrototype = func(X, Y int) int {
 	return X - Y
 }
 
-func (SubSignature) GetName() string {
+func (SubPrototype) GetName() string {
 	return "Sub"
 }
 
-func (SubSignature) GetMinSize() uint32 {
+func (SubPrototype) GetMinSize() uint32 {
 	return 1
 }
