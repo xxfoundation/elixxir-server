@@ -98,7 +98,7 @@ func checkIntBuffer(ib *cyclic.IntBuffer, expandedBatchSize uint32, source strin
 	}
 
 	numBad := 0
-	for i := 0; i < int(expandedBatchSize); i++ {
+	for i := uint32(0); i < expandedBatchSize; i++ {
 		ci := ib.Get(i)
 		if ci.Cmp(defaultInt) != 0 {
 			numBad++

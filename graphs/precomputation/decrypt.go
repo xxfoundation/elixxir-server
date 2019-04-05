@@ -1,4 +1,4 @@
-package graphs
+package precomputation
 
 import (
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -7,7 +7,12 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
-type PrecompDispatchStream struct {
+//This file implements the Graph for the Precomputation Decrypt phase
+// Decrypt phase transforms first unpermuted internode keys
+// and partial cypher texts into the data that the permute phase needs
+
+//Stream holding data containing keys and inputs used by decrypt
+type DecryptStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
 
@@ -23,11 +28,11 @@ type PrecompDispatchStream struct {
 	CypherAD  *cyclic.IntBuffer
 }
 
-func (s *PrecompDispatchStream) GetStreamName() string {
-	return "PrecompDispatchStream"
+func (s *DecryptStream) GetName() string {
+	return "PrecompDecryptStream"
 }
 
-func (s *PrecompDispatchStream) Link(batchSize uint32, source ...interface{}) {
+func (s *DecryptStream) Link(batchSize uint32, source ...interface{}) {
 	round := source[0].(*node.RoundBuffer)
 
 	s.Grp = round.Grp
@@ -44,9 +49,11 @@ func (s *PrecompDispatchStream) Link(batchSize uint32, source ...interface{}) {
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 }
 
+//Sole module in Precomputation Decrypt implementing cryptops.Elgamal
 var DecryptElgamal = services.Module{
+	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*PrecompDispatchStream)
+		s, ok := streamInput.(*DecryptStream)
 		elgamal, ok2 := cryptop.(cryptops.ElGamalPrototype)
 
 		if !ok || !ok2 {
@@ -68,8 +75,9 @@ var DecryptElgamal = services.Module{
 	Name:           "DecryptElgamal",
 }
 
-func InitPrecompDispatchGraph(batchSize uint32, errorHandler services.ErrorCallback) *services.Graph {
-	g := services.NewGraph("PrecomputationDecrypt", errorHandler, &PrecompDispatchStream{})
+//Called to initialize the graph. Conforms to graphs.Initialize function type
+func InitDecryptGraph(errorHandler services.ErrorCallback) *services.Graph {
+	g := services.NewGraph("PrecompDecrypt", errorHandler, &DecryptStream{})
 
 	g.First(&DecryptElgamal)
 	g.Last(&DecryptElgamal)

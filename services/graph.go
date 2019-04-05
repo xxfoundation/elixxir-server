@@ -52,7 +52,7 @@ func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize uint32) uint32 {
+func (g *Graph) Build(batchSize uint32) {
 
 	//Check if graph has modules
 	if len(g.modules) == 0 {
@@ -84,8 +84,12 @@ func (g *Graph) Build(batchSize uint32) uint32 {
 			}
 		} else {
 			if m.ChunkSize < globals.MinSlotSize {
-				panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
-					"Module: %s", m.ChunkSize, globals.MinSlotSize, m.Name))
+				/*panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
+				"Module: %s", m.ChunkSize, globals.MinSlotSize, m.Name))*/
+				m.ChunkSize = globals.MinSlotSize
+				if m.AssignmentSize < globals.MinSlotSize {
+					m.AssignmentSize = globals.MinSlotSize
+				}
 			}
 
 			if m.AssignmentSize%m.ChunkSize != 0 {
@@ -167,8 +171,6 @@ func (g *Graph) Build(batchSize uint32) uint32 {
 	g.outputChannel = g.outputModule.input
 
 	delete(g.modules, g.outputModule.id)
-
-	return lcm
 }
 
 func (g *Graph) Run() {
@@ -253,11 +255,11 @@ func (g *Graph) ChunkDoneChannel() OutputNotify {
 	return g.outputChannel
 }
 
-func (g *Graph) Cap() uint32 {
+func (g *Graph) GetExpandedBatchSize() uint32 {
 	return g.expandBatchSize
 }
 
-func (g *Graph) Len() uint32 {
+func (g *Graph) GetBatchSize() uint32 {
 	return g.batchSize
 }
 

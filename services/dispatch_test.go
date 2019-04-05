@@ -48,7 +48,7 @@ type Stream1 struct {
 	I     []int
 }
 
-func (s *Stream1) GetStreamName() string {
+func (s *Stream1) GetName() string {
 	return "Stream1"
 }
 
@@ -169,7 +169,7 @@ func TestGraph(t *testing.T) {
 
 	g.Build(batchSize)
 
-	roundSize := uint32(math.Ceil(1.2 * float64(g.Cap())))
+	roundSize := uint32(math.Ceil(1.2 * float64(g.GetExpandedBatchSize())))
 	roundBuf := RoundBuffer{}
 	roundBuf.Build(roundSize)
 
@@ -179,7 +179,7 @@ func TestGraph(t *testing.T) {
 
 	go func(g *Graph) {
 
-		for i := uint32(0); i < g.Cap(); i++ {
+		for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
 			g.Send(NewChunk(i, i+1))
 		}
 	}(g)
@@ -190,8 +190,6 @@ func TestGraph(t *testing.T) {
 
 		stream := g.GetStream().(*Stream1)
 
-		// This is probably the problem - we're ranging over a channel that
-		// doesn't get closed properly. So the range won't finish.
 		for chunk := range g.ChunkDoneChannel() {
 			for i := chunk.Begin(); i < chunk.End(); i++ {
 				// Compute expected result for this slot
@@ -210,11 +208,6 @@ func TestGraph(t *testing.T) {
 				}
 			}
 		}
-		// Did he mean to have encCh and endCh? encCh is probably just a typo
-		// Also, is this the send that panics?
-		// There's a send on a closed channel that panics every time main is
-		// run, so we need to figure out if it's because of something main did,
-		// or if it's a problem in the dispatcher.
 		encCh <- true
 	}(g, endCh)
 
