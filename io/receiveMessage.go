@@ -27,7 +27,7 @@ func ReceiveMessageFromClient(msg *pb.CmixMessage) {
 
 	//Check that the message is in the group and overwrite
 	if !grp.Inside(messagePayloadLarge) || !grp.Inside(associatedDataLarge) {
-		jww.ERROR.Printf("Message from client outside the group: %v %v",
+		jww.WARN.Printf("Message from client outside the group: %v %v",
 			messagePayloadLarge.Text(10), associatedDataLarge.Text(10))
 		associatedDataLarge.SetInt64(1)
 		messagePayloadLarge.SetInt64(1)
