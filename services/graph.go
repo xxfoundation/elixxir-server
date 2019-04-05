@@ -84,11 +84,9 @@ func (g *Graph) Build(batchSize uint32) {
 			}
 		} else {
 			if m.ChunkSize < globals.MinSlotSize {
-				/*panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
-				"Module: %s", m.ChunkSize, globals.MinSlotSize, m.Name))*/
-				m.ChunkSize = globals.MinSlotSize
-				if m.AssignmentSize < globals.MinSlotSize {
-					m.AssignmentSize = globals.MinSlotSize
+				m.ChunkSize = uint32(math.Ceil(float64(globals.MinSlotSize)/float64(m.ChunkSize))) * m.ChunkSize
+				if m.AssignmentSize < m.ChunkSize {
+					m.AssignmentSize = m.ChunkSize
 				}
 			}
 
@@ -126,6 +124,17 @@ func (g *Graph) Build(batchSize uint32) {
 		m.AssignmentSize = expandBatchSize
 		if m.ChunkSize == 0 {
 			m.ChunkSize = expandBatchSize
+		}
+	}
+
+	//checks that the cryptops can actually handle the chunk sizes passed
+	//if the crypotop input size is zero then it can handle any input size
+	for _, m := range g.modules {
+		if m.Cryptop.GetInputSize() != 0 {
+			if m.ChunkSize%m.Cryptop.GetInputSize() != 0 {
+				panic(fmt.Sprintf("Cryptop.InputSize (%v) not a factor of ChunkSize (%v) for "+
+					"module %s in graph %s", m.Cryptop.GetInputSize(), m.ChunkSize, m.Name, g.name))
+			}
 		}
 	}
 

@@ -99,15 +99,15 @@ var ModuleB = Module{
 			return InvalidTypeAssert
 		}
 
-		for slot := sRange.Begin(); slot < sRange.End(); slot += f.GetMinSize() {
-			regionEnd := slot + f.GetMinSize()
+		for slot := sRange.Begin(); slot < sRange.End(); slot += f.GetInputSize() {
+			regionEnd := slot + f.GetInputSize()
 			f(stream.C[slot:regionEnd], stream.D[slot:regionEnd], stream.E[slot:regionEnd])
 		}
 
 		return nil
 	},
 	Cryptop:        MultiMul,
-	AssignmentSize: MultiMul.GetMinSize(),
+	AssignmentSize: MultiMul.GetInputSize(),
 	NumThreads:     2,
 	Name:           "ModuleB",
 }
@@ -224,7 +224,7 @@ func (AddPrototype) GetName() string {
 	return "Add"
 }
 
-func (AddPrototype) GetMinSize() uint32 {
+func (AddPrototype) GetInputSize() uint32 {
 	return 1
 }
 
@@ -238,7 +238,7 @@ func (ModMulPrototype) GetName() string {
 	return "ModMul"
 }
 
-func (ModMulPrototype) GetMinSize() uint32 {
+func (ModMulPrototype) GetInputSize() uint32 {
 	return 1
 }
 
@@ -255,7 +255,7 @@ func (MultiMulPrototype) GetName() string {
 	return "Mul"
 }
 
-func (MultiMulPrototype) GetMinSize() uint32 {
+func (MultiMulPrototype) GetInputSize() uint32 {
 	return 4
 }
 
@@ -269,6 +269,6 @@ func (SubPrototype) GetName() string {
 	return "Sub"
 }
 
-func (SubPrototype) GetMinSize() uint32 {
+func (SubPrototype) GetInputSize() uint32 {
 	return 1
 }
