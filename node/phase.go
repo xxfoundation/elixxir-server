@@ -52,7 +52,7 @@ const (
 	// Realtime Peel: Uses Precomputation to prepare slots for Reception
 	REAL_PEEL
 
-	// Realtime Complete: Round has been completed
+	// Realtime Complete: RoundBuffer has been completed
 	REAL_COMPLETE
 
 	// Error: A Fatal Error has occurred, cannot continue
@@ -70,6 +70,6 @@ var phaseNames = [NUM_PHASES]string{"OFF", "PRECOMP_GENERATION",
 	"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "REAL_COMPLETE",
 	"ERROR"}
 
-	func (p Phase) String() string {
+func (p Phase) String() string {
 	return phaseNames[p]
 }

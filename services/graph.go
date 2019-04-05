@@ -16,6 +16,8 @@ type Graph struct {
 	firstModule *Module
 	lastModule  *Module
 
+	name string
+
 	outputModule *Module
 
 	idCount uint64
@@ -31,7 +33,7 @@ type Graph struct {
 	outputChannel OutputNotify
 }
 
-func NewGraph(callback ErrorCallback) *Graph {
+func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
 	var g Graph
 	g.callback = callback
 	g.modules = make(map[uint64]*Module)
@@ -39,16 +41,18 @@ func NewGraph(callback ErrorCallback) *Graph {
 	g.batchSize = 0
 	g.expandBatchSize = 0
 
+	g.name = name
+
 	g.built = false
 	g.linked = false
+
+	g.stream = stream
 
 	return &g
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize uint32, stream Stream)uint32 {
-
-	g.stream = stream
+func (g *Graph) Build(batchSize uint32) uint32 {
 
 	//Check if graph has modules
 	if len(g.modules) == 0 {
@@ -255,6 +259,10 @@ func (g *Graph) Cap() uint32 {
 
 func (g *Graph) Len() uint32 {
 	return g.batchSize
+}
+
+func (g *Graph) GetName() string {
+	return g.name
 }
 
 // This doesn't quite seem robust

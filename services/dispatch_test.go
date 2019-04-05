@@ -158,7 +158,7 @@ func TestGraph(t *testing.T) {
 
 	batchSize := uint32(1000)
 
-	g := NewGraph(PanicHandler, 0, 0)
+	g := NewGraph("test", PanicHandler, &Stream1{})
 
 	g.First(&ModuleA)
 	g.Connect(&ModuleA, &ModuleB)
@@ -167,7 +167,7 @@ func TestGraph(t *testing.T) {
 	g.Connect(&ModuleC, &ModuleD)
 	g.Last(&ModuleD)
 
-	g.Build(batchSize, &Stream1{})
+	g.Build(batchSize)
 
 	roundSize := uint32(math.Ceil(1.2 * float64(g.Cap())))
 	roundBuf := RoundBuffer{}

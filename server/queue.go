@@ -1,15 +1,15 @@
 package server
 
 import (
-	"sync"
-	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/services"
+	"sync"
 )
 
 type graphElement struct {
-	g   	*services.Graph
-	phase 	node.Phase
-	loc 	int
+	g     *services.Graph
+	phase node.Phase
+	loc   int
 	sync.Mutex
 }
 
@@ -33,7 +33,7 @@ func (rq *ResourceQueue) Leap() {
 
 type SendToGraph func(g *services.Graph)
 
-func (rq *ResourceQueue) ProcessIncoming(id RoundID, p Phase, s2g SendToGraph) bool {
+func (rq *ResourceQueue) ProcessIncoming(id node.RoundID, p node.Phase, s2g SendToGraph) bool {
 	gf := makeGraphFingerprint(id, p)
 	ge, ok := (*rq)[gf]
 
@@ -49,11 +49,11 @@ func (rq *ResourceQueue) ProcessIncoming(id RoundID, p Phase, s2g SendToGraph) b
 	return true
 }
 
-func (rq *ResourceQueue) Push(rid RoundID, p Phase, g *services.Graph) {
+func (rq *ResourceQueue) Push(rid node.RoundID, p node.Phase, g *services.Graph) {
 	ge := graphElement{
-		g:   	g,
-		phase: 	p,
-		loc: 	len(*rq)-1,
+		g:     g,
+		phase: p,
+		loc:   len(*rq) - 1,
 	}
 	gf := makeGraphFingerprint(rid, p)
 	ge.Lock()
