@@ -1,9 +1,10 @@
-package globals
+package cmix
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"sync"
 	"time"
+	"gitlab.com/elixxir/server/services"
 )
 
 type RoundID uint64
@@ -23,7 +24,7 @@ type Round struct {
 	U_INV cyclic.IntBuffer // Permuted Inverse *cyclic.Internode recipient key
 
 	CypherPublicKey *cyclic.Int // Global Cypher Key
-	Z               *cyclic.Int // This node's Cypher Key
+	Z               *cyclic.Int // This cmix's Cypher Key
 
 	// Private keys for the above
 	Y_R []*cyclic.Int
@@ -33,17 +34,17 @@ type Round struct {
 	Y_U []*cyclic.Int
 
 	// Size of batch
-	BatchSize         uint32
-	ExpandedBatchSize uint32
+	batchSize         uint32
+	expandedBatchSize uint32
 
-	// Phase fields
-
+	// Map of graphs which implement phases
+	phases PhaseMap
 }
 
 // Function to initialize a new round
-func NewRound(g *cyclic.Group, batchsize, batchSizes []uint32) *Round {
+func NewRound(g *cyclic.Group, batchsize, expandedBatchSize uint32) *Round {
 	NR := Round{
-		R: make([]*cyclic.Int, batchSize),
+		R: g.NewIntBuffer(expandedBatchSize),
 		S: make([]*cyclic.Int, batchSize),
 		T: make([]*cyclic.Int, batchSize),
 		V: make([]*cyclic.Int, batchSize),

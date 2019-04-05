@@ -4,7 +4,9 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package globals
+package cmix
+
+import "gitlab.com/elixxir/server/services"
 
 type Phase uint8
 
@@ -70,6 +72,17 @@ var phaseNames = [NUM_PHASES]string{"OFF", "PRECOMP_GENERATION",
 	"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "REAL_COMPLETE",
 	"ERROR"}
 
-func (p Phase) String() string {
+	func (p Phase) String() string {
 	return phaseNames[p]
+}
+
+type PhaseMap struct{
+	m map[Phase]*services.Graph
+}
+
+func NewPhaseMap(graphs ...*services.Graph)PhaseMap{
+	pm := PhaseMap{m:make(map[Phase]*services.Graph)}
+	for _, g := range graphs{
+		_, ok := pm.m[]
+	}
 }

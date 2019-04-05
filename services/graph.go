@@ -29,12 +29,9 @@ type Graph struct {
 	linked bool
 
 	outputChannel OutputNotify
-
-	roundID globals.RoundID
-	phase   globals.Phase
 }
 
-func NewGraph(callback ErrorCallback, rid globals.RoundID, p globals.Phase) *Graph {
+func NewGraph(callback ErrorCallback) *Graph {
 	var g Graph
 	g.callback = callback
 	g.modules = make(map[uint64]*Module)
@@ -44,9 +41,6 @@ func NewGraph(callback ErrorCallback, rid globals.RoundID, p globals.Phase) *Gra
 
 	g.built = false
 	g.linked = false
-
-	g.roundID = rid
-	g.phase = p
 
 	return &g
 }
@@ -268,16 +262,4 @@ func (g *Graph) Kill() bool {
 		success = success && m.state.Kill(time.Millisecond*10)
 	}
 	return success
-}
-
-func (g *Graph) GetRoundID() globals.RoundID {
-	return g.roundID
-}
-
-func (g *Graph) GetPhase() globals.Phase {
-	return g.phase
-}
-
-func (g *Graph) GetFingerprint() GraphFingerprint {
-	return makeGraphFingerprint(g.roundID, g.phase)
 }
