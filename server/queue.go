@@ -3,17 +3,9 @@ package server
 import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
-	"sync"
 )
 
-type graphElement struct {
-	g     *services.Graph
-	phase node.Phase
-	loc   int
-	sync.Mutex
-}
-
-type ResourceQueue map[GraphFingerprint]*graphElement
+type ResourceQueue map[QueueFingerprint]*queueElement
 
 // We gotta come up with a better name for this...
 func (rq *ResourceQueue) Leap() {
@@ -22,7 +14,7 @@ func (rq *ResourceQueue) Leap() {
 
 		switch g.loc {
 		case -1:
-			delete(*rq, g.phase)
+			delete(*rq, g.GetFingerprint())
 		case 0:
 			g.Unlock()
 		case 1:
@@ -50,7 +42,7 @@ func (rq *ResourceQueue) ProcessIncoming(id node.RoundID, p node.Phase, s2g Send
 }
 
 func (rq *ResourceQueue) Push(rid node.RoundID, p node.Phase, g *services.Graph) {
-	ge := graphElement{
+	ge := queueElement{
 		g:     g,
 		phase: p,
 		loc:   len(*rq) - 1,
