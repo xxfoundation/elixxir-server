@@ -7,6 +7,6 @@
 package services
 
 type Stream interface {
-	GetStreamName() string
+	GetName() string
 	Link(BatchSize uint32, source ...interface{})
 }

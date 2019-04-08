@@ -4,7 +4,7 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package globals
+package node
 
 type Phase uint8
 
@@ -52,7 +52,7 @@ const (
 	// Realtime Peel: Uses Precomputation to prepare slots for Reception
 	REAL_PEEL
 
-	// Realtime Complete: Round has been completed
+	// Realtime Complete: RoundBuffer has been completed
 	REAL_COMPLETE
 
 	// Error: A Fatal Error has occurred, cannot continue

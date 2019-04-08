@@ -54,7 +54,7 @@ type Stream1 struct {
 	I     []int
 }
 
-func (s *Stream1) GetStreamName() string {
+func (s *Stream1) GetName() string {
 	return "Stream1"
 }
 
@@ -79,7 +79,7 @@ var PanicHandler ErrorCallback = func(err error) {
 var ModuleA = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(AddSignature)
+		f, ok2 := cryptop.(AddPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
@@ -99,21 +99,21 @@ var ModuleA = Module{
 var ModuleB = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, sRange Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(MultiMulSignature)
+		f, ok2 := cryptop.(MultiMulPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
 		}
 
-		for slot := sRange.Begin(); slot < sRange.End(); slot += f.GetMinSize() {
-			regionEnd := slot + f.GetMinSize()
+		for slot := sRange.Begin(); slot < sRange.End(); slot += f.GetInputSize() {
+			regionEnd := slot + f.GetInputSize()
 			f(stream.C[slot:regionEnd], stream.D[slot:regionEnd], stream.E[slot:regionEnd])
 		}
 
 		return nil
 	},
 	Cryptop:        MultiMul,
-	AssignmentSize: MultiMul.GetMinSize(),
+	AssignmentSize: MultiMul.GetInputSize(),
 	NumThreads:     2,
 	Name:           "ModuleB",
 }
@@ -121,7 +121,7 @@ var ModuleB = Module{
 var ModuleC = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(ModMulSignature)
+		f, ok2 := cryptop.(ModMulPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
@@ -142,7 +142,7 @@ var ModuleC = Module{
 var ModuleD = Module{
 	Adapt: func(streamInput Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 		stream, ok := streamInput.(*Stream1)
-		f, ok2 := cryptop.(SubSignature)
+		f, ok2 := cryptop.(SubPrototype)
 
 		if !ok || !ok2 {
 			return InvalidTypeAssert
@@ -164,7 +164,7 @@ func TestGraph(t *testing.T) {
 
 	batchSize := uint32(1000)
 
-	g := NewGraph(PanicHandler, 0, 0)
+	g := NewGraph("test", PanicHandler, &Stream1{})
 
 	g.First(&ModuleA)
 	g.Connect(&ModuleA, &ModuleB)
@@ -173,9 +173,9 @@ func TestGraph(t *testing.T) {
 	g.Connect(&ModuleC, &ModuleD)
 	g.Last(&ModuleD)
 
-	g.Build(batchSize, &Stream1{})
+	g.Build(batchSize)
 
-	roundSize := uint32(math.Ceil(1.2 * float64(g.Cap())))
+	roundSize := uint32(math.Ceil(1.2 * float64(g.GetExpandedBatchSize())))
 	roundBuf := RoundBuffer{}
 	roundBuf.Build(roundSize)
 
@@ -185,7 +185,7 @@ func TestGraph(t *testing.T) {
 
 	go func(g *Graph) {
 
-		for i := uint32(0); i < g.Cap(); i++ {
+		for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
 			g.Send(NewChunk(i, i+1))
 		}
 	}(g)
@@ -196,8 +196,6 @@ func TestGraph(t *testing.T) {
 
 		stream := g.GetStream().(*Stream1)
 
-		// This is probably the problem - we're ranging over a channel that
-		// doesn't get closed properly. So the range won't finish.
 		for chunk := range g.ChunkDoneChannel() {
 			for i := chunk.Begin(); i < chunk.End(); i++ {
 				// Compute expected result for this slot
@@ -216,72 +214,67 @@ func TestGraph(t *testing.T) {
 				}
 			}
 		}
-		// Did he mean to have encCh and endCh? encCh is probably just a typo
-		// Also, is this the send that panics?
-		// There's a send on a closed channel that panics every time main is
-		// run, so we need to figure out if it's because of something main did,
-		// or if it's a problem in the dispatcher.
 		encCh <- true
 	}(g, endCh)
 
 	<-endCh
 }
 
-type AddSignature func(X, Y int) int
+type AddPrototype func(X, Y int) int
 
-var Add AddSignature = func(X, Y int) int {
+var Add AddPrototype = func(X, Y int) int {
 	return X + Y
 }
 
-func (AddSignature) GetName() string {
+func (AddPrototype) GetName() string {
 	return "Add"
 }
 
-func (AddSignature) GetMinSize() uint32 {
+func (AddPrototype) GetInputSize() uint32 {
 	return 1
 }
 
-type ModMulSignature func(X, Y, P int) int
+type ModMulPrototype func(X, Y, P int) int
 
-var ModMul ModMulSignature = func(X, Y, P int) int {
+var ModMul ModMulPrototype = func(X, Y, P int) int {
 	return int(math.Abs(float64(X*Y))) % P
 }
 
-func (ModMulSignature) GetName() string {
+func (ModMulPrototype) GetName() string {
 	return "ModMul"
 }
 
-func (ModMulSignature) GetMinSize() uint32 {
+func (ModMulPrototype) GetInputSize() uint32 {
 	return 1
 }
 
-type MultiMulSignature func(X, Y, Z []int) []int
+type MultiMulPrototype func(X, Y, Z []int) []int
 
-var MultiMul MultiMulSignature = func(X, Y, Z []int) []int {
+var MultiMul MultiMulPrototype = func(X, Y, Z []int) []int {
 	for i := range Z {
 		Z[i] = X[i] * Y[i]
 	}
 	return Z
 }
 
-func (MultiMulSignature) GetName() string {
+func (MultiMulPrototype) GetName() string {
 	return "Mul"
 }
 
-func (MultiMulSignature) GetMinSize() uint32 {
+func (MultiMulPrototype) GetInputSize() uint32 {
 	return 4
 }
 
-type SubSignature func(X, Y int) int
+type SubPrototype func(X, Y int) int
 
-var Sub SubSignature = func(X, Y int) int {
+var Sub SubPrototype = func(X, Y int) int {
 	return X - Y
 }
 
-func (SubSignature) GetName() string {
+func (SubPrototype) GetName() string {
 	return "Sub"
 }
 
-func (SubSignature) GetMinSize() uint32 {
+func (SubPrototype) GetInputSize() uint32 {
 	return 1
 }

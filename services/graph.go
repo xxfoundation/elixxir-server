@@ -22,6 +22,8 @@ type Graph struct {
 	firstModule *Module
 	lastModule  *Module
 
+	name string
+
 	outputModule *Module
 
 	idCount uint64
@@ -35,12 +37,9 @@ type Graph struct {
 	linked bool
 
 	outputChannel OutputNotify
-
-	roundID globals.RoundID
-	phase   globals.Phase
 }
 
-func NewGraph(callback ErrorCallback, rid globals.RoundID, p globals.Phase) *Graph {
+func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
 	var g Graph
 	g.callback = callback
 	g.modules = make(map[uint64]*Module)
@@ -48,19 +47,18 @@ func NewGraph(callback ErrorCallback, rid globals.RoundID, p globals.Phase) *Gra
 	g.batchSize = 0
 	g.expandBatchSize = 0
 
+	g.name = name
+
 	g.built = false
 	g.linked = false
 
-	g.roundID = rid
-	g.phase = p
+	g.stream = stream
 
 	return &g
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize uint32, stream Stream) {
-
-	g.stream = stream
+func (g *Graph) Build(batchSize uint32) {
 
 	//Check if graph has modules
 	if len(g.modules) == 0 {
@@ -92,18 +90,20 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 			}
 		} else {
 			if m.ChunkSize < globals.MinSlotSize {
-				panic(fmt.Sprintf("ChunkSize (%v) cannot be smaller than the minimum slot range (%v), "+
-					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, globals.MinSlotSize, g.roundID, g.phase, m.Name))
+				m.ChunkSize = uint32(math.Ceil(float64(globals.MinSlotSize)/float64(m.ChunkSize))) * m.ChunkSize
+				if m.AssignmentSize < m.ChunkSize {
+					m.AssignmentSize = m.ChunkSize
+				}
 			}
 
 			if m.AssignmentSize%m.ChunkSize != 0 {
 				panic(fmt.Sprintf("Chunk size (%v) must be a factor or AssignmentSize (%v), "+
-					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
+					"Module: %s", m.ChunkSize, m.AssignmentSize, m.Name))
 			}
 
 			if m.ChunkSize > m.AssignmentSize {
 				panic(fmt.Sprintf("ChunkSize (%v) must be <= AssignmentSize (%v), "+
-					"RoundID: %v, Phase: %v, Module: %s", m.ChunkSize, m.AssignmentSize, g.roundID, g.phase, m.Name))
+					"Module: %s", m.ChunkSize, m.AssignmentSize, m.Name))
 			}
 		}
 
@@ -130,6 +130,17 @@ func (g *Graph) Build(batchSize uint32, stream Stream) {
 		m.AssignmentSize = expandBatchSize
 		if m.ChunkSize == 0 {
 			m.ChunkSize = expandBatchSize
+		}
+	}
+
+	//checks that the cryptops can actually handle the chunk sizes passed
+	//if the crypotop input size is zero then it can handle any input size
+	for _, m := range g.modules {
+		if m.Cryptop.GetInputSize() != 0 {
+			if m.ChunkSize%m.Cryptop.GetInputSize() != 0 {
+				panic(fmt.Sprintf("Cryptop.InputSize (%v) not a factor of ChunkSize (%v) for "+
+					"module %s in graph %s", m.Cryptop.GetInputSize(), m.ChunkSize, m.Name, g.name))
+			}
 		}
 	}
 
@@ -259,12 +270,16 @@ func (g *Graph) ChunkDoneChannel() OutputNotify {
 	return g.outputChannel
 }
 
-func (g *Graph) Cap() uint32 {
+func (g *Graph) GetExpandedBatchSize() uint32 {
 	return g.expandBatchSize
 }
 
-func (g *Graph) Len() uint32 {
+func (g *Graph) GetBatchSize() uint32 {
 	return g.batchSize
+}
+
+func (g *Graph) GetName() string {
+	return g.name
 }
 
 // This doesn't quite seem robust
@@ -274,16 +289,4 @@ func (g *Graph) Kill() bool {
 		success = success && m.state.Kill(time.Millisecond*10)
 	}
 	return success
-}
-
-func (g *Graph) GetRoundID() globals.RoundID {
-	return g.roundID
-}
-
-func (g *Graph) GetPhase() globals.Phase {
-	return g.phase
-}
-
-func (g *Graph) GetFingerprint() GraphFingerprint {
-	return makeGraphFingerprint(g.roundID, g.phase)
 }
