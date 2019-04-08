@@ -28,12 +28,12 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 
 				for _, om := range m.outputModules {
 
-					chunkList, numComplete := om.assignmentList.PrimeOutputs(chunk)
+					chunkList := om.assignmentList.PrimeOutputs(chunk)
 					for _, r := range chunkList {
 						om.input <- r
 					}
 
-					fin := om.assignmentList.DenoteCompleted(numComplete)
+					fin := om.assignmentList.DenoteCompleted(len(chunkList))
 
 					if fin {
 						om.closeInput()

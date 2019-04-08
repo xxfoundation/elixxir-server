@@ -130,8 +130,7 @@ func (g *Graph) Build(batchSize uint32) {
 	}
 
 	g.outputModule = &Module{
-		AssignmentSize: globals.MinSlotSize,
-		ChunkSize:      globals.MinSlotSize,
+		InputSize: globals.MinSlotSize,
 		inputModules:   []*Module{g.lastModule},
 		Name:           "Output",
 	}
@@ -142,23 +141,20 @@ func (g *Graph) Build(batchSize uint32) {
 	/*build assignments*/
 	for _, m := range g.modules {
 
-		numJobs := uint32(expandBatchSize / m.AssignmentSize)
+		numJobs := uint32(expandBatchSize / m.InputSize)
 
 		numInputModules := uint32(len(m.inputModules))
 		if numInputModules < 1 {
 			numInputModules = 1
 		}
 
-		jobMaxCount := m.AssignmentSize * numInputModules
+		jobMaxCount := m.InputSize * numInputModules
 
-		m.assignmentList.assignments = make([]*assignment, numJobs)
-
-		m.assignmentList.size = m.AssignmentSize
 
 		m.assignmentList.completed = new(uint32)
 
 		for j := uint32(0); j < numJobs; j++ {
-			m.assignmentList.assignments[j] = newAssignment(uint32(j*m.AssignmentSize), jobMaxCount, m.AssignmentSize, m.ChunkSize)
+			m.assignmentList.assignments[j] = newAssignment(uint32(j*m.InputSize), jobMaxCount)
 		}
 	}
 	g.built = true
@@ -233,13 +229,13 @@ func (g *Graph) GetStream() Stream {
 
 func (g *Graph) Send(sr Chunk) {
 
-	srList, numComplete := g.firstModule.assignmentList.PrimeOutputs(sr)
+	srList := g.firstModule.assignmentList.PrimeOutputs(sr)
 
 	for _, r := range srList {
 		g.firstModule.input <- r
 	}
 
-	done := g.firstModule.assignmentList.DenoteCompleted(numComplete)
+	done := g.firstModule.assignmentList.DenoteCompleted(len(srList))
 
 	if done {
 		// FIXME: Perhaps not the correct place to close the channel.

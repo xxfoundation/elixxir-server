@@ -15,8 +15,8 @@ type Module struct {
 	Adapt   adapter
 	Cryptop cryptops.Cryptop
 
-	AssignmentSize uint32
-	ChunkSize      uint32
+	InputSize      uint32
+	StartThreshold uint32
 
 	Name string
 
@@ -33,6 +33,8 @@ type Module struct {
 	outputModules []*Module
 
 	assignmentList assignmentList
+
+	initialized bool
 }
 
 func (m *Module) closeInput() {
@@ -42,4 +44,10 @@ func (m *Module) closeInput() {
 		close(m.input)
 	}
 	m.inputLock.Unlock()
+}
+
+func (m *Module)DeepCopy()*Module{
+	if m.initialized{
+		panic("Cannot copy a module which is running")
+	}
 }
