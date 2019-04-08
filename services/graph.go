@@ -7,7 +7,6 @@
 package services
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/server/globals"
 	"math"
 	"time"
@@ -36,7 +35,7 @@ type Graph struct {
 	built  bool
 	linked bool
 
-	outputChannel OutputNotify
+	outputChannel IO_Notify
 }
 
 func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
@@ -59,7 +58,57 @@ func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
 
 // This is too long of a function
 func (g *Graph) Build(batchSize uint32) {
+	//Checks graph is properly formatted
+	g.checkGraph()
 
+	//Find expanded batch size
+	var integers []uint32
+
+	for _, m := range g.modules {
+		m.checkParameters(globals.MinSlotSize)
+		if m.InputSize != INPUT_IS_BATCHSIZE {
+			integers = append(integers, m.InputSize)
+		}
+	}
+
+	integers = append(integers, globals.MinSlotSize)
+	lcm := globals.LCM(integers)
+
+	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
+
+	g.batchSize = batchSize
+	g.expandBatchSize = expandBatchSize
+
+	/*setup output*/
+	g.outputModule = &Module{
+		InputSize:    globals.MinSlotSize,
+		inputModules: []*Module{g.lastModule},
+		Name:         "Output",
+		copy:         true,
+	}
+
+	g.lastModule.outputModules = append(g.lastModule.outputModules, g.outputModule)
+	g.add(g.outputModule)
+
+	/*build assignments*/
+	for _, m := range g.modules {
+		m.buildAssignments(expandBatchSize)
+	}
+
+	g.built = true
+
+	//populate channels
+	for _, m := range g.modules {
+		m.open()
+	}
+
+	/*finish setting up output*/
+	g.outputChannel = g.outputModule.input
+
+	delete(g.modules, g.outputModule.id)
+}
+
+func (g *Graph) checkGraph() {
 	//Check if graph has modules
 	if len(g.modules) == 0 {
 		panic("No modules in graph")
@@ -72,120 +121,6 @@ func (g *Graph) Build(batchSize uint32) {
 	if g.lastModule == nil {
 		panic("No last module")
 	}
-
-	//TODO: Check that the graph meets more criteria
-
-	//Find expanded batch size
-	integers := make([]uint32, len(g.modules)+1)
-	var modulesAtBatchSize []*Module
-
-	for itr, m := range g.modules {
-		if m.NumThreads == 0 {
-			panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
-		}
-
-		if m.ChunkSize == 0 {
-			if m.AssignmentSize != 0 {
-				m.ChunkSize = m.AssignmentSize
-			}
-		} else {
-			if m.ChunkSize < globals.MinSlotSize {
-				m.ChunkSize = uint32(math.Ceil(float64(globals.MinSlotSize)/float64(m.ChunkSize))) * m.ChunkSize
-				if m.AssignmentSize < m.ChunkSize {
-					m.AssignmentSize = m.ChunkSize
-				}
-			}
-
-			if m.AssignmentSize%m.ChunkSize != 0 {
-				panic(fmt.Sprintf("Chunk size (%v) must be a factor or AssignmentSize (%v), "+
-					"Module: %s", m.ChunkSize, m.AssignmentSize, m.Name))
-			}
-
-			if m.ChunkSize > m.AssignmentSize {
-				panic(fmt.Sprintf("ChunkSize (%v) must be <= AssignmentSize (%v), "+
-					"Module: %s", m.ChunkSize, m.AssignmentSize, m.Name))
-			}
-		}
-
-		if m.AssignmentSize == 0 {
-			if m.ChunkSize != 0 {
-				integers[itr-1] = m.ChunkSize
-			}
-			modulesAtBatchSize = append(modulesAtBatchSize, m)
-		} else {
-			integers[itr-1] = m.AssignmentSize
-		}
-
-	}
-
-	integers[len(integers)-1] = globals.MinSlotSize
-	lcm := globals.LCM(integers)
-
-	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
-
-	g.batchSize = batchSize
-	g.expandBatchSize = expandBatchSize
-
-	for _, m := range modulesAtBatchSize {
-		m.AssignmentSize = expandBatchSize
-		if m.ChunkSize == 0 {
-			m.ChunkSize = expandBatchSize
-		}
-	}
-
-	//checks that the cryptops can actually handle the chunk sizes passed
-	//if the crypotop input size is zero then it can handle any input size
-	for _, m := range g.modules {
-		if m.Cryptop.GetInputSize() != 0 {
-			if m.ChunkSize%m.Cryptop.GetInputSize() != 0 {
-				panic(fmt.Sprintf("Cryptop.InputSize (%v) not a factor of ChunkSize (%v) for "+
-					"module %s in graph %s", m.Cryptop.GetInputSize(), m.ChunkSize, m.Name, g.name))
-			}
-		}
-	}
-
-	g.outputModule = &Module{
-		AssignmentSize: globals.MinSlotSize,
-		ChunkSize:      globals.MinSlotSize,
-		inputModules:   []*Module{g.lastModule},
-		Name:           "Output",
-	}
-
-	g.lastModule.outputModules = append(g.lastModule.outputModules, g.outputModule)
-	g.add(g.outputModule)
-
-	/*build assignments*/
-	for _, m := range g.modules {
-
-		numJobs := uint32(expandBatchSize / m.AssignmentSize)
-
-		numInputModules := uint32(len(m.inputModules))
-		if numInputModules < 1 {
-			numInputModules = 1
-		}
-
-		jobMaxCount := m.AssignmentSize * numInputModules
-
-		m.assignmentList.assignments = make([]*assignment, numJobs)
-
-		m.assignmentList.size = m.AssignmentSize
-
-		m.assignmentList.completed = new(uint32)
-
-		for j := uint32(0); j < numJobs; j++ {
-			m.assignmentList.assignments[j] = newAssignment(uint32(j*m.AssignmentSize), jobMaxCount, m.AssignmentSize, m.ChunkSize)
-		}
-	}
-	g.built = true
-
-	//populate channels
-	for _, m := range g.modules {
-		m.input = make(OutputNotify, 8)
-	}
-
-	g.outputChannel = g.outputModule.input
-
-	delete(g.modules, g.outputModule.id)
 }
 
 func (g *Graph) Run() {
@@ -233,6 +168,10 @@ func (g *Graph) Last(l *Module) {
 }
 
 func (g *Graph) add(m *Module) {
+	if !m.copy {
+		panic("cannot build a graph with an original module, must use a copy")
+	}
+	m.used = true
 	_, ok := g.modules[m.id]
 
 	if !ok {
@@ -248,13 +187,13 @@ func (g *Graph) GetStream() Stream {
 
 func (g *Graph) Send(sr Chunk) {
 
-	srList, numComplete := g.firstModule.assignmentList.PrimeOutputs(sr)
+	srList := g.firstModule.assignmentList.PrimeOutputs(sr)
 
 	for _, r := range srList {
 		g.firstModule.input <- r
 	}
 
-	done := g.firstModule.assignmentList.DenoteCompleted(numComplete)
+	done := g.firstModule.assignmentList.DenoteCompleted(len(srList))
 
 	if done {
 		// FIXME: Perhaps not the correct place to close the channel.
@@ -266,7 +205,7 @@ func (g *Graph) Send(sr Chunk) {
 }
 
 // Outputs from the last op in the graph get sent on this channel.
-func (g *Graph) ChunkDoneChannel() OutputNotify {
+func (g *Graph) ChunkDoneChannel() IO_Notify {
 	return g.outputChannel
 }
 
