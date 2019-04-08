@@ -27,7 +27,6 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 				}
 
 				for _, om := range m.outputModules {
-
 					chunkList := om.assignmentList.PrimeOutputs(chunk)
 					for _, r := range chunkList {
 						om.input <- r

@@ -45,10 +45,10 @@ func (s *DecryptStream) Link(batchSize uint32, source ...interface{}) {
 	s.Y_R = round.Y_R.GetSubBuffer(0, batchSize)
 	s.Y_U = round.Y_U.GetSubBuffer(0, batchSize)
 
-	s.KeysMsg   = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+	s.KeysMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.KeysAD    = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.CypherAD  = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+	s.KeysAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 }
 
 //Sole module in Precomputation Decrypt implementing cryptops.Elgamal
@@ -70,19 +70,20 @@ var DecryptElgamal = services.Module{
 		}
 		return nil
 	},
-	Cryptop:        cryptops.ElGamal,
-	NumThreads:     5,
-	AssignmentSize: 1,
-	ChunkSize:      1,
-	Name:           "DecryptElgamal",
+	Cryptop:    cryptops.ElGamal,
+	NumThreads: 5,
+	InputSize:  services.AUTO_INPUTSIZE,
+	Name:       "DecryptElgamal",
 }
 
 //Called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(errorHandler services.ErrorCallback) *services.Graph {
 	g := services.NewGraph("PrecompDecrypt", errorHandler, &DecryptStream{})
 
-	g.First(&DecryptElgamal)
-	g.Last(&DecryptElgamal)
+	decryptElgamal := DecryptElgamal.DeepCopy()
+
+	g.First(decryptElgamal)
+	g.Last(decryptElgamal)
 
 	return g
 }

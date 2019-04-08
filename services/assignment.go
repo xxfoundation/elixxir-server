@@ -12,7 +12,6 @@ type assignment struct {
 
 	//atomic compatible count of completion of chunk
 	count *uint32
-
 }
 
 //Defines a set of assignments to be processed by a module
@@ -38,12 +37,12 @@ type assignmentList struct {
 }
 
 //creats and assignment
-func newAssignment(start, max uint32) *assignment {
+func newAssignment(start uint32) *assignment {
 	var count uint32
 
 	return &assignment{
-		start:          start,
-		count:          &count,
+		start: start,
+		count: &count,
 	}
 }
 
@@ -61,7 +60,7 @@ func (a *assignment) Enqueue(weight, maxCount uint32) bool {
 
 // Gets the chunk represented by the assignment
 func (a *assignment) GetChunk(size uint32) Chunk {
-	return Chunk{a.start, a.start+size}
+	return Chunk{a.start, a.start + size}
 }
 
 // Denotes all assignments which have completed based upon an incoming chunk and
@@ -72,11 +71,10 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 
 	undenotedComplete := c.Len()
 
-	numAssignments := uint32(len(al.assignments))
-
 	for undenotedComplete > 0 {
-		assignmentNum := position / numAssignments
-		weight := (assignmentNum+1)*numAssignments-position
+
+		assignmentNum := position / al.numSlots
+		weight := (assignmentNum+1)*al.numSlots - position
 
 		if weight > undenotedComplete {
 			weight = undenotedComplete
@@ -91,7 +89,7 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 		undenotedComplete -= weight
 	}
 
-	if len(cList)>0{
+	if len(cList) > 0 {
 		primed := uint32(0)
 		loaded := uint32(0)
 		success := false
@@ -100,19 +98,19 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 
 		//Get the updated state of the prime counter
 		for !success {
-			loaded =atomic.LoadUint32(al.primed)
+			loaded = atomic.LoadUint32(al.primed)
 			primed = loaded + cListLen
-			success = atomic.CompareAndSwapUint32(al.primed,loaded,primed)
+			success = atomic.CompareAndSwapUint32(al.primed, loaded, primed)
 		}
 
 		//If its less then the threshold, store the new chucks and dont return then
-		if primed<al.threshold{
+		if primed < al.threshold {
 			al.waiting = append(al.waiting, cList...)
-			cList = make([]Chunk,0)
+			cList = make([]Chunk, 0)
 			//If this operation crossed the threashold line, return all waiting chunks
-		}else if loaded<=al.threshold && primed >=al.threshold{
+		} else if loaded <= al.threshold && primed >= al.threshold {
 			cList = append(al.waiting, cList...)
-			al.waiting = make([]Chunk,0)
+			al.waiting = make([]Chunk, 0)
 		}
 	}
 

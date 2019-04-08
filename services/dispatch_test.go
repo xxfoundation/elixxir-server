@@ -84,10 +84,10 @@ var ModuleA = Module{
 		}
 		return nil
 	},
-	Cryptop:        Add,
-	AssignmentSize: 8,
-	NumThreads:     8,
-	Name:           "ModuleA",
+	Cryptop:    Add,
+	InputSize:  8,
+	NumThreads: 8,
+	Name:       "ModuleA",
 }
 
 var ModuleB = Module{
@@ -99,17 +99,17 @@ var ModuleB = Module{
 			return InvalidTypeAssert
 		}
 
-		for slot := sRange.Begin(); slot < sRange.End(); slot += f.GetMinSize() {
-			regionEnd := slot + f.GetMinSize()
+		for slot := sRange.Begin(); slot < sRange.End(); slot += f.GetInputSize() {
+			regionEnd := slot + f.GetInputSize()
 			f(stream.C[slot:regionEnd], stream.D[slot:regionEnd], stream.E[slot:regionEnd])
 		}
 
 		return nil
 	},
-	Cryptop:        MultiMul,
-	AssignmentSize: MultiMul.GetMinSize(),
-	NumThreads:     2,
-	Name:           "ModuleB",
+	Cryptop:    MultiMul,
+	InputSize:  AUTO_INPUTSIZE,
+	NumThreads: 2,
+	Name:       "ModuleB",
 }
 
 var ModuleC = Module{
@@ -127,10 +127,10 @@ var ModuleC = Module{
 
 		return nil
 	},
-	Cryptop:        ModMul,
-	NumThreads:     3,
-	AssignmentSize: 2,
-	Name:           "ModuleC",
+	Cryptop:    ModMul,
+	NumThreads: 3,
+	InputSize:  5,
+	Name:       "ModuleC",
 }
 
 var ModuleD = Module{
@@ -147,11 +147,10 @@ var ModuleD = Module{
 		}
 		return nil
 	},
-	Cryptop:        Sub,
-	NumThreads:     5,
-	AssignmentSize: 14,
-	ChunkSize:      7,
-	Name:           "ModuleD",
+	Cryptop:    Sub,
+	NumThreads: 5,
+	InputSize:  14,
+	Name:       "ModuleD",
 }
 
 func TestGraph(t *testing.T) {
@@ -160,12 +159,17 @@ func TestGraph(t *testing.T) {
 
 	g := NewGraph("test", PanicHandler, &Stream1{})
 
-	g.First(&ModuleA)
-	g.Connect(&ModuleA, &ModuleB)
-	g.Connect(&ModuleB, &ModuleD)
-	g.Connect(&ModuleA, &ModuleC)
-	g.Connect(&ModuleC, &ModuleD)
-	g.Last(&ModuleD)
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
 
 	g.Build(batchSize)
 
@@ -224,7 +228,7 @@ func (AddPrototype) GetName() string {
 	return "Add"
 }
 
-func (AddPrototype) GetMinSize() uint32 {
+func (AddPrototype) GetInputSize() uint32 {
 	return 1
 }
 
@@ -238,7 +242,7 @@ func (ModMulPrototype) GetName() string {
 	return "ModMul"
 }
 
-func (ModMulPrototype) GetMinSize() uint32 {
+func (ModMulPrototype) GetInputSize() uint32 {
 	return 1
 }
 
@@ -255,7 +259,7 @@ func (MultiMulPrototype) GetName() string {
 	return "Mul"
 }
 
-func (MultiMulPrototype) GetMinSize() uint32 {
+func (MultiMulPrototype) GetInputSize() uint32 {
 	return 4
 }
 
@@ -269,6 +273,6 @@ func (SubPrototype) GetName() string {
 	return "Sub"
 }
 
-func (SubPrototype) GetMinSize() uint32 {
+func (SubPrototype) GetInputSize() uint32 {
 	return 1
 }
