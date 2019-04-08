@@ -34,8 +34,8 @@ func (s *DecryptStream) GetName() string {
 	return "PrecompDecryptStream"
 }
 
-func (s *DecryptStream) Link(batchSize uint32, source ...interface{}) {
-	round := source[0].(*node.RoundBuffer)
+func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
+	round := source.(*node.RoundBuffer)
 
 	s.Grp = round.Grp
 	s.PublicCypherKey = round.CypherPublicKey

@@ -52,8 +52,8 @@ func (s *Stream1) GetName() string {
 	return "Stream1"
 }
 
-func (s *Stream1) Link(BatchSize uint32, source ...interface{}) {
-	round := source[0].(*RoundBuffer)
+func (s *Stream1) Link(BatchSize uint32, source interface{}) {
+	round := source.(*RoundBuffer)
 	s.Prime = 107
 	s.A = round.A[:BatchSize]
 	s.B = round.B[:BatchSize]

@@ -146,8 +146,8 @@ func (g *Graph) Connect(a, b *Module) {
 	b.inputModules = append(b.inputModules, a)
 }
 
-func (g *Graph) Link(source ...interface{}) {
-	g.stream.Link(g.expandBatchSize, source...)
+func (g *Graph) Link(source interface{}) {
+	g.stream.Link(g.expandBatchSize, source)
 	g.linked = true
 }
 
