@@ -280,7 +280,7 @@ func TestDecryptStream_Output(t *testing.T) {
 func TestDecryptStream_CommsInterface(t *testing.T) {
 
 	var face interface{}
-	face = DecryptStream{}
+	face = &DecryptStream{}
 	_, ok := face.(node.CommsStream)
 
 	if !ok {
