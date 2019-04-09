@@ -177,7 +177,7 @@ func TestGraph(t *testing.T) {
 	g.Connect(moduleC, moduleD)
 	g.Last(moduleD)
 
-	g.Build(batchSize)
+	g.Build(batchSize, AUTO_OUTPUTSIZE, 0)
 
 	roundSize := uint32(math.Ceil(1.2 * float64(g.GetExpandedBatchSize())))
 	roundBuf := RoundBuffer{}

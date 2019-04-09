@@ -65,10 +65,6 @@ func (m *Module) checkParameters(minInputSize uint32) {
 		panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
 	}
 
-	if m.StartThreshold < 0 || m.StartThreshold > 1 {
-		panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
-	}
-
 	if m.InputSize == AUTO_INPUTSIZE {
 		m.InputSize = ((m.Cryptop.GetInputSize() + minInputSize - 1) / minInputSize) * minInputSize
 	}
@@ -81,7 +77,8 @@ func (m *Module) checkParameters(minInputSize uint32) {
 //Builds assignments
 func (m *Module) buildAssignments(batchsize uint32) {
 
-	m.assignmentList.threshold = uint32(math.Floor(float64(m.StartThreshold) * float64(batchsize)))
+	m.assignmentList.threshold = threshold(batchsize, m.StartThreshold)
+
 	if m.InputSize == INPUT_IS_BATCHSIZE {
 		m.InputSize = batchsize
 	}
@@ -104,7 +101,14 @@ func (m *Module) buildAssignments(batchsize uint32) {
 	for j := uint32(0); j < numJobs; j++ {
 		m.assignmentList.assignments[j] = newAssignment(uint32(j * m.InputSize))
 	}
+}
 
+//Get the threshold number
+func threshold(batchsize uint32, thresh float32) uint32 {
+	if thresh < 0 || thresh > 1 {
+		panic(fmt.Sprintf("utput threshold was %v, must be between 0 and 1", thresh))
+	}
+	return uint32(math.Floor(float64(thresh) * float64(batchsize)))
 }
 
 func (m Module) DeepCopy() *Module {

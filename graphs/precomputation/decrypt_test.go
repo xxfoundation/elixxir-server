@@ -86,7 +86,7 @@ func TestDecryptGraph(t *testing.T) {
 	}
 
 	//Build the graph
-	g.Build(batchSize)
+	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
 
 	//Build the round
 	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())

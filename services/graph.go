@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+const (
+	OUTPUT_IS_BATCHSIZE = INPUT_IS_BATCHSIZE
+	AUTO_OUTPUTSIZE     = AUTO_INPUTSIZE
+)
+
 // Should probably add more params to this like block ID, worker thread ID, etc
 type ErrorCallback func(err error)
 
@@ -57,9 +62,14 @@ func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize uint32) {
+func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 	//Checks graph is properly formatted
 	g.checkGraph()
+
+	//check output parameters
+	if outputSize == AUTO_OUTPUTSIZE {
+		outputSize = globals.MinSlotSize
+	}
 
 	//Find expanded batch size
 	var integers []uint32
@@ -72,6 +82,7 @@ func (g *Graph) Build(batchSize uint32) {
 	}
 
 	integers = append(integers, globals.MinSlotSize)
+	integers = append(integers, outputSize)
 	lcm := globals.LCM(integers)
 
 	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
@@ -79,12 +90,13 @@ func (g *Graph) Build(batchSize uint32) {
 	g.batchSize = batchSize
 	g.expandBatchSize = expandBatchSize
 
-	/*setup output*/
+	/*setup output module*/
 	g.outputModule = &Module{
-		InputSize:    globals.MinSlotSize,
-		inputModules: []*Module{g.lastModule},
-		Name:         "Output",
-		copy:         true,
+		InputSize:      outputSize,
+		StartThreshold: outputThreshold,
+		inputModules:   []*Module{g.lastModule},
+		Name:           "Output",
+		copy:           true,
 	}
 
 	g.lastModule.outputModules = append(g.lastModule.outputModules, g.outputModule)
