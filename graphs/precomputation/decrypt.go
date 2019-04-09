@@ -1,6 +1,7 @@
 package precomputation
 
 import (
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
@@ -49,6 +50,34 @@ func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.KeysAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+}
+
+func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+
+	if index >= uint32(s.KeysMsg.Len()) {
+		return node.ErrOutsideOfBatch
+	}
+
+	if !s.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
+		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
+		return node.ErrOutsideOfGroup
+	}
+
+	s.Grp.SetBytes(s.KeysMsg.Get(index), slot.EncryptedMessageKeys)
+	s.Grp.SetBytes(s.KeysAD.Get(index), slot.EncryptedAssociatedDataKeys)
+	s.Grp.SetBytes(s.CypherMsg.Get(index), slot.PartialMessageCypherText)
+	s.Grp.SetBytes(s.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+	return nil
+}
+
+func (s *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
+
+	return &mixmessages.CmixSlot{
+		EncryptedMessageKeys:            s.KeysMsg.Get(index).Bytes(),
+		EncryptedAssociatedDataKeys:     s.KeysAD.Get(index).Bytes(),
+		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
+		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
+	}
 }
 
 //Sole module in Precomputation Decrypt implementing cryptops.Elgamal
