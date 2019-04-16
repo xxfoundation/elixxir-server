@@ -55,6 +55,15 @@ func TestRevealStream_Link(t *testing.T) {
 
 	checkIntBuffer(rs.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
 	checkIntBuffer(rs.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
+
+	// Edit round to show that Z value in stream changes
+	expected := grp.Random(round.Z)
+
+	if rs.Z.Cmp(expected) != 0 {
+		t.Errorf(
+			"RevealStream.Link() Z value not linked to round: Expected %s, Recieved %s",
+			round.Z.TextVerbose(10, 16), rs.Z.TextVerbose(10,16))
+	}
 }
 
 // Tests Input's happy path
@@ -141,49 +150,38 @@ func TestRevealStream_Input_OutOfBatch(t *testing.T) {
 
 	err := rs.Input(batchSize, msg)
 
-	if err == nil {
-		t.Errorf("RevealtStream.Input() did nto return an error when out of batch")
+	if err != node.ErrOutsideOfBatch {
+		t.Errorf("RevealtStream.Input() did nto return an outside of batch error when out of batch")
 	}
 
 	err1 := rs.Input(batchSize+1, msg)
 
-	if err1 == nil {
-		t.Errorf("RevealStream.Input() did nto return an error when out of batch")
+	if err1 != node.ErrOutsideOfBatch {
+		t.Errorf("RevealStream.Input() did not return an outside of batch error when out of batch")
 	}
 }
 
 // Tests that Input errors correct when the passed value is out of the group
 func TestRevealStream_Input_OutOfGroup(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
 
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	ds := &DecryptStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	rs.Link(batchSize, round)
+	ds.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
-		PartialMessageCypherText:        []byte{0},
-		PartialAssociatedDataCypherText: []byte{0},
+		PartialMessageCypherText:        large.NewInt(89).Bytes(),
+		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
 	}
 
-	err := rs.Input(batchSize, msg)
+	err := ds.Input(batchSize-10, msg)
 
-	if err == nil {
-		t.Errorf("RevealStream.Input() did nto return an error when out of group")
+	if err != node.ErrOutsideOfGroup {
+		t.Errorf("DecryptStream.Input() did not return an error when out of group")
 	}
 }
 
