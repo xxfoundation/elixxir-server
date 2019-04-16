@@ -1,6 +1,7 @@
 package precomputation
 
 import (
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
@@ -38,6 +39,30 @@ func (s *RevealStream) Link(batchSize uint32, source interface{}) {
 
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+}
+
+func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+	//
+	//if index >= uint32(s.KeysMsg.Len()) {
+	//	return node.ErrOutsideOfBatch
+	//}
+
+	if !s.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
+		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
+		return node.ErrOutsideOfGroup
+	}
+
+	s.Grp.SetBytes(s.CypherMsg.Get(index), slot.PartialMessageCypherText)
+	s.Grp.SetBytes(s.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+	return nil
+}
+
+func (s *RevealStream) Output(index uint32) *mixmessages.CmixSlot {
+
+	return &mixmessages.CmixSlot{
+		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
+		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
+	}
 }
 
 // Module in precomputation reveeal implementing cryptops.RootCoprimePrototype
