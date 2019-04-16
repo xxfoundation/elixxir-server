@@ -9,6 +9,7 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
+	"reflect"
 	"testing"
 )
 
@@ -56,59 +57,59 @@ func TestRevealStream_Link(t *testing.T) {
 	checkIntBuffer(rs.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
 }
 
-//tests Input's happy path
-//func TestRevealtStream_Input(t *testing.T) {
-//	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-//		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-//		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-//		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-//		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-//		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-//		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-//		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-//		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-//		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-//		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-//	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
-//
-//	batchSize := uint32(100)
-//
-//	rs := &RevealStream{}
-//
-//	round := node.NewRound(grp, 1, batchSize, batchSize)
-//
-//	rs.Link(batchSize, round)
-//
-//	for b := uint32(0); b < batchSize; b++ {
-//
-//		expected := [][]byte{
-//			{byte(b + 1), 0},
-//			{byte(b + 1), 1},
-//		}
-//
-//		msg := &mixmessages.CmixSlot{
-//			PartialMessageCypherText:        expected[0],
-//			PartialAssociatedDataCypherText: expected[1],
-//		}
-//
-//		err := rs.Input(b, msg)
-//		if err != nil {
-//			t.Errorf("RevealStream.Input() errored on slot %v: %s", b, err.Error())
-//		}
-//
-//		if !reflect.DeepEqual(rs.CypherMsg.Get(b).Bytes(), expected[2]) {
-//			t.Errorf("RevealStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-//				b, expected[2], rs.CypherMsg.Get(b).Bytes())
-//		}
-//
-//		if !reflect.DeepEqual(rs.CypherAD.Get(b).Bytes(), expected[3]) {
-//			t.Errorf("RevealStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-//				b, expected[3], rs.CypherAD.Get(b).Bytes())
-//		}
-//
-//	}
-//
-//}
+// Tests Input's happy path
+func TestRevealtStream_Input(t *testing.T) {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+
+	batchSize := uint32(100)
+
+	rs := &RevealStream{}
+
+	round := node.NewRound(grp, 1, batchSize, batchSize)
+
+	rs.Link(batchSize, round)
+
+	for b := uint32(0); b < batchSize; b++ {
+
+		expected := [][]byte{
+			{byte(b + 1), 0},
+			{byte(b + 1), 1},
+		}
+
+		msg := &mixmessages.CmixSlot{
+			PartialMessageCypherText:        expected[0],
+			PartialAssociatedDataCypherText: expected[1],
+		}
+
+		err := rs.Input(b, msg)
+		if err != nil {
+			t.Errorf("RevealStream.Input() errored on slot %v: %s", b, err.Error())
+		}
+
+		if !reflect.DeepEqual(rs.CypherMsg.Get(b).Bytes(), expected[0]) {
+			t.Errorf("RevealStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], rs.CypherMsg.Get(b).Bytes())
+		}
+
+		if !reflect.DeepEqual(rs.CypherAD.Get(b).Bytes(), expected[1]) {
+			t.Errorf("RevealStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], rs.CypherAD.Get(b).Bytes())
+		}
+
+	}
+
+}
 
 // Tests that the input errors correctly when the index is outside of the batch
 func TestRevealStream_Input_OutOfBatch(t *testing.T) {
@@ -175,8 +176,6 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 	rs.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
-		EncryptedMessageKeys:            []byte{0},
-		EncryptedAssociatedDataKeys:     []byte{0},
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
 	}
@@ -184,65 +183,65 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 	err := rs.Input(batchSize, msg)
 
 	if err == nil {
-		t.Errorf("DecryptStream.Input() did nto return an error when out of group")
+		t.Errorf("RevealStream.Input() did nto return an error when out of group")
 	}
 }
 
 // Tests that the output function returns a valid cmixMessage
-//func TestRevealStream_Output(t *testing.T) {
-//	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-//		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-//		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-//		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-//		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-//		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-//		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-//		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-//		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-//		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-//		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-//	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
-//
-//	batchSize := uint32(100)
-//
-//	rs := &RevealStream{}
-//
-//	round := node.NewRound(grp, 1, batchSize, batchSize)
-//
-//	rs.Link(batchSize, round)
-//
-//	for b := uint32(0); b < batchSize; b++ {
-//
-//		expected := [][]byte{
-//			{byte(b + 1), 0},
-//			{byte(b + 1), 1},
-//		}
-//
-//		msg := &mixmessages.CmixSlot{
-//			PartialMessageCypherText:        expected[0],
-//			PartialAssociatedDataCypherText: expected[1],
-//		}
-//
-//		err := rs.Input(b, msg)
-//		if err != nil {
-//			t.Errorf("RevealStream.Output() errored on slot %v: %s", b, err.Error())
-//		}
-//
-//		output := rs.Output(b)
-//
-//		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[2]) {
-//			t.Errorf("RevealStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-//				b, expected[2], rs.CypherMsg.Get(b).Bytes())
-//		}
-//
-//		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[3]) {
-//			t.Errorf("RevealStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-//				b, expected[3], rs.CypherAD.Get(b).Bytes())
-//		}
-//
-//	}
-//
-//}
+func TestRevealStream_Output(t *testing.T) {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+
+	batchSize := uint32(100)
+
+	rs := &RevealStream{}
+
+	round := node.NewRound(grp, 1, batchSize, batchSize)
+
+	rs.Link(batchSize, round)
+
+	for b := uint32(0); b < batchSize; b++ {
+
+		expected := [][]byte{
+			{byte(b + 1), 0},
+			{byte(b + 1), 1},
+		}
+
+		msg := &mixmessages.CmixSlot{
+			PartialMessageCypherText:        expected[0],
+			PartialAssociatedDataCypherText: expected[1],
+		}
+
+		err := rs.Input(b, msg)
+		if err != nil {
+			t.Errorf("RevealStream.Output() errored on slot %v: %s", b, err.Error())
+		}
+
+		output := rs.Output(b)
+
+		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[0]) {
+			t.Errorf("RevealStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], rs.CypherMsg.Get(b).Bytes())
+		}
+
+		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[1]) {
+			t.Errorf("RevealStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], rs.CypherAD.Get(b).Bytes())
+		}
+
+	}
+
+}
 
 // Tests that RevealStream conforms to the CommsStream interface
 func TestRevealStream_CommsInterface(t *testing.T) {
@@ -334,4 +333,3 @@ func TestReveal_Graph(t *testing.T) {
 		}
 	}
 }
-

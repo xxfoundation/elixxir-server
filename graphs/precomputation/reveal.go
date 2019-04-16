@@ -42,13 +42,8 @@ func (s *RevealStream) Link(batchSize uint32, source interface{}) {
 }
 
 func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
-	//
-	//if index >= uint32(s.KeysMsg.Len()) {
-	//	return node.ErrOutsideOfBatch
-	//}
 
-	if !s.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
-		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
+	if !s.Grp.BytesInside(slot.PartialMessageCypherText, slot.PartialAssociatedDataCypherText) {
 		return node.ErrOutsideOfGroup
 	}
 
