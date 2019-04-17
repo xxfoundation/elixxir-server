@@ -32,6 +32,10 @@ func (s *RevealStream) GetName() string {
 func (s *RevealStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
+	grp := round.Grp
+
+	s.LinkStream(batchSize, round, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)))
+
 	s.Grp = round.Grp
 	s.CypherPublicKey = round.CypherPublicKey
 
@@ -39,6 +43,20 @@ func (s *RevealStream) Link(batchSize uint32, source interface{}) {
 
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+}
+
+func (s *RevealStream)LinkStream(batchSize uint32, round *node.RoundBuffer, CypherMsg, CypherAD *cyclic.IntBuffer){
+	s.Grp = round.Grp
+	s.CypherPublicKey = round.CypherPublicKey
+
+	s.Z = round.Z
+
+	s.CypherMsg = CypherMsg
+	s.CypherAD  = CypherAD
+}
+
+type revealSubstreamInterface interface {
+	getSubStream() *RevealStream
 }
 
 func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
@@ -68,23 +86,25 @@ func (s *RevealStream) Output(index uint32) *mixmessages.CmixSlot {
 var RevealRootCoprime = services.Module{
 	// Runs root coprime for cypher message and cypher associated data
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*RevealStream)
+		s, ok := streamInput.(revealSubstreamInterface)
 		rootCoprime, ok2 := cryptop.(cryptops.RootCoprimePrototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
+		rs := s.getSubStream()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Execute rootCoprime on the keys for the Message
 			// Eq 15.11 Root by cypher key to remove one layer of homomorphic
 			// encryption from partially encrypted message cypher text.
-			rootCoprime(s.Grp, s.CypherMsg.Get(i), s.Z, s.CypherMsg.Get(i))
+			rootCoprime(rs.Grp, rs.CypherMsg.Get(i), rs.Z, rs.CypherMsg.Get(i))
 
 			// Execute rootCoprime on the keys for the associated data
 			// Eq 15.13 Root by cypher key to remove one layer of homomorphic
 			// encryption from partially encrypted associated data cypher text.
-			rootCoprime(s.Grp, s.CypherAD.Get(i), s.Z, s.CypherAD.Get(i))
+			rootCoprime(rs.Grp, rs.CypherAD.Get(i), rs.Z, rs.CypherAD.Get(i))
 
 		}
 		return nil

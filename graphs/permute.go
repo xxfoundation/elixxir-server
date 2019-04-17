@@ -20,7 +20,7 @@ type PermuteSubStream struct {
 	outputs [][]*cyclic.Int
 }
 
-func (pss *PermuteSubStream) Link(expandedBatchSize uint32, permutation []uint32, ioLst ...PermuteIO) {
+func (pss *PermuteSubStream) LinkStreams(expandedBatchSize uint32, permutation []uint32, ioLst ...PermuteIO) {
 
 	pss.permutations = permutation
 	for _, io := range ioLst {

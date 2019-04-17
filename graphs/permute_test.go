@@ -62,7 +62,7 @@ func TestPermuteSubStream_Link(t *testing.T) {
 
 	round.Permutations = []uint32{3, 5, 0, 1, 2, 4}
 
-	p.Link(expandedBatchSize, round.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
+	p.LinkStreams(expandedBatchSize, round.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
 
 	if !reflect.DeepEqual(p.permutations, round.Permutations) {
 		t.Errorf("PermuteStream.Link: Permutation not linked properly")
@@ -109,7 +109,7 @@ func TestPermuteSubStream_getSubStream(t *testing.T) {
 
 	round.Permutations = []uint32{3, 5, 0, 1, 2, 4}
 
-	p.Link(expandedBatchSize, round.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
+	p.LinkStreams(expandedBatchSize, round.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
 
 	var pssi permuteSubStreamInterface
 	pssi = &p
@@ -203,7 +203,7 @@ func (s *PermuteTestStream) Link(batchSize uint32, source interface{}) {
 	s.out1 = make([]*cyclic.Int, batchSize)
 	s.out2 = make([]*cyclic.Int, batchSize)
 
-	s.PermuteSubStream.Link(batchSize, round.Permutations,
+	s.PermuteSubStream.LinkStreams(batchSize, round.Permutations,
 		PermuteIO{s.in1, s.out1},
 		PermuteIO{s.in2, s.out2})
 }
