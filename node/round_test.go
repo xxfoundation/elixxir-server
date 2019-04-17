@@ -88,6 +88,13 @@ func TestNewRound(t *testing.T) {
 		if r.Z.Cmp(grp.NewMaxInt()) != 0 {
 			t.Errorf("New RoundBuffer: Z not initlized correctly")
 		}
+
+		for itr, p := range r.Permutations {
+			if p != uint32(itr) {
+				t.Errorf("New RoundBuffer: Permutation on index %v not pointing to itself, pointing to %v",
+					itr, p)
+			}
+		}
 	}
 }
 

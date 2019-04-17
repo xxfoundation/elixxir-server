@@ -100,12 +100,12 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 		loaded := uint32(0)
 		success := false
 
-		cListLen := uint32(len(cList))
+		completedSlots := uint32(len(cList)) * al.numSlots
 
 		//Get the updated state of the prime counter
 		for !success {
 			loaded = atomic.LoadUint32(al.primed)
-			primed = loaded + cListLen
+			primed = loaded + completedSlots
 			success = atomic.CompareAndSwapUint32(al.primed, loaded, primed)
 		}
 

@@ -158,20 +158,31 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	err := ds.Input(batchSize, msg)
 
-	if err != node.ErrOutsideOfBatch {
-		t.Errorf("DecryptStream.Input() did not return an error when out of batch")
+	if err == nil {
+		t.Errorf("DecryptStream.Input() did nto return an error when out of batch")
 	}
 
 	err1 := ds.Input(batchSize+1, msg)
 
-	if err1 != node.ErrOutsideOfBatch {
+	if err1 == nil {
 		t.Errorf("DecryptStream.Input() did nto return an error when out of batch")
 	}
 }
 
 //Tests that Input errors correct when the passed value is out of the group
 func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
-	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
 	batchSize := uint32(100)
 
@@ -182,10 +193,10 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	ds.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
-		EncryptedMessageKeys:            large.NewInt(45).Bytes(),
-		EncryptedAssociatedDataKeys:     large.NewInt(78).Bytes(),
-		PartialMessageCypherText:        large.NewInt(89).Bytes(),
-		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
+		EncryptedMessageKeys:            []byte{0},
+		EncryptedAssociatedDataKeys:     []byte{0},
+		PartialMessageCypherText:        []byte{0},
+		PartialAssociatedDataCypherText: []byte{0},
 	}
 
 	err := ds.Input(batchSize-10, msg)

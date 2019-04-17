@@ -216,7 +216,7 @@ func (g *Graph) Send(sr Chunk) {
 	}
 }
 
-// Outputs from the last op in the graph get sent on this channel.
+// outputs from the last op in the graph get sent on this channel.
 func (g *Graph) ChunkDoneChannel() IO_Notify {
 	return g.outputChannel
 }
