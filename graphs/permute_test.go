@@ -267,7 +267,11 @@ func TestPermuteInGraph(t *testing.T) {
 		g.Send(services.NewChunk(g.GetExpandedBatchSize()-1, g.GetExpandedBatchSize()))
 	}(g)
 
-	for chunk := range g.ChunkDoneChannel() {
+	ok := true
+	var chunk services.Chunk
+
+	for ok {
+		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
 			d := atomic.LoadUint32(done)

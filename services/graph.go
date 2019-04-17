@@ -234,8 +234,21 @@ func (g *Graph) Send(chunk Chunk) {
 }
 
 // outputs from the last op in the graph get sent on this channel.
-func (g *Graph) ChunkDoneChannel() IO_Notify {
-	return g.outputChannel
+func (g *Graph) GetOutput() (Chunk, bool) {
+	var chunk Chunk
+	var ok bool
+	for true {
+		chunk, ok = <-g.outputChannel
+		if chunk.end > g.batchSize {
+			if chunk.begin < g.batchSize {
+				chunk.end = g.batchSize
+			} else {
+				continue
+			}
+		}
+		break
+	}
+	return chunk, ok
 }
 
 func (g *Graph) GetExpandedBatchSize() uint32 {

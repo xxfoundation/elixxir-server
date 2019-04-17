@@ -200,7 +200,11 @@ func TestGraph(t *testing.T) {
 
 		stream := g.GetStream().(*Stream1)
 
-		for chunk := range g.ChunkDoneChannel() {
+		ok := true
+		var chunk Chunk
+
+		for ok {
+			chunk, ok = g.GetOutput()
 			for i := chunk.Begin(); i < chunk.End(); i++ {
 				// Compute expected result for this slot
 				A := stream.A[i]

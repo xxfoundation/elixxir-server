@@ -358,7 +358,11 @@ func TestDecryptGraph(t *testing.T) {
 	//Get the output
 	s := g.GetStream().(*DecryptStream)
 
-	for chunk := range g.ChunkDoneChannel() {
+	ok := true
+	var chunk services.Chunk
+
+	for ok {
+		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Compute expected result for this slot
 			cryptops.ElGamal(s.Grp, s.R.Get(i), s.Y_R.Get(i), s.PublicCypherKey, KeysMsgExpected.Get(i), CypherMsgExpected.Get(i))

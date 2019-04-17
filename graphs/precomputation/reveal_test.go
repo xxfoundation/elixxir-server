@@ -312,7 +312,11 @@ func TestReveal_Graph(t *testing.T) {
 	// Get the output
 	s := g.GetStream().(*RevealStream)
 
-	for chunk := range g.ChunkDoneChannel() {
+	ok := true
+	var chunk services.Chunk
+
+	for ok {
+		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Compute expected result for this slot
 			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, CypherMsgExpected.Get(i))
