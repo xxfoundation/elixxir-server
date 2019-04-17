@@ -59,24 +59,26 @@ var registrationPublicKey = signature.ReconstructPublicKey(dsaParams,
 // Handle nonce request from Client
 func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 
-	// Verify signed public key using hardcoded RegistrationServer public key
-	valid := registrationPublicKey.Verify(hash, signature.DSASignature{
-		R: large.NewIntFromBytes(R),
-		S: large.NewIntFromBytes(S),
-	})
+	if !globals.SkipRegServer {
+		// Verify signed public key using hardcoded RegistrationServer public key
+		valid := registrationPublicKey.Verify(hash, signature.DSASignature{
+			R: large.NewIntFromBytes(R),
+			S: large.NewIntFromBytes(S),
+		})
 
-	// Concatenate Client public key byte slices
-	data := make([]byte, 0)
-	data = append(data, Y...)
-	data = append(data, P...)
-	data = append(data, Q...)
-	data = append(data, G...)
+		// Concatenate Client public key byte slices
+		data := make([]byte, 0)
+		data = append(data, Y...)
+		data = append(data, P...)
+		data = append(data, Q...)
+		data = append(data, G...)
 
-	// Ensure that the data in the hash is identical to the Client public key
-	if !valid || !bytes.Equal(data, hash) {
-		// Invalid signed Client public key, return an error
-		jww.ERROR.Printf("Unable to verify signed public key!")
-		return make([]byte, 0), errors.New("signed public key is invalid")
+		// Ensure that the data in the hash is identical to the Client public key
+		if !valid || !bytes.Equal(data, hash) {
+			// Invalid signed Client public key, return an error
+			jww.ERROR.Printf("Unable to verify signed public key!")
+			return make([]byte, 0), errors.New("signed public key is invalid")
+		}
 	}
 
 	// Assemble Client public key
