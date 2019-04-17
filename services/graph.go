@@ -9,6 +9,7 @@ package services
 import (
 	"gitlab.com/elixxir/server/globals"
 	"math"
+	"sync/atomic"
 	"time"
 )
 
@@ -41,6 +42,8 @@ type Graph struct {
 	linked bool
 
 	outputChannel IO_Notify
+
+	sentInputs *uint32
 }
 
 func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
@@ -57,6 +60,8 @@ func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
 	g.linked = false
 
 	g.stream = stream
+
+	g.sentInputs = new(uint32)
 
 	return &g
 }
@@ -197,12 +202,24 @@ func (g *Graph) GetStream() Stream {
 	return g.stream
 }
 
-func (g *Graph) Send(sr Chunk) {
+func (g *Graph) Send(chunk Chunk) {
 
-	srList := g.firstModule.assignmentList.PrimeOutputs(sr)
+	srList := g.firstModule.assignmentList.PrimeOutputs(chunk)
 
 	for _, r := range srList {
 		g.firstModule.input <- r
+	}
+
+	//If the entire batch has been sent then send the difference between batchsize and expanded batchsize
+	numSent := atomic.AddUint32(g.sentInputs, chunk.Len())
+
+	if numSent == g.batchSize && g.batchSize < g.expandBatchSize {
+		endChunk := NewChunk(g.batchSize, g.expandBatchSize)
+		srList = g.firstModule.assignmentList.PrimeOutputs(endChunk)
+
+		for _, r := range srList {
+			g.firstModule.input <- r
+		}
 	}
 
 	done := g.firstModule.assignmentList.DenoteCompleted(len(srList))

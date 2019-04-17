@@ -71,7 +71,6 @@ func TestNewRound(t *testing.T) {
 
 		checkIntBuffer(r.R, expandedBatchSize, "round.R", defaultInt, t)
 		checkIntBuffer(r.S, expandedBatchSize, "round.S", defaultInt, t)
-		checkIntBuffer(r.T, expandedBatchSize, "round.T", defaultInt, t)
 		checkIntBuffer(r.U, expandedBatchSize, "round.U", defaultInt, t)
 		checkIntBuffer(r.V, expandedBatchSize, "round.V", defaultInt, t)
 
@@ -80,6 +79,9 @@ func TestNewRound(t *testing.T) {
 		checkIntBuffer(r.Y_T, expandedBatchSize, "round.T", defaultInt, t)
 		checkIntBuffer(r.Y_U, expandedBatchSize, "round.U", defaultInt, t)
 		checkIntBuffer(r.Y_V, expandedBatchSize, "round.V", defaultInt, t)
+
+		checkIntBuffer(r.MessagePrecomputation, expandedBatchSize, "round.MessagePrecomputation", defaultInt, t)
+		checkIntBuffer(r.ADPrecomputation, expandedBatchSize, "round.ADPrecomputation", defaultInt, t)
 
 		if r.CypherPublicKey.Cmp(grp.NewMaxInt()) != 0 {
 			t.Errorf("New RoundBuffer: Cypher Public Key not initlized correctly")

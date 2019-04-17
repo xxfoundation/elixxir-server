@@ -13,7 +13,6 @@ type RoundBuffer struct {
 
 	R *cyclic.IntBuffer // First unpermuted internode message key
 	S *cyclic.IntBuffer // Permuted internode message key
-	T *cyclic.IntBuffer // Second unpermuted internode message key
 	U *cyclic.IntBuffer // Permuted *cyclic.Internode recipient key
 	V *cyclic.IntBuffer // Unpermuted internode associated data key
 
@@ -33,6 +32,10 @@ type RoundBuffer struct {
 
 	// Pre-populated permutations
 	Permutations []uint32
+
+	// Results of Precomputation
+	MessagePrecomputation *cyclic.IntBuffer
+	ADPrecomputation      *cyclic.IntBuffer
 }
 
 // Function to initialize a new round
@@ -48,7 +51,6 @@ func NewRound(g *cyclic.Group, id RoundID, batchsize, expandedBatchSize uint32) 
 
 		R: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		S: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
-		T: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		V: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		U: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 
@@ -65,6 +67,9 @@ func NewRound(g *cyclic.Group, id RoundID, batchsize, expandedBatchSize uint32) 
 
 		batchSize:         batchsize,
 		expandedBatchSize: expandedBatchSize,
+
+		MessagePrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
+		ADPrecomputation:      g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 	}
 }
 

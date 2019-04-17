@@ -259,7 +259,7 @@ func TestPermuteInGraph(t *testing.T) {
 
 	go func(g *services.Graph) {
 
-		for i := uint32(0); i < g.GetExpandedBatchSize()-1; i++ {
+		for i := uint32(0); i < g.GetBatchSize()-1; i++ {
 			g.Send(services.NewChunk(i, i+1))
 		}
 
