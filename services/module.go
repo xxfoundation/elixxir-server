@@ -108,7 +108,7 @@ func threshold(batchsize uint32, thresh float32) uint32 {
 	if thresh < 0 || thresh > 1 {
 		panic(fmt.Sprintf("utput threshold was %v, must be between 0 and 1", thresh))
 	}
-	return uint32(math.Floor(float64(thresh) * float64(batchsize)))
+	return uint32(math.Floor(float64(thresh) * float64(batchsize-1)))
 }
 
 func (m Module) DeepCopy() *Module {
