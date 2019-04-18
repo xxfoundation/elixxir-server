@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-//Test that DecryptStream.GetName() returns the correct name
+// Test that PermuteStream.GetName() returns the correct name
 func TestPermuteStream_GetName(t *testing.T) {
 	expected := "PrecompPermuteStream"
 
@@ -25,7 +25,7 @@ func TestPermuteStream_GetName(t *testing.T) {
 	}
 }
 
-//Test that PermuteStream.Link() Links correctly
+// Test that PermuteStream.Link() Links correctly
 func TestPermuteStream_Link(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -392,4 +392,3 @@ func TestPermuteGraph(t *testing.T) {
 		}
 	}
 }
-

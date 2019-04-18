@@ -127,7 +127,7 @@ func TestDecryptStream_Input(t *testing.T) {
 
 }
 
-//Tests that the input errors correctly when the index is outside of the batch
+// Tests that the input errors correctly when the index is outside of the batch
 func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -170,7 +170,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	}
 }
 
-//Tests that Input errors correct when the passed value is out of the group
+// Tests that Input errors correct when the passed value is out of the group
 func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -207,7 +207,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	}
 }
 
-//Tests that the output function returns a valid cmixMessage
+// Tests that the output function returns a valid cmixMessage
 func TestDecryptStream_Output(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +

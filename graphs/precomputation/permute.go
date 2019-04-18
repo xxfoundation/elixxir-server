@@ -9,7 +9,8 @@ import (
 )
 
 // This file implements the Graph for the Precomputation Permute phase
-
+// Permute phase permutes the message keys, the associated data keys, and their cypher
+// text, while multiplying in its own keys.
 
 // Stream holding data containing keys and inputs used by Permute
 type PermuteStream struct {
@@ -17,8 +18,8 @@ type PermuteStream struct {
 	PublicCypherKey *cyclic.Int
 
 	// Link to round object
-	S *cyclic.IntBuffer // Encrypted Inverse Permuted Internode Message Key
-	V *cyclic.IntBuffer// Encrypted Inverse Permuted Internode AssociatedData Key
+	S   *cyclic.IntBuffer // Encrypted Inverse Permuted Internode Message Key
+	V   *cyclic.IntBuffer // Encrypted Inverse Permuted Internode AssociatedData Key
 	Y_S *cyclic.IntBuffer // Permuted Internode Message Partial Cypher Text
 	Y_V *cyclic.IntBuffer // Permuted Internode AssociatedData Partial Cypher Text
 
