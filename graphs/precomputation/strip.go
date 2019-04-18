@@ -23,6 +23,8 @@ type StripStream struct {
 	// Unique to stream
 	CypherMsg *cyclic.IntBuffer
 	CypherAD  *cyclic.IntBuffer
+
+	RevealStream
 }
 
 func (s *StripStream) GetName() string {
@@ -39,6 +41,8 @@ func (s *StripStream) Link(batchSize uint32, source interface{}) {
 
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+
+	s.RevealStream.LinkStream(batchSize, round, s.CypherMsg, s.CypherAD)
 }
 
 func (s *StripStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
@@ -129,10 +133,12 @@ var StripMul2 = services.Module{
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
 
+	reveal := RevealRootCoprime.DeepCopy()
 	stripInverse := StripInverse.DeepCopy()
 	stripMul2 := StripMul2.DeepCopy()
 
-	graph.First(stripInverse)
+	graph.First(reveal)
+	graph.Connect(reveal,stripInverse)
 	graph.Connect(stripInverse, stripMul2)
 	graph.Last(stripMul2)
 

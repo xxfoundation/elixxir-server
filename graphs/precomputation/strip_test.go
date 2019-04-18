@@ -48,11 +48,26 @@ func TestStripStream_Link(t *testing.T) {
 
 	stream.Link(batchSize, round)
 
+	if round.Z.Cmp(stream.Z) != 0 {
+		t.Errorf(
+			"RevealStream.Link() Z value not linked: Expected %s, Recieved %s",
+			round.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
+	}
+
 	checkStreamIntBuffer(grp, stream.MessagePrecomputation, round.MessagePrecomputation, "MessagePrecomputation", t)
 	checkStreamIntBuffer(grp, stream.ADPrecomputation, round.ADPrecomputation, "ADPrecomputation", t)
 
 	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
+
+	// Edit round to show that Z value in stream changes
+	expected := grp.Random(round.Z)
+
+	if stream.Z.Cmp(expected) != 0 {
+		t.Errorf(
+			"StripStream.Link() Z value not linked to round: Expected %s, Recieved %s",
+			round.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
+	}
 }
 
 
@@ -276,7 +291,7 @@ func TestStrip_Graph(t *testing.T) {
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
 
-	//Initialize graph
+	// Initialize graph
 	g := graphInit(gc)
 
 	// Build the graph
@@ -291,6 +306,8 @@ func TestStrip_Graph(t *testing.T) {
 		grp.Set(round.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
 	}
 
+	grp.FindSmallCoprimeInverse(round.Z, 256)
+
 	// Link the graph to the round. building the stream object
 	g.Link(round)
 
@@ -303,6 +320,8 @@ func TestStrip_Graph(t *testing.T) {
 	}
 
 	// Build i/o used for testing
+	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	MessagePrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	ADPrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
@@ -325,6 +344,10 @@ func TestStrip_Graph(t *testing.T) {
 	for ok {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
+			// Compute root coprime for msg & associated data
+			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, CypherMsgExpected.Get(i))
+			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, CypherADExpected.Get(i))
+
 			// Compute inverse
 			cryptops.Inverse(s.Grp, MessagePrecomputationExpected.Get(i), MessagePrecomputationExpected.Get(i))
 			cryptops.Inverse(s.Grp, ADPrecomputationExpected.Get(i), ADPrecomputationExpected.Get(i))
@@ -332,6 +355,17 @@ func TestStrip_Graph(t *testing.T) {
 			// Compute mul2
 			cryptops.Mul2(s.Grp, s.CypherMsg.Get(i), MessagePrecomputationExpected.Get(i))
 			cryptops.Mul2(s.Grp, s.CypherAD.Get(i), ADPrecomputationExpected.Get(i))
+
+			// Verify message and associated data match the expected values
+			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
+					i, CypherMsgExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
+			}
+
+			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
+					i, CypherADExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
+			}
 
 			if MessagePrecomputationExpected.Get(i).Cmp(s.MessagePrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
