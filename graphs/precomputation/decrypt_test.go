@@ -312,7 +312,10 @@ func TestDecryptGraph(t *testing.T) {
 	graphInit = InitDecryptGraph
 
 	//Initialize graph
-	g := graphInit(func(err error) { return })
+	g := graphInit(func(err error) {
+		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
+		return
+	})
 
 	if g.GetName() != expectedName {
 		t.Errorf("PrecompDecrypt has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())

@@ -228,7 +228,12 @@ func TestPermuteInGraph(t *testing.T) {
 
 	permuteStream := PermuteTestStream{}
 
-	g := services.NewGraph("test", func(err error) { return }, &permuteStream)
+	gErrHndl := func(err error) {
+		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
+		return
+	}
+
+	g := services.NewGraph("test", gErrHndl, &permuteStream)
 
 	g.First(permute)
 	g.Last(permute)
