@@ -14,19 +14,19 @@ import (
 	"testing"
 )
 
-// Test that RevealStream.GetName() returns the correct name
-func TestRevealStream_GetName(t *testing.T) {
-	expected := "PrecompRevealStream"
+// Test that StripStream.GetName() returns the correct name
+func TestStripStream_GetName(t *testing.T) {
+	expected := "PrecompStripStream"
 
-	rs := RevealStream{}
+	stream := StripStream{}
 
-	if rs.GetName() != expected {
-		t.Errorf("RevealStream.GetName(), Expected %s, Recieved %s", expected, rs.GetName())
+	if stream.GetName() != expected {
+		t.Errorf("StripStream.GetName(), Expected %s, Recieved %s", expected, stream.GetName())
 	}
 }
 
-// Test that RevealStream.Link() Links correctly
-func TestRevealStream_Link(t *testing.T) {
+// Test that StripStream.Link() Links correctly
+func TestStripStream_Link(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -40,35 +40,24 @@ func TestRevealStream_Link(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	rs := RevealStream{}
+	stream := StripStream{}
 
 	batchSize := uint32(100)
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	rs.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
-	if round.Z.Cmp(rs.Z) != 0 {
-		t.Errorf(
-			"RevealStream.Link() Z value not linked: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), rs.Z.TextVerbose(10, 16))
-	}
+	checkStreamIntBuffer(grp, stream.MessagePrecomputation, round.MessagePrecomputation, "MessagePrecomputation", t)
+	checkStreamIntBuffer(grp, stream.ADPrecomputation, round.ADPrecomputation, "ADPrecomputation", t)
 
-	checkIntBuffer(rs.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
-	checkIntBuffer(rs.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
-
-	// Edit round to show that Z value in stream changes
-	expected := grp.Random(round.Z)
-
-	if rs.Z.Cmp(expected) != 0 {
-		t.Errorf(
-			"RevealStream.Link() Z value not linked to round: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), rs.Z.TextVerbose(10, 16))
-	}
+	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
 }
+
 
 // Tests Input's happy path
-func TestRevealtStream_Input(t *testing.T) {
+func TestStripStream_Input(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -84,17 +73,17 @@ func TestRevealtStream_Input(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	ss := &StripStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	rs.Link(batchSize, round)
+	ss.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
 
 		expected := [][]byte{
-			{byte(b + 1), 0},
-			{byte(b + 1), 1},
+			{byte(1)},
+			{byte(1)},
 		}
 
 		msg := &mixmessages.CmixSlot{
@@ -102,19 +91,19 @@ func TestRevealtStream_Input(t *testing.T) {
 			PartialAssociatedDataCypherText: expected[1],
 		}
 
-		err := rs.Input(b, msg)
+		err := ss.Input(b, msg)
 		if err != nil {
-			t.Errorf("RevealStream.Input() errored on slot %v: %s", b, err.Error())
+			t.Errorf("StripStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(rs.CypherMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("RevealStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], rs.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(ss.CypherMsg.Get(b).Bytes(), expected[0]) {
+			t.Errorf("StripStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], ss.CypherMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(rs.CypherAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("RevealStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], rs.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(ss.CypherAD.Get(b).Bytes(), expected[1]) {
+			t.Errorf("StripStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], ss.CypherAD.Get(b).Bytes())
 		}
 
 	}
@@ -122,8 +111,9 @@ func TestRevealtStream_Input(t *testing.T) {
 }
 
 // Tests that the input errors correctly when the index is outside of the batch
-func TestRevealStream_Input_OutOfBatch(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+func TestStripStream_Input_OutOfBatch(t *testing.T) {
+	primeString :=
+		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
 		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
@@ -134,60 +124,61 @@ func TestRevealStream_Input_OutOfBatch(t *testing.T) {
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	stream := &StripStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	rs.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
 	}
 
-	err := rs.Input(batchSize, msg)
+	err := stream.Input(batchSize, msg)
 
 	if err != node.ErrOutsideOfBatch {
-		t.Errorf("RevealtStream.Input() did nto return an outside of batch error when out of batch")
+		t.Errorf("StripStream.Input() did nto return an outside of batch error when out of batch")
 	}
 
-	err1 := rs.Input(batchSize+1, msg)
+	err1 := stream.Input(batchSize+1, msg)
 
 	if err1 != node.ErrOutsideOfBatch {
-		t.Errorf("RevealStream.Input() did not return an outside of batch error when out of batch")
+		t.Errorf("StripStream.Input() did not return an outside of batch error when out of batch")
 	}
 }
 
 // Tests that Input errors correct when the passed value is out of the group
-func TestRevealStream_Input_OutOfGroup(t *testing.T) {
+func TestStripStream_Input_OutOfGroup(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	stream := &StripStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ds.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
 		PartialMessageCypherText:        large.NewInt(89).Bytes(),
 		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
 	}
 
-	err := ds.Input(batchSize-10, msg)
+	err := stream.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
-		t.Errorf("DecryptStream.Input() did not return an error when out of group")
+		t.Errorf("StripStream.Input() did not return an error when out of group")
 	}
 }
 
 // Tests that the output function returns a valid cmixMessage
-func TestRevealStream_Output(t *testing.T) {
+func TestStripStream_Output(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -203,11 +194,11 @@ func TestRevealStream_Output(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	stream := &StripStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	rs.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -221,41 +212,42 @@ func TestRevealStream_Output(t *testing.T) {
 			PartialAssociatedDataCypherText: expected[1],
 		}
 
-		err := rs.Input(b, msg)
+		err := stream.Input(b, msg)
 		if err != nil {
-			t.Errorf("RevealStream.Output() errored on slot %v: %s", b, err.Error())
+			t.Errorf("StripStream.Output() errored on slot %v: %s", b, err.Error())
 		}
 
-		output := rs.Output(b)
+		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[0]) {
-			t.Errorf("RevealStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], rs.CypherMsg.Get(b).Bytes())
+			t.Errorf("StripStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherMsg.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[1]) {
-			t.Errorf("RevealStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], rs.CypherAD.Get(b).Bytes())
+			t.Errorf("StripStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
 
 }
 
-// Tests that RevealStream conforms to the CommsStream interface
-func TestRevealStream_CommsInterface(t *testing.T) {
+// Tests that StripStream conforms to the CommsStream interface
+func TestStripStream_CommsInterface(t *testing.T) {
 
 	var face interface{}
-	face = &RevealStream{}
+	face = &StripStream{}
 	_, ok := face.(node.CommsStream)
 
 	if !ok {
-		t.Errorf("RevealStream: Does not conform to the CommsStream interface")
+		t.Errorf("StripStream: Does not conform to the CommsStream interface")
 	}
 
 }
 
-func TestReveal_Graph(t *testing.T) {
+
+func TestStrip_Graph(t *testing.T) {
 	primeString :=
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -275,10 +267,10 @@ func TestReveal_Graph(t *testing.T) {
 
 	// Show that the Init function meets the function type
 	var graphInit graphs.Initializer
-	graphInit = InitRevealGraph
+	graphInit = InitStripGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
+		t.Errorf("Strip: Error in adaptor: %s", err.Error())
 		return
 	}
 
@@ -293,22 +285,26 @@ func TestReveal_Graph(t *testing.T) {
 	// Build the round
 	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
 
-	// Fill the fields of the stream object for testing
-	grp.FindSmallCoprimeInverse(round.Z, 256)
+	// Fill the fields of the round object for testing
+	for i := uint32(0); i < g.GetBatchSize(); i++ {
+		grp.Set(round.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(round.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
+	}
 
 	// Link the graph to the round. building the stream object
 	g.Link(round)
 
-	stream := g.GetStream().(*RevealStream)
+	stream := g.GetStream().(*StripStream)
 
-	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
+	// Fill the fields of the stream object for testing
+	for i := uint32(0); i < g.GetBatchSize(); i++ {
 		grp.RandomCoprime(stream.CypherMsg.Get(i))
 		grp.RandomCoprime(stream.CypherAD.Get(i))
 	}
 
 	// Build i/o used for testing
-	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	MessagePrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	ADPrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
 	// Run the graph
 	g.Run()
@@ -321,7 +317,7 @@ func TestReveal_Graph(t *testing.T) {
 	}(g)
 
 	// Get the output
-	s := g.GetStream().(*RevealStream)
+	s := g.GetStream().(*StripStream)
 
 	ok := true
 	var chunk services.Chunk
@@ -329,20 +325,22 @@ func TestReveal_Graph(t *testing.T) {
 	for ok {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Compute expected result for this slot
-			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, CypherMsgExpected.Get(i))
+			// Compute inverse
+			cryptops.Inverse(s.Grp, MessagePrecomputationExpected.Get(i), MessagePrecomputationExpected.Get(i))
+			cryptops.Inverse(s.Grp, ADPrecomputationExpected.Get(i), ADPrecomputationExpected.Get(i))
 
-			// Execute root coprime on the keys for the Associated Data
-			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, CypherADExpected.Get(i))
+			// Compute mul2
+			cryptops.Mul2(s.Grp, s.CypherMsg.Get(i), MessagePrecomputationExpected.Get(i))
+			cryptops.Mul2(s.Grp, s.CypherAD.Get(i), ADPrecomputationExpected.Get(i))
 
-			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompReveal: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherMsgExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
+			if MessagePrecomputationExpected.Get(i).Cmp(s.MessagePrecomputation.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
+					i, MessagePrecomputationExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
 			}
 
-			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompReveal: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherADExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
+			if ADPrecomputationExpected.Get(i).Cmp(s.ADPrecomputation.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
+					i, ADPrecomputationExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
 			}
 		}
 	}
