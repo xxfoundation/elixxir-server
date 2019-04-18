@@ -8,6 +8,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
+	"runtime"
 	"sync/atomic"
 	"testing"
 )
@@ -228,12 +229,14 @@ func TestPermuteInGraph(t *testing.T) {
 
 	permuteStream := PermuteTestStream{}
 
-	gErrHndl := func(err error) {
-		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
+	PanicHandler := func(err error) {
+		t.Errorf("Permute: Error in adaptor: %s", err.Error())
 		return
 	}
 
-	g := services.NewGraph("test", gErrHndl, &permuteStream)
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+
+	g := gc.NewGraph("test", &permuteStream)
 
 	g.First(permute)
 	g.Last(permute)

@@ -16,13 +16,11 @@ import (
 const (
 	OUTPUT_IS_BATCHSIZE = INPUT_IS_BATCHSIZE
 	AUTO_OUTPUTSIZE     = AUTO_INPUTSIZE
+	AUTO_NUMTHREADS     = 0
 )
 
-// Should probably add more params to this like block ID, worker thread ID, etc
-type ErrorCallback func(err error)
-
 type Graph struct {
-	callback    ErrorCallback
+	generator   GraphGenerator
 	modules     map[uint64]*Module
 	firstModule *Module
 	lastModule  *Module
@@ -46,26 +44,6 @@ type Graph struct {
 	sentInputs *uint32
 }
 
-func NewGraph(name string, callback ErrorCallback, stream Stream) *Graph {
-	var g Graph
-	g.callback = callback
-	g.modules = make(map[uint64]*Module)
-	g.idCount = 0
-	g.batchSize = 0
-	g.expandBatchSize = 0
-
-	g.name = name
-
-	g.built = false
-	g.linked = false
-
-	g.stream = stream
-
-	g.sentInputs = new(uint32)
-
-	return &g
-}
-
 // This is too long of a function
 func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 	//Checks graph is properly formatted
@@ -73,20 +51,20 @@ func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 
 	//check output parameters
 	if outputSize == AUTO_OUTPUTSIZE {
-		outputSize = globals.MinSlotSize
+		outputSize = g.generator.minInputSize
 	}
 
 	//Find expanded batch size
 	var integers []uint32
 
 	for _, m := range g.modules {
-		m.checkParameters(globals.MinSlotSize)
+		m.checkParameters(g.generator.minInputSize, g.generator.defaultNumTh)
 		if m.InputSize != INPUT_IS_BATCHSIZE {
 			integers = append(integers, m.InputSize)
 		}
 	}
 
-	integers = append(integers, globals.MinSlotSize)
+	integers = append(integers, g.generator.minInputSize)
 	integers = append(integers, outputSize)
 	lcm := globals.LCM(integers)
 

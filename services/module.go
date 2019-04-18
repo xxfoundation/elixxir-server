@@ -35,7 +35,7 @@ type Module struct {
 	Name string
 
 	//Number of goroutines to execute the adapter and cryptops on
-	NumThreads uint32
+	NumThreads uint8
 
 	/*Private*/
 	//Keeps track and controls all threads executing in the cryptop
@@ -60,9 +60,9 @@ type Module struct {
 }
 
 //Checks inputs are correct and sets the inputsize if it is set to auto
-func (m *Module) checkParameters(minInputSize uint32) {
-	if m.NumThreads == 0 {
-		panic(fmt.Sprintf("Module %s cannot have zero threads", m.Name))
+func (m *Module) checkParameters(minInputSize uint32, defaultNumThreads uint8) {
+	if m.NumThreads == AUTO_NUMTHREADS {
+		m.NumThreads = defaultNumThreads
 	}
 
 	if m.InputSize == AUTO_INPUTSIZE {

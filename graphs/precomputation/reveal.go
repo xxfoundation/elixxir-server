@@ -110,8 +110,8 @@ var RevealRootCoprime = services.Module{
 }
 
 // Called to initialize the graph. Conforms to graphs.Initialize function type
-func InitRevealGraph(errorHandler services.ErrorCallback) *services.Graph {
-	graph := services.NewGraph("PrecompReveal", errorHandler, &RevealStream{})
+func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
+	graph := gc.NewGraph("PrecompReveal", &RevealStream{})
 
 	revealRootCoprime := RevealRootCoprime.DeepCopy()
 

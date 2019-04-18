@@ -106,8 +106,8 @@ var DecryptElgamal = services.Module{
 }
 
 //Called to initialize the graph. Conforms to graphs.Initialize function type
-func InitDecryptGraph(errorHandler services.ErrorCallback) *services.Graph {
-	g := services.NewGraph("PrecompDecrypt", errorHandler, &DecryptStream{})
+func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
+	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{})
 
 	decryptElgamal := DecryptElgamal.DeepCopy()
 
