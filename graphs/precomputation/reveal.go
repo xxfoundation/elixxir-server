@@ -14,10 +14,9 @@ import (
 
 // Stream holding data containing private key from encrypt and inputs used by strip
 type RevealStream struct {
-	Grp             *cyclic.Group
-	CypherPublicKey *cyclic.Int
+	Grp *cyclic.Group
 
-	// Link to round object
+	//Link to round object
 	Z *cyclic.Int
 
 	// Unique to stream
@@ -35,28 +34,15 @@ func (s *RevealStream) Link(batchSize uint32, source interface{}) {
 	grp := round.Grp
 
 	s.LinkStream(batchSize, round, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)))
-
-	s.Grp = round.Grp
-	s.CypherPublicKey = round.CypherPublicKey
-
-	s.Z = round.Z
-
-	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 }
 
-func (s *RevealStream)LinkStream(batchSize uint32, round *node.RoundBuffer, CypherMsg, CypherAD *cyclic.IntBuffer){
+func (s *RevealStream) LinkStream(batchSize uint32, round *node.RoundBuffer, CypherMsg, CypherAD *cyclic.IntBuffer) {
 	s.Grp = round.Grp
-	s.CypherPublicKey = round.CypherPublicKey
 
 	s.Z = round.Z
 
 	s.CypherMsg = CypherMsg
-	s.CypherAD  = CypherAD
-}
-
-type revealSubstreamInterface interface {
-	getSubStream() *RevealStream
+	s.CypherAD = CypherAD
 }
 
 func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
@@ -80,6 +66,14 @@ func (s *RevealStream) Output(index uint32) *mixmessages.CmixSlot {
 		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
 		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
 	}
+}
+
+type revealSubstreamInterface interface {
+	getSubStream() *RevealStream
+}
+
+func (s *RevealStream) getSubStream() *RevealStream {
+	return s
 }
 
 // Module in precomputation reveeal implementing cryptops.RootCoprimePrototype

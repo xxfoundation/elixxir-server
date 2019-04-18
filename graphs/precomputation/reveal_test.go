@@ -277,7 +277,10 @@ func TestReveal_Graph(t *testing.T) {
 	graphInit = InitRevealGraph
 
 	// Initialize graph
-	g := graphInit(func(err error) { return })
+	g := graphInit(func(err error) {
+		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
+		return
+	})
 
 	// Build the graph
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
@@ -285,15 +288,18 @@ func TestReveal_Graph(t *testing.T) {
 	// Build the round
 	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
 
+	// Fill the fields of the stream object for testing
+	grp.FindSmallCoprimeInverse(round.Z, 256)
+
 	// Link the graph to the round. building the stream object
 	g.Link(round)
 
 	stream := g.GetStream().(*RevealStream)
 
-	// Fill the fields of the stream object for testing
-	grp.Random(stream.CypherPublicKey)
-
-	grp.Random(stream.Z)
+	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
+		grp.RandomCoprime(stream.CypherMsg.Get(i))
+		grp.RandomCoprime(stream.CypherAD.Get(i))
+	}
 
 	// Build i/o used for testing
 	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
