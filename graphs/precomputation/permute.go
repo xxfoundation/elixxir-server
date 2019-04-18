@@ -8,43 +8,41 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
-// This file implements the Graph for the Precomputation Decrypt phase
-// Decrypt phase transforms first unpermuted internode keys
-// and partial cypher texts into the data that the permute phase needs
+// This file implements the Graph for the Precomputation Permute phase
 
-// Stream holding data containing keys and inputs used by decrypt
-type DecryptStream struct {
+
+// Stream holding data containing keys and inputs used by Permute
+type PermuteStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
 
 	// Link to round object
-	R *cyclic.IntBuffer
-	U *cyclic.IntBuffer
+	S *cyclic.IntBuffer // Encrypted Inverse Permuted Internode Message Key
+	V *cyclic.IntBuffer// Encrypted Inverse Permuted Internode AssociatedData Key
+	Y_S *cyclic.IntBuffer // Permuted Internode Message Partial Cypher Text
+	Y_V *cyclic.IntBuffer // Permuted Internode AssociatedData Partial Cypher Text
 
-	Y_R *cyclic.IntBuffer
-	Y_U *cyclic.IntBuffer
-
-	//Unique to stream
+	// Unique to stream
 	KeysMsg   *cyclic.IntBuffer
 	CypherMsg *cyclic.IntBuffer
 	KeysAD    *cyclic.IntBuffer
 	CypherAD  *cyclic.IntBuffer
 }
 
-func (s *DecryptStream) GetName() string {
-	return "PrecompDecryptStream"
+func (s *PermuteStream) GetName() string {
+	return "PrecompPermuteStream"
 }
 
-func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
+func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
 	s.Grp = round.Grp
 	s.PublicCypherKey = round.CypherPublicKey
 
-	s.R = round.R.GetSubBuffer(0, batchSize)
-	s.U = round.U.GetSubBuffer(0, batchSize)
-	s.Y_R = round.Y_R.GetSubBuffer(0, batchSize)
-	s.Y_U = round.Y_U.GetSubBuffer(0, batchSize)
+	s.S = round.S.GetSubBuffer(0, batchSize)
+	s.V = round.V.GetSubBuffer(0, batchSize)
+	s.Y_S = round.Y_S.GetSubBuffer(0, batchSize)
+	s.Y_V = round.Y_V.GetSubBuffer(0, batchSize)
 
 	s.KeysMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
@@ -52,7 +50,7 @@ func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 }
 
-func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 
 	if index >= uint32(s.KeysMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -70,7 +68,7 @@ func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
-func (s *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 
 	return &mixmessages.CmixSlot{
 		EncryptedMessageKeys:            s.KeysMsg.Get(index).Bytes(),
@@ -80,11 +78,11 @@ func (s *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
 	}
 }
 
-//Sole module in Precomputation Decrypt implementing cryptops.Elgamal
-var DecryptElgamal = services.Module{
+//Sole module in Precomputation Permute implementing cryptops.Elgamal
+var PermuteElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*DecryptStream)
+		s, ok := streamInput.(*PermuteStream)
 		elgamal, ok2 := cryptop.(cryptops.ElGamalPrototype)
 
 		if !ok || !ok2 {
@@ -93,26 +91,26 @@ var DecryptElgamal = services.Module{
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			//Execute elgamal on the keys for the Message
-			elgamal(s.Grp, s.R.Get(i), s.Y_R.Get(i), s.PublicCypherKey, s.KeysMsg.Get(i), s.CypherMsg.Get(i))
+			elgamal(s.Grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, s.KeysMsg.Get(i), s.CypherMsg.Get(i))
 			//Execute elgamal on the keys for the Associated Data
-			elgamal(s.Grp, s.U.Get(i), s.Y_U.Get(i), s.PublicCypherKey, s.KeysAD.Get(i), s.CypherAD.Get(i))
+			elgamal(s.Grp, s.V.Get(i), s.Y_V.Get(i), s.PublicCypherKey, s.KeysAD.Get(i), s.CypherAD.Get(i))
 		}
 		return nil
 	},
 	Cryptop:    cryptops.ElGamal,
 	NumThreads: 5,
 	InputSize:  services.AUTO_INPUTSIZE,
-	Name:       "DecryptElgamal",
+	Name:       "PermuteElgamal",
 }
 
-//Called to initialize the graph. Conforms to graphs.Initialize function type
-func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
-	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{})
+// Called to initialize the graph. Conforms to graphs.Initialize function type
+func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
+	g := gc.NewGraph("PrecompPermute", &PermuteStream{})
 
-	decryptElgamal := DecryptElgamal.DeepCopy()
+	PermuteElgamal := PermuteElgamal.DeepCopy()
 
-	g.First(decryptElgamal)
-	g.Last(decryptElgamal)
+	g.First(PermuteElgamal)
+	g.Last(PermuteElgamal)
 
 	return g
 }
