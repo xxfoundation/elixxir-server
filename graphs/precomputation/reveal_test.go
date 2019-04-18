@@ -168,21 +168,21 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	rs := &RevealStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ds.Link(batchSize, round)
+	rs.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
 		PartialMessageCypherText:        large.NewInt(89).Bytes(),
 		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
 	}
 
-	err := ds.Input(batchSize-10, msg)
+	err := rs.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
-		t.Errorf("DecryptStream.Input() did not return an error when out of group")
+		t.Errorf("RevealStream.Input() did not return an error when out of group")
 	}
 }
 
