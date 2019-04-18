@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -311,11 +312,15 @@ func TestDecryptGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitDecryptGraph
 
-	//Initialize graph
-	g := graphInit(func(err error) {
-		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
+	PanicHandler := func(err error) {
+		t.Errorf("PrecompDecrypt: Error in adaptor: %s", err.Error())
 		return
-	})
+	}
+
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+
+	//Initialize graph
+	g := graphInit(gc)
 
 	if g.GetName() != expectedName {
 		t.Errorf("PrecompDecrypt has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())

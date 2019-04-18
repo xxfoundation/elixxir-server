@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -276,11 +277,15 @@ func TestReveal_Graph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitRevealGraph
 
-	// Initialize graph
-	g := graphInit(func(err error) {
+	PanicHandler := func(err error) {
 		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
 		return
-	})
+	}
+
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+
+	//Initialize graph
+	g := graphInit(gc)
 
 	// Build the graph
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)

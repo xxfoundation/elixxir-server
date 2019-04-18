@@ -29,7 +29,7 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 				err := m.Adapt(s, m.Cryptop, chunk)
 
 				if err != nil {
-					go g.callback(err)
+					go g.generator.errorHandler(err)
 				}
 
 				for _, om := range m.outputModules {

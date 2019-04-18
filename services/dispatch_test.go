@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"math"
 	"math/rand"
+	"runtime"
 	"testing"
 )
 
@@ -163,7 +164,9 @@ func TestGraph(t *testing.T) {
 
 	batchSize := uint32(1000)
 
-	g := NewGraph("test", PanicHandler, &Stream1{})
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+
+	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
 	moduleB := ModuleB.DeepCopy()
