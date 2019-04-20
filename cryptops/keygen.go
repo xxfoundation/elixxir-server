@@ -106,7 +106,8 @@ func (g GenerateClientKey) Run(grp *cyclic.Group, in,
 	// other cryptops, nothing goes in `out`: it's all mutated in place.
 	if keys.keySelection == TRANSMISSION {
 		baseKey := user.Transmission.BaseKey
-		decryptionKey := cmix.NewDecryptionKey(in.Salt, baseKey, grp)
+		decryptionKey := grp.NewMaxInt()
+		cmix.NodeKeyGen(grp, in.Salt, baseKey, decryptionKey)
 		grp.Set(in.CurrentKey, decryptionKey)
 	} else if keys.keySelection == RECEPTION {
 		if !*keys.verification {
@@ -115,7 +116,8 @@ func (g GenerateClientKey) Run(grp *cyclic.Group, in,
 					"  Slot: %v; Received: %v", in.Slot, keys.keySelection)
 		} else {
 			baseKey := user.Reception.BaseKey
-			encryptionKey := cmix.NewEncryptionKey(in.Salt, baseKey, grp)
+			encryptionKey := grp.NewMaxInt()
+			cmix.NodeKeyGen(grp, in.Salt, baseKey, encryptionKey)
 			grp.Set(in.CurrentKey, encryptionKey)
 		}
 
