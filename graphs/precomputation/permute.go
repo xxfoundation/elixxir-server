@@ -34,7 +34,7 @@ type PermuteStream struct {
 	CypherAD  *cyclic.IntBuffer
 	CypherADPermuted []*cyclic.Int
 
-	pss graphs.PermuteSubStream
+	graphs.PermuteSubStream
 }
 
 func (s *PermuteStream) GetName() string {
@@ -62,7 +62,7 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	s.KeysADPermuted = make([]*cyclic.Int, batchSize)
 	s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
 
-	s.pss.LinkStreams(batchSize, round.Permutations,
+	s.PermuteSubStream.LinkStreams(batchSize, round.Permutations,
 		graphs.PermuteIO{
 			Input:  s.CypherMsg,
 			Output: s.CypherMsgPermuted,
@@ -107,7 +107,7 @@ func (s *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 	}
 }
 
-// Sole module in Precomputation Permute implementing cryptops.Elgamal
+// Module in Precomputation Permute implementing cryptops.Elgamal
 var PermuteElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -127,6 +127,7 @@ var PermuteElgamal = services.Module{
 			// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode Message Key
 			// Eq 13.21: Multiplies the Partial Cypher Text for the Permuted Internode
 			// Message Key into the Round Message Partial Cypher Text
+
 			elgamal(s.Grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, s.KeysMsg.Get(i), s.CypherMsg.Get(i))
 
 			// Execute elgamal on the keys for the Associated Data
@@ -152,9 +153,11 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("PrecompPermute", &PermuteStream{})
 
 	PermuteElgamal := PermuteElgamal.DeepCopy()
+	Permute := graphs.Permute.DeepCopy()
 
 	g.First(PermuteElgamal)
-	g.Last(PermuteElgamal)
+	g.Connect(PermuteElgamal, Permute)
+	g.Last(Permute)
 
 	return g
 }

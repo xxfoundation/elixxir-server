@@ -356,7 +356,7 @@ func TestPermuteGraph(t *testing.T) {
 	//Run the graph
 	g.Run()
 
-	//Send inputs into the graph
+	// Send inputs into the graph
 	go func(g *services.Graph) {
 		for i := uint32(0); i < g.GetBatchSize(); i++ {
 			g.Send(services.NewChunk(i, i+1))
@@ -389,6 +389,7 @@ func TestPermuteGraph(t *testing.T) {
 			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompPermute: AD Keys Cypher not equal on slot %v", i))
 			}
+
 		}
 	}
 }
