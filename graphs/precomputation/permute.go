@@ -4,6 +4,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 )
@@ -25,9 +26,15 @@ type PermuteStream struct {
 
 	// Unique to stream
 	KeysMsg   *cyclic.IntBuffer
+	KeysMsgPermuted []*cyclic.Int
 	CypherMsg *cyclic.IntBuffer
+	CypherMsgPermuted []*cyclic.Int
 	KeysAD    *cyclic.IntBuffer
+	KeysADPermuted []*cyclic.Int
 	CypherAD  *cyclic.IntBuffer
+	CypherADPermuted []*cyclic.Int
+
+	pss graphs.PermuteSubStream
 }
 
 func (s *PermuteStream) GetName() string {
@@ -49,6 +56,27 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.KeysAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+
+	s.CypherADPermuted = make([]*cyclic.Int, batchSize)
+	s.CypherMsgPermuted = make([]*cyclic.Int, batchSize)
+	s.KeysADPermuted = make([]*cyclic.Int, batchSize)
+	s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
+
+	s.pss.LinkStreams(batchSize, round.Permutations,
+		graphs.PermuteIO{
+			Input:  s.CypherMsg,
+			Output: s.CypherMsgPermuted,
+		}, graphs.PermuteIO{
+			Input: s.CypherAD,
+			Output: s.CypherADPermuted,
+		}, graphs.PermuteIO{
+			Input: s.KeysAD,
+			Output: s.KeysADPermuted,
+		}, graphs.PermuteIO{
+			Input: s.KeysMsg,
+			Output: s.KeysMsgPermuted,
+		},
+	)
 }
 
 func (s *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
@@ -72,14 +100,14 @@ func (s *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 func (s *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 
 	return &mixmessages.CmixSlot{
-		EncryptedMessageKeys:            s.KeysMsg.Get(index).Bytes(),
-		EncryptedAssociatedDataKeys:     s.KeysAD.Get(index).Bytes(),
-		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
-		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
+		EncryptedMessageKeys:            s.KeysMsgPermuted[index].Bytes(),
+		EncryptedAssociatedDataKeys:     s.KeysADPermuted[index].Bytes(),
+		PartialMessageCypherText:        s.CypherMsgPermuted[index].Bytes(),
+		PartialAssociatedDataCypherText: s.CypherADPermuted[index].Bytes(),
 	}
 }
 
-//Sole module in Precomputation Permute implementing cryptops.Elgamal
+// Sole module in Precomputation Permute implementing cryptops.Elgamal
 var PermuteElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -91,9 +119,24 @@ var PermuteElgamal = services.Module{
 		}
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			//Execute elgamal on the keys for the Message
+			// Execute elgamal on the keys for the Message
+
+			// Eq 11.1: Encrypt the Permuted Internode Message Key under Homomorphic Encryption.
+			// Eq 13.17: Then multiply the Permuted Internode Message Key under Homomorphic
+			// Encryption into the Partial Encrypted Message Precomputation
+			// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode Message Key
+			// Eq 13.21: Multiplies the Partial Cypher Text for the Permuted Internode
+			// Message Key into the Round Message Partial Cypher Text
 			elgamal(s.Grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, s.KeysMsg.Get(i), s.CypherMsg.Get(i))
-			//Execute elgamal on the keys for the Associated Data
+
+			// Execute elgamal on the keys for the Associated Data
+			// Eq 11.1: Encrypt the Permuted Internode AssociatedData Key under Homomorphic Encryption
+			// Eq 13.19: Multiplies the Permuted Internode AssociatedData Key under
+			// Homomorphic Encryption into the Partial Encrypted AssociatedData Precomputation
+			// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode AssociatedData Key
+			// Eq 13.23 Multiplies the Partial Cypher Text for the Permuted Internode
+			// AssociatedData Key into the Round AssociatedData Partial Cypher Text
+
 			elgamal(s.Grp, s.V.Get(i), s.Y_V.Get(i), s.PublicCypherKey, s.KeysAD.Get(i), s.CypherAD.Get(i))
 		}
 		return nil
