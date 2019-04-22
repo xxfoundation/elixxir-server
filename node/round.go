@@ -15,15 +15,22 @@ type RoundID uint64
 type RoundBuffer struct {
 	Grp *cyclic.Group
 
+	//Sequential id or round
 	id RoundID
 
+	// Size of batch
+	batchSize         uint32
+	expandedBatchSize uint32
+
+	// BatchWide Keys
+	CypherPublicKey *cyclic.Int // Global Cypher Key
+	Z               *cyclic.Int // This node's private Cypher Key
+
+	//Realtime Keys
 	R *cyclic.IntBuffer // First unpermuted internode message key
 	S *cyclic.IntBuffer // Permuted internode message key
 	U *cyclic.IntBuffer // Permuted *cyclic.Internode recipient key
 	V *cyclic.IntBuffer // Unpermuted internode associated data key
-
-	CypherPublicKey *cyclic.Int // Global Cypher Key
-	Z               *cyclic.Int // This node's private Cypher Key
 
 	// Private keys for the above
 	Y_R *cyclic.IntBuffer
@@ -31,10 +38,6 @@ type RoundBuffer struct {
 	Y_T *cyclic.IntBuffer
 	Y_V *cyclic.IntBuffer
 	Y_U *cyclic.IntBuffer
-
-	// Size of batch
-	batchSize         uint32
-	expandedBatchSize uint32
 
 	// Pre-populated permutations
 	Permutations []uint32

@@ -84,6 +84,7 @@ var ShareExp = services.Module{
 
 // InitShareGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitShareGraph(gc services.GraphGenerator) *services.Graph {
+	//Share is special and  must have an input size of 1.  The graph generator must allow for that.
 	if gc.GetMinInputSize() != 1 {
 		panic("Share must have an input size of one, cannot generate off generator which requires larger")
 	}
