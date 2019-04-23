@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package precomputation
 
 import (
@@ -337,12 +343,12 @@ func TestReveal_Graph(t *testing.T) {
 
 			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompReveal: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherMsgExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
+					i, CypherMsgExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
 			}
 
 			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompReveal: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherADExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
+					i, CypherADExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
 			}
 		}
 	}

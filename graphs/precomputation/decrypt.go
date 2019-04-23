@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package precomputation
 
 import (
@@ -12,12 +18,12 @@ import (
 // Decrypt phase transforms first unpermuted internode keys
 // and partial cypher texts into the data that the permute phase needs
 
-// Stream holding data containing keys and inputs used by decrypt
+// DecryptStream holds data containing keys and inputs used by decrypt
 type DecryptStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
 
-	//Link to round object
+	// Link to round object
 	R *cyclic.IntBuffer
 	U *cyclic.IntBuffer
 
@@ -31,10 +37,12 @@ type DecryptStream struct {
 	CypherAD  *cyclic.IntBuffer
 }
 
+// GetName returns stream name
 func (s *DecryptStream) GetName() string {
 	return "PrecompDecryptStream"
 }
 
+// Link binds stream to state objects in round
 func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
@@ -52,6 +60,7 @@ func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 }
 
+// Input initializes stream inputs from slot
 func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 
 	if index >= uint32(s.KeysMsg.Len()) {
@@ -70,6 +79,7 @@ func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
+// Output returns a cmix slot message
 func (s *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
 
 	return &mixmessages.CmixSlot{
@@ -80,7 +90,7 @@ func (s *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
 	}
 }
 
-//Sole module in Precomputation Decrypt implementing cryptops.Elgamal
+// DecryptElgamal is the sole module in Precomputation Decrypt implementing cryptops.Elgamal
 var DecryptElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -92,9 +102,11 @@ var DecryptElgamal = services.Module{
 		}
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			//Execute elgamal on the keys for the Message
+
+			// Execute elgamal on the keys for the Message
 			elgamal(s.Grp, s.R.Get(i), s.Y_R.Get(i), s.PublicCypherKey, s.KeysMsg.Get(i), s.CypherMsg.Get(i))
-			//Execute elgamal on the keys for the Associated Data
+
+			// Execute elgamal on the keys for the Associated Data
 			elgamal(s.Grp, s.U.Get(i), s.Y_U.Get(i), s.PublicCypherKey, s.KeysAD.Get(i), s.CypherAD.Get(i))
 		}
 		return nil
@@ -105,7 +117,7 @@ var DecryptElgamal = services.Module{
 	Name:       "DecryptElgamal",
 }
 
-//Called to initialize the graph. Conforms to graphs.Initialize function type
+// InitDecryptGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{})
 
