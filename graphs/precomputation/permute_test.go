@@ -12,27 +12,29 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
+	"sync/atomic"
 	"testing"
 )
 
-// Test that DecryptStream.GetName() returns the correct name
-func TestDecryptStream_GetName(t *testing.T) {
-	expected := "PrecompDecryptStream"
+// Test that PermuteStream.GetName() returns the correct name
+func TestPermuteStream_GetName(t *testing.T) {
+	expected := "PrecompPermuteStream"
 
-	ds := DecryptStream{}
+	stream := PermuteStream{}
 
-	if ds.GetName() != expected {
-		t.Errorf("DecryptStream.GetName(), Expected %s, Recieved %s", expected, ds.GetName())
+	if stream.GetName() != expected {
+		t.Errorf("PermuteStream.GetName(), Expected %s, Recieved %s", expected, stream.GetName())
 	}
 }
 
-// Test that DecryptStream.Link() Links correctly
-func TestDecryptStream_Link(t *testing.T) {
+// Test that PermuteStream.Link() Links correctly
+func TestPermuteStream_Link(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -46,7 +48,7 @@ func TestDecryptStream_Link(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	stream := DecryptStream{}
+	stream := PermuteStream{}
 
 	batchSize := uint32(100)
 
@@ -54,10 +56,10 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	stream.Link(batchSize, round)
 
-	checkStreamIntBuffer(grp, stream.R, round.R, "R", t)
-	checkStreamIntBuffer(grp, stream.U, round.U, "U", t)
-	checkStreamIntBuffer(grp, stream.Y_R, round.Y_R, "Y_R", t)
-	checkStreamIntBuffer(grp, stream.Y_U, round.Y_U, "Y_U", t)
+	checkStreamIntBuffer(grp, stream.S, round.S, "S", t)
+	checkStreamIntBuffer(grp, stream.V, round.V, "V", t)
+	checkStreamIntBuffer(grp, stream.Y_S, round.Y_S, "Y_S", t)
+	checkStreamIntBuffer(grp, stream.Y_V, round.Y_V, "Y_V", t)
 
 	checkIntBuffer(stream.KeysMsg, batchSize, "KeysMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
@@ -65,8 +67,8 @@ func TestDecryptStream_Link(t *testing.T) {
 	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
 }
 
-// Test Input's happy path
-func TestDecryptStream_Input(t *testing.T) {
+// Tests Input's happy path
+func TestPermuteStream_Input(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -82,11 +84,11 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	stream := &PermuteStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ds.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -104,29 +106,29 @@ func TestDecryptStream_Input(t *testing.T) {
 			PartialAssociatedDataCypherText: expected[3],
 		}
 
-		err := ds.Input(b, msg)
+		err := stream.Input(b, msg)
 		if err != nil {
-			t.Errorf("DecryptStream.Input() errored on slot %v: %s", b, err.Error())
+			t.Errorf("PermuteStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(ds.KeysMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("DecryptStream.Input() incorrect stored KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], ds.KeysMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.KeysMsg.Get(b).Bytes(), expected[0]) {
+			t.Errorf("PermuteStream.Input() incorrect stored KeysMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.KeysMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ds.KeysAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("DecryptStream.Input() incorrect stored KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], ds.KeysAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.KeysAD.Get(b).Bytes(), expected[1]) {
+			t.Errorf("PermuteStream.Input() incorrect stored KeysAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.KeysAD.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ds.CypherMsg.Get(b).Bytes(), expected[2]) {
-			t.Errorf("DecryptStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], ds.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[2]) {
+			t.Errorf("PermuteStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ds.CypherAD.Get(b).Bytes(), expected[3]) {
-			t.Errorf("DecryptStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], ds.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[3]) {
+			t.Errorf("PermuteStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
@@ -134,7 +136,7 @@ func TestDecryptStream_Input(t *testing.T) {
 }
 
 // Tests that the input errors correctly when the index is outside of the batch
-func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
+func TestPermuteStream_Input_OutOfBatch(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -150,11 +152,11 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	stream := &PermuteStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ds.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
 		EncryptedMessageKeys:            []byte{0},
@@ -163,21 +165,21 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 		PartialAssociatedDataCypherText: []byte{0},
 	}
 
-	err := ds.Input(batchSize, msg)
+	err := stream.Input(batchSize, msg)
 
 	if err == nil {
-		t.Errorf("DecryptStream.Input() did nto return an error when out of batch")
+		t.Errorf("PermuteStream.Input() did nto return an error when out of batch")
 	}
 
-	err1 := ds.Input(batchSize+1, msg)
+	err1 := stream.Input(batchSize+1, msg)
 
 	if err1 == nil {
-		t.Errorf("DecryptStream.Input() did nto return an error when out of batch")
+		t.Errorf("PermuteStream.Input() did nto return an error when out of batch")
 	}
 }
 
 // Tests that Input errors correct when the passed value is out of the group
-func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
+func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -193,11 +195,11 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	stream := &PermuteStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ds.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
 		EncryptedMessageKeys:            []byte{0},
@@ -206,15 +208,15 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 		PartialAssociatedDataCypherText: []byte{0},
 	}
 
-	err := ds.Input(batchSize-10, msg)
+	err := stream.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
-		t.Errorf("DecryptStream.Input() did not return an error when out of group")
+		t.Errorf("PermuteStream.Input() did not return an error when out of group")
 	}
 }
 
 // Tests that the output function returns a valid cmixMessage
-func TestDecryptStream_Output(t *testing.T) {
+func TestPermuteStream_Output(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -230,11 +232,11 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	stream := &PermuteStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ds.Link(batchSize, round)
+	stream.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -245,58 +247,51 @@ func TestDecryptStream_Output(t *testing.T) {
 			{byte(b + 1), 3},
 		}
 
-		msg := &mixmessages.CmixSlot{
-			EncryptedMessageKeys:            expected[0],
-			EncryptedAssociatedDataKeys:     expected[1],
-			PartialMessageCypherText:        expected[2],
-			PartialAssociatedDataCypherText: expected[3],
-		}
+		stream.KeysMsgPermuted[b] = grp.NewIntFromBytes(expected[0])
+		stream.KeysADPermuted[b] = grp.NewIntFromBytes(expected[1])
+		stream.CypherMsgPermuted[b] = grp.NewIntFromBytes(expected[2])
+		stream.CypherADPermuted[b] = grp.NewIntFromBytes(expected[3])
 
-		err := ds.Input(b, msg)
-		if err != nil {
-			t.Errorf("DecryptStream.Output() errored on slot %v: %s", b, err.Error())
-		}
-
-		output := ds.Output(b)
+		output := stream.Output(uint32(b))
 
 		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], ds.KeysMsg.Get(b).Bytes())
+			t.Errorf("PermuteStream.Output() incorrect recieved KeysMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.KeysMsg.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], ds.KeysAD.Get(b).Bytes())
+			t.Errorf("PermuteStream.Output() incorrect recieved KeysAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.KeysAD.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[2]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], ds.CypherMsg.Get(b).Bytes())
+			t.Errorf("PermuteStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherMsg.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[3]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], ds.CypherAD.Get(b).Bytes())
+			t.Errorf("PermuteStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
 
 }
 
-//Tests that DecryptStream conforms to the CommsStream interface
-func TestDecryptStream_CommsInterface(t *testing.T) {
+// Tests that PermuteStream conforms to the CommsStream interface
+func TestPermuteStream_CommsInterface(t *testing.T) {
 
 	var face interface{}
-	face = &DecryptStream{}
+	face = &PermuteStream{}
 	_, ok := face.(node.CommsStream)
 
 	if !ok {
-		t.Errorf("DecryptStream: Does not conform to the CommsStream interface")
+		t.Errorf("PermuteStream: Does not conform to the CommsStream interface")
 	}
 
 }
 
-func TestDecryptGraph(t *testing.T) {
+func TestPermuteGraph(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -312,65 +307,100 @@ func TestDecryptGraph(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	expectedName := "PrecompDecrypt"
+	expectedName := "PrecompPermute"
 
-	//Show that the Inti function meets the function type
+	// Show that the Inti function meets the function type
 	var graphInit graphs.Initializer
-	graphInit = InitDecryptGraph
+	graphInit = InitPermuteGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("PrecompDecrypt: Error in adaptor: %s", err.Error())
+		t.Errorf("PrecompPermute: Error in adaptor: %s", err.Error())
 		return
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
 
-	//Initialize graph
+	// Initialize graph
 	g := graphInit(gc)
 
 	if g.GetName() != expectedName {
-		t.Errorf("PrecompDecrypt has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())
+		t.Errorf("PrecompPermute has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())
 	}
 
-	//Build the graph
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	// Build the graph
+	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
 
-	//Build the round
+	var done *uint32
+	done = new(uint32)
+	*done = 0
+
+	// Build the round
 	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+
+	subPermutation := round.Permutations[:batchSize]
+
+	shuffle.Shuffle32(&subPermutation)
 
 	//Link the graph to the round. building the stream object
 	g.Link(round)
 
-	stream := g.GetStream().(*DecryptStream)
+	permuteInverse := make([]uint32, g.GetExpandedBatchSize())
+	for i := uint32(0); i < uint32(len(permuteInverse)); i++ {
+		permuteInverse[round.Permutations[i]] = i
+	}
+
+	stream := g.GetStream().(*PermuteStream)
 
 	//fill the fields of the stream object for testing
 	grp.Random(stream.PublicCypherKey)
 
 	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
-		grp.Random(stream.R.Get(i))
-		grp.Random(stream.U.Get(i))
-		grp.Random(stream.Y_R.Get(i))
-		grp.Random(stream.Y_U.Get(i))
+		grp.Random(stream.S.Get(i))
+		grp.Random(stream.V.Get(i))
+		grp.Random(stream.Y_S.Get(i))
+		grp.Random(stream.Y_V.Get(i))
 	}
 
-	//Build i/o used for testing
+	// Build i/o used for testing
 	KeysMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	KeysADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
-	//Run the graph
+	for i := uint32(0); i < batchSize; i++ {
+		grp.SetUint64(stream.KeysMsg.Get(i), uint64(i+1))
+		grp.SetUint64(stream.CypherMsg.Get(i), uint64(i+11))
+		grp.SetUint64(stream.KeysAD.Get(i), uint64(i+111))
+		grp.SetUint64(stream.CypherAD.Get(i), uint64(i+1111))
+	}
+
+	for i := uint32(0); i < batchSize; i++ {
+
+		grp.Set(KeysMsgExpected.Get(i), stream.KeysMsg.Get(i))
+		grp.Set(CypherMsgExpected.Get(i), stream.CypherMsg.Get(i))
+		grp.Set(KeysADExpected.Get(i), stream.KeysAD.Get(i))
+		grp.Set(CypherADExpected.Get(i), stream.CypherAD.Get(i))
+
+		s := stream
+
+		// Compute expected result for this slot
+		cryptops.ElGamal(grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, KeysMsgExpected.Get(i), CypherMsgExpected.Get(i))
+		// Execute elgamal on the keys for the Associated Data
+		cryptops.ElGamal(s.Grp, s.V.Get(i), s.Y_V.Get(i), s.PublicCypherKey, KeysADExpected.Get(i), CypherADExpected.Get(i))
+
+	}
+
 	g.Run()
 
-	//Send inputs into the graph
 	go func(g *services.Graph) {
-		for i := uint32(0); i < g.GetBatchSize(); i++ {
+
+		for i := uint32(0); i < g.GetBatchSize()-1; i++ {
 			g.Send(services.NewChunk(i, i+1))
 		}
-	}(g)
 
-	//Get the output
-	s := g.GetStream().(*DecryptStream)
+		atomic.AddUint32(done, 1)
+		g.Send(services.NewChunk(g.GetExpandedBatchSize()-1, g.GetExpandedBatchSize()))
+	}(g)
 
 	ok := true
 	var chunk services.Chunk
@@ -378,64 +408,30 @@ func TestDecryptGraph(t *testing.T) {
 	for ok {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Compute expected result for this slot
-			cryptops.ElGamal(s.Grp, s.R.Get(i), s.Y_R.Get(i), s.PublicCypherKey, KeysMsgExpected.Get(i), CypherMsgExpected.Get(i))
-			//Execute elgamal on the keys for the Associated Data
-			cryptops.ElGamal(s.Grp, s.U.Get(i), s.Y_U.Get(i), s.PublicCypherKey, KeysADExpected.Get(i), CypherADExpected.Get(i))
 
-			if KeysMsgExpected.Get(i).Cmp(s.KeysMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: Message Keys not equal on slot %v", i))
-			}
-			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: Message Keys Cypher not equal on slot %v", i))
-			}
-			if KeysADExpected.Get(i).Cmp(s.KeysAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: AD Keys not equal on slot %v", i))
-			}
-			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: AD Keys Cypher not equal on slot %v", i))
-			}
-		}
-	}
-}
+			d := atomic.LoadUint32(done)
 
-func checkStreamIntBuffer(grp *cyclic.Group, ib, sourceib *cyclic.IntBuffer, source string, t *testing.T) {
-	if ib.Len() != sourceib.Len() {
-		t.Errorf("preomp.DecryptStream.Link: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, sourceib.Len(), ib.Len())
-	}
+			if d == 0 {
+				t.Error("Permute: should not be outputting until all inputs are inputted")
+			}
 
-	numBad := 0
-	for i := 0; i < sourceib.Len(); i++ {
-		grp.SetUint64(sourceib.Get(uint32(i)), uint64(i))
-		ci := ib.Get(uint32(i))
-		if ci.Cmp(sourceib.Get(uint32(i))) != 0 {
-			numBad++
+			if stream.KeysMsgPermuted[i].Cmp(KeysMsgExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+			}
+
+			if stream.CypherMsgPermuted[i].Cmp(CypherMsgExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+			}
+
+			if stream.KeysADPermuted[i].Cmp(KeysADExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+			}
+
+			if stream.CypherADPermuted[i].Cmp(CypherADExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+			}
+
 		}
 	}
 
-	if numBad != 0 {
-		t.Errorf("preomp.DecryptStream.Link: Ints in %v/%v intBuffer %s intilized incorrectly",
-			numBad, sourceib.Len(), source)
-	}
-}
-
-func checkIntBuffer(ib *cyclic.IntBuffer, expandedBatchSize uint32, source string, defaultInt *cyclic.Int, t *testing.T) {
-	if ib.Len() != int(expandedBatchSize) {
-		t.Errorf("New RoundBuffer: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, expandedBatchSize, ib.Len())
-	}
-
-	numBad := 0
-	for i := uint32(0); i < expandedBatchSize; i++ {
-		ci := ib.Get(i)
-		if ci.Cmp(defaultInt) != 0 {
-			numBad++
-		}
-	}
-
-	if numBad != 0 {
-		t.Errorf("New RoundBuffer: Ints in %v/%v intBuffer %s intilized incorrectly",
-			numBad, expandedBatchSize, source)
-	}
 }

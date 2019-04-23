@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package precomputation
 
 import (
@@ -12,9 +18,9 @@ import (
 // Strip phase inverts the Round Private Keys and removes the homomorphic encryption
 // from the encrypted message keys and encrypted associated data keys, revealing completed precomputation
 
-// Stream holding data containing private key from encrypt and inputs used by strip
+// StripStream holds data containing private key from encrypt and inputs used by strip
 type StripStream struct {
-	Grp             *cyclic.Group
+	Grp *cyclic.Group
 
 	// Link to round object
 	MessagePrecomputation *cyclic.IntBuffer
@@ -23,12 +29,16 @@ type StripStream struct {
 	// Unique to stream
 	CypherMsg *cyclic.IntBuffer
 	CypherAD  *cyclic.IntBuffer
+
+	RevealStream
 }
 
+// GetName returns stream name
 func (s *StripStream) GetName() string {
 	return "PrecompStripStream"
 }
 
+// Link binds stream to state objects in round
 func (s *StripStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
@@ -39,8 +49,11 @@ func (s *StripStream) Link(batchSize uint32, source interface{}) {
 
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+
+	s.RevealStream.LinkStream(batchSize, round, s.CypherMsg, s.CypherAD)
 }
 
+// Input initializes stream inputs from slot
 func (s *StripStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 
 	if index >= uint32(s.CypherMsg.Len()) {
@@ -57,6 +70,7 @@ func (s *StripStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
+// Output returns a cmix slot message
 func (s *StripStream) Output(index uint32) *mixmessages.CmixSlot {
 
 	return &mixmessages.CmixSlot{
@@ -66,7 +80,7 @@ func (s *StripStream) Output(index uint32) *mixmessages.CmixSlot {
 
 }
 
-// Module in precomputation strip implementing cryptops.Inverse
+// StripInverse is a module in precomputation strip implementing cryptops.Inverse
 var StripInverse = services.Module{
 	// Runs root coprime for cypher message and cypher associated data
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -94,6 +108,7 @@ var StripInverse = services.Module{
 	Name:       "StripInverse",
 }
 
+// StripMul2 is a module in precomputation strip implementing cryptops.mul2
 var StripMul2 = services.Module{
 	// Runs mul2 for cypher message and cypher associated data
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -125,14 +140,16 @@ var StripMul2 = services.Module{
 	Name:       "StripMul2",
 }
 
-// Called to initialize the graph. Conforms to graphs.Initialize function type
+// InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
 
+	reveal := RevealRootCoprime.DeepCopy()
 	stripInverse := StripInverse.DeepCopy()
 	stripMul2 := StripMul2.DeepCopy()
 
-	graph.First(stripInverse)
+	graph.First(reveal)
+	graph.Connect(reveal, stripInverse)
 	graph.Connect(stripInverse, stripMul2)
 	graph.Last(stripMul2)
 
