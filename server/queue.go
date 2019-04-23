@@ -3,12 +3,30 @@ package server
 import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
+	"sync"
 )
 
-type ResourceQueue map[QueueFingerprint]*queueElement
+
+type roundPhaseStates [node.NUM_PHASES*100]Phase
+
+type ResourceQueue struct {
+	phaseLookup sync.Map
+	buf roundPhaseStates
+	loc *uint64
+	sync.RWMutex
+}
 
 // We gotta come up with a better name for this...
 func (rq *ResourceQueue) Leap() {
+	rq.
+
+
+	rq.phases.Range(func(key,value interface{})bool{
+		return true
+	})
+
+
+
 	for _, g := range *rq {
 		g.loc--
 
@@ -23,25 +41,28 @@ func (rq *ResourceQueue) Leap() {
 	}
 }
 
-type SendToGraph func(g *services.Graph)
 
-func (rq *ResourceQueue) ProcessIncoming(id node.RoundID, p node.Phase, s2g SendToGraph) bool {
-	gf := makeGraphFingerprint(id, p)
-	ge, ok := (*rq)[gf]
+func (rq *ResourceQueue) ProcessIncoming(id node.RoundID, p node.PhaseType) bool {
+	fingerprint := makeGraphFingerprint(id, p)
+	phaseLocInterface, ok := rq.phaseLookup.Load(fingerprint)
+	phaseLoc := phaseLocInterface.(uint64)
 
 	if !ok {
 		return false
 	}
 
-	go func() {
-		ge.Lock()
-		s2g(ge.g)
-	}()
+	if
+
+	phase := rq.buf[phaseLoc]
+
+	phase.Lock()
+
+
 
 	return true
 }
 
-func (rq *ResourceQueue) Push(rid node.RoundID, p node.Phase, g *services.Graph) {
+func (rq *ResourceQueue) Push(rid node.RoundID, p node.PhaseType, g *services.Graph) {
 	ge := queueElement{
 		g:     g,
 		phase: p,

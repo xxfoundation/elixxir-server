@@ -6,11 +6,11 @@
 
 package node
 
-type Phase uint8
+type PhaseType uint8
 
 const (
 	// Off: An Initialized round which hasn't been started by the master yet
-	OFF Phase = iota
+	OFF PhaseType = iota
 
 	// Precomputation Generation: Initializes all the random values in round
 	PRECOMP_GENERATION
@@ -60,7 +60,7 @@ const (
 )
 
 // Number of phases
-const NUM_PHASES Phase = ERROR + 1
+const NUM_PHASES PhaseType = ERROR + 1
 
 //Array used to get the Phase Names for Printing
 var phaseNames = [NUM_PHASES]string{"OFF", "PRECOMP_GENERATION",
@@ -70,6 +70,6 @@ var phaseNames = [NUM_PHASES]string{"OFF", "PRECOMP_GENERATION",
 	"REAL_IDENTIFY", "REAL_ENCRYPT", "REAL_PEEL", "REAL_COMPLETE",
 	"ERROR"}
 
-func (p Phase) String() string {
+func (p PhaseType) String() string {
 	return phaseNames[p]
 }
