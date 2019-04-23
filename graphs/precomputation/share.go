@@ -18,17 +18,19 @@ import (
 // Share creates executes the group diffie Hellman that acts as the bedrock of
 // CMIX's security.  This implementation is not secure.  It is meant to be used with a batch size of 1
 
-// Stream holding data containing keys and inputs used by share
+// ShareStream holds data containing keys and inputs used by share
 type ShareStream struct {
 	Grp                    *cyclic.Group
 	PartialPublicCypherKey *cyclic.Int
 	Z                      *cyclic.Int
 }
 
+// GetName returns stream name
 func (s *ShareStream) GetName() string {
 	return "PrecompShareStream"
 }
 
+// Link binds stream to state objects in round
 func (s *ShareStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
@@ -38,6 +40,7 @@ func (s *ShareStream) Link(batchSize uint32, source interface{}) {
 	s.PartialPublicCypherKey = s.Grp.NewInt(1)
 }
 
+// Input initializes stream inputs from slot
 func (s *ShareStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 
 	if !s.Grp.BytesInside(slot.PartialRoundPublicCypherKey) {
@@ -48,6 +51,7 @@ func (s *ShareStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
+// Output returns a cmix slot message
 func (s *ShareStream) Output(index uint32) *mixmessages.CmixSlot {
 
 	return &mixmessages.CmixSlot{
@@ -55,7 +59,7 @@ func (s *ShareStream) Output(index uint32) *mixmessages.CmixSlot {
 	}
 }
 
-//Sole module in Precomputation Decrypt implementing cryptops.Elgamal
+// ShareExp is sole module in Precomputation Decrypt implementing cryptops.Elgamal
 var ShareExp = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -67,7 +71,7 @@ var ShareExp = services.Module{
 		}
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			//Exponentiate teh partial round cypher key by the node's round private key (Z)
+			// Exponentiates the partial round cypher key by the node's round private key (Z)
 			exp(s.Grp, s.PartialPublicCypherKey, s.Z, s.PartialPublicCypherKey)
 		}
 		return nil
@@ -78,7 +82,7 @@ var ShareExp = services.Module{
 	Name:       "Share",
 }
 
-//Called to initialize the graph. Conforms to graphs.Initialize function type
+// InitShareGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitShareGraph(gc services.GraphGenerator) *services.Graph {
 	if gc.GetMinInputSize() != 1 {
 		panic("Share must have an input size of one, cannot generate off generator which requires larger")

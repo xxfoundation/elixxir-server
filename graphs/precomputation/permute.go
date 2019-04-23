@@ -19,7 +19,7 @@ import (
 // Permute phase permutes the message keys, the associated data keys, and their cypher
 // text, while multiplying in its own keys.
 
-// Stream holding data containing keys and inputs used by Permute
+// PermuteStream holds data containing keys and inputs used by Permute
 type PermuteStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
@@ -43,10 +43,12 @@ type PermuteStream struct {
 	graphs.PermuteSubStream
 }
 
+// GetName returns stream name
 func (s *PermuteStream) GetName() string {
 	return "PrecompPermuteStream"
 }
 
+// Link binds stream to state objects in round
 func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
@@ -85,6 +87,7 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	)
 }
 
+// Input initializes stream inputs from slot
 func (s *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 
 	if index >= uint32(s.KeysMsg.Len()) {
@@ -103,6 +106,7 @@ func (s *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
+// Output returns a cmix slot message
 func (s *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 
 	return &mixmessages.CmixSlot{
@@ -113,7 +117,7 @@ func (s *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 	}
 }
 
-// Module in Precomputation Permute implementing cryptops.Elgamal
+// PermuteElgamal is a module in precomputation permute implementing cryptops.Elgamal
 var PermuteElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -154,7 +158,7 @@ var PermuteElgamal = services.Module{
 	Name:       "PermuteElgamal",
 }
 
-// Called to initialize the graph. Conforms to graphs.Initialize function type
+// InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("PrecompPermute", &PermuteStream{})
 

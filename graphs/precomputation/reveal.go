@@ -18,7 +18,7 @@ import (
 // The reveal phase removes cypher keys from the message and
 // associated data cypher text, revealing the private keys for the round.
 
-// Stream holding data containing private key from encrypt and inputs used by strip
+// RevealStream holds data containing private key from encrypt and inputs used by strip
 type RevealStream struct {
 	Grp *cyclic.Group
 
@@ -30,10 +30,12 @@ type RevealStream struct {
 	CypherAD  *cyclic.IntBuffer
 }
 
+// GetName returns stream name
 func (s *RevealStream) GetName() string {
 	return "PrecompRevealStream"
 }
 
+// Link binds stream to state objects in round
 func (s *RevealStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
@@ -42,6 +44,7 @@ func (s *RevealStream) Link(batchSize uint32, source interface{}) {
 	s.LinkStream(batchSize, round, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 }
 
+// LinkStream is called by Link other stream objects from round
 func (s *RevealStream) LinkStream(batchSize uint32, round *node.RoundBuffer, CypherMsg, CypherAD *cyclic.IntBuffer) {
 	s.Grp = round.Grp
 
@@ -51,6 +54,7 @@ func (s *RevealStream) LinkStream(batchSize uint32, round *node.RoundBuffer, Cyp
 	s.CypherAD = CypherAD
 }
 
+// Input initializes stream inputs from slot
 func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 
 	if index >= uint32(s.CypherMsg.Len()) {
@@ -66,6 +70,7 @@ func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
+// Output returns a cmix slot message
 func (s *RevealStream) Output(index uint32) *mixmessages.CmixSlot {
 
 	return &mixmessages.CmixSlot{
@@ -78,11 +83,13 @@ type revealSubstreamInterface interface {
 	getSubStream() *RevealStream
 }
 
+// getSubStream implements reveal interface to return stream object
 func (s *RevealStream) getSubStream() *RevealStream {
 	return s
 }
 
-// Module in precomputation reveeal implementing cryptops.RootCoprimePrototype
+
+// RevealRootCoprime is a module in precomputation reveeal implementing cryptops.RootCoprimePrototype
 var RevealRootCoprime = services.Module{
 	// Runs root coprime for cypher message and cypher associated data
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -115,7 +122,7 @@ var RevealRootCoprime = services.Module{
 	Name:       "RevealRootCoprime",
 }
 
-// Called to initialize the graph. Conforms to graphs.Initialize function type
+// InitRevealGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 	graph := gc.NewGraph("PrecompReveal", &RevealStream{})
 
