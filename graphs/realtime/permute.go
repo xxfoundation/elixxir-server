@@ -104,7 +104,8 @@ func (ps *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 
 // Module implementing cryptops.Mul2.
 var PermuteMul2 = services.Module{
-	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop,
+		chunk services.Chunk) error {
 		psi, ok1 := stream.(permuteSubStreamInterface)
 		mul2, ok2 := cryptop.(cryptops.Mul2Prototype)
 
