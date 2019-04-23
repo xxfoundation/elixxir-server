@@ -30,6 +30,7 @@ var NUM_DEMO_CHANNELS = int(10)
 
 var ERR_NONEXISTANT_USER = errors.New("user not found in user registry")
 var ERR_TOOMANYSALTS = errors.New("user must rekey, has stored too many salts")
+var ERR_SALTINCORRECTLENGTH = errors.New("salt of incorrect length, must be 256 bits")
 
 // Globally initiated User ID counter
 var idCounter = uint64(1)
