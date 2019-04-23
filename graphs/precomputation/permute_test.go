@@ -6,11 +6,13 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
+	"sync/atomic"
 	"testing"
 )
 
@@ -322,11 +324,24 @@ func TestPermuteGraph(t *testing.T) {
 	// Build the graph
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
 
+	var done *uint32
+	done = new(uint32)
+	*done = 0
+
 	// Build the round
 	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
 
+	subPermutation := round.Permutations[:batchSize]
+
+	shuffle.Shuffle32(&subPermutation)
+
 	//Link the graph to the round. building the stream object
 	g.Link(round)
+
+	permuteInverse := make([]uint32, g.GetExpandedBatchSize())
+	for i := uint32(0); i < uint32(len(permuteInverse)); i++ {
+		permuteInverse[round.Permutations[i]] = i
+	}
 
 	stream := g.GetStream().(*PermuteStream)
 
@@ -340,24 +355,46 @@ func TestPermuteGraph(t *testing.T) {
 		grp.Random(stream.Y_V.Get(i))
 	}
 
-	//Build i/o used for testing
+	// Build i/o used for testing
 	KeysMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	KeysADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
-	//Run the graph
+	for i := uint32(0); i < batchSize; i++ {
+		grp.SetUint64(stream.KeysMsg.Get(i), uint64(i+1))
+		grp.SetUint64(stream.CypherMsg.Get(i), uint64(i+11))
+		grp.SetUint64(stream.KeysAD.Get(i), uint64(i+111))
+		grp.SetUint64(stream.CypherAD.Get(i), uint64(i+1111))
+	}
+
+	for i := uint32(0); i < batchSize; i++ {
+
+		grp.Set(KeysMsgExpected.Get(i), stream.KeysMsg.Get(i))
+		grp.Set(CypherMsgExpected.Get(i), stream.CypherMsg.Get(i))
+		grp.Set(KeysADExpected.Get(i), stream.KeysAD.Get(i))
+		grp.Set(CypherADExpected.Get(i), stream.CypherAD.Get(i))
+
+		s := stream
+
+		// Compute expected result for this slot
+		cryptops.ElGamal(grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, KeysMsgExpected.Get(i), CypherMsgExpected.Get(i))
+		// Execute elgamal on the keys for the Associated Data
+		cryptops.ElGamal(s.Grp, s.V.Get(i), s.Y_V.Get(i), s.PublicCypherKey, KeysADExpected.Get(i), CypherADExpected.Get(i))
+
+	}
+
 	g.Run()
 
-	// Send inputs into the graph
 	go func(g *services.Graph) {
-		for i := uint32(0); i < g.GetBatchSize(); i++ {
+
+		for i := uint32(0); i < g.GetBatchSize()-1; i++ {
 			g.Send(services.NewChunk(i, i+1))
 		}
-	}(g)
 
-	//Get the output
-	s := g.GetStream().(*PermuteStream)
+		atomic.AddUint32(done, 1)
+		g.Send(services.NewChunk(g.GetExpandedBatchSize()-1, g.GetExpandedBatchSize()))
+	}(g)
 
 	ok := true
 	var chunk services.Chunk
@@ -365,24 +402,30 @@ func TestPermuteGraph(t *testing.T) {
 	for ok {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Compute expected result for this slot
-			cryptops.ElGamal(s.Grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, KeysMsgExpected.Get(i), CypherMsgExpected.Get(i))
-			//Execute elgamal on the keys for the Associated Data
-			cryptops.ElGamal(s.Grp, s.V.Get(i), s.Y_V.Get(i), s.PublicCypherKey, KeysADExpected.Get(i), CypherADExpected.Get(i))
 
-			if KeysMsgExpected.Get(i).Cmp(s.KeysMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompPermute: Message Keys not equal on slot %v", i))
+			d := atomic.LoadUint32(done)
+
+			if d == 0 {
+				t.Error("Permute: should not be outputting until all inputs are inputted")
 			}
-			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompPermute: Message Keys Cypher not equal on slot %v", i))
+
+			if stream.KeysMsgPermuted[i].Cmp(KeysMsgExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
 			}
-			if KeysADExpected.Get(i).Cmp(s.KeysAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompPermute: AD Keys not equal on slot %v", i))
+
+			if stream.CypherMsgPermuted[i].Cmp(CypherMsgExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
 			}
-			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompPermute: AD Keys Cypher not equal on slot %v", i))
+
+			if stream.KeysADPermuted[i].Cmp(KeysADExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+			}
+
+			if stream.CypherADPermuted[i].Cmp(CypherADExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
 			}
 
 		}
 	}
+
 }
