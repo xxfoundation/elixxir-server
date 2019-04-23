@@ -31,20 +31,39 @@ func (ps *PermuteStream) GetName() string {
 func (ps *PermuteStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
+	ps.LinkPermuteStreams(batchSize, round,
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+		make([]*cyclic.Int, batchSize),
+		make([]*cyclic.Int, batchSize))
+}
+
+func (ps *PermuteStream) LinkPermuteStreams(batchSize uint32,
+	round *node.RoundBuffer, msg, ad *cyclic.IntBuffer, msgPerm,
+	adPerm []*cyclic.Int) {
 	ps.Grp = round.Grp
 
 	ps.S = round.S.GetSubBuffer(0, batchSize)
 	ps.V = round.V.GetSubBuffer(0, batchSize)
 
-	ps.Msg = ps.Grp.NewIntBuffer(batchSize, ps.Grp.NewInt(1))
-	ps.AD = ps.Grp.NewIntBuffer(batchSize, ps.Grp.NewInt(1))
+	ps.Msg = msg
+	ps.AD = ad
 
-	ps.MsgPermuted = make([]*cyclic.Int, batchSize)
-	ps.ADPermuted = make([]*cyclic.Int, batchSize)
+	ps.MsgPermuted = msgPerm
+	ps.ADPermuted = adPerm
 
 	ps.PermuteSubStream.LinkStreams(batchSize, round.Permutations,
 		graphs.PermuteIO{Input: ps.Msg, Output: ps.MsgPermuted},
 		graphs.PermuteIO{Input: ps.AD, Output: ps.ADPermuted})
+
+}
+
+type permuteSubStreamInterface interface {
+	getPermuteSubStream() *PermuteStream
+}
+
+func (pss *PermuteStream) getPermuteSubStream() *PermuteStream {
+	return pss
 }
 
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
@@ -71,12 +90,14 @@ func (ps *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 
 var PermuteMul2 = services.Module{
 	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		ps, ok1 := stream.(*PermuteStream)
+		psi, ok1 := stream.(permuteSubStreamInterface)
 		mul2, ok2 := cryptop.(cryptops.Mul2Prototype)
 
 		if !ok1 || !ok2 {
 			return services.InvalidTypeAssert
 		}
+
+		ps := psi.getPermuteSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			mul2(ps.Grp, ps.S.Get(i), ps.Msg.Get(i))
