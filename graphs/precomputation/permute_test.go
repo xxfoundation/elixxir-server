@@ -239,19 +239,12 @@ func TestPermuteStream_Output(t *testing.T) {
 			{byte(b + 1), 3},
 		}
 
-		msg := &mixmessages.CmixSlot{
-			EncryptedMessageKeys:            expected[0],
-			EncryptedAssociatedDataKeys:     expected[1],
-			PartialMessageCypherText:        expected[2],
-			PartialAssociatedDataCypherText: expected[3],
-		}
+		stream.KeysMsgPermuted[b] = grp.NewIntFromBytes(expected[0])
+		stream.KeysADPermuted[b] = grp.NewIntFromBytes(expected[1])
+		stream.CypherMsgPermuted[b] = grp.NewIntFromBytes(expected[2])
+		stream.CypherADPermuted[b] = grp.NewIntFromBytes(expected[3])
 
-		err := stream.Input(b, msg)
-		if err != nil {
-			t.Errorf("PermuteStream.Output() errored on slot %v: %s", b, err.Error())
-		}
-
-		output := stream.Output(b)
+		output := stream.Output(uint32(b))
 
 		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
 			t.Errorf("PermuteStream.Output() incorrect recieved KeysMsg data at %v: Expected: %v, Recieved: %v",
@@ -327,7 +320,7 @@ func TestPermuteGraph(t *testing.T) {
 	}
 
 	// Build the graph
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
 
 	// Build the round
 	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
