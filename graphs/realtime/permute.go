@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package realtime
 
 import (
@@ -24,10 +30,12 @@ type PermuteStream struct {
 	graphs.PermuteSubStream
 }
 
+// GetName returns the name of the stream for debugging purposes.
 func (ps *PermuteStream) GetName() string {
 	return "RealtimePermuteStream"
 }
 
+// Link binds stream data to state objects in round.
 func (ps *PermuteStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
@@ -38,6 +46,7 @@ func (ps *PermuteStream) Link(batchSize uint32, source interface{}) {
 		make([]*cyclic.Int, batchSize))
 }
 
+// LinkPermuteStreams binds stream data.
 func (ps *PermuteStream) LinkPermuteStreams(batchSize uint32,
 	round *node.RoundBuffer, msg, ad *cyclic.IntBuffer, msgPerm,
 	adPerm []*cyclic.Int) {
@@ -58,14 +67,18 @@ func (ps *PermuteStream) LinkPermuteStreams(batchSize uint32,
 
 }
 
+// PermuteStream conforms to this interface.
 type permuteSubStreamInterface interface {
 	getPermuteSubStream() *PermuteStream
 }
 
-func (pss *PermuteStream) getPermuteSubStream() *PermuteStream {
-	return pss
+// getPermuteSubStream returns the sub-stream, used to return an embedded struct
+// off an interface.
+func (ps *PermuteStream) getPermuteSubStream() *PermuteStream {
+	return ps
 }
 
+// Input initializes stream inputs from slot.
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	if index >= uint32(ps.Msg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -81,6 +94,7 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
+// Output returns a message with the stream data.
 func (ps *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 	return &mixmessages.CmixSlot{
 		MessagePayload: ps.MsgPermuted[index].Bytes(),
@@ -88,6 +102,7 @@ func (ps *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
 	}
 }
 
+// Module implementing cryptops.Mul2.
 var PermuteMul2 = services.Module{
 	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
 		psi, ok1 := stream.(permuteSubStreamInterface)
@@ -113,6 +128,7 @@ var PermuteMul2 = services.Module{
 	NumThreads: 5,
 }
 
+// InitPermuteGraph initializes and returns a new graph.
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("RealtimePermute", &PermuteStream{})
 
