@@ -7,8 +7,8 @@ import (
 )
 
 type PermuteIO struct {
-	input  *cyclic.IntBuffer
-	output []*cyclic.Int
+	Input  *cyclic.IntBuffer
+	Output []*cyclic.Int
 }
 
 type PermuteSubStream struct {
@@ -24,8 +24,8 @@ func (pss *PermuteSubStream) LinkStreams(expandedBatchSize uint32, permutation [
 
 	pss.permutations = permutation
 	for _, io := range ioLst {
-		pss.inputs = append(pss.inputs, io.input)
-		pss.outputs = append(pss.outputs, io.output)
+		pss.inputs = append(pss.inputs, io.Input)
+		pss.outputs = append(pss.outputs, io.Output)
 	}
 }
 
