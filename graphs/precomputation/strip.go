@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package precomputation
 
 import (
@@ -14,7 +20,7 @@ import (
 
 // Stream holding data containing private key from encrypt and inputs used by strip
 type StripStream struct {
-	Grp             *cyclic.Group
+	Grp *cyclic.Group
 
 	// Link to round object
 	MessagePrecomputation *cyclic.IntBuffer
@@ -138,7 +144,7 @@ func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	stripMul2 := StripMul2.DeepCopy()
 
 	graph.First(reveal)
-	graph.Connect(reveal,stripInverse)
+	graph.Connect(reveal, stripInverse)
 	graph.Connect(stripInverse, stripMul2)
 	graph.Last(stripMul2)
 

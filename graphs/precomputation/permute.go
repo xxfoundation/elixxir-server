@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package precomputation
 
 import (
@@ -25,14 +31,14 @@ type PermuteStream struct {
 	Y_V *cyclic.IntBuffer // Permuted Internode AssociatedData Partial Cypher Text
 
 	// Unique to stream
-	KeysMsg   *cyclic.IntBuffer
-	KeysMsgPermuted []*cyclic.Int
-	CypherMsg *cyclic.IntBuffer
+	KeysMsg           *cyclic.IntBuffer
+	KeysMsgPermuted   []*cyclic.Int
+	CypherMsg         *cyclic.IntBuffer
 	CypherMsgPermuted []*cyclic.Int
-	KeysAD    *cyclic.IntBuffer
-	KeysADPermuted []*cyclic.Int
-	CypherAD  *cyclic.IntBuffer
-	CypherADPermuted []*cyclic.Int
+	KeysAD            *cyclic.IntBuffer
+	KeysADPermuted    []*cyclic.Int
+	CypherAD          *cyclic.IntBuffer
+	CypherADPermuted  []*cyclic.Int
 
 	graphs.PermuteSubStream
 }
@@ -67,13 +73,13 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 			Input:  s.CypherMsg,
 			Output: s.CypherMsgPermuted,
 		}, graphs.PermuteIO{
-			Input: s.CypherAD,
+			Input:  s.CypherAD,
 			Output: s.CypherADPermuted,
 		}, graphs.PermuteIO{
-			Input: s.KeysAD,
+			Input:  s.KeysAD,
 			Output: s.KeysADPermuted,
 		}, graphs.PermuteIO{
-			Input: s.KeysMsg,
+			Input:  s.KeysMsg,
 			Output: s.KeysMsgPermuted,
 		},
 	)

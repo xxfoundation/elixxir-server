@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package precomputation
 
 import (
@@ -70,7 +76,6 @@ func TestStripStream_Link(t *testing.T) {
 	}
 }
 
-
 // Tests Input's happy path
 func TestStripStream_Input(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -129,16 +134,16 @@ func TestStripStream_Input(t *testing.T) {
 func TestStripStream_Input_OutOfBatch(t *testing.T) {
 	primeString :=
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
@@ -261,7 +266,6 @@ func TestStripStream_CommsInterface(t *testing.T) {
 
 }
 
-
 func TestStrip_Graph(t *testing.T) {
 	primeString :=
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -359,22 +363,22 @@ func TestStrip_Graph(t *testing.T) {
 			// Verify message and associated data match the expected values
 			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherMsgExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
+					i, CypherMsgExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
 			}
 
 			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherADExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
+					i, CypherADExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
 			}
 
 			if MessagePrecomputationExpected.Get(i).Cmp(s.MessagePrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, MessagePrecomputationExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
+					i, MessagePrecomputationExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
 			}
 
 			if ADPrecomputationExpected.Get(i).Cmp(s.ADPrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, ADPrecomputationExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
+					i, ADPrecomputationExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
 			}
 		}
 	}
