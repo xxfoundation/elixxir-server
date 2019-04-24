@@ -2,6 +2,7 @@ package graphs
 
 import (
 	"fmt"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
@@ -59,7 +60,7 @@ func TestPermuteSubStream_Link(t *testing.T) {
 		cs2[i] = grp.NewInt(int64(i + 1))
 	}
 
-	round := node.NewRound(grp, 0, 4, expandedBatchSize)
+	round := node.NewRound(grp, 4, expandedBatchSize)
 
 	round.Permutations = []uint32{3, 5, 0, 1, 2, 4}
 
@@ -106,7 +107,7 @@ func TestPermuteSubStream_getSubStream(t *testing.T) {
 		cs2[i] = grp.NewInt(int64(i + 1))
 	}
 
-	round := node.NewRound(grp, 0, 4, expandedBatchSize)
+	round := node.NewRound(grp, 4, expandedBatchSize)
 
 	round.Permutations = []uint32{3, 5, 0, 1, 2, 4}
 
@@ -209,6 +210,13 @@ func (s *PermuteTestStream) Link(batchSize uint32, source interface{}) {
 		PermuteIO{s.in2, s.out2})
 }
 
+func (s *PermuteTestStream) Output(index uint32) *mixmessages.CmixSlot {
+	return nil
+}
+func (s *PermuteTestStream) Input(index uint32, msg *mixmessages.CmixSlot) error {
+	return nil
+}
+
 func TestPermuteInGraph(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -230,7 +238,7 @@ func TestPermuteInGraph(t *testing.T) {
 	permuteStream := PermuteTestStream{}
 
 	PanicHandler := func(err error) {
-		t.Errorf("Permute: Error in adaptor: %s", err.Error())
+		panic(fmt.Sprintf("Permute: Error in adapter: %s", err.Error()))
 		return
 	}
 
@@ -247,7 +255,7 @@ func TestPermuteInGraph(t *testing.T) {
 	done = new(uint32)
 	*done = 0
 
-	round := node.NewRound(grp, 0, batchSize, g.GetExpandedBatchSize())
+	round := node.NewRound(grp, batchSize, g.GetExpandedBatchSize())
 
 	shuffle.Shuffle32(&round.Permutations)
 

@@ -14,7 +14,7 @@ import (
 
 // Stream holding data containing private key from encrypt and inputs used by strip
 type StripStream struct {
-	Grp             *cyclic.Group
+	Grp *cyclic.Group
 
 	// Link to round object
 	MessagePrecomputation *cyclic.IntBuffer

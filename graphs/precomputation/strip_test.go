@@ -44,7 +44,7 @@ func TestStripStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	stream.Link(batchSize, round)
 
@@ -54,7 +54,6 @@ func TestStripStream_Link(t *testing.T) {
 	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
 }
-
 
 // Tests Input's happy path
 func TestStripStream_Input(t *testing.T) {
@@ -75,7 +74,7 @@ func TestStripStream_Input(t *testing.T) {
 
 	ss := &StripStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ss.Link(batchSize, round)
 
@@ -114,16 +113,16 @@ func TestStripStream_Input(t *testing.T) {
 func TestStripStream_Input_OutOfBatch(t *testing.T) {
 	primeString :=
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
@@ -131,7 +130,7 @@ func TestStripStream_Input_OutOfBatch(t *testing.T) {
 
 	stream := &StripStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	stream.Link(batchSize, round)
 
@@ -161,7 +160,7 @@ func TestStripStream_Input_OutOfGroup(t *testing.T) {
 
 	stream := &StripStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	stream.Link(batchSize, round)
 
@@ -196,7 +195,7 @@ func TestStripStream_Output(t *testing.T) {
 
 	stream := &StripStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	stream.Link(batchSize, round)
 
@@ -234,18 +233,17 @@ func TestStripStream_Output(t *testing.T) {
 }
 
 // Tests that StripStream conforms to the CommsStream interface
-func TestStripStream_CommsInterface(t *testing.T) {
+func TestStripStream_Interface(t *testing.T) {
 
 	var face interface{}
 	face = &StripStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
 		t.Errorf("StripStream: Does not conform to the CommsStream interface")
 	}
 
 }
-
 
 func TestStrip_Graph(t *testing.T) {
 	primeString :=
@@ -270,8 +268,7 @@ func TestStrip_Graph(t *testing.T) {
 	graphInit = InitStripGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Strip: Error in adaptor: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Strip: Error in adapter: %s", err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
@@ -283,7 +280,7 @@ func TestStrip_Graph(t *testing.T) {
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
 
 	// Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	round := node.NewRound(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	// Fill the fields of the round object for testing
 	for i := uint32(0); i < g.GetBatchSize(); i++ {
@@ -335,12 +332,12 @@ func TestStrip_Graph(t *testing.T) {
 
 			if MessagePrecomputationExpected.Get(i).Cmp(s.MessagePrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, MessagePrecomputationExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
+					i, MessagePrecomputationExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
 			}
 
 			if ADPrecomputationExpected.Get(i).Cmp(s.ADPrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, ADPrecomputationExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
+					i, ADPrecomputationExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
 			}
 		}
 	}

@@ -2,7 +2,6 @@ package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )
@@ -82,7 +81,7 @@ func queueRunner(queue *ResourceQueue) {
 
 		var getSlot GetSlot
 		getSlot = func() (services.Chunk, bool) {
-			chunk, ok := queue.activePhase.Graph.GetOutput()
+			chunk, ok := runningPhase.Graph.GetOutput()
 			//Fixme: add a method to kill this directly
 			if !ok {
 				queue.FinishPhase(runningPhase)
@@ -90,11 +89,9 @@ func queueRunner(queue *ResourceQueue) {
 			return chunk, ok
 		}
 
-		//Fixme: merge node.CommStream and services.Stream, this is disgusting
-		commStream := interface{}(runningPhase.Graph.GetStream()).(node.CommsStream)
-
-		go queue.activePhase.TransmissionHandler(runningPhase.Round, runningPhase.Phase, getSlot, commStream.Output)
-		queue.activePhase.Graph.Run()
+		go queue.activePhase.TransmissionHandler(runningPhase.Round,
+			runningPhase.Phase, getSlot, runningPhase.Graph.GetStream().Output)
+		runningPhase.Graph.Run()
 
 	}
 

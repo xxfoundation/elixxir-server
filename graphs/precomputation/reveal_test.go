@@ -44,7 +44,7 @@ func TestRevealStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	rs.Link(batchSize, round)
 
@@ -86,7 +86,7 @@ func TestRevealtStream_Input(t *testing.T) {
 
 	rs := &RevealStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	rs.Link(batchSize, round)
 
@@ -140,7 +140,7 @@ func TestRevealStream_Input_OutOfBatch(t *testing.T) {
 
 	rs := &RevealStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	rs.Link(batchSize, round)
 
@@ -170,7 +170,7 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 
 	rs := &RevealStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	rs.Link(batchSize, round)
 
@@ -205,7 +205,7 @@ func TestRevealStream_Output(t *testing.T) {
 
 	rs := &RevealStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	rs.Link(batchSize, round)
 
@@ -243,11 +243,11 @@ func TestRevealStream_Output(t *testing.T) {
 }
 
 // Tests that RevealStream conforms to the CommsStream interface
-func TestRevealStream_CommsInterface(t *testing.T) {
+func TestRevealStream_Interface(t *testing.T) {
 
 	var face interface{}
 	face = &RevealStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
 		t.Errorf("RevealStream: Does not conform to the CommsStream interface")
@@ -278,8 +278,7 @@ func TestReveal_Graph(t *testing.T) {
 	graphInit = InitRevealGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Reveal: Error in adapter: %s", err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
@@ -291,7 +290,7 @@ func TestReveal_Graph(t *testing.T) {
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
 
 	// Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	round := node.NewRound(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	// Fill the fields of the stream object for testing
 	grp.FindSmallCoprimeInverse(round.Z, 256)
@@ -337,12 +336,12 @@ func TestReveal_Graph(t *testing.T) {
 
 			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompReveal: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherMsgExpected.Get(i).Text(16),s.CypherMsg.Get(i).Text(16)))
+					i, CypherMsgExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
 			}
 
 			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompReveal: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherADExpected.Get(i).Text(16),s.CypherAD.Get(i).Text(16)))
+					i, CypherADExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
 			}
 		}
 	}

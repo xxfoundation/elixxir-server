@@ -8,6 +8,7 @@ package services
 
 import (
 	"fmt"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"math"
 	"math/rand"
@@ -72,6 +73,11 @@ func (s *Stream1) Link(BatchSize uint32, source interface{}) {
 	s.H = make([]int, BatchSize)
 	s.I = make([]int, BatchSize)
 }
+
+func (s *Stream1) Input(index uint32, msg *mixmessages.CmixSlot) error {
+	return nil
+}
+func (s *Stream1) Output(index uint32) *mixmessages.CmixSlot { return nil }
 
 var PanicHandler ErrorCallback = func(err error) {
 	panic(err)

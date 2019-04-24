@@ -6,7 +6,11 @@
 
 package services
 
+import "gitlab.com/elixxir/comms/mixmessages"
+
 type Stream interface {
 	GetName() string
 	Link(BatchSize uint32, source interface{})
+	Input(index uint32, slot *mixmessages.CmixSlot) error
+	Output(index uint32) *mixmessages.CmixSlot
 }
