@@ -15,7 +15,6 @@ func GetRoundManager() *RoundManager {
 }
 
 //fixme: write initializer
-//fixme: move newound to run off the manager
 
 func (rm *RoundManager) GetRound(id node.RoundID) *Round {
 	r, ok := (*sync.Map)(rm).Load(id)

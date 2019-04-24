@@ -18,23 +18,6 @@ func (na NodeAddress) DeepCopy() NodeAddress {
 	return NodeAddress{na.cert, na.address, na.id}
 }
 
-type PhaseState uint32
-
-const (
-	//Initialized: Data structures for the phase have been created but it is not ready to run
-	Initialized PhaseState = iota
-	//Available: Next phase to run according to round but no input has been received
-	Available
-	//Queued: Next phase to run according to round and input has been received but it
-	// has not begun execution by resource manager
-	Queued
-	//Running: Next phase to run according to round and input has been received and it
-	// is being executed by resource manager
-	Running
-	//Complete: Phase is complete
-	Completed
-)
-
 type Round struct {
 	id     node.RoundID
 	buffer *node.RoundBuffer
@@ -42,13 +25,15 @@ type Round struct {
 	nodes []NodeAddress
 	myLoc int
 
-	phases       [node.NUM_PHASES]*Phase
-	phaseStates  [node.NUM_PHASES]*PhaseState
+	//on first node and last node the phases vary
+	phaseMap     map[node.PhaseType]int
+	phases       []*Phase
+	phaseStates  []*PhaseState
 	currentPhase *node.PhaseType
 	phaseStateRW sync.RWMutex
 }
 
-func newRound(grp *cyclic.Group, id node.RoundID, phases [node.NUM_PHASES]*Phase,
+func newRound(grp *cyclic.Group, id node.RoundID, phases []*Phase,
 	nodes []NodeAddress, myLoc int, batchsize uint32) *Round {
 
 	round := Round{}
@@ -72,6 +57,7 @@ func newRound(grp *cyclic.Group, id node.RoundID, phases [node.NUM_PHASES]*Phase
 		p.Graph.Link(&round)
 		phaseState := Initialized
 		round.phaseStates[index] = &phaseState
+		round.phaseMap[p.Phase] = index
 	}
 
 	copy(round.phases[:], phases[:])
@@ -126,10 +112,10 @@ func (r *Round) GetBuffer() *node.RoundBuffer {
 }
 
 func (r *Round) GetPhase(p node.PhaseType) *Phase {
-	if p > node.NUM_PHASES {
+	if int(p) > len(r.phases) {
 		return nil
 	}
-	return r.phases[p]
+	return r.phases[r.phaseMap[p]]
 }
 
 func (r *Round) GetPhaseState(p node.PhaseType) PhaseState {
@@ -153,7 +139,8 @@ func (r *Round) IncrementPhaseToRunning(p node.PhaseType) bool {
 	return success
 }
 
-func (r *Round) FinishPhase(p node.PhaseType) {
+func (r *Round) FinishPhase(phase node.PhaseType) {
+	p := r.phaseMap[phase]
 	r.phaseStateRW.Lock()
 	success := atomic.CompareAndSwapUint32((*uint32)(r.currentPhase), (uint32)(p), (uint32)(p)+1)
 	if !success {
@@ -163,13 +150,13 @@ func (r *Round) FinishPhase(p node.PhaseType) {
 
 	success = atomic.CompareAndSwapUint32((*uint32)(r.phaseStates[p]), uint32(Running), uint32(Completed))
 	if !success {
-		jww.FATAL.Panicf("Phase state of running phase %s could not be incremented to Completed", p.String())
+		jww.FATAL.Panicf("Phase state of running phase %s could not be incremented to Completed", phase.String())
 	}
 
-	if p+1 < node.NUM_PHASES {
+	if p+1 < len(r.phases) {
 		success = atomic.CompareAndSwapUint32((*uint32)(r.phaseStates[p]), uint32(Initialized), uint32(Available))
 		if !success {
-			jww.FATAL.Panicf("Phase state of new phase %s could not be incremented to Avalable", (p + 1).String())
+			jww.FATAL.Panicf("Phase state of new phase %s could not be incremented to Avalable", (phase + 1).String())
 		}
 	}
 	r.phaseStateRW.Unlock()
