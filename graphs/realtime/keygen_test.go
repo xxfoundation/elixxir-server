@@ -202,6 +202,4 @@ func TestKeygenStreamInGraph(t *testing.T) {
 			}
 		}
 	}
-	// TODO REMOVE THE LINE Does the panic not occur if we sleep after the test?
-	//time.Sleep(5*time.Second)
 }

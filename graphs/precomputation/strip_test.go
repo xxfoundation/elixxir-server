@@ -268,8 +268,7 @@ func TestStrip_Graph(t *testing.T) {
 	graphInit = InitStripGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Strip: Error in adapter: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Strip: Error in adapter: %s", err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))

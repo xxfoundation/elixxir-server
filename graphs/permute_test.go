@@ -238,7 +238,7 @@ func TestPermuteInGraph(t *testing.T) {
 	permuteStream := PermuteTestStream{}
 
 	PanicHandler := func(err error) {
-		t.Errorf("Permute: Error in adapter: %s", err.Error())
+		panic(fmt.Sprintf("Permute: Error in adapter: %s", err.Error()))
 		return
 	}
 

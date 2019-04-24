@@ -1,6 +1,7 @@
 package precomputation
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -209,8 +210,7 @@ func TestShare_Graph(t *testing.T) {
 	graphInit = InitShareGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Share: Error in adapter: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Share: Error in adapter: %s", err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()))
