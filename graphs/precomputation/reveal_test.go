@@ -278,7 +278,7 @@ func TestReveal_Graph(t *testing.T) {
 	graphInit = InitRevealGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Reveal: Error in adaptor: %s", err.Error())
+		t.Errorf("Reveal: Error in adapter: %s", err.Error())
 		return
 	}
 

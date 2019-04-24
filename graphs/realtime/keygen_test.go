@@ -8,6 +8,7 @@ package realtime
 
 import (
 	"bytes"
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -150,7 +151,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
 
 	PanicHandler := func(err error) {
-		t.Fatalf("Keygen: Error in adaptor: %s", err.Error())
+		panic(fmt.Sprintf("Keygen: Error in adapter: %s", err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))

@@ -209,7 +209,7 @@ func TestShare_Graph(t *testing.T) {
 	graphInit = InitShareGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Share: Error in adaptor: %s", err.Error())
+		t.Errorf("Share: Error in adapter: %s", err.Error())
 		return
 	}
 

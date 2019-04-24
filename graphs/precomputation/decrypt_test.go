@@ -313,7 +313,7 @@ func TestDecryptGraph(t *testing.T) {
 	graphInit = InitDecryptGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("PrecompDecrypt: Error in adaptor: %s", err.Error())
+		t.Errorf("PrecompDecrypt: Error in adapter: %s", err.Error())
 		return
 	}
 
