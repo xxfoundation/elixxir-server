@@ -19,7 +19,6 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"runtime"
 	"testing"
-	"time"
 )
 
 // Give compile error unless KeygenSubStream meets keygenSubStreamInterface
@@ -204,5 +203,5 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		}
 	}
 	// TODO REMOVE THE LINE Does the panic not occur if we sleep after the test?
-	time.Sleep(5*time.Second)
+	//time.Sleep(5*time.Second)
 }
