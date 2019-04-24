@@ -71,12 +71,17 @@ var Keygen = services.Module{
 			if err != nil {
 				return err
 			}
-			keygen(kss.grp, kss.salts[i], user.BaseKey, kss.keysA.Get(i))
+			//fixme: figure out why this only works when using a temp variable
+			tmp := kss.grp.NewInt(1)
+			keygen(kss.grp, kss.salts[i], user.BaseKey, tmp)
+			kss.grp.Set(kss.keysA.Get(i),tmp)
+
 
 			hash.Reset()
 			hash.Write(kss.salts[i])
 
-			keygen(kss.grp, hash.Sum(nil), user.BaseKey, kss.keysB.Get(i))
+			keygen(kss.grp, hash.Sum(nil), user.BaseKey, tmp)
+			kss.grp.Set(kss.keysB.Get(i),tmp)
 
 		}
 
@@ -84,7 +89,6 @@ var Keygen = services.Module{
 	},
 	Cryptop:        cryptops.Keygen,
 	InputSize:      services.AUTO_INPUTSIZE,
-	StartThreshold: 0,
 	Name:           "Keygen",
-	NumThreads:     8,
+	NumThreads:     services.AUTO_NUMTHREADS,
 }

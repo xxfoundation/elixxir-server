@@ -30,7 +30,7 @@ type DecryptStream struct {
 	Y_R *cyclic.IntBuffer
 	Y_U *cyclic.IntBuffer
 
-	//Unique to stream
+	// Unique to stream
 	KeysMsg   *cyclic.IntBuffer
 	CypherMsg *cyclic.IntBuffer
 	KeysAD    *cyclic.IntBuffer
