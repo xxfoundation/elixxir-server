@@ -1,11 +1,13 @@
-package realtime
+package graphs
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
+	"golang.org/x/crypto/blake2b"
 )
 
 // Module that implements Keygen, along with helper methods
@@ -17,7 +19,8 @@ type KeygenSubStream struct {
 	salts [][]byte
 
 	// Output: keys
-	keys *cyclic.IntBuffer
+	keysA *cyclic.IntBuffer
+	keysB *cyclic.IntBuffer
 }
 
 // LinkStream This Link doesn't conform to the Stream interface because KeygenSubStream
@@ -26,11 +29,12 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
-	inSalts [][]byte, inUsers []*id.User, outKeys *cyclic.IntBuffer) {
+	inSalts [][]byte, inUsers []*id.User, outKeysA, outKeysB *cyclic.IntBuffer) {
 	k.grp = grp
 	k.salts = inSalts
 	k.users = inUsers
-	k.keys = outKeys
+	k.keysA = outKeysA
+	k.keysB = outKeysB
 }
 
 //Returns the substream, used to return an embedded struct off an interface
@@ -56,19 +60,35 @@ var Keygen = services.Module{
 
 		kss := streamInterface.getSubStream()
 
+		hash, err := blake2b.New256(nil)
+
+		if err != nil {
+			jww.FATAL.Panicf("Could not get blake2b hash: %s", err.Error())
+		}
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			user, err := globals.Users.GetUser(kss.users[i])
 			if err != nil {
 				return err
 			}
-			keygen(kss.grp, kss.salts[i], user.BaseKey, kss.keys.Get(i))
+			//fixme: figure out why this only works when using a temp variable
+			tmp := kss.grp.NewInt(1)
+			keygen(kss.grp, kss.salts[i], user.BaseKey, tmp)
+			kss.grp.Set(kss.keysA.Get(i),tmp)
+
+
+			hash.Reset()
+			hash.Write(kss.salts[i])
+
+			keygen(kss.grp, hash.Sum(nil), user.BaseKey, tmp)
+			kss.grp.Set(kss.keysB.Get(i),tmp)
+
 		}
 
 		return nil
 	},
 	Cryptop:        cryptops.Keygen,
 	InputSize:      services.AUTO_INPUTSIZE,
-	StartThreshold: 0,
 	Name:           "Keygen",
-	NumThreads:     8,
+	NumThreads:     services.AUTO_NUMTHREADS,
 }

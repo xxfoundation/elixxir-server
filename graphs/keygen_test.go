@@ -4,7 +4,7 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package realtime
+package graphs
 
 import (
 	"bytes"
@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
+	"golang.org/x/crypto/blake2b"
 	"runtime"
 	"testing"
 )
@@ -39,16 +40,19 @@ func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.salts = make([][]byte, batchSize)
-	s.users = make([]*id.User, batchSize)
-	s.keys = round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1))
-	s.KeygenSubStream.LinkStream(round.Grp, s.salts, s.users, s.keys)
+	s.KeygenSubStream.LinkStream(round.Grp,
+		make([][]byte, batchSize),
+		make([]*id.User, batchSize),
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)))
+}
+
+func (s *KeygenTestStream) Input(index uint32,
+	msg *mixmessages.CmixSlot) error {
+	return nil
 }
 
 func (s *KeygenTestStream) Output(index uint32) *mixmessages.CmixSlot {
-	return nil
-}
-func (s *KeygenTestStream) Input(index uint32, msg *mixmessages.CmixSlot) error {
 	return nil
 }
 
@@ -149,6 +153,16 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	// pad to length of the base key
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
 
+	hash, err := blake2b.New256(nil)
+
+	if err != nil {
+		t.Fatalf("Keygen: Test could not get blake2b hash: %s", err.Error())
+	}
+
+	hash.Write(testSalt)
+
+	testHashedSalt := hash.Sum(nil)
+
 	PanicHandler := func(err error) {
 		panic(fmt.Sprintf("Keygen: Error in adapter: %s", err.Error()))
 	}
@@ -171,10 +185,14 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		stream.users[i] = id.ZeroID
 		// Not necessary to avoid crashing
 		stream.salts[i] = []byte{}
+
+		grp.SetUint64(stream.keysA.Get(uint32(i)), uint64(i))
+		grp.SetUint64(stream.keysB.Get(uint32(i)), uint64(1000+i))
+		stream.salts[i] = testSalt
+		stream.users[i] = u.ID
 	}
 	// Here's the actual data for the test
-	stream.salts[0] = testSalt
-	stream.users[0] = u.ID
+
 	g.Run()
 	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()))
 
@@ -183,22 +201,29 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	for ok {
 		chunk, ok = g.GetOutput()
-		// the first chunk we get should include the result we're interested in
-		// but just in case, we make sure this chunk is the one we care about
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// inspect stream output: XORing the salt with the output should
 			// return the original base key
-			result := stream.keys.Get(0)
-			resultBytes := result.Bytes()
+			resultA := stream.keysA.Get(uint32(i))
+			resultB := stream.keysB.Get(uint32(i))
+			resultABytes := resultA.Bytes()
+			resultBBytes := resultB.Bytes()
+			// So, why is ResultBytes 256 bytes long,
+			// while testSalt is 32 bytes long?
 			// retrieve the original base key to prove that both data were passed to
 			// the cryptop
-			for i := range resultBytes {
-				resultBytes[i] = resultBytes[i] ^ testSalt[i]
+			for j := range resultABytes {
+				resultABytes[j] = resultABytes[j] ^ testSalt[j]
+				resultBBytes[j] = resultBBytes[j] ^ testHashedSalt[j]
 			}
 
 			// Check result and base key. They should be equal
-			if !bytes.Equal(resultBytes, u.BaseKey.Bytes()) {
-				t.Error("Base key and result weren't equal")
+			if !bytes.Equal(resultABytes, u.BaseKey.Bytes()) {
+				t.Error("Keygen: Base key and result key A weren't equal")
+			}
+
+			if !bytes.Equal(resultBBytes, u.BaseKey.Bytes()) {
+				t.Error("Keygen: Base key and result key B weren't equal")
 			}
 		}
 	}
