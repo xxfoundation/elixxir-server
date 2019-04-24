@@ -149,8 +149,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
 
 	PanicHandler := func(err error) {
-		t.Errorf("Keygen: Error in adaptor: %s", err.Error())
-		return
+		t.Fatalf("Keygen: Error in adaptor: %s", err.Error())
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
@@ -190,8 +189,6 @@ func TestKeygenStreamInGraph(t *testing.T) {
 			// return the original base key
 			result := stream.keys.Get(0)
 			resultBytes := result.Bytes()
-			// So, why is ResultBytes 256 bytes long,
-			// while testSalt is 32 bytes long?
 			// retrieve the original base key to prove that both data were passed to
 			// the cryptop
 			for i := range resultBytes {
