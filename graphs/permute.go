@@ -29,7 +29,7 @@ type PermuteSubStream struct {
 }
 
 // LinkStreams sets array of permutations slice references and appends each permute io from list into substream
-func (pss *PermuteSubStream) LinkStreams(expandedBatchSize uint32, permutation []uint32, ioLst ...PermuteIO) {
+func (pss *PermuteSubStream) LinkPermuteSubStreams(expandedBatchSize uint32, permutation []uint32, ioLst ...PermuteIO) {
 
 	pss.permutations = permutation
 	for _, io := range ioLst {
@@ -70,7 +70,7 @@ var Permute = services.Module{
 	InputSize:      services.AUTO_INPUTSIZE,
 	StartThreshold: 0,
 	Name:           "Permute",
-	NumThreads:     4,
+	NumThreads:     services.AUTO_NUMTHREADS,
 }
 
 /* Dummy cryptop for testing*/

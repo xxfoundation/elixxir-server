@@ -21,8 +21,8 @@ type PermuteStream struct {
 	S *cyclic.IntBuffer
 	V *cyclic.IntBuffer
 
-	Msg *cyclic.IntBuffer
-	AD  *cyclic.IntBuffer
+	EcrMsg *cyclic.IntBuffer
+	EcrAD  *cyclic.IntBuffer
 
 	MsgPermuted []*cyclic.Int
 	ADPermuted  []*cyclic.Int
@@ -39,7 +39,7 @@ func (ps *PermuteStream) GetName() string {
 func (ps *PermuteStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
 
-	ps.LinkPermuteStreams(batchSize, round,
+	ps.LinkRealtimePermuteStreams(batchSize, round,
 		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
 		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
 		make([]*cyclic.Int, batchSize),
@@ -47,7 +47,7 @@ func (ps *PermuteStream) Link(batchSize uint32, source interface{}) {
 }
 
 // LinkPermuteStreams binds stream data.
-func (ps *PermuteStream) LinkPermuteStreams(batchSize uint32,
+func (ps *PermuteStream) LinkRealtimePermuteStreams(batchSize uint32,
 	round *node.RoundBuffer, msg, ad *cyclic.IntBuffer, msgPerm,
 	adPerm []*cyclic.Int) {
 	ps.Grp = round.Grp
@@ -55,15 +55,15 @@ func (ps *PermuteStream) LinkPermuteStreams(batchSize uint32,
 	ps.S = round.S.GetSubBuffer(0, batchSize)
 	ps.V = round.V.GetSubBuffer(0, batchSize)
 
-	ps.Msg = msg
-	ps.AD = ad
+	ps.EcrMsg = msg
+	ps.EcrAD = ad
 
 	ps.MsgPermuted = msgPerm
 	ps.ADPermuted = adPerm
 
-	ps.PermuteSubStream.LinkStreams(batchSize, round.Permutations,
-		graphs.PermuteIO{Input: ps.Msg, Output: ps.MsgPermuted},
-		graphs.PermuteIO{Input: ps.AD, Output: ps.ADPermuted})
+	ps.PermuteSubStream.LinkPermuteSubStreams(batchSize, round.Permutations,
+		graphs.PermuteIO{Input: ps.EcrMsg, Output: ps.MsgPermuted},
+		graphs.PermuteIO{Input: ps.EcrAD, Output: ps.ADPermuted})
 
 }
 
@@ -80,7 +80,7 @@ func (ps *PermuteStream) getPermuteSubStream() *PermuteStream {
 
 // Input initializes stream inputs from slot.
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
-	if index >= uint32(ps.Msg.Len()) {
+	if index >= uint32(ps.EcrMsg.Len()) {
 		return node.ErrOutsideOfBatch
 	}
 
@@ -88,8 +88,8 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 		return node.ErrOutsideOfGroup
 	}
 
-	ps.Grp.SetBytes(ps.Msg.Get(index), slot.MessagePayload)
-	ps.Grp.SetBytes(ps.AD.Get(index), slot.AssociatedData)
+	ps.Grp.SetBytes(ps.EcrMsg.Get(index), slot.MessagePayload)
+	ps.Grp.SetBytes(ps.EcrAD.Get(index), slot.AssociatedData)
 
 	return nil
 }
@@ -116,9 +116,9 @@ var PermuteMul2 = services.Module{
 		ps := psi.getPermuteSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			mul2(ps.Grp, ps.S.Get(i), ps.Msg.Get(i))
+			mul2(ps.Grp, ps.S.Get(i), ps.EcrMsg.Get(i))
 
-			mul2(ps.Grp, ps.V.Get(i), ps.AD.Get(i))
+			mul2(ps.Grp, ps.V.Get(i), ps.EcrAD.Get(i))
 		}
 
 		return nil

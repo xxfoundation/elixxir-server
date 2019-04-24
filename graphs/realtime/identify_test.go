@@ -21,19 +21,19 @@ import (
 	"testing"
 )
 
-// Test that PermuteStream.GetName() returns the correct name.
-func TestPermuteStream_GetName(t *testing.T) {
-	expected := "RealtimePermuteStream"
+// Test that IdentifyStream.GetName() returns the correct name.
+func TestIdentifyStream_GetName(t *testing.T) {
+	expected := "RealtimeIdentifyStream"
 
-	ps := PermuteStream{}
+	is := IdentifyStream{}
 
-	if ps.GetName() != expected {
-		t.Errorf("PermuteStream.GetName(), Expected %s, Recieved %s", expected, ps.GetName())
+	if is.GetName() != expected {
+		t.Errorf("IdentifyStream.GetName(), Expected %s, Recieved %s", expected, is.GetName())
 	}
 }
 
-// Test that PermuteStream.Link() Links correctly.
-func TestPermuteStream_Link(t *testing.T) {
+// Test that IdentifyStream.Link() Links correctly.
+func TestIdentifyStream_Link(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -48,23 +48,25 @@ func TestPermuteStream_Link(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
 
-	ps := PermuteStream{}
+	is := IdentifyStream{}
 
 	batchSize := uint32(100)
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	is.Link(batchSize, round)
 
-	checkStreamIntBuffer(grp, ps.S, round.S, "S", t)
-	checkStreamIntBuffer(grp, ps.V, round.V, "V", t)
+	checkIntBuffer(is.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
+	checkIntBuffer(is.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
 
-	checkIntBuffer(ps.EcrMsg, batchSize, "Msg", grp.NewInt(1), t)
-	checkIntBuffer(ps.EcrAD, batchSize, "AD", grp.NewInt(1), t)
+	checkStreamIntBuffer(grp, is.MsgPrecomputation, round.MessagePrecomputation,
+		"MessagePrecomputation", t)
+	checkStreamIntBuffer(grp, is.ADPrecomputation, round.ADPrecomputation,
+		"ADPrecomputation", t)
 }
 
 // Tests Input's happy path.
-func TestPermuteStream_Input(t *testing.T) {
+func TestIdentifyStream_Input(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -81,11 +83,11 @@ func TestPermuteStream_Input(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &PermuteStream{}
+	is := &IdentifyStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	is.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -99,25 +101,25 @@ func TestPermuteStream_Input(t *testing.T) {
 			AssociatedData: expected[1],
 		}
 
-		err := ps.Input(b, msg)
+		err := is.Input(b, msg)
 		if err != nil {
-			t.Errorf("PermuteStream.Input() errored on slot %v: %s", b, err.Error())
+			t.Errorf("IdentifyStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(ps.EcrMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("PermuteStream.Input() incorrect stored MsgPermuted data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], ps.MsgPermuted[b].Bytes())
+		if !reflect.DeepEqual(is.EcrMsg.Get(b).Bytes(), expected[0]) {
+			t.Errorf("IdentifyStream.Input() incorrect stored EcrMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], is.EcrMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ps.EcrAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("PermuteStream.Input() incorrect stored ADPermuted data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], ps.ADPermuted[b].Bytes())
+		if !reflect.DeepEqual(is.EcrAD.Get(b).Bytes(), expected[1]) {
+			t.Errorf("IdentifyStream.Input() incorrect stored EcrAD data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], is.EcrAD.Get(b).Bytes())
 		}
 	}
 }
 
 // Tests that the input errors correctly when the index is outside of the batch.
-func TestPermuteStream_Input_OutOfBatch(t *testing.T) {
+func TestIdentifyStream_Input_OutOfBatch(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -134,32 +136,32 @@ func TestPermuteStream_Input_OutOfBatch(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &PermuteStream{}
+	is := &IdentifyStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	is.Link(batchSize, round)
 
 	msg := &mixmessages.CmixSlot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}
 
-	err := ps.Input(batchSize, msg)
+	err := is.Input(batchSize, msg)
 
 	if err == nil {
-		t.Errorf("PermuteStream.Input() did nto return an error when out of batch")
+		t.Errorf("IdentifyStream.Input() did nto return an error when out of batch")
 	}
 
-	err1 := ps.Input(batchSize+1, msg)
+	err1 := is.Input(batchSize+1, msg)
 
 	if err1 == nil {
-		t.Errorf("PermuteStream.Input() did nto return an error when out of batch")
+		t.Errorf("IdentifyStream.Input() did nto return an error when out of batch")
 	}
 }
 
 //Tests that Input errors correct when the passed value is out of the group
-func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
+func TestIdentifyStream_Input_OutOfGroup(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -176,7 +178,7 @@ func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &PermuteStream{}
+	ps := &IdentifyStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
@@ -190,12 +192,12 @@ func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 	err := ps.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
-		t.Errorf("PermuteStream.Input() did not return an error when out of group")
+		t.Errorf("IdentifyStream.Input() did not return an error when out of group")
 	}
 }
 
 // Tests that the output function returns a valid cmixMessage.
-func TestPermuteStream_Output(t *testing.T) {
+func TestIdentifyStream_Output(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -212,11 +214,11 @@ func TestPermuteStream_Output(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &PermuteStream{}
+	is := &IdentifyStream{}
 
 	round := node.NewRound(grp, 1, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	is.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -225,35 +227,35 @@ func TestPermuteStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		ps.MsgPermuted[b] = grp.NewIntFromBytes(expected[0])
-		ps.ADPermuted[b] = grp.NewIntFromBytes(expected[1])
+		is.EcrMsgPermuted[b] = grp.NewIntFromBytes(expected[0])
+		is.EcrADPermuted[b] = grp.NewIntFromBytes(expected[1])
 
-		output := ps.Output(b)
+		output := is.Output(b)
 
 		if !reflect.DeepEqual(output.MessagePayload, expected[0]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved MessagePayload data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("IdentifyStream.Output() incorrect recieved MessagePayload data at %v: Expected: %v, Recieved: %v",
 				b, expected[0], output.MessagePayload)
 		}
 
 		if !reflect.DeepEqual(output.AssociatedData, expected[1]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved AssociatedData data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("IdentifyStream.Output() incorrect recieved AssociatedData data at %v: Expected: %v, Recieved: %v",
 				b, expected[1], output.AssociatedData)
 		}
 	}
 }
 
-// Tests that PermuteStream conforms to the CommsStream interface.
-func TestPermuteStream_CommsInterface(t *testing.T) {
+// Tests that IdentifyStream conforms to the CommsStream interface.
+func TestIdentifyStream_CommsInterface(t *testing.T) {
 	var face interface{}
-	face = &PermuteStream{}
+	face = &IdentifyStream{}
 	_, ok := face.(node.CommsStream)
 
 	if !ok {
-		t.Errorf("PermuteStream: Does not conform to the CommsStream interface")
+		t.Errorf("IdentifyStream: Does not conform to the CommsStream interface")
 	}
 }
 
-func TestPermuteStream_InGraph(t *testing.T) {
+func TestIdentifyStream_InGraph(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -277,7 +279,7 @@ func TestPermuteStream_InGraph(t *testing.T) {
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
 
-	g := InitPermuteGraph(gc)
+	g := InitIdentifyGraph(gc)
 
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
 
@@ -298,23 +300,22 @@ func TestPermuteStream_InGraph(t *testing.T) {
 		permuteInverse[round.Permutations[i]] = i
 	}
 
-	ps := g.GetStream().(*PermuteStream)
+	is := g.GetStream().(*IdentifyStream)
 
 	expectedMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 	expectedAD := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.SetUint64(ps.EcrMsg.Get(i), uint64(i+1))
-		grp.SetUint64(ps.EcrAD.Get(i), uint64(i+1001))
+		grp.SetUint64(is.EcrMsg.Get(i), uint64(i+1))
+		grp.SetUint64(is.EcrAD.Get(i), uint64(i+1001))
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.Set(expectedMsg.Get(i), ps.EcrMsg.Get(i))
-		grp.Set(expectedAD.Get(i), ps.EcrAD.Get(i))
+		grp.Set(expectedMsg.Get(i), is.EcrMsg.Get(i))
+		grp.Set(expectedAD.Get(i), is.EcrAD.Get(i))
 
-		cryptops.Mul2(grp, ps.S.Get(i), expectedMsg.Get(i))
-		cryptops.Mul2(grp, ps.V.Get(i), expectedAD.Get(i))
-
+		cryptops.Mul2(grp, is.S.Get(i), expectedMsg.Get(i))
+		cryptops.Mul2(grp, is.V.Get(i), expectedAD.Get(i))
 	}
 
 	g.Run()
@@ -343,54 +344,13 @@ func TestPermuteStream_InGraph(t *testing.T) {
 			}
 
 			// Compute expected result for this slot
-			if ps.MsgPermuted[i].Cmp(expectedMsg.Get(permuteInverse[i])) != 0 {
+			if is.MsgPermuted[i].Cmp(expectedMsg.Get(permuteInverse[i])) != 0 {
 				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
 			}
 
-			if ps.ADPermuted[i].Cmp(expectedAD.Get(permuteInverse[i])) != 0 {
+			if is.ADPermuted[i].Cmp(expectedAD.Get(permuteInverse[i])) != 0 {
 				t.Error(fmt.Sprintf("Permute: Slot %v out2 not permuted correctly", i))
 			}
 		}
-	}
-}
-
-func checkStreamIntBuffer(grp *cyclic.Group, ib, sourceib *cyclic.IntBuffer, source string, t *testing.T) {
-	if ib.Len() != sourceib.Len() {
-		t.Errorf("preomp.PermuteStream.Link: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, sourceib.Len(), ib.Len())
-	}
-
-	numBad := 0
-	for i := 0; i < sourceib.Len(); i++ {
-		grp.SetUint64(sourceib.Get(uint32(i)), uint64(i))
-		ci := ib.Get(uint32(i))
-		if ci.Cmp(sourceib.Get(uint32(i))) != 0 {
-			numBad++
-		}
-	}
-
-	if numBad != 0 {
-		t.Errorf("preomp.PermuteStream.Link: Ints in %v/%v intBuffer %s intilized incorrectly",
-			numBad, sourceib.Len(), source)
-	}
-}
-
-func checkIntBuffer(ib *cyclic.IntBuffer, expandedBatchSize uint32, source string, defaultInt *cyclic.Int, t *testing.T) {
-	if ib.Len() != int(expandedBatchSize) {
-		t.Errorf("New RoundBuffer: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, expandedBatchSize, ib.Len())
-	}
-
-	numBad := 0
-	for i := uint32(0); i < expandedBatchSize; i++ {
-		ci := ib.Get(i)
-		if ci.Cmp(defaultInt) != 0 {
-			numBad++
-		}
-	}
-
-	if numBad != 0 {
-		t.Errorf("New RoundBuffer: Ints in %v/%v intBuffer %s intilized incorrectly",
-			numBad, expandedBatchSize, source)
 	}
 }
