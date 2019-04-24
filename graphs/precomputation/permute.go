@@ -70,7 +70,7 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	s.KeysADPermuted = make([]*cyclic.Int, batchSize)
 	s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
 
-	s.PermuteSubStream.LinkStreams(batchSize, round.Permutations,
+	s.PermuteSubStream.LinkPermuteSubStreams(batchSize, round.Permutations,
 		graphs.PermuteIO{
 			Input:  s.CypherMsg,
 			Output: s.CypherMsgPermuted,
