@@ -1,6 +1,7 @@
 package precomputation
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -42,7 +43,7 @@ func TestShareStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ss.Link(batchSize, round)
 
@@ -86,7 +87,7 @@ func TestShareStream_Input(t *testing.T) {
 
 	ss := &ShareStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ss.Link(batchSize, round)
 
@@ -114,7 +115,7 @@ func TestShareStream_Input_OutOfGroup(t *testing.T) {
 
 	ss := &ShareStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ss.Link(batchSize, round)
 
@@ -148,7 +149,7 @@ func TestShareStream_Output(t *testing.T) {
 
 	ss := &ShareStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ss.Link(batchSize, round)
 
@@ -174,11 +175,11 @@ func TestShareStream_Output(t *testing.T) {
 }
 
 // Tests that RevealStream conforms to the CommsStream interface
-func TestShareStream_CommsInterface(t *testing.T) {
+func TestShareStream_Interface(t *testing.T) {
 
 	var face interface{}
 	face = &ShareStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
 		t.Errorf("RevealStream: Does not conform to the CommsStream interface")
@@ -209,8 +210,7 @@ func TestShare_Graph(t *testing.T) {
 	graphInit = InitShareGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Share: Error in adaptor: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Share: Error in adapter: %s", err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()))
@@ -222,7 +222,7 @@ func TestShare_Graph(t *testing.T) {
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
 
 	// Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	round := node.NewRound(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	// Fill the fields of the stream object for testing
 	grp.FindSmallCoprimeInverse(round.Z, 256)

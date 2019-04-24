@@ -36,7 +36,7 @@ type UserDB struct {
 	// Keys
 	TransmissionBaseKey      []byte
 	TransmissionRecursiveKey []byte
-	BaseKey         []byte
+	BaseKey                  []byte
 	ReceptionRecursiveKey    []byte
 
 	// DSA Public Key
@@ -99,7 +99,6 @@ func NewUserRegistry(username, password,
 		// Return the map-backed UserRegistry interface
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
-
 
 		return UserRegistry(&UserMap{})
 	} else {

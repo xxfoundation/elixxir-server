@@ -8,6 +8,8 @@ package graphs
 
 import (
 	"bytes"
+	"fmt"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -43,6 +45,15 @@ func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
 		make([]*id.User, batchSize),
 		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
 		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)))
+}
+
+func (s *KeygenTestStream) Input(index uint32,
+	msg *mixmessages.CmixSlot) error {
+	return nil
+}
+
+func (s *KeygenTestStream) Output(index uint32) *mixmessages.CmixSlot {
+	return nil
 }
 
 // Test that triggers error cases in the keygen cryptop adapter
@@ -90,9 +101,6 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 	// returns the base key XOR'd with the salt
 	// this is the easiest way to ensure both pieces of data are passed to the
 	// op from the adapter
-	bitLen := baseKey.BitLen()
-	// begone compile error
-	func(_ int) {}(bitLen)
 	x := baseKey.Bytes()
 	for i := range x {
 		x[i] = salt[i] ^ x[i]
@@ -145,7 +153,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	hash, err := blake2b.New256(nil)
 
 	if err != nil {
-		t.Errorf("Keygen: Test could not get blake2b hash: %s", err.Error())
+		t.Fatalf("Keygen: Test could not get blake2b hash: %s", err.Error())
 	}
 
 	hash.Write(testSalt)
@@ -153,8 +161,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	testHashedSalt := hash.Sum(nil)
 
 	PanicHandler := func(err error) {
-		t.Errorf("Keygen: Error in adaptor: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Keygen: Error in adapter: %s", err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))

@@ -39,7 +39,7 @@ type RoundBuffer struct {
 }
 
 // Function to initialize a new round
-func NewRound(g *cyclic.Group, batchsize, expandedBatchSize uint32) *RoundBuffer {
+func NewRound(g *cyclic.Group, batchSize, expandedBatchSize uint32) *RoundBuffer {
 
 	permutations := make([]uint32, expandedBatchSize)
 	for i := uint32(0); i < expandedBatchSize; i++ {
@@ -65,7 +65,7 @@ func NewRound(g *cyclic.Group, batchsize, expandedBatchSize uint32) *RoundBuffer
 
 		Permutations: permutations,
 
-		batchSize:         batchsize,
+		batchSize:         batchSize,
 		expandedBatchSize: expandedBatchSize,
 
 		MessagePrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),

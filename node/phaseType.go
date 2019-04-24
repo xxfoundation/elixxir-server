@@ -41,10 +41,10 @@ const (
 )
 
 // Number of phases
-const NUM_PHASES PhaseType = ERROR - 1
+const NUM_PHASES PhaseType = ERROR + 1
 
 //Array used to get the Phase Names for Printing
-var phaseNames = [ERROR + 1]string{"PRECOMP_GENERATION",
+var phaseNames = [NUM_PHASES]string{"PRECOMP_GENERATION",
 	"PRECOMP_SHARE", "PRECOMP_DECRYPT", "PRECOMP_PERMUTE",
 	"PRECOMP_REVEAL", "PRECOMP_STRIP", "REAL_DECRYPT", "REAL_PERMUTE",
 	"REAL_IDENTIFY",
