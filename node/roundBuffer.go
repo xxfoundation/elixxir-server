@@ -9,9 +9,6 @@ type RoundID uint64
 type RoundBuffer struct {
 	Grp *cyclic.Group
 
-	//Sequential id or round
-	id RoundID
-
 	// Size of batch
 	batchSize         uint32
 	expandedBatchSize uint32
@@ -42,7 +39,7 @@ type RoundBuffer struct {
 }
 
 // Function to initialize a new round
-func NewRound(g *cyclic.Group, id RoundID, batchsize, expandedBatchSize uint32) *RoundBuffer {
+func NewRound(g *cyclic.Group, batchsize, expandedBatchSize uint32) *RoundBuffer {
 
 	permutations := make([]uint32, expandedBatchSize)
 	for i := uint32(0); i < expandedBatchSize; i++ {

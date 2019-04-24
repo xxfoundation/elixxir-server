@@ -18,6 +18,6 @@ func (mi *moduleInput) closeInput() {
 	mi.Unlock()
 }
 
-func (mi *moduleInput) open() {
-	mi.input = make(IO_Notify)
+func (mi *moduleInput) open(size uint32) {
+	mi.input = make(IO_Notify, size)
 }

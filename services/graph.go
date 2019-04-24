@@ -93,10 +93,14 @@ func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 	g.built = true
 
 	//populate channels
-	for _, m := range g.modules {
-		m.open()
-	}
+	g.firstModule.open(g.expandBatchSize)
+	g.lastModule.open(g.expandBatchSize)
 
+	for _, m := range g.modules {
+		if m.id != g.firstModule.id && m.id != g.lastModule.id {
+			m.open(0)
+		}
+	}
 	/*finish setting up output*/
 	g.outputChannel = g.outputModule.input
 
