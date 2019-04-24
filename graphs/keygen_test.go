@@ -101,9 +101,6 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 	// returns the base key XOR'd with the salt
 	// this is the easiest way to ensure both pieces of data are passed to the
 	// op from the adapter
-	bitLen := baseKey.BitLen()
-	// begone compile error
-	func(_ int) {}(bitLen)
 	x := baseKey.Bytes()
 	for i := range x {
 		x[i] = salt[i] ^ x[i]
