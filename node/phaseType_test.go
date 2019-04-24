@@ -6,7 +6,7 @@ import "testing"
 func TestPhase(t *testing.T) {
 	if len(phaseNames) != int(NUM_PHASES) {
 		t.Errorf("Number of phase strings (%v) not equal to number of phases (%v)",
-			len(phaseNames), NUM_PHASES)
+			len(phaseNames), int(NUM_PHASES))
 	}
 }
 

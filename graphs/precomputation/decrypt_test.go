@@ -44,7 +44,7 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ds.Link(batchSize, round)
 
@@ -78,7 +78,7 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	ds := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ds.Link(batchSize, round)
 
@@ -146,7 +146,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	ds := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ds.Link(batchSize, round)
 
@@ -189,7 +189,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	ds := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ds.Link(batchSize, round)
 
@@ -226,7 +226,7 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	ds := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := node.NewRound(grp, batchSize, batchSize)
 
 	ds.Link(batchSize, round)
 
@@ -278,14 +278,14 @@ func TestDecryptStream_Output(t *testing.T) {
 }
 
 //Tests that DecryptStream conforms to the CommsStream interface
-func TestDecryptStream_CommsInterface(t *testing.T) {
+func TestDecryptStream_Interface(t *testing.T) {
 
 	var face interface{}
 	face = &DecryptStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
-		t.Errorf("DecryptStream: Does not conform to the CommsStream interface")
+		t.Errorf("DecryptStream: Does not conform to the Stream interface")
 	}
 
 }
@@ -330,7 +330,7 @@ func TestDecryptGraph(t *testing.T) {
 	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
 
 	//Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	round := node.NewRound(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	//Link the graph to the round. building the stream object
 	g.Link(round)

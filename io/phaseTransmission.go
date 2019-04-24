@@ -33,16 +33,13 @@ func ReceivePhase(batch *mixmessages.CmixBatch) error {
 
 	resourceQueue.UpsertPhase(phase)
 
-	//Fixme: merge node.CommStream and services.Stream, this is disgusting
-	commStream := interface{}(phase.Graph.GetStream()).(node.CommsStream)
-
 	for index, messages := range batch.Slots {
-		err := commStream.Input(uint32(index), messages)
+		err := phase.Graph.GetStream().Input(uint32(index), messages)
 		if err != nil {
 			return err
 		}
 		//Fixme: send in larger batches
-		phase.Graph.Send(services.Chunk{uint32(index), uint32(index + 1)})
+		phase.Graph.Send(services.NewChunk(uint32(index), uint32(index + 1)))
 	}
 
 	return nil

@@ -8,6 +8,7 @@ package realtime
 
 import (
 	"bytes"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -41,6 +42,13 @@ func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
 	s.users = make([]*id.User, batchSize)
 	s.keys = round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1))
 	s.KeygenSubStream.LinkStream(round.Grp, s.salts, s.users, s.keys)
+}
+
+func (s *KeygenTestStream) Output(index uint32) *mixmessages.CmixSlot {
+	return nil
+}
+func (s *KeygenTestStream) Input(index uint32, msg *mixmessages.CmixSlot) error {
+	return nil
 }
 
 // Test that triggers error cases in the keygen cryptop adapter

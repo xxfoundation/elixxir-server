@@ -22,7 +22,7 @@ func (p *Phase) GetState() PhaseState {
 // ReadyToReceiveData returns true if the phase can receive data
 func (p *Phase) ReadyToReceiveData() bool {
 	phaseState := p.GetState()
-	return phaseState != Available || phaseState != Queued || phaseState != Running
+	return phaseState == Available || phaseState == Queued || phaseState == Running
 }
 
 // HasFingerprint checks that the passed fingerprint is the same as the phases
