@@ -143,7 +143,6 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	var stream KeygenTestStream
 	batchSize := uint32(1)
-	//stream.Link(batchSize, &node.RoundBuffer{Grp: grp})
 
 	// make a salt for testing
 	testSalt := []byte("sodium chloride")
