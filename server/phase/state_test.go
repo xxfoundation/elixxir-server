@@ -25,19 +25,19 @@ func TestPhaseStateIncrement(t *testing.T) {
 	}
 	p.IncrementPhaseToQueued()
 	expected = Queued
-	if atomic.LoadUint32(state) != uint32(expected) {
+	if g.GetState(index) != expected {
 		t.Errorf("State was %v, but should have been %v",
 			State(atomic.LoadUint32(state)), expected)
 	}
 	p.IncrementPhaseToRunning()
 	expected = Running
-	if atomic.LoadUint32(state) != uint32(expected) {
+	if g.GetState(index) != expected {
 		t.Errorf("State was %v, but should have been %v",
 			State(atomic.LoadUint32(state)), expected)
 	}
 	p.Finish()
 	expected = Finished
-	if atomic.LoadUint32(state) != uint32(expected) {
+	if g.GetState(index) != expected {
 		t.Errorf("State was %v, but should have been %v",
 			State(atomic.LoadUint32(state)), expected)
 	}
