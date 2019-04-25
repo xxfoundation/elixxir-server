@@ -8,17 +8,20 @@ import (
 )
 
 func TransmitPhaseForward(round *server.Round, phase node.PhaseType,
-	getChunk server.GetChunk, getMessage server.GetMessage) {
-	TransmitPhase(round, phase, getChunk, getMessage, true)
+	getChunk server.GetChunk, getMessage server.GetMessage) error {
+	return TransmitPhase(round, phase, getChunk, getMessage,
+		round.GetNextNodeAddress())
 }
 
 func TransmitPhaseBackward(round *server.Round, phase node.PhaseType,
-	getChunk server.GetChunk, getMessage server.GetMessage) {
-	TransmitPhase(round, phase, getChunk, getMessage, false)
+	getChunk server.GetChunk, getMessage server.GetMessage) error {
+	return TransmitPhase(round, phase, getChunk, getMessage,
+		round.GetPrevNodeAddress())
 }
 
 func TransmitPhase(round *server.Round, phase node.PhaseType,
-	getChunk server.GetChunk, getMessage server.GetMessage, direction bool) {
+	getChunk server.GetChunk, getMessage server.GetMessage,
+	recipient server.NodeAddress) error {
 
 	batch := mixmessages.CmixBatch{}
 	batch.RoundID = uint64(round.GetID())
@@ -36,12 +39,6 @@ func TransmitPhase(round *server.Round, phase node.PhaseType,
 		}
 	}
 
-	var recipient server.NodeAddress
-	if direction {
-		recipient = round.GetNextNodeAddress()
-	} else {
-		recipient = round.GetPrevNodeAddress()
-	}
-
-	comm.SendPhase(recipient.Address, recipient.Cert, &batch)
+	_, err := comm.SendPhase(recipient.Address, recipient.Cert, &batch)
+	return err
 }
