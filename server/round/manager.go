@@ -9,6 +9,11 @@ type Manager struct {
 	roundMap *sync.Map
 }
 
+func NewManager() *Manager {
+	rmap := sync.Map{}
+	return &Manager{&rmap}
+}
+
 func (rm *Manager) AddRound(round *Round) {
 	rm.roundMap.Store(round.id, round)
 }

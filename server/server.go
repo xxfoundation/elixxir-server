@@ -1,13 +1,10 @@
 package server
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
-	"sync"
-	"sync/atomic"
 )
 
 // Holds long-lived server state
@@ -38,21 +35,19 @@ func (i *Instance) GetResourceQueue() *ResourceQueue {
 // call Run() on the resulting ServerIsntance.
 func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance {
 	instance := Instance{
-		roundManager: &RoundManager{
-			roundMap: &sync.Map{},
-		},
-		grp: grp,
+		roundManager: round.NewManager(),
+		grp:          grp,
 	}
 	instance.resourceQueue = &ResourceQueue{
 		// these are the phases
-		phaseQueue: make(chan *Phase, 5000),
+		phaseQueue: make(chan *phase.Phase, 5000),
 		// there will only active phase, and this channel is used to kill it
-		finishChan: make(chan PhaseFingerprint, 1),
+		finishChan: make(chan phase.Fingerprint, 1),
 	}
 	instance.userReg = db
 	return &instance
 }
 
 func (i *Instance) Run() {
-	go queueRunner(i.resourceQueue)
+	go queueRunner(i)
 }

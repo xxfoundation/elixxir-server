@@ -12,12 +12,14 @@ import "fmt"
 type ErrorCallback func(err error)
 
 type GraphGenerator struct {
-	minInputSize uint32
-	errorHandler ErrorCallback
-	defaultNumTh uint8
+	minInputSize    uint32
+	errorHandler    ErrorCallback
+	defaultNumTh    uint8
+	outputSize      uint32
+	outputThreshold float32
 }
 
-func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8) GraphGenerator {
+func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8, outputSize uint32, outputThreshold float32) GraphGenerator {
 	if defaultNumTh > MAX_THREADS {
 		panic(fmt.Sprintf("Max threads per module is 64, cannot default to %v threads", defaultNumTh))
 	}
@@ -29,10 +31,20 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 		panic("Minimum input size must be greater than zero")
 	}
 
+	if outputSize == 0 {
+		panic("OutputSize must be at least 1")
+	}
+
+	if outputThreshold < 0.0 || outputSize > 1.0 {
+		panic("Output Threshold must be between 0.0 and 1.0")
+	}
+
 	return GraphGenerator{
-		minInputSize: minInputSize,
-		errorHandler: errorHandler,
-		defaultNumTh: defaultNumTh,
+		minInputSize:    minInputSize,
+		errorHandler:    errorHandler,
+		defaultNumTh:    defaultNumTh,
+		outputSize:      outputSize,
+		outputThreshold: outputThreshold,
 	}
 }
 
@@ -61,6 +73,8 @@ func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 	g.stream = stream
 
 	g.sentInputs = new(uint32)
+
+	g.ou
 
 	return &g
 }

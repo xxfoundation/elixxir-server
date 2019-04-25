@@ -3,30 +3,27 @@ package io
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	comm "gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/server/node"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/services"
 )
 
-func TransmitPhaseForward(round *server.Round, phase node.PhaseType,
-	getChunk server.GetChunk, getMessage server.GetMessage) error {
-	return TransmitPhase(round, phase, getChunk, getMessage,
-		round.GetNextNodeAddress())
+func TransmitPhaseForward(phase *phase.Phase, nal *services.NodeAddressList,
+	getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+	return TransmitPhase(phase, getChunk, getMessage, nal.GetNextNodeAddress())
 }
 
-func TransmitPhaseBackward(round *server.Round, phase node.PhaseType,
-	getChunk server.GetChunk, getMessage server.GetMessage) error {
-	return TransmitPhase(round, phase, getChunk, getMessage,
-		round.GetPrevNodeAddress())
+func TransmitPhaseBackward(phase *phase.Phase, nal *services.NodeAddressList,
+	getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+	return TransmitPhase(phase, getChunk, getMessage, nal.GetPrevNodeAddress())
 }
 
-func TransmitPhase(round *server.Round, phase node.PhaseType,
-	getChunk server.GetChunk, getMessage server.GetMessage,
-	recipient server.NodeAddress) error {
+func TransmitPhase(phase *phase.Phase, getChunk phase.GetChunk,
+	getMessage phase.GetMessage, recipient services.NodeAddress) error {
 
-	batch := mixmessages.CmixBatch{}
-	batch.RoundID = uint64(round.GetID())
-	batch.ForPhase = int32(phase)
-	batch.Slots = make([]*mixmessages.CmixSlot, round.GetBuffer().GetBatchSize())
+	batch := mixmessages.Batch{}
+	batch.Round.ID = uint64(phase.GetRoundID())
+	batch.ForPhase = int32(phase.GetType())
+	batch.Slots = make([]*mixmessages.Slot, phase.GetGraph().GetBatchSize())
 
 	for true {
 		chunk, finish := getChunk()
