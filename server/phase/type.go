@@ -7,11 +7,11 @@
 package phase
 
 //The Name of a phase
-type Name uint32
+type Type uint32
 
 const (
 	// Precomputation Generation: Initializes all the random values in round
-	PRECOMP_GENERATION Name = iota
+	PRECOMP_GENERATION Type = iota
 
 	// Precomputation Share: Combine partial recipient public cypher keys
 	PRECOMP_SHARE
@@ -42,15 +42,16 @@ const (
 )
 
 // Number of phases
-const NUM_PHASES Name = ERROR + 1
+const NUM_PHASES Type = ERROR + 1
 
 //Array used to get the Phase Names for Printing
-var phaseNames = [NUM_PHASES]string{"PRECOMP_GENERATION",
+var typeStrings = [NUM_PHASES]string{"PRECOMP_GENERATION",
 	"PRECOMP_SHARE", "PRECOMP_DECRYPT", "PRECOMP_PERMUTE",
 	"PRECOMP_REVEAL", "PRECOMP_STRIP", "REAL_DECRYPT", "REAL_PERMUTE",
 	"REAL_IDENTIFY",
 	"ERROR"}
 
-func (p Name) String() string {
-	return phaseNames[p]
+// Adheres to the Stringer interface to return the name of the phase type
+func (p Type) String() string {
+	return typeStrings[p]
 }

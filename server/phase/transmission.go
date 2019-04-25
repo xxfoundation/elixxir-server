@@ -1,12 +1,11 @@
-package server
+package phase
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 )
 
 type GetChunk func() (services.Chunk, bool)
-type GetMessage func(index uint32) *mixmessages.CmixSlot
-type Transmission func(round *Round, phase node.PhaseType,
+type GetMessage func(index uint32) *mixmessages.Slot
+type Transmission func(phase *Phase, nal services.NodeAddress,
 	getSlot GetChunk, getMessage GetMessage)

@@ -4,16 +4,13 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package server
+package round
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 )
 
 type Buffer struct {
-	Grp *cyclic.Group
-
-	// Size of batch
 	batchSize         uint32
 	expandedBatchSize uint32
 
@@ -43,16 +40,14 @@ type Buffer struct {
 }
 
 // Function to initialize a new round
-func NewRound(g *cyclic.Group, batchSize, expandedBatchSize uint32) *RoundBuffer {
+func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 
 	permutations := make([]uint32, expandedBatchSize)
 	for i := uint32(0); i < expandedBatchSize; i++ {
 		permutations[i] = i
 	}
 
-	return &RoundBuffer{
-		Grp: g,
-
+	return &Buffer{
 		R: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		S: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		V: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
@@ -77,10 +72,10 @@ func NewRound(g *cyclic.Group, batchSize, expandedBatchSize uint32) *RoundBuffer
 	}
 }
 
-func (r *RoundBuffer) GetBatchSize() uint32 {
+func (r *Buffer) GetBatchSize() uint32 {
 	return r.batchSize
 }
 
-func (r *RoundBuffer) GetExpandedBatchSize() uint32 {
+func (r *Buffer) GetExpandedBatchSize() uint32 {
 	return r.expandedBatchSize
 }

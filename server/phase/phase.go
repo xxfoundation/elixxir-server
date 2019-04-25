@@ -1,8 +1,8 @@
 package phase
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"sync"
 	"sync/atomic"
@@ -12,30 +12,35 @@ import (
 // Holds a single phase to be executed by the server in a round
 type Phase struct {
 	graph               *services.Graph
-	roundID             id.Round
-	roundIDset          sync.Once
-	name                Name
-	state               *uint32
-	transmissionHandler server.Transmission
+	tYpe                Type
+	transmissionHandler Transmission
 	timeout             time.Duration
+
+	roundID    id.Round
+	roundIDset sync.Once
+	state      *uint32
+	stateIndex int
+	stateGroup *StateGroup
 }
 
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
-func New(g *services.Graph, name Name, tHandler server.Transmission, timeout time.Duration) *Phase {
-	state := uint32(Initialized)
+func New(g *services.Graph, name Type, tHandler Transmission, timeout time.Duration) *Phase {
 	return &Phase{
 		graph:               g,
-		name:                name,
+		tYpe:                name,
 		transmissionHandler: tHandler,
 		timeout:             timeout,
-		state:               &state,
 	}
 }
 
 /*Setters */
 // SetRoundIDOnce sets the round ID.  Can only be called once.
-func (p *Phase) SetRoundIDOnce(id id.Round) {
-	p.roundIDset.Do(func() { p.roundID = id })
+func (p *Phase) ConnectToRound(id id.Round, stateGroup *StateGroup) {
+	p.roundIDset.Do(func() {
+		p.roundID = id
+		p.stateIndex, p.state = stateGroup.newState()
+		p.stateGroup = stateGroup
+	})
 }
 
 /*Getters*/
@@ -48,8 +53,8 @@ func (p *Phase) GetRoundID() id.Round {
 	return p.roundID
 }
 
-func (p *Phase) GetName() Name {
-	return p.name
+func (p *Phase) GetType() Type {
+	return p.tYpe
 }
 
 // GetState returns the current state of the phase
@@ -58,7 +63,7 @@ func (p *Phase) GetState() State {
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function
-func (p *Phase) GetTransmissionHandler() server.Transmission {
+func (p *Phase) GetTransmissionHandler() Transmission {
 	return p.transmissionHandler
 }
 
@@ -76,5 +81,40 @@ func (p *Phase) ReadyToReceiveData() bool {
 
 // GetFingerprint returns a phase fingerprint which is used to compare phases
 func (p *Phase) GetFingerprint() Fingerprint {
-	return Fingerprint{p.name, p.roundID}
+	return Fingerprint{p.tYpe, p.roundID}
+}
+
+// IncrementPhaseToQueued increments to
+func (p *Phase) IncrementPhaseToQueued() bool {
+	p.stateGroup.rw.RLock()
+	defer p.stateGroup.rw.RLock()
+	return atomic.CompareAndSwapUint32((*uint32)(p.state), uint32(Available), uint32(Queued))
+}
+
+func (p *Phase) IncrementPhaseToRunning() bool {
+	p.stateGroup.rw.RLock()
+	defer p.stateGroup.rw.RLock()
+	return atomic.CompareAndSwapUint32((*uint32)(p.state), uint32(Queued), uint32(Running))
+}
+
+func (p *Phase) Finish() {
+	p.stateGroup.rw.Lock()
+	success := atomic.CompareAndSwapUint32(p.stateGroup.phase, uint32(p.tYpe), (uint32)(p.tYpe)+1)
+	if !success {
+		jww.FATAL.Panicf("Phase incremented incorrectly from %v as if %v in round %v",
+			atomic.LoadUint32(p.state), p, p.roundID)
+	}
+
+	success = atomic.CompareAndSwapUint32(p.state, uint32(Running), uint32(Completed))
+	if !success {
+		jww.FATAL.Panicf("Phase state of running phase %s could not be incremented to Completed", p.tYpe.String())
+	}
+
+	if int(p.tYpe+1) < len(p.stateGroup.states) {
+		success = atomic.CompareAndSwapUint32(p.stateGroup.states[p.stateIndex+1], uint32(Initialized), uint32(Available))
+		if !success {
+			jww.FATAL.Panicf("Phase state of new phase could not be incremented to Avalable")
+		}
+	}
+	p.stateGroup.rw.Unlock()
 }

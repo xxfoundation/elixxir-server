@@ -3,7 +3,7 @@ package phase
 import "gitlab.com/elixxir/primitives/id"
 
 type Fingerprint struct {
-	phase Name
+	phase Type
 	round id.Round
 }
 
