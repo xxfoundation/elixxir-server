@@ -59,6 +59,15 @@ func (s *KeygenTestStream) Output(index uint32) *mixmessages.CmixSlot {
 	return nil
 }
 
+func (s *KeygenTestStream) Input(index uint32,
+	msg *mixmessages.CmixSlot) error {
+	return nil
+}
+
+func (s *KeygenTestStream) Output(index uint32) *mixmessages.CmixSlot {
+	return nil
+}
+
 // Test that triggers error cases in the keygen cryptop adapter
 func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	// First error: failing type assert for stream
