@@ -33,6 +33,8 @@ func (i *ServerInstance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
 
+// Create a server instance. To actually kick off the server,
+// call Run() on the resulting ServerIsntance.
 func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *ServerInstance {
 	instance := ServerInstance{
 		roundManager: &RoundManager{
@@ -47,13 +49,16 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *ServerIns
 		finishChan: make(chan PhaseFingerprint, 1),
 	}
 	instance.userReg = db
-	go queueRunner(instance.resourceQueue)
 	return &instance
+}
+
+func (i *ServerInstance) Run() {
+	go queueRunner(i.resourceQueue)
 }
 
 // Creates and initializes a new round, including all phases
 // Also, adds the round to the round manager
-func (s *ServerInstance) CreateRound(id node.RoundID,
+func (i *ServerInstance) CreateRound(id node.RoundID,
 	phases []*Phase, nodes []NodeAddress, myLoc int, batchSize uint32) {
 
 	round := Round{}
@@ -68,7 +73,7 @@ func (s *ServerInstance) CreateRound(id node.RoundID,
 	}
 
 	round.id = id
-	round.buffer = node.NewRound(s.grp, batchSize, maxBatchSize)
+	round.buffer = node.NewRound(i.grp, batchSize, maxBatchSize)
 
 	round.phaseStateRW.Lock()
 	defer round.phaseStateRW.Unlock()
@@ -100,5 +105,5 @@ func (s *ServerInstance) CreateRound(id node.RoundID,
 			" phase in new round")
 	}
 
-	s.roundManager.AddRound(&round)
+	i.roundManager.AddRound(&round)
 }

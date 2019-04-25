@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
@@ -36,15 +37,17 @@ func (*KeygenTestStream) GetName() string {
 }
 
 func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+	instance := source.(*server.ServerInstance)
+	grp := instance.GetGroup()
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.KeygenSubStream.LinkStream(round.Grp,
+	s.KeygenSubStream.LinkStream(grp,
+		instance.GetUserRegistry(),
 		make([][]byte, batchSize),
 		make([]*id.User, batchSize),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)))
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 }
 
 func (s *KeygenTestStream) Input(index uint32,
@@ -86,9 +89,9 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 	// Since the user registry has no users,
 	// any user we pass into the stream will cause an error
-	globals.Users = &globals.UserMap{}
+    instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	var stream KeygenTestStream
-	stream.Link(1, &node.RoundBuffer{Grp: grp})
+	stream.Link(1, &instance)
 	stream.users[0] = id.ZeroID
 	stream.salts[0] = []byte("cesium chloride")
 	err = Keygen.Adapt(&stream, MockKeygenOp, services.NewChunk(0, 1))
@@ -129,6 +132,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	globals.Users = &globals.UserMap{}
 	u := globals.Users.NewUser(grp)
 	globals.Users.UpsertUser(u)

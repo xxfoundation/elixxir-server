@@ -12,8 +12,10 @@ import (
 
 // Module that implements Keygen, along with helper methods
 type KeygenSubStream struct {
-	// User IDs for each position in the batch
+	// Server state that's needed for key generation
 	grp *cyclic.Group
+	userReg globals.UserRegistry
+
 	// Inputs: user IDs and salts (required for key generation)
 	users []*id.User
 	salts [][]byte
@@ -29,8 +31,10 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
-	inSalts [][]byte, inUsers []*id.User, outKeysA, outKeysB *cyclic.IntBuffer) {
+	userReg globals.UserRegistry, inSalts [][]byte, inUsers []*id.User,
+	outKeysA, outKeysB *cyclic.IntBuffer) {
 	k.grp = grp
+	k.userReg = userReg
 	k.salts = inSalts
 	k.users = inUsers
 	k.keysA = outKeysA
@@ -67,7 +71,7 @@ var Keygen = services.Module{
 		}
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			user, err := globals.Users.GetUser(kss.users[i])
+			user, err := kss.userReg.GetUser(kss.users[i])
 			if err != nil {
 				return err
 			}
