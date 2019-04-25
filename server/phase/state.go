@@ -21,7 +21,7 @@ const (
 )
 
 //Array used to get the Phase Names for Printing
-var stateStrings = [NumStates]string{"Initialized",
+var stateStrings = []string{"Initialized",
 	"Available", "Queued", "Running", "Finished"}
 
 // Adheres to the Stringer interface to return the name of the phase type

@@ -42,3 +42,15 @@ func TestPhaseStateIncrement(t *testing.T) {
 			State(atomic.LoadUint32(state)), expected)
 	}
 }
+
+func TestState_String(t *testing.T) {
+    for state := Initialized; state < NumStates; state++ {
+    	if state.String() != stateStrings[state] {
+            t.Errorf("State string %v didn't match %v at index %v",
+            	state.String(), stateStrings[state], uint32(state))
+		}
+	}
+    if len(stateStrings) != int(NumStates) {
+    	t.Error("There aren't enough state strings")
+	}
+}
