@@ -74,7 +74,5 @@ func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 
 	g.sentInputs = new(uint32)
 
-	g.ou
-
 	return &g
 }
