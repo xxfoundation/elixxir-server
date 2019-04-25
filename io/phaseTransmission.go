@@ -39,7 +39,7 @@ func ReceivePhase(batch *mixmessages.CmixBatch) error {
 			return err
 		}
 		//Fixme: send in larger batches
-		phase.Graph.Send(services.NewChunk(uint32(index), uint32(index + 1)))
+		phase.Graph.Send(services.NewChunk(uint32(index), uint32(index+1)))
 	}
 
 	return nil

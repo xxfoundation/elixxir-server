@@ -2,7 +2,6 @@ package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
 	"sync"
 	"sync/atomic"
@@ -31,55 +30,6 @@ type Round struct {
 	phaseStates  []*PhaseState
 	currentPhase *node.PhaseType
 	phaseStateRW sync.RWMutex
-}
-
-func newRound(grp *cyclic.Group, id node.RoundID, phases []*Phase,
-	nodes []NodeAddress, myLoc int, batchsize uint32) *Round {
-
-	round := Round{}
-
-	maxBatchSize := uint32(0)
-
-	for _, p := range phases {
-		p.Round = &round
-		if p.Graph.GetExpandedBatchSize() > maxBatchSize {
-			maxBatchSize = p.Graph.GetExpandedBatchSize()
-		}
-	}
-
-	round.id = id
-	round.buffer = node.NewRound(grp, batchsize, maxBatchSize)
-
-	round.phaseStateRW.Lock()
-	defer round.phaseStateRW.Unlock()
-
-	for index, p := range phases {
-		p.Graph.Link(&round)
-		phaseState := Initialized
-		round.phaseStates[index] = &phaseState
-		round.phaseMap[p.Phase] = index
-	}
-
-	copy(round.phases[:], phases[:])
-
-	round.nodes = make([]NodeAddress, len(nodes))
-	for itr := range round.nodes {
-		round.nodes[itr] = nodes[itr].DeepCopy()
-	}
-
-	round.myLoc = myLoc
-
-	phase := node.PhaseType(0)
-	round.currentPhase = &phase
-
-	success := atomic.CompareAndSwapUint32((*uint32)(round.phaseStates[0]),
-		uint32(Initialized), uint32(Available))
-
-	if !success {
-		jww.FATAL.Panicf("Could not set the state on a newly initilized phase in new round")
-	}
-
-	return &round
 }
 
 func (r *Round) GetNextNodeAddress() NodeAddress {

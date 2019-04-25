@@ -6,12 +6,6 @@ import (
 	"time"
 )
 
-var rq ResourceQueue
-
-func GetResourceQueue() *ResourceQueue {
-	return &rq
-}
-
 type ResourceQueue struct {
 	activePhase *Phase
 	phaseQueue  chan *Phase
@@ -23,7 +17,6 @@ func (rq *ResourceQueue) UpsertPhase(p *Phase) {
 	if rq.activePhase.Round.IncrementPhaseToQueued(p.Phase) {
 		rq.phaseQueue <- p
 	}
-
 }
 
 func (rq *ResourceQueue) FinishPhase(p *Phase) {
