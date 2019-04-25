@@ -1,4 +1,10 @@
-package node
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
+package server
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"

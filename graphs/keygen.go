@@ -13,7 +13,7 @@ import (
 // Module that implements Keygen, along with helper methods
 type KeygenSubStream struct {
 	// Server state that's needed for key generation
-	grp *cyclic.Group
+	grp     *cyclic.Group
 	userReg globals.UserRegistry
 
 	// Inputs: user IDs and salts (required for key generation)

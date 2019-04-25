@@ -1,10 +1,11 @@
-package server
+package phase
 
-type PhaseState uint32
+//The state a phase is in
+type State uint32
 
 const (
 	//Initialized: Data structures for the phase have been created but it is not ready to run
-	Initialized PhaseState = iota
+	Initialized State = iota
 	//Available: Next phase to run according to round but no input has been received
 	Available
 	//Queued: Next phase to run according to round and input has been received but it

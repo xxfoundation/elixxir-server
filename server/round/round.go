@@ -2,6 +2,7 @@ package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/node"
 	"sync"
 	"sync/atomic"
@@ -18,8 +19,8 @@ func (na NodeAddress) DeepCopy() NodeAddress {
 }
 
 type Round struct {
-	id     node.RoundID
-	buffer *node.RoundBuffer
+	id     id.Round
+	buffer *Buffer
 
 	nodes []NodeAddress
 	myLoc int
@@ -27,7 +28,6 @@ type Round struct {
 	//on first node and last node the phases vary
 	phaseMap     map[node.PhaseType]int
 	phases       []*Phase
-	phaseStates  []*PhaseState
 	currentPhase *node.PhaseType
 	phaseStateRW sync.RWMutex
 }

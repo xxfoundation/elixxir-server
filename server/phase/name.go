@@ -4,13 +4,14 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package node
+package phase
 
-type PhaseType uint32
+//The Name of a phase
+type Name uint32
 
 const (
 	// Precomputation Generation: Initializes all the random values in round
-	PRECOMP_GENERATION PhaseType = iota
+	PRECOMP_GENERATION Name = iota
 
 	// Precomputation Share: Combine partial recipient public cypher keys
 	PRECOMP_SHARE
@@ -41,7 +42,7 @@ const (
 )
 
 // Number of phases
-const NUM_PHASES PhaseType = ERROR + 1
+const NUM_PHASES Name = ERROR + 1
 
 //Array used to get the Phase Names for Printing
 var phaseNames = [NUM_PHASES]string{"PRECOMP_GENERATION",
@@ -50,6 +51,6 @@ var phaseNames = [NUM_PHASES]string{"PRECOMP_GENERATION",
 	"REAL_IDENTIFY",
 	"ERROR"}
 
-func (p PhaseType) String() string {
+func (p Name) String() string {
 	return phaseNames[p]
 }
