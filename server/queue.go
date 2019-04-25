@@ -8,31 +8,33 @@ package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )
 
 type ResourceQueue struct {
-	activePhase *Phase
-	phaseQueue  chan *Phase
-	finishChan  chan PhaseFingerprint
+	activePhase *phase.Phase
+	phaseQueue  chan *phase.Phase
+	finishChan  chan phase.Fingerprint
 	timer       time.Timer
 }
 
-func (rq *ResourceQueue) UpsertPhase(p *Phase) {
-	if rq.activePhase.Round.IncrementPhaseToQueued(p.Phase) {
+func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
+	if p.IncrementPhaseToQueued() {
 		rq.phaseQueue <- p
 	}
 }
 
-func (rq *ResourceQueue) FinishPhase(pf PhaseFingerprint) {
+func (rq *ResourceQueue) FinishPhase(pf phase.Fingerprint) {
 	rq.finishChan <- pf
 }
 
-func queueRunner(queue *ResourceQueue) {
+func queueRunner(server *Instance) {
+	queue := server.GetResourceQueue()
 
 	for true {
-		var fingerprint PhaseFingerprint
+		var fingerprint phase.Fingerprint
 		timeout := false
 
 		//get that the phase has completed or the current phase's timeout
@@ -45,42 +47,42 @@ func queueRunner(queue *ResourceQueue) {
 		//process timeout
 		if timeout {
 			//FIXME: also kill the transmission handler
-			kill := queue.activePhase.Graph.Kill()
+			kill := queue.activePhase.GetGraph().Kill()
 			if kill {
 				jww.CRITICAL.Printf("Graph %v of phase %v of round %v was killed due to timeout",
-					queue.activePhase.Graph.GetName(), queue.activePhase.Phase.String(), queue.activePhase.Round.id)
+					queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
 				//FIXME: send kill round message
 			} else {
 				jww.FATAL.Panicf("Graph %v of phase %v of round %v could not be killed after timeout",
-					queue.activePhase.Graph.GetName(), queue.activePhase.Phase.String(), queue.activePhase.Round.id)
+					queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
 			}
 		}
 
 		//check that the correct phase is ending
-		if !queue.activePhase.HasFingerprint(fingerprint) {
+		if !queue.activePhase.GetFingerprint().Cmp(fingerprint) {
 			jww.FATAL.Panicf("Phase %s of round %v is currently running, "+
-				"a kill message of phase %s of %v cannot be processed", queue.activePhase.Phase.String(),
-				queue.activePhase.Round.id, fingerprint.phase.String(), fingerprint.round)
+				"a kill message of %s cannot be processed", queue.activePhase.GetType().String(),
+				queue.activePhase.GetRoundID(), fingerprint)
 		}
 
 		//update the ending phase to the next phase
-		queue.activePhase.Round.FinishPhase(queue.activePhase.Phase)
+		queue.activePhase.Finish()
 
 		//get the next phase to execute
 		queue.activePhase = <-queue.phaseQueue
 
 		//update the next phase to running
-		success := queue.activePhase.Round.IncrementPhaseToRunning(queue.activePhase.Phase)
+		success := queue.activePhase.IncrementPhaseToRunning()
 		if !success {
 			jww.FATAL.Panicf("Next phase %s of round %v which is queued is not in the correct state and "+
-				"cannot be started", queue.activePhase.Phase.String(), queue.activePhase.Round.id)
+				"cannot be started", queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
 		}
 
 		runningPhase := queue.activePhase
 
-		var getChunk GetChunk
+		var getChunk phase.GetChunk
 		getChunk = func() (services.Chunk, bool) {
-			chunk, ok := runningPhase.Graph.GetOutput()
+			chunk, ok := runningPhase.GetGraph().GetOutput()
 			//Fixme: add a method to kill this directly
 			if !ok {
 				queue.FinishPhase(runningPhase.GetFingerprint())
@@ -88,9 +90,11 @@ func queueRunner(queue *ResourceQueue) {
 			return chunk, ok
 		}
 
-		go queue.activePhase.TransmissionHandler(runningPhase.Round,
-			runningPhase.Phase, getChunk, runningPhase.Graph.GetStream().Output)
-		runningPhase.Graph.Run()
+		go queue.activePhase.GetTransmissionHandler()(runningPhase,
+			server.GetRoundManager().GetRound(runningPhase.GetRoundID()).GetNodeAddressList(),
+			getChunk, runningPhase.GetGraph().GetStream().Output)
+
+		runningPhase.GetGraph().Run()
 
 	}
 

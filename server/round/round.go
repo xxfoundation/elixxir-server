@@ -4,13 +4,14 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/services"
 )
 
 type Round struct {
 	id     id.Round
 	buffer *Buffer
 
-	nodeAddressList *NodeAddressList
+	nodeAddressList *services.NodeAddressList
 	state           *phase.StateGroup
 
 	//on first node and last node the phases vary
@@ -19,7 +20,7 @@ type Round struct {
 }
 
 // Creates and initializes a new round, including all phases
-func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []NodeAddress, myLoc int, batchSize uint32) *Round {
+func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services.NodeAddress, myLoc int, batchSize uint32) *Round {
 
 	round := Round{}
 	round.id = id
@@ -47,7 +48,7 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []NodeAddr
 
 	copy(round.phases[:], phases[:])
 
-	round.nodeAddressList = NewNodeAddressList(nodes, myLoc)
+	round.nodeAddressList = services.NewNodeAddressList(nodes, myLoc)
 
 	return &round
 }
@@ -71,6 +72,6 @@ func (r *Round) GetCurrentPhase() phase.Type {
 	return r.state.GetCurrentPhase()
 }
 
-func (r *Round) GetNodeAddressList() *NodeAddressList {
+func (r *Round) GetNodeAddressList() *services.NodeAddressList {
 	return r.GetNodeAddressList()
 }

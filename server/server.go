@@ -5,13 +5,14 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"sync"
 	"sync/atomic"
 )
 
 // Holds long-lived server state
 type Instance struct {
-	roundManager  *RoundManager
+	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
 	grp           *cyclic.Group
 	userReg       globals.UserRegistry
@@ -25,7 +26,7 @@ func (i *Instance) GetUserRegistry() globals.UserRegistry {
 	return i.userReg
 }
 
-func (i *Instance) GetRoundManager() *RoundManager {
+func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
 }
 

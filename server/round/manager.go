@@ -1,19 +1,19 @@
 package round
 
 import (
-	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/primitives/id"
 	"sync"
 )
 
-type RoundManager struct {
+type Manager struct {
 	roundMap *sync.Map
 }
 
-func (rm *RoundManager) AddRound(round *Round) {
+func (rm *Manager) AddRound(round *Round) {
 	rm.roundMap.Store(round.id, round)
 }
 
-func (rm *RoundManager) GetRound(id node.RoundID) *Round {
+func (rm *Manager) GetRound(id id.Round) *Round {
 	r, ok := rm.roundMap.Load(id)
 
 	if !ok {
@@ -25,6 +25,6 @@ func (rm *RoundManager) GetRound(id node.RoundID) *Round {
 
 // Deletes the round for this ID from the manager, if the manager is keeping
 // track of it
-func (rm *RoundManager) DeleteRound(id node.RoundID) {
+func (rm *Manager) DeleteRound(id id.Round) {
 	rm.roundMap.Delete(id)
 }
