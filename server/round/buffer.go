@@ -1,12 +1,16 @@
-package node
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
+package server
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 )
 
-type RoundID uint64
-
-type RoundBuffer struct {
+type Buffer struct {
 	Grp *cyclic.Group
 
 	// Size of batch
