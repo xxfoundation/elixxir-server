@@ -21,9 +21,6 @@ import (
 
 const MaxSalts = 300
 
-// Globally initiated UserRegistry
-var Users UserRegistry
-
 // Number of hard-coded users to create
 var NUM_DEMO_USERS = int(256)
 var NUM_DEMO_CHANNELS = int(10)

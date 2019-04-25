@@ -110,16 +110,16 @@ func NewUserRegistry(username, password,
 }
 
 // Create dummy users to be manually inserted into the database
-func PopulateDummyUsers(grp *cyclic.Group) {
+func (d *UserDatabase) PopulateDummyUsers(grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := Users.NewUser(grp)
-		Users.UpsertUser(u)
+		u := d.NewUser(grp)
+		d.UpsertUser(u)
 	}
 	// Named channel bot users
 	for i := 0; i < NUM_DEMO_CHANNELS; i++ {
-		u := Users.NewUser(grp)
-		Users.UpsertUser(u)
+		u := d.NewUser(grp)
+		d.UpsertUser(u)
 	}
 }
 

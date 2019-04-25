@@ -25,6 +25,6 @@ func (rm *RoundManager) GetRound(id node.RoundID) *Round {
 
 // Deletes the round for this ID from the manager, if the manager is keeping
 // track of it
-func (rm *RoundManager) DeleteRound(id nodeRoundID) {
+func (rm *RoundManager) DeleteRound(id node.RoundID) {
 	rm.roundMap.Delete(id)
 }

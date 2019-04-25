@@ -9,19 +9,36 @@ import (
 	"sync/atomic"
 )
 
+// Holds long-lived server state
 type ServerInstance struct {
 	roundManager  *RoundManager
 	resourceQueue *ResourceQueue
 	grp           *cyclic.Group
-	userDB        *globals.UserDB
+	userReg        globals.UserRegistry
 }
 
-func CreateServerInstance(db *globals.UserDB) *ServerInstance {
+func (i *ServerInstance) GetGroup() *cyclic.Group {
+	return i.grp
+}
+
+func (i *ServerInstance) GetUserRegistry() globals.UserRegistry {
+	return i.userReg
+}
+
+func (i *ServerInstance) GetRoundManager() *RoundManager {
+	return i.roundManager
+}
+
+func (i *ServerInstance) GetResourceQueue() *ResourceQueue {
+	return i.resourceQueue
+}
+
+func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *ServerInstance {
 	instance := ServerInstance{
 		roundManager: &RoundManager{
 			roundMap: &sync.Map{},
 		},
-		grp: &cyclic.Group{},
+		grp: grp,
 	}
 	instance.resourceQueue = &ResourceQueue{
 		// these are the phases
@@ -29,12 +46,13 @@ func CreateServerInstance(db *globals.UserDB) *ServerInstance {
 		// there will only active phase, and this channel is used to kill it
 		finishChan: make(chan PhaseFingerprint, 1),
 	}
-	instance.userDB = db
+	instance.userReg = db
 	go queueRunner(instance.resourceQueue)
 	return &instance
 }
 
 // Creates and initializes a new round, including all phases
+// Also, adds the round to the round manager
 func (s *ServerInstance) CreateRound(id node.RoundID,
 	phases []*Phase, nodes []NodeAddress, myLoc int, batchSize uint32) {
 
