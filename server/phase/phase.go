@@ -84,19 +84,22 @@ func (p *Phase) GetFingerprint() Fingerprint {
 	return Fingerprint{p.tYpe, p.roundID}
 }
 
-// IncrementPhaseToQueued increments to
+// IncrementPhaseToQueued transitions Phase from Available to Queued
 func (p *Phase) IncrementPhaseToQueued() bool {
 	p.stateGroup.rw.RLock()
-	defer p.stateGroup.rw.RLock()
-	return atomic.CompareAndSwapUint32((*uint32)(p.state), uint32(Available), uint32(Queued))
+	defer p.stateGroup.rw.RUnlock()
+	return atomic.CompareAndSwapUint32(p.state, uint32(Available), uint32(Queued))
 }
 
+// IncrementPhaseToQueued transitions Phase from Queued to Running
 func (p *Phase) IncrementPhaseToRunning() bool {
 	p.stateGroup.rw.RLock()
-	defer p.stateGroup.rw.RLock()
-	return atomic.CompareAndSwapUint32((*uint32)(p.state), uint32(Queued), uint32(Running))
+	defer p.stateGroup.rw.RUnlock()
+	return atomic.CompareAndSwapUint32(p.state, uint32(Queued), uint32(Running))
 }
 
+// Finish transitions Phase from Running to Finished,
+// and the phase after it from Initialized to Available
 func (p *Phase) Finish() {
 	p.stateGroup.rw.Lock()
 	success := atomic.CompareAndSwapUint32(p.stateGroup.phase, uint32(p.tYpe), (uint32)(p.tYpe)+1)
@@ -105,9 +108,11 @@ func (p *Phase) Finish() {
 			atomic.LoadUint32(p.state), p, p.roundID)
 	}
 
-	success = atomic.CompareAndSwapUint32(p.state, uint32(Running), uint32(Completed))
+	success = atomic.CompareAndSwapUint32(p.state, uint32(Running),
+		uint32(Finished))
 	if !success {
-		jww.FATAL.Panicf("Phase state of running phase %s could not be incremented to Completed", p.tYpe.String())
+		jww.FATAL.Panicf("Phase state %v of running phase %s could not be"+
+			" incremented to Finished", State(*p.state), p.tYpe.String())
 	}
 
 	if int(p.tYpe+1) < len(p.stateGroup.states) {
