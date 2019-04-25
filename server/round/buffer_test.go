@@ -4,13 +4,12 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package server
+package round
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"math/rand"
-	"reflect"
 	"testing"
 )
 
@@ -50,7 +49,7 @@ func TestNewRound(t *testing.T) {
 		batchSize := rng.Uint32() % 1000
 		expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
 
-		r := NewRound(grp, batchSize, expandedBatchSize)
+		r := NewBuffer(grp, batchSize, expandedBatchSize)
 
 		if r.batchSize != batchSize {
 			t.Errorf("New RoundBuffer: Batch Size not stored correctly, "+
@@ -60,10 +59,6 @@ func TestNewRound(t *testing.T) {
 		if r.expandedBatchSize != expandedBatchSize {
 			t.Errorf("New RoundBuffer: Expanded Batch Size not stored correctly, "+
 				"Expected %v, Recieved: %v", expandedBatchSize, r.expandedBatchSize)
-		}
-
-		if !reflect.DeepEqual(r.Grp.GetFingerprint(), grp.GetFingerprint()) {
-			t.Errorf("New RoundBuffer: Group Fingerprints do not match")
 		}
 
 		defaultInt := grp.NewInt(1)
@@ -129,7 +124,7 @@ func TestRound_Get(t *testing.T) {
 		batchSize := rng.Uint32() % 1000
 		expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
 
-		r := NewRound(grp, batchSize, expandedBatchSize)
+		r := NewBuffer(grp, batchSize, expandedBatchSize)
 
 		if r.GetBatchSize() != batchSize {
 			t.Errorf("RoundBuffer.GetBatchSize: Batch Size not correct, "+

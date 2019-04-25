@@ -1,4 +1,4 @@
-package server
+package round
 
 import (
 	"gitlab.com/elixxir/server/node"
