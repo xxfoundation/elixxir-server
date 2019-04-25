@@ -10,33 +10,33 @@ import (
 )
 
 // Holds long-lived server state
-type ServerInstance struct {
+type Instance struct {
 	roundManager  *RoundManager
 	resourceQueue *ResourceQueue
 	grp           *cyclic.Group
-	userReg        globals.UserRegistry
+	userReg       globals.UserRegistry
 }
 
-func (i *ServerInstance) GetGroup() *cyclic.Group {
+func (i *Instance) GetGroup() *cyclic.Group {
 	return i.grp
 }
 
-func (i *ServerInstance) GetUserRegistry() globals.UserRegistry {
+func (i *Instance) GetUserRegistry() globals.UserRegistry {
 	return i.userReg
 }
 
-func (i *ServerInstance) GetRoundManager() *RoundManager {
+func (i *Instance) GetRoundManager() *RoundManager {
 	return i.roundManager
 }
 
-func (i *ServerInstance) GetResourceQueue() *ResourceQueue {
+func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
 
 // Create a server instance. To actually kick off the server,
 // call Run() on the resulting ServerIsntance.
-func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *ServerInstance {
-	instance := ServerInstance{
+func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance {
+	instance := Instance{
 		roundManager: &RoundManager{
 			roundMap: &sync.Map{},
 		},
@@ -52,13 +52,13 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *ServerIns
 	return &instance
 }
 
-func (i *ServerInstance) Run() {
+func (i *Instance) Run() {
 	go queueRunner(i.resourceQueue)
 }
 
 // Creates and initializes a new round, including all phases
 // Also, adds the round to the round manager
-func (i *ServerInstance) CreateRound(id node.RoundID,
+func (i *Instance) CreateRound(id node.RoundID,
 	phases []*Phase, nodes []NodeAddress, myLoc int, batchSize uint32) {
 
 	round := Round{}

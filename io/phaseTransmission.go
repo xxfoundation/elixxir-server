@@ -1,47 +1,47 @@
 package io
 
 import (
-	"errors"
-	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
+	comm "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/services"
 )
 
-func ReceivePhase(batch *mixmessages.CmixBatch) error {
-	roundManager := server.GetRoundManager()
-	resourceQueue := server.GetResourceQueue()
+func TransmitPhaseForward(round *server.Round, phase node.PhaseType,
+	getChunk server.GetChunk, getMessage server.GetMessage) {
+	TransmitPhase(round, phase, getChunk, getMessage, true)
+}
 
-	round := roundManager.GetRound(node.RoundID(batch.RoundID))
+func TransmitPhaseBackward(round *server.Round, phase node.PhaseType,
+	getChunk server.GetChunk, getMessage server.GetMessage) {
+	TransmitPhase(round, phase, getChunk, getMessage, false)
+}
 
-	if round == nil {
-		return errors.New(fmt.Sprintf("Unknown round ID (%v) cannot continue", batch.RoundID))
-	}
+func TransmitPhase(round *server.Round, phase node.PhaseType,
+	getChunk server.GetChunk, getMessage server.GetMessage, direction bool) {
 
-	if batch.ForPhase < 0 || batch.ForPhase > int32(node.NUM_PHASES) {
-		return errors.New(fmt.Sprintf("Unknown phase (%v) cannot continue", batch.ForPhase))
-	}
+	batch := mixmessages.CmixBatch{}
+	batch.RoundID = uint64(round.GetID())
+	batch.ForPhase = int32(phase)
+	batch.Slots = make([]*mixmessages.CmixSlot, round.GetBuffer().GetBatchSize())
 
-	phaseType := node.PhaseType(uint32(batch.ForPhase))
-
-	phase := round.GetPhase(phaseType)
-
-	if !phase.ReadyToReceiveData() {
-		return errors.New(fmt.Sprintf("Phase %v of round %v is not ready to recieve", phase.Phase.String(), round.GetID()))
-	}
-
-	resourceQueue.UpsertPhase(phase)
-
-	for index, messages := range batch.Slots {
-		err := phase.Graph.GetStream().Input(uint32(index), messages)
-		if err != nil {
-			return err
+	for true {
+		chunk, finish := getChunk()
+		if !finish {
+			for i := chunk.Begin(); i < chunk.End(); i++ {
+				batch.Slots[i] = getMessage(i)
+			}
+		} else {
+			break
 		}
-		//Fixme: send in larger batches
-		phase.Graph.Send(services.NewChunk(uint32(index), uint32(index+1)))
 	}
 
-	return nil
+	var recipient server.NodeAddress
+	if direction {
+		recipient = round.GetNextNodeAddress()
+	} else {
+		recipient = round.GetPrevNodeAddress()
+	}
 
+	comm.SendPhase(recipient.Address, recipient.Cert, &batch)
 }

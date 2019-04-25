@@ -6,7 +6,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
-type GetSlot func() (services.Chunk, bool)
+type GetChunk func() (services.Chunk, bool)
 type GetMessage func(index uint32) *mixmessages.CmixSlot
 type Transmission func(round *Round, phase node.PhaseType,
-	getSlot GetSlot, getData GetMessage)
+	getSlot GetChunk, getMessage GetMessage)

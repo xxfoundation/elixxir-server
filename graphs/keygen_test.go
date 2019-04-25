@@ -37,7 +37,7 @@ func (*KeygenTestStream) GetName() string {
 }
 
 func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
-	instance := source.(*server.ServerInstance)
+	instance := source.(*server.Instance)
 	grp := instance.GetGroup()
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
@@ -48,15 +48,6 @@ func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
 		make([]*id.User, batchSize),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
-}
-
-func (s *KeygenTestStream) Input(index uint32,
-	msg *mixmessages.CmixSlot) error {
-	return nil
-}
-
-func (s *KeygenTestStream) Output(index uint32) *mixmessages.CmixSlot {
-	return nil
 }
 
 func (s *KeygenTestStream) Input(index uint32,
@@ -98,7 +89,7 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 	// Since the user registry has no users,
 	// any user we pass into the stream will cause an error
-    instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	var stream KeygenTestStream
 	stream.Link(1, &instance)
 	stream.users[0] = id.ZeroID

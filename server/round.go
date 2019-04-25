@@ -8,13 +8,13 @@ import (
 )
 
 type NodeAddress struct {
-	cert    string
-	address string
-	id      uint64
+	Cert    string
+	Address string
+	Id      uint64
 }
 
 func (na NodeAddress) DeepCopy() NodeAddress {
-	return NodeAddress{na.cert, na.address, na.id}
+	return NodeAddress{na.Cert, na.Address, na.Id}
 }
 
 type Round struct {

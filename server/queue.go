@@ -19,8 +19,8 @@ func (rq *ResourceQueue) UpsertPhase(p *Phase) {
 	}
 }
 
-func (rq *ResourceQueue) FinishPhase(p *Phase) {
-	rq.finishChan <- p.GetFingerprint()
+func (rq *ResourceQueue) FinishPhase(pf PhaseFingerprint) {
+	rq.finishChan <- pf
 }
 
 func queueRunner(queue *ResourceQueue) {
@@ -72,18 +72,18 @@ func queueRunner(queue *ResourceQueue) {
 
 		runningPhase := queue.activePhase
 
-		var getSlot GetSlot
-		getSlot = func() (services.Chunk, bool) {
+		var getChunk GetChunk
+		getChunk = func() (services.Chunk, bool) {
 			chunk, ok := runningPhase.Graph.GetOutput()
 			//Fixme: add a method to kill this directly
 			if !ok {
-				queue.FinishPhase(runningPhase)
+				queue.FinishPhase(runningPhase.GetFingerprint())
 			}
 			return chunk, ok
 		}
 
 		go queue.activePhase.TransmissionHandler(runningPhase.Round,
-			runningPhase.Phase, getSlot, runningPhase.Graph.GetStream().Output)
+			runningPhase.Phase, getChunk, runningPhase.Graph.GetStream().Output)
 		runningPhase.Graph.Run()
 
 	}
