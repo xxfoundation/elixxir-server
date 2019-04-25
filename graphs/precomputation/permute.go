@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -50,7 +51,7 @@ func (s *PermuteStream) GetName() string {
 
 // Link binds stream to state objects in round
 func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+	round := source.(*round.Buffer)
 
 	s.Grp = round.Grp
 	s.PublicCypherKey = round.CypherPublicKey

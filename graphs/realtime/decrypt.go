@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -44,9 +45,12 @@ func (s *DecryptStream) GetName() string {
 
 //Link creates the stream's internal buffers and
 func (ds *DecryptStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+	interfaceSlice := source.([]interface{})
 
-	ds.Grp = round.Grp
+	roundBuf := interfaceSlice[0].(*round.Buffer)
+	userRegistry := interfaceSlice[1].(globals.UserRegistry)
+
+	ds.Grp = r.Grp
 
 	ds.R = round.R.GetSubBuffer(0, batchSize)
 	ds.U = round.U.GetSubBuffer(0, batchSize)
@@ -62,10 +66,10 @@ func (ds *DecryptStream) Link(batchSize uint32, source interface{}) {
 		ds.Users[i] = &id.User{}
 	}
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, ds.Salts, ds.Users, ds.KeysMsg, ds.KeysAD)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.Users, ds.KeysMsg, ds.KeysAD)
 }
 
-func (ds *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ds.EcrMsg.Len()) {
 		return node.ErrOutsideOfBatch

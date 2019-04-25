@@ -42,16 +42,19 @@ type Graph struct {
 	outputChannel IO_Notify
 
 	sentInputs *uint32
+
+	outputSize      uint32
+	outputThreshold float32
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
+func (g *Graph) Build(batchSize uint32) {
 	//Checks graph is properly formatted
 	g.checkGraph()
 
 	//check output parameters
-	if outputSize == AUTO_OUTPUTSIZE {
-		outputSize = g.generator.minInputSize
+	if g.outputSize == AUTO_OUTPUTSIZE {
+		g.outputSize = g.generator.minInputSize
 	}
 
 	//Find expanded batch size
@@ -65,7 +68,7 @@ func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 	}
 
 	integers = append(integers, g.generator.minInputSize)
-	integers = append(integers, outputSize)
+	integers = append(integers, g.outputSize)
 	lcm := globals.LCM(integers)
 
 	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
@@ -75,8 +78,8 @@ func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 
 	/*setup output module*/
 	g.outputModule = &Module{
-		InputSize:      outputSize,
-		StartThreshold: outputThreshold,
+		InputSize:      g.outputSize,
+		StartThreshold: g.outputThreshold,
 		inputModules:   []*Module{g.lastModule},
 		Name:           "Output",
 		copy:           true,

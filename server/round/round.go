@@ -31,6 +31,7 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 	round.state = stateGroup
 
 	for _, p := range phases {
+		p.GetGraph().Build(batchSize)
 		if p.GetGraph().GetExpandedBatchSize() > maxBatchSize {
 			maxBatchSize = p.GetGraph().GetExpandedBatchSize()
 		}
