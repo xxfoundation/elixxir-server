@@ -174,7 +174,7 @@ func TestGraph(t *testing.T) {
 
 	batchSize := uint32(1000)
 
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), AUTO_OUTPUTSIZE, 0)
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
 
 	g := gc.NewGraph("test", &Stream1{})
 
