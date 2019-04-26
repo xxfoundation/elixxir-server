@@ -39,6 +39,9 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 	}
 
 	round.buffer = NewBuffer(grp, batchSize, maxBatchSize)
+	if round.phaseMap == nil {
+		round.phaseMap = make(map[phase.Type]int)
+	}
 
 	for index, p := range phases {
 		p.GetGraph().Link(grp, &round)
