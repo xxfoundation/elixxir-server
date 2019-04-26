@@ -155,7 +155,7 @@ var PermuteElgamal = services.Module{
 	},
 	Cryptop:    cryptops.ElGamal,
 	NumThreads: 5,
-	InputSize:  services.AUTO_INPUTSIZE,
+	InputSize:  1, // services.AUTO_INPUTSIZE,
 	Name:       "PermuteElgamal",
 }
 

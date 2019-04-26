@@ -255,7 +255,7 @@ func TestPermuteGraph(t *testing.T) {
 		return
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0.9)
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// Initialize graph
 	g := graphInit(gc)

@@ -255,7 +255,8 @@ func TestPermuteStream_CommsInterface(t *testing.T) {
 }
 
 func TestPermuteStream_InGraph(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+	primeString :=
+		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
 		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
@@ -276,7 +277,7 @@ func TestPermuteStream_InGraph(t *testing.T) {
 		return
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 1.0)
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	g := InitPermuteGraph(gc)
 

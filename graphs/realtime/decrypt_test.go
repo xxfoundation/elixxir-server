@@ -524,7 +524,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitDecryptGraph
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 1.0)
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	//Initialize graph
 	g := graphInit(gc)
@@ -544,7 +544,11 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	}
 
-	g.Link(grp, roundBuffer)
+	var interfaceSlice = make([]interface{}, 2)
+	interfaceSlice[0] = roundBuffer
+	interfaceSlice[1] = registry
+
+	g.Link(grp, interfaceSlice)
 
 	stream := g.GetStream().(*DecryptStream)
 
