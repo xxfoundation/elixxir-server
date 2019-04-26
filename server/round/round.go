@@ -39,10 +39,9 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 	}
 
 	round.buffer = NewBuffer(grp, batchSize, maxBatchSize)
-	if round.phaseMap == nil {
-		round.phaseMap = make(map[phase.Type]int)
-	}
+	round.phaseMap = make(map[phase.Type]int)
 
+	// this phasemap logic looks suspicious
 	for index, p := range phases {
 		p.GetGraph().Link(grp, &round)
 		round.phaseMap[p.GetType()] = index
@@ -66,10 +65,12 @@ func (r *Round) GetBuffer() *Buffer {
 }
 
 func (r *Round) GetPhase(p phase.Type) *phase.Phase {
-	if int(p) > len(r.phases) {
+	i, ok := r.phaseMap[p]
+	if !ok {
 		return nil
+	} else {
+		return r.phases[i]
 	}
-	return r.phases[r.phaseMap[p]]
 }
 
 func (r *Round) GetCurrentPhase() phase.Type {

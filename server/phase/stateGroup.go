@@ -7,13 +7,10 @@ import (
 
 type StateGroup struct {
 	states []*uint32
-	phase  *uint32
+	phaseIndex  *uint32
+	// Types that exist in the state group
+	phaseLookup []Type
 	rw     sync.RWMutex
-}
-
-func NewStateGroup() *StateGroup {
-	phase := uint32(PRECOMP_GENERATION)
-	return &StateGroup{phase: &phase}
 }
 
 func (sg *StateGroup) GetState(index int) State {
@@ -25,13 +22,14 @@ func (sg *StateGroup) GetState(index int) State {
 func (sg *StateGroup) GetCurrentPhase() Type {
 	sg.rw.RLock()
 	defer sg.rw.RUnlock()
-	return Type(atomic.LoadUint32(sg.phase))
+	return phaseLookup[phaseIndex]
 }
 
-func (sg *StateGroup) newState() (int, *uint32) {
+func (sg *StateGroup) newState(t Type) (int, *uint32) {
 	sg.rw.Lock()
 	defer sg.rw.Unlock()
 	state := uint32(Initialized)
 	sg.states = append(sg.states, &state)
+	sg.phaseLookup = append(sg.phaseLookup, t)
 	return len(sg.states) - 1, &state
 }

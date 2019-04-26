@@ -82,4 +82,20 @@ func TestNew(t *testing.T) {
 	if !reflect.DeepEqual(round.GetNodeAddressList(), nodeAddressList) {
 		t.Error("Node address list differed")
 	}
+
+	// Because it's a lot of rigamarole to create the round again,
+	// here's coverage for GetPhase and GetCurrentPhase
+	// should return nil
+	nilPhase := round.GetPhase(phase.PRECOMP_GENERATION)
+	if nilPhase != nil {
+		t.Fatal("Should have gotten a nil phase")
+	}
+	actualPhase := round.GetPhase(phase.REAL_PERMUTE)
+	if !actualPhase.Cmp(phases[0]) {
+        t.Error("Phases differed")
+	}
+	actualPhaseType := round.GetCurrentPhase()
+	if actualPhaseType != phase.REAL_PERMUTE {
+		t.Error("Current phase should have been realtime permute")
+	}
 }
