@@ -16,7 +16,7 @@ import (
 type ResourceQueue struct {
 	activePhase *phase.Phase
 	phaseQueue  chan *phase.Phase
-	finishChan  chan phase.Fingerprint
+	finishChan  chan *phase.Phase
 	timer       time.Timer
 }
 
@@ -26,20 +26,20 @@ func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
 	}
 }
 
-func (rq *ResourceQueue) FinishPhase(pf phase.Fingerprint) {
-	rq.finishChan <- pf
+func (rq *ResourceQueue) FinishPhase(phase *phase.Phase) {
+	rq.finishChan <- phase
 }
 
 func queueRunner(server *Instance) {
 	queue := server.GetResourceQueue()
 
 	for true {
-		var fingerprint phase.Fingerprint
+		var rtnPhase *phase.Phase
 		timeout := false
 
 		//get that the phase has completed or the current phase's timeout
 		select {
-		case fingerprint = <-queue.finishChan:
+		case rtnPhase = <-queue.finishChan:
 		case <-queue.timer.C:
 			timeout = true
 		}
@@ -59,10 +59,10 @@ func queueRunner(server *Instance) {
 		}
 
 		//check that the correct phase is ending
-		if !queue.activePhase.GetFingerprint().Cmp(fingerprint) {
+		if !queue.activePhase.Cmp(rtnPhase) {
 			jww.FATAL.Panicf("Phase %s of round %v is currently running, "+
 				"a kill message of %s cannot be processed", queue.activePhase.GetType().String(),
-				queue.activePhase.GetRoundID(), fingerprint)
+				queue.activePhase.GetRoundID(), rtnPhase)
 		}
 
 		//update the ending phase to the next phase
@@ -85,7 +85,7 @@ func queueRunner(server *Instance) {
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 			//Fixme: add a method to kill this directly
 			if !ok {
-				queue.FinishPhase(runningPhase.GetFingerprint())
+				queue.FinishPhase(runningPhase)
 			}
 			return chunk, ok
 		}

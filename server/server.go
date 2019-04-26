@@ -42,7 +42,7 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 		// these are the phases
 		phaseQueue: make(chan *phase.Phase, 5000),
 		// there will only active phase, and this channel is used to kill it
-		finishChan: make(chan phase.Fingerprint, 1),
+		finishChan: make(chan *phase.Phase, 1),
 	}
 	instance.userReg = db
 	return &instance

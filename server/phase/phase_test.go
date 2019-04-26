@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"testing"
@@ -8,23 +9,6 @@ import (
 )
 
 // GETTER TESTS
-// Proves that Phase gets a fingerprint that represents it
-func TestPhase_GetFingerprint(t *testing.T) {
-	phaseType := uint32(2)
-	roundID := id.Round(258)
-	p := Phase{
-		roundID: roundID,
-		tYpe:    Type(phaseType),
-	}
-	fingerprint := p.GetFingerprint()
-	if fingerprint.round != roundID {
-		t.Error("Fingerprint round ID didn't match")
-	}
-	if fingerprint.tYpe != Type(phaseType) {
-		t.Error("Fingerprint phase type didn't match")
-	}
-}
-
 func TestPhase_GetGraph(t *testing.T) {
 	g := services.Graph{}
 	p := Phase{
@@ -89,6 +73,60 @@ func TestPhase_GetType(t *testing.T) {
 
 // Other tests prove that the various fields that should be set or compared
 // are set or compared correctly
+
+// Proves that Phase Cmp only returns true when the phases are the same
+func TestPhase_Cmp(t *testing.T) {
+	phaseType := uint32(2)
+	roundID := id.Round(258)
+	p := &Phase{
+		roundID: roundID,
+		tYpe:    Type(phaseType),
+	}
+
+	p2 := &Phase{
+		roundID: roundID + 1,
+		tYpe:    Type(phaseType + 1),
+	}
+
+	if !p.Cmp(p) {
+		t.Error("Phase.Cmp: Phases are the same, returned that they are different")
+	}
+
+	if p.Cmp(p2) {
+		t.Error("Phase.Cmp: Phases are different, returned that they are the same")
+	}
+}
+
+func TestPhase_Stringer(t *testing.T) {
+	phaseType := uint32(2)
+	roundID := id.Round(258)
+	p := &Phase{
+		roundID: roundID,
+		tYpe:    Type(phaseType),
+	}
+
+	p2 := &Phase{
+		roundID: roundID + 1,
+		tYpe:    Type(phaseType + 1),
+	}
+
+	pStr := fmt.Sprintf("phase.Phase{roundID: %v, phaseType: %s}",
+		p.roundID, p.tYpe)
+
+	p2Str := fmt.Sprintf("phase.Phase{roundID: %v, phaseType: %s}",
+		p2.roundID, p2.tYpe)
+
+	if p.String() != pStr {
+		t.Errorf("Phase.String: Returned incorrect string, Expected: %s, Recieved: %s",
+			pStr, p)
+	}
+
+	if p2.String() != p2Str {
+		t.Errorf("Phase.String: Returned incorrect string, Expected: %s, Recieved: %s",
+			p2Str, p2)
+	}
+}
+
 func TestPhase_ReadyToReceiveData(t *testing.T) {
 	state := Initialized
 	p := Phase{state: (*uint32)(&state)}
