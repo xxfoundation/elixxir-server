@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
@@ -33,68 +34,46 @@ func TestRevealStream_GetName(t *testing.T) {
 
 // Test that RevealStream.Link() Links correctly
 func TestRevealStream_Link(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initRevealGroup()
 
-	rs := RevealStream{}
+	stream := RevealStream{}
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, batchSize, batchSize)
+	roundBuffer := initRevealRoundBuffer(grp, batchSize)
 
-	rs.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	if round.Z.Cmp(rs.Z) != 0 {
+	if roundBuffer.Z.Cmp(stream.Z) != 0 {
 		t.Errorf(
 			"RevealStream.Link() Z value not linked: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), rs.Z.TextVerbose(10, 16))
+			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
-	checkIntBuffer(rs.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
-	checkIntBuffer(rs.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
 
-	// Edit round to show that Z value in stream changes
-	expected := grp.Random(round.Z)
+	// Edit roundBuffer to show that Z value in stream changes
+	expected := grp.Random(roundBuffer.Z)
 
-	if rs.Z.Cmp(expected) != 0 {
+	if stream.Z.Cmp(expected) != 0 {
 		t.Errorf(
-			"RevealStream.Link() Z value not linked to round: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), rs.Z.TextVerbose(10, 16))
+			"RevealStream.Link() Z value not linked to roundBuffer: Expected %s, Recieved %s",
+			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 }
 
 // Tests Input's happy path
 func TestRevealtStream_Input(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initRevealGroup()
+
+	stream := RevealStream{}
 
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	roundBuffer := initRevealRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
-
-	rs.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -103,24 +82,24 @@ func TestRevealtStream_Input(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			PartialMessageCypherText:        expected[0],
 			PartialAssociatedDataCypherText: expected[1],
 		}
 
-		err := rs.Input(b, msg)
+		err := stream.Input(b, msg)
 		if err != nil {
 			t.Errorf("RevealStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(rs.CypherMsg.Get(b).Bytes(), expected[0]) {
+		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[0]) {
 			t.Errorf("RevealStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], rs.CypherMsg.Get(b).Bytes())
+				b, expected[0], stream.CypherMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(rs.CypherAD.Get(b).Bytes(), expected[1]) {
+		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[1]) {
 			t.Errorf("RevealStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], rs.CypherAD.Get(b).Bytes())
+				b, expected[1], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
@@ -129,39 +108,28 @@ func TestRevealtStream_Input(t *testing.T) {
 
 // Tests that the input errors correctly when the index is outside of the batch
 func TestRevealStream_Input_OutOfBatch(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initRevealGroup()
+
+	stream := RevealStream{}
 
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	roundBuffer := initRevealRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	rs.Link(batchSize, round)
-
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
 	}
 
-	err := rs.Input(batchSize, msg)
+	err := stream.Input(batchSize, msg)
 
 	if err != node.ErrOutsideOfBatch {
 		t.Errorf("RevealtStream.Input() did nto return an outside of batch error when out of batch")
 	}
 
-	err1 := rs.Input(batchSize+1, msg)
+	err1 := stream.Input(batchSize+1, msg)
 
 	if err1 != node.ErrOutsideOfBatch {
 		t.Errorf("RevealStream.Input() did not return an outside of batch error when out of batch")
@@ -172,20 +140,20 @@ func TestRevealStream_Input_OutOfBatch(t *testing.T) {
 func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
 
+	stream := RevealStream{}
+
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	roundBuffer := initRevealRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	rs.Link(batchSize, round)
-
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        large.NewInt(89).Bytes(),
 		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
 	}
 
-	err := rs.Input(batchSize-10, msg)
+	err := stream.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
 		t.Errorf("RevealStream.Input() did not return an error when out of group")
@@ -194,26 +162,15 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 
 // Tests that the output function returns a valid cmixMessage
 func TestRevealStream_Output(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initRevealGroup()
+
+	stream := RevealStream{}
 
 	batchSize := uint32(100)
 
-	rs := &RevealStream{}
+	roundBuffer := initRevealRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
-
-	rs.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -222,26 +179,26 @@ func TestRevealStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			PartialMessageCypherText:        expected[0],
 			PartialAssociatedDataCypherText: expected[1],
 		}
 
-		err := rs.Input(b, msg)
+		err := stream.Input(b, msg)
 		if err != nil {
 			t.Errorf("RevealStream.Output() errored on slot %v: %s", b, err.Error())
 		}
 
-		output := rs.Output(b)
+		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[0]) {
 			t.Errorf("RevealStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], rs.CypherMsg.Get(b).Bytes())
+				b, expected[2], stream.CypherMsg.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[1]) {
 			t.Errorf("RevealStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], rs.CypherAD.Get(b).Bytes())
+				b, expected[3], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
@@ -262,20 +219,8 @@ func TestRevealStream_Interface(t *testing.T) {
 }
 
 func TestReveal_Graph(t *testing.T) {
-	primeString :=
-		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initRevealGroup()
 
 	batchSize := uint32(100)
 
@@ -287,22 +232,22 @@ func TestReveal_Graph(t *testing.T) {
 		panic(fmt.Sprintf("Reveal: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 0)
 
 	//Initialize graph
 	g := graphInit(gc)
 
 	// Build the graph
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize)
 
 	// Build the round
-	round := node.NewRound(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	// Fill the fields of the stream object for testing
-	grp.FindSmallCoprimeInverse(round.Z, 256)
+	grp.FindSmallCoprimeInverse(roundBuffer.Z, 256)
 
 	// Link the graph to the round. building the stream object
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	stream := g.GetStream().(*RevealStream)
 
@@ -351,4 +296,24 @@ func TestReveal_Graph(t *testing.T) {
 			}
 		}
 	}
+}
+
+func initRevealGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
+}
+
+func initRevealRoundBuffer(grp *cyclic.Group, batchSize uint32) *round.Buffer {
+	return round.NewBuffer(grp, batchSize, batchSize)
 }

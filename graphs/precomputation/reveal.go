@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -36,26 +37,24 @@ func (s *RevealStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *RevealStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+	roundBuffer := source.(*round.Buffer)
 
-	grp := round.Grp
-
-	s.LinkStream(batchSize, round, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)))
+	s.LinkStream(grp, batchSize, roundBuffer, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 }
 
 // LinkStream is called by Link other stream objects from round
-func (s *RevealStream) LinkStream(batchSize uint32, round *node.RoundBuffer, CypherMsg, CypherAD *cyclic.IntBuffer) {
-	s.Grp = round.Grp
+func (s *RevealStream) LinkStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, CypherMsg, CypherAD *cyclic.IntBuffer) {
+	s.Grp = grp
 
-	s.Z = round.Z
+	s.Z = roundBuffer.Z
 
 	s.CypherMsg = CypherMsg
 	s.CypherAD = CypherAD
 }
 
 // Input initializes stream inputs from slot
-func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *RevealStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.CypherMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -71,9 +70,9 @@ func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a cmix slot message
-func (s *RevealStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *RevealStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
 		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
 	}

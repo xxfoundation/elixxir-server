@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -43,16 +44,16 @@ func (s *DecryptStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+	roundBuffer := source.(*round.Buffer)
 
-	s.Grp = round.Grp
-	s.PublicCypherKey = round.CypherPublicKey
+	s.Grp = grp
+	s.PublicCypherKey = roundBuffer.CypherPublicKey
 
-	s.R = round.R.GetSubBuffer(0, batchSize)
-	s.U = round.U.GetSubBuffer(0, batchSize)
-	s.Y_R = round.Y_R.GetSubBuffer(0, batchSize)
-	s.Y_U = round.Y_U.GetSubBuffer(0, batchSize)
+	s.R = roundBuffer.R.GetSubBuffer(0, batchSize)
+	s.U = roundBuffer.U.GetSubBuffer(0, batchSize)
+	s.Y_R = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
+	s.Y_U = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
 
 	s.KeysMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
@@ -61,7 +62,7 @@ func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
 }
 
 // Input initializes stream inputs from slot
-func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.KeysMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -76,13 +77,14 @@ func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	s.Grp.SetBytes(s.KeysAD.Get(index), slot.EncryptedAssociatedDataKeys)
 	s.Grp.SetBytes(s.CypherMsg.Get(index), slot.PartialMessageCypherText)
 	s.Grp.SetBytes(s.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+
 	return nil
 }
 
 // Output returns a cmix slot message
-func (s *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *DecryptStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		EncryptedMessageKeys:            s.KeysMsg.Get(index).Bytes(),
 		EncryptedAssociatedDataKeys:     s.KeysAD.Get(index).Bytes(),
 		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),

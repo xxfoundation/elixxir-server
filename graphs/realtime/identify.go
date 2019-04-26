@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -37,21 +38,21 @@ func (is *IdentifyStream) GetName() string {
 }
 
 // Link binds stream data to state objects in round.
-func (is *IdentifyStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+	roundBuffer := source.(*round.Buffer)
 
-	is.LinkIdentifyStreams(batchSize, round,
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+	is.LinkIdentifyStreams(grp, batchSize, roundBuffer,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		make([]*cyclic.Int, batchSize),
 		make([]*cyclic.Int, batchSize))
 }
 
 // LinkRealtimePermuteStreams binds stream data.
-func (is *IdentifyStream) LinkIdentifyStreams(batchSize uint32, round *node.RoundBuffer,
+func (is *IdentifyStream) LinkIdentifyStreams(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
 	ecrMsg, ecrAD *cyclic.IntBuffer, permMsg, permAD []*cyclic.Int) {
 
-	is.Grp = round.Grp
+	is.Grp = grp
 
 	is.EcrMsg = ecrMsg
 	is.EcrAD = ecrAD
@@ -62,7 +63,7 @@ func (is *IdentifyStream) LinkIdentifyStreams(batchSize uint32, round *node.Roun
 	is.EcrMsgPermuted = permMsg
 	is.EcrADPermuted = permAD
 
-	is.LinkRealtimePermuteStreams(batchSize, round,
+	is.LinkRealtimePermuteStreams(grp, batchSize, round,
 		is.EcrMsg,
 		is.EcrAD,
 		is.EcrMsgPermuted,
@@ -79,7 +80,7 @@ func (is *IdentifyStream) getIdentifyStream() *IdentifyStream {
 }
 
 // Input initializes stream inputs from slot.
-func (is *IdentifyStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(is.EcrMsg.Len()) {
 		return node.ErrOutsideOfBatch
 	}
@@ -95,8 +96,8 @@ func (is *IdentifyStream) Input(index uint32, slot *mixmessages.CmixSlot) error 
 }
 
 // Output returns a message with the stream data.
-func (is *IdentifyStream) Output(index uint32) *mixmessages.CmixSlot {
-	return &mixmessages.CmixSlot{
+func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{
 		MessagePayload: is.EcrMsgPermuted[index].Bytes(),
 		AssociatedData: is.EcrADPermuted[index].Bytes(),
 	}

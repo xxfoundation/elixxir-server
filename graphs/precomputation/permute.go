@@ -50,16 +50,16 @@ func (s *PermuteStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*round.Buffer)
+func (s *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+	roundBuffer := source.(*round.Buffer)
 
-	s.Grp = round.Grp
-	s.PublicCypherKey = round.CypherPublicKey
+	s.Grp = grp
+	s.PublicCypherKey = roundBuffer.CypherPublicKey
 
-	s.S = round.S.GetSubBuffer(0, batchSize)
-	s.V = round.V.GetSubBuffer(0, batchSize)
-	s.Y_S = round.Y_S.GetSubBuffer(0, batchSize)
-	s.Y_V = round.Y_V.GetSubBuffer(0, batchSize)
+	s.S = roundBuffer.S.GetSubBuffer(0, batchSize)
+	s.V = roundBuffer.V.GetSubBuffer(0, batchSize)
+	s.Y_S = roundBuffer.Y_S.GetSubBuffer(0, batchSize)
+	s.Y_V = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 
 	s.KeysMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
@@ -71,7 +71,7 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	s.KeysADPermuted = make([]*cyclic.Int, batchSize)
 	s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
 
-	s.PermuteSubStream.LinkPermuteSubStreams(batchSize, round.Permutations,
+	s.PermuteSubStream.LinkPermuteSubStreams(batchSize, roundBuffer.Permutations,
 		graphs.PermuteIO{
 			Input:  s.CypherMsg,
 			Output: s.CypherMsgPermuted,
@@ -89,7 +89,7 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 }
 
 // Input initializes stream inputs from slot
-func (s *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.KeysMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -108,9 +108,9 @@ func (s *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a cmix slot message
-func (s *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *PermuteStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		EncryptedMessageKeys:            s.KeysMsgPermuted[index].Bytes(),
 		EncryptedAssociatedDataKeys:     s.KeysADPermuted[index].Bytes(),
 		PartialMessageCypherText:        s.CypherMsgPermuted[index].Bytes(),

@@ -12,7 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
-	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
@@ -38,18 +38,8 @@ func TestPermuteSubStream_Interface(t *testing.T) {
 
 //Tests that link properly connects the substream to a stream
 func TestPermuteSubStream_Link(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+
+	grp := initPermuteGraphGroup()
 
 	p := PermuteSubStream{}
 
@@ -66,13 +56,13 @@ func TestPermuteSubStream_Link(t *testing.T) {
 		cs2[i] = grp.NewInt(int64(i + 1))
 	}
 
-	round := node.NewRound(grp, 4, expandedBatchSize)
+	roundBuffer := round.NewBuffer(grp, 4, expandedBatchSize)
 
-	round.Permutations = []uint32{3, 5, 0, 1, 2, 4}
+	roundBuffer.Permutations = []uint32{3, 5, 0, 1, 2, 4}
 
-	p.LinkPermuteSubStreams(expandedBatchSize, round.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
+	p.LinkPermuteSubStreams(expandedBatchSize, roundBuffer.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
 
-	if !reflect.DeepEqual(p.permutations, round.Permutations) {
+	if !reflect.DeepEqual(p.permutations, roundBuffer.Permutations) {
 		t.Errorf("PermuteStream.Link: Permutation not linked properly")
 	}
 
@@ -113,18 +103,18 @@ func TestPermuteSubStream_getSubStream(t *testing.T) {
 		cs2[i] = grp.NewInt(int64(i + 1))
 	}
 
-	round := node.NewRound(grp, 4, expandedBatchSize)
+	roundBuffer := round.NewBuffer(grp, 4, expandedBatchSize)
 
-	round.Permutations = []uint32{3, 5, 0, 1, 2, 4}
+	roundBuffer.Permutations = []uint32{3, 5, 0, 1, 2, 4}
 
-	p.LinkPermuteSubStreams(expandedBatchSize, round.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
+	p.LinkPermuteSubStreams(expandedBatchSize, roundBuffer.Permutations, PermuteIO{ib1, cs1}, PermuteIO{ib2, cs2})
 
 	var pssi permuteSubStreamInterface
 	pssi = &p
 
 	pss := pssi.getSubStream()
 
-	if !reflect.DeepEqual(pss.permutations, round.Permutations) {
+	if !reflect.DeepEqual(pss.permutations, roundBuffer.Permutations) {
 		t.Errorf("PermuteStream.Link: Permutation not linked properly")
 	}
 
@@ -200,10 +190,10 @@ func (s *PermuteTestStream) GetName() string {
 	return "PermuteTestStream"
 }
 
-func (s *PermuteTestStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *PermuteTestStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+	roundBuffer := source.(*round.Buffer)
 
-	s.Grp = round.Grp
+	s.Grp = grp
 
 	s.in1 = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.in2 = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
@@ -211,31 +201,21 @@ func (s *PermuteTestStream) Link(batchSize uint32, source interface{}) {
 	s.out1 = make([]*cyclic.Int, batchSize)
 	s.out2 = make([]*cyclic.Int, batchSize)
 
-	s.PermuteSubStream.LinkPermuteSubStreams(batchSize, round.Permutations,
+	s.PermuteSubStream.LinkPermuteSubStreams(batchSize, roundBuffer.Permutations,
 		PermuteIO{s.in1, s.out1},
 		PermuteIO{s.in2, s.out2})
 }
 
-func (s *PermuteTestStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *PermuteTestStream) Output(index uint32) *mixmessages.Slot {
 	return nil
 }
-func (s *PermuteTestStream) Input(index uint32, msg *mixmessages.CmixSlot) error {
+func (s *PermuteTestStream) Input(index uint32, msg *mixmessages.Slot) error {
 	return nil
 }
 
 func TestPermuteInGraph(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+
+	grp := initPermuteGraphGroup()
 
 	batchSize := uint32(10)
 
@@ -248,28 +228,28 @@ func TestPermuteInGraph(t *testing.T) {
 		return
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 1.0)
 
 	g := gc.NewGraph("test", &permuteStream)
 
 	g.First(permute)
 	g.Last(permute)
 
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
+	g.Build(batchSize)
 
 	var done *uint32
 	done = new(uint32)
 	*done = 0
 
-	round := node.NewRound(grp, batchSize, g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, batchSize, g.GetExpandedBatchSize())
 
-	shuffle.Shuffle32(&round.Permutations)
+	shuffle.Shuffle32(&roundBuffer.Permutations)
 
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	permuteInverse := make([]uint32, g.GetExpandedBatchSize())
 	for i := uint32(0); i < uint32(len(permuteInverse)); i++ {
-		permuteInverse[round.Permutations[i]] = i
+		permuteInverse[roundBuffer.Permutations[i]] = i
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
@@ -311,4 +291,20 @@ func TestPermuteInGraph(t *testing.T) {
 			}
 		}
 	}
+}
+
+func initPermuteGraphGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
 }

@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
@@ -33,31 +34,20 @@ func TestDecryptStream_GetName(t *testing.T) {
 
 // Test that DecryptStream.Link() Links correctly
 func TestDecryptStream_Link(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initDecryptGroup()
 
 	stream := DecryptStream{}
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, batchSize, batchSize)
+	roundBuffer := initDecryptRoundBuffer(grp, batchSize)
 
-	stream.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	checkStreamIntBuffer(grp, stream.R, round.R, "R", t)
-	checkStreamIntBuffer(grp, stream.U, round.U, "U", t)
-	checkStreamIntBuffer(grp, stream.Y_R, round.Y_R, "Y_R", t)
-	checkStreamIntBuffer(grp, stream.Y_U, round.Y_U, "Y_U", t)
+	checkStreamIntBuffer(grp, stream.R, roundBuffer.R, "R", t)
+	checkStreamIntBuffer(grp, stream.U, roundBuffer.U, "U", t)
+	checkStreamIntBuffer(grp, stream.Y_R, roundBuffer.Y_R, "Y_R", t)
+	checkStreamIntBuffer(grp, stream.Y_U, roundBuffer.Y_U, "Y_U", t)
 
 	checkIntBuffer(stream.KeysMsg, batchSize, "KeysMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
@@ -67,26 +57,15 @@ func TestDecryptStream_Link(t *testing.T) {
 
 // Test Input's happy path
 func TestDecryptStream_Input(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initDecryptGroup()
+
+	stream := DecryptStream{}
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	roundBuffer := initDecryptRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
-
-	ds.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -97,36 +76,36 @@ func TestDecryptStream_Input(t *testing.T) {
 			{byte(b + 1), 3},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			EncryptedMessageKeys:            expected[0],
 			EncryptedAssociatedDataKeys:     expected[1],
 			PartialMessageCypherText:        expected[2],
 			PartialAssociatedDataCypherText: expected[3],
 		}
 
-		err := ds.Input(b, msg)
+		err := stream.Input(b, msg)
 		if err != nil {
 			t.Errorf("DecryptStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(ds.KeysMsg.Get(b).Bytes(), expected[0]) {
+		if !reflect.DeepEqual(stream.KeysMsg.Get(b).Bytes(), expected[0]) {
 			t.Errorf("DecryptStream.Input() incorrect stored KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], ds.KeysMsg.Get(b).Bytes())
+				b, expected[0], stream.KeysMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ds.KeysAD.Get(b).Bytes(), expected[1]) {
+		if !reflect.DeepEqual(stream.KeysAD.Get(b).Bytes(), expected[1]) {
 			t.Errorf("DecryptStream.Input() incorrect stored KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], ds.KeysAD.Get(b).Bytes())
+				b, expected[1], stream.KeysAD.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ds.CypherMsg.Get(b).Bytes(), expected[2]) {
+		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[2]) {
 			t.Errorf("DecryptStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], ds.CypherMsg.Get(b).Bytes())
+				b, expected[2], stream.CypherMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ds.CypherAD.Get(b).Bytes(), expected[3]) {
+		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[3]) {
 			t.Errorf("DecryptStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], ds.CypherAD.Get(b).Bytes())
+				b, expected[3], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
@@ -135,41 +114,30 @@ func TestDecryptStream_Input(t *testing.T) {
 
 // Tests that the input errors correctly when the index is outside of the batch
 func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initDecryptGroup()
+
+	stream := DecryptStream{}
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	roundBuffer := initDecryptRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	ds.Link(batchSize, round)
-
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		EncryptedMessageKeys:            []byte{0},
 		EncryptedAssociatedDataKeys:     []byte{0},
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
 	}
 
-	err := ds.Input(batchSize, msg)
+	err := stream.Input(batchSize, msg)
 
 	if err == nil {
 		t.Errorf("DecryptStream.Input() did nto return an error when out of batch")
 	}
 
-	err1 := ds.Input(batchSize+1, msg)
+	err1 := stream.Input(batchSize+1, msg)
 
 	if err1 == nil {
 		t.Errorf("DecryptStream.Input() did nto return an error when out of batch")
@@ -178,35 +146,24 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 // Tests that Input errors correct when the passed value is out of the group
 func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initDecryptGroup()
+
+	stream := DecryptStream{}
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	roundBuffer := initDecryptRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	ds.Link(batchSize, round)
-
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		EncryptedMessageKeys:            []byte{0},
 		EncryptedAssociatedDataKeys:     []byte{0},
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
 	}
 
-	err := ds.Input(batchSize-10, msg)
+	err := stream.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
 		t.Errorf("DecryptStream.Input() did not return an error when out of group")
@@ -215,26 +172,15 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 // Tests that the output function returns a valid cmixMessage
 func TestDecryptStream_Output(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initDecryptGroup()
+
+	stream := DecryptStream{}
 
 	batchSize := uint32(100)
 
-	ds := &DecryptStream{}
+	roundBuffer := initDecryptRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, batchSize, batchSize)
-
-	ds.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -245,38 +191,38 @@ func TestDecryptStream_Output(t *testing.T) {
 			{byte(b + 1), 3},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			EncryptedMessageKeys:            expected[0],
 			EncryptedAssociatedDataKeys:     expected[1],
 			PartialMessageCypherText:        expected[2],
 			PartialAssociatedDataCypherText: expected[3],
 		}
 
-		err := ds.Input(b, msg)
+		err := stream.Input(b, msg)
 		if err != nil {
 			t.Errorf("DecryptStream.Output() errored on slot %v: %s", b, err.Error())
 		}
 
-		output := ds.Output(b)
+		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
 			t.Errorf("DecryptStream.Output() incorrect recieved KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], ds.KeysMsg.Get(b).Bytes())
+				b, expected[0], stream.KeysMsg.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
 			t.Errorf("DecryptStream.Output() incorrect recieved KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], ds.KeysAD.Get(b).Bytes())
+				b, expected[1], stream.KeysAD.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[2]) {
 			t.Errorf("DecryptStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], ds.CypherMsg.Get(b).Bytes())
+				b, expected[2], stream.CypherMsg.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[3]) {
 			t.Errorf("DecryptStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], ds.CypherAD.Get(b).Bytes())
+				b, expected[3], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
@@ -297,18 +243,8 @@ func TestDecryptStream_Interface(t *testing.T) {
 }
 
 func TestDecryptGraph(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+
+	grp := initDecryptGroup()
 
 	batchSize := uint32(100)
 
@@ -322,7 +258,7 @@ func TestDecryptGraph(t *testing.T) {
 		panic(fmt.Sprintf("PrecompDecrypt: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 1.0)
 
 	//Initialize graph
 	g := graphInit(gc)
@@ -332,13 +268,13 @@ func TestDecryptGraph(t *testing.T) {
 	}
 
 	//Build the graph
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize)
 
 	//Build the round
-	round := node.NewRound(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	//Link the graph to the round. building the stream object
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	stream := g.GetStream().(*DecryptStream)
 
@@ -437,4 +373,24 @@ func checkIntBuffer(ib *cyclic.IntBuffer, expandedBatchSize uint32, source strin
 		t.Errorf("New RoundBuffer: Ints in %v/%v intBuffer %s intilized incorrectly",
 			numBad, expandedBatchSize, source)
 	}
+}
+
+func initDecryptGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
+}
+
+func initDecryptRoundBuffer(grp *cyclic.Group, batchSize uint32) *round.Buffer {
+	return round.NewBuffer(grp, batchSize, batchSize)
 }

@@ -7,15 +7,12 @@
 package precomputation
 
 import (
-	//	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
-	//	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
-	//	"reflect"
 	"os"
 	"runtime"
 	"testing"
@@ -59,27 +56,27 @@ func TestGenerateStream_GetName(t *testing.T) {
 //Test that GenerateStream.Link() Links correctly
 func TestGenerateStream_Link(t *testing.T) {
 	ds := GenerateStream{}
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-	ds.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+	ds.Link(grp, batchSize, roundBuffer)
 
-	checkStreamIntBuffer(grp, ds.R, round.R, "R", t)
-	checkStreamIntBuffer(grp, ds.S, round.S, "S", t)
-	checkStreamIntBuffer(grp, ds.U, round.U, "U", t)
-	checkStreamIntBuffer(grp, ds.V, round.V, "V", t)
-	checkStreamIntBuffer(grp, ds.R, round.R, "Y_R", t)
-	checkStreamIntBuffer(grp, ds.S, round.S, "Y_S", t)
-	checkStreamIntBuffer(grp, ds.U, round.U, "Y_U", t)
-	checkStreamIntBuffer(grp, ds.V, round.V, "Y_V", t)
+	checkStreamIntBuffer(grp, ds.R, roundBuffer.R, "R", t)
+	checkStreamIntBuffer(grp, ds.S, roundBuffer.S, "S", t)
+	checkStreamIntBuffer(grp, ds.U, roundBuffer.U, "U", t)
+	checkStreamIntBuffer(grp, ds.V, roundBuffer.V, "V", t)
+	checkStreamIntBuffer(grp, ds.R, roundBuffer.R, "Y_R", t)
+	checkStreamIntBuffer(grp, ds.S, roundBuffer.S, "Y_S", t)
+	checkStreamIntBuffer(grp, ds.U, roundBuffer.U, "Y_U", t)
+	checkStreamIntBuffer(grp, ds.V, roundBuffer.V, "Y_V", t)
 }
 
 //tests Input's happy path (Note that decrypt only sets keys and has no retvals
 func TestGenerateStream_Input(t *testing.T) {
 	ds := &GenerateStream{}
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-	ds.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+	ds.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
-		msg := &mixmessages.CmixSlot{}
+		msg := &mixmessages.Slot{}
 
 		err := ds.Input(b, msg)
 		if err != nil {
@@ -88,16 +85,16 @@ func TestGenerateStream_Input(t *testing.T) {
 		}
 	}
 
-	checkStreamIntBuffer(grp, ds.R, round.R, "R", t)
-	checkStreamIntBuffer(grp, ds.S, round.S, "S", t)
-	checkStreamIntBuffer(grp, ds.U, round.U, "U", t)
-	checkStreamIntBuffer(grp, ds.V, round.V, "V", t)
-	checkStreamIntBuffer(grp, ds.R, round.R, "Y_R", t)
-	checkStreamIntBuffer(grp, ds.S, round.S, "Y_S", t)
-	checkStreamIntBuffer(grp, ds.U, round.U, "Y_U", t)
-	checkStreamIntBuffer(grp, ds.V, round.V, "Y_V", t)
+	checkStreamIntBuffer(grp, ds.R, roundBuffer.R, "R", t)
+	checkStreamIntBuffer(grp, ds.S, roundBuffer.S, "S", t)
+	checkStreamIntBuffer(grp, ds.U, roundBuffer.U, "U", t)
+	checkStreamIntBuffer(grp, ds.V, roundBuffer.V, "V", t)
+	checkStreamIntBuffer(grp, ds.R, roundBuffer.R, "Y_R", t)
+	checkStreamIntBuffer(grp, ds.S, roundBuffer.S, "Y_S", t)
+	checkStreamIntBuffer(grp, ds.U, roundBuffer.U, "Y_U", t)
+	checkStreamIntBuffer(grp, ds.V, roundBuffer.V, "Y_V", t)
 
-	msg := &mixmessages.CmixSlot{}
+	msg := &mixmessages.Slot{}
 	err := ds.Input(batchSize, msg)
 	if err == nil {
 		t.Errorf("GenerateStream.Input() didn't error on OOB slot!")
@@ -107,11 +104,11 @@ func TestGenerateStream_Input(t *testing.T) {
 //Tests that the output function returns a valid cmixMessage
 func TestGenerateStream_Output(t *testing.T) {
 	ds := &GenerateStream{}
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-	ds.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+	ds.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
-		msg := &mixmessages.CmixSlot{}
+		msg := &mixmessages.Slot{}
 		err := ds.Input(b, msg)
 		if err != nil {
 			t.Errorf("GenerateStream.Output() errored on slot %v: %s", b, err.Error())
@@ -125,11 +122,10 @@ func TestGenerateStream_Output(t *testing.T) {
 func TestGenerateStream_CommsInterface(t *testing.T) {
 	var face interface{}
 	face = &GenerateStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
-		t.Errorf("GenerateStream: Does not conform to the " +
-			"CommsStream interface")
+		t.Errorf("GenerateStream: Does not conform to the Stream interface")
 	}
 }
 
@@ -145,7 +141,7 @@ func TestGenerateGraph(t *testing.T) {
 		return
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 0)
 
 	//Initialize graph
 	g := graphInit(gc)
@@ -156,13 +152,13 @@ func TestGenerateGraph(t *testing.T) {
 	}
 
 	//Build the graph
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize)
 
 	//Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	//Link the graph to the round. building the stream object
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	//stream := g.GetStream().(*GenerateStream)
 

@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"math"
 	"math/rand"
 	"runtime"
@@ -60,7 +62,7 @@ func (s *Stream1) GetName() string {
 	return "Stream1"
 }
 
-func (s *Stream1) Link(BatchSize uint32, source interface{}) {
+func (s *Stream1) Link(grp *cyclic.Group, BatchSize uint32, source interface{}) {
 	round := source.(*RoundBuffer)
 	s.Prime = 107
 	s.A = round.A[:BatchSize]
@@ -74,10 +76,10 @@ func (s *Stream1) Link(BatchSize uint32, source interface{}) {
 	s.I = make([]int, BatchSize)
 }
 
-func (s *Stream1) Input(index uint32, msg *mixmessages.CmixSlot) error {
+func (s *Stream1) Input(index uint32, msg *mixmessages.Slot) error {
 	return nil
 }
-func (s *Stream1) Output(index uint32) *mixmessages.CmixSlot { return nil }
+func (s *Stream1) Output(index uint32) *mixmessages.Slot { return nil }
 
 var PanicHandler ErrorCallback = func(err error) {
 	panic(err)
@@ -168,9 +170,11 @@ var ModuleD = Module{
 
 func TestGraph(t *testing.T) {
 
+	grp := initDispatchGroup()
+
 	batchSize := uint32(1000)
 
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), AUTO_OUTPUTSIZE, 0)
 
 	g := gc.NewGraph("test", &Stream1{})
 
@@ -186,13 +190,13 @@ func TestGraph(t *testing.T) {
 	g.Connect(moduleC, moduleD)
 	g.Last(moduleD)
 
-	g.Build(batchSize, AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize)
 
 	roundSize := uint32(math.Ceil(1.2 * float64(g.GetExpandedBatchSize())))
 	roundBuf := RoundBuffer{}
 	roundBuf.Build(roundSize)
 
-	g.Link(&roundBuf)
+	g.Link(grp, &roundBuf)
 
 	g.Run()
 
@@ -205,15 +209,15 @@ func TestGraph(t *testing.T) {
 
 	endCh := make(chan bool)
 
-	go func(g *Graph, encCh chan bool) {
+	go func(graph *Graph, encCh chan bool) {
 
-		stream := g.GetStream().(*Stream1)
+		stream := graph.GetStream().(*Stream1)
 
 		ok := true
 		var chunk Chunk
 
 		for ok {
-			chunk, ok = g.GetOutput()
+			chunk, ok = graph.GetOutput()
 			for i := chunk.Begin(); i < chunk.End(); i++ {
 				// Compute expected result for this slot
 				A := stream.A[i]
@@ -294,4 +298,20 @@ func (SubPrototype) GetName() string {
 
 func (SubPrototype) GetInputSize() uint32 {
 	return 1
+}
+
+func initDispatchGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
 }

@@ -41,7 +41,7 @@ func TestFingerprint_String(t *testing.T) {
 	fingerprintString := fingerprint.String()
 	expected := "phase.Fingerprint{RoundID: 8, Phase: PRECOMP_PERMUTE}"
 	if expected != fingerprintString {
-		t.Error("Fingerprint string differed from expected. Expected %v, " +
+		t.Error("Fingerprint string differed from expected. Expected %v, "+
 			"got %v", expected, fingerprintString)
 	}
 }

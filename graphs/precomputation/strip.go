@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -39,22 +40,22 @@ func (s *StripStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *StripStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *StripStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+	roundBuffer := source.(*round.Buffer)
 
-	s.Grp = round.Grp
+	s.Grp = grp
 
-	s.MessagePrecomputation = round.MessagePrecomputation.GetSubBuffer(0, batchSize)
-	s.ADPrecomputation = round.ADPrecomputation.GetSubBuffer(0, batchSize)
+	s.MessagePrecomputation = roundBuffer.MessagePrecomputation.GetSubBuffer(0, batchSize)
+	s.ADPrecomputation = roundBuffer.ADPrecomputation.GetSubBuffer(0, batchSize)
 
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 
-	s.RevealStream.LinkStream(batchSize, round, s.CypherMsg, s.CypherAD)
+	s.RevealStream.LinkStream(grp, batchSize, roundBuffer, s.CypherMsg, s.CypherAD)
 }
 
 // Input initializes stream inputs from slot
-func (s *StripStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.CypherMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -71,9 +72,9 @@ func (s *StripStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a cmix slot message
-func (s *StripStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *StripStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
 		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
 	}

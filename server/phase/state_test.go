@@ -11,17 +11,17 @@ func TestPhaseStateIncrement(t *testing.T) {
 	g := NewStateGroup()
 	index, state := g.newState()
 	p := Phase{
-		tYpe:                g.GetCurrentPhase(),
-		state:               state,
-		stateIndex:          index,
-		stateGroup:          g,
+		tYpe:       g.GetCurrentPhase(),
+		state:      state,
+		stateIndex: index,
+		stateGroup: g,
 	}
 
 	atomic.StoreUint32(state, uint32(Available))
 	expected := Available
-    if atomic.LoadUint32(state) != uint32(expected) {
-    	t.Errorf("State was %v, but should have been %v",
-    		State(atomic.LoadUint32(state)), expected)
+	if atomic.LoadUint32(state) != uint32(expected) {
+		t.Errorf("State was %v, but should have been %v",
+			State(atomic.LoadUint32(state)), expected)
 	}
 	p.IncrementPhaseToQueued()
 	expected = Queued
@@ -44,13 +44,13 @@ func TestPhaseStateIncrement(t *testing.T) {
 }
 
 func TestState_String(t *testing.T) {
-    for state := Initialized; state < NumStates; state++ {
-    	if state.String() != stateStrings[state] {
-            t.Errorf("State string %v didn't match %v at index %v",
-            	state.String(), stateStrings[state], uint32(state))
+	for state := Initialized; state < NumStates; state++ {
+		if state.String() != stateStrings[state] {
+			t.Errorf("State string %v didn't match %v at index %v",
+				state.String(), stateStrings[state], uint32(state))
 		}
 	}
-    if len(stateStrings) != int(NumStates) {
-    	t.Error("There aren't enough state strings")
+	if len(stateStrings) != int(NumStates) {
+		t.Error("There aren't enough state strings")
 	}
 }
