@@ -39,56 +39,77 @@ type DecryptStream struct {
 }
 
 // GetName returns stream name
-func (s *DecryptStream) GetName() string {
+func (ds *DecryptStream) GetName() string {
 	return "PrecompDecryptStream"
 }
 
 // Link binds stream to state objects in round
-func (s *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
 	roundBuffer := source.(*round.Buffer)
 
-	s.Grp = grp
-	s.PublicCypherKey = roundBuffer.CypherPublicKey
+	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+	)
+}
 
-	s.R = roundBuffer.R.GetSubBuffer(0, batchSize)
-	s.U = roundBuffer.U.GetSubBuffer(0, batchSize)
-	s.Y_R = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
-	s.Y_U = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
+func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
+	keysMsg, cypherMsg, keysAD, cypherAD *cyclic.IntBuffer) {
 
-	s.KeysMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.KeysAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+	ds.Grp = grp
+	ds.PublicCypherKey = roundBuffer.CypherPublicKey
+
+	ds.R = roundBuffer.R.GetSubBuffer(0, batchSize)
+	ds.U = roundBuffer.U.GetSubBuffer(0, batchSize)
+	ds.Y_R = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
+	ds.Y_U = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
+
+	ds.KeysMsg = keysMsg
+	ds.CypherMsg = cypherMsg
+	ds.KeysAD = keysAD
+	ds.CypherAD = cypherAD
+
+}
+
+type decryptSubstreamInterface interface {
+	GetSubStream() *DecryptStream
+}
+
+// getSubStream implements reveal interface to return stream object
+func (ds *DecryptStream) GetSubStream() *DecryptStream {
+	return ds
 }
 
 // Input initializes stream inputs from slot
-func (s *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
+func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if index >= uint32(s.KeysMsg.Len()) {
+	if index >= uint32(ds.KeysMsg.Len()) {
 		return node.ErrOutsideOfBatch
 	}
 
-	if !s.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
+	if !ds.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
 		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
 		return node.ErrOutsideOfGroup
 	}
 
-	s.Grp.SetBytes(s.KeysMsg.Get(index), slot.EncryptedMessageKeys)
-	s.Grp.SetBytes(s.KeysAD.Get(index), slot.EncryptedAssociatedDataKeys)
-	s.Grp.SetBytes(s.CypherMsg.Get(index), slot.PartialMessageCypherText)
-	s.Grp.SetBytes(s.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+	ds.Grp.SetBytes(ds.KeysMsg.Get(index), slot.EncryptedMessageKeys)
+	ds.Grp.SetBytes(ds.KeysAD.Get(index), slot.EncryptedAssociatedDataKeys)
+	ds.Grp.SetBytes(ds.CypherMsg.Get(index), slot.PartialMessageCypherText)
+	ds.Grp.SetBytes(ds.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
 
 	return nil
 }
 
 // Output returns a cmix slot message
-func (s *DecryptStream) Output(index uint32) *mixmessages.Slot {
+func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 
 	return &mixmessages.Slot{
-		EncryptedMessageKeys:            s.KeysMsg.Get(index).Bytes(),
-		EncryptedAssociatedDataKeys:     s.KeysAD.Get(index).Bytes(),
-		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
-		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
+		EncryptedMessageKeys:            ds.KeysMsg.Get(index).Bytes(),
+		EncryptedAssociatedDataKeys:     ds.KeysAD.Get(index).Bytes(),
+		PartialMessageCypherText:        ds.CypherMsg.Get(index).Bytes(),
+		PartialAssociatedDataCypherText: ds.CypherAD.Get(index).Bytes(),
 	}
 }
 
@@ -96,20 +117,22 @@ func (s *DecryptStream) Output(index uint32) *mixmessages.Slot {
 var DecryptElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*DecryptStream)
+		dssi, ok := streamInput.(decryptSubstreamInterface)
 		elgamal, ok2 := cryptop.(cryptops.ElGamalPrototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
+		ds := dssi.GetSubStream()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
 			// Execute elgamal on the keys for the Message
-			elgamal(s.Grp, s.R.Get(i), s.Y_R.Get(i), s.PublicCypherKey, s.KeysMsg.Get(i), s.CypherMsg.Get(i))
+			elgamal(ds.Grp, ds.R.Get(i), ds.Y_R.Get(i), ds.PublicCypherKey, ds.KeysMsg.Get(i), ds.CypherMsg.Get(i))
 
 			// Execute elgamal on the keys for the Associated Data
-			elgamal(s.Grp, s.U.Get(i), s.Y_U.Get(i), s.PublicCypherKey, s.KeysAD.Get(i), s.CypherAD.Get(i))
+			elgamal(ds.Grp, ds.U.Get(i), ds.Y_U.Get(i), ds.PublicCypherKey, ds.KeysAD.Get(i), ds.CypherAD.Get(i))
 		}
 		return nil
 	},
