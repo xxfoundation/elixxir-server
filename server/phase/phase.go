@@ -35,6 +35,8 @@ func New(g *services.Graph, name Type, tHandler Transmission, timeout time.Durat
 
 /*Setters */
 // SetRoundIDOnce sets the round ID.  Can only be called once.
+// Should only be called from Round package that initializes states
+// Must be called on all phases in their order in the round
 func (p *Phase) ConnectToRound(id id.Round, stateGroup *StateGroup) {
 	p.roundIDset.Do(func() {
 		p.roundID = id

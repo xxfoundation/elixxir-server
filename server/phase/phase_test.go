@@ -86,3 +86,64 @@ func TestPhase_GetType(t *testing.T) {
 		t.Error("Type was different")
 	}
 }
+
+// Other tests prove that the various fields that should be set or compared
+// are set or compared correctly
+func TestPhase_ReadyToReceiveData(t *testing.T) {
+	state := Initialized
+	p := Phase{state: (*uint32)(&state)}
+	if p.ReadyToReceiveData() {
+		t.Error("Initialized phase shouldn't be ready to receive")
+	}
+	state = Available
+	if !p.ReadyToReceiveData() {
+		t.Error("Available phase should be ready to receive")
+	}
+	state = Queued
+	if !p.ReadyToReceiveData() {
+		t.Error("Queued phase should be ready to receive")
+	}
+	state = Running
+	if !p.ReadyToReceiveData() {
+		t.Error("Running phase should be ready to receive")
+	}
+	state = Finished
+	if p.ReadyToReceiveData() {
+		t.Error("Finished phase should not be ready to receive")
+	}
+}
+
+func TestPhase_ConnectToRound(t *testing.T) {
+	g := NewStateGroup()
+    var p Phase
+
+	roundId := id.Round(55)
+	p.ConnectToRound(roundId, g)
+
+	// The Once shouldn't be allowed to run again
+	pass := true
+	p.roundIDset.Do(func() {
+        pass = false
+	})
+	if !pass {
+        t.Error("Round ID could be set again, because the Once hadn't" +
+        	" been run yet")
+	}
+
+	// The round ID should be set
+	if p.roundID != roundId {
+		t.Error("Round ID wasn't set correctly")
+	}
+
+	// The state group should be the one we passed, and the phase state should
+	// be Initialized
+	if g != p.stateGroup {
+        t.Error("State group wasn't set correctly")
+	}
+	if p.stateIndex != 0 {
+		t.Error("State index wasn't set as expected")
+	}
+	if p.GetState() != Initialized {
+		t.Error("State wasn't set to Initialized")
+	}
+}
