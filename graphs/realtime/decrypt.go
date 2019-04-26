@@ -42,30 +42,55 @@ func (s *DecryptStream) GetName() string {
 	return "RealtimeDecryptStream"
 }
 
-//Link creates the stream's internal buffers and
+//Link creates the stream's internal buffers and links to the round
 func (ds *DecryptStream) Link(batchSize uint32, source interface{}) {
 	round := source.(*node.RoundBuffer)
+
+	users := make([]*id.User, batchSize)
+
+	for i := uint32(0); i < batchSize; i++ {
+		users[i] = &id.User{}
+	}
+
+	ds.LinkRealtimeDecryptStream(batchSize, round,
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+		users, make([][]byte, batchSize))
+}
+
+//Connects the internal buffers in the stream to the passed
+func (ds *DecryptStream) LinkRealtimeDecryptStream(batchSize uint32, round *node.RoundBuffer,
+	ecrMsg, ecrAD, keysMsg, keysAD *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
 
 	ds.Grp = round.Grp
 
 	ds.R = round.R.GetSubBuffer(0, batchSize)
 	ds.U = round.U.GetSubBuffer(0, batchSize)
 
-	ds.EcrMsg = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.EcrAD = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.KeysMsg = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.KeysAD = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.Users = make([]*id.User, batchSize)
-	ds.Salts = make([][]byte, batchSize)
-
-	for i := uint32(0); i < batchSize; i++ {
-		ds.Users[i] = &id.User{}
-	}
+	ds.EcrMsg = ecrMsg
+	ds.EcrAD = ecrAD
+	ds.KeysMsg = keysMsg
+	ds.KeysAD = keysAD
+	ds.Users = users
+	ds.Salts = salts
 
 	ds.KeygenSubStream.LinkStream(ds.Grp, ds.Salts, ds.Users, ds.KeysMsg, ds.KeysAD)
 }
 
-func (ds *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+// PermuteStream conforms to this interface.
+type decryptSubStreamInterface interface {
+	getDecrypteSubStream() *DecryptStream
+}
+
+// getPermuteSubStream returns the sub-stream, used to return an embedded struct
+// off an interface.
+func (ds *DecryptStream) getDecrypteSubStream() *DecryptStream {
+	return ds
+}
+
+func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ds.EcrMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -96,8 +121,8 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 	return nil
 }
 
-func (ds *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
-	return &mixmessages.CmixSlot{
+func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{
 		SenderID:       (*ds.Users[index])[:],
 		Salt:           ds.Salts[index],
 		MessagePayload: ds.EcrMsg.Get(index).Bytes(),
@@ -109,18 +134,20 @@ func (ds *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
 var DecryptMul3 = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*DecryptStream)
+		dssi, ok := streamInput.(decryptSubStreamInterface)
 		mul3, ok2 := cryptop.(cryptops.Mul3Prototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
+		ds := dssi.getDecrypteSubStream()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			//Do mul3 ecrMessage=messageKey*R*ecrMessage%p
-			mul3(s.Grp, s.KeysMsg.Get(i), s.R.Get(i), s.EcrMsg.Get(i))
+			mul3(ds.Grp, ds.KeysMsg.Get(i), ds.R.Get(i), ds.EcrMsg.Get(i))
 			//Do mul3 ecrAD=ecrAD*U*ecrMessage%p
-			mul3(s.Grp, s.KeysAD.Get(i), s.U.Get(i), s.EcrAD.Get(i))
+			mul3(ds.Grp, ds.KeysAD.Get(i), ds.U.Get(i), ds.EcrAD.Get(i))
 		}
 		return nil
 	},

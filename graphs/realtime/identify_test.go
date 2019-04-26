@@ -96,7 +96,7 @@ func TestIdentifyStream_Input(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			MessagePayload: expected[0],
 			AssociatedData: expected[1],
 		}
@@ -142,7 +142,7 @@ func TestIdentifyStream_Input_OutOfBatch(t *testing.T) {
 
 	is.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}
@@ -184,7 +184,7 @@ func TestIdentifyStream_Input_OutOfGroup(t *testing.T) {
 
 	ps.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}

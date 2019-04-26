@@ -97,7 +97,7 @@ func TestDecryptStream_Input(t *testing.T) {
 			{byte(b + 1), 3},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			EncryptedMessageKeys:            expected[0],
 			EncryptedAssociatedDataKeys:     expected[1],
 			PartialMessageCypherText:        expected[2],
@@ -156,7 +156,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	ds.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		EncryptedMessageKeys:            []byte{0},
 		EncryptedAssociatedDataKeys:     []byte{0},
 		PartialMessageCypherText:        []byte{0},
@@ -199,7 +199,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	ds.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		EncryptedMessageKeys:            []byte{0},
 		EncryptedAssociatedDataKeys:     []byte{0},
 		PartialMessageCypherText:        []byte{0},
@@ -245,7 +245,7 @@ func TestDecryptStream_Output(t *testing.T) {
 			{byte(b + 1), 3},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			EncryptedMessageKeys:            expected[0],
 			EncryptedAssociatedDataKeys:     expected[1],
 			PartialMessageCypherText:        expected[2],

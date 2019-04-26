@@ -62,7 +62,7 @@ func (s *GenerateStream) Link(batchSize uint32, source interface{}) {
 }
 
 // Input function pulls things from the mixmessage
-func (s *GenerateStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(s.R.Len()) {
 		return node.ErrOutsideOfBatch
 	}
@@ -70,8 +70,8 @@ func (s *GenerateStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns an empty cMixSlot message
-func (s *GenerateStream) Output(index uint32) *mixmessages.CmixSlot {
-	return &mixmessages.CmixSlot{}
+func (s *GenerateStream) Output(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{}
 }
 
 // Generate does precomputation for implementing cryptops.Generate

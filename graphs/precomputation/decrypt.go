@@ -61,7 +61,7 @@ func (s *DecryptStream) Link(batchSize uint32, source interface{}) {
 }
 
 // Input initializes stream inputs from slot
-func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.KeysMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -80,9 +80,9 @@ func (s *DecryptStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a cmix slot message
-func (s *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *DecryptStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		EncryptedMessageKeys:            s.KeysMsg.Get(index).Bytes(),
 		EncryptedAssociatedDataKeys:     s.KeysAD.Get(index).Bytes(),
 		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),

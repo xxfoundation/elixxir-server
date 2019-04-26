@@ -79,7 +79,7 @@ func (ps *PermuteStream) getPermuteSubStream() *PermuteStream {
 }
 
 // Input initializes stream inputs from slot.
-func (ps *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(ps.EcrMsg.Len()) {
 		return node.ErrOutsideOfBatch
 	}
@@ -95,8 +95,8 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a message with the stream data.
-func (ps *PermuteStream) Output(index uint32) *mixmessages.CmixSlot {
-	return &mixmessages.CmixSlot{
+func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{
 		MessagePayload: ps.MsgPermuted[index].Bytes(),
 		AssociatedData: ps.ADPermuted[index].Bytes(),
 	}

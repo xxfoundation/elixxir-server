@@ -79,7 +79,7 @@ func TestGenerateStream_Input(t *testing.T) {
 	ds.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
-		msg := &mixmessages.CmixSlot{}
+		msg := &mixmessages.Slot{}
 
 		err := ds.Input(b, msg)
 		if err != nil {
@@ -97,7 +97,7 @@ func TestGenerateStream_Input(t *testing.T) {
 	checkStreamIntBuffer(grp, ds.U, round.U, "Y_U", t)
 	checkStreamIntBuffer(grp, ds.V, round.V, "Y_V", t)
 
-	msg := &mixmessages.CmixSlot{}
+	msg := &mixmessages.Slot{}
 	err := ds.Input(batchSize, msg)
 	if err == nil {
 		t.Errorf("GenerateStream.Input() didn't error on OOB slot!")
@@ -111,7 +111,7 @@ func TestGenerateStream_Output(t *testing.T) {
 	ds.Link(batchSize, round)
 
 	for b := uint32(0); b < batchSize; b++ {
-		msg := &mixmessages.CmixSlot{}
+		msg := &mixmessages.Slot{}
 		err := ds.Input(b, msg)
 		if err != nil {
 			t.Errorf("GenerateStream.Output() errored on slot %v: %s", b, err.Error())
