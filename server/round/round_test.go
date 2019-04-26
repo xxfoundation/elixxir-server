@@ -79,7 +79,7 @@ func TestNew(t *testing.T) {
 		t.Error("Phase list differed")
 	}
 	// Covers node address list and myLoc
-	if !reflect.DeepEqual(round.nodeAddressList, nodeAddressList) {
+	if !reflect.DeepEqual(round.GetNodeAddressList(), nodeAddressList) {
 		t.Error("Node address list differed")
 	}
 }

@@ -77,5 +77,5 @@ func (r *Round) GetCurrentPhase() phase.Type {
 }
 
 func (r *Round) GetNodeAddressList() *services.NodeAddressList {
-	return r.GetNodeAddressList()
+	return r.nodeAddressList
 }
