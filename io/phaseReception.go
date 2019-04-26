@@ -24,20 +24,20 @@ func ReceivePhase(instance *server.Instance, batch *mixmessages.Batch) error {
 
 	phaseType := phase.Type(uint32(batch.ForPhase))
 
-	phase := round.GetPhase(phaseType)
+	p := round.GetPhase(phaseType)
 
-	if !phase.ReadyToReceiveData() {
-		return errors.New(fmt.Sprintf("Phase %v of round %v is not ready to recieve", phase.GetType().String(), round.GetID()))
+	if !p.ReadyToReceiveData() {
+		return errors.New(fmt.Sprintf("Phase %v of round %v is not ready to recieve", p.GetType().String(), round.GetID()))
 	}
 
-	instance.GetResourceQueue().UpsertPhase(phase)
+	instance.GetResourceQueue().UpsertPhase(p)
 
 	for index, messages := range batch.Slots {
-		err := phase.GetGraph().GetStream().Input(uint32(index), messages)
+		err := p.GetGraph().GetStream().Input(uint32(index), messages)
 		if err != nil {
 			return err
 		}
-		phase.GetGraph().Send(services.NewChunk(uint32(index), uint32(index+1)))
+		p.GetGraph().Send(services.NewChunk(uint32(index), uint32(index+1)))
 	}
 
 	return nil
