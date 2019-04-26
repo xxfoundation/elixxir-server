@@ -99,7 +99,7 @@ func TestPermuteStream_Input(t *testing.T) {
 			{byte(b + 1), 3},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			EncryptedMessageKeys:            expected[0],
 			EncryptedAssociatedDataKeys:     expected[1],
 			PartialMessageCypherText:        expected[2],
@@ -158,7 +158,7 @@ func TestPermuteStream_Input_OutOfBatch(t *testing.T) {
 
 	stream.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		EncryptedMessageKeys:            []byte{0},
 		EncryptedAssociatedDataKeys:     []byte{0},
 		PartialMessageCypherText:        []byte{0},
@@ -201,7 +201,7 @@ func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 
 	stream.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		EncryptedMessageKeys:            []byte{0},
 		EncryptedAssociatedDataKeys:     []byte{0},
 		PartialMessageCypherText:        []byte{0},

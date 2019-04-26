@@ -96,7 +96,7 @@ func TestShareStream_Input(t *testing.T) {
 
 	ss.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialRoundPublicCypherKey: []byte{1},
 	}
 
@@ -124,7 +124,7 @@ func TestShareStream_Input_OutOfGroup(t *testing.T) {
 
 	ss.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialRoundPublicCypherKey: []byte{0},
 	}
 
@@ -160,7 +160,7 @@ func TestShareStream_Output(t *testing.T) {
 
 	expected := []byte{1}
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialRoundPublicCypherKey: expected,
 	}
 

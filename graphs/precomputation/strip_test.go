@@ -106,7 +106,7 @@ func TestStripStream_Input(t *testing.T) {
 			{byte(1)},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			PartialMessageCypherText:        expected[0],
 			PartialAssociatedDataCypherText: expected[1],
 		}
@@ -155,7 +155,7 @@ func TestStripStream_Input_OutOfBatch(t *testing.T) {
 
 	stream.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
 	}
@@ -185,7 +185,7 @@ func TestStripStream_Input_OutOfGroup(t *testing.T) {
 
 	stream.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        large.NewInt(89).Bytes(),
 		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
 	}
@@ -227,7 +227,7 @@ func TestStripStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			PartialMessageCypherText:        expected[0],
 			PartialAssociatedDataCypherText: expected[1],
 		}

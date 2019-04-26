@@ -103,7 +103,7 @@ func TestRevealtStream_Input(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			PartialMessageCypherText:        expected[0],
 			PartialAssociatedDataCypherText: expected[1],
 		}
@@ -150,7 +150,7 @@ func TestRevealStream_Input_OutOfBatch(t *testing.T) {
 
 	rs.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
 	}
@@ -180,7 +180,7 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 
 	rs.Link(batchSize, round)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        large.NewInt(89).Bytes(),
 		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
 	}
@@ -222,7 +222,7 @@ func TestRevealStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			PartialMessageCypherText:        expected[0],
 			PartialAssociatedDataCypherText: expected[1],
 		}

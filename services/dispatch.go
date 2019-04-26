@@ -8,6 +8,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 )
 
 var InvalidTypeAssert = errors.New("type assert failed")
@@ -29,6 +30,8 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 				err := m.Adapt(s, m.Cryptop, chunk)
 
 				if err != nil {
+					fmt.Println(m.Name)
+					fmt.Println(s.GetName())
 					go g.generator.errorHandler(err)
 				}
 

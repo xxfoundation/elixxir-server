@@ -55,7 +55,7 @@ func (s *RevealStream) LinkStream(batchSize uint32, round *node.RoundBuffer, Cyp
 }
 
 // Input initializes stream inputs from slot
-func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *RevealStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.CypherMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -71,9 +71,9 @@ func (s *RevealStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a cmix slot message
-func (s *RevealStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *RevealStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
 		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
 	}
@@ -87,7 +87,6 @@ type revealSubstreamInterface interface {
 func (s *RevealStream) getSubStream() *RevealStream {
 	return s
 }
-
 
 // RevealRootCoprime is a module in precomputation reveeal implementing cryptops.RootCoprimePrototype
 var RevealRootCoprime = services.Module{

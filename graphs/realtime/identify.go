@@ -79,7 +79,7 @@ func (is *IdentifyStream) getIdentifyStream() *IdentifyStream {
 }
 
 // Input initializes stream inputs from slot.
-func (is *IdentifyStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(is.EcrMsg.Len()) {
 		return node.ErrOutsideOfBatch
 	}
@@ -95,8 +95,8 @@ func (is *IdentifyStream) Input(index uint32, slot *mixmessages.CmixSlot) error 
 }
 
 // Output returns a message with the stream data.
-func (is *IdentifyStream) Output(index uint32) *mixmessages.CmixSlot {
-	return &mixmessages.CmixSlot{
+func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{
 		MessagePayload: is.EcrMsgPermuted[index].Bytes(),
 		AssociatedData: is.EcrADPermuted[index].Bytes(),
 	}

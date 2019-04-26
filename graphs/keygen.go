@@ -38,14 +38,14 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
 }
 
 //Returns the substream, used to return an embedded struct off an interface
-func (k *KeygenSubStream) getSubStream() *KeygenSubStream {
+func (k *KeygenSubStream) GetSubStream() *KeygenSubStream {
 	return k
 }
 
 // *KeygenSubStream conforms to this interface, so pass the embedded substream
 // struct to this module when you're using it
 type keygenSubStreamInterface interface {
-	getSubStream() *KeygenSubStream
+	GetSubStream() *KeygenSubStream
 }
 
 var Keygen = services.Module{
@@ -58,7 +58,7 @@ var Keygen = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		kss := streamInterface.getSubStream()
+		kss := streamInterface.GetSubStream()
 
 		hash, err := blake2b.New256(nil)
 
@@ -74,21 +74,20 @@ var Keygen = services.Module{
 			//fixme: figure out why this only works when using a temp variable
 			tmp := kss.grp.NewInt(1)
 			keygen(kss.grp, kss.salts[i], user.BaseKey, tmp)
-			kss.grp.Set(kss.keysA.Get(i),tmp)
-
+			kss.grp.Set(kss.keysA.Get(i), tmp)
 
 			hash.Reset()
 			hash.Write(kss.salts[i])
 
 			keygen(kss.grp, hash.Sum(nil), user.BaseKey, tmp)
-			kss.grp.Set(kss.keysB.Get(i),tmp)
+			kss.grp.Set(kss.keysB.Get(i), tmp)
 
 		}
 
 		return nil
 	},
-	Cryptop:        cryptops.Keygen,
-	InputSize:      services.AUTO_INPUTSIZE,
-	Name:           "Keygen",
-	NumThreads:     services.AUTO_NUMTHREADS,
+	Cryptop:    cryptops.Keygen,
+	InputSize:  services.AUTO_INPUTSIZE,
+	Name:       "Keygen",
+	NumThreads: services.AUTO_NUMTHREADS,
 }

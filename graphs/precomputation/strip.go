@@ -54,7 +54,7 @@ func (s *StripStream) Link(batchSize uint32, source interface{}) {
 }
 
 // Input initializes stream inputs from slot
-func (s *StripStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.CypherMsg.Len()) {
 		return node.ErrOutsideOfBatch
@@ -71,9 +71,9 @@ func (s *StripStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a cmix slot message
-func (s *StripStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *StripStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
 		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
 	}

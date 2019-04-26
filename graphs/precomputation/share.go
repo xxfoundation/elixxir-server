@@ -41,7 +41,7 @@ func (s *ShareStream) Link(batchSize uint32, source interface{}) {
 }
 
 // Input initializes stream inputs from slot
-func (s *ShareStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if !s.Grp.BytesInside(slot.PartialRoundPublicCypherKey) {
 		return node.ErrOutsideOfGroup
@@ -52,9 +52,9 @@ func (s *ShareStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns a cmix slot message
-func (s *ShareStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *ShareStream) Output(index uint32) *mixmessages.Slot {
 
-	return &mixmessages.CmixSlot{
+	return &mixmessages.Slot{
 		PartialRoundPublicCypherKey: s.PartialPublicCypherKey.Bytes(),
 	}
 }
