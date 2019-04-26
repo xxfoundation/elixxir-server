@@ -6,19 +6,19 @@ import "testing"
 func TestFingerprint_Cmp(t *testing.T) {
 	// f1 should only be equal to f4
 	f1 := Fingerprint{
-		phase: REAL_DECRYPT,
+		tYpe: REAL_DECRYPT,
 		round: 20,
 	}
 	f2 := Fingerprint{
-		phase: REAL_IDENTIFY,
+		tYpe: REAL_IDENTIFY,
 		round: 20,
 	}
 	f3 := Fingerprint{
-		phase: REAL_DECRYPT,
+		tYpe: REAL_DECRYPT,
 		round: 21,
 	}
 	f4 := Fingerprint{
-		phase: REAL_DECRYPT,
+		tYpe: REAL_DECRYPT,
 		round: 20,
 	}
 
@@ -35,7 +35,7 @@ func TestFingerprint_Cmp(t *testing.T) {
 
 func TestFingerprint_String(t *testing.T) {
 	fingerprint := Fingerprint{
-		phase: PRECOMP_PERMUTE,
+		tYpe: PRECOMP_PERMUTE,
 		round: 8,
 	}
 	fingerprintString := fingerprint.String()

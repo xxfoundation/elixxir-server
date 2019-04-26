@@ -6,16 +6,17 @@ import (
 )
 
 type Fingerprint struct {
-	phase Type
+	tYpe Type
 	round id.Round
 }
 
 //Cmp returns true if the fingerprints are the same, false if they are different
 func (f Fingerprint) Cmp(f2 Fingerprint) bool {
-	return f.round == f2.round && f.phase == f2.phase
+	return f.round == f2.round && f.tYpe == f2.tYpe
 }
 
 //String adheres to the Stringer Interface
 func (f Fingerprint) String() string {
-	return fmt.Sprintf("phase.Fingerprint{RoundID: %v, Phase: %v}", f.round, f.phase.String())
+	return fmt.Sprintf("phase.Fingerprint{RoundID: %v, Phase: %v}", f.round,
+		f.tYpe.String())
 }
