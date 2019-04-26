@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
@@ -75,15 +76,21 @@ func (p *Phase) GetTimeout() time.Duration {
 }
 
 /*Utility*/
+// Cmp checks if two phases are the same
+func (p *Phase) Cmp(p2 *Phase) bool {
+	return p.roundID == p2.roundID && p.tYpe == p2.tYpe
+}
+
+//String adheres to the string interface
+func (p *Phase) String() string {
+	return fmt.Sprintf("phase.Phase{roundID: %v, phaseType: %s}",
+		p.roundID, p.tYpe)
+}
+
 // ReadyToReceiveData returns true if the phase can receive data
 func (p *Phase) ReadyToReceiveData() bool {
 	phaseState := p.GetState()
 	return phaseState == Available || phaseState == Queued || phaseState == Running
-}
-
-// GetFingerprint returns a phase fingerprint which is used to compare phases
-func (p *Phase) GetFingerprint() Fingerprint {
-	return Fingerprint{p.tYpe, p.roundID}
 }
 
 // IncrementPhaseToQueued transitions Phase from Available to Queued
