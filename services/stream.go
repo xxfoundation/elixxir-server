@@ -13,7 +13,7 @@ import (
 
 type Stream interface {
 	GetName() string
-	Link(grp *cyclic.Group, BatchSize uint32, source interface{})
+	Link(grp *cyclic.Group, BatchSize uint32, source ...interface{})
 	Input(index uint32, slot *mixmessages.Slot) error
 	Output(index uint32) *mixmessages.Slot
 }

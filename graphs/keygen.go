@@ -42,14 +42,14 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
 }
 
 //Returns the substream, used to return an embedded struct off an interface
-func (k *KeygenSubStream) getSubStream() *KeygenSubStream {
+func (k *KeygenSubStream) GetSubStream() *KeygenSubStream {
 	return k
 }
 
 // *KeygenSubStream conforms to this interface, so pass the embedded substream
 // struct to this module when you're using it
 type keygenSubStreamInterface interface {
-	getSubStream() *KeygenSubStream
+	GetSubStream() *KeygenSubStream
 }
 
 var Keygen = services.Module{
@@ -62,7 +62,7 @@ var Keygen = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		kss := streamInterface.getSubStream()
+		kss := streamInterface.GetSubStream()
 
 		hash, err := blake2b.New256(nil)
 

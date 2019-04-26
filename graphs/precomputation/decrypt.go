@@ -44,8 +44,8 @@ func (ds *DecryptStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
-	roundBuffer := source.(*round.Buffer)
+func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
 	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),

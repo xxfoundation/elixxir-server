@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -44,29 +45,52 @@ func (s *DecryptStream) GetName() string {
 }
 
 //Link creates the stream's internal buffers and
-func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
-	interfaceSlice := source.([]interface{})
+func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuf := source[0].(*round.Buffer)
+	userRegistry := source[1].(*server.Instance).GetUserRegistry()
+	users := make([]*id.User, batchSize)
 
-	roundBuf := interfaceSlice[0].(*round.Buffer)
-	userRegistry := interfaceSlice[1].(globals.UserRegistry)
+	for i := uint32(0); i < batchSize; i++ {
+		users[i] = &id.User{}
+	}
+
+	ds.LinkRealtimeDecryptStream(grp, batchSize,
+		roundBuf, userRegistry,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		users, make([][]byte, batchSize))
+}
+
+//Connects the internal buffers in the stream to the passed
+func (ds *DecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
+	userRegistry globals.UserRegistry, ecrMsg, ecrAD, keysMsg, keysAD *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
 
 	ds.Grp = grp
 
-	ds.R = roundBuf.R.GetSubBuffer(0, batchSize)
-	ds.U = roundBuf.U.GetSubBuffer(0, batchSize)
+	ds.R = round.R.GetSubBuffer(0, batchSize)
+	ds.U = round.U.GetSubBuffer(0, batchSize)
 
-	ds.EcrMsg = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.EcrAD = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.KeysMsg = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.KeysAD = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
-	ds.Users = make([]*id.User, batchSize)
-	ds.Salts = make([][]byte, batchSize)
-
-	for i := uint32(0); i < batchSize; i++ {
-		ds.Users[i] = &id.User{}
-	}
+	ds.EcrMsg = ecrMsg
+	ds.EcrAD = ecrAD
+	ds.KeysMsg = keysMsg
+	ds.KeysAD = keysAD
+	ds.Users = users
+	ds.Salts = salts
 
 	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.Users, ds.KeysMsg, ds.KeysAD)
+}
+
+// PermuteStream conforms to this interface.
+type decryptSubStreamInterface interface {
+	getDecrypteSubStream() *DecryptStream
+}
+
+// getPermuteSubStream returns the sub-stream, used to return an embedded struct
+// off an interface.
+func (ds *DecryptStream) getDecrypteSubStream() *DecryptStream {
+	return ds
 }
 
 func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
@@ -113,18 +137,20 @@ func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 var DecryptMul3 = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*DecryptStream)
+		dssi, ok := streamInput.(decryptSubStreamInterface)
 		mul3, ok2 := cryptop.(cryptops.Mul3Prototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
+		ds := dssi.getDecrypteSubStream()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			//Do mul3 ecrMessage=messageKey*R*ecrMessage%p
-			mul3(s.Grp, s.KeysMsg.Get(i), s.R.Get(i), s.EcrMsg.Get(i))
+			mul3(ds.Grp, ds.KeysMsg.Get(i), ds.R.Get(i), ds.EcrMsg.Get(i))
 			//Do mul3 ecrAD=ecrAD*U*ecrMessage%p
-			mul3(s.Grp, s.KeysAD.Get(i), s.U.Get(i), s.EcrAD.Get(i))
+			mul3(ds.Grp, ds.KeysAD.Get(i), ds.U.Get(i), ds.EcrAD.Get(i))
 		}
 		return nil
 	},

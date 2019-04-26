@@ -62,11 +62,7 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	stream.Link(grp, batchSize, interfaceSlice)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	checkIntBuffer(stream.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
@@ -119,11 +115,7 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	stream.Link(grp, batchSize, interfaceSlice)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -191,11 +183,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	stream.Link(grp, batchSize, interfaceSlice)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
@@ -241,11 +229,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	stream.Link(grp, batchSize, interfaceSlice)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	val := large.NewIntFromString(primeString, 16)
 	val = val.Mul(val, val)
@@ -287,11 +271,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	stream.Link(grp, batchSize, interfaceSlice)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	msg := &mixmessages.Slot{
 		SenderID:       []byte{1, 2},
@@ -345,11 +325,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	stream.Link(grp, batchSize, interfaceSlice)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	msg := &mixmessages.Slot{
 		SenderID:       id.NewUserFromUint(0, t).Bytes(),
@@ -404,11 +380,7 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	stream.Link(grp, batchSize, interfaceSlice)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -544,11 +516,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	}
 
-	var interfaceSlice = make([]interface{}, 2)
-	interfaceSlice[0] = roundBuffer
-	interfaceSlice[1] = registry
-
-	g.Link(grp, interfaceSlice)
+	g.Link(grp, roundBuffer, instance)
 
 	stream := g.GetStream().(*DecryptStream)
 
@@ -623,7 +591,6 @@ func TestDecryptStreamInGraph(t *testing.T) {
 				t.Error(fmt.Sprintf("RealtimeDecrypt: Ecr AD not equal on slot %v expected %v received %v",
 					i, expectedAD.Get(i).Text(16), stream.EcrAD.Get(i).Text(16)))
 			}
-
 		}
 	}
 }

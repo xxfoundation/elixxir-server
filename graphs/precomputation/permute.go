@@ -48,8 +48,8 @@ func (s *PermuteStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
-	roundBuffer := source.(*round.Buffer)
+func (s *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
 	s.Grp = grp
 	s.PublicCypherKey = roundBuffer.CypherPublicKey

@@ -37,8 +37,8 @@ func (s *RevealStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
-	roundBuffer := source.(*round.Buffer)
+func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
 	s.LinkStream(grp, batchSize, roundBuffer, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 }

@@ -37,8 +37,8 @@ func (is *IdentifyStream) GetName() string {
 }
 
 // Link binds stream data to state objects in round.
-func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
-	roundBuffer := source.(*round.Buffer)
+func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
 	is.LinkIdentifyStreams(grp, batchSize, roundBuffer,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),

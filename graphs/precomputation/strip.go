@@ -40,8 +40,8 @@ func (s *StripStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *StripStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
-	roundBuffer := source.(*round.Buffer)
+func (s *StripStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
 	s.Grp = grp
 
