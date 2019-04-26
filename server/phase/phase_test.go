@@ -115,7 +115,7 @@ func TestPhase_ReadyToReceiveData(t *testing.T) {
 
 func TestPhase_ConnectToRound(t *testing.T) {
 	g := NewStateGroup()
-    var p Phase
+	var p Phase
 
 	roundId := id.Round(55)
 	p.ConnectToRound(roundId, g)
@@ -123,11 +123,11 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	// The Once shouldn't be allowed to run again
 	pass := true
 	p.roundIDset.Do(func() {
-        pass = false
+		pass = false
 	})
 	if !pass {
-        t.Error("Round ID could be set again, because the Once hadn't" +
-        	" been run yet")
+		t.Error("Round ID could be set again, because the Once hadn't" +
+			" been run yet")
 	}
 
 	// The round ID should be set
@@ -138,12 +138,43 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	// The state group should be the one we passed, and the phase state should
 	// be Initialized
 	if g != p.stateGroup {
-        t.Error("State group wasn't set correctly")
+		t.Error("State group wasn't set correctly")
 	}
 	if p.stateIndex != 0 {
 		t.Error("State index wasn't set as expected")
 	}
 	if p.GetState() != Initialized {
 		t.Error("State wasn't set to Initialized")
+	}
+}
+
+// We can't use real graphs from realtime or precomputation phases, because
+// they import Round and that causes an import cycle.
+func initMockGraph(gg services.GraphGenerator) *services.Graph {
+	return gg.NewGraph("MockGraph", nil)
+}
+
+func TestNew(t *testing.T) {
+	timeout := 50 * time.Second
+	// Testing whether the graph error handler is reachable is outside of the
+	// scope of this test
+	g := initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1))
+	pass := false
+	phase := New(g, REAL_PERMUTE, func(phase *Phase,
+		nal *services.NodeAddressList, getSlot GetChunk, getMessage GetMessage) {
+		pass = true
+	}, timeout)
+	phase.GetTransmissionHandler()(nil, nil, nil, nil)
+	if !pass {
+		t.Error("Transmission handler was unreachable from Phase")
+	}
+	if phase.GetGraph() != g {
+		t.Error("Graph wasn't set")
+	}
+	if phase.GetType() != REAL_PERMUTE {
+		t.Error("Type wasn't set")
+	}
+	if phase.GetTimeout() != timeout {
+		t.Error("Timeout wasn't set")
 	}
 }
