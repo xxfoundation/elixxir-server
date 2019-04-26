@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
@@ -90,7 +89,7 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	// any user we pass into the stream will cause an error
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	var stream KeygenTestStream
-	stream.Link(grp, 1, &instance)
+	stream.Link(grp, 1, instance)
 	stream.users[0] = id.ZeroID
 	stream.salts[0] = []byte("cesium chloride")
 	err = Keygen.Adapt(&stream, MockKeygenOp, services.NewChunk(0, 1))
@@ -166,7 +165,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		panic(fmt.Sprintf("Keygen: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 1.0)
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -176,8 +175,8 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	g.Last(mod)
 	//Keygen.NumThreads = 1
 	g.Build(batchSize)
-	rb := round.NewBuffer(grp, batchSize, batchSize)
-	g.Link(grp, rb)
+	//rb := round.NewBuffer(grp, batchSize, batchSize)
+	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {

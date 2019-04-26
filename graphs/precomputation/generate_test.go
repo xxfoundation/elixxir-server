@@ -141,7 +141,7 @@ func TestGenerateGraph(t *testing.T) {
 		return
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 0)
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
 
 	//Initialize graph
 	g := graphInit(gc)

@@ -55,9 +55,18 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
+
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer)
+	var interfaceSlice = make([]interface{}, 2)
+	interfaceSlice[0] = roundBuffer
+	interfaceSlice[1] = registry
+
+	stream.Link(grp, batchSize, interfaceSlice)
 
 	checkIntBuffer(stream.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
@@ -103,9 +112,18 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	stream := &DecryptStream{}
 
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
+
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer)
+	var interfaceSlice = make([]interface{}, 2)
+	interfaceSlice[0] = roundBuffer
+	interfaceSlice[1] = registry
+
+	stream.Link(grp, batchSize, interfaceSlice)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -166,9 +184,18 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	stream := &DecryptStream{}
 
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
+
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer)
+	var interfaceSlice = make([]interface{}, 2)
+	interfaceSlice[0] = roundBuffer
+	interfaceSlice[1] = registry
+
+	stream.Link(grp, batchSize, interfaceSlice)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
@@ -196,9 +223,18 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	stream := &DecryptStream{}
 
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
+
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer)
+	var interfaceSlice = make([]interface{}, 2)
+	interfaceSlice[0] = roundBuffer
+	interfaceSlice[1] = registry
+
+	stream.Link(grp, batchSize, interfaceSlice)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: large.NewInt(89).Bytes(),
