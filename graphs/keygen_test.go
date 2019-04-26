@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
@@ -36,9 +35,8 @@ func (*KeygenTestStream) GetName() string {
 	return "KeygenTestStream"
 }
 
-func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
+func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
 	instance := source.(*server.Instance)
-	grp := instance.GetGroup()
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
@@ -51,11 +49,11 @@ func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
 }
 
 func (s *KeygenTestStream) Input(index uint32,
-	msg *mixmessages.CmixSlot) error {
+	msg *mixmessages.Slot) error {
 	return nil
 }
 
-func (s *KeygenTestStream) Output(index uint32) *mixmessages.CmixSlot {
+func (s *KeygenTestStream) Output(index uint32) *mixmessages.Slot {
 	return nil
 }
 
@@ -91,7 +89,7 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	// any user we pass into the stream will cause an error
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	var stream KeygenTestStream
-	stream.Link(1, &instance)
+	stream.Link(grp, 1, instance)
 	stream.users[0] = id.ZeroID
 	stream.salts[0] = []byte("cesium chloride")
 	err = Keygen.Adapt(&stream, MockKeygenOp, services.NewChunk(0, 1))
@@ -133,9 +131,9 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
-	globals.Users = &globals.UserMap{}
-	u := globals.Users.NewUser(grp)
-	globals.Users.UpsertUser(u)
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
@@ -167,7 +165,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		panic(fmt.Sprintf("Keygen: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -176,8 +174,9 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
-	g.Link(&node.RoundBuffer{Grp: grp})
+	g.Build(batchSize)
+	//rb := round.NewBuffer(grp, batchSize, batchSize)
+	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
@@ -227,4 +226,20 @@ func TestKeygenStreamInGraph(t *testing.T) {
 			}
 		}
 	}
+}
+
+func initKeyGenGraphGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
 }

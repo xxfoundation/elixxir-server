@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
@@ -52,9 +53,9 @@ func TestIdentifyStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	round := round.NewBuffer(grp, batchSize, batchSize)
 
-	is.Link(batchSize, round)
+	is.Link(grp, batchSize, round)
 
 	checkIntBuffer(is.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
 	checkIntBuffer(is.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
@@ -85,9 +86,9 @@ func TestIdentifyStream_Input(t *testing.T) {
 
 	is := &IdentifyStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	is.Link(batchSize, round)
+	is.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -96,7 +97,7 @@ func TestIdentifyStream_Input(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.CmixSlot{
+		msg := &mixmessages.Slot{
 			MessagePayload: expected[0],
 			AssociatedData: expected[1],
 		}
@@ -138,11 +139,11 @@ func TestIdentifyStream_Input_OutOfBatch(t *testing.T) {
 
 	is := &IdentifyStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	is.Link(batchSize, round)
+	is.Link(grp, batchSize, roundBuffer)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}
@@ -178,18 +179,18 @@ func TestIdentifyStream_Input_OutOfGroup(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &IdentifyStream{}
+	stream := &IdentifyStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	msg := &mixmessages.CmixSlot{
+	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}
 
-	err := ps.Input(batchSize-10, msg)
+	err := stream.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
 		t.Errorf("IdentifyStream.Input() did not return an error when out of group")
@@ -216,9 +217,9 @@ func TestIdentifyStream_Output(t *testing.T) {
 
 	is := &IdentifyStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	is.Link(batchSize, round)
+	is.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -248,7 +249,7 @@ func TestIdentifyStream_Output(t *testing.T) {
 func TestIdentifyStream_CommsInterface(t *testing.T) {
 	var face interface{}
 	face = &IdentifyStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
 		t.Errorf("IdentifyStream: Does not conform to the CommsStream interface")
@@ -277,27 +278,27 @@ func TestIdentifyStream_InGraph(t *testing.T) {
 		return
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	g := InitIdentifyGraph(gc)
 
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
+	g.Build(batchSize)
 
 	var done *uint32
 	done = new(uint32)
 	*done = 0
 
-	round := node.NewRound(grp, 0, batchSize, g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, batchSize, g.GetExpandedBatchSize())
 
-	subPermutation := round.Permutations[:batchSize]
+	subPermutation := roundBuffer.Permutations[:batchSize]
 
 	shuffle.Shuffle32(&subPermutation)
 
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	permuteInverse := make([]uint32, g.GetExpandedBatchSize())
 	for i := uint32(0); i < uint32(len(permuteInverse)); i++ {
-		permuteInverse[round.Permutations[i]] = i
+		permuteInverse[roundBuffer.Permutations[i]] = i
 	}
 
 	is := g.GetStream().(*IdentifyStream)

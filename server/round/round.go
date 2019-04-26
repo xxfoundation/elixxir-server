@@ -41,7 +41,7 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 	round.buffer = NewBuffer(grp, batchSize, maxBatchSize)
 
 	for index, p := range phases {
-		p.GetGraph().Link(&round)
+		p.GetGraph().Link(grp, &round)
 		round.phaseMap[p.GetType()] = index
 	}
 

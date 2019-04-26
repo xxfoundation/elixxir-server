@@ -44,16 +44,16 @@ func (s *DecryptStream) GetName() string {
 }
 
 //Link creates the stream's internal buffers and
-func (ds *DecryptStream) Link(batchSize uint32, source interface{}) {
+func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
 	interfaceSlice := source.([]interface{})
 
 	roundBuf := interfaceSlice[0].(*round.Buffer)
 	userRegistry := interfaceSlice[1].(globals.UserRegistry)
 
-	ds.Grp = r.Grp
+	ds.Grp = grp
 
-	ds.R = round.R.GetSubBuffer(0, batchSize)
-	ds.U = round.U.GetSubBuffer(0, batchSize)
+	ds.R = roundBuf.R.GetSubBuffer(0, batchSize)
+	ds.U = roundBuf.U.GetSubBuffer(0, batchSize)
 
 	ds.EcrMsg = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
 	ds.EcrAD = ds.Grp.NewIntBuffer(batchSize, ds.Grp.NewInt(1))
@@ -100,8 +100,8 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-func (ds *DecryptStream) Output(index uint32) *mixmessages.CmixSlot {
-	return &mixmessages.CmixSlot{
+func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{
 		SenderID:       (*ds.Users[index])[:],
 		Salt:           ds.Salts[index],
 		MessagePayload: ds.EcrMsg.Get(index).Bytes(),

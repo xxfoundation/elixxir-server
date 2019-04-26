@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
+// Copyright © 2019 Privategrity Corporation                                   /
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -43,26 +44,26 @@ func (s *GenerateStream) GetName() string {
 }
 
 // Link maps the round data to the Generate Stream data structure (the input)
-func (s *GenerateStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source interface{}) {
+	roundBuffer := source.(*round.Buffer)
 
-	s.Grp = round.Grp
+	s.Grp = grp
 
 	// Phase keys
-	s.R = round.R.GetSubBuffer(0, batchSize)
-	s.S = round.S.GetSubBuffer(0, batchSize)
-	s.U = round.U.GetSubBuffer(0, batchSize)
-	s.V = round.V.GetSubBuffer(0, batchSize)
+	s.R = roundBuffer.R.GetSubBuffer(0, batchSize)
+	s.S = roundBuffer.S.GetSubBuffer(0, batchSize)
+	s.U = roundBuffer.U.GetSubBuffer(0, batchSize)
+	s.V = roundBuffer.V.GetSubBuffer(0, batchSize)
 
 	// Share keys
-	s.YR = round.Y_R.GetSubBuffer(0, batchSize)
-	s.YS = round.Y_S.GetSubBuffer(0, batchSize)
-	s.YU = round.Y_U.GetSubBuffer(0, batchSize)
-	s.YV = round.Y_V.GetSubBuffer(0, batchSize)
+	s.YR = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
+	s.YS = roundBuffer.Y_S.GetSubBuffer(0, batchSize)
+	s.YU = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
+	s.YV = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 }
 
 // Input function pulls things from the mixmessage
-func (s *GenerateStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
+func (s *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(s.R.Len()) {
 		return node.ErrOutsideOfBatch
 	}
@@ -70,8 +71,8 @@ func (s *GenerateStream) Input(index uint32, slot *mixmessages.CmixSlot) error {
 }
 
 // Output returns an empty cMixSlot message
-func (s *GenerateStream) Output(index uint32) *mixmessages.CmixSlot {
-	return &mixmessages.CmixSlot{}
+func (s *GenerateStream) Output(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{}
 }
 
 // Generate does precomputation for implementing cryptops.Generate

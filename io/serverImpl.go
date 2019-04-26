@@ -6,14 +6,9 @@
 
 package io
 
-import (
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/server/server"
-)
-
-func NewServerImplementation(instance *server.Instance) *node.Implementation {
-	impl := node.NewImplementation()
-	impl.Phase = func(batch *mixmessages.CmixBatch) { ReceivePhase(instance, batch) }
-	return impl
-}
+//
+//func NewServerImplementation(instance *server.Instance) *node.Implementation {
+//	impl := node.NewImplementation()
+//	impl.Phase = func(batch *mixmessages.Batch) { ReceivePhase(instance, batch) }
+//	return impl
+//}

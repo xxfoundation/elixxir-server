@@ -7,6 +7,7 @@
 package services
 
 import (
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"math"
 	"sync/atomic"
@@ -51,11 +52,6 @@ type Graph struct {
 func (g *Graph) Build(batchSize uint32) {
 	//Checks graph is properly formatted
 	g.checkGraph()
-
-	//check output parameters
-	if g.outputSize == AUTO_OUTPUTSIZE {
-		g.outputSize = g.generator.minInputSize
-	}
 
 	//Find expanded batch size
 	var integers []uint32
@@ -154,8 +150,8 @@ func (g *Graph) Connect(a, b *Module) {
 	b.inputModules = append(b.inputModules, a)
 }
 
-func (g *Graph) Link(source interface{}) {
-	g.stream.Link(g.expandBatchSize, source)
+func (g *Graph) Link(grp *cyclic.Group, source interface{}) {
+	g.stream.Link(grp, g.expandBatchSize, source)
 	g.linked = true
 }
 
