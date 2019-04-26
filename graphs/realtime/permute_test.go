@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
@@ -48,19 +49,19 @@ func TestPermuteStream_Link(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
 
-	ps := PermuteStream{}
+	stream := PermuteStream{}
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	buffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	stream.Link(grp, batchSize, buffer)
 
-	checkStreamIntBuffer(grp, ps.S, round.S, "S", t)
-	checkStreamIntBuffer(grp, ps.V, round.V, "V", t)
+	checkStreamIntBuffer(grp, stream.S, buffer.S, "S", t)
+	checkStreamIntBuffer(grp, stream.V, buffer.V, "V", t)
 
-	checkIntBuffer(ps.EcrMsg, batchSize, "Msg", grp.NewInt(1), t)
-	checkIntBuffer(ps.EcrAD, batchSize, "AD", grp.NewInt(1), t)
+	checkIntBuffer(stream.EcrMsg, batchSize, "Msg", grp.NewInt(1), t)
+	checkIntBuffer(stream.EcrAD, batchSize, "AD", grp.NewInt(1), t)
 }
 
 // Tests Input's happy path.
@@ -83,9 +84,9 @@ func TestPermuteStream_Input(t *testing.T) {
 
 	ps := &PermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	buffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	ps.Link(grp, batchSize, buffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -134,31 +135,31 @@ func TestPermuteStream_Input_OutOfBatch(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &PermuteStream{}
+	stream := &PermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}
 
-	err := ps.Input(batchSize, msg)
+	err := stream.Input(batchSize, msg)
 
 	if err == nil {
 		t.Errorf("PermuteStream.Input() did nto return an error when out of batch")
 	}
 
-	err1 := ps.Input(batchSize+1, msg)
+	err1 := stream.Input(batchSize+1, msg)
 
 	if err1 == nil {
 		t.Errorf("PermuteStream.Input() did nto return an error when out of batch")
 	}
 }
 
-//Tests that Input errors correct when the passed value is out of the group
+// Tests that Input errors correct when the passed value is out of the group
 func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -176,18 +177,18 @@ func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &PermuteStream{}
+	stream := &PermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	buffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	stream.Link(grp, batchSize, buffer)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}
 
-	err := ps.Input(batchSize-10, msg)
+	err := stream.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
 		t.Errorf("PermuteStream.Input() did not return an error when out of group")
@@ -212,11 +213,11 @@ func TestPermuteStream_Output(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	ps := &PermuteStream{}
+	stream := &PermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	ps.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -225,10 +226,10 @@ func TestPermuteStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		ps.MsgPermuted[b] = grp.NewIntFromBytes(expected[0])
-		ps.ADPermuted[b] = grp.NewIntFromBytes(expected[1])
+		stream.MsgPermuted[b] = grp.NewIntFromBytes(expected[0])
+		stream.ADPermuted[b] = grp.NewIntFromBytes(expected[1])
 
-		output := ps.Output(b)
+		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.MessagePayload, expected[0]) {
 			t.Errorf("PermuteStream.Output() incorrect recieved MessagePayload data at %v: Expected: %v, Recieved: %v",
@@ -246,7 +247,7 @@ func TestPermuteStream_Output(t *testing.T) {
 func TestPermuteStream_CommsInterface(t *testing.T) {
 	var face interface{}
 	face = &PermuteStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
 		t.Errorf("PermuteStream: Does not conform to the CommsStream interface")
@@ -254,7 +255,8 @@ func TestPermuteStream_CommsInterface(t *testing.T) {
 }
 
 func TestPermuteStream_InGraph(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+	primeString :=
+		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
 		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
@@ -275,27 +277,27 @@ func TestPermuteStream_InGraph(t *testing.T) {
 		return
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	g := InitPermuteGraph(gc)
 
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
+	g.Build(batchSize)
 
 	var done *uint32
 	done = new(uint32)
 	*done = 0
 
-	round := node.NewRound(grp, 0, batchSize, g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, batchSize, g.GetExpandedBatchSize())
 
-	subPermutation := round.Permutations[:batchSize]
+	subPermutation := roundBuffer.Permutations[:batchSize]
 
 	shuffle.Shuffle32(&subPermutation)
 
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	permuteInverse := make([]uint32, g.GetExpandedBatchSize())
 	for i := uint32(0); i < uint32(len(permuteInverse)); i++ {
-		permuteInverse[round.Permutations[i]] = i
+		permuteInverse[roundBuffer.Permutations[i]] = i
 	}
 
 	ps := g.GetStream().(*PermuteStream)

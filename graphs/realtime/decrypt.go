@@ -14,6 +14,8 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -42,29 +44,30 @@ func (s *DecryptStream) GetName() string {
 	return "RealtimeDecryptStream"
 }
 
-//Link creates the stream's internal buffers and links to the round
-func (ds *DecryptStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
-
+//Link creates the stream's internal buffers and
+func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuf := source[0].(*round.Buffer)
+	userRegistry := source[1].(*server.Instance).GetUserRegistry()
 	users := make([]*id.User, batchSize)
 
 	for i := uint32(0); i < batchSize; i++ {
 		users[i] = &id.User{}
 	}
 
-	ds.LinkRealtimeDecryptStream(batchSize, round,
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+	ds.LinkRealtimeDecryptStream(grp, batchSize,
+		roundBuf, userRegistry,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		users, make([][]byte, batchSize))
 }
 
 //Connects the internal buffers in the stream to the passed
-func (ds *DecryptStream) LinkRealtimeDecryptStream(batchSize uint32, round *node.RoundBuffer,
-	ecrMsg, ecrAD, keysMsg, keysAD *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
+func (ds *DecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
+	userRegistry globals.UserRegistry, ecrMsg, ecrAD, keysMsg, keysAD *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
 
-	ds.Grp = round.Grp
+	ds.Grp = grp
 
 	ds.R = round.R.GetSubBuffer(0, batchSize)
 	ds.U = round.U.GetSubBuffer(0, batchSize)
@@ -76,7 +79,7 @@ func (ds *DecryptStream) LinkRealtimeDecryptStream(batchSize uint32, round *node
 	ds.Users = users
 	ds.Salts = salts
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, ds.Salts, ds.Users, ds.KeysMsg, ds.KeysAD)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.Users, ds.KeysMsg, ds.KeysAD)
 }
 
 // PermuteStream conforms to this interface.

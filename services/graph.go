@@ -7,6 +7,7 @@
 package services
 
 import (
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"math"
 	"sync/atomic"
@@ -42,17 +43,15 @@ type Graph struct {
 	outputChannel IO_Notify
 
 	sentInputs *uint32
+
+	outputSize      uint32
+	outputThreshold float32
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
+func (g *Graph) Build(batchSize uint32) {
 	//Checks graph is properly formatted
 	g.checkGraph()
-
-	//check output parameters
-	if outputSize == AUTO_OUTPUTSIZE {
-		outputSize = g.generator.minInputSize
-	}
 
 	//Find expanded batch size
 	var integers []uint32
@@ -65,7 +64,7 @@ func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 	}
 
 	integers = append(integers, g.generator.minInputSize)
-	integers = append(integers, outputSize)
+	integers = append(integers, g.outputSize)
 	lcm := globals.LCM(integers)
 
 	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
@@ -75,8 +74,8 @@ func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 
 	/*setup output module*/
 	g.outputModule = &Module{
-		InputSize:      outputSize,
-		StartThreshold: outputThreshold,
+		InputSize:      g.outputSize,
+		StartThreshold: g.outputThreshold,
 		inputModules:   []*Module{g.lastModule},
 		Name:           "Output",
 		copy:           true,
@@ -93,10 +92,14 @@ func (g *Graph) Build(batchSize, outputSize uint32, outputThreshold float32) {
 	g.built = true
 
 	//populate channels
-	for _, m := range g.modules {
-		m.open()
-	}
+	g.firstModule.open(g.expandBatchSize)
+	g.lastModule.open(g.expandBatchSize)
 
+	for _, m := range g.modules {
+		if m.id != g.firstModule.id && m.id != g.lastModule.id {
+			m.open(0)
+		}
+	}
 	/*finish setting up output*/
 	g.outputChannel = g.outputModule.input
 
@@ -147,8 +150,8 @@ func (g *Graph) Connect(a, b *Module) {
 	b.inputModules = append(b.inputModules, a)
 }
 
-func (g *Graph) Link(source interface{}) {
-	g.stream.Link(g.expandBatchSize, source)
+func (g *Graph) Link(grp *cyclic.Group, source ...interface{}) {
+	g.stream.Link(grp, g.expandBatchSize, source...)
 	g.linked = true
 }
 

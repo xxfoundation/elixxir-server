@@ -8,12 +8,14 @@ package graphs
 
 import (
 	"bytes"
+	"fmt"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
@@ -33,16 +35,26 @@ func (*KeygenTestStream) GetName() string {
 	return "KeygenTestStream"
 }
 
-func (s *KeygenTestStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	instance := source[0].(*server.Instance)
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.KeygenSubStream.LinkStream(round.Grp,
+	s.KeygenSubStream.LinkStream(grp,
+		instance.GetUserRegistry(),
 		make([][]byte, batchSize),
 		make([]*id.User, batchSize),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)))
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
+}
+
+func (s *KeygenTestStream) Input(index uint32,
+	msg *mixmessages.Slot) error {
+	return nil
+}
+
+func (s *KeygenTestStream) Output(index uint32) *mixmessages.Slot {
+	return nil
 }
 
 // Test that triggers error cases in the keygen cryptop adapter
@@ -75,9 +87,9 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 	// Since the user registry has no users,
 	// any user we pass into the stream will cause an error
-	globals.Users = &globals.UserMap{}
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	var stream KeygenTestStream
-	stream.Link(1, &node.RoundBuffer{Grp: grp})
+	stream.Link(grp, 1, instance)
 	stream.users[0] = id.ZeroID
 	stream.salts[0] = []byte("cesium chloride")
 	err = Keygen.Adapt(&stream, MockKeygenOp, services.NewChunk(0, 1))
@@ -90,9 +102,6 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 	// returns the base key XOR'd with the salt
 	// this is the easiest way to ensure both pieces of data are passed to the
 	// op from the adapter
-	bitLen := baseKey.BitLen()
-	// begone compile error
-	func(_ int) {}(bitLen)
 	x := baseKey.Bytes()
 	for i := range x {
 		x[i] = salt[i] ^ x[i]
@@ -121,9 +130,10 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
-	globals.Users = &globals.UserMap{}
-	u := globals.Users.NewUser(grp)
-	globals.Users.UpsertUser(u)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
@@ -135,7 +145,6 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	var stream KeygenTestStream
 	batchSize := uint32(1)
-	//stream.Link(batchSize, &node.RoundBuffer{Grp: grp})
 
 	// make a salt for testing
 	testSalt := []byte("sodium chloride")
@@ -145,7 +154,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	hash, err := blake2b.New256(nil)
 
 	if err != nil {
-		t.Errorf("Keygen: Test could not get blake2b hash: %s", err.Error())
+		t.Fatalf("Keygen: Test could not get blake2b hash: %s", err.Error())
 	}
 
 	hash.Write(testSalt)
@@ -153,11 +162,10 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	testHashedSalt := hash.Sum(nil)
 
 	PanicHandler := func(err error) {
-		t.Errorf("Keygen: Error in adaptor: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Keygen: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -166,8 +174,9 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
-	g.Link(&node.RoundBuffer{Grp: grp})
+	g.Build(batchSize)
+	//rb := round.NewBuffer(grp, batchSize, batchSize)
+	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {

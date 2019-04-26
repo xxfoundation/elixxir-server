@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
@@ -33,71 +34,49 @@ func TestStripStream_GetName(t *testing.T) {
 
 // Test that StripStream.Link() Links correctly
 func TestStripStream_Link(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initStripGroup()
 
 	stream := StripStream{}
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := initStripRoundBuffer(grp, batchSize)
 
-	stream.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	if round.Z.Cmp(stream.Z) != 0 {
+	if roundBuffer.Z.Cmp(stream.Z) != 0 {
 		t.Errorf(
 			"RevealStream.Link() Z value not linked: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
+			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
-	checkStreamIntBuffer(grp, stream.MessagePrecomputation, round.MessagePrecomputation, "MessagePrecomputation", t)
-	checkStreamIntBuffer(grp, stream.ADPrecomputation, round.ADPrecomputation, "ADPrecomputation", t)
+	checkStreamIntBuffer(grp, stream.MessagePrecomputation, roundBuffer.MessagePrecomputation, "MessagePrecomputation", t)
+	checkStreamIntBuffer(grp, stream.ADPrecomputation, roundBuffer.ADPrecomputation, "ADPrecomputation", t)
 
 	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
 
 	// Edit round to show that Z value in stream changes
-	expected := grp.Random(round.Z)
+	expected := grp.Random(roundBuffer.Z)
 
 	if stream.Z.Cmp(expected) != 0 {
 		t.Errorf(
 			"StripStream.Link() Z value not linked to round: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
+			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 }
 
 // Tests Input's happy path
 func TestStripStream_Input(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initStripGroup()
+
+	stream := StripStream{}
 
 	batchSize := uint32(100)
 
-	ss := &StripStream{}
+	roundBuffer := initStripRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-
-	ss.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -111,19 +90,19 @@ func TestStripStream_Input(t *testing.T) {
 			PartialAssociatedDataCypherText: expected[1],
 		}
 
-		err := ss.Input(b, msg)
+		err := stream.Input(b, msg)
 		if err != nil {
 			t.Errorf("StripStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(ss.CypherMsg.Get(b).Bytes(), expected[0]) {
+		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[0]) {
 			t.Errorf("StripStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], ss.CypherMsg.Get(b).Bytes())
+				b, expected[0], stream.CypherMsg.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(ss.CypherAD.Get(b).Bytes(), expected[1]) {
+		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[1]) {
 			t.Errorf("StripStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], ss.CypherAD.Get(b).Bytes())
+				b, expected[1], stream.CypherAD.Get(b).Bytes())
 		}
 
 	}
@@ -132,29 +111,15 @@ func TestStripStream_Input(t *testing.T) {
 
 // Tests that the input errors correctly when the index is outside of the batch
 func TestStripStream_Input_OutOfBatch(t *testing.T) {
-	primeString :=
-		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := initStripGroup()
 
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	stream := StripStream{}
 
 	batchSize := uint32(100)
 
-	stream := &StripStream{}
+	roundBuffer := initStripRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-
-	stream.Link(batchSize, round)
-
+	stream.Link(grp, batchSize, roundBuffer)
 	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        []byte{0},
 		PartialAssociatedDataCypherText: []byte{0},
@@ -177,13 +142,13 @@ func TestStripStream_Input_OutOfBatch(t *testing.T) {
 func TestStripStream_Input_OutOfGroup(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
 
+	stream := StripStream{}
+
 	batchSize := uint32(100)
 
-	stream := &StripStream{}
+	roundBuffer := initStripRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-
-	stream.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
 		PartialMessageCypherText:        large.NewInt(89).Bytes(),
@@ -199,26 +164,15 @@ func TestStripStream_Input_OutOfGroup(t *testing.T) {
 
 // Tests that the output function returns a valid cmixMessage
 func TestStripStream_Output(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initStripGroup()
+
+	stream := StripStream{}
 
 	batchSize := uint32(100)
 
-	stream := &StripStream{}
+	roundBuffer := initStripRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-
-	stream.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -254,11 +208,11 @@ func TestStripStream_Output(t *testing.T) {
 }
 
 // Tests that StripStream conforms to the CommsStream interface
-func TestStripStream_CommsInterface(t *testing.T) {
+func TestStripStream_Interface(t *testing.T) {
 
 	var face interface{}
 	face = &StripStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
 		t.Errorf("StripStream: Does not conform to the CommsStream interface")
@@ -267,20 +221,7 @@ func TestStripStream_CommsInterface(t *testing.T) {
 }
 
 func TestStrip_Graph(t *testing.T) {
-	primeString :=
-		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initStripGroup()
 
 	batchSize := uint32(100)
 
@@ -289,31 +230,30 @@ func TestStrip_Graph(t *testing.T) {
 	graphInit = InitStripGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Strip: Error in adaptor: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Strip: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 0)
 
 	// Initialize graph
 	g := graphInit(gc)
 
 	// Build the graph
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize)
 
 	// Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	// Fill the fields of the round object for testing
 	for i := uint32(0); i < g.GetBatchSize(); i++ {
-		grp.Set(round.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
-		grp.Set(round.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
 	}
 
-	grp.FindSmallCoprimeInverse(round.Z, 256)
+	grp.FindSmallCoprimeInverse(roundBuffer.Z, 256)
 
 	// Link the graph to the round. building the stream object
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	stream := g.GetStream().(*StripStream)
 
@@ -382,4 +322,24 @@ func TestStrip_Graph(t *testing.T) {
 			}
 		}
 	}
+}
+
+func initStripGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
+}
+
+func initStripRoundBuffer(grp *cyclic.Group, batchSize uint32) *round.Buffer {
+	return round.NewBuffer(grp, batchSize, batchSize)
 }

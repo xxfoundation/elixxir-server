@@ -12,12 +12,14 @@ import "fmt"
 type ErrorCallback func(err error)
 
 type GraphGenerator struct {
-	minInputSize uint32
-	errorHandler ErrorCallback
-	defaultNumTh uint8
+	minInputSize    uint32
+	errorHandler    ErrorCallback
+	defaultNumTh    uint8
+	outputSize      uint32
+	outputThreshold float32
 }
 
-func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8) GraphGenerator {
+func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8, outputSize uint32, outputThreshold float32) GraphGenerator {
 	if defaultNumTh > MAX_THREADS {
 		panic(fmt.Sprintf("Max threads per module is 64, cannot default to %v threads", defaultNumTh))
 	}
@@ -29,10 +31,20 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 		panic("Minimum input size must be greater than zero")
 	}
 
+	if outputSize == AUTO_OUTPUTSIZE {
+		outputSize = minInputSize
+	}
+
+	if outputThreshold < 0.0 || outputThreshold > 1.0 {
+		panic(fmt.Sprintf("Output Threshold must be between 0.0 and 1.0: recieved: %v", outputThreshold))
+	}
+
 	return GraphGenerator{
-		minInputSize: minInputSize,
-		errorHandler: errorHandler,
-		defaultNumTh: defaultNumTh,
+		minInputSize:    minInputSize,
+		errorHandler:    errorHandler,
+		defaultNumTh:    defaultNumTh,
+		outputSize:      outputSize,
+		outputThreshold: outputThreshold,
 	}
 }
 
@@ -42,6 +54,18 @@ func (gc GraphGenerator) GetMinInputSize() uint32 {
 
 func (gc GraphGenerator) GetDefaultNumTh() uint8 {
 	return gc.defaultNumTh
+}
+
+func (gc GraphGenerator) GetErrorHandler() ErrorCallback {
+	return gc.errorHandler
+}
+
+func (gc GraphGenerator) GetOutputSize() uint32 {
+	return gc.outputSize
+}
+
+func (gc GraphGenerator) GetOutputThreshold() float32 {
+	return gc.outputThreshold
 }
 
 func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
@@ -61,6 +85,9 @@ func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 	g.stream = stream
 
 	g.sentInputs = new(uint32)
+
+	g.outputSize = gc.outputSize
+	g.outputThreshold = gc.outputThreshold
 
 	return &g
 }

@@ -7,11 +7,13 @@
 package precomputation
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"
@@ -31,43 +33,32 @@ func TestShareStream_GetName(t *testing.T) {
 
 // Test that RevealStream.Link() Links correctly
 func TestShareStream_Link(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initShareGroup()
 
-	ss := ShareStream{}
+	stream := ShareStream{}
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	roundBuffer := initShareRoundBuffer(grp, batchSize)
 
-	ss.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
-	if round.Z.Cmp(ss.Z) != 0 {
+	if roundBuffer.Z.Cmp(stream.Z) != 0 {
 		t.Errorf(
 			"ShareStream.Link() Z value not linked: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), ss.Z.TextVerbose(10, 16))
+			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
 	// Edit round to show that Z value in stream changes
-	expected := grp.Random(round.Z)
+	expected := grp.Random(roundBuffer.Z)
 
-	if ss.Z.Cmp(expected) != 0 {
+	if stream.Z.Cmp(expected) != 0 {
 		t.Errorf(
 			"RevealStream.Link() Z value not linked to round: Expected %s, Recieved %s",
-			round.Z.TextVerbose(10, 16), ss.Z.TextVerbose(10, 16))
+			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
-	if ss.PartialPublicCypherKey == nil {
+	if stream.PartialPublicCypherKey == nil {
 		t.Errorf(
 			"ShareStream.Link(): Partial Cypher Key not set")
 	}
@@ -75,40 +66,29 @@ func TestShareStream_Link(t *testing.T) {
 
 // Tests Input's happy path
 func TestShareStream_Input(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initShareGroup()
+
+	stream := ShareStream{}
 
 	batchSize := uint32(100)
 
-	ss := &ShareStream{}
+	roundBuffer := initShareRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-
-	ss.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
 		PartialRoundPublicCypherKey: []byte{1},
 	}
 
-	err := ss.Input(0, msg)
+	err := stream.Input(0, msg)
 
 	if err != nil {
 		t.Errorf("RevealStream.Input() errored: %s", err.Error())
 	}
 
-	if ss.PartialPublicCypherKey.Cmp(grp.NewInt(1)) != 0 {
+	if stream.PartialPublicCypherKey.Cmp(grp.NewInt(1)) != 0 {
 		t.Errorf("ShareStream.Input() partialPublicCypherKey not set to 1: %s",
-			ss.PartialPublicCypherKey.Text(16))
+			stream.PartialPublicCypherKey.Text(16))
 	}
 }
 
@@ -116,19 +96,19 @@ func TestShareStream_Input(t *testing.T) {
 func TestShareStream_Input_OutOfGroup(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
 
+	stream := ShareStream{}
+
 	batchSize := uint32(100)
 
-	ss := &ShareStream{}
+	roundBuffer := initShareRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-
-	ss.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
 		PartialRoundPublicCypherKey: []byte{0},
 	}
 
-	err := ss.Input(0, msg)
+	err := stream.Input(0, msg)
 
 	if err != node.ErrOutsideOfGroup {
 		t.Errorf("SharetStream.Input() did not return an error when out of group")
@@ -137,26 +117,15 @@ func TestShareStream_Input_OutOfGroup(t *testing.T) {
 
 // Tests that the output function returns a valid cmixMessage
 func TestShareStream_Output(t *testing.T) {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initShareGroup()
+
+	stream := ShareStream{}
 
 	batchSize := uint32(100)
 
-	ss := &ShareStream{}
+	roundBuffer := initShareRoundBuffer(grp, batchSize)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
-
-	ss.Link(batchSize, round)
+	stream.Link(grp, batchSize, roundBuffer)
 
 	expected := []byte{1}
 
@@ -164,13 +133,13 @@ func TestShareStream_Output(t *testing.T) {
 		PartialRoundPublicCypherKey: expected,
 	}
 
-	err := ss.Input(0, msg)
+	err := stream.Input(0, msg)
 
 	if err != nil {
 		t.Errorf("RevealStream.Output() errored on input: %s", err.Error())
 	}
 
-	output := ss.Output(0)
+	output := stream.Output(0)
 
 	if !reflect.DeepEqual(output.PartialRoundPublicCypherKey, expected) {
 		t.Errorf("RevealStream.Output() incorrect recieved Partial Round Cypher Key: Expected: %v, Recieved: %v",
@@ -180,11 +149,11 @@ func TestShareStream_Output(t *testing.T) {
 }
 
 // Tests that RevealStream conforms to the CommsStream interface
-func TestShareStream_CommsInterface(t *testing.T) {
+func TestShareStream_Interface(t *testing.T) {
 
 	var face interface{}
 	face = &ShareStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
 		t.Errorf("RevealStream: Does not conform to the CommsStream interface")
@@ -193,20 +162,7 @@ func TestShareStream_CommsInterface(t *testing.T) {
 }
 
 func TestShare_Graph(t *testing.T) {
-	primeString :=
-		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := initShareGroup()
 
 	batchSize := uint32(1)
 
@@ -215,32 +171,31 @@ func TestShare_Graph(t *testing.T) {
 	graphInit = InitShareGraph
 
 	PanicHandler := func(err error) {
-		t.Errorf("Share: Error in adaptor: %s", err.Error())
-		return
+		panic(fmt.Sprintf("Share: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 0)
 
 	//Initialize graph
 	g := graphInit(gc)
 
 	// Build the graph
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize)
 
 	// Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	// Fill the fields of the stream object for testing
-	grp.FindSmallCoprimeInverse(round.Z, 256)
+	grp.FindSmallCoprimeInverse(roundBuffer.Z, 256)
 
 	// Link the graph to the round. building the stream object
-	g.Link(round)
+	g.Link(grp, roundBuffer)
 
 	stream := g.GetStream().(*ShareStream)
 	grp.SetUint64(stream.PartialPublicCypherKey, 2)
 
 	// Build i/o used for testing
-	PubicCypherKeyExpected := grp.ExpG(round.Z, grp.NewInt(1))
+	PubicCypherKeyExpected := grp.ExpG(roundBuffer.Z, grp.NewInt(1))
 
 	// Run the graph
 	g.Run()
@@ -263,4 +218,24 @@ func TestShare_Graph(t *testing.T) {
 			}
 		}
 	}
+}
+
+func initShareGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
+}
+
+func initShareRoundBuffer(grp *cyclic.Group, batchSize uint32) *round.Buffer {
+	return round.NewBuffer(grp, batchSize, batchSize)
 }

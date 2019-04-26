@@ -4,16 +4,11 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package services
+package io
 
-import (
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cyclic"
-)
-
-type Stream interface {
-	GetName() string
-	Link(grp *cyclic.Group, BatchSize uint32, source ...interface{})
-	Input(index uint32, slot *mixmessages.Slot) error
-	Output(index uint32) *mixmessages.Slot
-}
+//
+//func NewServerImplementation(instance *server.Instance) *node.Implementation {
+//	impl := node.NewImplementation()
+//	impl.Phase = func(batch *mixmessages.Batch) { ReceivePhase(instance, batch) }
+//	return impl
+//}

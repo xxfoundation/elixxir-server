@@ -7,53 +7,95 @@
 package server
 
 import (
-	"gitlab.com/elixxir/server/node"
+	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
+	"time"
 )
 
-type ResourceQueue map[QueueFingerprint]*queueElement
+type ResourceQueue struct {
+	activePhase *phase.Phase
+	phaseQueue  chan *phase.Phase
+	finishChan  chan phase.Fingerprint
+	timer       time.Timer
+}
 
-// We gotta come up with a better name for this...
-func (rq *ResourceQueue) Leap() {
-	for _, g := range *rq {
-		g.loc--
+func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
+	if p.IncrementPhaseToQueued() {
+		rq.phaseQueue <- p
+	}
+}
 
-		switch g.loc {
-		case -1:
-			delete(*rq, g.GetFingerprint())
-		case 0:
-			g.Unlock()
-		case 1:
-			g.g.Run()
+func (rq *ResourceQueue) FinishPhase(pf phase.Fingerprint) {
+	rq.finishChan <- pf
+}
+
+func queueRunner(server *Instance) {
+	queue := server.GetResourceQueue()
+
+	for true {
+		var fingerprint phase.Fingerprint
+		timeout := false
+
+		//get that the phase has completed or the current phase's timeout
+		select {
+		case fingerprint = <-queue.finishChan:
+		case <-queue.timer.C:
+			timeout = true
 		}
+
+		//process timeout
+		if timeout {
+			//FIXME: also kill the transmission handler
+			kill := queue.activePhase.GetGraph().Kill()
+			if kill {
+				jww.CRITICAL.Printf("Graph %v of phase %v of round %v was killed due to timeout",
+					queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
+				//FIXME: send kill round message
+			} else {
+				jww.FATAL.Panicf("Graph %v of phase %v of round %v could not be killed after timeout",
+					queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
+			}
+		}
+
+		//check that the correct phase is ending
+		if !queue.activePhase.GetFingerprint().Cmp(fingerprint) {
+			jww.FATAL.Panicf("Phase %s of round %v is currently running, "+
+				"a kill message of %s cannot be processed", queue.activePhase.GetType().String(),
+				queue.activePhase.GetRoundID(), fingerprint)
+		}
+
+		//update the ending phase to the next phase
+		queue.activePhase.Finish()
+
+		//get the next phase to execute
+		queue.activePhase = <-queue.phaseQueue
+
+		//update the next phase to running
+		success := queue.activePhase.IncrementPhaseToRunning()
+		if !success {
+			jww.FATAL.Panicf("Next phase %s of round %v which is queued is not in the correct state and "+
+				"cannot be started", queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
+		}
+
+		runningPhase := queue.activePhase
+
+		var getChunk phase.GetChunk
+		getChunk = func() (services.Chunk, bool) {
+			chunk, ok := runningPhase.GetGraph().GetOutput()
+			//Fixme: add a method to kill this directly
+			if !ok {
+				queue.FinishPhase(runningPhase.GetFingerprint())
+			}
+			return chunk, ok
+		}
+
+		go queue.activePhase.GetTransmissionHandler()(runningPhase,
+			server.GetRoundManager().GetRound(runningPhase.GetRoundID()).GetNodeAddressList(),
+			getChunk, runningPhase.GetGraph().GetStream().Output)
+
+		runningPhase.GetGraph().Run()
+
 	}
-}
 
-type SendToGraph func(g *services.Graph)
-
-func (rq *ResourceQueue) ProcessIncoming(id node.RoundID, p node.Phase, s2g SendToGraph) bool {
-	gf := makeGraphFingerprint(id, p)
-	ge, ok := (*rq)[gf]
-
-	if !ok {
-		return false
-	}
-
-	go func() {
-		ge.Lock()
-		s2g(ge.g)
-	}()
-
-	return true
-}
-
-func (rq *ResourceQueue) Push(rid node.RoundID, p node.Phase, g *services.Graph) {
-	ge := queueElement{
-		g:     g,
-		phase: p,
-		loc:   len(*rq) - 1,
-	}
-	gf := makeGraphFingerprint(rid, p)
-	ge.Lock()
-	(*rq)[gf] = &ge
 }

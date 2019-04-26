@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -39,8 +40,6 @@ type PermuteStream struct {
 	KeysADPermuted    []*cyclic.Int
 	CypherAD          *cyclic.IntBuffer
 	CypherADPermuted  []*cyclic.Int
-
-	graphs.PermuteSubStream
 }
 
 // GetName returns stream name
@@ -49,16 +48,16 @@ func (s *PermuteStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
-	s.Grp = round.Grp
-	s.PublicCypherKey = round.CypherPublicKey
+	s.Grp = grp
+	s.PublicCypherKey = roundBuffer.CypherPublicKey
 
-	s.S = round.S.GetSubBuffer(0, batchSize)
-	s.V = round.V.GetSubBuffer(0, batchSize)
-	s.Y_S = round.Y_S.GetSubBuffer(0, batchSize)
-	s.Y_V = round.Y_V.GetSubBuffer(0, batchSize)
+	s.S = roundBuffer.S.GetSubBuffer(0, batchSize)
+	s.V = roundBuffer.V.GetSubBuffer(0, batchSize)
+	s.Y_S = roundBuffer.Y_S.GetSubBuffer(0, batchSize)
+	s.Y_V = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 
 	s.KeysMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
 	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
@@ -70,7 +69,7 @@ func (s *PermuteStream) Link(batchSize uint32, source interface{}) {
 	s.KeysADPermuted = make([]*cyclic.Int, batchSize)
 	s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
 
-	s.PermuteSubStream.LinkPermuteSubStreams(batchSize, round.Permutations,
+	graphs.PrecanPermute(roundBuffer.Permutations,
 		graphs.PermuteIO{
 			Input:  s.CypherMsg,
 			Output: s.CypherMsgPermuted,
@@ -160,14 +159,13 @@ var PermuteElgamal = services.Module{
 
 // InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
-	g := gc.NewGraph("PrecompPermute", &PermuteStream{})
+	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
+	g := gcPermute.NewGraph("PrecompPermute", &PermuteStream{})
 
 	PermuteElgamal := PermuteElgamal.DeepCopy()
-	Permute := graphs.Permute.DeepCopy()
 
 	g.First(PermuteElgamal)
-	g.Connect(PermuteElgamal, Permute)
-	g.Last(Permute)
+	g.Last(PermuteElgamal)
 
 	return g
 }

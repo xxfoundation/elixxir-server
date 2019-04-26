@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -31,11 +32,11 @@ func (s *ShareStream) GetName() string {
 }
 
 // Link binds stream to state objects in round
-func (s *ShareStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (s *ShareStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
-	s.Grp = round.Grp
-	s.Z = round.Z
+	s.Grp = grp
+	s.Z = roundBuffer.Z
 
 	s.PartialPublicCypherKey = s.Grp.NewInt(1)
 }

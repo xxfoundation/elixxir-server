@@ -14,6 +14,8 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"os"
 	"reflect"
@@ -59,9 +61,11 @@ func TestDecryptPermuteStream_GetName(t *testing.T) {
 func TestDecryptPermuteStream_Link(t *testing.T) {
 	dps := DecryptPermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 
-	dps.Link(batchSize, round)
+	roundBuf := round.NewBuffer(grp, 1, batchSize)
+
+	dps.Link(grp, batchSize, roundBuf, instance)
 
 	// DecryptStream Link
 	checkIntBuffer(dps.DecryptStream.EcrMsg, batchSize, "EcrMsg",
@@ -73,9 +77,9 @@ func TestDecryptPermuteStream_Link(t *testing.T) {
 	checkIntBuffer(dps.DecryptStream.KeysAD, batchSize, "KeysAD",
 		grp.NewInt(1), t)
 
-	checkStreamIntBuffer(dps.DecryptStream.Grp, dps.DecryptStream.R, round.R,
+	checkStreamIntBuffer(dps.DecryptStream.Grp, dps.DecryptStream.R, roundBuf.R,
 		"round.R", t)
-	checkStreamIntBuffer(dps.DecryptStream.Grp, dps.DecryptStream.U, round.U,
+	checkStreamIntBuffer(dps.DecryptStream.Grp, dps.DecryptStream.U, roundBuf.U,
 		"round.U", t)
 
 	if uint32(len(dps.DecryptStream.Users)) != batchSize {
@@ -98,8 +102,8 @@ func TestDecryptPermuteStream_Link(t *testing.T) {
 	}
 
 	// Permute Link
-	checkStreamIntBuffer(grp, dps.PermuteStream.S, round.S, "S", t)
-	checkStreamIntBuffer(grp, dps.PermuteStream.V, round.V, "V", t)
+	checkStreamIntBuffer(grp, dps.PermuteStream.S, roundBuf.S, "S", t)
+	checkStreamIntBuffer(grp, dps.PermuteStream.V, roundBuf.V, "V", t)
 
 	checkIntBuffer(dps.PermuteStream.EcrMsg, batchSize, "Msg", grp.NewInt(1), t)
 	checkIntBuffer(dps.PermuteStream.EcrAD, batchSize, "AD", grp.NewInt(1), t)
@@ -110,9 +114,11 @@ func TestDecryptPermuteStream_Link(t *testing.T) {
 func TestDecryptPermuteStream_Input(t *testing.T) {
 	dps := &DecryptPermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 
-	dps.Link(batchSize, round)
+	roundBuf := round.NewBuffer(grp, 1, batchSize)
+
+	dps.Link(grp, batchSize, roundBuf, instance)
 
 	// Only bother checking the input decrypt stream here.
 	for b := uint32(0); b < batchSize; b++ {
@@ -166,9 +172,11 @@ func TestDecryptPermuteStream_Input(t *testing.T) {
 func TestDecryptPermuteStream_Input_OutOfBatch(t *testing.T) {
 	dps := &DecryptPermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 
-	dps.Link(batchSize, round)
+	roundBuf := round.NewBuffer(grp, 1, batchSize)
+
+	dps.Link(grp, batchSize, roundBuf, instance)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
@@ -193,18 +201,20 @@ func TestDecryptPermuteStream_Input_OutOfBatch(t *testing.T) {
 
 //Tests that Input errors correct when the passed value is out of the group
 func TestDecryptPermuteStream_Input_OutOfGroup(t *testing.T) {
-	ps := &DecryptPermuteStream{}
+	dps := &DecryptPermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 
-	ps.Link(batchSize, round)
+	roundBuf := round.NewBuffer(grp, 1, batchSize)
+
+	dps.Link(grp, batchSize, roundBuf, instance)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
 		AssociatedData: []byte{0},
 	}
 
-	err := ps.Input(batchSize-10, msg)
+	err := dps.Input(batchSize-10, msg)
 
 	if err != node.ErrOutsideOfGroup {
 		t.Errorf("DecryptPermuteStream.Input() did not return an " +
@@ -216,9 +226,11 @@ func TestDecryptPermuteStream_Input_OutOfGroup(t *testing.T) {
 func TestDecryptPermuteStream_Output(t *testing.T) {
 	dps := &DecryptPermuteStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 
-	dps.Link(batchSize, round)
+	roundBuf := round.NewBuffer(grp, 1, batchSize)
+
+	dps.Link(grp, batchSize, roundBuf, instance)
 
 	// Check only the output side (PermuteStream)
 	for b := uint32(0); b < batchSize; b++ {
@@ -251,27 +263,16 @@ func TestDecryptPermuteStream_Output(t *testing.T) {
 	}
 }
 
-// Tests that DecryptPermuteStream conforms to the CommsStream interface.
-func TestDecryptPermuteStream_CommsInterface(t *testing.T) {
-	var face interface{}
-	face = &DecryptPermuteStream{}
-	_, ok := face.(node.CommsStream)
-
-	if !ok {
-		t.Errorf("DecryptPermuteStream: Does not conform to the " +
-			"CommsStream interface")
-	}
-}
-
 func TestDecryptPermuteStream_InGraph(t *testing.T) {
 
 	// Create a user registry and make a user in it
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
-	globals.Users = &globals.UserMap{}
-	u := globals.Users.NewUser(grp)
-	globals.Users.UpsertUser(u)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+
+	u := instance.GetUserRegistry().NewUser(grp)
+	instance.GetUserRegistry().UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
@@ -298,36 +299,35 @@ func TestDecryptPermuteStream_InGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitDecryptPermuteGraph
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 1.0)
 
 	//Initialize graph
 	g := graphInit(gc)
 
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 0)
+	g.Build(batchSize)
 
 	// Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	roundBuf := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	// Fill the fields of the round object for testing
 	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
-		grp.Set(round.R.Get(i), grp.NewInt(int64(2*i+1)))
-		grp.Set(round.S.Get(i), grp.NewInt(int64(3*i+1)))
-		grp.Set(round.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
-		grp.Set(round.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuf.R.Get(i), grp.NewInt(int64(2*i+1)))
+		grp.Set(roundBuf.S.Get(i), grp.NewInt(int64(3*i+1)))
+		grp.Set(roundBuf.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuf.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
 
 	}
 
-	g.Link(round)
+	g.Link(grp, roundBuf, instance)
 
 	// NOTE: Since the math is independently tested, no need to repeat
 	// ourselves here.
 	stream := g.GetStream().(*DecryptPermuteStream)
 
-	for i:=uint32(0);i<g.GetExpandedBatchSize();i++{
-		copy(stream.Users[i][:],u.ID[:])
+	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
+		copy(stream.Users[i][:], u.ID[:])
 		stream.Salts[i] = testSalt
 	}
-
 
 	if stream == nil {
 		t.Errorf("Got nil stream instead of a DecryptPermuteStream!")

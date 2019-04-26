@@ -10,8 +10,8 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -37,21 +37,21 @@ func (is *IdentifyStream) GetName() string {
 }
 
 // Link binds stream data to state objects in round.
-func (is *IdentifyStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
-	is.LinkIdentifyStreams(batchSize, round,
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+	is.LinkIdentifyStreams(grp, batchSize, roundBuffer,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		make([]*cyclic.Int, batchSize),
 		make([]*cyclic.Int, batchSize))
 }
 
 // LinkRealtimePermuteStreams binds stream data.
-func (is *IdentifyStream) LinkIdentifyStreams(batchSize uint32, round *node.RoundBuffer,
+func (is *IdentifyStream) LinkIdentifyStreams(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
 	ecrMsg, ecrAD *cyclic.IntBuffer, permMsg, permAD []*cyclic.Int) {
 
-	is.Grp = round.Grp
+	is.Grp = grp
 
 	is.EcrMsg = ecrMsg
 	is.EcrAD = ecrAD
@@ -62,7 +62,7 @@ func (is *IdentifyStream) LinkIdentifyStreams(batchSize uint32, round *node.Roun
 	is.EcrMsgPermuted = permMsg
 	is.EcrADPermuted = permAD
 
-	is.LinkRealtimePermuteStreams(batchSize, round,
+	is.LinkRealtimePermuteStreams(grp, batchSize, round,
 		is.EcrMsg,
 		is.EcrAD,
 		is.EcrMsgPermuted,
@@ -135,12 +135,10 @@ func InitIdentifyGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("RealtimeIdentify", &IdentifyStream{})
 
 	permuteMul2 := PermuteMul2.DeepCopy()
-	permute := graphs.Permute.DeepCopy()
 	identifyMul2 := IdentifyMul2.DeepCopy()
 
 	g.First(permuteMul2)
-	g.Connect(permuteMul2, permute)
-	g.Connect(permute, identifyMul2)
+	g.Connect(permuteMul2, identifyMul2)
 	g.Last(identifyMul2)
 
 	return g

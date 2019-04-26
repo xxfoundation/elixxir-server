@@ -16,6 +16,8 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"reflect"
@@ -49,33 +51,38 @@ func TestDecryptStream_Link(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	ds := DecryptStream{}
+	stream := DecryptStream{}
 
 	batchSize := uint32(100)
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
-	ds.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	checkIntBuffer(ds.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
-	checkIntBuffer(ds.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
-	checkIntBuffer(ds.KeysMsg, batchSize, "KeysMsg", grp.NewInt(1), t)
-	checkIntBuffer(ds.KeysAD, batchSize, "KeysAD", grp.NewInt(1), t)
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
-	checkStreamIntBuffer(ds.Grp, ds.R, round.R, "round.R", t)
-	checkStreamIntBuffer(ds.Grp, ds.U, round.U, "round.U", t)
+	checkIntBuffer(stream.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
+	checkIntBuffer(stream.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysMsg, batchSize, "KeysMsg", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysAD, batchSize, "KeysAD", grp.NewInt(1), t)
 
-	if uint32(len(ds.Users)) != batchSize {
+	checkStreamIntBuffer(stream.Grp, stream.R, roundBuffer.R, "roundBuffer.R", t)
+	checkStreamIntBuffer(stream.Grp, stream.U, roundBuffer.U, "roundBuffer.U", t)
+
+	if uint32(len(stream.Users)) != batchSize {
 		t.Errorf("dispatchStream.link(): user slice not created at correct length."+
-			"Expected: %v, Recieved: %v", batchSize, len(ds.Users))
+			"Expected: %v, Recieved: %v", batchSize, len(stream.Users))
 	}
 
-	if uint32(len(ds.Salts)) != batchSize {
+	if uint32(len(stream.Salts)) != batchSize {
 		t.Errorf("dispatchStream.link(): salts slice not created at correct length."+
-			"Expected: %v, Recieved: %v", batchSize, len(ds.Salts))
+			"Expected: %v, Recieved: %v", batchSize, len(stream.Salts))
 	}
 
-	for itr, u := range ds.Users {
+	for itr, u := range stream.Users {
 		if !reflect.DeepEqual(u, &id.User{}) {
 			t.Errorf("dispatchStream.link(): user is at slot %v not initilized properly", itr)
 		}
@@ -101,9 +108,14 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	stream := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
-	stream.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -164,9 +176,14 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	stream := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
-	stream.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
@@ -188,19 +205,37 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 // Tests that Input errors correct when the passed value is out of the group
 func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
-	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
 	batchSize := uint32(100)
 
 	stream := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
-	stream.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
+	stream.Link(grp, batchSize, roundBuffer, instance)
+
+	val := large.NewIntFromString(primeString, 16)
+	val = val.Mul(val, val)
 	msg := &mixmessages.Slot{
-		MessagePayload: large.NewInt(89).Bytes(),
-		AssociatedData: large.NewInt(13).Bytes(),
+		MessagePayload: val.Bytes(),
+		AssociatedData: val.Bytes(),
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -229,9 +264,14 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	stream := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
-	stream.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	msg := &mixmessages.Slot{
 		SenderID:       []byte{1, 2},
@@ -278,9 +318,14 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	stream := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
-	stream.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	msg := &mixmessages.Slot{
 		SenderID:       id.NewUserFromUint(0, t).Bytes(),
@@ -328,9 +373,14 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	stream := &DecryptStream{}
 
-	round := node.NewRound(grp, 1, batchSize, batchSize)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
-	stream.Link(batchSize, round)
+	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+
+	stream.Link(grp, batchSize, roundBuffer, instance)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -387,10 +437,10 @@ func TestDecryptStream_CommsInterface(t *testing.T) {
 
 	var face interface{}
 	face = &DecryptStream{}
-	_, ok := face.(node.CommsStream)
+	_, ok := face.(services.Stream)
 
 	if !ok {
-		t.Errorf("RevealStream: Does not conform to the CommsStream interface")
+		t.Errorf("DecryptStream: Does not conform to the CommsStream interface")
 	}
 
 }
@@ -416,9 +466,10 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
-	globals.Users = &globals.UserMap{}
-	u := globals.Users.NewUser(grp)
-	globals.Users.UpsertUser(u)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	registry := instance.GetUserRegistry()
+	u := registry.NewUser(grp)
+	registry.UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
@@ -445,27 +496,27 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitDecryptGraph
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()))
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
 	//Initialize graph
 	g := graphInit(gc)
 
-	g.Build(batchSize, services.AUTO_OUTPUTSIZE, 1.0)
+	g.Build(batchSize)
 
-	// Build the round
-	round := node.NewRound(grp, 1, g.GetBatchSize(), g.GetExpandedBatchSize())
+	// Build the roundBuffer
+	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
-	// Fill the fields of the round object for testing
+	// Fill the fields of the roundBuffer object for testing
 	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
 
-		grp.Set(round.R.Get(i), grp.NewInt(int64(2*i+1)))
-		grp.Set(round.S.Get(i), grp.NewInt(int64(3*i+1)))
-		grp.Set(round.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
-		grp.Set(round.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.R.Get(i), grp.NewInt(int64(2*i+1)))
+		grp.Set(roundBuffer.S.Get(i), grp.NewInt(int64(3*i+1)))
+		grp.Set(roundBuffer.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
 
 	}
 
-	g.Link(round)
+	g.Link(grp, roundBuffer, instance)
 
 	stream := g.GetStream().(*DecryptStream)
 
@@ -505,7 +556,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 			keyA := grp.NewInt(1)
 			keyB := grp.NewInt(1)
 
-			user, _ := globals.Users.GetUser(stream.Users[i])
+			user, _ := registry.GetUser(stream.Users[i])
 
 			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, keyA)
 
@@ -540,7 +591,6 @@ func TestDecryptStreamInGraph(t *testing.T) {
 				t.Error(fmt.Sprintf("RealtimeDecrypt: Ecr AD not equal on slot %v expected %v received %v",
 					i, expectedAD.Get(i).Text(16), stream.EcrAD.Get(i).Text(16)))
 			}
-
 		}
 	}
 }

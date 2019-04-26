@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -26,8 +27,6 @@ type PermuteStream struct {
 
 	MsgPermuted []*cyclic.Int
 	ADPermuted  []*cyclic.Int
-
-	graphs.PermuteSubStream
 }
 
 // GetName returns the name of the stream for debugging purposes.
@@ -36,24 +35,24 @@ func (ps *PermuteStream) GetName() string {
 }
 
 // Link binds stream data to state objects in round.
-func (ps *PermuteStream) Link(batchSize uint32, source interface{}) {
-	round := source.(*node.RoundBuffer)
+func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+	roundBuffer := source[0].(*round.Buffer)
 
-	ps.LinkRealtimePermuteStreams(batchSize, round,
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
-		round.Grp.NewIntBuffer(batchSize, round.Grp.NewInt(1)),
+	ps.LinkRealtimePermuteStreams(grp, batchSize, roundBuffer,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		make([]*cyclic.Int, batchSize),
 		make([]*cyclic.Int, batchSize))
 }
 
 // LinkPermuteStreams binds stream data.
-func (ps *PermuteStream) LinkRealtimePermuteStreams(batchSize uint32,
-	round *node.RoundBuffer, msg, ad *cyclic.IntBuffer, msgPerm,
+func (ps *PermuteStream) LinkRealtimePermuteStreams(grp *cyclic.Group,
+	batchSize uint32, roundBuffer *round.Buffer, msg, ad *cyclic.IntBuffer, msgPerm,
 	adPerm []*cyclic.Int) {
-	ps.Grp = round.Grp
+	ps.Grp = grp
 
-	ps.S = round.S.GetSubBuffer(0, batchSize)
-	ps.V = round.V.GetSubBuffer(0, batchSize)
+	ps.S = roundBuffer.S.GetSubBuffer(0, batchSize)
+	ps.V = roundBuffer.V.GetSubBuffer(0, batchSize)
 
 	ps.EcrMsg = msg
 	ps.EcrAD = ad
@@ -61,7 +60,7 @@ func (ps *PermuteStream) LinkRealtimePermuteStreams(batchSize uint32,
 	ps.MsgPermuted = msgPerm
 	ps.ADPermuted = adPerm
 
-	ps.PermuteSubStream.LinkPermuteSubStreams(batchSize, round.Permutations,
+	graphs.PrecanPermute(roundBuffer.Permutations,
 		graphs.PermuteIO{Input: ps.EcrMsg, Output: ps.MsgPermuted},
 		graphs.PermuteIO{Input: ps.EcrAD, Output: ps.ADPermuted})
 
@@ -131,14 +130,13 @@ var PermuteMul2 = services.Module{
 
 // InitPermuteGraph initializes and returns a new graph.
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
-	g := gc.NewGraph("RealtimePermute", &PermuteStream{})
+	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
+	g := gcPermute.NewGraph("RealtimePermute", &PermuteStream{})
 
 	mul2 := PermuteMul2.DeepCopy()
-	permute := graphs.Permute.DeepCopy()
 
 	g.First(mul2)
-	g.Connect(mul2, permute)
-	g.Last(permute)
+	g.Last(mul2)
 
 	return g
 }
