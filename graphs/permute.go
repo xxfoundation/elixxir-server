@@ -68,9 +68,21 @@ var Permute = services.Module{
 	},
 	Cryptop:        permuteDummyCryptop,
 	InputSize:      services.AUTO_INPUTSIZE,
-	StartThreshold: 0,
+	StartThreshold: 1.0,
 	Name:           "Permute",
 	NumThreads:     services.AUTO_NUMTHREADS,
+}
+
+// ModifyGraphGeneratorForPermute makes a copy of the graph generator
+// where the OutputThreshold=1.0
+func ModifyGraphGeneratorForPermute(gc services.GraphGenerator)services.GraphGenerator{
+	return services.NewGraphGenerator(
+		gc.GetMinInputSize(),
+		gc.GetErrorHandler(),
+		gc.GetDefaultNumTh(),
+		gc.GetOutputSize(),
+		1.0,
+	)
 }
 
 /* Dummy cryptop for testing*/

@@ -155,13 +155,14 @@ var PermuteElgamal = services.Module{
 	},
 	Cryptop:    cryptops.ElGamal,
 	NumThreads: 5,
-	InputSize:  1, // services.AUTO_INPUTSIZE,
+	InputSize:  services.AUTO_INPUTSIZE,
 	Name:       "PermuteElgamal",
 }
 
 // InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
-	g := gc.NewGraph("PrecompPermute", &PermuteStream{})
+	gcPermute:=graphs.ModifyGraphGeneratorForPermute(gc)
+	g := gcPermute.NewGraph("PrecompPermute", &PermuteStream{})
 
 	PermuteElgamal := PermuteElgamal.DeepCopy()
 	Permute := graphs.Permute.DeepCopy()

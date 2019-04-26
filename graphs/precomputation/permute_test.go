@@ -242,7 +242,7 @@ func TestPermuteStream_CommsInterface(t *testing.T) {
 func TestPermuteGraph(t *testing.T) {
 	grp := initPermuteGroup()
 
-	batchSize := uint32(100)
+	batchSize := uint32(20)
 
 	expectedName := "PrecompPermute"
 
@@ -281,7 +281,7 @@ func TestPermuteGraph(t *testing.T) {
 	// Link the graph to the roundBuffer. building the stream object
 	g.Link(grp, roundBuffer)
 
-	permuteInverse := make([]uint32, g.GetExpandedBatchSize())
+	permuteInverse := make([]uint32, g.GetBatchSize())
 	for i := uint32(0); i < uint32(len(permuteInverse)); i++ {
 		permuteInverse[roundBuffer.Permutations[i]] = i
 	}

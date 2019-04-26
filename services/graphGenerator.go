@@ -56,6 +56,19 @@ func (gc GraphGenerator) GetDefaultNumTh() uint8 {
 	return gc.defaultNumTh
 }
 
+func (gc GraphGenerator) GetErrorHandler() ErrorCallback {
+	return gc.errorHandler
+}
+
+func (gc GraphGenerator) GetOutputSize() uint32 {
+	return gc.outputSize
+}
+
+func (gc GraphGenerator) GetOutputThreshold() float32{
+	return gc.outputThreshold
+}
+
+
 func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 
 	var g Graph

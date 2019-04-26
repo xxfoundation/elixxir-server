@@ -132,7 +132,8 @@ var PermuteMul2 = services.Module{
 
 // InitPermuteGraph initializes and returns a new graph.
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
-	g := gc.NewGraph("RealtimePermute", &PermuteStream{})
+	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
+	g := gcPermute.NewGraph("RealtimePermute", &PermuteStream{})
 
 	mul2 := PermuteMul2.DeepCopy()
 	permute := graphs.Permute.DeepCopy()
@@ -143,3 +144,4 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 
 	return g
 }
+
