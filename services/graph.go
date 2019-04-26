@@ -53,11 +53,6 @@ func (g *Graph) Build(batchSize uint32) {
 	//Checks graph is properly formatted
 	g.checkGraph()
 
-	//check output parameters
-	if g.outputSize == AUTO_OUTPUTSIZE {
-		g.outputSize = g.generator.minInputSize
-	}
-
 	//Find expanded batch size
 	var integers []uint32
 

@@ -40,8 +40,6 @@ type PermuteStream struct {
 	KeysADPermuted    []*cyclic.Int
 	CypherAD          *cyclic.IntBuffer
 	CypherADPermuted  []*cyclic.Int
-
-	graphs.PermuteSubStream
 }
 
 // GetName returns stream name
@@ -71,7 +69,7 @@ func (s *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source interfa
 	s.KeysADPermuted = make([]*cyclic.Int, batchSize)
 	s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
 
-	s.PermuteSubStream.LinkPermuteSubStreams(batchSize, roundBuffer.Permutations,
+	graphs.PrecanPermute(roundBuffer.Permutations,
 		graphs.PermuteIO{
 			Input:  s.CypherMsg,
 			Output: s.CypherMsgPermuted,
@@ -161,15 +159,13 @@ var PermuteElgamal = services.Module{
 
 // InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
-	gcPermute:=graphs.ModifyGraphGeneratorForPermute(gc)
+	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
 	g := gcPermute.NewGraph("PrecompPermute", &PermuteStream{})
 
 	PermuteElgamal := PermuteElgamal.DeepCopy()
-	Permute := graphs.Permute.DeepCopy()
 
 	g.First(PermuteElgamal)
-	g.Connect(PermuteElgamal, Permute)
-	g.Last(Permute)
+	g.Last(PermuteElgamal)
 
 	return g
 }

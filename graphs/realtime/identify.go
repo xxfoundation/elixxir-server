@@ -10,7 +10,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -136,12 +135,10 @@ func InitIdentifyGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("RealtimeIdentify", &IdentifyStream{})
 
 	permuteMul2 := PermuteMul2.DeepCopy()
-	permute := graphs.Permute.DeepCopy()
 	identifyMul2 := IdentifyMul2.DeepCopy()
 
 	g.First(permuteMul2)
-	g.Connect(permuteMul2, permute)
-	g.Connect(permute, identifyMul2)
+	g.Connect(permuteMul2, identifyMul2)
 	g.Last(identifyMul2)
 
 	return g

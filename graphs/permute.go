@@ -17,6 +17,14 @@ type PermuteIO struct {
 	Output []*cyclic.Int
 }
 
+func PrecanPermute(permutations []uint32, IOs ...PermuteIO) {
+	for index, permutation := range permutations {
+		for _, io := range IOs {
+			io.Output[permutation] = io.Input.Get(uint32(index))
+		}
+	}
+}
+
 // ModifyGraphGeneratorForPermute makes a copy of the graph generator
 // where the OutputThreshold=1.0
 func ModifyGraphGeneratorForPermute(gc services.GraphGenerator) services.GraphGenerator {

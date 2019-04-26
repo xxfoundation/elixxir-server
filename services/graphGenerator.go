@@ -31,12 +31,12 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 		panic("Minimum input size must be greater than zero")
 	}
 
-	if outputSize == 0 {
-		panic("OutputSize must be at least 1")
+	if outputSize == AUTO_OUTPUTSIZE {
+		outputSize = minInputSize
 	}
 
-	if outputThreshold < 0.0 || outputSize > 1.0 {
-		panic("Output Threshold must be between 0.0 and 1.0")
+	if outputThreshold < 0.0 || outputThreshold > 1.0 {
+		panic(fmt.Sprintf("Output Threshold must be between 0.0 and 1.0: recieved: %v", outputThreshold))
 	}
 
 	return GraphGenerator{
@@ -64,10 +64,9 @@ func (gc GraphGenerator) GetOutputSize() uint32 {
 	return gc.outputSize
 }
 
-func (gc GraphGenerator) GetOutputThreshold() float32{
+func (gc GraphGenerator) GetOutputThreshold() float32 {
 	return gc.outputThreshold
 }
-
 
 func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 
@@ -86,6 +85,9 @@ func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 	g.stream = stream
 
 	g.sentInputs = new(uint32)
+
+	g.outputSize = gc.outputSize
+	g.outputThreshold = gc.outputThreshold
 
 	return &g
 }

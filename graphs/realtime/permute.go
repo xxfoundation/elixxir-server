@@ -27,8 +27,6 @@ type PermuteStream struct {
 
 	MsgPermuted []*cyclic.Int
 	ADPermuted  []*cyclic.Int
-
-	graphs.PermuteSubStream
 }
 
 // GetName returns the name of the stream for debugging purposes.
@@ -62,7 +60,7 @@ func (ps *PermuteStream) LinkRealtimePermuteStreams(grp *cyclic.Group,
 	ps.MsgPermuted = msgPerm
 	ps.ADPermuted = adPerm
 
-	ps.PermuteSubStream.LinkPermuteSubStreams(batchSize, roundBuffer.Permutations,
+	graphs.PrecanPermute(roundBuffer.Permutations,
 		graphs.PermuteIO{Input: ps.EcrMsg, Output: ps.MsgPermuted},
 		graphs.PermuteIO{Input: ps.EcrAD, Output: ps.ADPermuted})
 
@@ -136,12 +134,9 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	g := gcPermute.NewGraph("RealtimePermute", &PermuteStream{})
 
 	mul2 := PermuteMul2.DeepCopy()
-	permute := graphs.Permute.DeepCopy()
 
 	g.First(mul2)
-	g.Connect(mul2, permute)
-	g.Last(permute)
+	g.Last(mul2)
 
 	return g
 }
-
