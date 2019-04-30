@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -143,7 +142,7 @@ func (h RealtimePermuteHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		// Transition to RealtimeIdentify phase
 		// Advance internal state to the next phase
 		globals.GlobalRoundMap.SetPhase(roundId, globals.REAL_IDENTIFY)

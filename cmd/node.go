@@ -8,6 +8,7 @@
 package cmd
 
 import (
+	"encoding/binary"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/connect"
@@ -242,11 +243,14 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// ensure that the Node ID is populated
 	viperNodeID := uint64(viper.GetInt("nodeid"))
+	nodeIDbytes := make([]byte, binary.MaxVarintLen64)
+	var num int
 	if viperNodeID == 0 {
-		id.SetNodeID(uint64(serverIndex))
+		num = binary.PutUvarint(nodeIDbytes, uint64(serverIndex))
 	} else {
-		id.SetNodeID(viperNodeID)
+		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
 	}
+	globals.NodeID = new(id.Node).SetBytes(nodeIDbytes[:num])
 
 	// Set skipReg from config file
 	globals.SkipRegServer = viper.GetBool("skipReg")
@@ -262,7 +266,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		keyPath)
 
 	// TODO Replace these concepts with a better system
-	id.IsLastNode = serverIndex == len(io.Servers)-1
+	globals.IsLastNode = serverIndex == len(io.Servers)-1
 	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 
 	// Block until we can reach every server
@@ -280,7 +284,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		messageBufferSize = 1000
 	}
 
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
 		io.RoundCh = make(chan *string, PRECOMP_BUFFER_SIZE)
 		io.MessageCh = make(chan *realtime.Slot, messageBufferSize)
@@ -297,7 +301,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 func run() {
 	io.TimeUp = time.Now().UnixNano()
 	// Run a round trip ping every couple seconds if last node
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		ticker := time.NewTicker(5 * time.Second)
 		quit := make(chan struct{})
 		go func() {

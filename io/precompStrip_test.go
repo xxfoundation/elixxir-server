@@ -7,7 +7,6 @@
 package io
 
 import (
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -19,7 +18,7 @@ func TestPrecompStrip(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1, globals.GetGroup())
 	globals.InitLastNode(round, globals.GetGroup())
-	id.IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -77,7 +76,7 @@ func TestPrecompStripHandler_Handler(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1, globals.GetGroup())
 	globals.InitLastNode(round, globals.GetGroup())
-	id.IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 

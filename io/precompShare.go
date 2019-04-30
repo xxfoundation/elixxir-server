@@ -14,7 +14,6 @@ import (
 
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
 
@@ -173,13 +172,13 @@ func (h PrecompShareHandler) Handler(
 	IsFirstRun := (*slots[0]).(*precomputation.SlotShare).PartialRoundPublicCypherKey.Cmp(globals.GetGroup().GetGCyclic()) == 0
 
 	// Advance internal state to the next phase
-	if id.IsLastNode && IsFirstRun {
+	if globals.IsLastNode && IsFirstRun {
 		globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 	} else {
 		globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_DECRYPT)
 	}
 
-	if id.IsLastNode && !IsFirstRun {
+	if globals.IsLastNode && !IsFirstRun {
 		// Transition to PrecompDecrypt phase
 		// if we are last node and this isn't the first run
 		jww.INFO.Printf("Starting PrecompDecrypt Phase to %v at %s",

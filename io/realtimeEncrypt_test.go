@@ -22,7 +22,7 @@ func TestRealtimeEncrypt(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1, grp)
 	globals.InitLastNode(round, grp)
-	id.IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
