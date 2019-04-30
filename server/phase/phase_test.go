@@ -57,9 +57,11 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 
 func TestPhase_GetState(t *testing.T) {
 	state := Available
-	p := Phase{state: (*uint32)(&state)}
+	p := Phase{get: func() State {
+        return Available
+	},}
 	if p.GetState() != state {
-		t.Error("State was different")
+		t.Error("State from function was different than expected")
 	}
 }
 
@@ -129,7 +131,9 @@ func TestPhase_Stringer(t *testing.T) {
 
 func TestPhase_ReadyToReceiveData(t *testing.T) {
 	state := Initialized
-	p := Phase{state: (*uint32)(&state)}
+	p := Phase{get: func() State {
+		return state
+	},}
 	if p.ReadyToReceiveData() {
 		t.Error("Initialized phase shouldn't be ready to receive")
 	}
@@ -152,11 +156,16 @@ func TestPhase_ReadyToReceiveData(t *testing.T) {
 }
 
 func TestPhase_ConnectToRound(t *testing.T) {
-	g := NewStateGroup()
 	var p Phase
 
 	roundId := id.Round(55)
-	p.ConnectToRound(roundId, g)
+	state := Initialized
+	p.ConnectToRound(roundId, func(to State) bool {
+		state = to
+        return true
+	}, func() State {
+		return state
+	})
 
 	// The Once shouldn't be allowed to run again
 	pass := true
@@ -173,16 +182,14 @@ func TestPhase_ConnectToRound(t *testing.T) {
 		t.Error("Round ID wasn't set correctly")
 	}
 
-	// The state group should be the one we passed, and the phase state should
-	// be Initialized
-	if g != p.stateGroup {
-		t.Error("State group wasn't set correctly")
-	}
-	if p.stateIndex != 0 {
-		t.Error("State index wasn't set as expected")
-	}
+	// Getting the state should return Initialized
 	if p.GetState() != Initialized {
 		t.Error("State wasn't set to Initialized")
+	}
+	// We should be able to change the state with the function we passed
+	p.IncrementStateToRunning()
+	if p.GetState() != Running {
+		t.Error("After changing the state, it wasn't set to Running")
 	}
 }
 

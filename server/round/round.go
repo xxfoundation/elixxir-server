@@ -40,7 +40,7 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 
 		localStateOffset := uint32(index) * uint32(phase.NumStates)
 
-		//build the function this phase will use to increment it's state
+		//build the function this phase will use to increment its state
 		increment := func(to phase.State) bool {
 			newState := localStateOffset + uint32(to)
 			expectedOld := newState - 1
@@ -66,7 +66,6 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 	round.buffer = NewBuffer(grp, batchSize, maxBatchSize)
 	round.phaseMap = make(map[phase.Type]int)
 
-	// this phasemap logic looks suspicious
 	for index, p := range phases {
 		p.GetGraph().Link(grp, &round)
 		round.phaseMap[p.GetType()] = index

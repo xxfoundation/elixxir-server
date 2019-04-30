@@ -94,8 +94,30 @@ func TestNew(t *testing.T) {
 	if !actualPhase.Cmp(phases[0]) {
         t.Error("Phases differed")
 	}
-	actualPhaseType := round.GetCurrentPhase()
+	actualPhaseType := round.GetCurrentPhase().GetType()
 	if actualPhaseType != phase.REAL_PERMUTE {
 		t.Error("Current phase should have been realtime permute")
+	}
+	// Try getting and setting the state of the phase
+	if round.GetCurrentPhase().GetState() != phase.Available {
+		t.Errorf("Phase's state is %v, should have been Available",
+			round.GetCurrentPhase().GetState())
+	}
+	// This should fail...
+	if round.GetCurrentPhase().IncrementStateToRunning() {
+		t.Error("Shouldn't have been able to successfully increment phase to" +
+			" Queued")
+	}
+	// and the state should remain Initialized
+	if round.GetCurrentPhase().GetState() != phase.Available {
+		t.Error("Phase's state should have remained Available")
+	}
+	// However, setting the state to Queued should succeed
+	if !round.GetCurrentPhase().IncrementStateToQueued() {
+		t.Error("Should have been able to take state from Available to Queued")
+	}
+	// And, the state should be set to Queued
+	if round.GetCurrentPhase().GetState() != phase.Queued {
+		t.Error("Phase's state should be Queued")
 	}
 }
