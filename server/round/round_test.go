@@ -94,7 +94,7 @@ func TestNew(t *testing.T) {
 	if !actualPhase.Cmp(phases[0]) {
         t.Error("Phases differed")
 	}
-	actualPhaseType := round.GetCurrentPhase()
+	actualPhaseType := round.GetCurrentPhase().GetType()
 	if actualPhaseType != phase.REAL_PERMUTE {
 		t.Error("Current phase should have been realtime permute")
 	}
