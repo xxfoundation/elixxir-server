@@ -19,3 +19,4 @@ import:
 - package: github.com/go-pg/pg
   subpackages:
   - github.com/jinzhu/inflection
+- package: github.com/pkg/errors

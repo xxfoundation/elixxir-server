@@ -12,10 +12,6 @@ gateways:
     - "0.0.0.0:8443"
 # === REQUIRED FOR ENABLING TLS ===
 # Path to the server private key file
-keyPath: ""
-# Path to the server certificate file
-certPath: ""
-# Path to the gateway certificate file
-gatewayCertPath: ""
-# Skip registration server check when registering users
-skipReg: "false"
+keyPath: "~/Documents/go/src/gitlab.com/elixxir/deployment/provisioning/keys/cmix.rip.key"
+certPath: "~/Documents/go/src/gitlab.com/elixxir/deployment/provisioning/keys/cmix.rip.crt"
+gatewayCertPath: "~/Documents/go/src/gitlab.com/elixxir/deployment/provisioning/keys/gateway.cmix.rip.crt"
