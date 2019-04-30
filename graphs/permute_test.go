@@ -24,8 +24,8 @@ func TestPermute_PrecanPermute(t *testing.T) {
 	ios := make([]PermuteIO, numPermuted)
 
 	for i := 0; i < numPermuted; i++ {
-		ios[i] = PermuteIO {
-			Input: grp.NewIntBuffer(batchSize, grp.NewInt(int64(i+1))),
+		ios[i] = PermuteIO{
+			Input:  grp.NewIntBuffer(batchSize, grp.NewInt(int64(i+1))),
 			Output: make([]*cyclic.Int, batchSize),
 		}
 	}
