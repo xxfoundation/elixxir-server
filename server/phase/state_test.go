@@ -9,7 +9,10 @@ import (
 func TestPhaseState(t *testing.T) {
 	state := uint32(Initialized)
 	// Real implementations would use atomics for all of this for better
-	// thread safety
+	// thread safety.
+	// However, testing threading functionality is outside of the scope of this
+	// test, so these testing implementations don't use atomics for readability.
+	// Do NOT create a real implementation without atomics!
 	p := Phase{
 		transitionToState: func(to State) bool {
 			// Make sure the state is the one after
