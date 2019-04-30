@@ -58,7 +58,7 @@ func TestNew(t *testing.T) {
 		[]services.NodeAddress{{
 			Cert:    "not a cert",
 			Address: "127.0.0.1",
-			Id:      0,
+			Id:      id.Node{},
 		}}, myLoc)
 
 	round := New(grp, roundId, phases, nodeAddressList.GetAllNodesAddress(),
@@ -92,7 +92,7 @@ func TestNew(t *testing.T) {
 	}
 	actualPhase := round.GetPhase(phase.REAL_PERMUTE)
 	if !actualPhase.Cmp(phases[0]) {
-        t.Error("Phases differed")
+		t.Error("Phases differed")
 	}
 	actualPhaseType := round.GetCurrentPhase().GetType()
 	if actualPhaseType != phase.REAL_PERMUTE {
