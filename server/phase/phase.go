@@ -15,10 +15,10 @@ type Phase struct {
 	transmissionHandler Transmission
 	timeout             time.Duration
 
-	roundID    id.Round
-	roundIDset sync.Once
-	increment  IncrementState
-	get        GetState
+	roundID           id.Round
+	roundIDset        sync.Once
+	transitionToState Transition
+	getState          GetState
 }
 
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
@@ -35,11 +35,12 @@ func New(g *services.Graph, name Type, tHandler Transmission, timeout time.Durat
 // SetRoundIDOnce sets the round ID.  Can only be called once.
 // Should only be called from Round package that initializes states
 // Must be called on all phases in their order in the round
-func (p *Phase) ConnectToRound(id id.Round, increment IncrementState, get GetState) {
+func (p *Phase) ConnectToRound(id id.Round, setState Transition,
+	getState GetState) {
 	p.roundIDset.Do(func() {
 		p.roundID = id
-		p.increment = increment
-		p.get = get
+		p.transitionToState = setState
+		p.getState = getState
 	})
 }
 
@@ -59,7 +60,11 @@ func (p *Phase) GetType() Type {
 
 // GetState returns the current state of the phase
 func (p *Phase) GetState() State {
-	return p.get()
+	return p.getState()
+}
+
+func (p *Phase) TransitionTo(newState State) bool {
+	return p.transitionToState(newState)
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function
@@ -88,20 +93,4 @@ func (p *Phase) String() string {
 func (p *Phase) ReadyToReceiveData() bool {
 	phaseState := p.GetState()
 	return phaseState == Available || phaseState == Queued || phaseState == Running
-}
-
-// IncrementStateToQueued transitions Phase from Available to Queued
-func (p *Phase) IncrementStateToQueued() bool {
-	return p.increment(Queued)
-}
-
-// IncrementStateToRunning transitions Phase from Queued to Running
-func (p *Phase) IncrementStateToRunning() bool {
-	return p.increment(Running)
-}
-
-// IncrementStateToFinished transitions Phase from Running to Finished,
-// and the phase after it from Initialized to Available
-func (p *Phase) IncrementStateToFinished() bool {
-	return p.increment(Finished)
 }

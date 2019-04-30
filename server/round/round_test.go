@@ -104,7 +104,7 @@ func TestNew(t *testing.T) {
 			round.GetCurrentPhase().GetState())
 	}
 	// This should fail...
-	if round.GetCurrentPhase().IncrementStateToRunning() {
+	if round.GetCurrentPhase().TransitionTo(phase.Running) {
 		t.Error("Shouldn't have been able to successfully increment phase to" +
 			" Queued")
 	}
@@ -113,7 +113,7 @@ func TestNew(t *testing.T) {
 		t.Error("Phase's state should have remained Available")
 	}
 	// However, setting the state to Queued should succeed
-	if !round.GetCurrentPhase().IncrementStateToQueued() {
+	if !round.GetCurrentPhase().TransitionTo(phase.Queued) {
 		t.Error("Should have been able to take state from Available to Queued")
 	}
 	// And, the state should be set to Queued

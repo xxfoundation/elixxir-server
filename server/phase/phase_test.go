@@ -57,7 +57,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 
 func TestPhase_GetState(t *testing.T) {
 	state := Available
-	p := Phase{get: func() State {
+	p := Phase{getState: func() State {
 		return Available
 	}}
 	if p.GetState() != state {
@@ -131,7 +131,7 @@ func TestPhase_Stringer(t *testing.T) {
 
 func TestPhase_ReadyToReceiveData(t *testing.T) {
 	state := Initialized
-	p := Phase{get: func() State {
+	p := Phase{getState: func() State {
 		return state
 	}}
 	if p.ReadyToReceiveData() {
@@ -187,7 +187,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 		t.Error("State wasn't set to Initialized")
 	}
 	// We should be able to change the state with the function we passed
-	p.IncrementStateToRunning()
+	p.TransitionTo(Running)
 	if p.GetState() != Running {
 		t.Error("After changing the state, it wasn't set to Running")
 	}
