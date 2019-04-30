@@ -170,6 +170,8 @@ var ModuleD = Module{
 
 func TestGraph(t *testing.T) {
 
+	fmt.Println("num threads: ", runtime.NumCPU())
+
 	grp := initDispatchGroup()
 
 	batchSize := uint32(1000)
