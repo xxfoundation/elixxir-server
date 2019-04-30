@@ -9,10 +9,11 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/server/globals"
+
 	//linuxproc "github.com/c9s/goprocinfo/linux"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
 	"runtime"
 	"strconv"
 )
@@ -25,7 +26,7 @@ func ServerMetrics(msg *pb.ServerMetricsMessage) {
 	threadUsage := append(msg.ThreadUsage, uint32(runtime.NumGoroutine()))
 	cpuUsage := append(msg.CpuUsage, uint32(0))
 	upSince := append(msg.UpSince, TimeUp)
-	if !id.IsLastNode {
+	if !globals.IsLastNode {
 		node.SendServerMetrics(Servers[len(upSince)],
 			&pb.ServerMetricsMessage{
 				MemUsage:    memUsage,

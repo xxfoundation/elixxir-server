@@ -155,7 +155,7 @@ func (h RealtimeDecryptHandler) Handler(
 	globals.GlobalRoundMap.SetPhase(roundID, globals.REAL_PERMUTE)
 
 	sendTime := time.Now()
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		// Transition to RealtimePermute phase
 		jww.INFO.Printf("Starting RealtimePermute  Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))
