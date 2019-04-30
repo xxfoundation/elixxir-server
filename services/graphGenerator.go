@@ -31,7 +31,7 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 		panic("Minimum input size must be greater than zero")
 	}
 
-	if outputSize == AUTO_OUTPUTSIZE {
+	if outputSize == AutoOutputSize {
 		outputSize = minInputSize
 	}
 

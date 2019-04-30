@@ -152,8 +152,8 @@ var PermuteElgamal = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.ElGamal,
-	NumThreads: services.AUTO_NUMTHREADS,
-	InputSize:  services.AUTO_INPUTSIZE,
+	NumThreads: services.AutoNumThreads,
+	InputSize:  services.AutoInputSize,
 	Name:       "PermuteElgamal",
 }
 

@@ -105,7 +105,7 @@ var StripInverse = services.Module{
 	},
 	Cryptop:    cryptops.Inverse,
 	NumThreads: 5,
-	InputSize:  services.AUTO_INPUTSIZE,
+	InputSize:  services.AutoInputSize,
 	Name:       "StripInverse",
 }
 
@@ -136,8 +136,8 @@ var StripMul2 = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.Mul2,
-	NumThreads: services.AUTO_NUMTHREADS,
-	InputSize:  services.AUTO_INPUTSIZE,
+	NumThreads: services.AutoNumThreads,
+	InputSize:  services.AutoInputSize,
 	Name:       "StripMul2",
 }
 

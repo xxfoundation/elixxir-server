@@ -66,7 +66,7 @@ func TestPhase_GetState(t *testing.T) {
 }
 
 func TestPhase_GetType(t *testing.T) {
-	phaseType := PRECOMP_GENERATION
+	phaseType := PrecompGeneration
 	p := Phase{tYpe: phaseType}
 	if p.GetType() != phaseType {
 		t.Error("Type was different")
@@ -205,7 +205,7 @@ func TestNew(t *testing.T) {
 	// scope of this test
 	g := initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1))
 	pass := false
-	phase := New(g, REAL_PERMUTE, func(phase *Phase,
+	phase := New(g, RealPermute, func(phase *Phase,
 		nal *services.NodeAddressList, getSlot GetChunk, getMessage GetMessage) {
 		pass = true
 	}, timeout)
@@ -216,7 +216,7 @@ func TestNew(t *testing.T) {
 	if phase.GetGraph() != g {
 		t.Error("Graph wasn't set")
 	}
-	if phase.GetType() != REAL_PERMUTE {
+	if phase.GetType() != RealPermute {
 		t.Error("Type wasn't set")
 	}
 	if phase.GetTimeout() != timeout {

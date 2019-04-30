@@ -91,7 +91,7 @@ var Keygen = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.Keygen,
-	InputSize:  services.AUTO_INPUTSIZE,
+	InputSize:  services.AutoInputSize,
 	Name:       "Keygen",
-	NumThreads: services.AUTO_NUMTHREADS,
+	NumThreads: services.AutoNumThreads,
 }

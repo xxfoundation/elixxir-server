@@ -10,7 +10,7 @@ variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
   DOCKER_IMAGE: bmastc/golang-glide:latest
-  MIN_CODE_COVERAGE: "75.0"
+  MIN_CODE_COVERAGE: "85.0"
 
 before_script:
   ##
