@@ -136,7 +136,7 @@ var StripMul2 = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.Mul2,
-	NumThreads: 5,
+	NumThreads: services.AUTO_NUMTHREADS,
 	InputSize:  services.AUTO_INPUTSIZE,
 	Name:       "StripMul2",
 }

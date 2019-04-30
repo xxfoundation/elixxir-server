@@ -137,7 +137,7 @@ var DecryptElgamal = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.ElGamal,
-	NumThreads: 5,
+	NumThreads: services.AUTO_NUMTHREADS,
 	InputSize:  services.AUTO_INPUTSIZE,
 	Name:       "DecryptElgamal",
 }

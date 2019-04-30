@@ -115,7 +115,7 @@ var RevealRootCoprime = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.RootCoprime,
-	NumThreads: 5,
+	NumThreads: services.AUTO_NUMTHREADS,
 	InputSize:  services.AUTO_INPUTSIZE,
 	Name:       "RevealRootCoprime",
 }
