@@ -6,7 +6,9 @@
 
 package services
 
-import "fmt"
+import (
+	jww "github.com/spf13/jwalterweatherman"
+)
 
 // Should probably add more params to this like block ID, worker thread ID, etc
 type ErrorCallback func(err error)
@@ -21,14 +23,15 @@ type GraphGenerator struct {
 
 func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8, outputSize uint32, outputThreshold float32) GraphGenerator {
 	if defaultNumTh > MAX_THREADS {
-		panic(fmt.Sprintf("Max threads per module is 64, cannot default to %v threads", defaultNumTh))
+		jww.FATAL.Panicf("Max threads per module is 64, "+
+			"cannot default to %v threads", defaultNumTh)
 	}
 	if defaultNumTh == 0 {
-		panic("Cannot default to zero threads")
+		jww.FATAL.Panicf("Cannot default to zero threads")
 	}
 
 	if minInputSize == 0 {
-		panic("Minimum input size must be greater than zero")
+		jww.FATAL.Panicf("Minimum input size must be greater than zero")
 	}
 
 	if outputSize == AUTO_OUTPUTSIZE {
@@ -36,7 +39,8 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 	}
 
 	if outputThreshold < 0.0 || outputThreshold > 1.0 {
-		panic(fmt.Sprintf("Output Threshold must be between 0.0 and 1.0: recieved: %v", outputThreshold))
+		jww.FATAL.Panicf("Output Threshold must be between 0.0 and 1."+
+			"0: recieved: %v", outputThreshold)
 	}
 
 	return GraphGenerator{

@@ -23,3 +23,4 @@ import:
   version: master
   repo: https://github.com/cznic/mathutil.git
   vcs: git
+- package: github.com/pkg/errors

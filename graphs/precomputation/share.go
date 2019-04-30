@@ -7,6 +7,7 @@
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -87,7 +88,8 @@ var ShareExp = services.Module{
 func InitShareGraph(gc services.GraphGenerator) *services.Graph {
 	//Share is special and  must have an input size of 1.  The graph generator must allow for that.
 	if gc.GetMinInputSize() != 1 {
-		panic("Share must have an input size of one, cannot generate off generator which requires larger")
+		jww.FATAL.Panicf("Share must have an input size of one, " +
+			"cannot generate off generator which requires larger")
 	}
 
 	g := gc.NewGraph("Share", &ShareStream{})

@@ -8,6 +8,7 @@ package services
 
 import (
 	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"math"
 )
@@ -70,7 +71,9 @@ func (m *Module) checkParameters(minInputSize uint32, defaultNumThreads uint8) {
 	}
 
 	if m.InputSize < minInputSize {
-		panic(fmt.Sprintf("Module %s cannot have an input size less than %v", m.Name, minInputSize))
+		jww.FATAL.Panicf(fmt.Sprintf("Module %s cannot have an input size less"+
+			" than %v",
+			m.Name, minInputSize))
 	}
 }
 
@@ -106,14 +109,15 @@ func (m *Module) buildAssignments(batchsize uint32) {
 //Get the threshold number
 func threshold(batchsize uint32, thresh float32) uint32 {
 	if thresh < 0 || thresh > 1 {
-		panic(fmt.Sprintf("utput threshold was %v, must be between 0 and 1", thresh))
+		jww.FATAL.Panicf("utput threshold was %v, "+
+			"must be between 0 and 1", thresh)
 	}
 	return uint32(math.Floor(float64(thresh) * float64(batchsize-1)))
 }
 
 func (m Module) DeepCopy() *Module {
 	if m.used == true {
-		panic("cannot copy a module which is in use")
+		jww.FATAL.Panicf("cannot copy a module which is in use")
 	}
 
 	mCopy := Module{

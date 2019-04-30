@@ -9,7 +9,7 @@ package globals
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"

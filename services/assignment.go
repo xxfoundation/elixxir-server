@@ -7,7 +7,7 @@
 package services
 
 import (
-	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"sync/atomic"
 )
 
@@ -58,10 +58,11 @@ func (a *assignment) Enqueue(weight, maxCount uint32) bool {
 	cnt := atomic.AddUint32(a.count, weight)
 
 	if cnt > maxCount {
-		panic(fmt.Sprintf("assignment size overflow, Expected: <=%v, Got: %v from Weight: %v", maxCount, cnt, weight))
-	} else {
-		return cnt == maxCount
+		jww.FATAL.Panicf("assignment size overflow, Expected: <=%v, "+
+			"Got: %v from Weight: %v", maxCount, cnt, weight)
 	}
+
+	return cnt == maxCount
 }
 
 // Gets the chunk represented by the assignment
@@ -127,8 +128,8 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 func (al *assignmentList) DenoteCompleted(numCompleted int) bool {
 	result := atomic.AddUint32(al.completed, uint32(numCompleted))
 	if result > uint32(len(al.assignments)) {
-		panic("completed more assignments then possible")
-	} else {
-		return result == uint32(len(al.assignments))
+		jww.FATAL.Panicf("completed more assignments then possible")
 	}
+
+	return result == uint32(len(al.assignments))
 }
