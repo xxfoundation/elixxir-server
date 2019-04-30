@@ -174,7 +174,7 @@ func TestShare_Graph(t *testing.T) {
 		panic(fmt.Sprintf("Share: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 0)
+	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
 
 	//Initialize graph
 	g := graphInit(gc)

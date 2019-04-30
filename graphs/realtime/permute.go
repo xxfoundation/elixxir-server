@@ -123,9 +123,9 @@ var PermuteMul2 = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.Mul2,
-	InputSize:  services.AUTO_INPUTSIZE,
+	InputSize:  services.AutoInputSize,
 	Name:       "PermuteRealtime",
-	NumThreads: services.AUTO_NUMTHREADS,
+	NumThreads: services.AutoNumThreads,
 }
 
 // InitPermuteGraph initializes and returns a new graph.

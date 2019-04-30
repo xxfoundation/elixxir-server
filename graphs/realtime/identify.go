@@ -124,8 +124,8 @@ var IdentifyMul2 = services.Module{
 		return nil
 	},
 	Cryptop:        cryptops.Mul2,
-	NumThreads:     services.AUTO_NUMTHREADS,
-	InputSize:      services.AUTO_INPUTSIZE,
+	NumThreads:     services.AutoNumThreads,
+	InputSize:      services.AutoInputSize,
 	StartThreshold: 1.0,
 	Name:           "Identify",
 }

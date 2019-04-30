@@ -122,7 +122,7 @@ var ModuleB = Module{
 		return nil
 	},
 	Cryptop:    MultiMul,
-	InputSize:  AUTO_INPUTSIZE,
+	InputSize:  AutoInputSize,
 	NumThreads: 2,
 	Name:       "ModuleB",
 }

@@ -58,15 +58,15 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 func TestPhase_GetState(t *testing.T) {
 	state := Available
 	p := Phase{get: func() State {
-        return Available
-	},}
+		return Available
+	}}
 	if p.GetState() != state {
 		t.Error("State from function was different than expected")
 	}
 }
 
 func TestPhase_GetType(t *testing.T) {
-	phaseType := PRECOMP_GENERATION
+	phaseType := PrecompGeneration
 	p := Phase{tYpe: phaseType}
 	if p.GetType() != phaseType {
 		t.Error("Type was different")
@@ -133,7 +133,7 @@ func TestPhase_ReadyToReceiveData(t *testing.T) {
 	state := Initialized
 	p := Phase{get: func() State {
 		return state
-	},}
+	}}
 	if p.ReadyToReceiveData() {
 		t.Error("Initialized phase shouldn't be ready to receive")
 	}
@@ -162,7 +162,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	state := Initialized
 	p.ConnectToRound(roundId, func(to State) bool {
 		state = to
-        return true
+		return true
 	}, func() State {
 		return state
 	})
@@ -205,7 +205,7 @@ func TestNew(t *testing.T) {
 	// scope of this test
 	g := initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1))
 	pass := false
-	phase := New(g, REAL_PERMUTE, func(phase *Phase,
+	phase := New(g, RealPermute, func(phase *Phase,
 		nal *services.NodeAddressList, getSlot GetChunk, getMessage GetMessage) {
 		pass = true
 	}, timeout)
@@ -216,7 +216,7 @@ func TestNew(t *testing.T) {
 	if phase.GetGraph() != g {
 		t.Error("Graph wasn't set")
 	}
-	if phase.GetType() != REAL_PERMUTE {
+	if phase.GetType() != RealPermute {
 		t.Error("Type wasn't set")
 	}
 	if phase.GetTimeout() != timeout {

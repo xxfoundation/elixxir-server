@@ -155,8 +155,8 @@ var DecryptMul3 = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.Mul3,
-	NumThreads: services.AUTO_NUMTHREADS,
-	InputSize:  services.AUTO_INPUTSIZE,
+	NumThreads: services.AutoNumThreads,
+	InputSize:  services.AutoInputSize,
 	Name:       "DecryptMul3",
 }
 

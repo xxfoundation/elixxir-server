@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	INPUT_IS_BATCHSIZE = math.MaxUint32
-	AUTO_INPUTSIZE     = 0
+	InputIsBatchSize = math.MaxUint32
+	AutoInputSize    = 0
 )
 
 type adapter func(stream Stream, cryptop cryptops.Cryptop, chunk Chunk) error
@@ -61,11 +61,11 @@ type Module struct {
 
 //Checks inputs are correct and sets the inputsize if it is set to auto
 func (m *Module) checkParameters(minInputSize uint32, defaultNumThreads uint8) {
-	if m.NumThreads == AUTO_NUMTHREADS {
+	if m.NumThreads == AutoNumThreads {
 		m.NumThreads = defaultNumThreads
 	}
 
-	if m.InputSize == AUTO_INPUTSIZE {
+	if m.InputSize == AutoInputSize {
 		m.InputSize = ((m.Cryptop.GetInputSize() + minInputSize - 1) / minInputSize) * minInputSize
 	}
 
@@ -79,7 +79,7 @@ func (m *Module) buildAssignments(batchsize uint32) {
 
 	m.assignmentList.threshold = threshold(batchsize, m.StartThreshold)
 
-	if m.InputSize == INPUT_IS_BATCHSIZE {
+	if m.InputSize == InputIsBatchSize {
 		m.InputSize = batchsize
 	}
 

@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 	var phases []*phase.Phase
 	phases = append(phases, phase.New(initMockGraph(services.
 		NewGraphGenerator(1, nil, 1, 1, 1)),
-		phase.REAL_PERMUTE, func(phase *phase.Phase,
+		phase.RealPermute, func(phase *phase.Phase,
 			nal *services.NodeAddressList, getSlot phase.GetChunk,
 			getMessage phase.GetMessage) {
 			return
@@ -86,16 +86,16 @@ func TestNew(t *testing.T) {
 	// Because it's a lot of rigamarole to create the round again,
 	// here's coverage for GetPhase and GetCurrentPhase
 	// should return nil
-	nilPhase := round.GetPhase(phase.PRECOMP_GENERATION)
+	nilPhase := round.GetPhase(phase.PrecompGeneration)
 	if nilPhase != nil {
 		t.Fatal("Should have gotten a nil phase")
 	}
-	actualPhase := round.GetPhase(phase.REAL_PERMUTE)
+	actualPhase := round.GetPhase(phase.RealPermute)
 	if !actualPhase.Cmp(phases[0]) {
 		t.Error("Phases differed")
 	}
 	actualPhaseType := round.GetCurrentPhase().GetType()
-	if actualPhaseType != phase.REAL_PERMUTE {
+	if actualPhaseType != phase.RealPermute {
 		t.Error("Current phase should have been realtime permute")
 	}
 	// Try getting and setting the state of the phase
