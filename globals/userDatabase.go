@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -70,8 +71,9 @@ func decodeUser(userIdDB string) *id.User {
 	// This should only happen if you intentionally put invalid user ID
 	// information in the database, which should never happen
 	if err != nil {
-		jww.ERROR.Print("decodeUser: Got error decoding user ID. " +
-			"Returning zero ID instead")
+		err = errors.New(err.Error())
+		jww.ERROR.Printf("decodeUser: Got error decoding user ID: %+v,"+
+			" Returning zero ID instead", err)
 		return id.ZeroID
 	}
 
@@ -99,7 +101,6 @@ func NewUserRegistry(username, password,
 		// Return the map-backed UserRegistry interface
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
-
 		return UserRegistry(&UserMap{})
 	} else {
 		// Return the database-backed UserRegistry interface
@@ -146,11 +147,11 @@ func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) error {
 
 	// Verify there were no errors
 	if err != nil {
+		err = errors.New(err.Error())
 		jww.ERROR.Printf("Unable to insert salt: %v", err)
-		return err
 	}
 
-	return nil
+	return err
 }
 
 // NewUser creates a new User object with default fields and given address.
@@ -169,7 +170,8 @@ func (m *UserDatabase) DeleteUser(userId *id.User) {
 
 	if err != nil {
 		// Non-fatal error, user probably doesn't exist in the database
-		jww.WARN.Printf("Unable to delete user %q! %v", userId, err)
+		err = errors.New(err.Error())
+		jww.WARN.Printf("Unable to delete user %q! %+v", userId, err)
 	}
 }
 
@@ -182,7 +184,7 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 
 	if err != nil {
 		// If there was an error, no user for the given ID was found
-		return nil, err
+		return nil, errors.New(err.Error())
 	}
 	// If we found a user for the given ID, return it
 	return m.convertDbToUser(&u), nil
@@ -197,7 +199,7 @@ func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error)
 
 	if err != nil {
 		// If there was an error, no user for the given nonce was found
-		return nil, err
+		return nil, errors.New(err.Error())
 	}
 	// If we found a user for the given ID, return it
 	return m.convertDbToUser(&u), nil
@@ -225,7 +227,8 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.ERROR.Printf("Unable to upsert user %q! %s", user.ID, err.Error())
+		err = errors.New(err.Error())
+		jww.ERROR.Printf("Unable to upsert user %q! %+v", user.ID, err)
 	}
 }
 
@@ -233,7 +236,8 @@ func (m *UserDatabase) UpsertUser(user *User) {
 func (m *UserDatabase) CountUsers() int {
 	count, err := m.db.Model(&UserDB{}).Count()
 	if err != nil {
-		jww.ERROR.Printf("Unable to count users! %s", err.Error())
+		err = errors.New(err.Error())
+		jww.ERROR.Printf("Unable to count users! %+v", err)
 		return 0
 	}
 	return count
@@ -256,7 +260,8 @@ func createSchema(db *pg.DB) error {
 		})
 		if err != nil {
 			// Return the error if one comes up
-			jww.WARN.Printf("Unable to create database schema! %v", err)
+			err = errors.New(err.Error())
+			jww.WARN.Printf("Unable to create database schema! %+v", err)
 			return err
 		}
 	}

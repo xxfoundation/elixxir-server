@@ -7,6 +7,7 @@
 package services
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"math"
@@ -109,25 +110,25 @@ func (g *Graph) Build(batchSize uint32) {
 func (g *Graph) checkGraph() {
 	//Check if graph has modules
 	if len(g.modules) == 0 {
-		panic("No modules in graph")
+		jww.FATAL.Panicf("No modules in graph")
 	}
 
 	if g.firstModule == nil {
-		panic("No first module")
+		jww.FATAL.Panicf("No first module")
 	}
 
 	if g.lastModule == nil {
-		panic("No last module")
+		jww.FATAL.Panicf("No last module")
 	}
 }
 
 func (g *Graph) Run() {
 	if !g.built {
-		panic("graph not built")
+		jww.FATAL.Panicf("graph not built")
 	}
 
 	if !g.linked {
-		panic("stream not linked and built")
+		jww.FATAL.Panicf("stream not linked and built")
 	}
 
 	for _, m := range g.modules {
@@ -167,7 +168,8 @@ func (g *Graph) Last(l *Module) {
 
 func (g *Graph) add(m *Module) {
 	if !m.copy {
-		panic("cannot build a graph with an original module, must use a copy")
+		jww.FATAL.Panicf("cannot build a graph with an original module, " +
+			"must use a copy")
 	}
 	m.used = true
 	_, ok := g.modules[m.id]

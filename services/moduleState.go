@@ -7,7 +7,7 @@
 package services
 
 import (
-	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -34,7 +34,9 @@ type moduleState struct {
 // This doesn't seem like the best way to initialize the struct
 func (ms *moduleState) Init() {
 	if ms.numTh > MAX_THREADS {
-		panic(fmt.Sprintf("Cannot start module with more than %v threads, started with %v", MAX_THREADS, ms.numTh))
+		jww.FATAL.Panicf("Cannot start module with more than %v"+
+			" threads, "+
+			"started with %v", MAX_THREADS, ms.numTh)
 	}
 	ms.threads = make([]chan chan bool, ms.numTh)
 	ms.locks = make([]sync.Mutex, ms.numTh)
@@ -131,7 +133,7 @@ func (ms *moduleState) AnyRunning() bool {
 func (ms *moduleState) Kill(timeout time.Duration) bool {
 	success := true
 
-	for itr, _ := range ms.threads {
+	for itr := range ms.threads {
 		if ms.IsRunning(uint8(itr)) {
 			success = success && ms.killThread(uint8(itr), timeout)
 		}
