@@ -49,13 +49,13 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 
 		//build the function this phase will use to get its state
 		get := func() phase.State {
-			curentState := int64(atomic.LoadUint32(round.state)) - int64(localStateOffset)
-			if curentState <= int64(phase.Initialized) {
+			currentState := int64(atomic.LoadUint32(round.state)) - int64(localStateOffset)
+			if currentState <= int64(phase.Initialized) {
 				return phase.Initialized
-			} else if curentState >= int64(phase.Finished) {
+			} else if currentState >= int64(phase.Finished) {
 				return phase.Finished
 			} else {
-				return phase.State(curentState)
+				return phase.State(currentState)
 			}
 		}
 
