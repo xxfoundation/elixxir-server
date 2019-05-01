@@ -67,7 +67,18 @@ func (s *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...inte
 	s.CypherADPermuted = make([]*cyclic.Int, batchSize)
 	s.CypherMsgPermuted = make([]*cyclic.Int, batchSize)
 	s.KeysADPermuted = make([]*cyclic.Int, batchSize)
-	s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
+
+	if roundBuffer.PermutedMessageKeys != nil {
+		s.KeysMsgPermuted = roundBuffer.PermutedMessageKeys
+	} else {
+		s.KeysMsgPermuted = make([]*cyclic.Int, batchSize)
+	}
+
+	if roundBuffer.PermutedADKeys != nil {
+		s.KeysADPermuted = roundBuffer.PermutedADKeys
+	} else {
+		s.KeysADPermuted = make([]*cyclic.Int, batchSize)
+	}
 
 	graphs.PrecanPermute(roundBuffer.Permutations,
 		graphs.PermuteIO{

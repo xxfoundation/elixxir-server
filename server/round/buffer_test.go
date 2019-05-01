@@ -91,6 +91,25 @@ func TestNewRound(t *testing.T) {
 					itr, p)
 			}
 		}
+
+		if r.PermutedMessageKeys != nil {
+			t.Errorf("New RoundBuffer: PermutedMessageKeys populated when they should not be")
+		}
+
+		if r.PermutedADKeys != nil {
+			t.Errorf("New RoundBuffer: PermutedADKeys populated when they should not be")
+		}
+
+		r.InitLastNode()
+
+		if len(r.PermutedMessageKeys) != int(r.expandedBatchSize) {
+			t.Errorf("New RoundBuffer: PermutedMessageKeys not populated correctly after intilization")
+		}
+
+		if len(r.PermutedADKeys) != int(r.expandedBatchSize) {
+			t.Errorf("New RoundBuffer: PermutedADKeys not populated correctly after intilization")
+		}
+
 	}
 }
 

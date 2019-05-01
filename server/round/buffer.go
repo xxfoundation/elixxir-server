@@ -37,6 +37,11 @@ type Buffer struct {
 	// Results of Precomputation
 	MessagePrecomputation *cyclic.IntBuffer
 	ADPrecomputation      *cyclic.IntBuffer
+
+	// Stores the result of the precomputation permuted phase for the last node
+	// To reuse in the Identify phase because the Reveal phase does not use the data
+	PermutedMessageKeys []*cyclic.Int
+	PermutedADKeys      []*cyclic.Int
 }
 
 // Function to initialize a new round
@@ -70,6 +75,11 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 		MessagePrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		ADPrecomputation:      g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 	}
+}
+
+func (r *Buffer) InitLastNode() {
+	r.PermutedMessageKeys = make([]*cyclic.Int, r.expandedBatchSize)
+	r.PermutedADKeys = make([]*cyclic.Int, r.expandedBatchSize)
 }
 
 func (r *Buffer) GetBatchSize() uint32 {
