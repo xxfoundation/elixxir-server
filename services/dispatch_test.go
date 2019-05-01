@@ -122,7 +122,7 @@ var ModuleB = Module{
 		return nil
 	},
 	Cryptop:    MultiMul,
-	InputSize:  AUTO_INPUTSIZE,
+	InputSize:  AutoInputSize,
 	NumThreads: 2,
 	Name:       "ModuleB",
 }
@@ -169,6 +169,8 @@ var ModuleD = Module{
 }
 
 func TestGraph(t *testing.T) {
+
+	fmt.Println("num threads: ", runtime.NumCPU())
 
 	grp := initDispatchGroup()
 

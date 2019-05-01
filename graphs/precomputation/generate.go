@@ -105,8 +105,8 @@ var Generate = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.Generate,
-	NumThreads: 5,
-	InputSize:  services.AUTO_INPUTSIZE,
+	NumThreads: services.AutoNumThreads,
+	InputSize:  services.AutoInputSize,
 	Name:       "Generate",
 }
 

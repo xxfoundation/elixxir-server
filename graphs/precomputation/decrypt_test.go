@@ -258,7 +258,7 @@ func TestDecryptGraph(t *testing.T) {
 		panic(fmt.Sprintf("PrecompDecrypt: Error in adapter: %s", err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AUTO_OUTPUTSIZE, 1.0)
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 1.0)
 
 	//Initialize graph
 	g := graphInit(gc)

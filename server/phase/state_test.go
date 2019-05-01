@@ -1,45 +1,56 @@
 package phase
 
 import (
-	"sync/atomic"
 	"testing"
 )
 
 // Proves that a single phase can be taken through all of its states
 // using the provided utility methods
-func TestPhaseStateIncrement(t *testing.T) {
-	g := NewStateGroup()
-	index, state := g.newState()
+func TestPhaseState(t *testing.T) {
+	state := uint32(Initialized)
+	// Real implementations would use atomics for all of this for better
+	// thread safety.
+	// However, testing threading functionality is outside of the scope of this
+	// test, so these testing implementations don't use atomics for readability.
+	// Do NOT create a real implementation without atomics!
 	p := Phase{
-		tYpe:       g.GetCurrentPhase(),
-		state:      state,
-		stateIndex: index,
-		stateGroup: g,
+		transitionToState: func(to State) bool {
+			// Make sure the state is the one after
+			if state+1 != uint32(to) {
+				return false
+			} else {
+				state = uint32(to)
+				return true
+			}
+		},
+		getState: func() State {
+			return State(state)
+		},
 	}
 
-	atomic.StoreUint32(state, uint32(Available))
+	state = uint32(Available)
 	expected := Available
-	if atomic.LoadUint32(state) != uint32(expected) {
+	if p.GetState() != Available {
 		t.Errorf("State was %v, but should have been %v",
-			State(atomic.LoadUint32(state)), expected)
+			p.GetState(), expected)
 	}
-	p.IncrementPhaseToQueued()
+	p.TransitionTo(Queued)
 	expected = Queued
-	if g.GetState(index) != expected {
+	if p.GetState() != expected {
 		t.Errorf("State was %v, but should have been %v",
-			State(atomic.LoadUint32(state)), expected)
+			p.GetState(), expected)
 	}
-	p.IncrementPhaseToRunning()
+	p.TransitionTo(Running)
 	expected = Running
-	if g.GetState(index) != expected {
+	if p.GetState() != expected {
 		t.Errorf("State was %v, but should have been %v",
-			State(atomic.LoadUint32(state)), expected)
+			p.GetState(), expected)
 	}
-	p.Finish()
+	p.TransitionTo(Finished)
 	expected = Finished
-	if g.GetState(index) != expected {
+	if p.GetState() != expected {
 		t.Errorf("State was %v, but should have been %v",
-			State(atomic.LoadUint32(state)), expected)
+			p.GetState(), expected)
 	}
 }
 

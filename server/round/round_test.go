@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 	var phases []*phase.Phase
 	phases = append(phases, phase.New(initMockGraph(services.
 		NewGraphGenerator(1, nil, 1, 1, 1)),
-		phase.REAL_PERMUTE, func(phase *phase.Phase,
+		phase.RealPermute, func(phase *phase.Phase,
 			nal *services.NodeAddressList, getSlot phase.GetChunk,
 			getMessage phase.GetMessage) {
 			return
@@ -58,7 +58,7 @@ func TestNew(t *testing.T) {
 		[]services.NodeAddress{{
 			Cert:    "not a cert",
 			Address: "127.0.0.1",
-			Id:      0,
+			Id:      id.Node{},
 		}}, myLoc)
 
 	round := New(grp, roundId, phases, nodeAddressList.GetAllNodesAddress(),
@@ -86,16 +86,38 @@ func TestNew(t *testing.T) {
 	// Because it's a lot of rigamarole to create the round again,
 	// here's coverage for GetPhase and GetCurrentPhase
 	// should return nil
-	nilPhase := round.GetPhase(phase.PRECOMP_GENERATION)
+	nilPhase := round.GetPhase(phase.PrecompGeneration)
 	if nilPhase != nil {
 		t.Fatal("Should have gotten a nil phase")
 	}
-	actualPhase := round.GetPhase(phase.REAL_PERMUTE)
+	actualPhase := round.GetPhase(phase.RealPermute)
 	if !actualPhase.Cmp(phases[0]) {
-        t.Error("Phases differed")
+		t.Error("Phases differed")
 	}
-	actualPhaseType := round.GetCurrentPhase()
-	if actualPhaseType != phase.REAL_PERMUTE {
+	actualPhaseType := round.GetCurrentPhase().GetType()
+	if actualPhaseType != phase.RealPermute {
 		t.Error("Current phase should have been realtime permute")
+	}
+	// Try getting and setting the state of the phase
+	if round.GetCurrentPhase().GetState() != phase.Available {
+		t.Errorf("Phase's state is %v, should have been Available",
+			round.GetCurrentPhase().GetState())
+	}
+	// This should fail...
+	if round.GetCurrentPhase().TransitionTo(phase.Running) {
+		t.Error("Shouldn't have been able to successfully increment phase to" +
+			" Queued")
+	}
+	// and the state should remain Initialized
+	if round.GetCurrentPhase().GetState() != phase.Available {
+		t.Error("Phase's state should have remained Available")
+	}
+	// However, setting the state to Queued should succeed
+	if !round.GetCurrentPhase().TransitionTo(phase.Queued) {
+		t.Error("Should have been able to take state from Available to Queued")
+	}
+	// And, the state should be set to Queued
+	if round.GetCurrentPhase().GetState() != phase.Queued {
+		t.Error("Phase's state should be Queued")
 	}
 }

@@ -2,11 +2,9 @@ package phase
 
 import (
 	"fmt"
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -17,11 +15,10 @@ type Phase struct {
 	transmissionHandler Transmission
 	timeout             time.Duration
 
-	roundID    id.Round
-	roundIDset sync.Once
-	state      *uint32
-	stateIndex int
-	stateGroup *StateGroup
+	roundID           id.Round
+	roundIDset        sync.Once
+	transitionToState Transition
+	getState          GetState
 }
 
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
@@ -38,11 +35,12 @@ func New(g *services.Graph, name Type, tHandler Transmission, timeout time.Durat
 // SetRoundIDOnce sets the round ID.  Can only be called once.
 // Should only be called from Round package that initializes states
 // Must be called on all phases in their order in the round
-func (p *Phase) ConnectToRound(id id.Round, stateGroup *StateGroup) {
+func (p *Phase) ConnectToRound(id id.Round, setState Transition,
+	getState GetState) {
 	p.roundIDset.Do(func() {
 		p.roundID = id
-		p.stateIndex, p.state = stateGroup.newState()
-		p.stateGroup = stateGroup
+		p.transitionToState = setState
+		p.getState = getState
 	})
 }
 
@@ -62,7 +60,11 @@ func (p *Phase) GetType() Type {
 
 // GetState returns the current state of the phase
 func (p *Phase) GetState() State {
-	return State(atomic.LoadUint32(p.state))
+	return p.getState()
+}
+
+func (p *Phase) TransitionTo(newState State) bool {
+	return p.transitionToState(newState)
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function
@@ -91,44 +93,4 @@ func (p *Phase) String() string {
 func (p *Phase) ReadyToReceiveData() bool {
 	phaseState := p.GetState()
 	return phaseState == Available || phaseState == Queued || phaseState == Running
-}
-
-// IncrementPhaseToQueued transitions Phase from Available to Queued
-func (p *Phase) IncrementPhaseToQueued() bool {
-	p.stateGroup.rw.RLock()
-	defer p.stateGroup.rw.RUnlock()
-	return atomic.CompareAndSwapUint32(p.state, uint32(Available), uint32(Queued))
-}
-
-// IncrementPhaseToQueued transitions Phase from Queued to Running
-func (p *Phase) IncrementPhaseToRunning() bool {
-	p.stateGroup.rw.RLock()
-	defer p.stateGroup.rw.RUnlock()
-	return atomic.CompareAndSwapUint32(p.state, uint32(Queued), uint32(Running))
-}
-
-// Finish transitions Phase from Running to Finished,
-// and the phase after it from Initialized to Available
-func (p *Phase) Finish() {
-	p.stateGroup.rw.Lock()
-	success := atomic.CompareAndSwapUint32(p.stateGroup.phase, uint32(p.tYpe), (uint32)(p.tYpe)+1)
-	if !success {
-		jww.FATAL.Panicf("Phase incremented incorrectly from %v as if %v in round %v",
-			atomic.LoadUint32(p.state), p, p.roundID)
-	}
-
-	success = atomic.CompareAndSwapUint32(p.state, uint32(Running),
-		uint32(Finished))
-	if !success {
-		jww.FATAL.Panicf("Phase state %v of running phase %s could not be"+
-			" incremented to Finished", State(*p.state), p.tYpe.String())
-	}
-
-	if int(p.tYpe+1) < len(p.stateGroup.states) {
-		success = atomic.CompareAndSwapUint32(p.stateGroup.states[p.stateIndex+1], uint32(Initialized), uint32(Available))
-		if !success {
-			jww.FATAL.Panicf("Phase state of new phase could not be incremented to Avalable")
-		}
-	}
-	p.stateGroup.rw.Unlock()
 }

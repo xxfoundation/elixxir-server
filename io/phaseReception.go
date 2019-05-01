@@ -1,5 +1,6 @@
 package io
 
+/*
 import (
 	"errors"
 	"fmt"
@@ -42,4 +43,4 @@ func ReceivePhase(instance *server.Instance, batch *mixmessages.Batch) error {
 
 	return nil
 
-}
+}*/

@@ -17,27 +17,58 @@ type ResourceQueue struct {
 	activePhase *phase.Phase
 	phaseQueue  chan *phase.Phase
 	finishChan  chan *phase.Phase
-	timer       time.Timer
+	timer       *time.Timer
 }
 
+// UpsertPhase adds the phase to the queue to be operated on if it is not already there
 func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
-	if p.IncrementPhaseToQueued() {
+	if p.TransitionTo(phase.Queued) {
 		rq.phaseQueue <- p
 	}
-}
-
-func (rq *ResourceQueue) FinishPhase(phase *phase.Phase) {
-	rq.finishChan <- phase
 }
 
 func queueRunner(server *Instance) {
 	queue := server.GetResourceQueue()
 
 	for true {
+		//get the next phase to execute
+		queue.activePhase = <-queue.phaseQueue
+
+		//update the next phase to running
+		success := queue.activePhase.TransitionTo(phase.Running)
+		if !success {
+			jww.FATAL.Panicf("Next phase %s of round %v which is queued is not in the correct state and "+
+				"cannot be started", queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
+		}
+
+		runningPhase := queue.activePhase
+
+		//Build the chunk accessor which will also increment the queue when appropriate
+		var getChunk phase.GetChunk
+		getChunk = func() (services.Chunk, bool) {
+			chunk, ok := runningPhase.GetGraph().GetOutput()
+			//Fixme: add a method to kill this directly
+			if !ok {
+				//send the phase into the channel to denote it is complete
+				queue.finishChan <- runningPhase
+			}
+			return chunk, ok
+		}
+
+		//start the phase's transmission handler
+		go queue.activePhase.GetTransmissionHandler()(runningPhase,
+			server.GetRoundManager().GetRound(runningPhase.GetRoundID()).GetNodeAddressList(),
+			getChunk, runningPhase.GetGraph().GetStream().Output)
+
+		//start the phase's graphs
+		runningPhase.GetGraph().Run()
+		//start phases's the timeout timer
+		queue.timer = time.NewTimer(runningPhase.GetTimeout())
+
 		var rtnPhase *phase.Phase
 		timeout := false
 
-		//get that the phase has completed or the current phase's timeout
+		//wait until a phase completes or it's timeout is reached
 		select {
 		case rtnPhase = <-queue.finishChan:
 		case <-queue.timer.C:
@@ -65,37 +96,8 @@ func queueRunner(server *Instance) {
 				queue.activePhase.GetRoundID(), rtnPhase)
 		}
 
-		//update the ending phase to the next phase
-		queue.activePhase.Finish()
-
-		//get the next phase to execute
-		queue.activePhase = <-queue.phaseQueue
-
-		//update the next phase to running
-		success := queue.activePhase.IncrementPhaseToRunning()
-		if !success {
-			jww.FATAL.Panicf("Next phase %s of round %v which is queued is not in the correct state and "+
-				"cannot be started", queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
-		}
-
-		runningPhase := queue.activePhase
-
-		var getChunk phase.GetChunk
-		getChunk = func() (services.Chunk, bool) {
-			chunk, ok := runningPhase.GetGraph().GetOutput()
-			//Fixme: add a method to kill this directly
-			if !ok {
-				queue.FinishPhase(runningPhase)
-			}
-			return chunk, ok
-		}
-
-		go queue.activePhase.GetTransmissionHandler()(runningPhase,
-			server.GetRoundManager().GetRound(runningPhase.GetRoundID()).GetNodeAddressList(),
-			getChunk, runningPhase.GetGraph().GetStream().Output)
-
-		runningPhase.GetGraph().Run()
-
+		//update the ending phase to the next phase which also allows the next phase in the round to run
+		queue.activePhase.TransitionTo(phase.Finished)
 	}
 
 }

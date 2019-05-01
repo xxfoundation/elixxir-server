@@ -1,5 +1,6 @@
 package io
 
+/*
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	comm "gitlab.com/elixxir/comms/node"
@@ -38,4 +39,4 @@ func TransmitPhase(phase *phase.Phase, getChunk phase.GetChunk,
 
 	_, err := comm.SendPhase(recipient.Address, recipient.Cert, &batch)
 	return err
-}
+}*/

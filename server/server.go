@@ -1,7 +1,11 @@
 package server
 
 import (
+	"errors"
+	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
@@ -9,6 +13,7 @@ import (
 
 // Holds long-lived server state
 type Instance struct {
+	id            *id.Node
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
 	grp           *cyclic.Group
@@ -45,9 +50,27 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 		finishChan: make(chan *phase.Phase, 1),
 	}
 	instance.userReg = db
+
+	//Generate a random node id as a placeholder
+	nodeIdBytes := make([]byte, id.NodeIdLen)
+	rng := csprng.NewSystemRNG()
+	_, err := rng.Read(nodeIdBytes)
+	if err != nil {
+		err := errors.New(err.Error())
+		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
+	}
+
+	nid := &id.Node{}
+	nid.SetBytes(nodeIdBytes)
+	instance.id = nid
+
 	return &instance
 }
 
 func (i *Instance) Run() {
 	go queueRunner(i)
+}
+
+func (i *Instance) GetID() *id.Node {
+	return i.id.DeepCopy()
 }

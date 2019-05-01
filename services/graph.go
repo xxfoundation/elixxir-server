@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	OUTPUT_IS_BATCHSIZE = INPUT_IS_BATCHSIZE
-	AUTO_OUTPUTSIZE     = AUTO_INPUTSIZE
-	AUTO_NUMTHREADS     = 0
+	OutputIsBatchsize = InputIsBatchSize
+	AutoOutputSize    = AutoInputSize
+	AutoNumThreads    = 0
 )
 
 type Graph struct {
@@ -59,7 +59,7 @@ func (g *Graph) Build(batchSize uint32) {
 
 	for _, m := range g.modules {
 		m.checkParameters(g.generator.minInputSize, g.generator.defaultNumTh)
-		if m.InputSize != INPUT_IS_BATCHSIZE {
+		if m.InputSize != InputIsBatchSize {
 			integers = append(integers, m.InputSize)
 		}
 	}
