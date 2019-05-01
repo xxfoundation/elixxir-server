@@ -34,26 +34,36 @@ func NewNodeAddressList(list []NodeAddress, myloc int) *NodeAddressList {
 }
 
 // GetNextNodeAddress gets the next node in the list and
-func (r *NodeAddressList) GetNextNodeAddress() NodeAddress {
-	return r.nodes[(r.myLoc+1)%len(r.nodes)]
+func (nar *NodeAddressList) GetNextNodeAddress() NodeAddress {
+	return nar.nodes[(nar.myLoc+1)%len(nar.nodes)]
 }
 
 // GetNextNodeAddress gets the pre node in the list and
-func (r *NodeAddressList) GetPrevNodeAddress() NodeAddress {
-	return r.nodes[(r.myLoc-1)%len(r.nodes)]
+func (nar *NodeAddressList) GetPrevNodeAddress() NodeAddress {
+	return nar.nodes[(nar.myLoc-1)%len(nar.nodes)]
 }
 
 // GetNodeAddress Gets the node address at a specific index, wraps around if out of range
-func (r *NodeAddressList) GetNodeAddress(index int) NodeAddress {
-	return r.nodes[index%len(r.nodes)]
+func (nar *NodeAddressList) GetNodeAddress(index int) NodeAddress {
+	return nar.nodes[index%len(nar.nodes)]
 }
 
 // GetNodeAddress Returns a copy of the internal node address list
-func (r *NodeAddressList) GetAllNodesAddress() []NodeAddress {
-	nal := make([]NodeAddress, len(r.nodes))
+func (nar *NodeAddressList) GetAllNodesAddress() []NodeAddress {
+	nal := make([]NodeAddress, len(nar.nodes))
 
 	for i := range nal {
-		nal[i] = r.nodes[i].DeepCopy()
+		nal[i] = nar.nodes[i].DeepCopy()
 	}
 	return nal
+}
+
+//Returns true if the node is the first node
+func (nar *NodeAddressList) IsFirstNode() bool {
+	return nar.myLoc == 0
+}
+
+//Returns true if the node is the last node
+func (nar *NodeAddressList) IsLastNode() bool {
+	return nar.myLoc == len(nar.nodes)-1
 }

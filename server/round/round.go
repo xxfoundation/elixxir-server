@@ -77,6 +77,10 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 
 	round.nodeAddressList = services.NewNodeAddressList(nodes, myLoc)
 
+	if round.nodeAddressList.IsLastNode() {
+		round.buffer.InitLastNode()
+	}
+
 	//set the state of the first phase to available
 	success := atomic.CompareAndSwapUint32(round.state, uint32(phase.Initialized), uint32(phase.Available))
 	if !success {

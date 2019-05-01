@@ -18,22 +18,38 @@ type Instance struct {
 	resourceQueue *ResourceQueue
 	grp           *cyclic.Group
 	userReg       globals.UserRegistry
+	firstNode
+	lastNode
 }
 
+//GetGroup returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
 	return i.grp
 }
 
+//GetUserRegistry returns the user registry used by the server
 func (i *Instance) GetUserRegistry() globals.UserRegistry {
 	return i.userReg
 }
 
+//GetRoundManager returns the round manager
 func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
 }
 
+//GetResourceQueue returns the resource queue used by the serverequals
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
+}
+
+//Initializes the first node components of the instance
+func (i *Instance) InitFirstNode() {
+	i.firstNode.Initialize()
+}
+
+//Initializes the last node components of the instance
+func (i *Instance) InitLastNode() {
+	i.lastNode.Initialize()
 }
 
 // Create a server instance. To actually kick off the server,
@@ -71,6 +87,7 @@ func (i *Instance) Run() {
 	go queueRunner(i)
 }
 
+//GetID returns the nodeID
 func (i *Instance) GetID() *id.Node {
 	return i.id.DeepCopy()
 }
