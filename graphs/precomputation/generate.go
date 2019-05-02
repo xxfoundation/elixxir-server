@@ -25,6 +25,9 @@ import (
 type GenerateStream struct {
 	Grp *cyclic.Group
 
+	// RNG
+	rngConstructor csprng.SourceConstructor
+
 	// Phase Keys
 	R *cyclic.IntBuffer
 	S *cyclic.IntBuffer
@@ -39,39 +42,58 @@ type GenerateStream struct {
 }
 
 // GetName returns the name of this op
-func (s *GenerateStream) GetName() string {
+func (gs *GenerateStream) GetName() string {
 	return "PrecompGenerateStream"
 }
 
 // Link maps the round data to the Generate Stream data structure (the input)
-func (s *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+func (gs *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
+	rngConstructor := source[2].(func() csprng.Source)
 
-	s.Grp = grp
+	gs.LinkGenerateStream(grp, batchSize, roundBuffer, rngConstructor)
+}
+
+// Link maps the round data to the Generate Stream data structure (the input)
+func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
+	rngConstructor csprng.SourceConstructor) {
+
+	gs.Grp = grp
+
+	gs.rngConstructor = rngConstructor
 
 	// Phase keys
-	s.R = roundBuffer.R.GetSubBuffer(0, batchSize)
-	s.S = roundBuffer.S.GetSubBuffer(0, batchSize)
-	s.U = roundBuffer.U.GetSubBuffer(0, batchSize)
-	s.V = roundBuffer.V.GetSubBuffer(0, batchSize)
+	gs.R = roundBuffer.R.GetSubBuffer(0, batchSize)
+	gs.S = roundBuffer.S.GetSubBuffer(0, batchSize)
+	gs.U = roundBuffer.U.GetSubBuffer(0, batchSize)
+	gs.V = roundBuffer.V.GetSubBuffer(0, batchSize)
 
 	// Share keys
-	s.YR = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
-	s.YS = roundBuffer.Y_S.GetSubBuffer(0, batchSize)
-	s.YU = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
-	s.YV = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
+	gs.YR = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
+	gs.YS = roundBuffer.Y_S.GetSubBuffer(0, batchSize)
+	gs.YU = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
+	gs.YV = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
+}
+
+type generateSubstreamInterface interface {
+	GetSubStream() *GenerateStream
+}
+
+// getSubStream implements reveal interface to return stream object
+func (gs *GenerateStream) GetSubStream() *GenerateStream {
+	return gs
 }
 
 // Input function pulls things from the mixmessage
-func (s *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
-	if index >= uint32(s.R.Len()) {
+func (gs *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
+	if index >= uint32(gs.R.Len()) {
 		return node.ErrOutsideOfBatch
 	}
 	return nil
 }
 
 // Output returns an empty cMixSlot message
-func (s *GenerateStream) Output(index uint32) *mixmessages.Slot {
+func (gs *GenerateStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{}
 }
 
@@ -80,21 +102,23 @@ var Generate = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
-		s, ok := streamInput.(*GenerateStream)
+		gssi, ok := streamInput.(generateSubstreamInterface)
 		generate, ok2 := cryptop.(cryptops.GeneratePrototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
-		rng := csprng.NewSystemRNG()
+		gs := gssi.GetSubStream()
+
+		rng := gs.rngConstructor()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			errors := []error{
-				generate(s.Grp, s.R.Get(i), s.YR.Get(i), rng),
-				generate(s.Grp, s.S.Get(i), s.YS.Get(i), rng),
-				generate(s.Grp, s.U.Get(i), s.YU.Get(i), rng),
-				generate(s.Grp, s.V.Get(i), s.YV.Get(i), rng),
+				generate(gs.Grp, gs.R.Get(i), gs.YR.Get(i), rng),
+				generate(gs.Grp, gs.S.Get(i), gs.YS.Get(i), rng),
+				generate(gs.Grp, gs.U.Get(i), gs.YU.Get(i), rng),
+				generate(gs.Grp, gs.V.Get(i), gs.YV.Get(i), rng),
 			}
 			for _, err := range errors {
 				if err != nil {

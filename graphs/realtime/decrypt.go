@@ -89,7 +89,7 @@ type decryptSubStreamInterface interface {
 
 // getPermuteSubStream returns the sub-stream, used to return an embedded struct
 // off an interface.
-func (ds *DecryptStream) getDecrypteSubStream() *DecryptStream {
+func (ds *DecryptStream) GetDecryptSubStream() *DecryptStream {
 	return ds
 }
 

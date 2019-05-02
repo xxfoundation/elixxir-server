@@ -8,6 +8,7 @@ package precomputation
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
@@ -57,7 +58,8 @@ func TestGenerateStream_GetName(t *testing.T) {
 func TestGenerateStream_Link(t *testing.T) {
 	ds := GenerateStream{}
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	ds.Link(grp, batchSize, roundBuffer)
+
+	ds.Link(grp, batchSize, roundBuffer, nil, csprng.NewSystemRNG)
 
 	checkStreamIntBuffer(grp, ds.R, roundBuffer.R, "R", t)
 	checkStreamIntBuffer(grp, ds.S, roundBuffer.S, "S", t)
@@ -73,7 +75,7 @@ func TestGenerateStream_Link(t *testing.T) {
 func TestGenerateStream_Input(t *testing.T) {
 	ds := &GenerateStream{}
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	ds.Link(grp, batchSize, roundBuffer)
+	ds.Link(grp, batchSize, roundBuffer, nil, csprng.NewSystemRNG)
 
 	for b := uint32(0); b < batchSize; b++ {
 		msg := &mixmessages.Slot{}
@@ -105,7 +107,7 @@ func TestGenerateStream_Input(t *testing.T) {
 func TestGenerateStream_Output(t *testing.T) {
 	ds := &GenerateStream{}
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	ds.Link(grp, batchSize, roundBuffer)
+	ds.Link(grp, batchSize, roundBuffer, nil, csprng.NewSystemRNG)
 
 	for b := uint32(0); b < batchSize; b++ {
 		msg := &mixmessages.Slot{}
@@ -158,7 +160,7 @@ func TestGenerateGraph(t *testing.T) {
 	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 
 	//Link the graph to the round. building the stream object
-	g.Link(grp, roundBuffer)
+	g.Link(grp, roundBuffer, nil, csprng.NewSystemRNG)
 
 	//stream := g.GetStream().(*GenerateStream)
 

@@ -28,36 +28,50 @@ type ShareStream struct {
 }
 
 // GetName returns stream name
-func (s *ShareStream) GetName() string {
+func (ss *ShareStream) GetName() string {
 	return "PrecompShareStream"
 }
 
 // Link binds stream to state objects in round
-func (s *ShareStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+func (ss *ShareStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
-	s.Grp = grp
-	s.Z = roundBuffer.Z
+	ss.LinkShareStream(grp, batchSize, roundBuffer)
+}
 
-	s.PartialPublicCypherKey = s.Grp.NewInt(1)
+// Link binds stream to state objects in round
+func (ss *ShareStream) LinkShareStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer) {
+	ss.Grp = grp
+	ss.Z = roundBuffer.Z
+
+	ss.PartialPublicCypherKey = ss.Grp.NewInt(1)
+}
+
+type shareSubstreamInterface interface {
+	GetSubStream() *ShareStream
+}
+
+// getSubStream implements reveal interface to return stream object
+func (ss *ShareStream) GetSubStream() *ShareStream {
+	return ss
 }
 
 // Input initializes stream inputs from slot
-func (s *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
+func (ss *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if !s.Grp.BytesInside(slot.PartialRoundPublicCypherKey) {
+	if !ss.Grp.BytesInside(slot.PartialRoundPublicCypherKey) {
 		return node.ErrOutsideOfGroup
 	}
 
-	s.Grp.SetBytes(s.PartialPublicCypherKey, slot.PartialRoundPublicCypherKey)
+	ss.Grp.SetBytes(ss.PartialPublicCypherKey, slot.PartialRoundPublicCypherKey)
 	return nil
 }
 
 // Output returns a cmix slot message
-func (s *ShareStream) Output(index uint32) *mixmessages.Slot {
+func (ss *ShareStream) Output(index uint32) *mixmessages.Slot {
 
 	return &mixmessages.Slot{
-		PartialRoundPublicCypherKey: s.PartialPublicCypherKey.Bytes(),
+		PartialRoundPublicCypherKey: ss.PartialPublicCypherKey.Bytes(),
 	}
 }
 

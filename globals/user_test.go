@@ -84,6 +84,14 @@ func TestUser_DeepCopy(t *testing.T) {
 	if user.BaseKey.Cmp(newUser.BaseKey) != 0 {
 		t.Errorf("User Deepcopy: Failed to copy keys!")
 	}
+
+	var uNil *User
+
+	uNilCpy := uNil.DeepCopy()
+
+	if uNilCpy != nil {
+		t.Errorf("User Deepcopy: copy occured on nil user")
+	}
 }
 
 // Test happy path and inserting too many salts

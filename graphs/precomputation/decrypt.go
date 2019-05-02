@@ -74,11 +74,11 @@ func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize u
 }
 
 type decryptSubstreamInterface interface {
-	GetSubStream() *DecryptStream
+	GetPrecompDecryptSubStream() *DecryptStream
 }
 
 // getSubStream implements reveal interface to return stream object
-func (ds *DecryptStream) GetSubStream() *DecryptStream {
+func (ds *DecryptStream) GetPrecompDecryptSubStream() *DecryptStream {
 	return ds
 }
 
@@ -124,7 +124,7 @@ var DecryptElgamal = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		ds := dssi.GetSubStream()
+		ds := dssi.GetPrecompDecryptSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
