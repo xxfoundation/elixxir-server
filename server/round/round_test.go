@@ -45,13 +45,15 @@ func TestNew(t *testing.T) {
 	// the round should be fully initialized and ready for use
 	roundId := id.Round(58)
 	var phases []*phase.Phase
+
+	handler := func(batchSize uint32, roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
+		getMessage phase.GetMessage, nal *services.NodeAddressList) error {
+		return nil
+	}
+
 	phases = append(phases, phase.New(initMockGraph(services.
 		NewGraphGenerator(1, nil, 1, 1, 1)),
-		phase.RealPermute, func(phase *phase.Phase,
-			nal *services.NodeAddressList, getSlot phase.GetChunk,
-			getMessage phase.GetMessage) {
-			return
-		}, time.Minute))
+		phase.RealPermute, handler, time.Minute))
 	myLoc := 1
 	// Node address list is used to test node addresses and myLoc
 	nodeAddressList := services.NewNodeAddressList(
@@ -86,11 +88,11 @@ func TestNew(t *testing.T) {
 	// Because it's a lot of rigamarole to create the round again,
 	// here's coverage for GetPhase and GetCurrentPhase
 	// should return nil
-	nilPhase := round.GetPhase(phase.PrecompGeneration)
+	nilPhase, _ := round.GetPhase(phase.PrecompGeneration)
 	if nilPhase != nil {
 		t.Fatal("Should have gotten a nil phase")
 	}
-	actualPhase := round.GetPhase(phase.RealPermute)
+	actualPhase, _ := round.GetPhase(phase.RealPermute)
 	if !actualPhase.Cmp(phases[0]) {
 		t.Error("Phases differed")
 	}

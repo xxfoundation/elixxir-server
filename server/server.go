@@ -1,7 +1,7 @@
 package server
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -90,4 +90,25 @@ func (i *Instance) Run() {
 //GetID returns the nodeID
 func (i *Instance) GetID() *id.Node {
 	return i.id.DeepCopy()
+}
+
+func (i *Instance) HandleIncomingPhase(roundID id.Round, phaseType phase.Type) (*phase.Phase, error) {
+	// Get the phase (with error checking) from the round manager by looking
+	// up the round
+	p, err := i.roundManager.GetPhase(roundID, int32(phaseType))
+	if err != nil {
+		return nil, err
+	}
+
+	// If the phase can't receive data this is a fatal error, not a
+	// blocking issue.
+	if !p.ReadyToReceiveData() {
+		return nil, errors.Errorf("Phase %s, round %d is not ready!",
+			p, roundID)
+	}
+
+	// Update queue to tell it we are running this phase
+	i.resourceQueue.UpsertPhase(p)
+
+	return p, nil
 }

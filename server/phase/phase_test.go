@@ -41,15 +41,21 @@ func TestPhase_GetTimeout(t *testing.T) {
 
 func TestPhase_GetTransmissionHandler(t *testing.T) {
 	pass := false
-	handler := func(phase *Phase, nal *services.NodeAddressList,
-		getSlot GetChunk, getMessage GetMessage) {
+	handler := func(batchSize uint32, roundId id.Round, phaseTy Type, getSlot GetChunk,
+		getMessage GetMessage, nal *services.NodeAddressList) error {
 		pass = true
+		return nil
 	}
 	p := Phase{
 		transmissionHandler: handler,
 	}
 	// This call should set pass to true
-	p.GetTransmissionHandler()(nil, nil, nil, nil)
+	err := p.GetTransmissionHandler()(0, 0, 0, nil, nil, nil)
+
+	if err != nil {
+		t.Errorf("Transmission handler returned an error, how!? %+v", err)
+	}
+
 	if !pass {
 		t.Error("Didn't get the correct transmission handler")
 	}
@@ -205,11 +211,20 @@ func TestNew(t *testing.T) {
 	// scope of this test
 	g := initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1))
 	pass := false
-	phase := New(g, RealPermute, func(phase *Phase,
-		nal *services.NodeAddressList, getSlot GetChunk, getMessage GetMessage) {
+
+	transmit := func(batchSize uint32, roundId id.Round, phaseTy Type, getSlot GetChunk,
+		getMessage GetMessage, nal *services.NodeAddressList) error {
 		pass = true
-	}, timeout)
-	phase.GetTransmissionHandler()(nil, nil, nil, nil)
+		return nil
+	}
+
+	phase := New(g, RealPermute, transmit, timeout)
+	err := phase.GetTransmissionHandler()(0, 0, 0, nil, nil, nil)
+
+	if err != nil {
+		t.Errorf("Transmission handler returned an error, how!? %+v", err)
+	}
+
 	if !pass {
 		t.Error("Transmission handler was unreachable from Phase")
 	}
