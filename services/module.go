@@ -80,7 +80,8 @@ func (m *Module) checkParameters(minInputSize uint32, defaultNumThreads uint8) {
 //Builds assignments
 func (m *Module) buildAssignments(batchsize uint32) {
 
-	m.assignmentList.threshold = threshold(batchsize, m.StartThreshold)
+	m.assignmentList.threshold = threshold(batchsize, m.StartThreshold, m.InputSize)
+	m.assignmentList.thresholdChunks = m.assignmentList.threshold / m.InputSize
 
 	if m.InputSize == InputIsBatchSize {
 		m.InputSize = batchsize
@@ -95,11 +96,17 @@ func (m *Module) buildAssignments(batchsize uint32) {
 
 	m.assignmentList.maxCount = m.InputSize * numInputModules
 
-	primed := uint32(0)
-	m.assignmentList.primed = &primed
+	waitingIndex := uint32(0)
+	waitingAdded := uint32(0)
+	m.assignmentList.waitingIndex = &waitingIndex
+	m.assignmentList.waitingAdded = &waitingAdded
 	m.assignmentList.assignments = make([]*assignment, numJobs)
 	m.assignmentList.completed = new(uint32)
 	m.assignmentList.numSlots = m.InputSize
+
+	if m.assignmentList.threshold > 0 {
+		m.assignmentList.waiting = make([]Chunk, m.assignmentList.thresholdChunks)
+	}
 
 	for j := uint32(0); j < numJobs; j++ {
 		m.assignmentList.assignments[j] = newAssignment(uint32(j * m.InputSize))
@@ -107,12 +114,14 @@ func (m *Module) buildAssignments(batchsize uint32) {
 }
 
 //Get the threshold number
-func threshold(batchsize uint32, thresh float32) uint32 {
+func threshold(batchsize uint32, thresh float32, inputSize uint32) uint32 {
 	if thresh < 0 || thresh > 1 {
 		jww.FATAL.Panicf("utput threshold was %v, "+
 			"must be between 0 and 1", thresh)
 	}
-	return uint32(math.Floor(float64(thresh) * float64(batchsize-1)))
+
+	th := (uint32(math.Floor(float64(thresh)*float64(batchsize-1))) / (inputSize)) * (inputSize)
+	return th
 }
 
 func (m Module) DeepCopy() *Module {
