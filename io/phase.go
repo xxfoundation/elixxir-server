@@ -12,17 +12,18 @@ package io
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
-	comm "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 )
 
 // TransmitPhase sends a cMix Batch of messages to the provided Node.
 func TransmitPhase(batchSize uint32, roundID id.Round, phaseTy phase.Type,
-	getChunk phase.GetChunk, getMessage phase.GetMessage, nal *services.NodeAddressList) error {
+	getChunk phase.GetChunk, getMessage phase.GetMessage,
+	nal *services.NodeIDList) error {
 
-	recipient := nal.GetNextNodeAddress()
+	recipient := nal.GetNextNodeID()
 
 	// Create the message structure to send the messages
 	batch := &mixmessages.Batch{
@@ -44,7 +45,7 @@ func TransmitPhase(batchSize uint32, roundID id.Round, phaseTy phase.Type,
 	}
 
 	// Make sure the comm doesn't return an Ack with an error message
-	ack, err := comm.SendPostPhase(recipient.Address, recipient.Cert, batch)
+	ack, err := globals.Fiddlesticks.SendPostPhase(recipient, batch)
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
