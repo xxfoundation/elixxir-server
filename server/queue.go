@@ -69,7 +69,7 @@ func queueRunner(server *Instance) {
 
 			err := handler()(curRound.GetBuffer().GetBatchSize(), runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetNodeAddressList())
+				curRound.GetNodeIDList())
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",

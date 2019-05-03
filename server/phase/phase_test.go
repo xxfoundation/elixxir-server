@@ -42,7 +42,7 @@ func TestPhase_GetTimeout(t *testing.T) {
 func TestPhase_GetTransmissionHandler(t *testing.T) {
 	pass := false
 	handler := func(batchSize uint32, roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nal *services.NodeAddressList) error {
+		getMessage GetMessage, nodes *services.NodeIDList) error {
 		pass = true
 		return nil
 	}
@@ -213,7 +213,7 @@ func TestNew(t *testing.T) {
 	pass := false
 
 	transmit := func(batchSize uint32, roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nal *services.NodeAddressList) error {
+		getMessage GetMessage, nodes *services.NodeIDList) error {
 		pass = true
 		return nil
 	}

@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-var nodeAddrList *services.NodeAddressList
+var nodeAddrList *services.NodeIDList
 
 const primeString = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -48,26 +48,30 @@ func TestMain(m *testing.M) {
 	addrFmt := "localhost:500%d"
 	cnt := 3
 	servers := make([]node.ServerHandler, cnt)
-	// FIXME: What justifies this NodeAddressList design?
-	// This API is painful to work with. Should probably go in comms...
-	addrs := make([]services.NodeAddress, cnt)
+	nodeComms := make([]*node.NodeComms, cnt)
+	ids := make([]*id.Node, cnt)
 	// FIXME: we shouldn't need to do this for a comms test
 	grp = cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
 	instances = make([]*server.Instance, cnt)
 	for i := 0; i < cnt; i++ {
-		addrs[i] = services.NodeAddress{
-			Address: fmt.Sprintf(addrFmt, i),
-			Cert:    "",
-			Id:      id.Node{},
-		}
+		ids[i] = &id.Node{byte(i)}
 		// This also seems like overkill for a comms test
 		instances[i] = server.CreateServerInstance(grp,
 			&globals.UserMap{})
 		servers[i] = NewServerImplementation(instances[i])
-		go node.StartServer(addrs[i].Address, servers[i], "", "")
+		addr := fmt.Sprintf(addrFmt, i)
+		// TODO(sb) We also need to connect the servers
+		go func(comms *node.NodeComms, server node.ServerHandler) {
+			comms = node.StartNode(addr, server, "", "")
+		}(nodeComms[i], servers[i])
 	}
-	nodeAddrList = services.NewNodeAddressList(addrs, 1)
+	// Shut down all the servers before testing ends
+	for i := 0; i < cnt; i++ {
+		defer nodeComms[i].Shutdown()
+	}
+	// Connect all of the servers to all the other servers
+	nodeAddrList = services.NewNodeIDList(ids, 1)
 	os.Exit(m.Run())
 }
 
@@ -148,8 +152,8 @@ func TestPostPhase(t *testing.T) {
 	phases := make([]*phase.Phase, 1)
 	phases[0] = testPhase
 
-	round := round.New(grp, roundID, phases, nil, 0, 1)
-	rm.AddRound(round)
+	thisRound := round.New(grp, roundID, phases, nil, 0, 1)
+	rm.AddRound(thisRound)
 	// Reset get chunk
 	chunkCnt = 0
 	err := TransmitPhase(1, 42, phase.RealPermute, getChunk, getMsg,
