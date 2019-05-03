@@ -58,7 +58,7 @@ func TestNew(t *testing.T) {
 	// Node address list is used to test node addresses and myLoc
 	nodeIDList := services.NewNodeIDList(
 		[]*id.Node{
-			      &id.Node{},
+			&id.Node{},
 		}, myLoc)
 
 	round := New(grp, roundId, phases, nodeIDList.GetAllNodeIDs(),

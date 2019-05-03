@@ -10,6 +10,7 @@ package io
 import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -26,7 +27,7 @@ import (
 	"time"
 )
 
-var nodeAddrList *services.NodeIDList
+var nodeIDs *services.NodeIDList
 
 const primeString = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -61,17 +62,30 @@ func TestMain(m *testing.M) {
 			&globals.UserMap{})
 		servers[i] = NewServerImplementation(instances[i])
 		addr := fmt.Sprintf(addrFmt, i)
-		// TODO(sb) We also need to connect the servers
-		go func(comms *node.NodeComms, server node.ServerHandler) {
-			comms = node.StartNode(addr, server, "", "")
-		}(nodeComms[i], servers[i])
-	}
-	// Shut down all the servers before testing ends
-	for i := 0; i < cnt; i++ {
+		nodeComms[i] = node.StartNode(addr, servers[i], "", "")
 		defer nodeComms[i].Shutdown()
 	}
 	// Connect all of the servers to all the other servers
-	nodeAddrList = services.NewNodeIDList(ids, 1)
+	for connectFrom := 0; connectFrom < cnt; connectFrom++ {
+		for connectTo := 0; connectTo < cnt; connectTo++ {
+			// don't connect nodes to themselves; communication within a node
+			// should, ideally, happen locally
+			if connectFrom != connectTo {
+				nodeComms[connectFrom].ConnectToNode(
+					ids[connectTo],
+					&connect.ConnectionInfo{
+						Address: fmt.Sprintf(addrFmt, connectTo),
+					})
+			}
+		}
+	}
+	fmt.Println(nodeComms[0])
+	fmt.Println()
+	fmt.Println(nodeComms[1])
+	fmt.Println()
+	fmt.Println(nodeComms[2])
+	fmt.Println()
+	nodeIDs = services.NewNodeIDList(ids, 1)
 	os.Exit(m.Run())
 }
 
@@ -139,7 +153,7 @@ func TestPostPhase(t *testing.T) {
 	// Comment out for now.
 	/*
 		err := TransmitPhase(1, 42, phase.RealPermute, getChunk, getMsg,
-			nodeAddrList)
+			nodeIDs)
 
 		if err != nil {
 			t.Errorf("%v", err)
@@ -157,7 +171,7 @@ func TestPostPhase(t *testing.T) {
 	// Reset get chunk
 	chunkCnt = 0
 	err := TransmitPhase(1, 42, phase.RealPermute, getChunk, getMsg,
-		nodeAddrList)
+		nodeIDs)
 
 	if err != nil {
 		t.Errorf("%v", err)

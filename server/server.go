@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
@@ -18,6 +19,7 @@ type Instance struct {
 	resourceQueue *ResourceQueue
 	grp           *cyclic.Group
 	userReg       globals.UserRegistry
+	comms         *node.NodeComms
 	firstNode
 	lastNode
 }
@@ -79,6 +81,11 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 	nid := &id.Node{}
 	nid.SetBytes(nodeIdBytes)
 	instance.id = nid
+
+	// TODO(sb) This seems like the right place to put this...
+	//  It could be better to pass a connect.
+	//  ConnectionInfo than the address and credentials, perhaps
+	instance.comms = node.StartNode()
 
 	return &instance
 }
