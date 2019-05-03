@@ -1,6 +1,8 @@
 package round
 
 import (
+	"fmt"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
@@ -98,13 +100,13 @@ func (r *Round) GetBuffer() *Buffer {
 	return r.buffer
 }
 
-func (r *Round) GetPhase(p phase.Type) *phase.Phase {
+func (r *Round) GetPhase(p phase.Type) (*phase.Phase, error) {
 	i, ok := r.phaseMap[p]
-	if !ok {
-		return nil
-	} else {
-		return r.phases[i]
+	if !ok || i >= len(r.phases) || r.phases[i] == nil {
+		return nil, errors.Errorf("Round %s missing phase type %s",
+			r, p)
 	}
+	return r.phases[i], nil
 }
 
 func (r *Round) GetCurrentPhase() *phase.Phase {
@@ -114,4 +116,11 @@ func (r *Round) GetCurrentPhase() *phase.Phase {
 
 func (r *Round) GetNodeAddressList() *services.NodeAddressList {
 	return r.nodeAddressList
+}
+
+// String stringer interface implementation for rounds.
+// TODO: Maybe print active conns for this round or other data?
+func (r *Round) String() string {
+	currentPhase := r.GetCurrentPhase()
+	return fmt.Sprintf("%d (%d - %s)", r.id, r.state, currentPhase)
 }

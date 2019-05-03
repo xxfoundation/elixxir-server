@@ -1,35 +1,72 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
+// Package round manager.go provides a manager that keeps track of the
+// round objects
 package round
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/phase"
 	"sync"
 )
 
+// Manager contains a pointer to the roundMap, which maps round id's to rounds
 type Manager struct {
 	roundMap *sync.Map
 }
 
+// NewManager creates a new manager object with an empty round map
 func NewManager() *Manager {
 	rmap := sync.Map{}
 	return &Manager{&rmap}
 }
 
+// AddRound adds the round to the round manager's tracking
 func (rm *Manager) AddRound(round *Round) {
 	rm.roundMap.Store(round.id, round)
 }
 
-func (rm *Manager) GetRound(id id.Round) *Round {
+// GetRound returns the round if it exists, or an error if it doesn't
+func (rm *Manager) GetRound(id id.Round) (*Round, error) {
 	r, ok := rm.roundMap.Load(id)
 
 	if !ok {
-		return nil
+		return nil, errors.Errorf("Could not find Round ID: %d", id)
 	}
 
-	return r.(*Round)
+	return r.(*Round), nil
 }
 
-// Deletes the round for this ID from the manager, if the manager is keeping
-// track of it
+// GetPhase checks that the phase type is correct and returns the correct
+// phase object for the given Round ID. This does error checking
+// as it is intended to be called from network handlers
+func (rm *Manager) GetPhase(id id.Round, phaseTy int32) (*phase.Phase, error) {
+	// First, check that the phase type id # is valid
+	if phaseTy < 0 || phaseTy >= int32(phase.NUM_PHASES) {
+		return nil, errors.Errorf("Invalid Phase Type Number: %d",
+			phaseTy)
+	}
+
+	r, rErr := rm.GetRound(id)
+	if rErr != nil {
+		return nil, rErr
+	}
+
+	p, pErr := r.GetPhase(phase.Type(uint32(phaseTy)))
+	if pErr != nil {
+		return nil, pErr
+	}
+
+	return p, nil
+}
+
+// DeleteRound removes the round for this ID from the manager, if the
+// manager is keeping track of it
 func (rm *Manager) DeleteRound(id id.Round) {
 	rm.roundMap.Delete(id)
 }

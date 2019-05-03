@@ -12,7 +12,7 @@ import (
 type Phase struct {
 	graph               *services.Graph
 	tYpe                Type
-	transmissionHandler Transmission
+	transmissionHandler Transmit
 	timeout             time.Duration
 
 	roundID           id.Round
@@ -22,7 +22,7 @@ type Phase struct {
 }
 
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
-func New(g *services.Graph, name Type, tHandler Transmission, timeout time.Duration) *Phase {
+func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration) *Phase {
 	return &Phase{
 		graph:               g,
 		tYpe:                name,
@@ -68,7 +68,7 @@ func (p *Phase) TransitionTo(newState State) bool {
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function
-func (p *Phase) GetTransmissionHandler() Transmission {
+func (p *Phase) GetTransmissionHandler() Transmit {
 	return p.transmissionHandler
 }
 

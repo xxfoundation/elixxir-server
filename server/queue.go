@@ -55,10 +55,27 @@ func queueRunner(server *Instance) {
 			return chunk, ok
 		}
 
+		curRound, err := server.GetRoundManager().GetRound(
+			runningPhase.GetRoundID())
+
+		if err != nil {
+			jww.FATAL.Panicf("Round %d does not exist!",
+				runningPhase.GetRoundID())
+		}
+
 		//start the phase's transmission handler
-		go queue.activePhase.GetTransmissionHandler()(runningPhase,
-			server.GetRoundManager().GetRound(runningPhase.GetRoundID()).GetNodeAddressList(),
-			getChunk, runningPhase.GetGraph().GetStream().Output)
+		handler := queue.activePhase.GetTransmissionHandler
+		go func() {
+
+			err := handler()(curRound.GetBuffer().GetBatchSize(), runningPhase.GetRoundID(),
+				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
+				curRound.GetNodeAddressList())
+
+			if err != nil {
+				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",
+					runningPhase.GetType(), runningPhase.GetRoundID(), err)
+			}
+		}()
 
 		//start the phase's graphs
 		runningPhase.GetGraph().Run()
