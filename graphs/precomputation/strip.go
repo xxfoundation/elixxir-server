@@ -64,11 +64,11 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group, batchSize uint3
 }
 
 type stripSubstreamInterface interface {
-	GetSubStream() *StripStream
+	GetStripSubStream() *StripStream
 }
 
 // getSubStream implements reveal interface to return stream object
-func (ss *StripStream) GetSubStream() *StripStream {
+func (ss *StripStream) GetStripSubStream() *StripStream {
 	return ss
 }
 
@@ -110,7 +110,7 @@ var StripInverse = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		ss := sssi.GetSubStream()
+		ss := sssi.GetStripSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
@@ -133,24 +133,26 @@ var StripInverse = services.Module{
 var StripMul2 = services.Module{
 	// Runs mul2 for cypher message and cypher associated data
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*StripStream)
+		sssi, ok := streamInput.(stripSubstreamInterface)
 		mul2, ok2 := cryptop.(cryptops.Mul2Prototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
+		ss := sssi.GetStripSubStream()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
 			// Eq 16.1: Use the inverted round message private key to remove the
 			//          homomorphic encryption from encrypted message key and reveal
 			//          the message precomputation
-			mul2(s.Grp, s.CypherMsg.Get(i), s.MessagePrecomputation.Get(i))
+			mul2(ss.Grp, ss.CypherMsg.Get(i), ss.MessagePrecomputation.Get(i))
 
 			// Eq 16.2: Use the inverted round associated data private key to remove
 			//          the homomorphic encryption from encrypted associated data key
 			//          and reveal the associated data precomputation
-			mul2(s.Grp, s.CypherAD.Get(i), s.ADPrecomputation.Get(i))
+			mul2(ss.Grp, ss.CypherAD.Get(i), ss.ADPrecomputation.Get(i))
 
 		}
 		return nil

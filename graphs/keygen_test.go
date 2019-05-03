@@ -23,7 +23,7 @@ import (
 )
 
 // Give compile error unless KeygenSubStream meets keygenSubStreamInterface
-var _ keygenSubStreamInterface = &KeygenSubStream{}
+var _ KeygenSubStreamInterface = &KeygenSubStream{}
 
 // Example stream that includes a KeygenSubStream and can be put in a graph
 type KeygenTestStream struct {

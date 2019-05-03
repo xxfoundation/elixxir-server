@@ -75,12 +75,12 @@ func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32
 	gs.YV = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 }
 
-type generateSubstreamInterface interface {
-	GetSubStream() *GenerateStream
+type GenerateSubstreamInterface interface {
+	GetGenerateSubStream() *GenerateStream
 }
 
 // getSubStream implements reveal interface to return stream object
-func (gs *GenerateStream) GetSubStream() *GenerateStream {
+func (gs *GenerateStream) GetGenerateSubStream() *GenerateStream {
 	return gs
 }
 
@@ -102,14 +102,14 @@ var Generate = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
-		gssi, ok := streamInput.(generateSubstreamInterface)
+		gssi, ok := streamInput.(GenerateSubstreamInterface)
 		generate, ok2 := cryptop.(cryptops.GeneratePrototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
-		gs := gssi.GetSubStream()
+		gs := gssi.GetGenerateSubStream()
 
 		rng := gs.rngConstructor()
 

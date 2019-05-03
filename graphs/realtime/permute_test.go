@@ -272,9 +272,8 @@ func TestPermuteStream_InGraph(t *testing.T) {
 
 	batchSize := uint32(10)
 
-	PanicHandler := func(err error) {
-		t.Errorf("Permute: Error in adaptor: %s", err.Error())
-		return
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)

@@ -17,23 +17,17 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
+	"math/rand"
 	"runtime"
 	"testing"
 )
-
-//type alias realtime decrypt due to collision in embed
-type realtimeDecryptStream realtime.DecryptStream
-
-func (rtds *realtimeDecryptStream) GetDecryptSubStream() *realtime.DecryptStream {
-	return (*realtime.DecryptStream)(rtds).GetDecryptSubStream()
-}
 
 type MegaStream struct {
 	precomputation.GenerateStream
 	precomputation.DecryptStream
 	precomputation.PermuteStream
 	precomputation.StripStream //Strip contains reveal
-	realtimeDecryptStream
+	realtime.KeygenDecryptStream
 	realtime.IdentifyStream //Identify contains permute
 }
 
@@ -75,7 +69,7 @@ func (mega *MegaStream) Link(grp *cyclic.Group, batchSize uint32, source ...inte
 		users[i] = &id.User{}
 	}
 
-	mega.realtimeDecryptStream.GetDecryptSubStream().LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
+	mega.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
 		userRegistry, ecrMsg, ecrAD, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize))
 
@@ -243,8 +237,90 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 	}
 
 	//make the graph
-	PanicHandler := func(err error) {
-		panic(fmt.Sprintf("PrecompDecrypt: Error in adapter: %s", err.Error()))
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
+	megaGraph := InitMegaGraph(gc)
+
+	megaGraph.Build(batchSize)
+
+	//make the round buffer
+	roundBuf := round.NewBuffer(grp, batchSize, megaGraph.GetExpandedBatchSize())
+	roundBuf.InitLastNode()
+
+	//do a mock share phase
+	zBytes := make([]byte, 31)
+	rng.Read(zBytes)
+	zBytes[0] |= 0x01
+	zBytes[len(zBytes)-1] |= 0x01
+
+	grp.SetBytes(roundBuf.Z, zBytes)
+	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)
+
+	megaGraph.Link(grp, roundBuf, instance, rngConstructor)
+
+	stream := megaGraph.GetStream()
+
+	megaStream := stream.(*MegaStream)
+
+	megaGraph.Run()
+
+	go func() {
+		t.Log("Beginning test")
+		for i := uint32(0); i < batchSize; i++ {
+			megaStream.KeygenDecryptStream.Salts[i] = salts[i]
+			megaStream.KeygenDecryptStream.Users[i].SetBytes((userList[i].ID)[:])
+			grp.Set(megaStream.IdentifyStream.EcrMsg.Get(i), ecrMsgs[i])
+			grp.Set(megaStream.IdentifyStream.EcrAD.Get(i), ecrAD[i])
+			chunk := services.NewChunk(i, i+1)
+			megaGraph.Send(chunk)
+		}
+	}()
+
+	numDoneSlots := 0
+
+	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			numDoneSlots++
+			fmt.Println("done slot:", i, " total done:", numDoneSlots)
+		}
+	}
+
+	for i := uint32(0); i < batchSize; i++ {
+		if megaStream.IdentifyStream.EcrMsg.Get(i).Cmp(messageList[i]) != 0 {
+			t.Errorf("MegaGraph: Decrypted message not the same as send message on slot %v, "+
+				"Sent: %s, Decrypted: %s", i, messageList[i].Text(16),
+				megaStream.IdentifyStream.EcrMsg.Get(i).Text(16))
+		}
+		if megaStream.IdentifyStream.EcrAD.Get(i).Cmp(ADList[i]) != 0 {
+			t.Errorf("MegaGraph: Decrypted AD not the same as send message on slot %v, "+
+				"Sent: %s, Decrypted: %s", i, ADList[i].Text(16),
+				megaStream.IdentifyStream.EcrAD.Get(i).Text(16))
+		}
+	}
+
+}
+
+func Test_MegaStream(t *testing.T) {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+
+	batchSize := uint32(1000)
+
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
@@ -255,39 +331,46 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 	//make the round buffer
 	roundBuf := round.NewBuffer(grp, batchSize, megaGraph.GetExpandedBatchSize())
 
-	megaGraph.Link(grp, roundBuf, instance, rngConstructor)
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 
-	megaStream := megaGraph.GetStream().(*MegaStream)
+	megaGraph.Link(grp, roundBuf, instance, csprng.NewSystemRNG)
 
-	megaGraph.Run()
+	stream := megaGraph.GetStream()
 
-	go func() {
-		for i := uint32(0); i < batchSize; i++ {
-			(realtime.DecryptStream)(megaStream.realtimeDecryptStream).Salts[i] = salts[i]
-			(realtime.DecryptStream)(megaStream.realtimeDecryptStream).Users[i].SetBytes((userList[i].ID)[:])
-			grp.Set(megaStream.IdentifyStream.EcrMsg.Get(i), ecrMsgs[i])
-			grp.Set(megaStream.IdentifyStream.EcrAD.Get(i), ecrAD[i])
-			chunk := services.NewChunk(i, i+1)
-			megaGraph.Send(chunk)
-		}
-	}()
+	_, ok := stream.(precomputation.GenerateSubstreamInterface)
 
-	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
-		for i := chunk.Begin(); i < chunk.End(); i++ {
-			if megaStream.IdentifyStream.EcrMsg.Get(i).Cmp(messageList[i]) != 0 {
-				t.Errorf("MegaGraph: Decrypted message not the same as send message, "+
-					"Sent: %s, Decrypted: %s", messageList[i].Text(16),
-					megaStream.IdentifyStream.EcrMsg.Get(i).Text(16))
-			}
-			if megaStream.IdentifyStream.EcrAD.Get(i).Cmp(ADList[i]) != 0 {
-				t.Errorf("MegaGraph: Decrypted AD not the same as send message, "+
-					"Sent: %s, Decrypted: %s", ADList[i].Text(16),
-					megaStream.IdentifyStream.EcrAD.Get(i).Text(16))
-			}
-		}
+	if !ok {
+		t.Errorf("MegaStream: type assert failed when getting 'GenerateSubstreamInterface'")
+	}
+
+	_, ok = stream.(precomputation.PrecompDecryptSubstreamInterface)
+
+	if !ok {
+		t.Errorf("MegaStream: type assert failed when getting 'PrecompDecryptSubstreamInterface'")
+	}
+
+}
+
+func NewPsudoRNG() csprng.Source {
+	return &PsudoRNG{
+		r: rand.New(rand.NewSource(42)),
 	}
 }
 
+type PsudoRNG struct {
+	r *rand.Rand
+}
+
+// Read calls the crypto/rand Read function and returns the values
+func (p *PsudoRNG) Read(b []byte) (int, error) {
+	return p.r.Read(b)
+}
+
+// SetSeed has not effect on the system reader
+func (p *PsudoRNG) SetSeed(seed []byte) error {
+	return nil
+}
+
 func Test_MegaGraph(t *testing.T) {
-	RunMegaGraph(1000, csprng.NewSystemRNG, t)
+	RunMegaGraph(1000, NewPsudoRNG, t)
 }

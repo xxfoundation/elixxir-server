@@ -29,7 +29,7 @@ import (
 func TestDecryptStream_GetName(t *testing.T) {
 	expected := "RealtimeDecryptStream"
 
-	ds := DecryptStream{}
+	ds := KeygenDecryptStream{}
 
 	if ds.GetName() != expected {
 		t.Errorf("DecryptStream.GetName(), Expected %s, Recieved %s", expected, ds.GetName())
@@ -51,7 +51,7 @@ func TestDecryptStream_Link(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	stream := DecryptStream{}
+	stream := KeygenDecryptStream{}
 
 	batchSize := uint32(100)
 
@@ -106,7 +106,7 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	stream := &DecryptStream{}
+	stream := &KeygenDecryptStream{}
 
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
@@ -174,7 +174,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	stream := &DecryptStream{}
+	stream := &KeygenDecryptStream{}
 
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
@@ -203,6 +203,26 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	}
 }
 
+func TestSubAccess(t *testing.T) {
+	decStream := &KeygenDecryptStream{}
+
+	var stream services.Stream
+
+	stream = decStream
+
+	_, ok := stream.(graphs.KeygenSubStreamInterface)
+
+	if !ok {
+		t.Errorf("realtimeDecrypt: Could not access keygenStream")
+	}
+
+	_, ok2 := stream.(RealtimeDecryptSubStreamInterface)
+
+	if !ok2 {
+		t.Errorf("realtimeDecrypt: Could not access decryptStream")
+	}
+}
+
 // Tests that Input errors correct when the passed value is out of the group
 func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -220,7 +240,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	stream := &DecryptStream{}
+	stream := &KeygenDecryptStream{}
 
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
@@ -262,7 +282,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	stream := &DecryptStream{}
+	stream := &KeygenDecryptStream{}
 
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
@@ -316,7 +336,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	stream := &DecryptStream{}
+	stream := &KeygenDecryptStream{}
 
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
@@ -371,7 +391,7 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	stream := &DecryptStream{}
+	stream := &KeygenDecryptStream{}
 
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
@@ -436,7 +456,7 @@ func TestDecryptStream_Output(t *testing.T) {
 func TestDecryptStream_CommsInterface(t *testing.T) {
 
 	var face interface{}
-	face = &DecryptStream{}
+	face = &KeygenDecryptStream{}
 	_, ok := face.(services.Stream)
 
 	if !ok {
@@ -488,10 +508,10 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	// pad to length of the base key
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
 
-	PanicHandler := func(err error) {
-		t.Errorf("Keygen: Error in adaptor: %s", err.Error())
-		return
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
+
 	// Show that the Init function meets the function type
 	var graphInit graphs.Initializer
 	graphInit = InitDecryptGraph
@@ -518,7 +538,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	g.Link(grp, roundBuffer, instance)
 
-	stream := g.GetStream().(*DecryptStream)
+	stream := g.GetStream().(*KeygenDecryptStream)
 
 	expectedMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 	expectedAD := grp.NewIntBuffer(batchSize, grp.NewInt(1))

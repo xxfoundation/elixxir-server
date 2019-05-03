@@ -170,8 +170,8 @@ func TestShare_Graph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitShareGraph
 
-	PanicHandler := func(err error) {
-		panic(fmt.Sprintf("Share: Error in adapter: %s", err.Error()))
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)

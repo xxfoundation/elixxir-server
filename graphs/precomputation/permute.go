@@ -7,6 +7,7 @@
 package precomputation
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -80,16 +81,17 @@ func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize u
 	ps.KeysAD = keysAD
 	ps.CypherAD = cypherAD
 
-	ps.CypherADPermuted = keysMsgPermuted
+	ps.CypherADPermuted = cypherADPermuted
 	ps.CypherMsgPermuted = cypherMsgPermuted
 
-	if roundBuffer.PermutedMessageKeys != nil {
+	fmt.Println(roundBuffer.PermutedMessageKeys)
+	if len(roundBuffer.PermutedMessageKeys) != 0 {
 		ps.KeysMsgPermuted = roundBuffer.PermutedMessageKeys
 	} else {
 		ps.KeysMsgPermuted = keysMsgPermuted
 	}
 
-	if roundBuffer.PermutedADKeys != nil {
+	if len(roundBuffer.PermutedADKeys) != 0 {
 		ps.KeysADPermuted = roundBuffer.PermutedADKeys
 	} else {
 		ps.KeysADPermuted = keysADPermuted
@@ -113,11 +115,11 @@ func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize u
 }
 
 type permuteSubstreamInterface interface {
-	GetSubStream() *PermuteStream
+	GetPrecompPermuteSubStream() *PermuteStream
 }
 
 // getSubStream implements reveal interface to return stream object
-func (ps *PermuteStream) GetSubStream() *PermuteStream {
+func (ps *PermuteStream) GetPrecompPermuteSubStream() *PermuteStream {
 	return ps
 }
 
@@ -142,7 +144,6 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns a cmix slot message
 func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
-
 	return &mixmessages.Slot{
 		EncryptedMessageKeys:            ps.KeysMsgPermuted[index].Bytes(),
 		EncryptedAssociatedDataKeys:     ps.KeysADPermuted[index].Bytes(),
@@ -162,7 +163,7 @@ var PermuteElgamal = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		ps := pssi.GetSubStream()
+		ps := pssi.GetPrecompPermuteSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Execute elgamal on the keys for the Message

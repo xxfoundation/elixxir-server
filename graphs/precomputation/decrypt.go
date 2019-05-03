@@ -7,6 +7,7 @@
 package precomputation
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -73,7 +74,7 @@ func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize u
 
 }
 
-type decryptSubstreamInterface interface {
+type PrecompDecryptSubstreamInterface interface {
 	GetPrecompDecryptSubStream() *DecryptStream
 }
 
@@ -117,11 +118,11 @@ func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 var DecryptElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := streamInput.(decryptSubstreamInterface)
+		dssi, ok := streamInput.(PrecompDecryptSubstreamInterface)
 		elgamal, ok2 := cryptop.(cryptops.ElGamalPrototype)
 
 		if !ok || !ok2 {
-			return services.InvalidTypeAssert
+			return errors.WithStack(services.InvalidTypeAssert)
 		}
 
 		ds := dssi.GetPrecompDecryptSubStream()

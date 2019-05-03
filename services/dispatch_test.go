@@ -81,7 +81,7 @@ func (s *Stream1) Input(index uint32, msg *mixmessages.Slot) error {
 }
 func (s *Stream1) Output(index uint32) *mixmessages.Slot { return nil }
 
-var PanicHandler ErrorCallback = func(err error) {
+var PanicHandler ErrorCallback = func(g, m string, err error) {
 	panic(err)
 }
 

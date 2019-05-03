@@ -7,6 +7,7 @@
 package precomputation
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -138,9 +139,8 @@ func TestGenerateGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitGenerateGraph
 
-	PanicHandler := func(err error) {
-		t.Errorf("PrecompGenerate: Error in adaptor: %s", err.Error())
-		return
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
