@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
-//	"gitlab.com/elixxir/server/benchmark"
+	//	"gitlab.com/elixxir/server/benchmark"
 	"time"
 )
 
@@ -33,7 +33,7 @@ func init() {
 	benchmarkCmd.Flags().IntVarP(&iterations, "iterations", "i", 100,
 		"Number of times to iterate the benchmark")
 	benchmarkCmd.Flags().BoolVarP(&debug, "debug", "", false,
-		"Show debug and warning info (default is to only show errors " +
+		"Show debug and warning info (default is to only show errors "+
 			"and above)")
 
 	rootCmd.AddCommand(benchmarkCmd)
@@ -45,7 +45,7 @@ var benchmarkCmd = &cobra.Command{
 	Short: "Server benchmarking tests",
 	Long:  "Run internal benchmark funcs by specifying node & batch sizes",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Running benchmarks for %d nodes with %d batch " +
+		fmt.Printf("Running benchmarks for %d nodes with %d batch "+
 			"size and %d iterations...\n", nodeCount,
 			benchBatchSize, iterations)
 
@@ -58,15 +58,15 @@ var benchmarkCmd = &cobra.Command{
 		start := time.Now()
 		//benchmark.PrecompIterations(nodeCount, benchBatchSize,
 		// iterations)
-		precompDelta := ((float64(time.Since(start)) / 1000000000)
-			/ float64(iterations))
+		precompDelta := ((float64(time.Since(start)) / 1000000000) /
+			float64(iterations))
 		fmt.Printf("Precomp took an average of %f s\n", precompDelta)
 
 		start = time.Now()
 		//benchmark.RealtimeIterations(nodeCount, benchBatchSize,
 		// iterations)
-		realtimeDelta := ((float64(time.Since(start)) / 1000000000)
-			/ float64(iterations))
+		realtimeDelta := ((float64(time.Since(start)) / 1000000000) /
+			float64(iterations))
 		fmt.Printf("Realtime took an average of %f s\n", realtimeDelta)
 	},
 }
