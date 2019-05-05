@@ -31,7 +31,7 @@ gatewayCertPath: ""
 #
 # NOTE: These are system wide, so don't change unless you really know what you
 #       are doing.
-crypto:
+cryptographicParameters:
     - e2e: # This is a DSA Key
         - Prime: # MODP 2048, group id 14 from RFC3526
             0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1
