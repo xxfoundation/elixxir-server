@@ -8,19 +8,22 @@
 package cmd
 
 import (
-	"gitlab.com/elixxir/server/globals"
+	//"gitlab.com/elixxir/server/globals"
 	"os"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"math"
 
 	// net/http must be imported before net/http/pprof for the pprof import
 	// to automatically initialize its http handlers
 	"net/http"
 	_ "net/http/pprof"
+	"strings"
 )
 
 var cfgFile string
@@ -67,6 +70,34 @@ communications.`,
 		serverIdx = viper.GetInt("index")
 		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
 	},
+}
+
+// getLargeIntFromString checks the first 2 bytes. If '0x' parse a base16 number
+// otherwise it parses a base10
+func getLargeIntFromString(largeIntStr string) *large.Int {
+	if len(largeIntStr) > 2 && "0x" == largeIntStr[:2] {
+		return large.NewIntFromString(largeIntStr[2:], 16)
+	}
+	return large.NewIntFromString(largeIntStr, 10)
+}
+
+// getGroupFromConfig takes a map object (from viper) and returns a group
+func getGroupFromConfig(config map[string]string) *cyclic.Group {
+	pStr, pOk := config["prime"]
+	qStr, qOk := config["smallprime"]
+	gStr, gOk := config["generator"]
+
+	if !gOk || !qOk || !pOk {
+		jww.FATAL.Panicf("Invalid Group Config "+
+			"(prime: %v, smallPrime: %v, generator: %v",
+			pOk, qOk, gOk)
+	}
+
+	// TODO: Is there any error checking we should do here? If so, what?
+	p := getLargeIntFromString(strings.ReplaceAll(pStr, " ", ""))
+	q := getLargeIntFromString(strings.ReplaceAll(qStr, " ", ""))
+	g := getLargeIntFromString(strings.ReplaceAll(gStr, " ", ""))
+	return cyclic.NewGroup(p, g, q)
 }
 
 // Execute adds all child commands to the root command and sets flags
@@ -152,13 +183,6 @@ func initConfig() {
 			err.Error())
 		validConfig = false
 	}
-
-	// Temporarily need to get group as JSON data into viper
-	json, err := globals.InitGroup().MarshalJSON()
-	if err != nil {
-		// panic
-	}
-	viper.Set("group", string(json))
 }
 
 // initLog initializes logging thresholds and the log path.

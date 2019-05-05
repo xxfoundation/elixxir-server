@@ -12,7 +12,7 @@ package io
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
-	comm "gitlab.com/elixxir/comms/node"
+	//	comm "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -22,7 +22,7 @@ import (
 func TransmitPhase(batchSize uint32, roundID id.Round, phaseTy phase.Type,
 	getChunk phase.GetChunk, getMessage phase.GetMessage, nal *services.NodeAddressList) error {
 
-	recipient := nal.GetNextNodeAddress()
+	//recipient := nal.GetNextNodeAddress()
 
 	// Create the message structure to send the messages
 	batch := &mixmessages.Batch{
@@ -44,11 +44,11 @@ func TransmitPhase(batchSize uint32, roundID id.Round, phaseTy phase.Type,
 	}
 
 	// Make sure the comm doesn't return an Ack with an error message
-	ack, err := comm.SendPostPhase(recipient.Address, recipient.Cert, batch)
-	if ack != nil && ack.Error != "" {
-		err = errors.Errorf("Remote Server Error: %s", ack.Error)
-	}
-	return err
+	//ack, err := comm.SendPostPhase(recipient.Address, recipient.Cert, batch)
+	//if ack != nil && ack.Error != "" {
+	//	err = errors.Errorf("Remote Server Error: %s", ack.Error)
+	//}
+	return nil
 }
 
 // ReceivePhase implements the server gRPC handler for receiving a

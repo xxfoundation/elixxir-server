@@ -8,22 +8,22 @@
 package cmd
 
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/primitives/id"
+	//"gitlab.com/elixxir/comms/connect"
+	//"gitlab.com/elixxir/comms/node"
+	//"gitlab.com/elixxir/crypto/cyclic"
+	//"gitlab.com/elixxir/primitives/id"
 	//	"gitlab.com/elixxir/server/cryptops/realtime"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/io"
+	//"gitlab.com/elixxir/server/globals"
+	//"gitlab.com/elixxir/server/io"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
-	"time"
+	//"sync/atomic"
+	//"time"
 )
 
 // RunRealtime controls when realtime is kicked off and which
@@ -205,11 +205,11 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Initialize the backend
 	dbAddresses := viper.GetStringSlice("dbAddresses")
-	dbAddress := ""
+	//dbAddress := ""
 	if (serverIndex >= 0) && (serverIndex < len(dbAddresses)) {
 		// There's a DB address for this server in the list and we can
 		// use it
-		dbAddress = dbAddresses[serverIndex]
+		//	dbAddress = dbAddresses[serverIndex]
 	}
 	//globals.Users = globals.NewUserRegistry(
 	//	viper.GetString("dbUsername"),
@@ -219,14 +219,16 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//)
 
 	// Load group from viper
-	grp := cyclic.Group{}
-	grpBuff := []byte(viper.GetString("group"))
-	err := grp.UnmarshalJSON(grpBuff)
-	if err != nil {
-		jww.FATAL.Panicf("Could Not Decode group from JSON: %s\n",
-			err.Error())
-		return
-	}
+	// TODO: when you go back to hook up the new round/DSA stuff to main,
+	// these should be assigned variables in there.
+	jww.INFO.Printf("%v", viper.GetStringMapString("cryptographicParameters.cMix"))
+	grp := getGroupFromConfig(
+		viper.GetStringMapString("cryptographicParameters.cMix"))
+	e2eGrp := getGroupFromConfig(
+		viper.GetStringMapString("cryptographicParameters.e2e"))
+	// TODO: Add a Stringer interface to cyclic.Group
+	jww.INFO.Printf("cMix Group: %d", grp.GetFingerprint())
+	jww.INFO.Printf("E2E Group: %d", e2eGrp.GetFingerprint())
 
 	// Set group globally
 	//globals.SetGroup(&grp)
@@ -251,32 +253,32 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//globals.GlobalRoundMap = globals.NewRoundMap()
 
 	// ensure that the Node ID is populated
-	viperNodeID := uint64(viper.GetInt("nodeid"))
-	nodeIDbytes := make([]byte, binary.MaxVarintLen64)
-	var num int
-	if viperNodeID == 0 {
-		num = binary.PutUvarint(nodeIDbytes, uint64(serverIndex))
-	} else {
-		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
-	}
-	globals.NodeID = new(id.Node).SetBytes(nodeIDbytes[:num])
+	//	viperNodeID := uint64(viper.GetInt("nodeid"))
+	//	nodeIDbytes := make([]byte, binary.MaxVarintLen64)
+	//	var num int
+	//	if viperNodeID == 0 {
+	//		num = binary.PutUvarint(nodeIDbytes, uint64(serverIndex))
+	//	} else {
+	//		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
+	//	}
+	//globals.NodeID = new(id.Node).SetBytes(nodeIDbytes[:num])
 
 	// Set skipReg from config file
 	//globals.SkipRegServer = viper.GetBool("skipReg")
 
-	certPath := viper.GetString("certPath")
-	keyPath := viper.GetString("keyPath")
-	gatewayCertPath := viper.GetString("gatewayCertPath")
+	//	certPath := viper.GetString("certPath")
+	//	keyPath := viper.GetString("keyPath")
+	//	gatewayCertPath := viper.GetString("gatewayCertPath")
 	// Set the certPaths explicitly to avoid data races
-	connect.ServerCertPath = certPath
-	connect.GatewayCertPath = gatewayCertPath
+	//connect.ServerCertPath = certPath
+	//connect.GatewayCertPath = gatewayCertPath
 	// Kick off Comms server
 	//go node.StartServer(localServer, io.NewServerImplementation(),
 	//  certPath, keyPath)
 
 	// TODO Replace these concepts with a better system
-	globals.IsLastNode = serverIndex == len(io.Servers)-1
-	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
+	//globals.IsLastNode = serverIndex == len(io.Servers)-1
+	//io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 
 	// Block until we can reach every server
 	//io.VerifyServersOnline()
@@ -285,7 +287,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Run as many as half the number of nodes times the number of
 	// passthroughs (which is 4).
-	numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) / 2)
+	//numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) / 2)
 
 	messageBufferSize = int(10 * batchSize)
 
@@ -308,31 +310,31 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 // Main server loop
 func run() {
-	io.TimeUp = time.Now().UnixNano()
+	//io.TimeUp = time.Now().UnixNano()
 	// Run a round trip ping every couple seconds if last node
-	if globals.IsLastNode {
-		ticker := time.NewTicker(5 * time.Second)
-		quit := make(chan struct{})
-		go func() {
-			for {
-				select {
-				case <-ticker.C:
-					jww.DEBUG.Print(
-						"Starting Round-Trip Ping")
-					io.GetRoundtripPing(io.Servers)
-					io.GetServerMetrics(io.Servers)
-				case <-quit:
-					ticker.Stop()
-					return
-				}
-			}
-		}()
-		// Blocks forever as a keepalive
-		select {}
-	} else {
-		// Blocks forever as a keepalive
-		select {}
-	}
+	//if globals.IsLastNode {
+	//	ticker := time.NewTicker(5 * time.Second)
+	//	quit := make(chan struct{})
+	//	go func() {
+	//		for {
+	//			select {
+	//			case <-ticker.C:
+	//				jww.DEBUG.Print(
+	//					"Starting Round-Trip Ping")
+	//				io.GetRoundtripPing(io.Servers)
+	//				io.GetServerMetrics(io.Servers)
+	//			case <-quit:
+	//				ticker.Stop()
+	//				return
+	//			}
+	//		}
+	//	}()
+	//	// Blocks forever as a keepalive
+	//	select {}
+	//} else {
+	//	// Blocks forever as a keepalive
+	select {}
+	//}
 }
 
 // getServers pulls a string slice of server ports from the config file and
