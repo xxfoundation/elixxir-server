@@ -27,7 +27,7 @@ func MonitorMemoryUsage() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			jww.ERROR.Printf("Performance monitoring failed due " +
+			jww.ERROR.Printf("Performance monitoring failed due "+
 				"to errors: %v", r)
 		} else {
 			jww.ERROR.Printf("Performance monitoring failed" +
@@ -84,8 +84,8 @@ func MonitorMemoryUsage() {
 			memoryAllocated += pr[i].InUseBytes()
 
 			for j := numMaxRecords - 1; j > -1; j-- {
-				if (pr[i].InUseBytes() >
-					highestMemUsage[j].InUseBytes()) {
+				if pr[i].InUseBytes() >
+					highestMemUsage[j].InUseBytes() {
 					highestMemUsage[j] = &pr[i]
 					break
 				}
@@ -95,30 +95,27 @@ func MonitorMemoryUsage() {
 		memoryDelta := memoryAllocated - numMemory
 
 		//check if the change in memory usage warrants an update
-		if (memoryDelta > DELTA_MEMORY_THRESHOLD
-			&& MIN_MEMORY_TRIGGER < memoryAllocated) {
-				lastTrigger = triggerTime
-				jww.WARN.Printf("Performance warning " +
-					"triggered after "+
-					"%v seconds",
-					deltaTriggerTime*time.Second)
+		if memoryDelta > DELTA_MEMORY_THRESHOLD &&
+			MIN_MEMORY_TRIGGER < memoryAllocated {
+			lastTrigger = triggerTime
+			jww.WARN.Printf("Performance warning "+
+				"triggered after "+
+				"%v seconds",
+				deltaTriggerTime*time.Second)
 
-				jww.WARN.Printf(
-					"  Allocated Memory %v exceeded " +
+			jww.WARN.Printf(
+				"  Allocated Memory %v exceeded "+
 					"threshold of %v"+
 					convertToReadableBytes(memoryAllocated),
-					numMemory)
+				numMemory)
 
-				jww.WARN.Printf("  Number of threads: %v",
-					currentThreads)
-				jww.WARN.Printf("  Top 10 threads by memory" +
-					" allocation:")
-				// Format the data from the top 10 threads
-				// for printing
-				for (_, thr :=
-					range highestMemUsage[0:numMaxRecords])
-				{
-
+			jww.WARN.Printf("  Number of threads: %v",
+				currentThreads)
+			jww.WARN.Printf("  Top 10 threads by memory" +
+				" allocation:")
+			// Format the data from the top 10 threads
+			// for printing
+			for _, thr := range highestMemUsage[0:numMaxRecords] {
 				//Get a list of the last 10 executed functions
 				var funcNames string
 				lenLookup := len(thr.Stack0)
@@ -131,13 +128,13 @@ func MonitorMemoryUsage() {
 				for i := 0; i < lenLookup; i++ {
 					funcNames += truncateFuncName(
 						runtime.FuncForPC(thr.
-						Stack0[i]).Name())
+							Stack0[i]).Name())
 				}
 
 				//Print thread information
 				jww.WARN.Printf(
 					"    %s %s", convertToReadableBytes(thr.
-					InUseBytes()), funcNames)
+						InUseBytes()), funcNames)
 			}
 			numMemory = memoryAllocated
 		}
