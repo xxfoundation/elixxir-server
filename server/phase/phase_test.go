@@ -155,9 +155,9 @@ func TestPhase_ReadyToReceiveData(t *testing.T) {
 	if !p.ReadyToReceiveData() {
 		t.Error("Running phase should be ready to receive")
 	}
-	state = Finished
+	state = Verified
 	if p.ReadyToReceiveData() {
-		t.Error("Finished phase should not be ready to receive")
+		t.Error("Verified phase should not be ready to receive")
 	}
 }
 
@@ -175,7 +175,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 
 	// The Once shouldn't be allowed to run again
 	pass := true
-	p.roundIDset.Do(func() {
+	p.connected.Do(func() {
 		pass = false
 	})
 	if !pass {

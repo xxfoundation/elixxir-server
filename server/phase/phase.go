@@ -2,9 +2,10 @@ package phase
 
 import (
 	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -16,32 +17,54 @@ type Phase struct {
 	timeout             time.Duration
 
 	roundID           id.Round
-	roundIDset        sync.Once
+	connected         *uint32
 	transitionToState Transition
 	getState          GetState
+
+	//This bool denotes if the phase goes straight to completed or waits for an
+	//External check at Computed
+	verification bool
 }
 
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
 func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration) *Phase {
+	roundIDset := uint32(0)
 	return &Phase{
 		graph:               g,
 		tYpe:                name,
 		transmissionHandler: tHandler,
 		timeout:             timeout,
+		connected:           &roundIDset,
 	}
 }
 
 /*Setters */
-// SetRoundIDOnce sets the round ID.  Can only be called once.
+//EnableVerification sets the internal variable phase.verification to true which
+//ensures the system will require an extra state before completing the phase
+func (p *Phase) EnableVerification() {
+	if atomic.LoadUint32(p.connected) == 0 {
+		p.verification = true
+	} else {
+		jww.FATAL.Printf("Cannot set verification to true on phase %s"+
+			"Because it is connected to round %v",
+			p.GetType(), p.GetRoundID())
+	}
+}
+
+// ConnectToRound sets the round ID.  Can only be called once.
 // Should only be called from Round package that initializes states
 // Must be called on all phases in their order in the round
 func (p *Phase) ConnectToRound(id id.Round, setState Transition,
 	getState GetState) {
-	p.roundIDset.Do(func() {
+	numSet := atomic.AddUint32(p.connected, 1)
+	if numSet == 1 {
 		p.roundID = id
 		p.transitionToState = setState
 		p.getState = getState
-	})
+	} else {
+		jww.FATAL.Printf("Cannot connect phase %s to round %v: numset=%v",
+			p.GetType(), p.GetRoundID(), numSet)
+	}
 }
 
 /*Getters*/
@@ -65,6 +88,26 @@ func (p *Phase) GetState() State {
 
 func (p *Phase) TransitionTo(newState State) bool {
 	return p.transitionToState(newState)
+}
+
+func (p *Phase) Finish() bool {
+	success := p.transitionToState(Computed)
+
+	if !success {
+		jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
+			"to be transitioned to Computed", p.tYpe, p.roundID)
+	}
+
+	if !p.verification {
+		success = p.transitionToState(Verified)
+		if !success {
+			jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
+				"to be transitioned to Verified", p.tYpe, p.roundID)
+		}
+		return true
+	}
+
+	return false
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function
@@ -93,4 +136,11 @@ func (p *Phase) String() string {
 func (p *Phase) ReadyToReceiveData() bool {
 	phaseState := p.GetState()
 	return phaseState == Available || phaseState == Queued || phaseState == Running
+}
+
+// ReadyToVerify returns true if the phase is in computed state
+// and is ready to be verified
+func (p *Phase) ReadyToVerify() bool {
+	phaseState := p.GetState()
+	return phaseState == Computed
 }

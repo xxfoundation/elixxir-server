@@ -46,8 +46,8 @@ func TestPhaseState(t *testing.T) {
 		t.Errorf("State was %v, but should have been %v",
 			p.GetState(), expected)
 	}
-	p.TransitionTo(Finished)
-	expected = Finished
+	p.TransitionTo(Verified)
+	expected = Verified
 	if p.GetState() != expected {
 		t.Errorf("State was %v, but should have been %v",
 			p.GetState(), expected)

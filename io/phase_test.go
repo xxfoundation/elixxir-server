@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 		// This also seems like overkill for a comms test
 		instances[i] = server.CreateServerInstance(grp,
 			&globals.UserMap{})
-		servers[i] = NewServerImplementation(instances[i])
+		servers[i] = NewImplementation(instances[i])
 		go node.StartServer(addrs[i].Address, servers[i], "", "")
 	}
 	nodeAddrList = services.NewNodeAddressList(addrs, 1)

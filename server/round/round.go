@@ -54,8 +54,8 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 			currentState := int64(atomic.LoadUint32(round.state)) - int64(localStateOffset)
 			if currentState <= int64(phase.Initialized) {
 				return phase.Initialized
-			} else if currentState >= int64(phase.Finished) {
-				return phase.Finished
+			} else if currentState >= int64(phase.Verified) {
+				return phase.Verified
 			} else {
 				return phase.State(currentState)
 			}

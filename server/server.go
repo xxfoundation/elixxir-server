@@ -112,3 +112,23 @@ func (i *Instance) HandleIncomingPhase(roundID id.Round, phaseType phase.Type) (
 
 	return p, nil
 }
+
+func (i *Instance) HandleIncomingPhaseVerification(roundID id.Round, phaseType phase.Type) (*round.Round, *phase.Phase, error) {
+	// Get the phase (with error checking) from the round manager by looking
+	// up the round
+	r, err := i.roundManager.GetRound(roundID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	p, err := r.GetPhase(phaseType)
+
+	// If the phase can't be verified this is a fatal error, not a
+	// blocking issue.
+	if !p.ReadyToVerify() {
+		return nil, nil, errors.Errorf("Phase %s, round %d is not ready for verification!",
+			p, roundID)
+	}
+
+	return r, p, nil
+}
