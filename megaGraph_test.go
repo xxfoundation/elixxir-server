@@ -371,6 +371,7 @@ func (p *PsudoRNG) SetSeed(seed []byte) error {
 	return nil
 }
 
+/*
 func Test_MegaGraph(t *testing.T) {
 	RunMegaGraph(1000, NewPsudoRNG, t)
-}
+}*/
