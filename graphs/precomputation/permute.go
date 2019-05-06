@@ -7,7 +7,6 @@
 package precomputation
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -84,7 +83,6 @@ func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize u
 	ps.CypherADPermuted = cypherADPermuted
 	ps.CypherMsgPermuted = cypherMsgPermuted
 
-	fmt.Println(roundBuffer.PermutedMessageKeys)
 	if len(roundBuffer.PermutedMessageKeys) != 0 {
 		ps.KeysMsgPermuted = roundBuffer.PermutedMessageKeys
 	} else {

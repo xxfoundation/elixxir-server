@@ -242,7 +242,7 @@ func TestPermuteStream_CommsInterface(t *testing.T) {
 func TestPermuteGraph(t *testing.T) {
 	grp := initPermuteGroup()
 
-	batchSize := uint32(20)
+	batchSize := uint32(100)
 
 	expectedName := "PrecompPermute"
 
@@ -344,7 +344,7 @@ func TestPermuteGraph(t *testing.T) {
 	for ok {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-
+			fmt.Println("i ran")
 			d := atomic.LoadUint32(done)
 
 			if d == 0 {
