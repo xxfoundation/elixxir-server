@@ -137,9 +137,14 @@ func TestPhase_Stringer(t *testing.T) {
 
 func TestPhase_ReadyToReceiveData(t *testing.T) {
 	state := Initialized
-	p := Phase{getState: func() State {
-		return state
-	}}
+
+	p := Phase{
+		getState: func() State {
+			return state
+		},
+		connected: new(uint32),
+	}
+
 	if p.ReadyToReceiveData() {
 		t.Error("Initialized phase shouldn't be ready to receive")
 	}
@@ -155,45 +160,97 @@ func TestPhase_ReadyToReceiveData(t *testing.T) {
 	if !p.ReadyToReceiveData() {
 		t.Error("Running phase should be ready to receive")
 	}
+	state = Computed
+	if p.ReadyToReceiveData() {
+		t.Error("Running phase should not be ready to receive")
+	}
+	p.EnableVerification()
+	if p.ReadyToReceiveData() {
+		t.Error("Running phase should still not be ready to receive")
+	}
+	if !p.ReadyToVerify() {
+		t.Error("Running phase should be ready to verify")
+	}
 	state = Verified
+	if p.ReadyToVerify() {
+		t.Error("Running phase should no longer be ready to verify")
+	}
 	if p.ReadyToReceiveData() {
 		t.Error("Verified phase should not be ready to receive")
 	}
+
 }
 
 func TestPhase_ConnectToRound(t *testing.T) {
-	var p Phase
 
+	timeout := 50 * time.Second
+
+	p := New(nil, RealPermute, nil, timeout)
+
+	// Initial inputs to ConnectToRound shouldn't change after calls
 	roundId := id.Round(55)
 	state := Initialized
-	p.ConnectToRound(roundId, func(to State) bool {
+	setState := func(to State) bool {
 		state = to
 		return true
-	}, func() State {
+	}
+	getState := func() State {
 		return state
-	})
-
-	// The Once shouldn't be allowed to run again
-	pass := true
-	p.connected.Do(func() {
-		pass = false
-	})
-	if !pass {
-		t.Error("Round ID could be set again, because the Once hadn't" +
-			" been run yet")
 	}
 
-	// The round ID should be set
+	if *p.connected != 0 {
+		t.Errorf("Phase connected should be initialized to 0")
+	}
+
+	if p.transitionToState != nil {
+
+		t.Errorf("transitionToState should be initialized ot nil")
+	}
+
+	// Call connect to round on phase with round and set & get state handlers
+	p.ConnectToRound(roundId, setState, getState)
+
+	if *p.connected != 1 {
+		t.Errorf("Phase connected should be incremented from 0 to 1")
+	}
+
+	// The round ID should be set to correct value
 	if p.roundID != roundId {
 		t.Error("Round ID wasn't set correctly")
 	}
 
-	// Getting the state should return Initialized
 	if p.GetState() != Initialized {
 		t.Error("State wasn't set to Initialized")
 	}
-	// We should be able to change the state with the function we passed
+
+	roundId2 := id.Round(85)
+	state2 := Running
+	setState2 := func(to State) bool {
+		state2 = to
+		return true
+	}
+	getState2 := func() State {
+		return state2
+	}
+	// Call connect to round again on phase with round and set & get state handlers
+	p.ConnectToRound(roundId2, setState2, getState2)
+
+	if *p.connected != 2 {
+		t.Errorf("Phase connected should be incremented from 1 to 2")
+	}
+
+	// The round ID should be set to correct value
+	if p.roundID != roundId {
+		t.Error("Round ID changed to incorrect value")
+	}
+
+	if p.GetState() != Initialized {
+		t.Error("State was changed from Initialized to incorrect value ", p.GetState())
+	}
+
 	p.TransitionTo(Running)
+
+	// We should be able to change the state with the function we passed
 	if p.GetState() != Running {
 		t.Error("After changing the state, it wasn't set to Running")
 	}

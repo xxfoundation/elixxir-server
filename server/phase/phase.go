@@ -28,19 +28,19 @@ type Phase struct {
 
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
 func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration) *Phase {
-	roundIDset := uint32(0)
+	connected := uint32(0)
 	return &Phase{
 		graph:               g,
 		tYpe:                name,
 		transmissionHandler: tHandler,
 		timeout:             timeout,
-		connected:           &roundIDset,
+		connected:           &connected,
 	}
 }
 
-/*Setters */
-//EnableVerification sets the internal variable phase.verification to true which
-//ensures the system will require an extra state before completing the phase
+/* Setters */
+// EnableVerification sets the internal variable phase.verification to true which
+// ensures the system will require an extra state before completing the phase
 func (p *Phase) EnableVerification() {
 	if atomic.LoadUint32(p.connected) == 0 {
 		p.verification = true
@@ -86,8 +86,16 @@ func (p *Phase) GetState() State {
 	return p.getState()
 }
 
-func (p *Phase) TransitionTo(newState State) bool {
-	return p.transitionToState(newState)
+func (p *Phase) TransitionToAvailable() bool {
+	return p.transitionToState(Available)
+}
+
+func (p *Phase) TransitionToQueued() bool {
+	return p.transitionToState(Queued)
+}
+
+func (p *Phase) TransitionToRunning() bool {
+	return p.transitionToState(Running)
 }
 
 func (p *Phase) Finish() bool {

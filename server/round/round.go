@@ -42,14 +42,14 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 
 		localStateOffset := uint32(index) * uint32(phase.NumStates)
 
-		//build the function this phase will use to increment its state
+		// Build the function this phase will use to increment its state
 		increment := func(to phase.State) bool {
 			newState := localStateOffset + uint32(to)
 			expectedOld := newState - 1
 			return atomic.CompareAndSwapUint32(round.state, expectedOld, newState)
 		}
 
-		//build the function this phase will use to get its state
+		// Build the function this phase will use to get its state
 		get := func() phase.State {
 			currentState := int64(atomic.LoadUint32(round.state)) - int64(localStateOffset)
 			if currentState <= int64(phase.Initialized) {
@@ -61,7 +61,7 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 			}
 		}
 
-		//connect the phase to the round passing its state accessor functions
+		// Connect the phase to the round passing its state accessor functions
 		p.ConnectToRound(id, increment, get)
 	}
 
