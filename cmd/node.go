@@ -221,7 +221,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Load group from viper
 	// TODO: when you go back to hook up the new round/DSA stuff to main,
 	// these should be assigned variables in there.
-	jww.INFO.Printf("%v", viper.GetStringMapString("cryptographicParameters.cMix"))
+	jww.INFO.Printf("%v", viper.GetStringMapString(
+		"cryptographicParameters.cMix"))
 	grp := getGroupFromConfig(
 		viper.GetStringMapString("cryptographicParameters.cMix"))
 	e2eGrp := getGroupFromConfig(
