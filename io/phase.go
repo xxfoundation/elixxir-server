@@ -51,7 +51,7 @@ func TransmitPhase(batchSize uint32, roundID id.Round, phaseTy phase.Type,
 	return err
 }
 
-// ReceivePhase implements the server gRPC handler for receiving a
+// PostPhase implements the server gRPC handler for posting a
 // phase from another node
 func PostPhase(p *phase.Phase, batch *mixmessages.Batch) error {
 
