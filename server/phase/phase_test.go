@@ -190,7 +190,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	// Initial inputs to ConnectToRound shouldn't change after calls
 	roundId := id.Round(55)
 	state := Initialized
-	setState := func(to State) bool {
+	setState := func(from, to State) bool {
 		state = to
 		return true
 	}
@@ -225,7 +225,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 
 	roundId2 := id.Round(85)
 	state2 := Running
-	setState2 := func(to State) bool {
+	setState2 := func(from, to State) bool {
 		state2 = to
 		return true
 	}
@@ -248,7 +248,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 		t.Error("State was changed from Initialized to incorrect value ", p.GetState())
 	}
 
-	p.TransitionTo(Running)
+	p.TransitionToRunning()
 
 	// We should be able to change the state with the function we passed
 	if p.GetState() != Running {

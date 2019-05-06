@@ -86,35 +86,53 @@ func (p *Phase) GetState() State {
 	return p.getState()
 }
 
-func (p *Phase) TransitionToAvailable() bool {
-	return p.transitionToState(Available)
+// AttemptTransitionToQueued attempts to move the phase to queued.
+// it returns success/failure.  This somewhat unsafe and should only
+// be used after a  state check which ensures it should happen
+func (p *Phase) AttemptTransitionToQueued() bool {
+	return p.transitionToState(Available, Queued)
 }
 
-func (p *Phase) TransitionToQueued() bool {
-	return p.transitionToState(Queued)
-}
-
-func (p *Phase) TransitionToRunning() bool {
-	return p.transitionToState(Running)
-}
-
-func (p *Phase) Finish() bool {
-	success := p.transitionToState(Computed)
-
+// TransitionToRunning transitions the phase state from queued to
+// running and panics if it cannot be done
+func (p *Phase) TransitionToRunning() {
+	success := p.transitionToState(Queued, Running)
 	if !success {
 		jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
-			"to be transitioned to Computed", p.tYpe, p.roundID)
+			"to be transitioned to Running", p.tYpe, p.roundID)
 	}
+}
+
+// TransitionToFinish first transitions to the computed state and
+// panics if unsuccessful. If the phase does not have verification,
+// it then transitions to the verified state and panics if that
+// fails. The function returns true if the final state is Verified,
+// false otherwise.
+// Fixme: find a better name that expresses it always moves towards
+// finishing, but doesnt always finish
+func (p *Phase) TransitionToFinish() bool {
 
 	if !p.verification {
-		success = p.transitionToState(Verified)
+		success := p.transitionToState(Running, Verified)
+
 		if !success {
 			jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
-				"to be transitioned to Verified", p.tYpe, p.roundID)
+				"to be transitioned to Computed", p.tYpe, p.roundID)
 		}
 		return true
-	}
+	} else {
+		success := p.transitionToState(Running, Computed)
 
+		if !success {
+
+			success = p.transitionToState(Computed, Verified)
+			if !success {
+				jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
+					"to be transitioned to Computed or Verified", p.tYpe, p.roundID)
+			}
+			return true
+		}
+	}
 	return false
 }
 

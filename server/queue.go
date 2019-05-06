@@ -22,7 +22,7 @@ type ResourceQueue struct {
 
 // UpsertPhase adds the phase to the queue to be operated on if it is not already there
 func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
-	if p.TransitionTo(phase.Queued) {
+	if p.AttemptTransitionToQueued() {
 		rq.phaseQueue <- p
 	}
 }
@@ -41,11 +41,7 @@ func queueRunner(server *Instance) {
 		queue.activePhase = <-queue.phaseQueue
 
 		//update the next phase to running
-		success := queue.activePhase.TransitionTo(phase.Running)
-		if !success {
-			jww.FATAL.Panicf("Next phase %s of round %v which is queued is not in the correct state and "+
-				"cannot be started", queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
-		}
+		queue.activePhase.TransitionToRunning()
 
 		runningPhase := queue.activePhase
 
@@ -124,7 +120,7 @@ func queueRunner(server *Instance) {
 
 			//update the ending phase to the next phase which also allows the next phase in the round to run
 			//fixme: what do we do about the timer if there is another step to completion
-			completed = rtnPhase.Finish()
+			completed = rtnPhase.TransitionToFinish()
 		}
 	}
 

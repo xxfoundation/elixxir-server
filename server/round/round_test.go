@@ -106,7 +106,22 @@ func TestNew(t *testing.T) {
 			round.GetCurrentPhase().GetState())
 	}
 	// This should fail...
-	if round.GetCurrentPhase().TransitionTo(phase.Running) {
+	panicChan := make(chan bool)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				panicChan <- false
+				return
+			}
+			t.Errorf("Round: should be unreachable code")
+		}()
+		round.GetCurrentPhase().TransitionToRunning()
+		panicChan <- true
+	}()
+
+	runningSuccess := <-panicChan
+	if runningSuccess {
 		t.Error("Shouldn't have been able to successfully increment phase to" +
 			" Queued")
 	}
@@ -114,8 +129,9 @@ func TestNew(t *testing.T) {
 	if round.GetCurrentPhase().GetState() != phase.Available {
 		t.Error("Phase's state should have remained Available")
 	}
+
 	// However, setting the state to Queued should succeed
-	if !round.GetCurrentPhase().TransitionTo(phase.Queued) {
+	if !round.GetCurrentPhase().AttemptTransitionToQueued() {
 		t.Error("Should have been able to take state from Available to Queued")
 	}
 	// And, the state should be set to Queued
