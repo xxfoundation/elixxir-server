@@ -15,8 +15,8 @@ type Round struct {
 	id     id.Round
 	buffer *Buffer
 
-	nodeAddressList *services.NodeAddressList
-	state           *uint32
+	nodeIDList *services.NodeIDList
+	state      *uint32
 
 	//on first node and last node the phases vary
 	phaseMap map[phase.Type]int
@@ -24,7 +24,8 @@ type Round struct {
 }
 
 // Creates and initializes a new round, including all phases
-func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services.NodeAddress, myLoc int, batchSize uint32) *Round {
+func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase,
+	nodes []*id.Node, myLoc int, batchSize uint32) *Round {
 
 	round := Round{}
 	round.id = id
@@ -77,9 +78,9 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 
 	copy(round.phases[:], phases[:])
 
-	round.nodeAddressList = services.NewNodeAddressList(nodes, myLoc)
+	round.nodeIDList = services.NewNodeIDList(nodes, myLoc)
 
-	if round.nodeAddressList.IsLastNode() {
+	if round.nodeIDList.IsLastNode() {
 		round.buffer.InitLastNode()
 	}
 
@@ -114,8 +115,8 @@ func (r *Round) GetCurrentPhase() *phase.Phase {
 	return r.phases[phase]
 }
 
-func (r *Round) GetNodeAddressList() *services.NodeAddressList {
-	return r.nodeAddressList
+func (r *Round) GetNodeIDList() *services.NodeIDList {
+	return r.nodeIDList
 }
 
 // String stringer interface implementation for rounds.

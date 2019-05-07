@@ -2,6 +2,7 @@ package round
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
@@ -46,8 +47,9 @@ func TestNew(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []*phase.Phase
 
-	handler := func(batchSize uint32, roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
-		getMessage phase.GetMessage, nal *services.NodeAddressList) error {
+	handler := func(network *node.NodeComms, batchSize uint32,
+		roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
+		getMessage phase.GetMessage, nodes *services.NodeIDList) error {
 		return nil
 	}
 
@@ -56,14 +58,12 @@ func TestNew(t *testing.T) {
 		phase.RealPermute, handler, time.Minute))
 	myLoc := 1
 	// Node address list is used to test node addresses and myLoc
-	nodeAddressList := services.NewNodeAddressList(
-		[]services.NodeAddress{{
-			Cert:    "not a cert",
-			Address: "127.0.0.1",
-			Id:      id.Node{},
-		}}, myLoc)
+	nodeIDList := services.NewNodeIDList(
+		[]*id.Node{
+			&id.Node{},
+		}, myLoc)
 
-	round := New(grp, roundId, phases, nodeAddressList.GetAllNodesAddress(),
+	round := New(grp, roundId, phases, nodeIDList.GetAllNodeIDs(),
 		myLoc, 5)
 
 	if round.GetID() != roundId {
@@ -81,7 +81,7 @@ func TestNew(t *testing.T) {
 		t.Error("Phase list differed")
 	}
 	// Covers node address list and myLoc
-	if !reflect.DeepEqual(round.GetNodeAddressList(), nodeAddressList) {
+	if !reflect.DeepEqual(round.GetNodeIDList(), nodeIDList) {
 		t.Error("Node address list differed")
 	}
 
