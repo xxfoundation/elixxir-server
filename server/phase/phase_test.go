@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"testing"
@@ -41,7 +42,8 @@ func TestPhase_GetTimeout(t *testing.T) {
 
 func TestPhase_GetTransmissionHandler(t *testing.T) {
 	pass := false
-	handler := func(batchSize uint32, roundId id.Round, phaseTy Type, getSlot GetChunk,
+	handler := func(network *node.NodeComms, batchSize uint32,
+		roundId id.Round, phaseTy Type, getSlot GetChunk,
 		getMessage GetMessage, nodes *services.NodeIDList) error {
 		pass = true
 		return nil
@@ -50,7 +52,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 		transmissionHandler: handler,
 	}
 	// This call should set pass to true
-	err := p.GetTransmissionHandler()(0, 0, 0, nil, nil, nil)
+	err := p.GetTransmissionHandler()(nil, 0, 0, 0, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Transmission handler returned an error, how!? %+v", err)
@@ -212,14 +214,15 @@ func TestNew(t *testing.T) {
 	g := initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1))
 	pass := false
 
-	transmit := func(batchSize uint32, roundId id.Round, phaseTy Type, getSlot GetChunk,
+	transmit := func(network *node.NodeComms, batchSize uint32,
+		roundId id.Round, phaseTy Type, getSlot GetChunk,
 		getMessage GetMessage, nodes *services.NodeIDList) error {
 		pass = true
 		return nil
 	}
 
 	phase := New(g, RealPermute, transmit, timeout)
-	err := phase.GetTransmissionHandler()(0, 0, 0, nil, nil, nil)
+	err := phase.GetTransmissionHandler()(nil, 0, 0, 0, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Transmission handler returned an error, how!? %+v", err)

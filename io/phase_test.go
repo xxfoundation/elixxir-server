@@ -12,7 +12,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -48,8 +47,6 @@ func TestMain(m *testing.M) {
 	// We need 3 servers, prev, cur, next
 	addrFmt := "localhost:500%d"
 	cnt := 3
-	servers := make([]node.ServerHandler, cnt)
-	nodeComms := make([]*node.NodeComms, cnt)
 	ids := make([]*id.Node, cnt)
 	// FIXME: we shouldn't need to do this for a comms test
 	grp = cyclic.NewGroup(large.NewIntFromString(primeString, 16),
@@ -58,12 +55,11 @@ func TestMain(m *testing.M) {
 	for i := 0; i < cnt; i++ {
 		ids[i] = &id.Node{byte(i)}
 		// This also seems like overkill for a comms test
-		instances[i] = server.CreateServerInstance(grp,
-			&globals.UserMap{})
-		servers[i] = NewServerImplementation(instances[i])
 		addr := fmt.Sprintf(addrFmt, i)
-		nodeComms[i] = node.StartNode(addr, servers[i], "", "")
-		defer nodeComms[i].Shutdown()
+		instances[i] = server.CreateServerInstance(grp, &globals.UserMap{})
+		network := instances[i].InitNetwork(addr, NewServerImplementation, "",
+			"")
+		defer network.Shutdown()
 	}
 	// Connect all of the servers to all the other servers
 	for connectFrom := 0; connectFrom < cnt; connectFrom++ {
@@ -71,7 +67,7 @@ func TestMain(m *testing.M) {
 			// don't connect nodes to themselves; communication within a node
 			// should, ideally, happen locally
 			if connectFrom != connectTo {
-				nodeComms[connectFrom].ConnectToNode(
+				instances[connectFrom].GetNetwork().ConnectToNode(
 					ids[connectTo],
 					&connect.ConnectionInfo{
 						Address: fmt.Sprintf(addrFmt, connectTo),
@@ -79,12 +75,6 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	fmt.Println(nodeComms[0])
-	fmt.Println()
-	fmt.Println(nodeComms[1])
-	fmt.Println()
-	fmt.Println(nodeComms[2])
-	fmt.Println()
 	nodeIDs = services.NewNodeIDList(ids, 1)
 	os.Exit(m.Run())
 }
@@ -170,8 +160,9 @@ func TestPostPhase(t *testing.T) {
 	rm.AddRound(thisRound)
 	// Reset get chunk
 	chunkCnt = 0
-	err := TransmitPhase(1, 42, phase.RealPermute, getChunk, getMsg,
-		nodeIDs)
+	// Is this the right instance out of the three to use?
+	err := TransmitPhase(instances[0].GetNetwork(), 1, 42, phase.RealPermute, getChunk,
+		getMsg, nodeIDs)
 
 	if err != nil {
 		t.Errorf("%v", err)

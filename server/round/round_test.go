@@ -2,6 +2,7 @@ package round
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
@@ -46,7 +47,8 @@ func TestNew(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []*phase.Phase
 
-	handler := func(batchSize uint32, roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
+	handler := func(network *node.NodeComms, batchSize uint32,
+		roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
 		getMessage phase.GetMessage, nodes *services.NodeIDList) error {
 		return nil
 	}
