@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -107,7 +108,8 @@ var grp *cyclic.Group
 //}
 //
 //
-func TestPostRoundPublicKey_SetsRoundBuff(t *testing.T) {
+
+func TestPostRoundPublicKey_OutsideGroup(t *testing.T) {
 	grp = cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
 
@@ -132,4 +134,40 @@ func TestPostRoundPublicKey_SetsRoundBuff(t *testing.T) {
 	if roundBuff.CypherPublicKey.Cmp(key) != 0 {
 		t.Errorf("Public key was not set to the correct value")
 	}
+}
+
+func TestPostRoundPublicKey_SetsRoundBuff(t *testing.T) {
+	grp = cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2), large.NewInt(97))
+
+	// Initialize round buffer
+	batchSize := uint32(100)
+	expandedBatchSize := uint32(100)
+	roundBuff := round.NewBuffer(grp, batchSize, expandedBatchSize)
+
+	// Initialize public key message
+	key := grp.NewInt(123)
+	pk := mixmessages.RoundPublicKey{Key: key.Bytes()}
+
+	// Call PostRoundPublic Key
+	err := io.PostRoundPublicKey(grp, roundBuff, &pk)
+
+	// Ensure it does not return an error
+	if err != nil {
+		t.Errorf("PostRoundPublic key returned an error")
+	}
+
+	// Call PostRoundPublic Key with public key value outside of group
+	grp2 := cyclic.NewGroup(large.NewInt(97),
+		large.NewInt(3), large.NewInt(43))
+	key = grp.NewMaxInt()
+	pk = mixmessages.RoundPublicKey{Key: key.Bytes()}
+
+	err = io.PostRoundPublicKey(grp2, roundBuff, &pk)
+
+	// Ensure it does not return an error
+	if err != node.ErrOutsideOfGroup {
+		t.Errorf("PostRoundPublic key did not return an outside of group error")
+	}
+
 }
