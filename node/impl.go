@@ -68,7 +68,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 		instance.GetResourceQueue().DenotePhaseCompletion(p)
 
-		if r.GetNodeAddressList().IsFirstNode() {
+		if r.GetNodeIDList().IsFirstNode() {
 			// Make fake batch
 			fakeBatch := &mixmessages.Batch{}
 			impl.Functions.PostPhase(fakeBatch)
