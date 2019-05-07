@@ -109,7 +109,7 @@ var grp *cyclic.Group
 //
 //
 
-func TestPostRoundPublicKey_OutsideGroup(t *testing.T) {
+func TestPostRoundPublicKey_SetsRoundBuff(t *testing.T) {
 	grp = cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
 
@@ -136,7 +136,7 @@ func TestPostRoundPublicKey_OutsideGroup(t *testing.T) {
 	}
 }
 
-func TestPostRoundPublicKey_SetsRoundBuff(t *testing.T) {
+func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 	grp = cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(97))
 
