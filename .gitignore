@@ -13,3 +13,4 @@ localdev_*
 *.log
 # Ignore generated version file
 cmd/version_vars.go
+*.out
