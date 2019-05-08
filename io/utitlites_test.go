@@ -29,7 +29,7 @@ func (mp *MockPhase) Send(chunk services.Chunk) {
 
 func (mp *MockPhase) Input(index uint32, slot *mixmessages.Slot) error {
 	if len(slot.Salt) != 0 {
-		return errors.New("did you want this")
+		return errors.New("error to test edge case")
 	}
 	mp.indices = append(mp.indices, index)
 	return nil

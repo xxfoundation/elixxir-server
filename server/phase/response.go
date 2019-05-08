@@ -24,7 +24,7 @@ type response struct {
 }
 
 //NewResponse Builds a new CMIX phase response adhering to the Response interface
-func NewCMIXResponse(lookup, rtn Type, expecteds ...State) Response {
+func NewResponse(lookup, rtn Type, expecteds ...State) Response {
 	return response{phaseLookup: lookup, returnPhase: rtn, expectedStates: expecteds}
 }
 

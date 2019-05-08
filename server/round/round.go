@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 )
 
-var ErrRoundDoestNotHaveResponse = errors.New("The round does not a response to the given input")
+var ErrRoundDoesNotHaveResponse = errors.New("The round does not a response to the given input")
 var ErrPhaseInIncorrectStateToContinue = errors.New("The phase in the given round is not " +
 	"at the correct state to proceed")
 
@@ -34,7 +34,7 @@ type Round struct {
 // Creates and initializes a new round, including all phases, topology,
 // and batchsize
 func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.ResponseMap,
-	circut *circuit.Circuit, nodeID *id.Node, batchSize uint32) *Round {
+	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32) *Round {
 
 	round := Round{}
 	round.id = id
@@ -59,7 +59,7 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.R
 		// Build the function this phase will use to increment its state
 		increment := func(from, to phase.State) bool {
 			if from >= to {
-				jww.FATAL.Panicf("Cannot incremeent backwards from %s to %s",
+				jww.FATAL.Panicf("Cannot increment backwards from %s to %s",
 					from, to)
 			}
 			// 1 is subtracted because Initialized doesnt hold a true state
@@ -98,7 +98,7 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.R
 
 	copy(round.phases[:], phases[:])
 
-	round.topology = circut
+	round.topology = circuit
 
 	if round.topology.IsLastNode(nodeID) {
 		round.buffer.InitLastNode()
@@ -146,7 +146,7 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 	response, ok := r.responses[commTag]
 
 	if !ok {
-		return nil, errors.WithMessage(ErrRoundDoestNotHaveResponse,
+		return nil, errors.WithMessage(ErrRoundDoesNotHaveResponse,
 			fmt.Sprintf("Round: %v, Input: %s", r.id, commTag))
 	}
 

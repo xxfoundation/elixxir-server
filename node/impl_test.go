@@ -29,7 +29,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	responceMap := make(phase.ResponseMap)
 	responceMap[mockPhase.GetType().String()] =
-		phase.NewCMIXResponse(mockPhase.GetType(), mockPhase.GetType(),
+		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 			phase.Available)
 
 	topology := buildMockTopology(2)
@@ -57,10 +57,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	mockBatch.ForPhase = int32(mockPhase.GetType())
 	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
 
-	fmt.Println("sending")
 	//send the mockBatch to the impl
 	impl.PostPhase(mockBatch)
-	fmt.Println("sent")
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
@@ -105,7 +103,7 @@ func (mp *MockPhase) Send(chunk services.Chunk) {
 
 func (mp *MockPhase) Input(index uint32, slot *mixmessages.Slot) error {
 	if len(slot.Salt) != 0 {
-		return errors.New("did you want this")
+		return errors.New("error to test edge case")
 	}
 	mp.indices = append(mp.indices, index)
 	return nil

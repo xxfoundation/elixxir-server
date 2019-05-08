@@ -9,9 +9,9 @@ var lookup = Type(0)
 var rtn = Type(1)
 var expecteds = []State{2, 3, 4}
 
-//Tests that the NewCMIXResponse returns the expected response
+//Tests that the NewResponse returns the expected response
 func TestNewCMIXResponse(t *testing.T) {
-	rFace := NewCMIXResponse(lookup, rtn, expecteds...)
+	rFace := NewResponse(lookup, rtn, expecteds...)
 
 	rExpected := buildTestResponse()
 

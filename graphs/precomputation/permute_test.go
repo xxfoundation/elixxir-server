@@ -343,7 +343,6 @@ func TestPermuteGraph(t *testing.T) {
 	for ok {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			fmt.Println("i ran")
 			d := atomic.LoadUint32(done)
 
 			if d == 0 {
