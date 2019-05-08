@@ -2,55 +2,46 @@ package services
 
 import "gitlab.com/elixxir/primitives/id"
 
-//Contains all information about communicating with a node
-type NodeAddress struct {
-	Cert    string
-	Address string
-	Id      id.Node
-}
-
-// DeepCopy makes a complete copy of a NodeAddress
-func (na NodeAddress) DeepCopy() NodeAddress {
-	return NodeAddress{na.Cert, na.Address, na.Id}
-}
-
-type NodeAddressList struct {
-	nodes []NodeAddress
+type NodeIDList struct {
+	nodes []*id.Node
 	myLoc int
 }
 
-// NewNodeAddressList makes a list of node addresses for use
-func NewNodeAddressList(list []NodeAddress, myloc int) *NodeAddressList {
-	nal := NodeAddressList{
-		nodes: make([]NodeAddress, len(list)),
+// TODO make sure all these node Ids are properly connected to through the
+//  network definition file
+// NewNodeIDList makes a list of node IDs that can be used to identify
+// connections for comms
+func NewNodeIDList(list []*id.Node, myloc int) *NodeIDList {
+	nal := NodeIDList{
+		nodes: make([]*id.Node, len(list)),
 		myLoc: myloc,
 	}
 
-	for index, na := range list {
-		nal.nodes[index] = na
+	for index, nid := range list {
+		nal.nodes[index] = nid
 	}
 
 	return &nal
 }
 
 // GetNextNodeAddress gets the next node in the list and
-func (nar *NodeAddressList) GetNextNodeAddress() NodeAddress {
+func (nar *NodeIDList) GetNextNodeID() *id.Node {
 	return nar.nodes[(nar.myLoc+1)%len(nar.nodes)]
 }
 
 // GetNextNodeAddress gets the pre node in the list and
-func (nar *NodeAddressList) GetPrevNodeAddress() NodeAddress {
+func (nar *NodeIDList) GetPrevNodeID() *id.Node {
 	return nar.nodes[(nar.myLoc-1)%len(nar.nodes)]
 }
 
 // GetNodeAddress Gets the node address at a specific index, wraps around if out of range
-func (nar *NodeAddressList) GetNodeAddress(index int) NodeAddress {
+func (nar *NodeIDList) GetNodeID(index int) *id.Node {
 	return nar.nodes[index%len(nar.nodes)]
 }
 
 // GetNodeAddress Returns a copy of the internal node address list
-func (nar *NodeAddressList) GetAllNodesAddress() []NodeAddress {
-	nal := make([]NodeAddress, len(nar.nodes))
+func (nar *NodeIDList) GetAllNodeIDs() []*id.Node {
+	nal := make([]*id.Node, len(nar.nodes))
 
 	for i := range nal {
 		nal[i] = nar.nodes[i].DeepCopy()
@@ -59,11 +50,11 @@ func (nar *NodeAddressList) GetAllNodesAddress() []NodeAddress {
 }
 
 //Returns true if the node is the first node
-func (nar *NodeAddressList) IsFirstNode() bool {
+func (nar *NodeIDList) IsFirstNode() bool {
 	return nar.myLoc == 0
 }
 
 //Returns true if the node is the last node
-func (nar *NodeAddressList) IsLastNode() bool {
+func (nar *NodeIDList) IsLastNode() bool {
 	return nar.myLoc == len(nar.nodes)-1
 }

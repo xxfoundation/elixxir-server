@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
@@ -13,11 +14,12 @@ import (
 
 // Holds long-lived server state
 type Instance struct {
-	id            *id.Node
-	roundManager  *round.Manager
-	resourceQueue *ResourceQueue
-	grp           *cyclic.Group
-	userReg       globals.UserRegistry
+	id                 *id.Node
+	roundManager       *round.Manager
+	resourceQueue      *ResourceQueue
+	grp                *cyclic.Group
+	userReg            globals.UserRegistry
+	network *node.NodeComms
 	firstNode
 	lastNode
 }
@@ -40,6 +42,10 @@ func (i *Instance) GetRoundManager() *round.Manager {
 //GetResourceQueue returns the resource queue used by the serverequals
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
+}
+
+func (i *Instance) GetNetwork() *node.NodeComms {
+	return i.network
 }
 
 //Initializes the first node components of the instance
@@ -81,6 +87,20 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 	instance.id = nid
 
 	return &instance
+}
+
+// TODO(sb) Should there be a version of this that uses the network definition
+//  file to create all the connections in the network?
+// Initializes the network on this server instance
+// After the network object is created, you still need to use it to connect
+// to other servers in the network using ConnectToNode or ConnectToGateway.
+// Additionally, to clean up the network object (especially in tests), call
+// Shutdown() on the network object.
+func (i *Instance) InitNetwork(addr string,
+	makeImplementation func(*Instance) *node.Implementation,
+	certPath string, keyPath string) *node.NodeComms {
+	i.network = node.StartNode(addr, makeImplementation(i), certPath, keyPath)
+	return i.network
 }
 
 func (i *Instance) Run() {

@@ -10,8 +10,8 @@ package io
 import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-var nodeAddrList *services.NodeAddressList
+var nodeIDs *services.NodeIDList
 
 const primeString = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -47,27 +47,35 @@ func TestMain(m *testing.M) {
 	// We need 3 servers, prev, cur, next
 	addrFmt := "localhost:500%d"
 	cnt := 3
-	servers := make([]node.ServerHandler, cnt)
-	// FIXME: What justifies this NodeAddressList design?
-	// This API is painful to work with. Should probably go in comms...
-	addrs := make([]services.NodeAddress, cnt)
+	ids := make([]*id.Node, cnt)
 	// FIXME: we shouldn't need to do this for a comms test
 	grp = cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
 	instances = make([]*server.Instance, cnt)
 	for i := 0; i < cnt; i++ {
-		addrs[i] = services.NodeAddress{
-			Address: fmt.Sprintf(addrFmt, i),
-			Cert:    "",
-			Id:      id.Node{},
-		}
+		ids[i] = &id.Node{byte(i)}
 		// This also seems like overkill for a comms test
-		instances[i] = server.CreateServerInstance(grp,
-			&globals.UserMap{})
-		servers[i] = NewServerImplementation(instances[i])
-		go node.StartServer(addrs[i].Address, servers[i], "", "")
+		addr := fmt.Sprintf(addrFmt, i)
+		instances[i] = server.CreateServerInstance(grp, &globals.UserMap{})
+		network := instances[i].InitNetwork(addr, NewServerImplementation, "",
+			"")
+		defer network.Shutdown()
 	}
-	nodeAddrList = services.NewNodeAddressList(addrs, 1)
+	// Connect all of the servers to all the other servers
+	for connectFrom := 0; connectFrom < cnt; connectFrom++ {
+		for connectTo := 0; connectTo < cnt; connectTo++ {
+			// don't connect nodes to themselves; communication within a node
+			// should, ideally, happen locally
+			if connectFrom != connectTo {
+				instances[connectFrom].GetNetwork().ConnectToNode(
+					ids[connectTo],
+					&connect.ConnectionInfo{
+						Address: fmt.Sprintf(addrFmt, connectTo),
+					})
+			}
+		}
+	}
+	nodeIDs = services.NewNodeIDList(ids, 1)
 	os.Exit(m.Run())
 }
 
@@ -135,7 +143,7 @@ func TestPostPhase(t *testing.T) {
 	// Comment out for now.
 	/*
 		err := TransmitPhase(1, 42, phase.RealPermute, getChunk, getMsg,
-			nodeAddrList)
+			nodeIDs)
 
 		if err != nil {
 			t.Errorf("%v", err)
@@ -148,12 +156,13 @@ func TestPostPhase(t *testing.T) {
 	phases := make([]*phase.Phase, 1)
 	phases[0] = testPhase
 
-	round := round.New(grp, roundID, phases, nil, 0, 1)
-	rm.AddRound(round)
+	thisRound := round.New(grp, roundID, phases, nil, 0, 1)
+	rm.AddRound(thisRound)
 	// Reset get chunk
 	chunkCnt = 0
-	err := TransmitPhase(1, 42, phase.RealPermute, getChunk, getMsg,
-		nodeAddrList)
+	// Is this the right instance out of the three to use?
+	err := TransmitPhase(instances[0].GetNetwork(), 1, 42, phase.RealPermute, getChunk,
+		getMsg, nodeIDs)
 
 	if err != nil {
 		t.Errorf("%v", err)
