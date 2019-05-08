@@ -29,7 +29,8 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	//impl.Functions.CreateNewRound = NewRound
 	//impl.Functions.StartRealtime = StartRealtime
 	impl.Functions.GetRoundBufferInfo = func() (int, error) {
-		return GetRoundBufferInfo(instance.GetCompletedPrecompQueue(), time.Second)
+		return io.GetRoundBufferInfo(instance.GetCompletedPrecompQueue(),
+			time.Second)
 	}
 	// FIXME: Should handle error and return Ack
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
