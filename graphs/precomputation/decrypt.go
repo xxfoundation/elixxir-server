@@ -10,7 +10,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -86,12 +85,12 @@ func (ds *DecryptStream) GetSubStream() *DecryptStream {
 func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ds.KeysMsg.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 
 	if !ds.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
 		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	ds.Grp.SetBytes(ds.KeysMsg.Get(index), slot.EncryptedMessageKeys)

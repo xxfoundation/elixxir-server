@@ -45,10 +45,10 @@ func (rm *Manager) GetRound(id id.Round) (*Round, error) {
 // GetPhase checks that the phase type is correct and returns the correct
 // phase object for the given Round ID. This does error checking
 // as it is intended to be called from network handlers
-func (rm *Manager) GetPhase(id id.Round, phaseTy int32) (*phase.Phase, error) {
+func (rm *Manager) GetPhase(id id.Round, phaseTy int32) (phase.Phase, error) {
 	// First, check that the phase type id # is valid
 	if phaseTy < 0 || phaseTy >= int32(phase.NUM_PHASES) {
-		return nil, errors.Errorf("Invalid Phase Type Number: %d",
+		return nil, errors.Errorf("Invalid CMixPhase Type Number: %d",
 			phaseTy)
 	}
 
@@ -69,4 +69,23 @@ func (rm *Manager) GetPhase(id id.Round, phaseTy int32) (*phase.Phase, error) {
 // manager is keeping track of it
 func (rm *Manager) DeleteRound(id id.Round) {
 	rm.roundMap.Delete(id)
+}
+
+// HandleIncomingComm looks up if a comm is valid and if it is, returns
+// the associated round, phase (according to the round's response table)
+// otherwise returns an error
+func (rm *Manager) HandleIncomingComm(roundID id.Round, tag string) (*Round, phase.Phase, error) {
+	// Get the round (with error checking) from the round manager
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	//Get the correct phase from the round based upon the response table
+	p, err := r.HandleIncomingComm(tag)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return r, p, nil
 }

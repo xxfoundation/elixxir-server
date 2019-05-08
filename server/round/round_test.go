@@ -2,8 +2,10 @@ package round
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -44,27 +46,22 @@ func TestNew(t *testing.T) {
 	// After calling New() on a round,
 	// the round should be fully initialized and ready for use
 	roundId := id.Round(58)
-	var phases []*phase.Phase
+	var phases []phase.Phase
 
-	handler := func(batchSize uint32, roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
-		getMessage phase.GetMessage, nal *services.NodeAddressList) error {
+	handler := func(network *node.NodeComms, batchSize uint32,
+		roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
+		getMessage phase.GetMessage, nodes *circuit.Circuit, nid *id.Node) error {
 		return nil
 	}
 
 	phases = append(phases, phase.New(initMockGraph(services.
 		NewGraphGenerator(1, nil, 1, 1, 1)),
 		phase.RealPermute, handler, time.Minute))
-	myLoc := 1
-	// Node address list is used to test node addresses and myLoc
-	nodeAddressList := services.NewNodeAddressList(
-		[]services.NodeAddress{{
-			Cert:    "not a cert",
-			Address: "127.0.0.1",
-			Id:      id.Node{},
-		}}, myLoc)
 
-	round := New(grp, roundId, phases, nodeAddressList.GetAllNodesAddress(),
-		myLoc, 5)
+	topology := circuit.New([]*id.Node{&id.Node{}})
+
+	round := New(grp, roundId, phases, nil, topology,
+		&id.Node{}, 5)
 
 	if round.GetID() != roundId {
 		t.Error("Round ID wasn't set correctly")
@@ -78,10 +75,10 @@ func TestNew(t *testing.T) {
 	// so any mutations New makes to the phase list should be reflected in the
 	// original copy
 	if !reflect.DeepEqual(round.phases, phases) {
-		t.Error("Phase list differed")
+		t.Error("CMixPhase list differed")
 	}
 	// Covers node address list and myLoc
-	if !reflect.DeepEqual(round.GetNodeAddressList(), nodeAddressList) {
+	if !reflect.DeepEqual(round.GetTopology(), topology) {
 		t.Error("Node address list differed")
 	}
 
@@ -102,7 +99,7 @@ func TestNew(t *testing.T) {
 	}
 	// Try getting and setting the state of the phase
 	if round.GetCurrentPhase().GetState() != phase.Available {
-		t.Errorf("Phase's state is %v, should have been Available",
+		t.Errorf("CMixPhase's state is %v, should have been Available",
 			round.GetCurrentPhase().GetState())
 	}
 	// This should fail...
@@ -127,7 +124,7 @@ func TestNew(t *testing.T) {
 	}
 	// and the state should remain Initialized
 	if round.GetCurrentPhase().GetState() != phase.Available {
-		t.Error("Phase's state should have remained Available")
+		t.Error("CMixPhase's state should have remained Available")
 	}
 
 	// However, setting the state to Queued should succeed
@@ -136,6 +133,6 @@ func TestNew(t *testing.T) {
 	}
 	// And, the state should be set to Queued
 	if round.GetCurrentPhase().GetState() != phase.Queued {
-		t.Error("Phase's state should be Queued")
+		t.Error("CMixPhase's state should be Queued")
 	}
 }

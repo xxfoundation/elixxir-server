@@ -10,7 +10,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -58,11 +57,11 @@ func (s *StripStream) Link(grp *cyclic.Group, batchSize uint32, source ...interf
 func (s *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.CypherMsg.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 
 	if !s.Grp.BytesInside(slot.PartialMessageCypherText, slot.PartialAssociatedDataCypherText) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	s.Grp.SetBytes(s.CypherMsg.Get(index), slot.PartialMessageCypherText)

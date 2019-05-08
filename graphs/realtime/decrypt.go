@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -96,11 +95,11 @@ func (ds *DecryptStream) getDecrypteSubStream() *DecryptStream {
 func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ds.EcrMsg.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 
 	if !ds.Grp.BytesInside(slot.MessagePayload, slot.AssociatedData) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	// Check that the user id is formatted correctly

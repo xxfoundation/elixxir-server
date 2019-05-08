@@ -21,7 +21,7 @@ func TestPhaseState_EnabledVerification(t *testing.T) {
 	// However, testing threading functionality is outside of the scope of this
 	// test, so these testing implementations don't use atomics for readability.
 	// Do NOT create a real implementation without atomics!
-	p := Phase{
+	p := CMixPhase{
 		transitionToState: func(from, to State) bool {
 			// Make sure the state is the one after
 			if from >= to {
@@ -91,7 +91,7 @@ func TestPhaseState_WithoutVerification(t *testing.T) {
 	// However, testing threading functionality is outside of the scope of this
 	// test, so these testing implementations don't use atomics for readability.
 	// Do NOT create a real implementation without atomics!
-	p := Phase{
+	p := CMixPhase{
 		transitionToState: func(from, to State) bool {
 			// Make sure the state is the one after
 			if from >= to {

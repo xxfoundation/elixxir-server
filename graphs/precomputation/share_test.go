@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -110,7 +109,7 @@ func TestShareStream_Input_OutOfGroup(t *testing.T) {
 
 	err := stream.Input(0, msg)
 
-	if err != node.ErrOutsideOfGroup {
+	if err != services.ErrOutsideOfGroup {
 		t.Errorf("SharetStream.Input() did not return an error when out of group")
 	}
 }

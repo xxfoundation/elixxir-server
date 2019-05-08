@@ -14,14 +14,24 @@ import (
 )
 
 type ResourceQueue struct {
-	activePhase *phase.Phase
-	phaseQueue  chan *phase.Phase
-	finishChan  chan *phase.Phase
+	activePhase phase.Phase
+	phaseQueue  chan phase.Phase
+	finishChan  chan phase.Phase
 	timer       *time.Timer
 }
 
+//initQueue begins a queue with default channel buffer sizes
+func initQueue() *ResourceQueue {
+	return &ResourceQueue{
+		// these are the phases
+		phaseQueue: make(chan phase.Phase, 5000),
+		// there will only active phase, and this channel is used to kill it
+		finishChan: make(chan phase.Phase, 1),
+	}
+}
+
 // UpsertPhase adds the phase to the queue to be operated on if it is not already there
-func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
+func (rq *ResourceQueue) UpsertPhase(p phase.Phase) {
 	if p.AttemptTransitionToQueued() {
 		rq.phaseQueue <- p
 	}
@@ -29,7 +39,7 @@ func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
 
 // DenotePhaseCompletion send the phase which has been completed into the queue's
 // completed channel
-func (rq *ResourceQueue) DenotePhaseCompletion(p *phase.Phase) {
+func (rq *ResourceQueue) DenotePhaseCompletion(p phase.Phase) {
 	rq.finishChan <- p
 }
 
@@ -69,9 +79,10 @@ func queueRunner(server *Instance) {
 		handler := queue.activePhase.GetTransmissionHandler
 		go func() {
 
-			err := handler()(curRound.GetBuffer().GetBatchSize(), runningPhase.GetRoundID(),
+			err := handler()(server.GetNetwork(), curRound.GetBuffer().GetBatchSize(),
+				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetNodeAddressList())
+				curRound.GetTopology(), server.id)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",
@@ -84,7 +95,7 @@ func queueRunner(server *Instance) {
 		//start phases's the timeout timer
 		queue.timer = time.NewTimer(runningPhase.GetTimeout())
 
-		var rtnPhase *phase.Phase
+		var rtnPhase phase.Phase
 		timeout := false
 
 		//wait until a phase completes or it's timeout is reached
@@ -113,7 +124,7 @@ func queueRunner(server *Instance) {
 
 			//check that the correct phase is ending
 			if !queue.activePhase.Cmp(rtnPhase) {
-				jww.FATAL.Panicf("Phase %s of round %v is currently running, "+
+				jww.FATAL.Panicf("CMixPhase %s of round %v is currently running, "+
 					"a kill message of %s cannot be processed", queue.activePhase.GetType().String(),
 					queue.activePhase.GetRoundID(), rtnPhase)
 			}

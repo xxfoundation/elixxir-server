@@ -11,7 +11,6 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -101,12 +100,12 @@ func (s *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...inte
 func (s *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.KeysMsg.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 
 	if !s.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
 		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	s.Grp.SetBytes(s.KeysMsg.Get(index), slot.EncryptedMessageKeys)

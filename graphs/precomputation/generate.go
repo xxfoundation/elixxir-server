@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -65,7 +64,7 @@ func (s *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 // Input function pulls things from the mixmessage
 func (s *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(s.R.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 	return nil
 }

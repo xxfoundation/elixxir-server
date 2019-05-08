@@ -5,9 +5,9 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 )
 
@@ -19,19 +19,21 @@ type Round struct {
 	id     id.Round
 	buffer *Buffer
 
-	nodeAddressList *services.NodeAddressList
-	state           *uint32
+	topology *circuit.Circuit
+	state    *uint32
 
 	//on first node and last node the phases vary
-	phaseMap map[phase.Type]int
-	phases   []*phase.Phase
+	phaseMap       map[phase.Type]int
+	phases         []phase.Phase
+	numPhaseStates uint32
 
 	//holds responses to coms, how to check and process incoming comms
-	responseMap ResponseMap
+	responses phase.ResponseMap
 }
 
 // Creates and initializes a new round, including all phases
-func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, responses ResponseMap, nal *services.NodeAddressList, batchSize uint32) *Round {
+func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.ResponseMap,
+	circut *circuit.Circuit, nodeID *id.Node, batchSize uint32) *Round {
 
 	round := Round{}
 	round.id = id
@@ -70,12 +72,12 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, responses Respon
 		// is not counted as a state
 		get := func() phase.State {
 			currentState := int64(atomic.LoadUint32(round.state)) - int64(localStateOffset)
-			if currentState < int64(phase.Available)-1 {
-				return phase.Initialized
-			} else if currentState > int64(phase.Computed)-1 {
-				return phase.Verified
+			if currentState < 0 {
+				return 0
+			} else if currentState > int64(phase.NumStates)-2 {
+				return phase.NumStates - 1
 			} else {
-				return phase.State(currentState) + 1
+				return phase.State(currentState + 1)
 			}
 		}
 
@@ -91,21 +93,22 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, responses Respon
 		round.phaseMap[p.GetType()] = index
 	}
 
-	round.phases = make([]*phase.Phase, len(phases))
+	round.phases = make([]phase.Phase, len(phases))
 
 	copy(round.phases[:], phases[:])
 
-	round.nodeAddressList = nal
-	round.responseMap = responses
+	round.topology = circut
 
-	if round.nodeAddressList.IsLastNode() {
+	if round.topology.IsLastNode(nodeID) {
 		round.buffer.InitLastNode()
 	}
+
+	round.responses = responses
 
 	//set the state of the first phase to available
 	success := atomic.CompareAndSwapUint32(round.state, uint32(phase.Initialized), uint32(phase.Available))
 	if !success {
-		jww.FATAL.Println("Phase state initialization failed")
+		jww.FATAL.Println("CMixPhase state initialization failed")
 	}
 
 	return &round
@@ -119,7 +122,7 @@ func (r *Round) GetBuffer() *Buffer {
 	return r.buffer
 }
 
-func (r *Round) GetPhase(p phase.Type) (*phase.Phase, error) {
+func (r *Round) GetPhase(p phase.Type) (phase.Phase, error) {
 	i, ok := r.phaseMap[p]
 	if !ok || i >= len(r.phases) || r.phases[i] == nil {
 		return nil, errors.Errorf("Round %s missing phase type %s",
@@ -128,39 +131,32 @@ func (r *Round) GetPhase(p phase.Type) (*phase.Phase, error) {
 	return r.phases[i], nil
 }
 
-func (r *Round) GetCurrentPhase() *phase.Phase {
+func (r *Round) GetCurrentPhase() phase.Phase {
 	phase := atomic.LoadUint32(r.state) / uint32(phase.NumStates)
 	return r.phases[phase]
 }
 
-func (r *Round) GetNodeAddressList() *services.NodeAddressList {
-	return r.nodeAddressList
+func (r *Round) GetTopology() *circuit.Circuit {
+	return r.topology
 }
 
-// String stringer interface implementation for rounds.
-// TODO: Maybe print active conns for this round or other data?
-func (r *Round) String() string {
-	currentPhase := r.GetCurrentPhase()
-	return fmt.Sprintf("%d (%d - %s)", r.id, r.state, currentPhase)
-}
-
-func (r *Round) HandleIncomingComm(commTag string) (*phase.Phase, error) {
-	response, ok := r.responseMap[commTag]
+func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
+	response, ok := r.responses[commTag]
 
 	if !ok {
 		return nil, errors.WithMessage(ErrRoundDoestNotHaveResponse,
 			fmt.Sprintf("Round: %v, Input: %s", r.id, commTag))
 	}
 
-	phaseToCheck, err := r.GetPhase(response.PhaseLookup)
+	phaseToCheck, err := r.GetPhase(response.GetPhaseLookup())
 
 	if err != nil {
-		jww.FATAL.Panicf("Phase %s looked up up from response map "+
-			"does not exist in round", response.PhaseLookup)
+		jww.FATAL.Panicf("CMixPhase %s looked up up from response map "+
+			"does not exist in round", response.GetPhaseLookup())
 	}
 
 	if response.CheckState(phaseToCheck.GetState()) {
-		returnPhase, err := r.GetPhase(response.ReturnPhase)
+		returnPhase, err := r.GetPhase(response.GetReturnPhase())
 		if err != nil {
 			jww.FATAL.Panicf("The requested phase could not be returned in the comm handler")
 		}
@@ -169,4 +165,11 @@ func (r *Round) HandleIncomingComm(commTag string) (*phase.Phase, error) {
 	} else {
 		return nil, ErrPhaseInIncorrectStateToContinue
 	}
+}
+
+// String stringer interface implementation for rounds.
+// TODO: Maybe print active conns for this round or other data?
+func (r *Round) String() string {
+	currentPhase := r.GetCurrentPhase()
+	return fmt.Sprintf("%d (%d - %s)", r.id, r.state, currentPhase)
 }

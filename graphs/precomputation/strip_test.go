@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -127,13 +126,13 @@ func TestStripStream_Input_OutOfBatch(t *testing.T) {
 
 	err := stream.Input(batchSize, msg)
 
-	if err != node.ErrOutsideOfBatch {
+	if err != services.ErrOutsideOfBatch {
 		t.Errorf("StripStream.Input() did nto return an outside of batch error when out of batch")
 	}
 
 	err1 := stream.Input(batchSize+1, msg)
 
-	if err1 != node.ErrOutsideOfBatch {
+	if err1 != services.ErrOutsideOfBatch {
 		t.Errorf("StripStream.Input() did not return an outside of batch error when out of batch")
 	}
 }
@@ -157,7 +156,7 @@ func TestStripStream_Input_OutOfGroup(t *testing.T) {
 
 	err := stream.Input(batchSize-10, msg)
 
-	if err != node.ErrOutsideOfGroup {
+	if err != services.ErrOutsideOfGroup {
 		t.Errorf("StripStream.Input() did not return an error when out of group")
 	}
 }

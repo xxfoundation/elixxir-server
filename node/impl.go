@@ -6,13 +6,14 @@
 
 // Package io impl.go implements server utility functions needed to work
 // with the comms library
-package io
+package node
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 )
@@ -20,6 +21,7 @@ import (
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
 func NewImplementation(instance *server.Instance) *node.Implementation {
+	rm := instance.GetRoundManager()
 	impl := node.NewImplementation()
 	//impl.Functions.RoundtripPing = RoundtripPing
 	//impl.Functions.GetServerMetrics = ServerMetrics
@@ -28,11 +30,12 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	//impl.Functions.GetRoundBufferInfo = GetRoundBufferInfo
 	// FIXME: Should handle error and return Ack
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
-		phase, err := instance.HandleIncomingPhase(id.Round(batch.Round.ID), phase.Type(batch.ForPhase))
+
+		_, phase, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.ForPhase).String())
 		if err != nil {
 			jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 		}
-		err = PostPhase(phase, batch)
+		err = io.PostPhase(phase, batch)
 		if err != nil {
 			jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 		}

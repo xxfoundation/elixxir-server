@@ -3,14 +3,36 @@ package phase
 import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"time"
 )
 
+//An interface which phase adheres to.  For use within
+//Handler testing to allow the interface to be overwritten
+type Phase interface {
+	EnableVerification()
+	ConnectToRound(id id.Round, setState Transition,
+		getState GetState)
+	GetGraph() *services.Graph
+	GetRoundID() id.Round
+	GetType() Type
+	GetState() State
+	AttemptTransitionToQueued() bool
+	TransitionToRunning()
+	UpdateFinalStates() bool
+	GetTransmissionHandler() Transmit
+	GetTimeout() time.Duration
+	Cmp(Phase) bool
+	String() string
+	Send(chunk services.Chunk)
+	Input(index uint32, slot *mixmessages.Slot) error
+}
+
 // Holds a single phase to be executed by the server in a round
-type Phase struct {
+type CMixPhase struct {
 	graph               *services.Graph
 	tYpe                Type
 	transmissionHandler Transmit
@@ -27,9 +49,9 @@ type Phase struct {
 }
 
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
-func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration) *Phase {
+func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration) Phase {
 	connected := uint32(0)
-	return &Phase{
+	return &CMixPhase{
 		graph:               g,
 		tYpe:                name,
 		transmissionHandler: tHandler,
@@ -41,7 +63,7 @@ func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration)
 /* Setters */
 // EnableVerification sets the internal variable phase.verification to true which
 // ensures the system will require an extra state before completing the phase
-func (p *Phase) EnableVerification() {
+func (p *CMixPhase) EnableVerification() {
 	if atomic.LoadUint32(p.connected) == 0 {
 		p.verification = true
 	} else {
@@ -54,7 +76,7 @@ func (p *Phase) EnableVerification() {
 // ConnectToRound sets the round ID.  Can only be called once.
 // Should only be called from Round package that initializes states
 // Must be called on all phases in their order in the round
-func (p *Phase) ConnectToRound(id id.Round, setState Transition,
+func (p *CMixPhase) ConnectToRound(id id.Round, setState Transition,
 	getState GetState) {
 	numSet := atomic.AddUint32(p.connected, 1)
 	if numSet == 1 {
@@ -69,36 +91,36 @@ func (p *Phase) ConnectToRound(id id.Round, setState Transition,
 
 /*Getters*/
 // GetGraph gets the graph associated with the phase
-func (p *Phase) GetGraph() *services.Graph {
+func (p *CMixPhase) GetGraph() *services.Graph {
 	return p.graph
 }
 
-func (p *Phase) GetRoundID() id.Round {
+func (p *CMixPhase) GetRoundID() id.Round {
 	return p.roundID
 }
 
-func (p *Phase) GetType() Type {
+func (p *CMixPhase) GetType() Type {
 	return p.tYpe
 }
 
 // GetState returns the current state of the phase
-func (p *Phase) GetState() State {
+func (p *CMixPhase) GetState() State {
 	return p.getState()
 }
 
 // AttemptTransitionToQueued attempts to move the phase to queued.
 // it returns success/failure.  This somewhat unsafe and should only
 // be used after a  state check which ensures it should happen
-func (p *Phase) AttemptTransitionToQueued() bool {
+func (p *CMixPhase) AttemptTransitionToQueued() bool {
 	return p.transitionToState(Available, Queued)
 }
 
 // TransitionToRunning transitions the phase state from queued to
 // running and panics if it cannot be done
-func (p *Phase) TransitionToRunning() {
+func (p *CMixPhase) TransitionToRunning() {
 	success := p.transitionToState(Queued, Running)
 	if !success {
-		jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
+		jww.FATAL.Panicf("CMixPhase %s of round %v at incorrect state"+
 			"to be transitioned to Running", p.tYpe, p.roundID)
 	}
 }
@@ -111,13 +133,13 @@ func (p *Phase) TransitionToRunning() {
 // Fixme: find a better name that expresses it always moves towards
 // finishing, but doesnt always finish, even when it returns false
 // It it cannot move, it panics
-func (p *Phase) UpdateFinalStates() bool {
+func (p *CMixPhase) UpdateFinalStates() bool {
 
 	if !p.verification {
 		success := p.transitionToState(Running, Verified)
 
 		if !success {
-			jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
+			jww.FATAL.Panicf("CMixPhase %s of round %v at incorrect state"+
 				"to be transitioned to Computed", p.tYpe, p.roundID)
 		}
 		return true
@@ -128,7 +150,7 @@ func (p *Phase) UpdateFinalStates() bool {
 
 			success = p.transitionToState(Computed, Verified)
 			if !success {
-				jww.FATAL.Panicf("Phase %s of round %v at incorrect state"+
+				jww.FATAL.Panicf("CMixPhase %s of round %v at incorrect state"+
 					"to be transitioned to Computed or Verified", p.tYpe, p.roundID)
 			}
 			return true
@@ -138,36 +160,34 @@ func (p *Phase) UpdateFinalStates() bool {
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function
-func (p *Phase) GetTransmissionHandler() Transmit {
+func (p *CMixPhase) GetTransmissionHandler() Transmit {
 	return p.transmissionHandler
 }
 
 // GetTimeout gets the timeout at which the phase will fail
-func (p *Phase) GetTimeout() time.Duration {
+func (p *CMixPhase) GetTimeout() time.Duration {
 	return p.timeout
 }
 
 /*Utility*/
 // Cmp checks if two phases are the same
-func (p *Phase) Cmp(p2 *Phase) bool {
-	return p.roundID == p2.roundID && p.tYpe == p2.tYpe
+func (p *CMixPhase) Cmp(p2 Phase) bool {
+	return p.roundID == p2.GetRoundID() && p.tYpe == p2.GetType()
 }
 
 //String adheres to the string interface
-func (p *Phase) String() string {
-	return fmt.Sprintf("phase.Phase{roundID: %v, phaseType: %s}",
+func (p *CMixPhase) String() string {
+	return fmt.Sprintf("phase.CMixPhase{roundID: %v, phaseType: %s}",
 		p.roundID, p.tYpe)
 }
 
-// ReadyToReceiveData returns true if the phase can receive data
-func (p *Phase) ReadyToReceiveData() bool {
-	phaseState := p.GetState()
-	return phaseState == Available || phaseState == Queued || phaseState == Running
+// Send via the graph. This function allows for this graph function
+// to be accessed via the interface
+func (p *CMixPhase) Send(chunk services.Chunk) {
+	p.graph.Send(chunk)
 }
 
-// ReadyToVerify returns true if the phase is in computed state
-// and is ready to be verified
-func (p *Phase) ReadyToVerify() bool {
-	phaseState := p.GetState()
-	return phaseState == Computed
+// Input updates the graph's stream with the passed data at the passed index
+func (p *CMixPhase) Input(index uint32, slot *mixmessages.Slot) error {
+	return p.GetGraph().GetStream().Input(index, slot)
 }

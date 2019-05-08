@@ -7,9 +7,13 @@
 package services
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 )
+
+var ErrOutsideOfGroup = errors.New("cyclic int is outside of the prescribed group")
+var ErrOutsideOfBatch = errors.New("cyclic int is outside of the prescribed batch")
 
 type Stream interface {
 	GetName() string

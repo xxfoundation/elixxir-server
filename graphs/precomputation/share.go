@@ -11,7 +11,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -46,7 +45,7 @@ func (s *ShareStream) Link(grp *cyclic.Group, batchSize uint32, source ...interf
 func (s *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if !s.Grp.BytesInside(slot.PartialRoundPublicCypherKey) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	s.Grp.SetBytes(s.PartialPublicCypherKey, slot.PartialRoundPublicCypherKey)
