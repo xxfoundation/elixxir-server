@@ -61,14 +61,14 @@ func TestPhaseState_EnabledVerification(t *testing.T) {
 			p.GetState(), expected)
 	}
 
-	p.TransitionToFinish()
+	p.UpdateFinalStates()
 	expected = Computed
 	if p.GetState() != expected {
 		t.Errorf("State was %v, but should have been %v",
 			p.GetState(), expected)
 	}
 
-	p.TransitionToFinish()
+	p.UpdateFinalStates()
 	expected = Verified
 	if p.GetState() != expected {
 		t.Errorf("State was %v, but should have been %v",
@@ -128,7 +128,7 @@ func TestPhaseState_WithoutVerification(t *testing.T) {
 		t.Errorf("State was %v, but should have been %v",
 			p.GetState(), expected)
 	}
-	p.TransitionToFinish()
+	p.UpdateFinalStates()
 	expected = Verified
 	if p.GetState() != expected {
 		t.Errorf("State was %v, but should have been %v",

@@ -103,14 +103,15 @@ func (p *Phase) TransitionToRunning() {
 	}
 }
 
-// TransitionToFinish first transitions to the computed state and
+// UpdateFinalStates first transitions to the computed state and
 // panics if unsuccessful. If the phase does not have verification,
 // it then transitions to the verified state and panics if that
 // fails. The function returns true if the final state is Verified,
 // false otherwise.
 // Fixme: find a better name that expresses it always moves towards
-// finishing, but doesnt always finish
-func (p *Phase) TransitionToFinish() bool {
+// finishing, but doesnt always finish, even when it returns false
+// It it cannot move, it panics
+func (p *Phase) UpdateFinalStates() bool {
 
 	if !p.verification {
 		success := p.transitionToState(Running, Verified)

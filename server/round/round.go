@@ -11,6 +11,10 @@ import (
 	"sync/atomic"
 )
 
+var ErrRoundDoestNotHaveResponse = errors.New("The round does not a response to the given input")
+var ErrPhaseInIncorrectStateToContinue = errors.New("The phase in the given round is not " +
+	"at the correct state to proceed")
+
 type Round struct {
 	id     id.Round
 	buffer *Buffer
@@ -21,10 +25,13 @@ type Round struct {
 	//on first node and last node the phases vary
 	phaseMap map[phase.Type]int
 	phases   []*phase.Phase
+
+	//holds responses to coms, how to check and process incoming comms
+	responseMap ResponseMap
 }
 
 // Creates and initializes a new round, including all phases
-func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services.NodeAddress, myLoc int, batchSize uint32) *Round {
+func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, responses ResponseMap, nal *services.NodeAddressList, batchSize uint32) *Round {
 
 	round := Round{}
 	round.id = id
@@ -88,7 +95,8 @@ func New(grp *cyclic.Group, id id.Round, phases []*phase.Phase, nodes []services
 
 	copy(round.phases[:], phases[:])
 
-	round.nodeAddressList = services.NewNodeAddressList(nodes, myLoc)
+	round.nodeAddressList = nal
+	round.responseMap = responses
 
 	if round.nodeAddressList.IsLastNode() {
 		round.buffer.InitLastNode()
@@ -134,4 +142,31 @@ func (r *Round) GetNodeAddressList() *services.NodeAddressList {
 func (r *Round) String() string {
 	currentPhase := r.GetCurrentPhase()
 	return fmt.Sprintf("%d (%d - %s)", r.id, r.state, currentPhase)
+}
+
+func (r *Round) HandleIncomingComm(commTag string) (*phase.Phase, error) {
+	response, ok := r.responseMap[commTag]
+
+	if !ok {
+		return nil, errors.WithMessage(ErrRoundDoestNotHaveResponse,
+			fmt.Sprintf("Round: %v, Input: %s", r.id, commTag))
+	}
+
+	phaseToCheck, err := r.GetPhase(response.PhaseLookup)
+
+	if err != nil {
+		jww.FATAL.Panicf("Phase %s looked up up from response map "+
+			"does not exist in round", response.PhaseLookup)
+	}
+
+	if response.CheckState(phaseToCheck.GetState()) {
+		returnPhase, err := r.GetPhase(response.ReturnPhase)
+		if err != nil {
+			jww.FATAL.Panicf("The requested phase could not be returned in the comm handler")
+		}
+
+		return returnPhase, nil
+	} else {
+		return nil, ErrPhaseInIncorrectStateToContinue
+	}
 }

@@ -120,7 +120,7 @@ func queueRunner(server *Instance) {
 
 			//update the ending phase to the next phase which also allows the next phase in the round to run
 			//fixme: what do we do about the timer if there is another step to completion
-			completed = rtnPhase.TransitionToFinish()
+			completed = rtnPhase.UpdateFinalStates()
 		}
 	}
 
