@@ -7,7 +7,9 @@
 package io
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
+	comm "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/node"
@@ -18,27 +20,27 @@ import (
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
 func TransmitRoundPublicKey(pubKey *cyclic.Int, roundID id.Round,
-	ids *services.NodeIDList) error {
+	ids *services.NodeIDList, nodeComms comm.NodeComms) error {
 
 	// Create the message structure to send the messages
-	//roundPubKeyMsg := &mixmessages.RoundPublicKey{
-	//	Round: &mixmessages.RoundInfo{
-	//		ID: uint64(roundID),
-	//	},
-	//	Key: pubKey.Bytes(),
-	//}
+	roundPubKeyMsg := &mixmessages.RoundPublicKey{
+		Round: &mixmessages.RoundInfo{
+			ID: uint64(roundID),
+		},
+		Key: pubKey.Bytes(),
+	}
 
-	//for _, recipient := range ids.GetAllNodesAddress() {
-	//	// Make sure the comm doesn't return an Ack with an
-	//	// error message
-	//	ack, err := comm.SendPostRoundPublicKey(
-	//		recipient.Address, recipient.Cert, roundPubKeyMsg)
-	//	if ack != nil && ack.Error != "" {
-	//		err = errors.Errorf("Remote Server Error: %s, %s",
-	//			recipient.Address, ack.Error)
-	//	}
-	//	return err
-	//}
+	for _, recipient := range ids.GetAllNodeIDs() {
+		// Make sure the comm doesn't return an Ack with an
+		// error message
+
+		ack, err := nodeComms.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+		if ack != nil && ack.Error != "" {
+			err = errors.Errorf("Remote Server Error: %s, %s",
+				recipient, ack.Error)
+		}
+		return err
+	}
 
 	return nil
 }
