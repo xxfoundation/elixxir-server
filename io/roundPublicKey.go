@@ -19,8 +19,8 @@ import (
 
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
-func TransmitRoundPublicKey(pubKey *cyclic.Int, roundID id.Round,
-	ids *services.NodeIDList, nodeComms comm.NodeComms) error {
+func TransmitRoundPublicKey(network *comm.NodeComms, pubKey *cyclic.Int, roundID id.Round,
+	nal *services.NodeIDList) error {
 
 	// Create the message structure to send the messages
 	roundPubKeyMsg := &mixmessages.RoundPublicKey{
@@ -30,11 +30,12 @@ func TransmitRoundPublicKey(pubKey *cyclic.Int, roundID id.Round,
 		Key: pubKey.Bytes(),
 	}
 
-	for _, recipient := range ids.GetAllNodeIDs() {
+	// Send public key to all nodes
+	for _, recipient := range nal.GetAllNodeIDs() {
+
 		// Make sure the comm doesn't return an Ack with an
 		// error message
-
-		ack, err := nodeComms.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+		ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 		if ack != nil && ack.Error != "" {
 			err = errors.Errorf("Remote Server Error: %s, %s",
 				recipient, ack.Error)
