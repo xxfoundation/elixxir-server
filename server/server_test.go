@@ -4,6 +4,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/id"
 	"reflect"
 	"testing"
 )
@@ -34,6 +35,16 @@ func TestInstance_GetNetwork(t *testing.T) {
 	if !reflect.DeepEqual(i.GetNetwork(), n) {
 		t.Errorf("Instance.GetResourceQueue: Returned incorrect " +
 			"Network")
+	}
+}
+
+func TestInstance_GetID(t *testing.T) {
+	n := &id.Node{}
+	i := &Instance{id: n}
+
+	if !reflect.DeepEqual(i.GetID(), n) {
+		t.Errorf("Instance.GetID: Returned incorrect " +
+			"ID")
 	}
 }
 

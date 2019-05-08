@@ -47,6 +47,11 @@ func (i *Instance) GetNetwork() *node.NodeComms {
 	return i.network
 }
 
+//GetID returns the nodeID
+func (i *Instance) GetID() *id.Node {
+	return i.id.DeepCopy()
+}
+
 //Initializes the first node components of the instance
 func (i *Instance) InitFirstNode() {
 	i.firstNode.Initialize()
@@ -99,9 +104,4 @@ func (i *Instance) InitNetwork(addr string,
 
 func (i *Instance) Run() {
 	go queueRunner(i)
-}
-
-//GetID returns the nodeID
-func (i *Instance) GetID() *id.Node {
-	return i.id.DeepCopy()
 }
