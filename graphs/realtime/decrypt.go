@@ -19,7 +19,7 @@ import (
 )
 
 // Stream holding data containing keys and inputs used by decrypt
-type DecryptStream struct {
+type KeygenDecryptStream struct {
 	Grp *cyclic.Group
 
 	// Link to round object
@@ -39,12 +39,12 @@ type DecryptStream struct {
 	graphs.KeygenSubStream
 }
 
-func (s *DecryptStream) GetName() string {
+func (s *KeygenDecryptStream) GetName() string {
 	return "RealtimeDecryptStream"
 }
 
 //Link creates the stream's internal buffers and
-func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuf := source[0].(*round.Buffer)
 	userRegistry := source[1].(*server.Instance).GetUserRegistry()
 	users := make([]*id.User, batchSize)
@@ -63,7 +63,7 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 }
 
 //Connects the internal buffers in the stream to the passed
-func (ds *DecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
+func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
 	userRegistry globals.UserRegistry, ecrMsg, ecrAD, keysMsg, keysAD *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
 
 	ds.Grp = grp
@@ -82,17 +82,17 @@ func (ds *DecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize 
 }
 
 // PermuteStream conforms to this interface.
-type decryptSubStreamInterface interface {
-	getDecrypteSubStream() *DecryptStream
+type RealtimeDecryptSubStreamInterface interface {
+	GetRealtimeDecryptSubStream() *KeygenDecryptStream
 }
 
 // getPermuteSubStream returns the sub-stream, used to return an embedded struct
 // off an interface.
-func (ds *DecryptStream) getDecrypteSubStream() *DecryptStream {
+func (ds *KeygenDecryptStream) GetRealtimeDecryptSubStream() *KeygenDecryptStream {
 	return ds
 }
 
-func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
+func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ds.EcrMsg.Len()) {
 		return services.ErrOutsideOfBatch
@@ -123,7 +123,7 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
+func (ds *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		SenderID:       (*ds.Users[index])[:],
 		Salt:           ds.Salts[index],
@@ -136,14 +136,14 @@ func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 var DecryptMul3 = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := streamInput.(decryptSubStreamInterface)
+		dssi, ok := streamInput.(RealtimeDecryptSubStreamInterface)
 		mul3, ok2 := cryptop.(cryptops.Mul3Prototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
-		ds := dssi.getDecrypteSubStream()
+		ds := dssi.GetRealtimeDecryptSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			//Do mul3 ecrMessage=messageKey*R*ecrMessage%p
@@ -161,7 +161,7 @@ var DecryptMul3 = services.Module{
 
 // InitDecryptGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
-	g := gc.NewGraph("RealtimeDecrypt", &DecryptStream{})
+	g := gc.NewGraph("RealtimeDecrypt", &KeygenDecryptStream{})
 
 	decryptKeygen := graphs.Keygen.DeepCopy()
 	decryptMul3 := DecryptMul3.DeepCopy()

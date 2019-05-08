@@ -253,8 +253,8 @@ func TestDecryptGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitDecryptGraph
 
-	PanicHandler := func(err error) {
-		panic(fmt.Sprintf("PrecompDecrypt: Error in adapter: %s", err.Error()))
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 1.0)

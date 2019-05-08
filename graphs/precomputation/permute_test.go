@@ -188,10 +188,10 @@ func TestPermuteStream_Output(t *testing.T) {
 	for b := uint32(0); b < batchSize; b++ {
 
 		expected := [][]byte{
-			{byte(b + 1), 0},
 			{byte(b + 1), 1},
 			{byte(b + 1), 2},
 			{byte(b + 1), 3},
+			{byte(b + 1), 4},
 		}
 
 		stream.KeysMsgPermuted[b] = grp.NewIntFromBytes(expected[0])
@@ -203,7 +203,7 @@ func TestPermuteStream_Output(t *testing.T) {
 
 		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
 			t.Errorf("PermuteStream.Output() incorrect recieved KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], stream.KeysMsg.Get(b).Bytes())
+				b, expected[0], output.EncryptedMessageKeys)
 		}
 
 		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
@@ -241,7 +241,7 @@ func TestPermuteStream_CommsInterface(t *testing.T) {
 func TestPermuteGraph(t *testing.T) {
 	grp := initPermuteGroup()
 
-	batchSize := uint32(20)
+	batchSize := uint32(100)
 
 	expectedName := "PrecompPermute"
 
@@ -249,9 +249,8 @@ func TestPermuteGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitPermuteGraph
 
-	PanicHandler := func(err error) {
-		t.Errorf("PrecompPermute: Error in adaptor: %s", err.Error())
-		return
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
@@ -344,7 +343,7 @@ func TestPermuteGraph(t *testing.T) {
 	for ok {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-
+			fmt.Println("i ran")
 			d := atomic.LoadUint32(done)
 
 			if d == 0 {
@@ -352,19 +351,19 @@ func TestPermuteGraph(t *testing.T) {
 			}
 
 			if stream.KeysMsgPermuted[i].Cmp(KeysMsgExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+				t.Error(fmt.Sprintf("Permute: KeysMsg slot %v out1 not permuted correctly", i))
 			}
 
 			if stream.CypherMsgPermuted[i].Cmp(CypherMsgExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+				t.Error(fmt.Sprintf("Permute: CypherMsg slot %v out1 not permuted correctly", i))
 			}
 
 			if stream.KeysADPermuted[i].Cmp(KeysADExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+				t.Error(fmt.Sprintf("Permute: KeysAD slot %v out2 not permuted correctly", i))
 			}
 
 			if stream.CypherADPermuted[i].Cmp(CypherADExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
+				t.Error(fmt.Sprintf("Permute: CypherAD slot %v out2 not permuted correctly", i))
 			}
 
 		}
@@ -390,4 +389,5 @@ func initPermuteGroup() *cyclic.Group {
 
 func initPermuteRoundBuffer(grp *cyclic.Group, batchSize uint32) *round.Buffer {
 	return round.NewBuffer(grp, batchSize, batchSize)
+
 }

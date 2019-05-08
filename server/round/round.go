@@ -115,6 +115,7 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.R
 	return &round
 }
 
+//GetID return the ID
 func (r *Round) GetID() id.Round {
 	return r.id
 }

@@ -95,11 +95,15 @@ func (m *Module) buildAssignments(batchsize uint32) {
 
 	m.assignmentList.maxCount = m.InputSize * numInputModules
 
-	primed := uint32(0)
-	m.assignmentList.primed = &primed
+	waitingIndex := uint32(0)
+	waitingAdded := uint32(0)
+	m.assignmentList.waitingIndex = &waitingIndex
+	m.assignmentList.waitingAdded = &waitingAdded
 	m.assignmentList.assignments = make([]*assignment, numJobs)
 	m.assignmentList.completed = new(uint32)
 	m.assignmentList.numSlots = m.InputSize
+
+	m.assignmentList.waiting = make([]Chunk, numJobs)
 
 	for j := uint32(0); j < numJobs; j++ {
 		m.assignmentList.assignments[j] = newAssignment(uint32(j * m.InputSize))

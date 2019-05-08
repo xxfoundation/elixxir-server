@@ -24,8 +24,10 @@ type assignment struct {
 type assignmentList struct {
 	//List of assignments
 	assignments []*assignment
-	//Number of assignments ready to be completed
-	primed *uint32
+	//location to add new chunks to the waiting list
+	waitingIndex *uint32
+	//Number of new chunks added to the waiting list
+	waitingAdded *uint32
 	//Number of assignments completed
 	completed *uint32
 
@@ -96,28 +98,21 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 		undenotedComplete -= weight
 	}
 
-	if len(cList) > 0 {
-		primed := uint32(0)
-		loaded := uint32(0)
-		success := false
-
-		completedSlots := uint32(len(cList)) * al.numSlots
-
-		//Get the updated state of the prime counter
-		for !success {
-			loaded = atomic.LoadUint32(al.primed)
-			primed = loaded + completedSlots
-			success = atomic.CompareAndSwapUint32(al.primed, loaded, primed)
+	//Process the threshold
+	//Get the updated state of the prime counter
+	addingIndex := atomic.AddUint32(al.waitingIndex, uint32(len(cList)))
+	initialChunk := addingIndex - uint32(len(cList))
+	if initialChunk*al.numSlots <= al.threshold {
+		for index, chunk := range cList {
+			al.waiting[initialChunk+uint32(index)] = chunk
 		}
 
-		//If its less then the threshold, store the new chucks and dont return then
-		if primed < al.threshold {
-			al.waiting = append(al.waiting, cList...)
+		totalWaiting := atomic.AddUint32(al.waitingAdded, uint32(len(cList)))
+
+		if totalWaiting*al.numSlots >= al.threshold {
+			cList = al.waiting[:totalWaiting]
+		} else {
 			cList = make([]Chunk, 0)
-			//If this operation crossed the threashold line, return all waiting chunks
-		} else if loaded <= al.threshold && primed >= al.threshold {
-			cList = append(al.waiting, cList...)
-			al.waiting = make([]Chunk, 0)
 		}
 	}
 

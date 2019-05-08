@@ -34,48 +34,66 @@ type StripStream struct {
 }
 
 // GetName returns stream name
-func (s *StripStream) GetName() string {
+func (ss *StripStream) GetName() string {
 	return "PrecompStripStream"
 }
 
 // Link binds stream to state objects in round
-func (s *StripStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
+func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
-	s.Grp = grp
+	ss.LinkPrecompStripStream(grp, batchSize, roundBuffer,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 
-	s.MessagePrecomputation = roundBuffer.MessagePrecomputation.GetSubBuffer(0, batchSize)
-	s.ADPrecomputation = roundBuffer.ADPrecomputation.GetSubBuffer(0, batchSize)
+}
 
-	s.CypherMsg = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
-	s.CypherAD = s.Grp.NewIntBuffer(batchSize, s.Grp.NewInt(1))
+func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
+	cypherMsg, cypherAD *cyclic.IntBuffer) {
 
-	s.RevealStream.LinkStream(grp, batchSize, roundBuffer, s.CypherMsg, s.CypherAD)
+	ss.Grp = grp
+
+	ss.MessagePrecomputation = roundBuffer.MessagePrecomputation.GetSubBuffer(0, batchSize)
+	ss.ADPrecomputation = roundBuffer.ADPrecomputation.GetSubBuffer(0, batchSize)
+
+	ss.CypherMsg = cypherMsg
+	ss.CypherAD = cypherAD
+
+	ss.RevealStream.LinkStream(grp, batchSize, roundBuffer, ss.CypherMsg, ss.CypherAD)
+}
+
+type stripSubstreamInterface interface {
+	GetStripSubStream() *StripStream
+}
+
+// getSubStream implements reveal interface to return stream object
+func (ss *StripStream) GetStripSubStream() *StripStream {
+	return ss
 }
 
 // Input initializes stream inputs from slot
-func (s *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
+func (ss *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if index >= uint32(s.CypherMsg.Len()) {
+	if index >= uint32(ss.CypherMsg.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !s.Grp.BytesInside(slot.PartialMessageCypherText, slot.PartialAssociatedDataCypherText) {
+	if !ss.Grp.BytesInside(slot.PartialMessageCypherText, slot.PartialAssociatedDataCypherText) {
 		return services.ErrOutsideOfGroup
 	}
 
-	s.Grp.SetBytes(s.CypherMsg.Get(index), slot.PartialMessageCypherText)
-	s.Grp.SetBytes(s.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+	ss.Grp.SetBytes(ss.CypherMsg.Get(index), slot.PartialMessageCypherText)
+	ss.Grp.SetBytes(ss.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
 
 	return nil
 }
 
 // Output returns a cmix slot message
-func (s *StripStream) Output(index uint32) *mixmessages.Slot {
+func (ss *StripStream) Output(index uint32) *mixmessages.Slot {
 
 	return &mixmessages.Slot{
-		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
-		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
+		PartialMessageCypherText:        ss.CypherMsg.Get(index).Bytes(),
+		PartialAssociatedDataCypherText: ss.CypherAD.Get(index).Bytes(),
 	}
 
 }
@@ -84,20 +102,22 @@ func (s *StripStream) Output(index uint32) *mixmessages.Slot {
 var StripInverse = services.Module{
 	// Runs root coprime for cypher message and cypher associated data
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*StripStream)
+		sssi, ok := streamInput.(stripSubstreamInterface)
 		inverse, ok2 := cryptop.(cryptops.InversePrototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
+		ss := sssi.GetStripSubStream()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
 			// Eq 16.1: Invert the round message private key
-			inverse(s.Grp, s.MessagePrecomputation.Get(i), s.MessagePrecomputation.Get(i))
+			inverse(ss.Grp, ss.MessagePrecomputation.Get(i), ss.MessagePrecomputation.Get(i))
 
 			// Eq 16.2: Invert the round associated data private key
-			inverse(s.Grp, s.ADPrecomputation.Get(i), s.ADPrecomputation.Get(i))
+			inverse(ss.Grp, ss.ADPrecomputation.Get(i), ss.ADPrecomputation.Get(i))
 
 		}
 		return nil
@@ -112,24 +132,26 @@ var StripInverse = services.Module{
 var StripMul2 = services.Module{
 	// Runs mul2 for cypher message and cypher associated data
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		s, ok := streamInput.(*StripStream)
+		sssi, ok := streamInput.(stripSubstreamInterface)
 		mul2, ok2 := cryptop.(cryptops.Mul2Prototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
+		ss := sssi.GetStripSubStream()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
 			// Eq 16.1: Use the inverted round message private key to remove the
 			//          homomorphic encryption from encrypted message key and reveal
 			//          the message precomputation
-			mul2(s.Grp, s.CypherMsg.Get(i), s.MessagePrecomputation.Get(i))
+			mul2(ss.Grp, ss.CypherMsg.Get(i), ss.MessagePrecomputation.Get(i))
 
 			// Eq 16.2: Use the inverted round associated data private key to remove
 			//          the homomorphic encryption from encrypted associated data key
 			//          and reveal the associated data precomputation
-			mul2(s.Grp, s.CypherAD.Get(i), s.ADPrecomputation.Get(i))
+			mul2(ss.Grp, ss.CypherAD.Get(i), ss.ADPrecomputation.Get(i))
 
 		}
 		return nil

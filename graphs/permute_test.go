@@ -7,6 +7,7 @@
 package graphs
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
@@ -46,7 +47,11 @@ func TestPermute_PrecanPermute(t *testing.T) {
 }
 
 func TestModifyGraphGeneratorForPermute(t *testing.T) {
-	gc := services.NewGraphGenerator(4, func(err error) { return }, uint8(runtime.NumCPU()), 1, 0)
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
 
 	gcPermute := ModifyGraphGeneratorForPermute(gc)
 
