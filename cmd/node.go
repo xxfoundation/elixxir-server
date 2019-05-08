@@ -193,8 +193,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 		return
 	} else {
 		// List of gateways found in config file, select one to use
-		// TODO: For now, just use the first one?
-		globals.GatewayAddress = gateways[0]
+		// TODO: For now, just use the same as server index?
+		globals.GatewayAddress = gateways[serverIndex]
 	}
 
 	// Initialize the backend
