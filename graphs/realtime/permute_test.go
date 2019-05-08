@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -190,7 +189,7 @@ func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 
 	err := stream.Input(batchSize-10, msg)
 
-	if err != node.ErrOutsideOfGroup {
+	if err != services.ErrOutsideOfGroup {
 		t.Errorf("PermuteStream.Input() did not return an error when out of group")
 	}
 }
@@ -272,9 +271,8 @@ func TestPermuteStream_InGraph(t *testing.T) {
 
 	batchSize := uint32(10)
 
-	PanicHandler := func(err error) {
-		t.Errorf("Permute: Error in adaptor: %s", err.Error())
-		return
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)

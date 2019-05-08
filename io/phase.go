@@ -12,17 +12,20 @@ package io
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
-	comm "gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 )
 
 // TransmitPhase sends a cMix Batch of messages to the provided Node.
-func TransmitPhase(batchSize uint32, roundID id.Round, phaseTy phase.Type,
-	getChunk phase.GetChunk, getMessage phase.GetMessage, nal *services.NodeAddressList) error {
+func TransmitPhase(network *node.NodeComms, batchSize uint32,
+	roundID id.Round, phaseTy phase.Type,
+	getChunk phase.GetChunk, getMessage phase.GetMessage,
+	topology *circuit.Circuit, nodeID *id.Node) error {
 
-	recipient := nal.GetNextNodeAddress()
+	recipient := topology.GetNextNode(nodeID)
 
 	// Create the message structure to send the messages
 	batch := &mixmessages.Batch{
@@ -44,29 +47,27 @@ func TransmitPhase(batchSize uint32, roundID id.Round, phaseTy phase.Type,
 	}
 
 	// Make sure the comm doesn't return an Ack with an error message
-	ack, err := comm.SendPostPhase(recipient.Address, recipient.Cert, batch)
+	ack, err := network.SendPostPhase(recipient, batch)
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
 	return err
 }
 
-// ReceivePhase implements the server gRPC handler for receiving a
+// PostPhase implements the server gRPC handler for posting a
 // phase from another node
-func PostPhase(p *phase.Phase, batch *mixmessages.Batch) error {
+func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 
 	// Send a chunk per slot
-	graph := p.GetGraph()
-	stream := graph.GetStream()
 	for index, messages := range batch.Slots {
 		curIdx := uint32(index)
-		err := stream.Input(curIdx, messages)
+		err := p.Input(curIdx, messages)
 		if err != nil {
 			return errors.Errorf("Error on slot %d: %v", curIdx,
 				err)
 		}
 		chunk := services.NewChunk(curIdx, curIdx+1)
-		graph.Send(chunk)
+		p.Send(chunk)
 	}
 
 	return nil

@@ -14,15 +14,17 @@ const (
 	//Running: Next phase to run according to round and input has been received and it
 	// is being executed by resource manager
 	Running
-	//Finished: Phase is finished
-	Finished
+	//Computed: graph has computed the result but the phase had not completed
+	Computed
+	//Verified: phase is finished, all required tasks are completed
+	Verified
 	// End of const block item: holds number of constants
 	NumStates
 )
 
-//Array used to get the Phase Names for Printing
+//Array used to get the phase Names for Printing
 var stateStrings = []string{"Initialized",
-	"Available", "Queued", "Running", "Finished"}
+	"Available", "Queued", "Running", "Computed", "Verified"}
 
 // Adheres to the Stringer interface to return the name of the phase type
 func (s State) String() string {

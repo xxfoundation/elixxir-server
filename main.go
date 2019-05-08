@@ -1,14 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
+// Copyright © 2018 Privategrity Corporation                                   /
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package node
+package main
 
-import (
-	"errors"
-)
+import "gitlab.com/elixxir/server/cmd"
 
-var ErrOutsideOfGroup = errors.New("cyclic int is outside of the prescribed group")
-var ErrOutsideOfBatch = errors.New("cyclic int is outside of the prescribed batch")
+func main() {
+	cmd.Execute()
+}

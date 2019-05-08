@@ -3,11 +3,11 @@ package server
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 )
 
@@ -15,6 +15,7 @@ import (
 type Instance struct {
 	id            *id.Node
 	roundManager  *round.Manager
+	network       *node.NodeComms
 	resourceQueue *ResourceQueue
 	grp           *cyclic.Group
 	userReg       globals.UserRegistry
@@ -42,6 +43,15 @@ func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
 
+func (i *Instance) GetNetwork() *node.NodeComms {
+	return i.network
+}
+
+//GetID returns the nodeID
+func (i *Instance) GetID() *id.Node {
+	return i.id.DeepCopy()
+}
+
 //Initializes the first node components of the instance
 func (i *Instance) InitFirstNode() {
 	i.firstNode.Initialize()
@@ -59,12 +69,7 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 		roundManager: round.NewManager(),
 		grp:          grp,
 	}
-	instance.resourceQueue = &ResourceQueue{
-		// these are the phases
-		phaseQueue: make(chan *phase.Phase, 5000),
-		// there will only active phase, and this channel is used to kill it
-		finishChan: make(chan *phase.Phase, 1),
-	}
+	instance.resourceQueue = initQueue()
 	instance.userReg = db
 
 	//Generate a random node id as a placeholder
@@ -83,32 +88,20 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 	return &instance
 }
 
+// TODO(sb) Should there be a version of this that uses the network definition
+//  file to create all the connections in the network?
+// Initializes the network on this server instance
+// After the network object is created, you still need to use it to connect
+// to other servers in the network using ConnectToNode or ConnectToGateway.
+// Additionally, to clean up the network object (especially in tests), call
+// Shutdown() on the network object.
+func (i *Instance) InitNetwork(addr string,
+	makeImplementation func(*Instance) *node.Implementation,
+	certPath string, keyPath string) *node.NodeComms {
+	i.network = node.StartNode(addr, makeImplementation(i), certPath, keyPath)
+	return i.network
+}
+
 func (i *Instance) Run() {
 	go queueRunner(i)
-}
-
-//GetID returns the nodeID
-func (i *Instance) GetID() *id.Node {
-	return i.id.DeepCopy()
-}
-
-func (i *Instance) HandleIncomingPhase(roundID id.Round, phaseType phase.Type) (*phase.Phase, error) {
-	// Get the phase (with error checking) from the round manager by looking
-	// up the round
-	p, err := i.roundManager.GetPhase(roundID, int32(phaseType))
-	if err != nil {
-		return nil, err
-	}
-
-	// If the phase can't receive data this is a fatal error, not a
-	// blocking issue.
-	if !p.ReadyToReceiveData() {
-		return nil, errors.Errorf("Phase %s, round %d is not ready!",
-			p, roundID)
-	}
-
-	// Update queue to tell it we are running this phase
-	i.resourceQueue.UpsertPhase(p)
-
-	return p, nil
 }

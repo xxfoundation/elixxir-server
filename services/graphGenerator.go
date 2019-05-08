@@ -11,7 +11,7 @@ import (
 )
 
 // Should probably add more params to this like block ID, worker thread ID, etc
-type ErrorCallback func(err error)
+type ErrorCallback func(graph, module string, err error)
 
 type GraphGenerator struct {
 	minInputSize    uint32
