@@ -14,17 +14,33 @@ import (
 )
 
 type ResourceQueue struct {
-	activePhase *phase.Phase
-	phaseQueue  chan *phase.Phase
-	finishChan  chan *phase.Phase
+	activePhase phase.Phase
+	phaseQueue  chan phase.Phase
+	finishChan  chan phase.Phase
 	timer       *time.Timer
 }
 
+//initQueue begins a queue with default channel buffer sizes
+func initQueue() *ResourceQueue {
+	return &ResourceQueue{
+		// these are the phases
+		phaseQueue: make(chan phase.Phase, 5000),
+		// there will only active phase, and this channel is used to kill it
+		finishChan: make(chan phase.Phase, 1),
+	}
+}
+
 // UpsertPhase adds the phase to the queue to be operated on if it is not already there
-func (rq *ResourceQueue) UpsertPhase(p *phase.Phase) {
-	if p.TransitionTo(phase.Queued) {
+func (rq *ResourceQueue) UpsertPhase(p phase.Phase) {
+	if p.AttemptTransitionToQueued() {
 		rq.phaseQueue <- p
 	}
+}
+
+// DenotePhaseCompletion send the phase which has been completed into the queue's
+// completed channel
+func (rq *ResourceQueue) DenotePhaseCompletion(p phase.Phase) {
+	rq.finishChan <- p
 }
 
 func queueRunner(server *Instance) {
@@ -35,11 +51,7 @@ func queueRunner(server *Instance) {
 		queue.activePhase = <-queue.phaseQueue
 
 		//update the next phase to running
-		success := queue.activePhase.TransitionTo(phase.Running)
-		if !success {
-			jww.FATAL.Panicf("Next phase %s of round %v which is queued is not in the correct state and "+
-				"cannot be started", queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
-		}
+		queue.activePhase.TransitionToRunning()
 
 		runningPhase := queue.activePhase
 
@@ -50,7 +62,7 @@ func queueRunner(server *Instance) {
 			//Fixme: add a method to kill this directly
 			if !ok {
 				//send the phase into the channel to denote it is complete
-				queue.finishChan <- runningPhase
+				queue.DenotePhaseCompletion(runningPhase)
 			}
 			return chunk, ok
 		}
@@ -70,7 +82,7 @@ func queueRunner(server *Instance) {
 			err := handler()(server.GetNetwork(), curRound.GetBuffer().GetBatchSize(),
 				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetNodeIDList())
+				curRound.GetTopology(), server.id)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",
@@ -83,39 +95,44 @@ func queueRunner(server *Instance) {
 		//start phases's the timeout timer
 		queue.timer = time.NewTimer(runningPhase.GetTimeout())
 
-		var rtnPhase *phase.Phase
+		var rtnPhase phase.Phase
 		timeout := false
 
 		//wait until a phase completes or it's timeout is reached
-		select {
-		case rtnPhase = <-queue.finishChan:
-		case <-queue.timer.C:
-			timeout = true
-		}
+		completed := false
 
-		//process timeout
-		if timeout {
-			//FIXME: also kill the transmission handler
-			kill := queue.activePhase.GetGraph().Kill()
-			if kill {
-				jww.CRITICAL.Printf("Graph %v of phase %v of round %v was killed due to timeout",
-					queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
-				//FIXME: send kill round message
-			} else {
-				jww.FATAL.Panicf("Graph %v of phase %v of round %v could not be killed after timeout",
-					queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
+		for !completed {
+			select {
+			case rtnPhase = <-queue.finishChan:
+			case <-queue.timer.C:
+				timeout = true
 			}
-		}
 
-		//check that the correct phase is ending
-		if !queue.activePhase.Cmp(rtnPhase) {
-			jww.FATAL.Panicf("Phase %s of round %v is currently running, "+
-				"a kill message of %s cannot be processed", queue.activePhase.GetType().String(),
-				queue.activePhase.GetRoundID(), rtnPhase)
-		}
+			//process timeout
+			if timeout {
+				//FIXME: also kill the transmission handler
+				kill := queue.activePhase.GetGraph().Kill()
+				if kill {
+					jww.CRITICAL.Printf("Graph %v of phase %v of round %v was killed due to timeout",
+						queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
+					//FIXME: send kill round message
+				} else {
+					jww.FATAL.Panicf("Graph %v of phase %v of round %v could not be killed after timeout",
+						queue.activePhase.GetGraph().GetName(), queue.activePhase.GetType().String(), queue.activePhase.GetRoundID())
+				}
+			}
 
-		//update the ending phase to the next phase which also allows the next phase in the round to run
-		queue.activePhase.TransitionTo(phase.Finished)
+			//check that the correct phase is ending
+			if !queue.activePhase.Cmp(rtnPhase) {
+				jww.FATAL.Panicf("phase %s of round %v is currently running, "+
+					"a kill message of %s cannot be processed", queue.activePhase.GetType().String(),
+					queue.activePhase.GetRoundID(), rtnPhase)
+			}
+
+			//update the ending phase to the next phase which also allows the next phase in the round to run
+			//fixme: what do we do about the timer if there is another step to completion
+			completed = rtnPhase.UpdateFinalStates()
+		}
 	}
 
 }

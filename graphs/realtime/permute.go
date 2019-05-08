@@ -11,7 +11,6 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -80,11 +79,11 @@ func (ps *PermuteStream) getPermuteSubStream() *PermuteStream {
 // Input initializes stream inputs from slot.
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(ps.EcrMsg.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 
 	if !ps.Grp.BytesInside(slot.MessagePayload, slot.AssociatedData) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	ps.Grp.SetBytes(ps.EcrMsg.Get(index), slot.MessagePayload)

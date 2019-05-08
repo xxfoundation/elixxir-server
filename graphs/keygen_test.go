@@ -23,7 +23,7 @@ import (
 )
 
 // Give compile error unless KeygenSubStream meets keygenSubStreamInterface
-var _ keygenSubStreamInterface = &KeygenSubStream{}
+var _ KeygenSubStreamInterface = &KeygenSubStream{}
 
 // Example stream that includes a KeygenSubStream and can be put in a graph
 type KeygenTestStream struct {
@@ -161,8 +161,8 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	testHashedSalt := hash.Sum(nil)
 
-	PanicHandler := func(err error) {
-		panic(fmt.Sprintf("Keygen: Error in adapter: %s", err.Error()))
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)

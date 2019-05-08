@@ -81,7 +81,7 @@ func (s *Stream1) Input(index uint32, msg *mixmessages.Slot) error {
 }
 func (s *Stream1) Output(index uint32) *mixmessages.Slot { return nil }
 
-var PanicHandler ErrorCallback = func(err error) {
+var PanicHandler ErrorCallback = func(g, m string, err error) {
 	panic(err)
 }
 
@@ -101,7 +101,7 @@ var ModuleA = Module{
 	},
 	Cryptop:    Add,
 	InputSize:  8,
-	NumThreads: 8,
+	NumThreads: AutoNumThreads,
 	Name:       "ModuleA",
 }
 
@@ -123,7 +123,7 @@ var ModuleB = Module{
 	},
 	Cryptop:    MultiMul,
 	InputSize:  AutoInputSize,
-	NumThreads: 2,
+	NumThreads: AutoNumThreads,
 	Name:       "ModuleB",
 }
 
@@ -143,7 +143,7 @@ var ModuleC = Module{
 		return nil
 	},
 	Cryptop:    ModMul,
-	NumThreads: 3,
+	NumThreads: AutoNumThreads,
 	InputSize:  5,
 	Name:       "ModuleC",
 }
@@ -162,10 +162,11 @@ var ModuleD = Module{
 		}
 		return nil
 	},
-	Cryptop:    Sub,
-	NumThreads: 5,
-	InputSize:  14,
-	Name:       "ModuleD",
+	Cryptop:        Sub,
+	NumThreads:     AutoNumThreads,
+	InputSize:      14,
+	Name:           "ModuleD",
+	StartThreshold: 1.0,
 }
 
 func TestGraph(t *testing.T) {

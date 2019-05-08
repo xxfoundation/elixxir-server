@@ -7,10 +7,10 @@
 package precomputation
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -73,12 +73,12 @@ func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize u
 
 }
 
-type decryptSubstreamInterface interface {
-	GetSubStream() *DecryptStream
+type PrecompDecryptSubstreamInterface interface {
+	GetPrecompDecryptSubStream() *DecryptStream
 }
 
 // getSubStream implements reveal interface to return stream object
-func (ds *DecryptStream) GetSubStream() *DecryptStream {
+func (ds *DecryptStream) GetPrecompDecryptSubStream() *DecryptStream {
 	return ds
 }
 
@@ -86,12 +86,12 @@ func (ds *DecryptStream) GetSubStream() *DecryptStream {
 func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ds.KeysMsg.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 
 	if !ds.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
 		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	ds.Grp.SetBytes(ds.KeysMsg.Get(index), slot.EncryptedMessageKeys)
@@ -117,14 +117,14 @@ func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 var DecryptElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := streamInput.(decryptSubstreamInterface)
+		dssi, ok := streamInput.(PrecompDecryptSubstreamInterface)
 		elgamal, ok2 := cryptop.(cryptops.ElGamalPrototype)
 
 		if !ok || !ok2 {
-			return services.InvalidTypeAssert
+			return errors.WithStack(services.InvalidTypeAssert)
 		}
 
-		ds := dssi.GetSubStream()
+		ds := dssi.GetPrecompDecryptSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 

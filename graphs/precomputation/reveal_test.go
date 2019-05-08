@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -125,13 +124,13 @@ func TestRevealStream_Input_OutOfBatch(t *testing.T) {
 
 	err := stream.Input(batchSize, msg)
 
-	if err != node.ErrOutsideOfBatch {
+	if err != services.ErrOutsideOfBatch {
 		t.Errorf("RevealtStream.Input() did nto return an outside of batch error when out of batch")
 	}
 
 	err1 := stream.Input(batchSize+1, msg)
 
-	if err1 != node.ErrOutsideOfBatch {
+	if err1 != services.ErrOutsideOfBatch {
 		t.Errorf("RevealStream.Input() did not return an outside of batch error when out of batch")
 	}
 }
@@ -155,7 +154,7 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 
 	err := stream.Input(batchSize-10, msg)
 
-	if err != node.ErrOutsideOfGroup {
+	if err != services.ErrOutsideOfGroup {
 		t.Errorf("RevealStream.Input() did not return an error when out of group")
 	}
 }
@@ -228,10 +227,9 @@ func TestReveal_Graph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitRevealGraph
 
-	PanicHandler := func(err error) {
-		panic(fmt.Sprintf("Reveal: Error in adapter: %s", err.Error()))
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
-
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
 
 	//Initialize graph

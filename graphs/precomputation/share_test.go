@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -110,7 +109,7 @@ func TestShareStream_Input_OutOfGroup(t *testing.T) {
 
 	err := stream.Input(0, msg)
 
-	if err != node.ErrOutsideOfGroup {
+	if err != services.ErrOutsideOfGroup {
 		t.Errorf("SharetStream.Input() did not return an error when out of group")
 	}
 }
@@ -170,8 +169,8 @@ func TestShare_Graph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitShareGraph
 
-	PanicHandler := func(err error) {
-		panic(fmt.Sprintf("Share: Error in adapter: %s", err.Error()))
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
 	gc := services.NewGraphGenerator(1, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)

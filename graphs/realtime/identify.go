@@ -10,7 +10,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -81,11 +80,11 @@ func (is *IdentifyStream) getIdentifyStream() *IdentifyStream {
 // Input initializes stream inputs from slot.
 func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(is.EcrMsg.Len()) {
-		return node.ErrOutsideOfBatch
+		return services.ErrOutsideOfBatch
 	}
 
 	if !is.Grp.BytesInside(slot.MessagePayload, slot.AssociatedData) {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	is.Grp.SetBytes(is.EcrMsg.Get(index), slot.MessagePayload)

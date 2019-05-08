@@ -8,18 +8,17 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 )
 
 // Holds long-lived server state
 type Instance struct {
-	id                 *id.Node
-	roundManager       *round.Manager
-	resourceQueue      *ResourceQueue
-	grp                *cyclic.Group
-	userReg            globals.UserRegistry
-	network *node.NodeComms
+	id            *id.Node
+	roundManager  *round.Manager
+	network       *node.NodeComms
+	resourceQueue *ResourceQueue
+	grp           *cyclic.Group
+	userReg       globals.UserRegistry
 	firstNode
 	lastNode
 }
@@ -48,6 +47,11 @@ func (i *Instance) GetNetwork() *node.NodeComms {
 	return i.network
 }
 
+//GetID returns the nodeID
+func (i *Instance) GetID() *id.Node {
+	return i.id.DeepCopy()
+}
+
 //Initializes the first node components of the instance
 func (i *Instance) InitFirstNode() {
 	i.firstNode.Initialize()
@@ -65,12 +69,7 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 		roundManager: round.NewManager(),
 		grp:          grp,
 	}
-	instance.resourceQueue = &ResourceQueue{
-		// these are the phases
-		phaseQueue: make(chan *phase.Phase, 5000),
-		// there will only active phase, and this channel is used to kill it
-		finishChan: make(chan *phase.Phase, 1),
-	}
+	instance.resourceQueue = initQueue()
 	instance.userReg = db
 
 	//Generate a random node id as a placeholder
@@ -105,30 +104,4 @@ func (i *Instance) InitNetwork(addr string,
 
 func (i *Instance) Run() {
 	go queueRunner(i)
-}
-
-//GetID returns the nodeID
-func (i *Instance) GetID() *id.Node {
-	return i.id.DeepCopy()
-}
-
-func (i *Instance) HandleIncomingPhase(roundID id.Round, phaseType phase.Type) (*phase.Phase, error) {
-	// Get the phase (with error checking) from the round manager by looking
-	// up the round
-	p, err := i.roundManager.GetPhase(roundID, int32(phaseType))
-	if err != nil {
-		return nil, err
-	}
-
-	// If the phase can't receive data this is a fatal error, not a
-	// blocking issue.
-	if !p.ReadyToReceiveData() {
-		return nil, errors.Errorf("Phase %s, round %d is not ready!",
-			p, roundID)
-	}
-
-	// Update queue to tell it we are running this phase
-	i.resourceQueue.UpsertPhase(p)
-
-	return p, nil
 }
