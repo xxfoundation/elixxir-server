@@ -31,7 +31,8 @@ type Round struct {
 	responses phase.ResponseMap
 }
 
-// Creates and initializes a new round, including all phases
+// Creates and initializes a new round, including all phases, topology,
+// and batchsize
 func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.ResponseMap,
 	circut *circuit.Circuit, nodeID *id.Node, batchSize uint32) *Round {
 
