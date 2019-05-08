@@ -12,9 +12,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
-	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	hash2 "gitlab.com/elixxir/crypto/hash"
@@ -22,9 +20,7 @@ import (
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"io/ioutil"
 )
 
 // DSA Params
@@ -95,9 +91,6 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 
 	// Generate UserID
 	userId := registration.GenUserID(userPublicKey, salt)
-
-	// Save DSA public key and user ID to JSON file
-	outputDsaPubKeyToJson(userId, ".elixxir", "server_info.json")
 
 	// Generate a nonce with a timestamp
 	userNonce := nonce.NewNonce(nonce.RegistrationTTL)
@@ -181,40 +174,4 @@ func ConfirmNonce(hash, R, S []byte) ([]byte,
 	return data, sig.R.Bytes(), sig.S.Bytes(), publicKey.GetKey().Bytes(),
 		dsaParams.GetP().Bytes(), dsaParams.GetQ().Bytes(),
 		dsaParams.GetG().Bytes(), nil
-}
-
-// outputDsaPubKeyToJson encodes the DSA public key and user ID to JSON and
-// outputs it to the specified directory with the specified file name.
-func outputDsaPubKeyToJson(userID *id.User, dir, fileName string) {
-
-	// Get the default parameters and generate a public key from it
-	dsaParams := signature.GetDefaultDSAParams()
-	publicKey := dsaParams.PrivateKeyGen(rand.Reader).PublicKeyGen()
-
-	// Setup struct that will dictate the JSON structure
-	jsonStruct := struct {
-		Id             *id.User
-		Dsa_public_key *signature.DSAPublicKey
-	}{
-		Id:             userID,
-		Dsa_public_key: publicKey,
-	}
-
-	// Generate JSON from structure
-	data, err := json.MarshalIndent(jsonStruct, "", "\t")
-	if err != nil {
-		jww.ERROR.Printf("Error encoding structure to JSON: %s", err)
-	}
-
-	// Get the user's home directory
-	homeDir, err := homedir.Dir()
-	if err != nil {
-		jww.ERROR.Printf("Unable to retrieve user's home directory: %s", err)
-	}
-
-	// Write JSON to file
-	err = ioutil.WriteFile(homeDir+"/"+dir+"/"+fileName, data, 0644)
-	if err != nil {
-		jww.ERROR.Printf("Error writing JSON file: %s", err)
-	}
 }

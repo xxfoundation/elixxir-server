@@ -8,16 +8,21 @@
 package cmd
 
 import (
+	"crypto/rand"
 	"encoding/binary"
+	"encoding/json"
+	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
+	"io/ioutil"
 	"runtime"
 	"strconv"
 	"strings"
@@ -293,6 +298,10 @@ func StartServer(serverIndex int, batchSize uint64) {
 		go RunPrecomputation(io.RoundCh, realtimeSignal)
 	}
 
+	// Save DSA public key and node ID to JSON file
+	outputDsaPubKeyToJson(globals.NodeID, ".elixxir",
+		"server_info.json")
+
 	// Main loop
 	run()
 }
@@ -358,4 +367,40 @@ func getServers(serverIndex int) []string {
 		}
 	}
 	return servers
+}
+
+// outputDsaPubKeyToJson encodes the DSA public key and node ID to JSON and
+// outputs it to the specified directory with the specified file name.
+func outputDsaPubKeyToJson(nodeID *id.Node, dir, fileName string) {
+
+	// Get the default parameters and generate a public key from it
+	dsaParams := signature.GetDefaultDSAParams()
+	publicKey := dsaParams.PrivateKeyGen(rand.Reader).PublicKeyGen()
+
+	// Setup struct that will dictate the JSON structure
+	jsonStruct := struct {
+		Id             *id.Node
+		Dsa_public_key *signature.DSAPublicKey
+	}{
+		Id:             nodeID,
+		Dsa_public_key: publicKey,
+	}
+
+	// Generate JSON from structure
+	data, err := json.MarshalIndent(jsonStruct, "", "\t")
+	if err != nil {
+		jww.ERROR.Printf("Error encoding structure to JSON: %s", err)
+	}
+
+	// Get the user's home directory
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		jww.ERROR.Printf("Unable to retrieve user's home directory: %s", err)
+	}
+
+	// Write JSON to file
+	err = ioutil.WriteFile(homeDir+"/"+dir+"/"+fileName, data, 0644)
+	if err != nil {
+		jww.ERROR.Printf("Error writing JSON file: %s", err)
+	}
 }
