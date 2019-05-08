@@ -164,6 +164,7 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 
 		return returnPhase, nil
 	} else {
+
 		return nil, ErrPhaseInIncorrectStateToContinue
 	}
 }

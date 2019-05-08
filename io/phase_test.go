@@ -23,40 +23,40 @@ func TestPostPhase(t *testing.T) {
 	numSlots := 3
 
 	//Get a mock phase
-	p := &MockPhase{}
+	mockPhase := &MockPhase{}
 
-	//Build a mock batch to receive
-	batch := mixmessages.Batch{}
+	//Build a mock mockBatch to receive
+	mockBatch := mixmessages.Batch{}
 
 	for i := 0; i < numSlots; i++ {
-		batch.Slots = append(batch.Slots,
+		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
 				MessagePayload: []byte{byte(i)},
 			})
 	}
 
-	//receive the batch
-	err := PostPhase(p, &batch)
+	//receive the mockBatch
+	err := PostPhase(mockPhase, &mockBatch)
 
 	if err != nil {
 		t.Errorf("PostPhase: Unexpected error returned: %+v", err)
 	}
 
-	for index := range batch.Slots {
-		if p.chunks[index].Begin() != uint32(index) {
+	for index := range mockBatch.Slots {
+		if mockPhase.chunks[index].Begin() != uint32(index) {
 			t.Errorf("PostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, p.chunks[index].Begin())
+				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
 		}
 
-		if p.indices[index] != uint32(index) {
+		if mockPhase.indices[index] != uint32(index) {
 			t.Errorf("PostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, p.indices[index])
+				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
 		}
 	}
 
-	batch.Slots[0].Salt = []byte{42}
+	mockBatch.Slots[0].Salt = []byte{42}
 
-	err = PostPhase(p, &batch)
+	err = PostPhase(mockPhase, &mockBatch)
 
 	if err == nil {
 		t.Errorf("PostPhase: did not error when expected")
