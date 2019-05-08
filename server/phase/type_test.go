@@ -20,7 +20,7 @@ func TestPhase(t *testing.T) {
 func TestPhase_String(t *testing.T) {
 	for i := Type(0); i < NUM_PHASES; i++ {
 		if i.String() != typeStrings[i] {
-			t.Errorf("CMixPhase.String does not outpur the correct result for phase %s",
+			t.Errorf("phase.String does not outpur the correct result for phase %s",
 				typeStrings[i])
 		}
 	}

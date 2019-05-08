@@ -109,7 +109,7 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.R
 	//set the state of the first phase to available
 	success := atomic.CompareAndSwapUint32(round.state, uint32(phase.Initialized), uint32(phase.Available))
 	if !success {
-		jww.FATAL.Println("CMixPhase state initialization failed")
+		jww.FATAL.Println("phase state initialization failed")
 	}
 
 	return &round
@@ -153,7 +153,7 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 	phaseToCheck, err := r.GetPhase(response.GetPhaseLookup())
 
 	if err != nil {
-		jww.FATAL.Panicf("CMixPhase %s looked up up from response map "+
+		jww.FATAL.Panicf("phase %s looked up up from response map "+
 			"does not exist in round", response.GetPhaseLookup())
 	}
 

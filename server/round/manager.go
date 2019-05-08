@@ -48,7 +48,7 @@ func (rm *Manager) GetRound(id id.Round) (*Round, error) {
 func (rm *Manager) GetPhase(id id.Round, phaseTy int32) (phase.Phase, error) {
 	// First, check that the phase type id # is valid
 	if phaseTy < 0 || phaseTy >= int32(phase.NUM_PHASES) {
-		return nil, errors.Errorf("Invalid CMixPhase Type Number: %d",
+		return nil, errors.Errorf("Invalid phase Type Number: %d",
 			phaseTy)
 	}
 

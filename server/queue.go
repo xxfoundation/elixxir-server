@@ -124,7 +124,7 @@ func queueRunner(server *Instance) {
 
 			//check that the correct phase is ending
 			if !queue.activePhase.Cmp(rtnPhase) {
-				jww.FATAL.Panicf("CMixPhase %s of round %v is currently running, "+
+				jww.FATAL.Panicf("phase %s of round %v is currently running, "+
 					"a kill message of %s cannot be processed", queue.activePhase.GetType().String(),
 					queue.activePhase.GetRoundID(), rtnPhase)
 			}

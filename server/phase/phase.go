@@ -32,7 +32,7 @@ type Phase interface {
 }
 
 // Holds a single phase to be executed by the server in a round
-type CMixPhase struct {
+type phase struct {
 	graph               *services.Graph
 	tYpe                Type
 	transmissionHandler Transmit
@@ -51,7 +51,7 @@ type CMixPhase struct {
 // New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
 func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration) Phase {
 	connected := uint32(0)
-	return &CMixPhase{
+	return &phase{
 		graph:               g,
 		tYpe:                name,
 		transmissionHandler: tHandler,
@@ -63,7 +63,7 @@ func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration)
 /* Setters */
 // EnableVerification sets the internal variable phase.verification to true which
 // ensures the system will require an extra state before completing the phase
-func (p *CMixPhase) EnableVerification() {
+func (p *phase) EnableVerification() {
 	if atomic.LoadUint32(p.connected) == 0 {
 		p.verification = true
 	} else {
@@ -76,7 +76,7 @@ func (p *CMixPhase) EnableVerification() {
 // ConnectToRound sets the round ID.  Can only be called once.
 // Should only be called from Round package that initializes states
 // Must be called on all phases in their order in the round
-func (p *CMixPhase) ConnectToRound(id id.Round, setState Transition,
+func (p *phase) ConnectToRound(id id.Round, setState Transition,
 	getState GetState) {
 	numSet := atomic.AddUint32(p.connected, 1)
 	if numSet == 1 {
@@ -91,36 +91,36 @@ func (p *CMixPhase) ConnectToRound(id id.Round, setState Transition,
 
 /*Getters*/
 // GetGraph gets the graph associated with the phase
-func (p *CMixPhase) GetGraph() *services.Graph {
+func (p *phase) GetGraph() *services.Graph {
 	return p.graph
 }
 
-func (p *CMixPhase) GetRoundID() id.Round {
+func (p *phase) GetRoundID() id.Round {
 	return p.roundID
 }
 
-func (p *CMixPhase) GetType() Type {
+func (p *phase) GetType() Type {
 	return p.tYpe
 }
 
 // GetState returns the current state of the phase
-func (p *CMixPhase) GetState() State {
+func (p *phase) GetState() State {
 	return p.getState()
 }
 
 // AttemptTransitionToQueued attempts to move the phase to queued.
 // it returns success/failure.  This somewhat unsafe and should only
 // be used after a  state check which ensures it should happen
-func (p *CMixPhase) AttemptTransitionToQueued() bool {
+func (p *phase) AttemptTransitionToQueued() bool {
 	return p.transitionToState(Available, Queued)
 }
 
 // TransitionToRunning transitions the phase state from queued to
 // running and panics if it cannot be done
-func (p *CMixPhase) TransitionToRunning() {
+func (p *phase) TransitionToRunning() {
 	success := p.transitionToState(Queued, Running)
 	if !success {
-		jww.FATAL.Panicf("CMixPhase %s of round %v at incorrect state"+
+		jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
 			"to be transitioned to Running", p.tYpe, p.roundID)
 	}
 }
@@ -133,13 +133,13 @@ func (p *CMixPhase) TransitionToRunning() {
 // Fixme: find a better name that expresses it always moves towards
 // finishing, but doesnt always finish, even when it returns false
 // It it cannot move, it panics
-func (p *CMixPhase) UpdateFinalStates() bool {
+func (p *phase) UpdateFinalStates() bool {
 
 	if !p.verification {
 		success := p.transitionToState(Running, Verified)
 
 		if !success {
-			jww.FATAL.Panicf("CMixPhase %s of round %v at incorrect state"+
+			jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
 				"to be transitioned to Computed", p.tYpe, p.roundID)
 		}
 		return true
@@ -150,7 +150,7 @@ func (p *CMixPhase) UpdateFinalStates() bool {
 
 			success = p.transitionToState(Computed, Verified)
 			if !success {
-				jww.FATAL.Panicf("CMixPhase %s of round %v at incorrect state"+
+				jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
 					"to be transitioned to Computed or Verified", p.tYpe, p.roundID)
 			}
 			return true
@@ -160,34 +160,34 @@ func (p *CMixPhase) UpdateFinalStates() bool {
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function
-func (p *CMixPhase) GetTransmissionHandler() Transmit {
+func (p *phase) GetTransmissionHandler() Transmit {
 	return p.transmissionHandler
 }
 
 // GetTimeout gets the timeout at which the phase will fail
-func (p *CMixPhase) GetTimeout() time.Duration {
+func (p *phase) GetTimeout() time.Duration {
 	return p.timeout
 }
 
 /*Utility*/
 // Cmp checks if two phases are the same
-func (p *CMixPhase) Cmp(p2 Phase) bool {
+func (p *phase) Cmp(p2 Phase) bool {
 	return p.roundID == p2.GetRoundID() && p.tYpe == p2.GetType()
 }
 
 //String adheres to the string interface
-func (p *CMixPhase) String() string {
-	return fmt.Sprintf("phase.CMixPhase{roundID: %v, phaseType: %s}",
+func (p *phase) String() string {
+	return fmt.Sprintf("phase.phase{roundID: %v, phaseType: %s}",
 		p.roundID, p.tYpe)
 }
 
 // Send via the graph. This function allows for this graph function
 // to be accessed via the interface
-func (p *CMixPhase) Send(chunk services.Chunk) {
+func (p *phase) Send(chunk services.Chunk) {
 	p.graph.Send(chunk)
 }
 
 // Input updates the graph's stream with the passed data at the passed index
-func (p *CMixPhase) Input(index uint32, slot *mixmessages.Slot) error {
+func (p *phase) Input(index uint32, slot *mixmessages.Slot) error {
 	return p.GetGraph().GetStream().Input(index, slot)
 }

@@ -13,17 +13,17 @@ import (
 // GETTER TESTS
 func TestPhase_GetGraph(t *testing.T) {
 	g := services.Graph{}
-	p := CMixPhase{
+	p := phase{
 		graph: &g,
 	}
 	if p.GetGraph() != &g {
-		t.Error("CMixPhase graphs were different")
+		t.Error("phase graphs were different")
 	}
 }
 
 func TestPhase_GetRoundID(t *testing.T) {
 	r := id.Round(562359865894179)
-	p := CMixPhase{
+	p := phase{
 		roundID: r,
 	}
 	if p.GetRoundID() != r {
@@ -33,7 +33,7 @@ func TestPhase_GetRoundID(t *testing.T) {
 
 func TestPhase_GetTimeout(t *testing.T) {
 	timeout := 580 * time.Second
-	p := CMixPhase{
+	p := phase{
 		timeout: timeout,
 	}
 	if p.GetTimeout() != timeout {
@@ -49,7 +49,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 		pass = true
 		return nil
 	}
-	p := CMixPhase{
+	p := phase{
 		transmissionHandler: handler,
 	}
 	// This call should set pass to true
@@ -66,7 +66,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 
 func TestPhase_GetState(t *testing.T) {
 	state := Available
-	p := CMixPhase{getState: func() State {
+	p := phase{getState: func() State {
 		return Available
 	}}
 	if p.GetState() != state {
@@ -76,7 +76,7 @@ func TestPhase_GetState(t *testing.T) {
 
 func TestPhase_GetType(t *testing.T) {
 	phaseType := PrecompGeneration
-	p := CMixPhase{tYpe: phaseType}
+	p := phase{tYpe: phaseType}
 	if p.GetType() != phaseType {
 		t.Error("Type was different")
 	}
@@ -85,55 +85,55 @@ func TestPhase_GetType(t *testing.T) {
 // Other tests prove that the various fields that should be set or compared
 // are set or compared correctly
 
-// Proves that CMixPhase Cmp only returns true when the phases are the same
+// Proves that phase Cmp only returns true when the phases are the same
 func TestPhase_Cmp(t *testing.T) {
 	phaseType := uint32(2)
 	roundID := id.Round(258)
-	p := &CMixPhase{
+	p := &phase{
 		roundID: roundID,
 		tYpe:    Type(phaseType),
 	}
 
-	p2 := &CMixPhase{
+	p2 := &phase{
 		roundID: roundID + 1,
 		tYpe:    Type(phaseType + 1),
 	}
 
 	if !p.Cmp(p) {
-		t.Error("CMixPhase.Cmp: Phases are the same, returned that they are different")
+		t.Error("phase.Cmp: Phases are the same, returned that they are different")
 	}
 
 	if p.Cmp(p2) {
-		t.Error("CMixPhase.Cmp: Phases are different, returned that they are the same")
+		t.Error("phase.Cmp: Phases are different, returned that they are the same")
 	}
 }
 
 func TestPhase_Stringer(t *testing.T) {
 	phaseType := uint32(2)
 	roundID := id.Round(258)
-	p := &CMixPhase{
+	p := &phase{
 		roundID: roundID,
 		tYpe:    Type(phaseType),
 	}
 
-	p2 := &CMixPhase{
+	p2 := &phase{
 		roundID: roundID + 1,
 		tYpe:    Type(phaseType + 1),
 	}
 
-	pStr := fmt.Sprintf("phase.CMixPhase{roundID: %v, phaseType: %s}",
+	pStr := fmt.Sprintf("phase.phase{roundID: %v, phaseType: %s}",
 		p.roundID, p.tYpe)
 
-	p2Str := fmt.Sprintf("phase.CMixPhase{roundID: %v, phaseType: %s}",
+	p2Str := fmt.Sprintf("phase.phase{roundID: %v, phaseType: %s}",
 		p2.roundID, p2.tYpe)
 
 	if p.String() != pStr {
-		t.Errorf("CMixPhase.String: Returned incorrect string, Expected: %s, Recieved: %s",
+		t.Errorf("phase.String: Returned incorrect string, Expected: %s, Recieved: %s",
 			pStr, p)
 	}
 
 	if p2.String() != p2Str {
-		t.Errorf("CMixPhase.String: Returned incorrect string, Expected: %s, Recieved: %s",
+		t.Errorf("phase.String: Returned incorrect string, Expected: %s, Recieved: %s",
 			p2Str, p2)
 	}
 }
@@ -144,7 +144,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 
 	pFace := New(nil, RealPermute, nil, timeout)
 
-	p := pFace.(*CMixPhase)
+	p := pFace.(*phase)
 
 	// Initial inputs to ConnectToRound shouldn't change after calls
 	roundId := id.Round(55)
@@ -158,7 +158,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	}
 
 	if *p.connected != 0 {
-		t.Errorf("CMixPhase connected should be initialized to 0")
+		t.Errorf("phase connected should be initialized to 0")
 	}
 
 	if p.transitionToState != nil {
@@ -170,7 +170,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	p.ConnectToRound(roundId, setState, getState)
 
 	if *p.connected != 1 {
-		t.Errorf("CMixPhase connected should be incremented from 0 to 1")
+		t.Errorf("phase connected should be incremented from 0 to 1")
 	}
 
 	// The round ID should be set to correct value
@@ -195,7 +195,7 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	p.ConnectToRound(roundId2, setState2, getState2)
 
 	if *p.connected != 2 {
-		t.Errorf("CMixPhase connected should be incremented from 1 to 2")
+		t.Errorf("phase connected should be incremented from 1 to 2")
 	}
 
 	// The round ID should be set to correct value
@@ -244,7 +244,7 @@ func TestNew(t *testing.T) {
 	}
 
 	if !pass {
-		t.Error("Transmission handler was unreachable from CMixPhase")
+		t.Error("Transmission handler was unreachable from phase")
 	}
 	if phase.GetGraph() != g {
 		t.Error("Graph wasn't set")

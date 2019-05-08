@@ -16,13 +16,13 @@ const (
 	Running
 	//Computed: graph has computed the result but the phase had not completed
 	Computed
-	//Verified: CMixPhase is finished, all required tasks are completed
+	//Verified: phase is finished, all required tasks are completed
 	Verified
 	// End of const block item: holds number of constants
 	NumStates
 )
 
-//Array used to get the CMixPhase Names for Printing
+//Array used to get the phase Names for Printing
 var stateStrings = []string{"Initialized",
 	"Available", "Queued", "Running", "Computed", "Verified"}
 

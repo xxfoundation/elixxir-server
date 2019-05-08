@@ -75,7 +75,7 @@ func TestNew(t *testing.T) {
 	// so any mutations New makes to the phase list should be reflected in the
 	// original copy
 	if !reflect.DeepEqual(round.phases, phases) {
-		t.Error("CMixPhase list differed")
+		t.Error("phase list differed")
 	}
 	// Covers node address list and myLoc
 	if !reflect.DeepEqual(round.GetTopology(), topology) {
@@ -99,7 +99,7 @@ func TestNew(t *testing.T) {
 	}
 	// Try getting and setting the state of the phase
 	if round.GetCurrentPhase().GetState() != phase.Available {
-		t.Errorf("CMixPhase's state is %v, should have been Available",
+		t.Errorf("phase's state is %v, should have been Available",
 			round.GetCurrentPhase().GetState())
 	}
 	// This should fail...
@@ -124,7 +124,7 @@ func TestNew(t *testing.T) {
 	}
 	// and the state should remain Initialized
 	if round.GetCurrentPhase().GetState() != phase.Available {
-		t.Error("CMixPhase's state should have remained Available")
+		t.Error("phase's state should have remained Available")
 	}
 
 	// However, setting the state to Queued should succeed
@@ -133,6 +133,6 @@ func TestNew(t *testing.T) {
 	}
 	// And, the state should be set to Queued
 	if round.GetCurrentPhase().GetState() != phase.Queued {
-		t.Error("CMixPhase's state should be Queued")
+		t.Error("phase's state should be Queued")
 	}
 }

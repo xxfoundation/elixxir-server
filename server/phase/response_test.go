@@ -15,7 +15,7 @@ func TestNewCMIXResponse(t *testing.T) {
 
 	rExpected := buildTestResponse()
 
-	r := rFace.(CMixResponse)
+	r := rFace.(response)
 
 	if !reflect.DeepEqual(r, rExpected) {
 		t.Errorf("NewCMIXResponce: New Responce not the expected")
@@ -27,7 +27,7 @@ func TestCMixResponse_GetPhaseLookup(t *testing.T) {
 	r := buildTestResponse()
 
 	if r.GetPhaseLookup() != lookup {
-		t.Errorf("CMixResponse.GetPhaseLookup: Expected: %s, Recieved:%s",
+		t.Errorf("response.GetPhaseLookup: Expected: %s, Recieved:%s",
 			lookup, r.GetPhaseLookup())
 	}
 }
@@ -37,7 +37,7 @@ func TestCMixResponse_GetReturnPhase(t *testing.T) {
 	r := buildTestResponse()
 
 	if r.GetReturnPhase() != rtn {
-		t.Errorf("CMixResponse.GetReturnPhase: Expected: %s, Recieved:%s",
+		t.Errorf("response.GetReturnPhase: Expected: %s, Recieved:%s",
 			rtn, r.GetReturnPhase())
 	}
 }
@@ -47,11 +47,11 @@ func TestCMixResponse_CheckState(t *testing.T) {
 	r := buildTestResponse()
 
 	if !r.CheckState(expecteds[0]) {
-		t.Errorf("CMixResponse.CheckState: Returned false with valid state")
+		t.Errorf("response.CheckState: Returned false with valid state")
 	}
 
 	if r.CheckState(State(55)) {
-		t.Errorf("CMixResponse.CheckState: Returned true with invalid state")
+		t.Errorf("response.CheckState: Returned true with invalid state")
 	}
 
 }
@@ -64,14 +64,14 @@ func TestCMixResponse_String(t *testing.T) {
 		"'PrecompShare', expectedStates: {'Queued', 'Running', 'Computed'}}"
 
 	if r.String() != expected {
-		t.Error("CMixResponse.String: Did not return the correct string")
+		t.Error("response.String: Did not return the correct string")
 	}
 
 }
 
 //builds a response for testing
-func buildTestResponse() CMixResponse {
-	return CMixResponse{
+func buildTestResponse() response {
+	return response{
 		phaseLookup:    lookup,
 		returnPhase:    rtn,
 		expectedStates: expecteds,
