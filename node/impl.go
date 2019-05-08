@@ -30,12 +30,19 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	//impl.Functions.GetRoundBufferInfo = GetRoundBufferInfo
 	// FIXME: Should handle error and return Ack
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
-
-		_, phase, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.ForPhase).String())
+		//Check if the operation can be done and get the correct phase if it can
+		_, p, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.ForPhase).String())
 		if err != nil {
 			jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 		}
-		err = io.PostPhase(phase, batch)
+
+		//queue the phase to be operated on if it is not queued yet
+		if p.AttemptTransitionToQueued() {
+			instance.GetResourceQueue().UpsertPhase(p)
+		}
+
+		//send the data to the phase
+		err = io.PostPhase(p, batch)
 		if err != nil {
 			jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 		}

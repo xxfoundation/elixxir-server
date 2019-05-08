@@ -110,7 +110,9 @@ func (p *phase) GetState() State {
 
 // AttemptTransitionToQueued attempts to move the phase to queued.
 // it returns success/failure.  This somewhat unsafe and should only
-// be used after a  state check which ensures it should happen
+// be used after a state check which ensures it should happen
+// This does not panic unlike others because it is used to atomicly check
+// if anther action should be taken while attempting to transition
 func (p *phase) AttemptTransitionToQueued() bool {
 	return p.transitionToState(Available, Queued)
 }
