@@ -10,7 +10,7 @@ import (
 // Shows that GetRoundBufferInfo timeout works as intended
 func TestGetRoundBufferInfo(t *testing.T) {
 	// Normal case: length is greater than zero
-	c := &server.RoundBuffer{
+	c := &server.PrecompBuffer{
 		CompletedPrecomputations: make(chan *round.Round, 1),
 		PushSignal:               make(chan struct{}),
 	}
@@ -26,7 +26,7 @@ func TestGetRoundBufferInfo(t *testing.T) {
 	}
 
 	// More than timeout case: length is zero and stays there
-	c = &server.RoundBuffer{
+	c = &server.PrecompBuffer{
 		CompletedPrecomputations: make(chan *round.Round, 1),
 		PushSignal:               make(chan struct{}),
 	}
@@ -37,7 +37,7 @@ func TestGetRoundBufferInfo(t *testing.T) {
 
 	// Less than timeout case: length that's zero, then one, should result in
 	// a resulting length of one
-	c = &server.RoundBuffer{
+	c = &server.PrecompBuffer{
 		CompletedPrecomputations: make(chan *round.Round, 1),
 		PushSignal:               make(chan struct{}),
 	}

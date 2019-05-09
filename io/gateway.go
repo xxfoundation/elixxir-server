@@ -8,7 +8,7 @@ import (
 
 // gateway.go is for gateway<->node comms
 
-func GetRoundBufferInfo(roundBuffer *server.RoundBuffer,
+func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 	timeout time.Duration) (int, error) {
 	numRounds := len(roundBuffer.CompletedPrecomputations)
 	if numRounds != 0 {
