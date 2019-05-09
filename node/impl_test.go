@@ -27,14 +27,14 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	mockPhase := initMockPhase()
 
-	responceMap := make(phase.ResponseMap)
-	responceMap[mockPhase.GetType().String()] =
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 			phase.Available)
 
 	topology := buildMockTopology(2)
 
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responceMap,
+	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
@@ -96,19 +96,17 @@ func TestNewImplementation_PostRoundPublicKey(t *testing.T) {
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	mockPhase := initMockPhase()
 
-	responceMap := make(phase.ResponseMap)
-	responceMap[mockPhase.GetType().String()] =
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 			phase.Available)
 
 	topology := buildMockTopology(2)
 
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responceMap,
+	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
-
-	fmt.Println()
 
 	//get the impl
 	impl := NewImplementation(instance)
@@ -140,7 +138,7 @@ func TestNewImplementation_PostRoundPublicKey(t *testing.T) {
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
-		if mockPhase.chunks[index].Begin() != uint32(index) {
+		if mockPhase.chunks[index].Begin() != uint32(1) {
 			t.Errorf("PostPhase: output chunk not equal to passed;"+
 				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
 		}
