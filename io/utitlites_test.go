@@ -73,18 +73,19 @@ func buildTestNetworkComponents(impls []func() *node.Implementation) ([]*node.No
 	//build the comms
 	var comms []*node.NodeComms
 
-	for i := 0; i < len(impls); i++ {
+	for index, implGen := range impls {
 		var impl *node.Implementation
-		if impls[i] != nil {
-			impl = impls[i]()
+		if implGen != nil {
+			impl = implGen()
 		}
+
 		comms = append(comms,
-			node.StartNode(addrLst[i], impl, "", ""))
+			node.StartNode(addrLst[index], impl, "", ""))
 	}
 
 	//Connect the comms
 	for connectFrom := 0; connectFrom < len(impls); connectFrom++ {
-		for connectTo := connectFrom + 1; connectTo < len(impls); connectTo++ {
+		for connectTo := 0; connectTo < len(impls); connectTo++ {
 			comms[connectFrom].ConnectToNode(
 				topology.GetNodeAtIndex(connectTo),
 				&connect.ConnectionInfo{

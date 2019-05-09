@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
-	"sync"
 	"testing"
 )
 
@@ -63,7 +62,6 @@ func TestPostPhase(t *testing.T) {
 }
 
 var receivedBatch *mixmessages.Batch
-var done sync.Mutex
 
 // Tests that a batch sent via transmit phase arrives correctly
 func TestTransmitPhase(t *testing.T) {
@@ -92,8 +90,6 @@ func TestTransmitPhase(t *testing.T) {
 		return &mixmessages.Slot{MessagePayload: []byte{0}}
 	}
 
-	done.Lock()
-
 	//call the transmitter
 	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
 		getMsg, topology, topology.GetNodeAtIndex(0))
@@ -101,10 +97,6 @@ func TestTransmitPhase(t *testing.T) {
 	if err != nil {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)
 	}
-
-	//Use lock to wait until handler receives results
-	done.Lock()
-	defer done.Unlock()
 
 	//Check that what was received is correct
 	if id.Round(receivedBatch.Round.ID) != roundID {
@@ -128,7 +120,6 @@ func mockPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
 		receivedBatch = batch
-		done.Unlock()
 	}
 	return impl
 }

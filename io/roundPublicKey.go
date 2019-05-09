@@ -13,31 +13,43 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
-func TransmitRoundPublicKey(network *node.NodeComms, pubKey *cyclic.Int, roundID id.Round,
-	topology *circuit.Circuit, ids []*id.Node ) error {
+func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
+	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
+	getMessage phase.GetMessage, topology *circuit.Circuit,
+	nodeID *id.Node) error {
+
+	var roundPublicKeys [][]byte
+
+	for chunk, finish := getChunk(); !finish; chunk, finish = getChunk() {
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			msg := getMessage(i)
+			roundPublicKeys = append(roundPublicKeys, msg.PartialRoundPublicCypherKey)
+		}
+	}
+
+	if len(roundPublicKeys) != 1 {
+		//panic here
+	}
 
 	// Create the message structure to send the messages
 	roundPubKeyMsg := &mixmessages.RoundPublicKey{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
-		Key: pubKey.Bytes(),
+		Key: roundPublicKeys[0],
 	}
 
-
 	// Send public key to all nodes
-	for index :=0; index < topology.Len(); index++ {
+	for index := 0; index < topology.Len(); index++ {
 
 		receipient := topology.GetNodeAtIndex(index)
-		if topology.IsFirstNode(receipient) {
-			continue
-		}
 
 		ack, err := network.SendPostRoundPublicKey(receipient, roundPubKeyMsg)
 
