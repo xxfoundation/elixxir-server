@@ -72,6 +72,19 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
 		}
 	}
+
+	var queued bool
+
+	select {
+	case <-instance.GetResourceQueue().GetQueue():
+		queued = true
+	default:
+		queued = false
+	}
+
+	if !queued {
+		t.Errorf("PostPhase: The phase was not queued properly")
+	}
 }
 
 /*Mock Graph*/
@@ -121,7 +134,7 @@ func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
 func (*MockPhase) EnableVerification()                    { return }
 func (*MockPhase) GetRoundID() id.Round                   { return 0 }
 func (*MockPhase) GetType() phase.Type                    { return 0 }
-func (*MockPhase) AttemptTransitionToQueued() bool        { return false }
+func (*MockPhase) AttemptTransitionToQueued() bool        { return true }
 func (*MockPhase) TransitionToRunning()                   { return }
 func (*MockPhase) UpdateFinalStates() bool                { return false }
 func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
