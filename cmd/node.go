@@ -298,8 +298,12 @@ func StartServer(serverIndex int, batchSize uint64) {
 		go RunPrecomputation(io.RoundCh, realtimeSignal)
 	}
 
+	// Get the default parameters and generate a public key from it
+	dsaParams := signature.GetDefaultDSAParams()
+	publicKey := dsaParams.PrivateKeyGen(rand.Reader).PublicKeyGen()
+
 	// Save DSA public key and node ID to JSON file
-	outputDsaPubKeyToJson(globals.NodeID, ".elixxir",
+	outputDsaPubKeyToJson(publicKey, globals.NodeID, ".elixxir",
 		"server_info.json")
 
 	// Main loop
@@ -371,19 +375,21 @@ func getServers(serverIndex int) []string {
 
 // outputDsaPubKeyToJson encodes the DSA public key and node ID to JSON and
 // outputs it to the specified directory with the specified file name.
-func outputDsaPubKeyToJson(nodeID *id.Node, dir, fileName string) {
-
-	// Get the default parameters and generate a public key from it
-	dsaParams := signature.GetDefaultDSAParams()
-	publicKey := dsaParams.PrivateKeyGen(rand.Reader).PublicKeyGen()
+func outputDsaPubKeyToJson(publicKey *signature.DSAPublicKey, nodeID *id.Node,
+	dir, fileName string) {
+	// Encode the public key for the pem format
+	encodedKey, err := publicKey.PemEncode()
+	if err != nil {
+		jww.ERROR.Printf("Error Pem encoding public key: %s", err)
+	}
 
 	// Setup struct that will dictate the JSON structure
 	jsonStruct := struct {
 		Id             *id.Node
-		Dsa_public_key *signature.DSAPublicKey
+		Dsa_public_key string
 	}{
 		Id:             nodeID,
-		Dsa_public_key: publicKey,
+		Dsa_public_key: string(encodedKey),
 	}
 
 	// Generate JSON from structure
