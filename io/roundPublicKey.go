@@ -20,7 +20,7 @@ import (
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
 func TransmitRoundPublicKey(network *node.NodeComms, pubKey *cyclic.Int, roundID id.Round,
-	topology *circuit.Circuit, ids []*id.Node) error {
+	topology *circuit.Circuit, ids []*id.Node ) error {
 
 	// Create the message structure to send the messages
 	roundPubKeyMsg := &mixmessages.RoundPublicKey{
@@ -29,20 +29,25 @@ func TransmitRoundPublicKey(network *node.NodeComms, pubKey *cyclic.Int, roundID
 		},
 		Key: pubKey.Bytes(),
 	}
-	// Send public key to all nodes
-	for _, id := range ids {
 
-		recipient := topology.GetNextNode(id)
-		ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+
+	// Send public key to all nodes
+	for index :=0; index < topology.Len(); index++ {
+
+		receipient := topology.GetNodeAtIndex(index)
+		if topology.IsFirstNode(receipient) {
+			continue
+		}
+
+		ack, err := network.SendPostRoundPublicKey(receipient, roundPubKeyMsg)
 
 		// Make sure the comm doesn't return an Ack with an
 		// error message
 		if ack != nil && ack.Error != "" {
 			err = errors.Errorf("Remote Server Error: %s, %s",
-				id, ack.Error)
+				receipient, ack.Error)
+			return err
 		}
-
-		return err
 	}
 
 	return nil

@@ -31,14 +31,15 @@ const primeString =
 	"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 	"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-var receivedPk *mixmessages.RoundPublicKey
-var donePostRoundPk sync.Mutex
+var receivedPks [2]*mixmessages.RoundPublicKey
+var doneNode1 sync.Mutex
+var doneNode2 sync.Mutex
 
 func TestPostRoundPublicKey_Transmit(t *testing.T) {
 
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]func() *node.Implementation{nil, mockPostRoundPKImplementation, mockPostRoundPKImplementation},
+		[]func() *node.Implementation{nil, mockPostRoundPKImplementation1, mockPostRoundPKImplementation2},
 		)
 	defer Shutdown(comms)
 
@@ -49,43 +50,43 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 	roundID := id.Round(5)
 
 	ids := []*id.Node{
+		topology.GetNodeAtIndex(0),
 		topology.GetNodeAtIndex(1),
 		topology.GetNodeAtIndex(2),
 	}
 
-	donePostRoundPk.Lock()
+	doneNode1.Lock()
+	doneNode2.Lock()
 
 	//call the transmitter
 	err := TransmitRoundPublicKey(comms[0], roundPubKey, roundID,
 		topology, ids)
 
 	if err != nil {
-		t.Errorf("TransmitPhase: Unexpected error: %+v", err)
+		t.Errorf("TransmitRoundPublicKey: Unexpected error: %+v", err)
 	}
 
 	//Use lock to wait until handler receives results
-	donePostRoundPk.Lock()
-	defer donePostRoundPk.Unlock()
 
-	//testPhase := phase.New(InitMockGraph(services.
-	//	NewGraphGenerator(1, nil, 1, 1, 1)),
-	//	phase.RealPermute, TransmitPhase, time.Second)
-	//
-	//// Now fix the round manager
-	//rm := instancesPk[2].GetRoundManager()
-	//roundID := id.Round(42)
-	//
-	//phases := make([]*phase.Phase, 1)
-	//phases[0] = testPhase
-	//
-	//thisRound := round.New(grp, roundID, phases, nil, 0, 1)
-	//rm.AddRound(thisRound)
-	//
+	doneNode1.Lock()
+	doneNode2.Lock()
+	defer doneNode1.Unlock()
+	defer doneNode2.Unlock()
 
-	// TODO: Cycle through all the servers and ensure the
-	// roundPublicKey is set to the same value.
-	if err != nil {
-		t.Errorf("%v", err)
+	// Ensure the roundPublicKey is set to the correct value
+	expected := roundPubKey
+	actual := grp.NewIntFromBytes(receivedPks[0].Key)
+
+	if expected.Cmp(actual) != 0 {
+		t.Errorf("TransmitRoundPublicKey: Incorrect public key from node 1"+
+			"Expected: %v, Recieved: %v", expected, actual)
+	}
+
+	actual = grp.NewIntFromBytes(receivedPks[1].Key)
+
+	if expected.Cmp(actual) != 0 {
+		t.Errorf("TransmitRoundPublicKey: Incorrect public key from node 2"+
+			"Expected: %v, Recieved: %v", expected, actual)
 	}
 }
 
@@ -153,11 +154,20 @@ func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 
 }
 
-func mockPostRoundPKImplementation() *node.Implementation {
+func mockPostRoundPKImplementation1() *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
-		receivedPk = pk
-		done.Unlock()
+		receivedPks[0] = pk
+		doneNode1.Unlock()
+	}
+	return impl
+}
+
+func mockPostRoundPKImplementation2() *node.Implementation {
+	impl := node.NewImplementation()
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
+		receivedPks[1] = pk
+		doneNode2.Unlock()
 	}
 	return impl
 }
