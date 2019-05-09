@@ -56,25 +56,40 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	// Also starts precomputation decrypt phase with a batch
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
 
-		tag := phase.Type(phase.PrecompShare).String()
-		round, phase, err := rm.HandleIncomingComm(id.Round(pk.Round.ID), tag)
+		tag := phase.Type(phase.PrecompShare).String() + "Verification"
+		r, p, err := rm.HandleIncomingComm(id.Round(pk.Round.ID), tag)
 		if err != nil {
 			jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 		}
 
-		err = io.PostRoundPublicKey(instance.GetGroup(), round.GetBuffer(), pk)
+		err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 		if err != nil {
 			jww.ERROR.Panicf("Error on PostRoundPublicKey comm, should be able to return: %+v", err)
 		}
 
-		instance.GetResourceQueue().DenotePhaseCompletion(phase)
+		instance.GetResourceQueue().DenotePhaseCompletion(p)
 
-		if round.GetTopology().IsFirstNode(instance.GetID()) {
+		batchSize := r.GetBuffer().GetBatchSize()
+
+		if r.GetTopology().IsFirstNode(instance.GetID()) {
 			// Make fake batch
 			fakeBatch := &mixmessages.Batch{}
+
+			fakeBatch.Round = pk.Round
+			fakeBatch.ForPhase = int32(phase.PrecompDecrypt)
+			fakeBatch.Slots = make([]*mixmessages.Slot, batchSize)
+
+			for i := uint32(0); i < batchSize; i++ {
+				fakeBatch.Slots[i] = &mixmessages.Slot{
+					EncryptedMessageKeys:            []byte{1},
+					EncryptedAssociatedDataKeys:     []byte{1},
+					PartialMessageCypherText:        []byte{1},
+					PartialAssociatedDataCypherText: []byte{1},
+				}
+			}
+
 			impl.Functions.PostPhase(fakeBatch)
 		}
-
 	}
 
 	impl.Functions.GetCompletedBatch = func() (batch *mixmessages.Batch, e error) {
