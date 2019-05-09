@@ -10,6 +10,7 @@ package cmd
 import (
 	//"gitlab.com/elixxir/server/globals"
 	"os"
+	"time"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -36,6 +37,8 @@ var showVer bool
 
 // If true, runs pprof http server
 var profile bool
+
+var roundBufferTimeout time.Duration
 
 // rootCmd represents the base command when called without any sub-commands
 var rootCmd = &cobra.Command{
@@ -138,10 +141,14 @@ func init() {
 		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at localhost:8087 for profiling")
+	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
+		time.Second, "Determines the amount of time the  GetRoundBufferInfo" +
+		" RPC will wait before returning an error")
 	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 	viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
 	viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
+	viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
 }
 
 // initConfig reads in config file and ENV variables if set.

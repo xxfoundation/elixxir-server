@@ -21,7 +21,8 @@ import (
 
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
-func NewImplementation(instance *server.Instance) *node.Implementation {
+func NewImplementation(instance *server.Instance,
+	roundBufferTimeout time.Duration) *node.Implementation {
 	rm := instance.GetRoundManager()
 	impl := node.NewImplementation()
 	//impl.Functions.RoundtripPing = RoundtripPing
@@ -30,16 +31,16 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	//impl.Functions.StartRealtime = StartRealtime
 	impl.Functions.GetRoundBufferInfo = func() (int, error) {
 		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(),
-			time.Second)
+			roundBufferTimeout)
 	}
 	// FIXME: Should handle error and return Ack
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
 
-		_, phase, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.ForPhase).String())
+		_, p, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.ForPhase).String())
 		if err != nil {
 			jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 		}
-		err = io.PostPhase(phase, batch)
+		err = io.PostPhase(p, batch)
 		if err != nil {
 			jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 		}
