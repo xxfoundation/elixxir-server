@@ -6,7 +6,6 @@
 
 package io
 
-// FIXME: this import list makes it feel like the api is spaghetti
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -17,7 +16,7 @@ import (
 	"testing"
 )
 
-//Test that post phase properly sends the results to the phase via mockPhase
+// Test that post phase properly sends the results to the phase via mockPhase
 func TestPostPhase(t *testing.T) {
 
 	numSlots := 3
@@ -66,15 +65,15 @@ func TestPostPhase(t *testing.T) {
 var receivedBatch *mixmessages.Batch
 var done sync.Mutex
 
-//Tests that a batch sent via transmit phase arrives correctly
+// Tests that a batch sent via transmit phase arrives correctly
 func TestTransmitPhase(t *testing.T) {
 
-	//Setup the network
+	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]func() *node.Implementation{nil, MockCommImplementation})
+		[]func() *node.Implementation{nil, mockPostPhaseImplementation})
 	defer Shutdown(comms)
 
-	//Build the mock functions called by the transimitter
+	// Build the mock functions called by the transmitter
 	chunkCnt := uint32(0)
 	batchSize := uint32(5)
 	roundID := id.Round(5)
@@ -125,7 +124,7 @@ func TestTransmitPhase(t *testing.T) {
 	}
 }
 
-func MockCommImplementation() *node.Implementation {
+func mockPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
 		receivedBatch = batch

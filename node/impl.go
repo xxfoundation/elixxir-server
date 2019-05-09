@@ -56,19 +56,20 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	// Also starts precomputation decrypt phase with a batch
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
 
-		r, p, err := instance.HandleIncomingPhaseVerification(id.Round(pk.Round.ID), phase.PrecompShare)
+		tag := phase.Type(phase.PrecompShare).String()
+		round, phase, err := rm.HandleIncomingComm(id.Round(pk.Round.ID), tag)
 		if err != nil {
 			jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 		}
 
-		err = PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
+		err = io.PostRoundPublicKey(instance.GetGroup(), round.GetBuffer(), pk)
 		if err != nil {
 			jww.ERROR.Panicf("Error on PostRoundPublicKey comm, should be able to return: %+v", err)
 		}
 
-		instance.GetResourceQueue().DenotePhaseCompletion(p)
+		instance.GetResourceQueue().DenotePhaseCompletion(phase)
 
-		if r.GetNodeIDList().IsFirstNode() {
+		if round.GetTopology().IsFirstNode(instance.GetID()) {
 			// Make fake batch
 			fakeBatch := &mixmessages.Batch{}
 			impl.Functions.PostPhase(fakeBatch)

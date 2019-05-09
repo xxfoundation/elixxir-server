@@ -9,18 +9,18 @@ package io
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
-	comm "gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
 
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
-func TransmitRoundPublicKey(network *comm.NodeComms, pubKey *cyclic.Int, roundID id.Round,
-	nal *services.NodeIDList) error {
+func TransmitRoundPublicKey(network *node.NodeComms, pubKey *cyclic.Int, roundID id.Round,
+	topology *circuit.Circuit, ids []*id.Node) error {
 
 	// Create the message structure to send the messages
 	roundPubKeyMsg := &mixmessages.RoundPublicKey{
@@ -29,17 +29,19 @@ func TransmitRoundPublicKey(network *comm.NodeComms, pubKey *cyclic.Int, roundID
 		},
 		Key: pubKey.Bytes(),
 	}
-
 	// Send public key to all nodes
-	for _, recipient := range nal.GetAllNodeIDs() {
+	for _, id := range ids {
+
+		recipient := topology.GetNextNode(id)
+		ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 
 		// Make sure the comm doesn't return an Ack with an
 		// error message
-		ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 		if ack != nil && ack.Error != "" {
 			err = errors.Errorf("Remote Server Error: %s, %s",
-				recipient, ack.Error)
+				id, ack.Error)
 		}
+
 		return err
 	}
 
@@ -53,7 +55,7 @@ func PostRoundPublicKey(grp *cyclic.Group, roundBuff *round.Buffer, pk *mixmessa
 	inside := grp.BytesInside(pk.GetKey())
 
 	if !inside {
-		return node.ErrOutsideOfGroup
+		return services.ErrOutsideOfGroup
 	}
 
 	grp.SetBytes(roundBuff.CypherPublicKey, pk.GetKey())
