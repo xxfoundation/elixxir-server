@@ -70,9 +70,13 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		instance.GetResourceQueue().DenotePhaseCompletion(p)
 
 		batchSize := r.GetBuffer().GetBatchSize()
-
 		if r.GetTopology().IsFirstNode(instance.GetID()) {
-			// Make fake batch
+			// We need to make a fake batch here because
+			// we start post phase afterwards and it
+			// needs the identity values of 1 for the data
+			// so we can apply modular multiplication.
+			// Without this the El Gamal cryptop would need to
+			// support this edge case.
 			fakeBatch := &mixmessages.Batch{}
 
 			fakeBatch.Round = pk.Round

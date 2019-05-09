@@ -87,6 +87,84 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	}
 }
 
+
+func TestNewImplementation_PostRoundPublicKey(t *testing.T) {
+	batchSize := uint32(11)
+	roundID := id.Round(0)
+
+	grp := initImplGroup()
+	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	mockPhase := initMockPhase()
+
+	responceMap := make(phase.ResponseMap)
+	responceMap[mockPhase.GetType().String()] =
+		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
+			phase.Available)
+
+	topology := buildMockTopology(2)
+
+	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responceMap,
+		topology, topology.GetNodeAtIndex(0), batchSize)
+
+	instance.GetRoundManager().AddRound(r)
+
+	fmt.Println()
+
+	//get the impl
+	impl := NewImplementation(instance)
+
+	//Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{}
+
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				EncryptedMessageKeys: []byte{byte(1)},
+				PartialMessageCypherText: []byte{byte(1)},
+			})
+	}
+
+	// Create the message structure to send the messages
+	mockRoundPK := &mixmessages.RoundPublicKey{
+		Round: &mixmessages.RoundInfo{
+			ID: uint64(roundID),
+		},
+		Key: []byte{1},
+	}
+
+	mockBatch.ForPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	//send the mockRoundPK to the impl
+	impl.PostRoundPublicKey(mockRoundPK)
+
+	//check the mock phase to see if the correct result has been stored
+	for index := range mockBatch.Slots {
+		if mockPhase.chunks[index].Begin() != uint32(index) {
+			t.Errorf("PostPhase: output chunk not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+		}
+
+		if mockPhase.indices[index] != uint32(index) {
+			t.Errorf("PostPhase: output index  not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+		}
+	}
+
+	var queued bool
+
+	select {
+	case <-instance.GetResourceQueue().GetQueue():
+		queued = true
+	default:
+		queued = false
+	}
+
+	if !queued {
+		t.Errorf("PostPhase: The phase was not queued properly")
+	}
+}
+
 /*Mock Graph*/
 type mockCryptop struct{}
 
