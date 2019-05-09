@@ -1,6 +1,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"testing"
 	"time"
@@ -9,9 +10,13 @@ import (
 // Shows that GetRoundBufferInfo timeout works as intended
 func TestGetRoundBufferInfo(t *testing.T) {
 	// Normal case: length is greater than zero
-	c := make(chan *round.Round, 1)
+	c := &server.RoundBuffer{
+		CompletedPrecomputations: make(chan *round.Round, 1),
+		PushSignal:               make(chan struct{}),
+	}
+
 	// Not actually making a Round for concision
-	c <- nil
+	c.Push(nil)
 	availableRounds, err := GetRoundBufferInfo(c, time.Second)
 	if err != nil {
 		t.Error(err)
@@ -21,7 +26,10 @@ func TestGetRoundBufferInfo(t *testing.T) {
 	}
 
 	// More than timeout case: length is zero and stays there
-	c = make(chan *round.Round, 1)
+	c = &server.RoundBuffer{
+		CompletedPrecomputations: make(chan *round.Round, 1),
+		PushSignal:               make(chan struct{}),
+	}
 	_, err = GetRoundBufferInfo(c, 200*time.Millisecond)
 	if err == nil {
 		t.Error("Round buffer info timeout should have resulted in an error")
@@ -29,10 +37,13 @@ func TestGetRoundBufferInfo(t *testing.T) {
 
 	// Less than timeout case: length that's zero, then one, should result in
 	// a resulting length of one
-	c = make(chan *round.Round, 1)
+	c = &server.RoundBuffer{
+		CompletedPrecomputations: make(chan *round.Round, 1),
+		PushSignal:               make(chan struct{}),
+	}
 	before := time.Now()
 	time.AfterFunc(200*time.Millisecond, func() {
-		c <- nil
+        c.Push(nil)
 	})
 	availableRounds, err = GetRoundBufferInfo(c, time.Second)
 	// elapsed time should be around 200 milliseconds,

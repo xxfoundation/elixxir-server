@@ -11,30 +11,25 @@ type firstNode struct {
 	newBatchQueue chan *mixmessages.Batch
 	// This struct handles rounds that have finished precomputation and are
 	// ready to run realtime
-	readyRounds RoundBuffer
+	readyRounds *RoundBuffer
 }
 
 type RoundBuffer struct {
 	CompletedPrecomputations chan *round.Round
-	// Whenever a round enters the precomp queue, broadcast this Cond to let
-	// waiting nodes know immediately that there's a precomputation available
-	CompletedPrecompWait chan *FailableNotify
+	// Whenever a round gets Pushed, this channel gets signaled
+	PushSignal chan struct{}
 }
 
 func (fn *firstNode) Initialize() {
 	fn.once.Do(func() {
 		fn.newBatchQueue = make(chan *mixmessages.Batch, 10)
-		fn.readyRounds = RoundBuffer{
+		fn.readyRounds = &RoundBuffer{
 			CompletedPrecomputations: make(chan *round.Round, 10),
-			CompletedPrecompWait:     make(chan *FailableNotify, 10),
+			// The buffer size on the push signal must be 1 for correctness
+			//PushSignal: make(chan struct{}, 1),
+			PushSignal: make(chan struct{}),
 		}
 	})
-}
-
-type FailableNotify struct {
-	Notify chan struct{}
-	Valid  bool
-	sync.Mutex
 }
 
 func (fn *firstNode) GetNewBatchQueue() chan *mixmessages.Batch {
@@ -42,39 +37,24 @@ func (fn *firstNode) GetNewBatchQueue() chan *mixmessages.Batch {
 }
 
 func (fn *firstNode) GetCompletedPrecomps() *RoundBuffer {
-	return &fn.readyRounds
+	return fn.readyRounds
 }
 
 // Completes the precomputation for a round, and notifies someone who's waiting
-func (r *RoundBuffer) CompletePrecomp(precomputedRound *round.Round) {
-	// See if there's anyone waiting
-	var notify *FailableNotify
-	var doneLooking bool
-	for !doneLooking {
-		select {
-		case notify = <-r.CompletedPrecompWait:
-			notify.Lock()
-			if notify.Valid {
-				// This is the waiting RPC we'll notify
-				doneLooking = true
-				defer notify.Unlock()
-			} else {
-				// We need to keep looking
-				notify.Unlock()
-			}
-		default:
-			// There are no more potential waiting RPCs, so we'll just add the
-			// round to the buffer
-			doneLooking = true
-		}
-	}
-
+func (r *RoundBuffer) Push(precomputedRound *round.Round) {
 	// Add the round to the buffer
 	r.CompletedPrecomputations <- precomputedRound
-	// Notify the waiting RPC, if we got one
-	if notify != nil {
-		notify.Notify <- struct{}{}
+
+	// Notify the waiting RPC, if there is one
+	select {
+	case r.PushSignal <- struct{}{}:
+	default:
 	}
+}
+
+func (r *RoundBuffer) Pop() *round.Round {
+	// Return the next round in the buffer
+	return <-r.CompletedPrecomputations
 }
 
 type lastNode struct {

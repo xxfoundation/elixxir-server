@@ -29,7 +29,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	//impl.Functions.CreateNewRound = NewRound
 	//impl.Functions.StartRealtime = StartRealtime
 	impl.Functions.GetRoundBufferInfo = func() (int, error) {
-		return io.GetRoundBufferInfo(instance.GetCompletedPrecompQueue(),
+		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(),
 			time.Second)
 	}
 	// FIXME: Should handle error and return Ack

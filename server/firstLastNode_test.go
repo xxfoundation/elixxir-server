@@ -12,7 +12,7 @@ func TestFirstNode_GetNewBatchQueue(t *testing.T) {
 
 	if !reflect.DeepEqual(fn.newBatchQueue, fn.GetNewBatchQueue()) {
 		t.Errorf("FirstNode.GetNewBatchQueue: returned queue not the same" +
-			"as internal queue")
+			" as internal queue")
 	}
 }
 
@@ -21,9 +21,9 @@ func TestFirstNode_GetCompletedPrecompQueue(t *testing.T) {
 	fn := &firstNode{}
 	fn.Initialize()
 
-	if !reflect.DeepEqual(fn.completedPrecompQueue, fn.GetCompletedPrecompQueue()) {
+	if !reflect.DeepEqual(fn.readyRounds, fn.GetCompletedPrecomps()) {
 		t.Errorf("FirstNode.GetCompletedPrecompQueue: returned queue not the same" +
-			"as internal queue")
+			" as internal queue")
 	}
 }
 
@@ -34,6 +34,6 @@ func TestLastNode_GetCompletedBatchQueue(t *testing.T) {
 
 	if !reflect.DeepEqual(ln.completedBatchQueue, ln.GetCompletedBatchQueue()) {
 		t.Errorf("LastNode.GetCompletedBatchQueue: returned queue not the same" +
-			"as internal queue")
+			" as internal queue")
 	}
 }
