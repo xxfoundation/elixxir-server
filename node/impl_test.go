@@ -1,7 +1,6 @@
 package node
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -39,8 +38,6 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
-
-	fmt.Println()
 
 	// get the impl
 	impl := NewImplementation(instance)

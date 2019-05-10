@@ -52,6 +52,11 @@ func PostRoundPublicKeyFunc(instance *server.Instance,
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 	}
 
+	// Queue the phase to be operated on if it is not queued yet
+	if p.AttemptTransitionToQueued() {
+		instance.GetResourceQueue().UpsertPhase(p)
+	}
+
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
 		jww.ERROR.Panicf("Error on PostRoundPublicKey comm, should be able to return: %+v", err)
