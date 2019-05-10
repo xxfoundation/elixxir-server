@@ -42,7 +42,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	fmt.Println()
 
 	//get the impl
-	impl := NewImplementation(instance, time.Second)
+	impl := NewImplementation(instance)
 
 	//Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
