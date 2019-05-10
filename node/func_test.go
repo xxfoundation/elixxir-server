@@ -18,7 +18,6 @@ import (
 
 var receivedBatch *mixmessages.Batch
 
-
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
@@ -28,6 +27,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	roundID := id.Round(0)
 
 	mockPhase := initMockPhase()
+	mockPhase.Ptype = phase.PrecompShare
 
 	tagKey := phase.Type(phase.PrecompShare).String() + "Verification"
 	responseMap := make(phase.ResponseMap)
@@ -50,15 +50,17 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	mockRoundInfo := &mixmessages.RoundInfo{ID: uint64(roundID)}
 	mockPk := &mixmessages.RoundPublicKey{
 		Round: mockRoundInfo,
-		Key:   []byte{1},
+		Key:   []byte{42},
 	}
 
-	print(mockPk)
+	impl := NewImplementation(instance)
+	impl.Functions.PostRoundPublicKey(mockPk)
 
-	PostRoundPublicKeyFunc(instance, mockPostPhaseFunc)(mockPk)
+	if r.GetBuffer().CypherPublicKey.Cmp(grp.NewInt(42)) != 0 {
+		///error here
+	}
 
 	// check receivedBatch
-
 
 	//
 	//for i := uint32(0); i < batchSize; i++ {

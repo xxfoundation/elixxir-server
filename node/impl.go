@@ -9,6 +9,7 @@
 package node
 
 import (
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
@@ -23,16 +24,18 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 
-	impl.Functions.RoundtripPing = RoundtripPingFunc(instance)
-	impl.Functions.GetServerMetrics = ServerMetricsFunc(instance)
-	impl.Functions.CreateNewRound = NewRoundFunc(instance)
+	impl.Functions.RoundtripPing = func(*mixmessages.TimePing) {}
+	impl.Functions.GetServerMetrics = func(*mixmessages.ServerMetrics) {}
+	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) {}
 	//impl.Functions.StartRealtime = StartRealtimeFunc(instance)
-	impl.Functions.GetRoundBufferInfo = GetRoundBufferInfoFunc(instance)
-	impl.Functions.PostPhase = PostPhaseFunc(instance)
-	impl.Functions.PostRoundPublicKey = PostRoundPublicKeyFunc(instance, PostPhaseFunc)
-	impl.Functions.RequestNonce = RequestNonceFunc(instance)
-	impl.Functions.ConfirmRegistration = ConfirmRegistrationFunc(instance)
-	impl.Functions.PostPrecompResult = PostPrecompResultFunc(instance)
+	impl.Functions.GetRoundBufferInfo = func() (int, error) { return 0, nil }
+	impl.Functions.PostPhase =
+		func(batch *mixmessages.Batch) { PostPhaseFunc(batch, instance) }
+	impl.Functions.PostRoundPublicKey =
+		func(pk *mixmessages.RoundPublicKey) { PostRoundPublicKeyFunc(instance, pk, impl) }
+	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error { return nil }
+	//impl.Functions.RequestNonce = func
+	//impl.Functions.ConfirmRegistration = ConfirmRegistrationFunc(instance)
 
 	return impl
 

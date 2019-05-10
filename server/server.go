@@ -90,6 +90,7 @@ func (i *Instance) InitLastNode() {
 
 // Create a server instance. To actually kick off the server,
 // call Run() on the resulting ServerIsntance.
+// tigran: modify to the id is passed.  find broken tests and fix
 func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance {
 	instance := Instance{
 		roundManager: round.NewManager(),
@@ -98,6 +99,7 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 	instance.resourceQueue = initQueue()
 	instance.userReg = db
 
+	//tigran: turn into generate id function
 	//Generate a random node id as a placeholder
 	nodeIdBytes := make([]byte, id.NodeIdLen)
 	rng := csprng.NewSystemRNG()

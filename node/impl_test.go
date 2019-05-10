@@ -108,6 +108,7 @@ type MockPhase struct {
 	chunks       []services.Chunk
 	indices      []uint32
 	stateChecker phase.GetState
+	Ptype        phase.Type
 }
 
 func (mp *MockPhase) Send(chunk services.Chunk) {
@@ -133,7 +134,7 @@ func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
 
 func (*MockPhase) EnableVerification()                    { return }
 func (*MockPhase) GetRoundID() id.Round                   { return 0 }
-func (*MockPhase) GetType() phase.Type                    { return 0 }
+func (mp *MockPhase) GetType() phase.Type                 { return mp.Ptype }
 func (*MockPhase) AttemptTransitionToQueued() bool        { return true }
 func (*MockPhase) TransitionToRunning()                   { return }
 func (*MockPhase) UpdateFinalStates() bool                { return false }

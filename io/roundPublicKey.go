@@ -18,6 +18,9 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
+var ErrRoundPublicKeyTimeout = errors.New("RoundPublicKey broadcast" +
+	" timed out ")
+
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
 func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
@@ -47,19 +50,52 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	}
 
 	// Send public key to all nodes
-	for index := 0; index < topology.Len(); index++ {
 
-		recipient := topology.GetNodeAtIndex(index)
+	errChan := make(chan error, topology.Len()-1)
 
-		ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+	for index := 1; index < topology.Len(); index++ {
 
-		// Make sure the comm doesn't return an Ack with an
-		// error message
-		if ack != nil && ack.Error != "" {
-			err = errors.Errorf("Remote Server Error: %s, %s",
-				recipient, ack.Error)
-			return err
+		localIndex := index
+		go func() {
+			recipient := topology.GetNodeAtIndex(localIndex)
+
+			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+
+			// Make sure the comm doesn't return an Ack with an
+			// error message
+			if ack != nil && ack.Error != "" {
+				err = errors.Errorf("Remote Server Error: %s, %s",
+					recipient, ack.Error)
+				errChan <- err
+			}
+			errChan <- nil
+		}()
+	}
+
+	var nonNil error
+
+	for index := 0; index < topology.Len()-1; index++ {
+		err := <-errChan
+
+		if err != nil {
+			nonNil = err
 		}
+	}
+
+	if nonNil != nil {
+		return nonNil
+	}
+
+	recipient := topology.GetNodeAtIndex(0)
+
+	ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+
+	// Make sure the comm doesn't return an Ack with an
+	// error message
+	if ack != nil && ack.Error != "" {
+		err = errors.Errorf("Remote Server Error: %s, %s",
+			recipient, ack.Error)
+		return err
 	}
 
 	return nil
