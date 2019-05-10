@@ -142,8 +142,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at localhost:8087 for profiling")
 	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
-		time.Second, "Determines the amount of time the  GetRoundBufferInfo" +
-		" RPC will wait before returning an error")
+		time.Second, "Determines the amount of time the  GetRoundBufferInfo"+
+			" RPC will wait before returning an error")
 	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 	viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))

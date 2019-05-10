@@ -1,6 +1,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"testing"
@@ -43,7 +44,7 @@ func TestGetRoundBufferInfo(t *testing.T) {
 	}
 	before := time.Now()
 	time.AfterFunc(200*time.Millisecond, func() {
-        c.Push(nil)
+		c.Push(nil)
 	})
 	availableRounds, err = GetRoundBufferInfo(c, time.Second)
 	// elapsed time should be around 200 milliseconds,
@@ -57,5 +58,45 @@ func TestGetRoundBufferInfo(t *testing.T) {
 	}
 	if availableRounds != 1 {
 		t.Error("Expected 1 round to be available in the buffer")
+	}
+}
+
+// Shows that GetCompletedBatch returns a completed batch when it's supposed
+// to, and doesn't when it's not
+func TestGetCompletedBatch(t *testing.T) {
+	completedRounds := make(chan *mixmessages.Batch)
+
+	// Should timeout
+	batch, err := GetCompletedBatch(completedRounds, time.Second)
+	if err == nil {
+		t.Error("Should have gotten an error in the timeout case")
+	}
+	if batch != nil {
+		t.Error("Should have gotten a nil batch in the timeout case")
+	}
+
+	// Should not timeout: writes to the completed rounds after an amount of
+	// time
+	time.AfterFunc(200*time.Millisecond, func() {
+		completedRounds <- &mixmessages.Batch{}
+	})
+	batch, err = GetCompletedBatch(completedRounds, time.Second)
+	if err != nil {
+		t.Errorf("Got unexpected error on wait case: %v", err)
+	}
+	if batch == nil {
+		t.Error("Expected a batch on wait case, got nil")
+	}
+
+	// Should not timeout: there's already a completed round on the channel
+	go func() { completedRounds <- &mixmessages.Batch{} }()
+	// This should allow the channel to be populated
+    time.Sleep(10*time.Millisecond)
+    batch, err = GetCompletedBatch(completedRounds, time.Second)
+	if err != nil {
+		t.Errorf("Got unexpected error on wait case: %v", err)
+	}
+	if batch == nil {
+		t.Error("Expected a batch on wait case, got nil")
 	}
 }

@@ -2,6 +2,7 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
 	"time"
 )
@@ -25,5 +26,17 @@ func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 			// Timeout and fail
 			return len(roundBuffer.CompletedPrecomputations), errors.New("round buffer is empty")
 		}
+	}
+}
+
+// Returns a completed batch, or waits for a small amount of time for one to
+// materialize if there isn't one ready
+func GetCompletedBatch(completedRounds chan *mixmessages.Batch,
+	timeout time.Duration) (*mixmessages.Batch, error) {
+	select {
+	case round := <-completedRounds:
+		return round, nil
+	case <-time.After(timeout):
+		return nil, errors.New("No completed batches before the timeout")
 	}
 }
