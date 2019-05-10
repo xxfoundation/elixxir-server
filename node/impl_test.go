@@ -27,24 +27,24 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	instance := server.CreateServerInstance(grp, &globals.UserMap{})
 	mockPhase := initMockPhase()
 
-	responceMap := make(phase.ResponseMap)
-	responceMap[mockPhase.GetType().String()] =
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 			phase.Available)
 
 	topology := buildMockTopology(2)
 
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responceMap,
+	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
 
 	fmt.Println()
 
-	//get the impl
+	// get the impl
 	impl := NewImplementation(instance)
 
-	//Build a mock mockBatch to receive
+	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
 
 	for i := uint32(0); i < batchSize; i++ {
@@ -87,7 +87,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	}
 }
 
-/*Mock Graph*/
+/* Mock Graph */
 type mockCryptop struct{}
 
 func (*mockCryptop) GetName() string      { return "mockCryptop" }

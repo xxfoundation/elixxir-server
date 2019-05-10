@@ -9,11 +9,7 @@
 package node
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/phase"
@@ -24,6 +20,21 @@ import (
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
 func NewImplementation(instance *server.Instance) *node.Implementation {
+
+	impl := node.NewImplementation()
+
+	impl.Functions.RoundtripPing = RoundtripPingFunc(instance)
+	impl.Functions.GetServerMetrics = ServerMetricsFunc(instance)
+	impl.Functions.CreateNewRound = NewRoundFunc(instance)
+	//impl.Functions.StartRealtime = StartRealtimeFunc(instance)
+	impl.Functions.GetRoundBufferInfo = GetRoundBufferInfoFunc(instance)
+	impl.Functions.PostPhase = PostPhaseFunc(instance)
+	impl.Functions.PostRoundPublicKey = PostRoundPublicKeyFunc(instance, PostPhaseFunc)
+	impl.Functions.RequestNonce = RequestNonceFunc(instance)
+	impl.Functions.ConfirmRegistration = ConfirmRegistrationFunc(instance)
+	impl.Functions.PostPrecompResult = PostPrecompResultFunc(instance)
+
+	return impl
 
 	impl := node.NewImplementation()
 	//impl.Functions.RoundtripPing = RoundtripPing
