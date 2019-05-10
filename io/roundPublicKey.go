@@ -35,7 +35,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	}
 
 	if len(roundPublicKeys) != 1 {
-		panic("Round public keys buffer slice contains invalid data")
+		//panic here
 	}
 
 	// Create the message structure to send the messages
@@ -49,15 +49,15 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	// Send public key to all nodes
 	for index := 0; index < topology.Len(); index++ {
 
-		recipient := topology.GetNodeAtIndex(index)
+		receipient := topology.GetNodeAtIndex(index)
 
-		ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+		ack, err := network.SendPostRoundPublicKey(receipient, roundPubKeyMsg)
 
 		// Make sure the comm doesn't return an Ack with an
 		// error message
 		if ack != nil && ack.Error != "" {
 			err = errors.Errorf("Remote Server Error: %s, %s",
-				recipient, ack.Error)
+				receipient, ack.Error)
 			return err
 		}
 	}
