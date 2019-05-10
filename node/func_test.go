@@ -29,15 +29,15 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	mockPhase := initMockPhase()
 
+	tagKey := phase.Type(phase.PrecompShare).String() + "Verification"
 	responseMap := make(phase.ResponseMap)
-	responseMap["PrecompShareVerification"] =
+	responseMap[tagKey] =
 		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 			phase.Available)
 
 	//responseMap[mockPhase.GetType().String()] =
 	//	phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 	//		phase.Available)
-
 
 	topology := buildMockTopology(2)
 
