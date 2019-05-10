@@ -43,6 +43,11 @@ func (rq *ResourceQueue) DenotePhaseCompletion(p phase.Phase) {
 	rq.finishChan <- p
 }
 
+// GetQueue returns the internal channel used as a queue. Used in testing.
+func (rq *ResourceQueue) GetQueue() chan phase.Phase {
+	return rq.phaseQueue
+}
+
 func queueRunner(server *Instance) {
 	queue := server.GetResourceQueue()
 
