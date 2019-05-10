@@ -21,7 +21,8 @@ var receivedBatch *mixmessages.Batch
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -102,7 +103,8 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	grp := initImplGroup()
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)

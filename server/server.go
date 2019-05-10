@@ -90,25 +90,36 @@ func (i *Instance) InitLastNode() {
 
 // Create a server instance. To actually kick off the server,
 // call Run() on the resulting ServerIsntance.
-// tigran: modify to the id is passed.  find broken tests and fix
-func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance {
+func CreateServerInstance(grp *cyclic.Group, nid *id.Node, db globals.UserRegistry) *Instance {
 	instance := Instance{
 		roundManager: round.NewManager(),
-		grp:          grp,
+		grp:          	grp,
+		id:			  	nid,
+		resourceQueue: 	initQueue(),
+		userReg:        db,
 	}
-	instance.resourceQueue = initQueue()
-	instance.userReg = db
 
-	//tigran: turn into generate id function
-	//Generate a random node id as a placeholder
+	return &instance
+}
+
+// GenerateId generates a random ID and returns it
+// FIXME: This function needs to be replaced
+func GenerateId() *id.Node {
+
+	jww.WARN.Printf("GenerateId needs to be replaced")
+
+	// Create node id buffer
 	nodeIdBytes := make([]byte, id.NodeIdLen)
 	rng := csprng.NewSystemRNG()
+
+	// Generate random bytes and store in buffer
 	_, err := rng.Read(nodeIdBytes)
 	if err != nil {
 		err := errors.New(err.Error())
 		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
 	}
 
+	// Create a node id object with the random bytes
 	// Generate DSA Private/Public key pair
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	instance.privKey = dsaParams.PrivateKeyGen(rng)
@@ -128,9 +139,8 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 
 	nid := &id.Node{}
 	nid.SetBytes(nodeIdBytes)
-	instance.id = nid
 
-	return &instance
+	return nid
 }
 
 // TODO(sb) Should there be a version of this that uses the network definition

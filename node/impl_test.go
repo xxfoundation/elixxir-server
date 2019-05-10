@@ -24,7 +24,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	roundID := id.Round(0)
 
 	grp := initImplGroup()
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)

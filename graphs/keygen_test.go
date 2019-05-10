@@ -87,7 +87,8 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 	// Since the user registry has no users,
 	// any user we pass into the stream will cause an error
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	var stream KeygenTestStream
 	stream.Link(grp, 1, instance)
 	stream.users[0] = id.ZeroID
@@ -130,7 +131,8 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
