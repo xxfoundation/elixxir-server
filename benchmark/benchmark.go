@@ -15,7 +15,6 @@ import (
 	//	"gitlab.com/elixxir/server/cryptops/realtime"
 	//"gitlab.com/elixxir/server/globals"
 	//"gitlab.com/elixxir/server/services"
-
 	//"fmt"
 	//"gitlab.com/elixxir/primitives/id"
 )
