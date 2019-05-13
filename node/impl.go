@@ -22,13 +22,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 
-	impl.Functions.RoundtripPing = func(*mixmessages.TimePing) {}
-	impl.Functions.GetServerMetrics = func(*mixmessages.ServerMetrics) {}
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) {}
+	//impl.Functions.RoundtripPing = func(*mixmessages.TimePing) {}
+	//impl.Functions.GetServerMetrics = func(*mixmessages.ServerMetrics) {}
+	//impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) {}
 
 	// impl.Functions.StartRealtime =
-
-	impl.Functions.GetRoundBufferInfo = func() (int, error) { return 0, nil }
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
 		PostPhaseFunc(batch, instance)
@@ -40,9 +38,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	// impl.Functions.PostPrecompResult =
 
-	//impl.Functions.RequestNonce =
+	// impl.Functions.RequestNonce =
 
-	//impl.Functions.ConfirmRegistration =
+	// impl.Functions.ConfirmRegistration =
 
 	impl.Functions.GetRoundBufferInfo = func() (int, error) {
 		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
@@ -52,7 +50,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
 	}
 
-	//impl.Functions.PostRoundPublicKey =
+	// impl.Functions.PostRoundPublicKey =
 
 	impl.Functions.RequestNonce = func(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 		return io.RequestNonce(instance, salt, Y, P, Q, G, hash, R, S)
@@ -63,7 +61,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.ConfirmRegistration(instance, hash, R, S)
 	}
 
-	//impl.Functions.PostPrecompResult =
+	// impl.Functions.PostPrecompResult =
 
 	return impl
 }
