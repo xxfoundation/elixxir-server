@@ -75,10 +75,10 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	var queued bool
 
 	select {
-		case <-instance.GetResourceQueue().GetQueue():
-			queued = true
-		default:
-			queued = false
+	case <-instance.GetResourceQueue().GetQueue():
+		queued = true
+	default:
+		queued = false
 	}
 
 	if !queued {
