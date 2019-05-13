@@ -55,8 +55,13 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
 	}
 	//impl.Functions.PostRoundPublicKey =
-	//impl.Functions.RequestNonce = RequestNonce
-	//impl.Functions.ConfirmRegistration = ConfirmRegistration
+	impl.Functions.RequestNonce = func(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
+		return io.RequestNonce(instance, salt, Y, P, Q, G, hash, R, S)
+	}
+	impl.Functions.ConfirmRegistration = func(hash, R, S []byte) ([]byte, []byte, []byte,
+		[]byte, []byte, []byte, []byte, error) {
+		return io.ConfirmRegistration(instance, hash, R, S)
+	}
 	//impl.Functions.PostPrecompResult = PostPrecompResult
 	return impl
 }
