@@ -7,7 +7,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -19,8 +18,9 @@ func init() {
 }
 
 func printVersion() {
-	fmt.Printf("Elixxir Server v%s -- %s\n\n", SEMVER, GITVERSION)
-	fmt.Printf("Dependencies:\n\n%s\n", GLIDEDEPS)
+	panic("Unimplemented")
+	//fmt.Printf("Elixxir Server v%s -- %s\n\n", SEMVER, GITVERSION)
+	//fmt.Printf("Dependencies:\n\n%s\n", GLIDEDEPS)
 }
 
 var versionCmd = &cobra.Command{

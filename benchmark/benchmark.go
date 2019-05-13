@@ -8,16 +8,16 @@
 package benchmark
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
+	//jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
+	//"gitlab.com/elixxir/crypto/large"
 	//	"gitlab.com/elixxir/server/cryptops/precomputation"
 	//	"gitlab.com/elixxir/server/cryptops/realtime"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/services"
+	//"gitlab.com/elixxir/server/globals"
+	//"gitlab.com/elixxir/server/services"
 
-	"fmt"
-	"gitlab.com/elixxir/primitives/id"
+	//"fmt"
+	//"gitlab.com/elixxir/primitives/id"
 )
 
 var group *cyclic.Group
