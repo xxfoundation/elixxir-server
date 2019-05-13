@@ -99,6 +99,25 @@ func CreateServerInstance(grp *cyclic.Group, nid *id.Node, db globals.UserRegist
 		userReg:        db,
 	}
 
+	// Create a node id object with the random bytes
+	// Generate DSA Private/Public key pair
+	rng := csprng.NewSystemRNG()
+	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	instance.privKey = dsaParams.PrivateKeyGen(rng)
+	instance.pubKey = instance.privKey.PublicKeyGen()
+	// Hardcoded registration server publicKey
+	instance.regPubKey = signature.ReconstructPublicKey(dsaParams,
+		large.NewIntFromString("1ae3fd4e9829fb464459e05bca392bec5067152fb43a569ad3c3b68bbcad84f0"+
+			"ff8d31c767da3eabcfc0870d82b39568610b52f2b72b493bbede6e952c9a7fd4"+
+			"4a8161e62a9046828c4a65f401b2f054ebf7376e89dab547d8a3c3d46891e78a"+
+			"cfc4015713cbfb5b0b6cab0f8dfb46b891f3542046ace4cab984d5dfef4f52d4"+
+			"347dc7e52f6a7ea851dda076f0ed1fef86ec6b5c2a4807149906bf8e0bf70b30"+
+			"1147fea88fd95009edfbe0de8ffc1a864e4b3a24265b61a1c47a4e9307e7c84f"+
+			"9b5591765b530f5859fa97b22ce9b51385d3d13088795b2f9fd0cb59357fe938"+
+			"346117df2acf2bab22d942de1a70e8d5d62fc0e99d8742a0f16df94ce3a0abbb", 16))
+	// TODO: For now set this to false, but value should come from config file
+	instance.skipReg = false
+
 	return &instance
 }
 
@@ -118,24 +137,6 @@ func GenerateId() *id.Node {
 		err := errors.New(err.Error())
 		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
 	}
-
-	// Create a node id object with the random bytes
-	// Generate DSA Private/Public key pair
-	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
-	instance.privKey = dsaParams.PrivateKeyGen(rng)
-	instance.pubKey = instance.privKey.PublicKeyGen()
-	// Hardcoded registration server publicKey
-	instance.regPubKey = signature.ReconstructPublicKey(dsaParams,
-		large.NewIntFromString("1ae3fd4e9829fb464459e05bca392bec5067152fb43a569ad3c3b68bbcad84f0"+
-			"ff8d31c767da3eabcfc0870d82b39568610b52f2b72b493bbede6e952c9a7fd4"+
-			"4a8161e62a9046828c4a65f401b2f054ebf7376e89dab547d8a3c3d46891e78a"+
-			"cfc4015713cbfb5b0b6cab0f8dfb46b891f3542046ace4cab984d5dfef4f52d4"+
-			"347dc7e52f6a7ea851dda076f0ed1fef86ec6b5c2a4807149906bf8e0bf70b30"+
-			"1147fea88fd95009edfbe0de8ffc1a864e4b3a24265b61a1c47a4e9307e7c84f"+
-			"9b5591765b530f5859fa97b22ce9b51385d3d13088795b2f9fd0cb59357fe938"+
-			"346117df2acf2bab22d942de1a70e8d5d62fc0e99d8742a0f16df94ce3a0abbb", 16))
-	// TODO: For now set this to false, but value should come from config file
-	instance.skipReg = false
 
 	nid := &id.Node{}
 	nid.SetBytes(nodeIdBytes)
