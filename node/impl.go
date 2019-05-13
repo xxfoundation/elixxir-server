@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
+	"time"
 )
 
 // NewImplementation creates a new implementation of the server.
@@ -27,7 +28,10 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	//impl.Functions.GetServerMetrics = ServerMetrics
 	//impl.Functions.CreateNewRound = NewRound
 	//impl.Functions.StartRealtime = StartRealtime
-	//impl.Functions.GetRoundBufferInfo = GetRoundBufferInfo
+	impl.Functions.GetRoundBufferInfo = func() (int, error) {
+		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(),
+			time.Second)
+	}
 	// FIXME: Should handle error and return Ack
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
 		//Check if the operation can be done and get the correct phase if it can
@@ -47,7 +51,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 			jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 		}
 	}
-
+	impl.Functions.GetCompletedBatch = func() (batch *mixmessages.Batch, e error) {
+		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
+	}
 	//impl.Functions.PostRoundPublicKey =
 	//impl.Functions.RequestNonce = RequestNonce
 	//impl.Functions.ConfirmRegistration = ConfirmRegistration

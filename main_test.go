@@ -7,14 +7,14 @@ package main
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/benchmark"
+	//"gitlab.com/elixxir/crypto/cyclic"
+	//"gitlab.com/elixxir/crypto/large"
+	//"gitlab.com/elixxir/primitives/id"
+	//"gitlab.com/elixxir/server/benchmark"
 	//	"gitlab.com/elixxir/server/cryptops/precomputation"
 	//	"gitlab.com/elixxir/server/cryptops/realtime"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/services"
+	//"gitlab.com/elixxir/server/globals"
+	//"gitlab.com/elixxir/server/services"
 	"os"
 	"testing"
 )
