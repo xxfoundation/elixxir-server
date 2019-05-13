@@ -80,7 +80,7 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 	}
 }
 
-func TestGetCompletedBatch_(t *testing.T) {
+func TestGetCompletedBatch_ShortWait(t *testing.T) {
 	// Not a timeout: There's an actual completed batch available in the
 	// channel after a certain period of time
 	completedRounds := make(chan *mixmessages.Batch)
@@ -99,7 +99,7 @@ func TestGetCompletedBatch_(t *testing.T) {
 	}
 }
 
-func TestGetCompletedBatch3(t *testing.T) {
+func TestGetCompletedBatch_BatchReady(t *testing.T) {
 	// If there's already a completed batch, the comm should get it immediately
 	completedRounds := make(chan *mixmessages.Batch)
 	// Should not timeout: there's already a completed round on the channel
