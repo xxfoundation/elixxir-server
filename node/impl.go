@@ -26,21 +26,26 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.GetServerMetrics = func(*mixmessages.ServerMetrics) {}
 	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) {}
 
-	//impl.Functions.StartRealtime = StartRealtimeFunc(instance)
+	// impl.Functions.StartRealtime =
 
 	impl.Functions.GetRoundBufferInfo = func() (int, error) { return 0, nil }
-	impl.Functions.PostPhase =
-		func(batch *mixmessages.Batch) { PostPhaseFunc(batch, instance) }
-	impl.Functions.PostRoundPublicKey =
-		func(pk *mixmessages.RoundPublicKey) { PostRoundPublicKeyFunc(instance, pk, impl) }
-	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error { return nil }
 
-	//impl.Functions.RequestNonce = func
-	//impl.Functions.ConfirmRegistration = ConfirmRegistrationFunc(instance)
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
+		PostPhaseFunc(batch, instance)
+	}
+
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
+		PostRoundPublicKeyFunc(instance, pk, impl)
+	}
+
+	// impl.Functions.PostPrecompResult =
+
+	//impl.Functions.RequestNonce =
+
+	//impl.Functions.ConfirmRegistration =
 
 	impl.Functions.GetRoundBufferInfo = func() (int, error) {
-		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(),
-			time.Second)
+		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
 	}
 
 	impl.Functions.GetCompletedBatch = func() (batch *mixmessages.Batch, e error) {
@@ -48,14 +53,17 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	//impl.Functions.PostRoundPublicKey =
+
 	impl.Functions.RequestNonce = func(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 		return io.RequestNonce(instance, salt, Y, P, Q, G, hash, R, S)
 	}
+
 	impl.Functions.ConfirmRegistration = func(hash, R, S []byte) ([]byte, []byte, []byte,
 		[]byte, []byte, []byte, []byte, error) {
 		return io.ConfirmRegistration(instance, hash, R, S)
 	}
-	//impl.Functions.PostPrecompResult = PostPrecompResult
+
+	//impl.Functions.PostPrecompResult =
 
 	return impl
 }
