@@ -51,7 +51,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 			jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 		}
 	}
-
+	impl.Functions.GetCompletedBatch = func() (batch *mixmessages.Batch, e error) {
+		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
+	}
 	//impl.Functions.PostRoundPublicKey =
 	//impl.Functions.RequestNonce = RequestNonce
 	//impl.Functions.ConfirmRegistration = ConfirmRegistration
