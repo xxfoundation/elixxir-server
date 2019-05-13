@@ -49,7 +49,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 		Key: roundPublicKeys[0],
 	}
 
-	// Send public key to all nodes
+	// Send public key to all nodes except the first node
 
 	errChan := make(chan error, topology.Len()-1)
 
@@ -74,6 +74,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 
 	var nonNil error
 
+	// Wait to receive all responses from broadcast
 	for index := 0; index < topology.Len()-1; index++ {
 		err := <-errChan
 
@@ -86,23 +87,26 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 		return nonNil
 	}
 
-	recipient := topology.GetNodeAtIndex(0)
+	// When all responses are received we 'send'
+	// to the first node which is this node
+	thisNode := topology.GetNodeAtIndex(0)
 
-	ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+	ack, err := network.SendPostRoundPublicKey(thisNode, roundPubKeyMsg)
 
 	// Make sure the comm doesn't return an Ack with an
 	// error message
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s, %s",
-			recipient, ack.Error)
+			thisNode, ack.Error)
 		return err
 	}
 
 	return nil
 }
 
-// PostRoundPublicKey implements the server gRPC reception handler
-// for posting a public key to the round Transmission handler
+// PostRoundPublicKey is a comms handler which
+// sets the round buffer public key if that
+// key is in the group, otherwise it returns an error
 func PostRoundPublicKey(grp *cyclic.Group, roundBuff *round.Buffer, pk *mixmessages.RoundPublicKey) error {
 
 	inside := grp.BytesInside(pk.GetKey())

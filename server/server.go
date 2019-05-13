@@ -92,11 +92,11 @@ func (i *Instance) InitLastNode() {
 // call Run() on the resulting ServerIsntance.
 func CreateServerInstance(grp *cyclic.Group, nid *id.Node, db globals.UserRegistry) *Instance {
 	instance := Instance{
-		roundManager: round.NewManager(),
-		grp:          	grp,
-		id:			  	nid,
-		resourceQueue: 	initQueue(),
-		userReg:        db,
+		roundManager:  round.NewManager(),
+		grp:           grp,
+		id:            nid,
+		resourceQueue: initQueue(),
+		userReg:       db,
 	}
 
 	// Create a node id object with the random bytes
