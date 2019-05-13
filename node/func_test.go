@@ -32,7 +32,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	mockPhase := initMockPhase()
 	mockPhase.Ptype = phase.PrecompShare
 
-	tagKey := phase.Type(phase.PrecompShare).String() + "Verification"
+	tagKey := mockPhase.GetType().String() + "Verification"
 	responseMap := make(phase.ResponseMap)
 	responseMap[tagKey] =
 		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
@@ -61,8 +61,10 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	impl.Functions.PostRoundPublicKey(mockPk)
 
+	// Verify that a PostPhase isn't called by ensuring callback
+	// doesn't set the actual by comparing it to the empty batch
 	if !batchEq(actualBatch, emptyBatch) {
-		t.Errorf("")
+		t.Errorf("Actual batch was not equal to empty batch in mock postphase")
 	}
 
 	if r.GetBuffer().CypherPublicKey.Cmp(grp.NewInt(42)) != 0 {
@@ -87,10 +89,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	grp := initImplGroup()
-
 	topology := buildMockTopology(5)
 
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(1), &globals.UserMap{})
+	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -98,16 +99,15 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	mockPhase := initMockPhase()
 	mockPhase.Ptype = phase.PrecompShare
 
-	tagKey := phase.Type(phase.PrecompShare).String() + "Verification"
+	tagKey := mockPhase.GetType().String() + "Verification"
 	responseMap := make(phase.ResponseMap)
 	responseMap[tagKey] =
 		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 			phase.Available)
 
-
-	// Skip first node
+	// Don't skip first node
 	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
-		topology, topology.GetNodeAtIndex(1), batchSize)
+		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -119,7 +119,35 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	}
 
 	impl := NewImplementation(instance)
+
+	actualBatch := &mixmessages.Batch{}
+	expectedBatch := &mixmessages.Batch{}
+
+	// Create expected batch
+	expectedBatch.Round = mockPk.Round
+	expectedBatch.ForPhase = int32(phase.PrecompDecrypt)
+	expectedBatch.Slots = make([]*mixmessages.Slot, batchSize)
+
+	for i := uint32(0); i < batchSize; i++ {
+		expectedBatch.Slots[i] = &mixmessages.Slot{
+			EncryptedMessageKeys:            []byte{1},
+			EncryptedAssociatedDataKeys:     []byte{1},
+			PartialMessageCypherText:        []byte{1},
+			PartialAssociatedDataCypherText: []byte{1},
+		}
+	}
+
+	impl.Functions.PostPhase = func(message *mixmessages.Batch) {
+		actualBatch = message
+	}
+
 	impl.Functions.PostRoundPublicKey(mockPk)
+
+	// Verify that a PostPhase is called by ensuring callback
+	// does set the actual by comparing it to the expected batch
+	if !batchEq(actualBatch, expectedBatch) {
+		t.Errorf("Expected batch was not equal to actual batch in mock postphase")
+	}
 
 	if r.GetBuffer().CypherPublicKey.Cmp(grp.NewInt(42)) != 0 {
 		// Error here
@@ -141,13 +169,8 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 }
 
-func mockPostPhaseFunc(instance *server.Instance) func(message *mixmessages.Batch) {
-	receivedBatch = &mixmessages.Batch{}
-	return func(batch *mixmessages.Batch) {
-		receivedBatch = batch
-	}
-}
-
+// batchEq compares two batches to see if they are equal
+// Return true if they are equal and false otherwise
 func batchEq(a *mixmessages.Batch, b *mixmessages.Batch) bool {
 	if a.GetRound() != b.GetRound() {
 		return false
