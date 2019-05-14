@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"sync"
 )
 
 var ErrRoundPublicKeyTimeout = errors.New("RoundPublicKey broadcast" +
@@ -50,48 +51,47 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	}
 
 	// Send public key to all nodes except the first node
-
 	errChan := make(chan error, topology.Len()-1)
+	resChan := make(chan *mixmessages.Ack, topology.Len()-1)
 
+	var wg sync.WaitGroup
 	for index := 1; index < topology.Len(); index++ {
 
 		localIndex := index
+		wg.Add(1)
 		go func() {
 			recipient := topology.GetNodeAtIndex(localIndex)
 
 			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 
-			// Make sure the comm doesn't return an Ack with an
-			// error message
-			if ack != nil && ack.Error != "" {
-				err = errors.Errorf("Remote Server Error: %s, %s",
-					recipient, ack.Error)
-				errChan <- err
-			}
-			errChan <- nil
+			errChan <- err
+			resChan <- ack
+
+			wg.Done()
 		}()
 	}
 
-	var nonNil error
-
 	// Wait to receive all responses from broadcast
-	for index := 0; index < topology.Len()-1; index++ {
-		err := <-errChan
+	wg.Wait()
 
-		if err != nil {
-			nonNil = err
-		}
+	// Check for node comms error
+	err := <-errChan
+	if err != nil {
+		return err
 	}
 
-	if nonNil != nil {
-		return nonNil
+	// Check for remote server error
+	ack := <-resChan
+	if ack != nil && ack.Error != "" {
+		err = errors.Errorf("Remote Server Error: %s", ack.Error)
+		return err
 	}
 
 	// When all responses are received we 'send'
 	// to the first node which is this node
 	thisNode := topology.GetNodeAtIndex(0)
 
-	ack, err := network.SendPostRoundPublicKey(thisNode, roundPubKeyMsg)
+	ack, err = network.SendPostRoundPublicKey(thisNode, roundPubKeyMsg)
 
 	// Make sure the comm doesn't return an Ack with an
 	// error message
