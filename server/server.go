@@ -90,24 +90,18 @@ func (i *Instance) InitLastNode() {
 
 // Create a server instance. To actually kick off the server,
 // call Run() on the resulting ServerIsntance.
-func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance {
+func CreateServerInstance(grp *cyclic.Group, nid *id.Node, db globals.UserRegistry) *Instance {
 	instance := Instance{
-		roundManager: round.NewManager(),
-		grp:          grp,
-	}
-	instance.resourceQueue = initQueue()
-	instance.userReg = db
-
-	//Generate a random node id as a placeholder
-	nodeIdBytes := make([]byte, id.NodeIdLen)
-	rng := csprng.NewSystemRNG()
-	_, err := rng.Read(nodeIdBytes)
-	if err != nil {
-		err := errors.New(err.Error())
-		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
+		roundManager:  round.NewManager(),
+		grp:           grp,
+		id:            nid,
+		resourceQueue: initQueue(),
+		userReg:       db,
 	}
 
+	// Create a node id object with the random bytes
 	// Generate DSA Private/Public key pair
+	rng := csprng.NewSystemRNG()
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	instance.privKey = dsaParams.PrivateKeyGen(rng)
 	instance.pubKey = instance.privKey.PublicKeyGen()
@@ -124,11 +118,30 @@ func CreateServerInstance(grp *cyclic.Group, db globals.UserRegistry) *Instance 
 	// TODO: For now set this to false, but value should come from config file
 	instance.skipReg = false
 
+	return &instance
+}
+
+// GenerateId generates a random ID and returns it
+// FIXME: This function needs to be replaced
+func GenerateId() *id.Node {
+
+	jww.WARN.Printf("GenerateId needs to be replaced")
+
+	// Create node id buffer
+	nodeIdBytes := make([]byte, id.NodeIdLen)
+	rng := csprng.NewSystemRNG()
+
+	// Generate random bytes and store in buffer
+	_, err := rng.Read(nodeIdBytes)
+	if err != nil {
+		err := errors.New(err.Error())
+		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
+	}
+
 	nid := &id.Node{}
 	nid.SetBytes(nodeIdBytes)
-	instance.id = nid
 
-	return &instance
+	return nid
 }
 
 // TODO(sb) Should there be a version of this that uses the network definition

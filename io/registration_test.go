@@ -25,7 +25,8 @@ var dsaParams = signature.GetDefaultDSAParams()
 
 func TestMain(m *testing.M) {
 	grp := cyclic.NewGroup(dsaParams.GetP(), dsaParams.GetG(), dsaParams.GetQ())
-	serverInstance = server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	serverInstance = server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	os.Exit(m.Run())
 }
 
