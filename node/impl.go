@@ -55,6 +55,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
 	}
 	//impl.Functions.PostRoundPublicKey =
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+		return io.FinishRealtime(rm, message)
+	}
 	//impl.Functions.RequestNonce = RequestNonce
 	//impl.Functions.ConfirmRegistration = ConfirmRegistration
 	//impl.Functions.PostPrecompResult = PostPrecompResult
