@@ -9,8 +9,10 @@
 package node
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"time"
@@ -60,8 +62,20 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		[]byte, []byte, []byte, []byte, error) {
 		return io.ConfirmRegistration(instance, hash, R, S)
 	}
-
-	// impl.Functions.PostPrecompResult =
-
+	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error {
+		r, err := instance.GetRoundManager().GetRound(id.Round(roundID))
+		if err != nil {
+			return errors.Wrapf(err, "Couldn't find round %v", roundID)
+		}
+		err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
+		if err != nil {
+			return errors.Wrapf(err,
+				"Couldn't post precomp result for round %v", roundID)
+		}
+		// Now, this round has completed this precomputation,
+		// so we can push it on the precomp queue
+		instance.GetCompletedPrecomps().Push(r)
+		return nil
+	}
 	return impl
 }
