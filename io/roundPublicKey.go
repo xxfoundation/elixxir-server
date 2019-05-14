@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
-	"strings"
 	"sync"
 )
 
@@ -82,15 +81,13 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 
 	// Return all node comms or ack errors if any
 	// as a single error message
-	var errMessages []string
+	var errs error
 	for len(errChan) > 0 {
 		err := <-errChan
-		errMessages = append(errMessages, err.Error())
+		errs = errors.Wrap(errs, err.Error())
 	}
-	if errMessages != nil {
-		errMessage := strings.Join(errMessages, "\n")
-		err := errors.Errorf("Node comms and ack errors: \n%s", errMessage)
-		return err
+	if errs != nil {
+		return errs
 	}
 
 	// When all responses are received we 'send'
