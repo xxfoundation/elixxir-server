@@ -8,9 +8,10 @@ import (
 	"time"
 )
 
-// Shows that GetRoundBufferInfo timeout works as intended
-func TestGetRoundBufferInfo(t *testing.T) {
-	// Normal case: length is greater than zero
+func TestGetRoundBufferInfo_RoundsInBuffer(t *testing.T) {
+	// This is actually an edge case: the number of available precomps is
+	// greater than zero. This should only happen in production if the
+	// communication between the gateway and the node breaks down.
 	c := &server.PrecompBuffer{
 		CompletedPrecomputations: make(chan *round.Round, 1),
 		PushSignal:               make(chan struct{}),
@@ -25,20 +26,24 @@ func TestGetRoundBufferInfo(t *testing.T) {
 	if availableRounds != 1 {
 		t.Error("Expected 1 round to be available in the buffer")
 	}
+}
 
+func TestGetRoundBufferInfo_Timeout(t *testing.T) {
 	// More than timeout case: length is zero and stays there
-	c = &server.PrecompBuffer{
+	c := &server.PrecompBuffer{
 		CompletedPrecomputations: make(chan *round.Round, 1),
 		PushSignal:               make(chan struct{}),
 	}
-	_, err = GetRoundBufferInfo(c, 200*time.Millisecond)
+	_, err := GetRoundBufferInfo(c, 200*time.Millisecond)
 	if err == nil {
 		t.Error("Round buffer info timeout should have resulted in an error")
 	}
+}
 
-	// Less than timeout case: length that's zero, then one, should result in
-	// a resulting length of one
-	c = &server.PrecompBuffer{
+func TestGetRoundBufferInfo_LessThanTimeout(t *testing.T) {
+	// Tests less than timeout case: length that's zero, then one,
+	// should result in a length of one
+	c := &server.PrecompBuffer{
 		CompletedPrecomputations: make(chan *round.Round, 1),
 		PushSignal:               make(chan struct{}),
 	}
@@ -46,7 +51,7 @@ func TestGetRoundBufferInfo(t *testing.T) {
 	time.AfterFunc(200*time.Millisecond, func() {
 		c.Push(nil)
 	})
-	availableRounds, err = GetRoundBufferInfo(c, time.Second)
+	availableRounds, err := GetRoundBufferInfo(c, time.Second)
 	// elapsed time should be around 200 milliseconds,
 	// because that's when the channel write happened
 	after := time.Since(before)
@@ -61,9 +66,8 @@ func TestGetRoundBufferInfo(t *testing.T) {
 	}
 }
 
-// Shows that GetCompletedBatch returns a completed batch when it's supposed
-// to, and doesn't when it's not
-func TestGetCompletedBatch(t *testing.T) {
+func TestGetCompletedBatch_Timeout(t *testing.T) {
+	// Timeout case: There are no batches completed
 	completedRounds := make(chan *mixmessages.Batch)
 
 	// Should timeout
@@ -74,25 +78,35 @@ func TestGetCompletedBatch(t *testing.T) {
 	if batch != nil {
 		t.Error("Should have gotten a nil batch in the timeout case")
 	}
+}
+
+func TestGetCompletedBatch_ShortWait(t *testing.T) {
+	// Not a timeout: There's an actual completed batch available in the
+	// channel after a certain period of time
+	completedRounds := make(chan *mixmessages.Batch)
 
 	// Should not timeout: writes to the completed rounds after an amount of
 	// time
 	time.AfterFunc(200*time.Millisecond, func() {
 		completedRounds <- &mixmessages.Batch{}
 	})
-	batch, err = GetCompletedBatch(completedRounds, time.Second)
+	batch, err := GetCompletedBatch(completedRounds, time.Second)
 	if err != nil {
 		t.Errorf("Got unexpected error on wait case: %v", err)
 	}
 	if batch == nil {
 		t.Error("Expected a batch on wait case, got nil")
 	}
+}
 
+func TestGetCompletedBatch_BatchReady(t *testing.T) {
+	// If there's already a completed batch, the comm should get it immediately
+	completedRounds := make(chan *mixmessages.Batch)
 	// Should not timeout: there's already a completed round on the channel
 	go func() { completedRounds <- &mixmessages.Batch{} }()
 	// This should allow the channel to be populated
-    time.Sleep(10*time.Millisecond)
-    batch, err = GetCompletedBatch(completedRounds, time.Second)
+	time.Sleep(10 * time.Millisecond)
+	batch, err := GetCompletedBatch(completedRounds, time.Second)
 	if err != nil {
 		t.Errorf("Got unexpected error on wait case: %v", err)
 	}

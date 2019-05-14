@@ -54,7 +54,8 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
@@ -107,7 +108,8 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
@@ -175,7 +177,8 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
@@ -241,7 +244,8 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
@@ -283,7 +287,8 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
@@ -337,7 +342,8 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
@@ -392,7 +398,8 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
@@ -485,7 +492,8 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)

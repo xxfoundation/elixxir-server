@@ -1,7 +1,6 @@
 package node
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -24,27 +23,26 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	roundID := id.Round(0)
 
 	grp := initImplGroup()
-	instance := server.CreateServerInstance(grp, &globals.UserMap{})
+	nid := server.GenerateId()
+	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 	mockPhase := initMockPhase()
 
-	responceMap := make(phase.ResponseMap)
-	responceMap[mockPhase.GetType().String()] =
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
 			phase.Available)
 
 	topology := buildMockTopology(2)
 
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responceMap,
+	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
 
-	fmt.Println()
-
-	//get the impl
+	// get the impl
 	impl := NewImplementation(instance)
 
-	//Build a mock mockBatch to receive
+	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
 
 	for i := uint32(0); i < batchSize; i++ {
@@ -87,7 +85,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	}
 }
 
-/*Mock Graph*/
+/* Mock Graph */
 type mockCryptop struct{}
 
 func (*mockCryptop) GetName() string      { return "mockCryptop" }
@@ -108,6 +106,7 @@ type MockPhase struct {
 	chunks       []services.Chunk
 	indices      []uint32
 	stateChecker phase.GetState
+	Ptype        phase.Type
 }
 
 func (mp *MockPhase) Send(chunk services.Chunk) {
@@ -133,7 +132,7 @@ func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
 
 func (*MockPhase) EnableVerification()                    { return }
 func (*MockPhase) GetRoundID() id.Round                   { return 0 }
-func (*MockPhase) GetType() phase.Type                    { return 0 }
+func (mp *MockPhase) GetType() phase.Type                 { return mp.Ptype }
 func (*MockPhase) AttemptTransitionToQueued() bool        { return true }
 func (*MockPhase) TransitionToRunning()                   { return }
 func (*MockPhase) UpdateFinalStates() bool                { return false }

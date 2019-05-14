@@ -6,18 +6,16 @@
 
 package io
 
-// FIXME: this import list makes it feel like the api is spaghetti
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
-	"sync"
 	"testing"
 )
 
-//Test that post phase properly sends the results to the phase via mockPhase
+// Test that post phase properly sends the results to the phase via mockPhase
 func TestPostPhase(t *testing.T) {
 
 	numSlots := 3
@@ -64,17 +62,16 @@ func TestPostPhase(t *testing.T) {
 }
 
 var receivedBatch *mixmessages.Batch
-var done sync.Mutex
 
-//Tests that a batch sent via transmit phase arrives correctly
+// Tests that a batch sent via transmit phase arrives correctly
 func TestTransmitPhase(t *testing.T) {
 
-	//Setup the network
+	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]func() *node.Implementation{nil, MockCommImplementation})
+		[]func() *node.Implementation{nil, mockPostPhaseImplementation})
 	defer Shutdown(comms)
 
-	//Build the mock functions called by the transimitter
+	// Build the mock functions called by the transmitter
 	chunkCnt := uint32(0)
 	batchSize := uint32(5)
 	roundID := id.Round(5)
@@ -93,8 +90,6 @@ func TestTransmitPhase(t *testing.T) {
 		return &mixmessages.Slot{MessagePayload: []byte{0}}
 	}
 
-	done.Lock()
-
 	//call the transmitter
 	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
 		getMsg, topology, topology.GetNodeAtIndex(0))
@@ -102,10 +97,6 @@ func TestTransmitPhase(t *testing.T) {
 	if err != nil {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)
 	}
-
-	//Use lock to wait until handler receives results
-	done.Lock()
-	defer done.Unlock()
 
 	//Check that what was received is correct
 	if id.Round(receivedBatch.Round.ID) != roundID {
@@ -125,11 +116,10 @@ func TestTransmitPhase(t *testing.T) {
 	}
 }
 
-func MockCommImplementation() *node.Implementation {
+func mockPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
 		receivedBatch = batch
-		done.Unlock()
 	}
 	return impl
 }
