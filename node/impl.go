@@ -49,6 +49,10 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.GetCompletedBatch = func() (batch *mixmessages.Batch, e error) {
 		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
 	}
+	//impl.Functions.PostRoundPublicKey =
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+		return io.FinishRealtime(instance.GetRoundManager(), message)
+	}
 
 	// impl.Functions.PostRoundPublicKey =
 
