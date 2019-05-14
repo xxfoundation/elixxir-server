@@ -23,46 +23,50 @@ import (
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
 func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
-	topology *circuit.Circuit, selfID *id.Node) error {
+	topology *circuit.Circuit) error {
 
-	wg := sync.WaitGroup{}
-	errChan := make(chan error)
+	var wg sync.WaitGroup
+	errChan := make(chan error, topology.Len()-1)
 
-	nodeID := topology.GetNextNode(selfID)
-	for ; !nodeID.Cmp(selfID); nodeID = topology.GetNextNode(nodeID) {
+	for index := 1; index < topology.Len(); index++ {
+		localIndex := index
 		wg.Add(1)
-		go func(dest *id.Node) {
-			ack, err := network.SendFinishRealtime(dest,
+		go func() {
+			recipient := topology.GetNodeAtIndex(localIndex)
+
+			ack, err := network.SendFinishRealtime(recipient,
 				&mixmessages.RoundInfo{
 					ID: uint64(roundID),
 				})
+
 			if ack != nil && ack.Error != "" {
 				err = errors.Errorf("Remote Server Error: %s", ack.Error)
 			}
+
 			if err != nil {
 				errChan <- err
 			}
+
 			wg.Done()
-		}(nodeID)
+		}()
 	}
 
-	doneChan := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(doneChan)
-	}()
+	// Wait for all responses
+	wg.Wait()
 
-	var allErr error
-LOOP:
-	for {
-		select {
-		case <-doneChan:
-			break LOOP
-		case err := <-errChan:
-			allErr = errors.Errorf("%s\n%s", allErr.Error(), err.Error())
-		}
+	// Return all node comms or ack errors if any
+	// as a single error message
+	var errs error
+	for len(errChan) > 0 {
+		err := <-errChan
+		errs = errors.Wrap(errs, err.Error())
 	}
-	return allErr
+
+	if errs != nil {
+		return errs
+	}
+
+	return nil
 }
 
 // FinishRealtime implements the server gRPC handler for receiving

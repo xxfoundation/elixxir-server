@@ -70,29 +70,28 @@ func TestSendFinishRealtime(t *testing.T) {
 			MockFinishRealtimeImplementation,})
 	defer Shutdown(comms)
 
-	selfID := topology.GetNodeAtIndex(0)
 	rndID := id.Round(42)
-	err := SendFinishRealtime(comms[0], rndID, topology, selfID)
+	err := SendFinishRealtime(comms[0], rndID, topology)
 
 	if err != nil {
 		t.Errorf("SendFinishRealtime: Unexpected error: %+v", err)
 	}
 
-LOOP:
+Loop:
 	for {
 		select {
 		case msg:= <-received:
 			if id.Round(msg.ID) != rndID {
 				t.Errorf("SendFinishRealtime: Incorrect round ID"+
-					"Expected: %v, Recieved: %v", rndID, msg.ID)
+					"Expected: %v, Received: %v", rndID, msg.ID)
 			}
 			numRecv++
 			if numRecv == numNodes {
-				break LOOP
+				break Loop
 			}
 		case <-time.After(5*time.Second):
 			t.Errorf("Test timed out!")
-			break LOOP
+			break Loop
 		}
 	}
 }
