@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"strings"
 	"sync"
 )
 
@@ -52,7 +53,6 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 
 	// Send public key to all nodes except the first node
 	errChan := make(chan error, topology.Len()-1)
-	resChan := make(chan *mixmessages.Ack, topology.Len()-1)
 
 	var wg sync.WaitGroup
 	for index := 1; index < topology.Len(); index++ {
@@ -64,8 +64,14 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 
 			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 
-			errChan <- err
-			resChan <- ack
+			if err != nil {
+				errChan <- err
+			}
+
+			if ack != nil && ack.Error != "" {
+				err = errors.Errorf("Remote Server Error: %s", ack.Error)
+				errChan <- err
+			}
 
 			wg.Done()
 		}()
@@ -74,16 +80,16 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	// Wait to receive all responses from broadcast
 	wg.Wait()
 
-	// Check for node comms error
-	err := <-errChan
-	if err != nil {
-		return err
+	// Return all node comms or ack errors if any
+	// as a single error message
+	var errMessages []string
+	for len(errChan) > 0 {
+		err := <-errChan
+		errMessages = append(errMessages, err.Error())
 	}
-
-	// Check for remote server error
-	ack := <-resChan
-	if ack != nil && ack.Error != "" {
-		err = errors.Errorf("Remote Server Error: %s", ack.Error)
+	if errMessages != nil {
+		errMessage := strings.Join(errMessages, "\n")
+		err := errors.Errorf("Node comms and ack errors: \n%s", errMessage)
 		return err
 	}
 
@@ -91,7 +97,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	// to the first node which is this node
 	thisNode := topology.GetNodeAtIndex(0)
 
-	ack, err = network.SendPostRoundPublicKey(thisNode, roundPubKeyMsg)
+	ack, err := network.SendPostRoundPublicKey(thisNode, roundPubKeyMsg)
 
 	// Make sure the comm doesn't return an Ack with an
 	// error message
