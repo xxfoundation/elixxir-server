@@ -62,11 +62,7 @@ func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
 		errs = errors.Wrap(errs, err.Error())
 	}
 
-	if errs != nil {
-		return errs
-	}
-
-	return nil
+	return errs
 }
 
 // FinishRealtime implements the server gRPC handler for receiving
