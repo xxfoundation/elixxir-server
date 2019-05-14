@@ -31,8 +31,8 @@ func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
 	nodeID := topology.GetNextNode(selfID)
 	for ; !nodeID.Cmp(selfID); nodeID = topology.GetNextNode(nodeID) {
 		wg.Add(1)
-		go func() {
-			ack, err := network.SendFinishRealtime(nodeID,
+		go func(dest *id.Node) {
+			ack, err := network.SendFinishRealtime(dest,
 				&mixmessages.RoundInfo{
 					ID: uint64(roundID),
 				})
@@ -42,7 +42,8 @@ func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
 			if err != nil {
 				errChan <- err
 			}
-		}()
+			wg.Done()
+		}(nodeID)
 	}
 
 	doneChan := make(chan struct{})
