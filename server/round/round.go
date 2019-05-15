@@ -86,6 +86,13 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.R
 		p.ConnectToRound(id, increment, get)
 	}
 
+	// If there weren't any phases (can happen in some tests) the maxBatchSize
+	// won't have been set yet, so here, make sure maxBatchSize is at least
+	// batchSize
+	if maxBatchSize < batchSize {
+		maxBatchSize = batchSize
+	}
+
 	round.buffer = NewBuffer(grp, batchSize, maxBatchSize)
 	round.phaseMap = make(map[phase.Type]int)
 

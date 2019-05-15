@@ -193,3 +193,96 @@ func batchEq(a *mixmessages.Batch, b *mixmessages.Batch) bool {
 
 	return true
 }
+
+// Shows that PostPrecompResultFunc returns an error when the round isn't in
+// the round manager
+func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
+	grp := initImplGroup()
+	topology := buildMockTopology(5)
+
+	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
+	// We haven't set anything up,
+	// so this should give an error because the round can't be found
+	err := PostPrecompResultFunc(instance, 0, []*mixmessages.Slot{})
+
+	if err == nil {
+		t.Error("Didn't get an error from a nonexistent round")
+	}
+}
+
+// Shows that PostPrecompResultFunc returns an error when there are a wrong
+// number of slots in the message
+func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
+	// Smoke tests the management part of PostPrecompResult
+	grp := initImplGroup()
+	topology := buildMockTopology(5)
+
+	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
+	roundID := id.Round(45)
+	instance.GetRoundManager().AddRound(round.New(grp, roundID, nil, nil,
+		topology, topology.GetNodeAtIndex(0), 3))
+	// This should give an error because we give it fewer slots than are in the
+	// batch
+	err := PostPrecompResultFunc(instance, uint64(roundID), []*mixmessages.Slot{})
+
+	if err == nil {
+		t.Error("Didn't get an error from the wrong number of slots")
+	}
+}
+
+// Shows that PostPrecompResult puts the completed precomputation on the
+// channel on the first node when it has valid data
+// Shows that PostPrecompResult doesn't result in errors on the other nodes
+func TestPostPrecompResultFunc(t *testing.T) {
+	// Smoke tests the management part of PostPrecompResult
+	grp := initImplGroup()
+	const numNodes = 5
+	topology := buildMockTopology(numNodes)
+
+	// Set up all the instances
+	var instances []*server.Instance
+	for i := 0; i < numNodes; i++ {
+		instances = append(instances, server.CreateServerInstance(
+			grp, topology.GetNodeAtIndex(i), &globals.UserMap{}))
+	}
+	instances[0].InitFirstNode()
+
+	// Set up a round on all the instances
+	roundID := id.Round(45)
+	for i := 0; i < numNodes; i++ {
+		instances[i].GetRoundManager().AddRound(round.New(grp, roundID, nil,
+			nil, topology, topology.GetNodeAtIndex(i), 3))
+	}
+
+	// Initially, there should be zero rounds on the precomp queue
+	if len(instances[0].GetCompletedPrecomps().CompletedPrecomputations) != 0 {
+		t.Error("Expected completed precomps to be empty")
+	}
+
+	// Since we give this 3 slots with the correct fields populated,
+	// it should work without errors on all nodes
+	for i := 0; i < numNodes; i++ {
+		err := PostPrecompResultFunc(instances[i], uint64(roundID),
+			[]*mixmessages.Slot{{
+				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
+				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+			}, {
+				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
+				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+			}, {
+				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
+				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+			}})
+
+		if err != nil {
+			t.Errorf("Error posting precomp on node %v: %v", i, err)
+		}
+	}
+
+	// Then, after the reception handler ran successfully,
+	// there should be 1 precomputation in the buffer on the first node
+	// The others don't have this variable initialized
+	if len(instances[0].GetCompletedPrecomps().CompletedPrecomputations) != 1 {
+		t.Error("Expected completed precomps to have the one precomp we posted")
+	}
+}
