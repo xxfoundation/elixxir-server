@@ -52,8 +52,6 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.FinishRealtime(instance.GetRoundManager(), message)
 	}
 
-	// impl.Functions.PostRoundPublicKey =
-
 	impl.Functions.RequestNonce = func(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 		return io.RequestNonce(instance, salt, Y, P, Q, G, hash, R, S)
 	}

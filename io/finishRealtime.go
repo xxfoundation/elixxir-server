@@ -59,7 +59,11 @@ func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
 	var errs error
 	for len(errChan) > 0 {
 		err := <-errChan
-		errs = errors.Wrap(errs, err.Error())
+		if errs != nil {
+			errs = errors.Wrap(errs, err.Error())
+		} else {
+			errs = err
+		}
 	}
 
 	return errs
