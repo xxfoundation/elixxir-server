@@ -36,8 +36,6 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		PostRoundPublicKeyFunc(instance, pk, impl)
 	}
 
-	// impl.Functions.PostPrecompResult =
-
 	// impl.Functions.RequestNonce =
 
 	// impl.Functions.ConfirmRegistration =
