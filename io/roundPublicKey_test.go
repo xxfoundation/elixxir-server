@@ -35,11 +35,11 @@ var receivedPks [3]*mixmessages.RoundPublicKey
 func TestPostRoundPublicKey_Transmit(t *testing.T) {
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]func() *node.Implementation{
-			mockPostRoundPKImplementation0,
-			mockPostRoundPKImplementation1,
-			mockPostRoundPKImplementation2},
-	)
+		[]*node.Implementation{
+			mockPostRoundPKImplementation0(),
+			mockPostRoundPKImplementation1(),
+			mockPostRoundPKImplementation2()},
+		20)
 	defer Shutdown(comms)
 
 	// Build the mock functions called by the transmitter

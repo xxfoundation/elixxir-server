@@ -29,20 +29,21 @@ func TransmitPostPrecompResult(network *node.NodeComms, batchSize uint32,
 	}
 
 	// Send to all nodes but the first (including this one, which is the last node)
+	//panic(topology.Len())
 	for i := 1; i < topology.Len(); i++ {
 		wg.Add(1)
-		go func() {
-			recipient := topology.GetNodeAtIndex(i)
+		go func(index int) {
+			recipient := topology.GetNodeAtIndex(index)
 			ack, err := network.SendPostPrecompResult(recipient, uint64(roundID), slots)
 			if err != nil {
-				errChan<-errors.Wrapf(err, "")
+				errChan <- errors.Wrapf(err, "")
 			}
 			if ack != nil && ack.Error != "" {
-                errChan<-errors.Errorf("Remote error: %v", ack.Error)
+				errChan <- errors.Errorf("Remote error: %v", ack.Error)
 			}
 
 			wg.Done()
-		}()
+		}(i)
 	}
 	wg.Wait()
 
