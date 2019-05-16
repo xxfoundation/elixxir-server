@@ -177,10 +177,9 @@ func buildMockTopology(numNodes int) *circuit.Circuit {
 
 	//Build IDs
 	for i := 0; i < numNodes; i++ {
-		nodeID := &id.Node{}
 		nodIDBytes := make([]byte, id.NodeIdLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID.SetBytes(nodIDBytes)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 
