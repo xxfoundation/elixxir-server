@@ -255,7 +255,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	} else {
 		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
 	}
-	globals.NodeID = new(id.Node).SetBytes(nodeIDbytes[:num])
+	globals.NodeID = id.NewNodeFromBytes(nodeIDbytes[:num])
 
 	// Set skipReg from config file
 	globals.SkipRegServer = viper.GetBool("skipReg")

@@ -17,7 +17,7 @@ func TestTimeoutRound(t *testing.T) {
 	round := globals.NewRound(1, globals.GetGroup())
 	roundId := "neil"
 	globals.GlobalRoundMap = globals.NewRoundMap()
-	globals.NodeID = new(id.Node).SetBytes([]byte("1"))
+	globals.NodeID = id.NewNodeFromBytes([]byte("1"))
 	// Timeout quickly, but slow enough to run WaitUntilPhase func
 	myTimeout := 500 * time.Millisecond
 	globals.GlobalRoundMap.AddRound(roundId, round)
@@ -42,7 +42,7 @@ func TestNotTimeoutRound(t *testing.T) {
 	round := globals.NewRound(1, globals.GetGroup())
 	roundId := "neil"
 	globals.GlobalRoundMap = globals.NewRoundMap()
-	globals.NodeID = new(id.Node).SetBytes([]byte("1"))
+	globals.NodeID = id.NewNodeFromBytes([]byte("1"))
 	globals.GlobalRoundMap.AddRound(roundId, round)
 	timeoutRealtime(roundId, time.Minute)
 	time.Sleep(time.Second)
