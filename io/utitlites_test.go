@@ -59,10 +59,9 @@ func buildTestNetworkComponents(impls []func() *node.Implementation) ([]*node.No
 
 	//Build IDs and addresses
 	for i := 0; i < len(impls); i++ {
-		nodeID := &id.Node{}
 		nodIDBytes := make([]byte, id.NodeIdLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID.SetBytes(nodIDBytes)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
 		nodeIDs = append(nodeIDs, nodeID)
 		addrLst = append(addrLst, fmt.Sprintf(addrFmt, i))
 	}

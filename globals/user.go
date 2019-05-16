@@ -89,7 +89,7 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	i := idCounter - 1
 
 	// Generate user parameters
-	usr.ID = new(id.User).SetUints(&[4]uint64{0, 0, 0, i})
+	usr.ID = id.NewUserFromUints(&[4]uint64{0, 0, 0, i})
 
 	h.Reset()
 	h.Write([]byte(string(40000 + i)))
