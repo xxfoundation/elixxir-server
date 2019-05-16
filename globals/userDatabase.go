@@ -77,7 +77,7 @@ func decodeUser(userIdDB string) *id.User {
 		return id.ZeroID
 	}
 
-	return new(id.User).SetBytes(userIdBytes)
+	return id.NewUserFromBytes(userIdBytes)
 }
 
 // Initialize the UserRegistry interface with appropriate backend

@@ -138,8 +138,7 @@ func GenerateId() *id.Node {
 		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
 	}
 
-	nid := &id.Node{}
-	nid.SetBytes(nodeIdBytes)
+	nid := id.NewNodeFromBytes(nodeIdBytes)
 
 	return nid
 }
