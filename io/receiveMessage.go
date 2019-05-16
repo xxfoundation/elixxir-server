@@ -40,7 +40,7 @@ func ReceiveMessageFromClient(msg *pb.CmixMessage) {
 		messagePayload.Text(10))
 
 	// Convert message to a Slot
-	userId := new(id.User).SetBytes(msg.SenderID)
+	userId := id.NewUserFromBytes(msg.SenderID)
 	inputMsg := realtime.Slot{
 		Slot:           0, // Set in RunRealTime() in node/node.go
 		CurrentID:      userId,
