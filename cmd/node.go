@@ -205,6 +205,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Initialize the backend
 	dbAddresses := viper.GetStringSlice("dbAddresses")
+
 	//dbAddress := ""
 	if (serverIndex >= 0) && (serverIndex < len(dbAddresses)) {
 		// There's a DB address for this server in the list and we can
@@ -235,7 +236,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//globals.SetGroup(&grp)
 
 	// Populate users using group
-	//globals.PopulateDummyUsers(globals.GetGroup())
+	//globals.PopulateDummyUsers(globals.GetGroups())
 
 	// Get all servers
 	//io.Servers = getServers(serverIndex)
@@ -262,7 +263,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//	} else {
 	//		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
 	//	}
-	//globals.NodeID = new(id.Node).SetBytes(nodeIDbytes[:num])
+	//globals.ID = new(id.Node).SetBytes(nodeIDbytes[:num])
 
 	// Set skipReg from config file
 	//globals.SkipRegServer = viper.GetBool("skipReg")
@@ -289,7 +290,6 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Run as many as half the number of nodes times the number of
 	// passthroughs (which is 4).
 	//numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) / 2)
-
 	messageBufferSize = int(10 * batchSize)
 
 	if messageBufferSize < 1000 {

@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/round"
 )
 
@@ -27,9 +28,11 @@ type Instance struct {
 	skipReg       bool
 	firstNode
 	lastNode
+
+	params 		  conf.Params
 }
 
-//GetGroup returns the group used by the server
+//GetGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
 	return i.grp
 }
