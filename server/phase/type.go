@@ -14,6 +14,7 @@ const (
 	PrecompGeneration Type = iota
 
 	// Precomputation Share: Combine partial recipient public cypher keys
+	// Has verification step: Last node broadcasts resulting public cypher key
 	PrecompShare
 
 	// Precomputation Decrypt: Adds in first set of encrypted keys
@@ -23,19 +24,16 @@ const (
 	PrecompPermute
 
 	// Precomputation Reveal: Generates public key to decrypt keys
+	// Has verification step: Last node decrypts and broadcasts precomputation
 	PrecompReveal
-
-	// Precomputation Strip: Decrypts the Precomputation
-	PrecompStrip
 
 	// Realtime Decrypt: Removes Transmission Keys and add first Keys
 	RealDecrypt
 
 	// Realtime Permute: Permutes Slots and add in second keys
+	// Has verification step: Last node uses precomputation to decrypt
+	// recipients, and broadcasts the recipients
 	RealPermute
-
-	// Realtime Identify: Uses Precomputation to reveal Recipient, broadcasts
-	RealIdentify
 
 	// Error: A Fatal Error has occurred, cannot continue
 	PhaseError
