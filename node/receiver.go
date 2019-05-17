@@ -54,6 +54,8 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	}
 
 	// Queue the phase to be operated on if it is not queued yet
+	// Why does this need to be done? Wouldn't the phase have already been
+	// run before the verification step happens?
 	if p.AttemptTransitionToQueued() {
 		instance.GetResourceQueue().UpsertPhase(p)
 	}
@@ -99,13 +101,11 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot) error {
 	rm := instance.GetRoundManager()
 
-	// The tag depends on the topology, right?
-	// Only the last node has Strip.
-	tag := phase.PrecompStrip.String() + "Verification"
-	// But you get the topology from the round that's returned by this call.
-	// So how do you determine what the tag is supposed to be?
-	// I guess you could get the round from the round manager before hand
-	// to have access to the topology, but that seems messy.
+	// Posting the precomp result is part of the verification step of the
+	// Reveal phase, which was formerly known as Strip.
+	// FIXME This tag always errors out because I haven't figured out how to add
+	//  this response tag to the round.
+	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
@@ -115,6 +115,10 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
+	// Should you do:
+    //instance.GetResourceQueue().DenotePhaseCompletion(p)
+    // Or is this what you need to do instead at this point?
+	p.UpdateFinalStates()
 	// Now, this round has completed this precomputation,
 	// so we can push it on the precomp queue if this is the first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {

@@ -10,11 +10,14 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"testing"
+	"time"
 )
 
 var receivedBatch *mixmessages.Batch
@@ -194,20 +197,29 @@ func batchEq(a *mixmessages.Batch, b *mixmessages.Batch) bool {
 	return true
 }
 
-// Shows that ReceivePostPrecompResult returns an error when the round isn't in
+// Shows that ReceivePostPrecompResult panics when the round isn't in
 // the round manager
 func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("There was no panic when an invalid round was passed")
+		}
+	}()
 	grp := initImplGroup()
 	topology := buildMockTopology(5)
 
 	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
 	// We haven't set anything up,
-	// so this should give an error because the round can't be found
+	// so this should panic because the round can't be found
 	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
 
 	if err == nil {
 		t.Error("Didn't get an error from a nonexistent round")
 	}
+}
+
+func initMockGraph(gg services.GraphGenerator) *services.Graph {
+	return gg.NewGraph("MockGraph", nil)
 }
 
 // Shows that ReceivePostPrecompResult returns an error when there are a wrong
@@ -219,7 +231,19 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 
 	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
 	roundID := id.Round(45)
-	instance.GetRoundManager().AddRound(round.New(grp, roundID, nil, nil,
+	// Is this the right setup for the response?
+	response := phase.NewResponse(phase.PrecompReveal, phase.PrecompReveal,
+		phase.Computed)
+	responseMap := make(phase.ResponseMap)
+	responseMap[phase.PrecompReveal.String()+"Verification"] = response
+	// This is quite a bit of setup...
+	p := phase.New(
+		initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1)),
+		phase.PrecompReveal,
+		io.TransmitPostPrecompResult,
+		5*time.Second)
+	instance.GetRoundManager().AddRound(round.New(grp, roundID,
+		[]phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3))
 	// This should give an error because we give it fewer slots than are in the
 	// batch

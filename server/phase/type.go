@@ -45,8 +45,7 @@ const NUM_PHASES Type = PhaseError + 1
 //Array used to get the phase Names for Printing
 var typeStrings = [NUM_PHASES]string{"PrecompGeneration",
 	"PrecompShare", "PrecompDecrypt", "PrecompPermute",
-	"PrecompReveal", "PrecompStrip", "RealDecrypt", "RealPermute",
-	"RealIdentify",
+	"PrecompReveal", "RealDecrypt", "RealPermute",
 	"PhaseError"}
 
 // Adheres to the Stringer interface to return the name of the phase type

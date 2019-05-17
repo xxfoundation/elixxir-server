@@ -104,7 +104,7 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 	rndID := id.Round(42)
 	batchSize := uint32(5)
 	err := TransmitPostPrecompResult(comms[numNodes-1], batchSize,
-		rndID, phase.PrecompStrip, nil, getMockPostPrecompSlot, topology, nil)
+		rndID, phase.PrecompReveal, nil, getMockPostPrecompSlot, topology, nil)
 
 	if err != nil {
 		t.Errorf("TransmitPostPrecompResult: Unexpected error: %+v", err)
