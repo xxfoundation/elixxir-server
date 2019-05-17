@@ -88,7 +88,6 @@ func PostPrecompResult(r *round.Buffer, grp *cyclic.Group,
 	return nil
 }
 
-// Is this overwriting the correct fields?
 func overwritePrecomps(buf *round.Buffer, grp *cyclic.Group, slots []*mixmessages.Slot) {
 	for i := uint32(0); i < uint32(len(slots)); i++ {
 		ADPrecomputation := buf.ADPrecomputation.Get(i)
