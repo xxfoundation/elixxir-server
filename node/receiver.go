@@ -17,7 +17,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 )
 
-func PostPhaseFunc(batch *mixmessages.Batch, instance *server.Instance) {
+func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	rm := instance.GetRoundManager()
 
@@ -42,7 +42,7 @@ func PostPhaseFunc(batch *mixmessages.Batch, instance *server.Instance) {
 
 // Receive round public key from last node and sets it for the round for each node.
 // Also starts precomputation decrypt phase with a batch
-func PostRoundPublicKeyFunc(instance *server.Instance,
+func ReceivePostRoundPublicKey(instance *server.Instance,
 	pk *mixmessages.RoundPublicKey, impl *node.Implementation) {
 
 	rm := instance.GetRoundManager()
@@ -95,7 +95,7 @@ func PostRoundPublicKeyFunc(instance *server.Instance,
 	}
 }
 
-func PostPrecompResultFunc(instance *server.Instance, roundID uint64,
+func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot) error {
 	rm := instance.GetRoundManager()
 

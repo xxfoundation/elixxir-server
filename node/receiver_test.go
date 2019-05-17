@@ -194,7 +194,7 @@ func batchEq(a *mixmessages.Batch, b *mixmessages.Batch) bool {
 	return true
 }
 
-// Shows that PostPrecompResultFunc returns an error when the round isn't in
+// Shows that ReceivePostPrecompResult returns an error when the round isn't in
 // the round manager
 func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	grp := initImplGroup()
@@ -203,14 +203,14 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
 	// We haven't set anything up,
 	// so this should give an error because the round can't be found
-	err := PostPrecompResultFunc(instance, 0, []*mixmessages.Slot{})
+	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
 
 	if err == nil {
 		t.Error("Didn't get an error from a nonexistent round")
 	}
 }
 
-// Shows that PostPrecompResultFunc returns an error when there are a wrong
+// Shows that ReceivePostPrecompResult returns an error when there are a wrong
 // number of slots in the message
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
@@ -223,7 +223,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 		topology, topology.GetNodeAtIndex(0), 3))
 	// This should give an error because we give it fewer slots than are in the
 	// batch
-	err := PostPrecompResultFunc(instance, uint64(roundID), []*mixmessages.Slot{})
+	err := ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{})
 
 	if err == nil {
 		t.Error("Didn't get an error from the wrong number of slots")
@@ -262,7 +262,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Since we give this 3 slots with the correct fields populated,
 	// it should work without errors on all nodes
 	for i := 0; i < numNodes; i++ {
-		err := PostPrecompResultFunc(instances[i], uint64(roundID),
+		err := ReceivePostPrecompResult(instances[i], uint64(roundID),
 			[]*mixmessages.Slot{{
 				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
 				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),

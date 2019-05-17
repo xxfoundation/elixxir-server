@@ -29,11 +29,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	// impl.Functions.StartRealtime =
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
-		PostPhaseFunc(batch, instance)
+		ReceivePostPhase(batch, instance)
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
-		PostRoundPublicKeyFunc(instance, pk, impl)
+		ReceivePostRoundPublicKey(instance, pk, impl)
 	}
 
 	// impl.Functions.RequestNonce =
@@ -61,7 +61,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.ConfirmRegistration(instance, hash, R, S)
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error {
-		return PostPrecompResultFunc(instance, roundID, slots)
+		return ReceivePostPrecompResult(instance, roundID, slots)
 	}
 	return impl
 }
