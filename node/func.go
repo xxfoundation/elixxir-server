@@ -47,7 +47,7 @@ func PostRoundPublicKeyFunc(instance *server.Instance,
 
 	rm := instance.GetRoundManager()
 
-	tag := phase.Type(phase.PrecompShare).String() + "Verification"
+	tag := phase.PrecompShare.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(pk.Round.ID), tag)
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
@@ -97,9 +97,18 @@ func PostRoundPublicKeyFunc(instance *server.Instance,
 
 func PostPrecompResultFunc(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot) error {
-	r, err := instance.GetRoundManager().GetRound(id.Round(roundID))
+	rm := instance.GetRoundManager()
+
+	// The tag depends on the topology, right?
+	// Only the last node has Strip.
+	tag := phase.PrecompStrip.String() + "Verification"
+	// But you get the topology from the round that's returned by this call.
+	// So how do you determine what the tag is supposed to be?
+	// I guess you could get the round from the round manager before hand
+	// to have access to the topology, but that seems messy.
+	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		return errors.Wrapf(err, "Couldn't find round %v", roundID)
+		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 	}
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
 	if err != nil {
