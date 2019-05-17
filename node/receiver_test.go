@@ -10,14 +10,11 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"testing"
-	"time"
 )
 
 var receivedBatch *mixmessages.Batch
@@ -218,10 +215,6 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	}
 }
 
-func initMockGraph(gg services.GraphGenerator) *services.Graph {
-	return gg.NewGraph("MockGraph", nil)
-}
-
 // Shows that ReceivePostPrecompResult returns an error when there are a wrong
 // number of slots in the message
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
@@ -233,15 +226,12 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	roundID := id.Round(45)
 	// Is this the right setup for the response?
 	response := phase.NewResponse(phase.PrecompReveal, phase.PrecompReveal,
-		phase.Computed)
+		phase.Available)
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompReveal.String()+"Verification"] = response
 	// This is quite a bit of setup...
-	p := phase.New(
-		initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1)),
-		phase.PrecompReveal,
-		io.TransmitPostPrecompResult,
-		5*time.Second)
+	p := initMockPhase()
+	p.Ptype = phase.PrecompReveal
 	instance.GetRoundManager().AddRound(round.New(grp, roundID,
 		[]phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3))
@@ -271,11 +261,19 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	}
 	instances[0].InitFirstNode()
 
+
 	// Set up a round on all the instances
 	roundID := id.Round(45)
 	for i := 0; i < numNodes; i++ {
-		instances[i].GetRoundManager().AddRound(round.New(grp, roundID, nil,
-			nil, topology, topology.GetNodeAtIndex(i), 3))
+		response := phase.NewResponse(phase.PrecompReveal, phase.PrecompReveal,
+			phase.Available)
+		responseMap := make(phase.ResponseMap)
+		responseMap[phase.PrecompReveal.String()+"Verification"] = response
+		// This is quite a bit of setup...
+		p := initMockPhase()
+		p.Ptype = phase.PrecompReveal
+		instances[i].GetRoundManager().AddRound(round.New(grp, roundID,
+			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3))
 	}
 
 	// Initially, there should be zero rounds on the precomp queue
