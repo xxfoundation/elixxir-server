@@ -68,7 +68,7 @@ func TestTransmitPhase(t *testing.T) {
 
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]func() *node.Implementation{nil, mockPostPhaseImplementation})
+		[]*node.Implementation{nil, mockPostPhaseImplementation()}, 10)
 	defer Shutdown(comms)
 
 	// Build the mock functions called by the transmitter

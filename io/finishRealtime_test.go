@@ -62,12 +62,12 @@ func TestSendFinishRealtime(t *testing.T) {
 	numNodes := 4
 	numRecv := 0
 	comms, topology := buildTestNetworkComponents(
-		[]func() *node.Implementation{
-			MockFinishRealtimeImplementation,
-			MockFinishRealtimeImplementation,
-			MockFinishRealtimeImplementation,
-			MockFinishRealtimeImplementation,
-			MockFinishRealtimeImplementation,})
+		[]*node.Implementation{
+			MockFinishRealtimeImplementation(),
+			MockFinishRealtimeImplementation(),
+			MockFinishRealtimeImplementation(),
+			MockFinishRealtimeImplementation(),
+			MockFinishRealtimeImplementation()}, 0)
 	defer Shutdown(comms)
 
 	rndID := id.Round(42)
@@ -80,7 +80,7 @@ func TestSendFinishRealtime(t *testing.T) {
 Loop:
 	for {
 		select {
-		case msg:= <-received:
+		case msg := <-received:
 			if id.Round(msg.ID) != rndID {
 				t.Errorf("SendFinishRealtime: Incorrect round ID"+
 					"Expected: %v, Received: %v", rndID, msg.ID)
@@ -89,7 +89,7 @@ Loop:
 			if numRecv == numNodes {
 				break Loop
 			}
-		case <-time.After(5*time.Second):
+		case <-time.After(5 * time.Second):
 			t.Errorf("Test timed out!")
 			break Loop
 		}

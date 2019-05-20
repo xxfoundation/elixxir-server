@@ -7,6 +7,7 @@
 package node
 
 import (
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -16,7 +17,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 )
 
-func PostPhaseFunc(batch *mixmessages.Batch, instance *server.Instance) {
+func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	rm := instance.GetRoundManager()
 
@@ -41,18 +42,20 @@ func PostPhaseFunc(batch *mixmessages.Batch, instance *server.Instance) {
 
 // Receive round public key from last node and sets it for the round for each node.
 // Also starts precomputation decrypt phase with a batch
-func PostRoundPublicKeyFunc(instance *server.Instance,
+func ReceivePostRoundPublicKey(instance *server.Instance,
 	pk *mixmessages.RoundPublicKey, impl *node.Implementation) {
 
 	rm := instance.GetRoundManager()
 
-	tag := phase.Type(phase.PrecompShare).String() + "Verification"
+	tag := phase.PrecompShare.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(pk.Round.ID), tag)
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 	}
 
 	// Queue the phase to be operated on if it is not queued yet
+	// Why does this need to be done? Wouldn't the phase have already been
+	// run before the verification step happens?
 	if p.AttemptTransitionToQueued() {
 		instance.GetResourceQueue().UpsertPhase(p)
 	}
@@ -92,4 +95,27 @@ func PostRoundPublicKeyFunc(instance *server.Instance,
 		impl.Functions.PostPhase(fakeBatch)
 
 	}
+}
+
+func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
+	slots []*mixmessages.Slot) error {
+	rm := instance.GetRoundManager()
+
+	tag := phase.PrecompReveal.String() + "Verification"
+	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
+	if err != nil {
+		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
+	}
+	err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
+	if err != nil {
+		return errors.Wrapf(err,
+			"Couldn't post precomp result for round %v", roundID)
+	}
+    instance.GetResourceQueue().DenotePhaseCompletion(p)
+	// Now, this round has completed this precomputation,
+	// so we can push it on the precomp queue if this is the first node
+	if r.GetTopology().IsFirstNode(instance.GetID()) {
+		instance.GetCompletedPrecomps().Push(r)
+	}
+	return nil
 }

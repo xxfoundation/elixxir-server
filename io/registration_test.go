@@ -63,7 +63,6 @@ func TestRequestNonce(t *testing.T) {
 	}
 }
 
-
 // Test request nonce with invalid signature
 func TestRequestNonce_BadSignature(t *testing.T) {
 	rng := csprng.NewSystemRNG()

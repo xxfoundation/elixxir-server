@@ -52,10 +52,11 @@ func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
 
-func buildTestNetworkComponents(impls []func() *node.Implementation) ([]*node.NodeComms, *circuit.Circuit) {
+func buildTestNetworkComponents(impls []*node.Implementation,
+	portStart int) ([]*node.NodeComms, *circuit.Circuit) {
 	var nodeIDs []*id.Node
 	var addrLst []string
-	addrFmt := "localhost:500%d"
+	addrFmt := "localhost:5%03d"
 
 	//Build IDs and addresses
 	for i := 0; i < len(impls); i++ {
@@ -63,7 +64,7 @@ func buildTestNetworkComponents(impls []func() *node.Implementation) ([]*node.No
 		nodIDBytes[0] = byte(i + 1)
 		nodeID := id.NewNodeFromBytes(nodIDBytes)
 		nodeIDs = append(nodeIDs, nodeID)
-		addrLst = append(addrLst, fmt.Sprintf(addrFmt, i))
+		addrLst = append(addrLst, fmt.Sprintf(addrFmt, i+portStart))
 	}
 
 	//Build the topology
@@ -72,12 +73,7 @@ func buildTestNetworkComponents(impls []func() *node.Implementation) ([]*node.No
 	//build the comms
 	var comms []*node.NodeComms
 
-	for index, implGen := range impls {
-		var impl *node.Implementation
-		if implGen != nil {
-			impl = implGen()
-		}
-
+	for index, impl := range impls {
 		comms = append(comms,
 			node.StartNode(addrLst[index], impl, "", ""))
 	}
