@@ -101,10 +101,6 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot) error {
 	rm := instance.GetRoundManager()
 
-	// Posting the precomp result is part of the verification step of the
-	// Reveal phase, which was formerly known as Strip.
-	// FIXME This tag always errors out because I haven't figured out how to add
-	//  this response tag to the round.
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
@@ -115,10 +111,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-	// Should you do:
-    //instance.GetResourceQueue().DenotePhaseCompletion(p)
-    // Or is this what you need to do instead at this point?
-	p.UpdateFinalStates()
+    instance.GetResourceQueue().DenotePhaseCompletion(p)
 	// Now, this round has completed this precomputation,
 	// so we can push it on the precomp queue if this is the first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
