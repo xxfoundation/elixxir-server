@@ -8,7 +8,6 @@ package io
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
@@ -83,9 +82,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 		for connectTo := 0; connectTo < len(impls); connectTo++ {
 			comms[connectFrom].ConnectToNode(
 				topology.GetNodeAtIndex(connectTo),
-				&connect.ConnectionInfo{
-					Address: addrLst[connectTo],
-				})
+					addrLst[connectTo], nil)
 		}
 	}
 
