@@ -8,6 +8,6 @@ package conf
 
 import "testing"
 
-func TestParams_New(t *testing.T) {
-
+func TestNewParams_ErrorOnEmptyDB(t *testing.T) {
+	//params, err := NewParams(nil, nil, nil, nil,nil)
 }

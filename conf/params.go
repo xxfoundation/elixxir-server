@@ -22,14 +22,15 @@ type paramsImpl struct {
 	reg     Reg
 }
 
-func NewParams(db DB, groups Groups, path Path, context Context, reg Reg) Params {
+func NewParams(db DB, groups Groups, path Path, context Context, reg Reg) (Params, error) {
+
 	return paramsImpl{
 		db:      db,
 		groups:  groups,
 		path:    path,
 		context: context,
 		reg:     reg,
-	}
+	}, nil
 }
 
 func (params paramsImpl) GetDB() DB {
