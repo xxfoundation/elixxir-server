@@ -13,13 +13,14 @@ type Registration struct {
 	enable bool
 }
 
-func (reg *Registration) SetRegistry(skip bool) error {
+func (reg *Registration) SetRegistration(skipReg bool) error {
 
 	if !reg.enable {
-		return errors.Errorf("SetRegistry failed due to improper init.")
+		return errors.Errorf("SetRegistration failed due to improper init.")
 	}
 
-	reg.SkipReg = skip
+	reg.SkipReg = skipReg
+
 	reg.enable = false
 
 	return nil

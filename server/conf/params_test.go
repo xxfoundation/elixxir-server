@@ -36,7 +36,7 @@ func TestNewParams_EnablesSetContext(t *testing.T) {
 
 	params := NewParams()
 
-	err := params.SetContext(ValidSevers, ValidNodeId)
+	err := params.SetContext(ValidServers, ValidNodeId)
 
 	if err != nil {
 		t.Errorf("NewParams failed to enable SetContext")
@@ -44,7 +44,7 @@ func TestNewParams_EnablesSetContext(t *testing.T) {
 
 }
 
-func TestNewParams_EnablesSetGroups(t *testing.T) {
+func TestNewParams_EnablesSetPaths(t *testing.T) {
 
 	params := NewParams()
 
@@ -58,12 +58,16 @@ func TestNewParams_EnablesSetGroups(t *testing.T) {
 
 func TestNewParams_EnablesSetRegistry(t *testing.T) {
 
-	params := NewParams()
+	for _, skipReg := range []bool {true, false} {
 
-	err := params.SetRegistry(true)
+		params := NewParams()
 
-	if err != nil {
-		t.Errorf("NewParams failed to enable SetRegistry")
+		err := params.SetRegistration(skipReg)
+
+		if err != nil {
+			t.Errorf("NewParams failed to enable SetRegistration with skipReg %t", skipReg)
+		}
+
 	}
 
 }

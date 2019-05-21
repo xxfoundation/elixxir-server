@@ -22,12 +22,19 @@ type Groups struct {
 
 func (grps *Groups) SetGroups(cMix, e2e map[string]string) error {
 
+	// Check if SetGroups is enabled
 	if !grps.enable {
 		return errors.Errorf("SetGroups failed due to improper init.")
 	}
 
+	// Check if input fields are valid
+	// ...
+
+	// Set the values
 	grps.CMix = toGroup(cMix)
 	grps.E2E = toGroup(e2e)
+
+	// Disable updating values
 	grps.enable = false
 
 	return nil

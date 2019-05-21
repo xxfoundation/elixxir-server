@@ -14,6 +14,7 @@ type Params struct {
 	Registration
 }
 
+// NewParams returns a Param such that all Set functions are enabled.
 func NewParams() Params {
 
 	params := Params{}

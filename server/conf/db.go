@@ -20,11 +20,12 @@ type DB struct {
 // otherwise it returns an error specifying which input was invalid.
 func (db *DB) SetDB(dbName, userName, password string, addresses []string) error {
 
+	// Check if SetDB is enabled
 	if !db.enable {
 		return errors.Errorf("SetDB failed due to improper init.")
 	}
 
-	// If input fields are not valid return an error.
+	// Check if input fields are valid
 	if !isDBNameValid(dbName) {
 		return errors.Errorf("SetDB failed with DBName %s", dbName)
 	}
@@ -44,10 +45,13 @@ func (db *DB) SetDB(dbName, userName, password string, addresses []string) error
 		}
 	}
 
+	// Set the values
 	db.DBName = dbName
 	db.DBUserName = userName
 	db.DBPassword = password
 	db.DBAddresses = addresses
+
+	// Disable updating values
 	db.enable = false
 
 	return nil
