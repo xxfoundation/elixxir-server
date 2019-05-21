@@ -23,11 +23,12 @@ type Groups struct {
 func (grps *Groups) SetGroups(cMix, e2e map[string]string) error {
 
 	if !grps.enable {
-		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
+		return errors.Errorf("SetGroups failed due to improper init.")
 	}
 
 	grps.CMix = toGroup(cMix)
 	grps.E2E = toGroup(e2e)
+	grps.enable = false
 
 	return nil
 }

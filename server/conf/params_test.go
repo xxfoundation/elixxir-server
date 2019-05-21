@@ -8,33 +8,62 @@ package conf
 
 import "testing"
 
-func TestNewParams_ErrorOnEmptyDB(t *testing.T) {
-	params := Params{}
-	var err error
+func TestNewParams_EnablesSetDB(t *testing.T) {
 
-	err = params.SetDB("", "", "", nil)
+	params := NewParams()
+
+	err := params.SetDB(ValidDBName, ValidUserName, ValidPassword, ValidAddresses)
+
 	if err != nil {
-		t.Errorf("No bueno")
+		t.Errorf("NewParams failed to enable SetDB")
 	}
 
-	err = params.SetGroups("", "", "", nil)
+}
+
+func TestNewParams_EnablesSetGroups(t *testing.T) {
+
+	params := NewParams()
+
+	err := params.SetGroups(ValidCMixGrp, ValidE2EGrp)
+
 	if err != nil {
-		t.Errorf("No bueno")
+		t.Errorf("NewParams failed to enable SetGroups")
 	}
 
-	err = params.SetPaths("", "", "", nil)
+}
+
+func TestNewParams_EnablesSetContext(t *testing.T) {
+
+	params := NewParams()
+
+	err := params.SetContext(ValidSevers, ValidNodeId)
+
 	if err != nil {
-		t.Errorf("No bueno")
+		t.Errorf("NewParams failed to enable SetContext")
 	}
 
-	err = params.SetContext("", "", "", nil)
+}
+
+func TestNewParams_EnablesSetGroups(t *testing.T) {
+
+	params := NewParams()
+
+	err := params.SetPaths(ValidCertPath, ValidKeyPath, ValidLogPath)
+
 	if err != nil {
-		t.Errorf("No bueno")
+		t.Errorf("NewParams failed to enable SetPaths")
 	}
 
-	err = params.SetRegistry("", "", "", nil)
+}
+
+func TestNewParams_EnablesSetRegistry(t *testing.T) {
+
+	params := NewParams()
+
+	err := params.SetRegistry(true)
+
 	if err != nil {
-		t.Errorf("No bueno")
+		t.Errorf("NewParams failed to enable SetRegistry")
 	}
 
 }

@@ -18,12 +18,14 @@ type Paths struct {
 func (paths *Paths) SetPaths(cert, key, log string) error {
 
 	if !paths.enable {
-		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
+		return errors.Errorf("SetPaths failed due to improper init.")
 	}
 
 	paths.CertPath = cert
 	paths.KeyPath = key
 	paths.LogPath = log
+
+	paths.enable = false
 
 	return nil
 }

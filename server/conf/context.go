@@ -17,11 +17,12 @@ type Context struct {
 func (context *Context) SetContext(servers []string, nodeId uint64) error {
 
 	if !context.enable {
-		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
+		return errors.Errorf("SetContext failed due to improper init.")
 	}
 
 	context.Servers = servers
 	context.NodeID = nodeId
+	context.enable = false
 
 	return nil
 }

@@ -14,7 +14,7 @@ type Params struct {
 	Registration
 }
 
-func NewParams() (Params) {
+func NewParams() Params {
 
 	params := Params{}
 

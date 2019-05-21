@@ -9,11 +9,11 @@ package conf
 import "github.com/pkg/errors"
 
 type DB struct {
-	DBName        string
-	DBUserName    string
-	DBPassword    string
-	DBAddresses   []string
-	enable bool
+	DBName      string
+	DBUserName  string
+	DBPassword  string
+	DBAddresses []string
+	enable      bool
 }
 
 // SetDB returns an interface to a DB if all inputs are valid,
@@ -21,7 +21,7 @@ type DB struct {
 func (db *DB) SetDB(dbName, userName, password string, addresses []string) error {
 
 	if !db.enable {
-		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
+		return errors.Errorf("SetDB failed due to improper init.")
 	}
 
 	// If input fields are not valid return an error.
@@ -48,7 +48,7 @@ func (db *DB) SetDB(dbName, userName, password string, addresses []string) error
 	db.DBUserName = userName
 	db.DBPassword = password
 	db.DBAddresses = addresses
-	db.dbInitialized = true
+	db.enable = false
 
 	return nil
 }
