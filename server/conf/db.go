@@ -8,71 +8,49 @@ package conf
 
 import "github.com/pkg/errors"
 
-type DB interface {
-	GetDBName() string
-	GetUserName() string
-	GetPassword() string // TODO: maybe this should be a secure string via memguard
-	GetAddresses() []string
+type DB struct {
+	DBName        string
+	DBUserName    string
+	DBPassword    string
+	DBAddresses   []string
+	enable bool
 }
 
-type dbImpl struct {
-	dbName    string
-	userName  string
-	password  string
-	addresses []string
-}
-
-// NewDB returns an interface to a DB if all inputs are valid,
+// SetDB returns an interface to a DB if all inputs are valid,
 // otherwise it returns an error specifying which input was invalid.
-func NewDB(dbName, userName, password string, addresses []string) (DB, error) {
+func (db *DB) SetDB(dbName, userName, password string, addresses []string) error {
+
+	if !db.enable {
+		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
+	}
 
 	// If input fields are not valid return an error.
 	if !isDBNameValid(dbName) {
-		return nil, errors.Errorf("NewDB failed with dbName %s", dbName)
+		return errors.Errorf("SetDB failed with DBName %s", dbName)
 	}
 	if !isUserNameValid(userName) {
-		return nil, errors.Errorf("NewDB failed with userName %s", userName)
+		return errors.Errorf("SetDB failed with DBUserName %s", userName)
 	}
 	if !isPasswordValid(password) {
-		return nil, errors.Errorf("NewDB failed with password %s", password)
+		return errors.Errorf("SetDB failed with DBPassword %s", password)
 	}
 
 	if addresses == nil {
-		return nil, errors.Errorf("NewDB failed with addresses nil")
+		return errors.Errorf("SetDB failed with DBAddresses nil")
 	}
 	for _, address := range addresses {
 		if !isAddressValid(address) {
-			return nil, errors.Errorf("NewDB failed with addresses %s", address)
+			return errors.Errorf("SetDB failed with DBAddresses %s", address)
 		}
 	}
 
-	// Otherwise return the interface to the object with no error
-	return dbImpl{
-		dbName:    dbName,
-		userName:  userName,
-		password:  password,
-		addresses: addresses,
-	}, nil
-}
+	db.DBName = dbName
+	db.DBUserName = userName
+	db.DBPassword = password
+	db.DBAddresses = addresses
+	db.dbInitialized = true
 
-// GetDBName returns the stored database schema name
-func (db dbImpl) GetDBName() string {
-	return db.dbName
-}
-
-// GetAddresses
-func (db dbImpl) GetAddresses() []string {
-	return db.addresses
-}
-
-// GetUserName returns the stored user name for db login
-func (db dbImpl) GetUserName() string {
-	return db.userName
-}
-
-// GetPassword returns the stored password for db login
-func (db dbImpl) GetPassword() string {
-	return db.password
+	return nil
 }
 
 // isDBNameValid returns true for any string
@@ -90,7 +68,7 @@ func isUserNameValid(userName string) bool {
 }
 
 // isPasswordValid returns true for any string
-// TODO: Change password to be a secure memguard type
+// TODO: Change DBPassword to be a secure memguard type
 // and modify this function to handle that accordingly
 func isPasswordValid(password string) bool {
 	return true

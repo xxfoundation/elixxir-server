@@ -14,24 +14,26 @@ const ValidPassword = "Z8X:6d*n$9A)YQr5"
 
 var ValidAddresses = []string{"127.0.0.1:5000", "127.0.0.1:5001"}
 
-// NewDB should return an error on empty or non-alpha db name
-func TestNewDB_ReturnsErrorOnInvalidDBName(t *testing.T) {
+// SetDB should return an error on empty or non-alpha db name
+func TestSetDB_ReturnsErrorOnInvalidDBName(t *testing.T) {
 	invalidDBNames := []string{"", "#@#$#@"}
 	userName := ValidUserName
 	password := ValidPassword
 	addresses := ValidAddresses
 
+	db := DB{}
+
 	for _, invalidDBName := range invalidDBNames {
 
-		_, err := NewDB(invalidDBName, userName, password, addresses)
+		err := db.SetDB(invalidDBName, userName, password, addresses)
 
 		if err == nil {
-			t.Errorf("NewDB did not return an error for dbName %s", invalidDBName)
+			t.Errorf("SetDB did not return an error for DBName %s", invalidDBName)
 		}
 	}
 }
 
-// NewDB should return an error on empty or non-alpha username
+// SetDB should return an error on empty or non-alpha username
 func TestNewDB_ReturnsErrorOnInvalidUserName(t *testing.T) {
 	invalidUserNames := []string{"", "#@#$#@", "0123"}
 
@@ -39,17 +41,19 @@ func TestNewDB_ReturnsErrorOnInvalidUserName(t *testing.T) {
 	password := ValidPassword
 	addresses := ValidAddresses
 
+	db := DB{}
+
 	for _, invalidUserName := range invalidUserNames {
 
-		_, err := NewDB(dbName, invalidUserName, password, addresses)
+		err := db.SetDB(dbName, invalidUserName, password, addresses)
 
 		if err == nil {
-			t.Errorf("NewDB did not return an error for username %s", invalidUserName)
+			t.Errorf("SetDB did not return an error for username %s", invalidUserName)
 		}
 	}
 }
 
-// NewDB should return an error on a long password
+// SetDB should return an error on a long DBPassword
 func TestNewDB_ReturnsErrorOnInvalidPassword(t *testing.T) {
 	invalidPasswords := []string{`
 		àbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbcàbc
@@ -81,17 +85,19 @@ func TestNewDB_ReturnsErrorOnInvalidPassword(t *testing.T) {
 	userName := ValidUserName
 	addresses := ValidAddresses
 
+	db := DB{}
+
 	for _, invalidPassword := range invalidPasswords {
 
-		_, err := NewDB(dbName, userName, invalidPassword, addresses)
+		err := db.SetDB(dbName, userName, invalidPassword, addresses)
 
 		if err == nil {
-			t.Errorf("NewDB did not return an error for password %s", invalidPassword)
+			t.Errorf("SetDB did not return an error for DBPassword %s", invalidPassword)
 		}
 	}
 }
 
-// NewDB should return an error on empty or non-alpha list of addresses
+// SetDB should return an error on empty or non-alpha list of DBAddresses
 func TestNewDB_ReturnsErrorOnInvalidAddress(t *testing.T) {
 	invalidAddressesList := [][]string{
 		{""},
@@ -103,12 +109,14 @@ func TestNewDB_ReturnsErrorOnInvalidAddress(t *testing.T) {
 	userName := ValidUserName
 	password := ValidPassword
 
+	db := DB{}
+
 	for _, invalidAddresses := range invalidAddressesList {
 
-		_, err := NewDB(dbName, userName, password, invalidAddresses)
+		err := db.SetDB(dbName, userName, password, invalidAddresses)
 
 		if err == nil {
-			t.Errorf("NewDB did not return an error for addresses %s", invalidAddresses)
+			t.Errorf("SetDB did not return an error for DBAddresses %s", invalidAddresses)
 		}
 	}
 }
@@ -118,7 +126,7 @@ func TestGetDBName_ReturnsExpectedValidValue(t *testing.T) {
 	db := createValidDB(t)
 	expectedDbName := ValidDBName
 
-	if db.GetDBName() != expectedDbName {
+	if db.DBName != expectedDbName {
 		t.Errorf("GetDBName() did not return expected value of %s", expectedDbName)
 	}
 }
@@ -128,7 +136,7 @@ func TestGetUserName_ReturnsExpectedValidValue(t *testing.T) {
 	db := createValidDB(t)
 	expectedUserName := ValidUserName
 
-	if db.GetUserName() != expectedUserName {
+	if db.DBUserName != expectedUserName {
 		t.Errorf("GetUserName() did not return expected value of %s", expectedUserName)
 	}
 }
@@ -138,7 +146,7 @@ func TestGetPassword_ReturnsExpectedValidValue(t *testing.T) {
 	db := createValidDB(t)
 	expectedPassword := ValidPassword
 
-	if db.GetPassword() != expectedPassword {
+	if db.DBPassword != expectedPassword {
 		t.Errorf("GetPassword() did not return expected value of %s", expectedPassword)
 	}
 }
@@ -148,7 +156,7 @@ func TestGetAddresses_ReturnsExpectedValidValue(t *testing.T) {
 	db := createValidDB(t)
 	expectedAddresses := ValidAddresses
 
-	addresses := db.GetAddresses()
+	addresses := db.DBAddresses
 	for i, address := range addresses {
 		if address != expectedAddresses[i] {
 			t.Errorf("GetAddresses() did not return expected value of %s on %d",
@@ -166,10 +174,12 @@ func createValidDB(t *testing.T) DB {
 	password := ValidPassword
 	addresses := ValidAddresses
 
-	db, err := NewDB(dbName, userName, password, addresses)
+	db := DB{}
+
+	err := db.SetDB(dbName, userName, password, addresses)
 
 	if err != nil {
-		t.Error("NewDB received invalid inputs")
+		t.Error("SetDB received invalid inputs")
 	}
 
 	return db

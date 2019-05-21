@@ -6,34 +6,22 @@
 
 package conf
 
-type Path interface {
-	GetCert() string
-	GetKey() string
-	GetLog() string
+import "github.com/pkg/errors"
+
+type Context struct {
+	Servers []string
+	NodeID  uint64
+	enable  bool
 }
 
-type pathImpl struct {
-	cert string
-	key  string
-	log  string
-}
+func (context *Context) SetContext(servers []string, nodeId uint64) error {
 
-func NewPath(cert, key, log string) Path {
-	return pathImpl{
-		cert: cert,
-		key:  key,
-		log:  log,
+	if !context.enable {
+		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
 	}
-}
 
-func (path pathImpl) GetCert() string {
-	return path.cert
-}
+	context.Servers = servers
+	context.NodeID = nodeId
 
-func (path pathImpl) GetKey() string {
-	return path.key
-}
-
-func (path pathImpl) GetLog() string {
-	return path.log
+	return nil
 }

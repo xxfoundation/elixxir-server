@@ -6,8 +6,23 @@
 
 package conf
 
-import "testing"
+type Params struct {
+	DB
+	Groups
+	Paths
+	Context
+	Registration
+}
 
-func TestNewParams_ErrorOnEmptyDB(t *testing.T) {
-	//params, err := NewParams(nil, nil, nil, nil,nil)
+func NewParams() (Params) {
+
+	params := Params{}
+
+	params.DB.enable = true
+	params.Groups.enable = true
+	params.Paths.enable = true
+	params.Context.enable = true
+	params.Registration.enable = true
+
+	return params
 }

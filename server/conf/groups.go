@@ -7,35 +7,29 @@
 package conf
 
 import (
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"strings"
 )
 
-type Groups interface {
-	GetCMix() *cyclic.Group
-	GetE2E() *cyclic.Group
+type Groups struct {
+	CMix *cyclic.Group
+	E2E  *cyclic.Group
+	enable bool
 }
 
-type groupsImpl struct {
-	cMix *cyclic.Group
-	e2e  *cyclic.Group
-}
+func (grps *Groups) SetGroups(cMix, e2e map[string]string) error {
 
-func NewGroups(cMix, e2e map[string]string) Groups {
-	return groupsImpl{
-		cMix: toGroup(cMix),
-		e2e:  toGroup(e2e),
+	if !grps.enable {
+		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
 	}
-}
 
-func (grps groupsImpl) GetCMix() *cyclic.Group {
-	return grps.cMix
-}
+	grps.CMix = toGroup(cMix)
+	grps.E2E = toGroup(e2e)
 
-func (grps groupsImpl) GetE2E() *cyclic.Group {
-	return grps.e2e
+	return nil
 }
 
 // toGroup takes a group represented by a map of string to string

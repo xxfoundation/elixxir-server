@@ -6,20 +6,24 @@
 
 package conf
 
-type Reg interface {
-	Skip() bool
+import "github.com/pkg/errors"
+
+type Paths struct {
+	CertPath string
+	KeyPath  string
+	LogPath  string
+	enable   bool
 }
 
-type regImpl struct {
-	skip bool
-}
+func (paths *Paths) SetPaths(cert, key, log string) error {
 
-func NewReg(skip bool) Reg {
-	return regImpl{
-		skip: skip,
+	if !paths.enable {
+		return errors.Errorf("SetDB cannot be called since DB wasn't init. correctly")
 	}
-}
 
-func (reg regImpl) Skip() bool {
-	return reg.skip
+	paths.CertPath = cert
+	paths.KeyPath = key
+	paths.LogPath = log
+
+	return nil
 }
