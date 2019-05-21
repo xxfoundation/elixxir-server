@@ -308,3 +308,76 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		t.Error("Expected completed precomps to have the one precomp we posted")
 	}
 }
+
+// Shows that ReceivePostPrecompResult panics when the round isn't in
+// the round manager
+func TestFinishRealtimeFunc_Error_NoRound(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("There was no panic when an invalid round was passed")
+		}
+	}()
+	grp := initImplGroup()
+	topology := buildMockTopology(5)
+
+	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
+	// We haven't set anything up,
+	// so this should panic because the round can't be found
+	err := ReceiveFinishRealtime(instance, &mixmessages.RoundInfo{})
+
+	if err == nil {
+		t.Error("Didn't get an error from a nonexistent round")
+	}
+}
+
+// Shows that FinishRealtime correctly terminates the round
+func TestFinishRealtimeFunc(t *testing.T) {
+	// Smoke tests the management part of PostPrecompResult
+	grp := initImplGroup()
+	const numNodes = 5
+	topology := buildMockTopology(numNodes)
+
+	// Set up all the instances
+	var instances []*server.Instance
+	for i := 0; i < numNodes; i++ {
+		instances = append(instances, server.CreateServerInstance(
+			grp, topology.GetNodeAtIndex(i), &globals.UserMap{}))
+	}
+	instances[0].InitFirstNode()
+
+
+	// Set up a round on all the instances
+	roundID := id.Round(42)
+	for i := 0; i < numNodes; i++ {
+		response := phase.NewResponse(phase.RealPermute, phase.RealPermute,
+			phase.Available)
+		responseMap := make(phase.ResponseMap)
+		responseMap[phase.RealPermute.String()+"Verification"] = response
+		// This is quite a bit of setup...
+		p := initMockPhase()
+		p.Ptype = phase.RealPermute
+		instances[i].GetRoundManager().AddRound(round.New(grp, roundID,
+			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3))
+	}
+
+	// Call the FinishRealtime receive handler on each node
+	for i := 0; i < numNodes; i++ {
+		err := ReceiveFinishRealtime(instances[i],
+			&mixmessages.RoundInfo{
+				ID: uint64(roundID),
+			})
+
+		if err != nil {
+			t.Errorf("Error finishing realtime on node %v: %v", i, err)
+		}
+	}
+
+	// Confirm that the round doesn't exist anymore in any of the nodes
+	for i := 0; i < numNodes; i++ {
+		_, err := instances[i].GetRoundManager().GetRound(roundID)
+
+		if err == nil {
+			t.Errorf("Expected round to not exist on node %v", i)
+		}
+	}
+}
