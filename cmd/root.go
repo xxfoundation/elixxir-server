@@ -144,6 +144,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
 		time.Second, "Determines the amount of time the  GetRoundBufferInfo"+
 			" RPC will wait before returning an error")
+
 	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 	viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
@@ -190,6 +191,7 @@ func initConfig() {
 			err.Error())
 		validConfig = false
 	}
+
 }
 
 // initLog initializes logging thresholds and the log path.

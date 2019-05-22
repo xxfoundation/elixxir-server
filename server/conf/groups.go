@@ -7,7 +7,6 @@
 package conf
 
 import (
-	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -17,25 +16,30 @@ import (
 type Groups struct {
 	CMix *cyclic.Group
 	E2E  *cyclic.Group
-	enable bool
 }
 
-func (grps *Groups) SetGroups(cMix, e2e map[string]string) error {
+// TODO: field names start with a capital by convention
+// but perhaps we should override to force a consistent scheme
+type groups struct {
+	Cmix map[string]string
+	E2e map[string]string
+}
 
-	// Check if SetGroups is enabled
-	if !grps.enable {
-		return errors.Errorf("SetGroups failed due to improper init.")
+// UnmarshalYAML defines custom unmarshalling behavior
+// such that exported Group structure can contain cyclic groups
+// using the internal groups struct which contains string mappings
+func (Grps *Groups) UnmarshalYAML(unmarshal func(interface{}) error) error {
+
+	grps := groups {}
+
+	err := unmarshal(&grps)
+
+	if err != nil {
+		return err
 	}
 
-	// Check if input fields are valid
-	// ...
-
-	// Set the values
-	grps.CMix = toGroup(cMix)
-	grps.E2E = toGroup(e2e)
-
-	// Disable updating values
-	grps.enable = false
+	Grps.CMix = toGroup(grps.Cmix)
+	Grps.E2E = toGroup(grps.E2e)
 
 	return nil
 }
