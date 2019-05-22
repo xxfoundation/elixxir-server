@@ -89,3 +89,39 @@ func (r *Buffer) GetBatchSize() uint32 {
 func (r *Buffer) GetExpandedBatchSize() uint32 {
 	return r.expandedBatchSize
 }
+
+// Erase clears all data contained in the buffer. Cyclic Ints and IntBuffers are
+// overwritten with ones and everything else is set to zero
+func (r *Buffer) Erase() {
+	r.batchSize = 0
+	r.expandedBatchSize = 0
+
+	r.CypherPublicKey.Erase()
+	r.Z.Erase()
+
+	r.R.Erase()
+	r.S.Erase()
+	r.U.Erase()
+	r.V.Erase()
+
+	r.Y_R.Erase()
+	r.Y_S.Erase()
+	r.Y_T.Erase()
+	r.Y_V.Erase()
+	r.Y_U.Erase()
+
+	for i := range r.Permutations {
+		r.Permutations[i] = 0
+	}
+
+	r.MessagePrecomputation.Erase()
+	r.ADPrecomputation.Erase()
+
+	for i := range r.PermutedMessageKeys {
+		r.PermutedMessageKeys[i].Erase()
+	}
+
+	for i := range r.PermutedADKeys {
+		r.PermutedADKeys[i].Erase()
+	}
+}

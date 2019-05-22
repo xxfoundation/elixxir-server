@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"math/rand"
+	"reflect"
 	"testing"
 )
 
@@ -153,6 +154,336 @@ func TestRound_Get(t *testing.T) {
 		if r.GetExpandedBatchSize() != expandedBatchSize {
 			t.Errorf("New RoundBuffer: Expanded Batch Size not correct, "+
 				"Expected %v, Recieved: %v", expandedBatchSize, r.GetExpandedBatchSize())
+		}
+	}
+}
+
+// Tests that Erase() destroys all data contained in the buffer.
+func TestBuffer_Erase(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	batchSize := rng.Uint32() % 1000
+	expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
+
+	r := NewBuffer(grp, batchSize, expandedBatchSize)
+
+	r.Erase()
+
+	// batchSize
+	if r.batchSize != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's batchSize"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.batchSize, 0)
+	}
+
+	// expandedBatchSize
+	if r.expandedBatchSize != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's expandedBatchSize"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.expandedBatchSize, 0)
+	}
+
+	// CypherPublicKey
+	clearedBytes := make([]byte, (r.CypherPublicKey.BitLen()+7)/8)
+	for i := range clearedBytes {
+		clearedBytes[i] = 0xFF
+	}
+
+	if !reflect.DeepEqual(r.CypherPublicKey.Bytes(), clearedBytes) {
+		t.Errorf("Erase() did not properly delete the buffer's CypherPublicKey value"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.CypherPublicKey.Bytes(), clearedBytes)
+	}
+
+	if r.CypherPublicKey.GetGroupFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's CypherPublicKey fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.CypherPublicKey.GetGroupFingerprint(), 0)
+	}
+
+	// Z
+	clearedBytes = make([]byte, (r.Z.BitLen()+7)/8)
+	for i := range clearedBytes {
+		clearedBytes[i] = 0xFF
+	}
+
+	if !reflect.DeepEqual(r.Z.Bytes(), clearedBytes) {
+		t.Errorf("Erase() did not properly delete the buffer's Z value"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Z.Bytes(), clearedBytes)
+	}
+
+	if r.Z.GetGroupFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Z fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Z.GetGroupFingerprint(), 0)
+	}
+
+	// R
+	for i := 0; i < r.R.Len(); i++ {
+		clearedBytes = make([]byte, (r.R.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.R.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's R value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.R.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.R.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's R fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.R.GetFingerprint(), 0)
+	}
+
+	// S
+	for i := 0; i < r.S.Len(); i++ {
+		clearedBytes = make([]byte, (r.S.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.S.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's S value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.S.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.S.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's S fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.S.GetFingerprint(), 0)
+	}
+
+	// U
+	for i := 0; i < r.U.Len(); i++ {
+		clearedBytes = make([]byte, (r.U.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.U.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's U value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.U.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.U.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's U fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.U.GetFingerprint(), 0)
+	}
+
+	// V
+	for i := 0; i < r.V.Len(); i++ {
+		clearedBytes = make([]byte, (r.V.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.V.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's V value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.V.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.V.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's V fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.V.GetFingerprint(), 0)
+	}
+
+	// Y_R
+	for i := 0; i < r.Y_R.Len(); i++ {
+		clearedBytes = make([]byte, (r.Y_R.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.Y_R.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's Y_R value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.Y_R.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.Y_R.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_R fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_R.GetFingerprint(), 0)
+	}
+
+	// Y_S
+	for i := 0; i < r.Y_S.Len(); i++ {
+		clearedBytes = make([]byte, (r.Y_S.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.Y_S.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's Y_S value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.Y_S.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.Y_S.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_S fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_S.GetFingerprint(), 0)
+	}
+
+	// Y_T
+	for i := 0; i < r.Y_T.Len(); i++ {
+		clearedBytes = make([]byte, (r.Y_T.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.Y_T.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's Y_T value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.Y_T.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.Y_T.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_T fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_T.GetFingerprint(), 0)
+	}
+
+	// Y_V
+	for i := 0; i < r.Y_V.Len(); i++ {
+		clearedBytes = make([]byte, (r.Y_V.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.Y_V.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's Y_V value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.Y_V.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.Y_V.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_V fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_V.GetFingerprint(), 0)
+	}
+
+	// Y_U
+	for i := 0; i < r.Y_U.Len(); i++ {
+		clearedBytes = make([]byte, (r.Y_U.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.Y_U.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's Y_U value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.Y_U.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.Y_U.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_U fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_U.GetFingerprint(), 0)
+	}
+
+	// Permutations
+	clearedUints := make([]uint32, len(r.Permutations))
+
+	if !reflect.DeepEqual(r.Permutations, clearedUints) {
+		t.Errorf("Erase() did not properly delete the buffer's Permutations"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Permutations, clearedUints)
+	}
+
+	// MessagePrecomputation
+	for i := 0; i < r.MessagePrecomputation.Len(); i++ {
+		clearedBytes = make([]byte, (r.MessagePrecomputation.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.MessagePrecomputation.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's MessagePrecomputation value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.MessagePrecomputation.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.MessagePrecomputation.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's MessagePrecomputation fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.MessagePrecomputation.GetFingerprint(), 0)
+	}
+
+	// ADPrecomputation
+	for i := 0; i < r.ADPrecomputation.Len(); i++ {
+		clearedBytes = make([]byte, (r.ADPrecomputation.Get(uint32(i)).BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.ADPrecomputation.Get(uint32(i)).Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's ADPrecomputation value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.ADPrecomputation.Get(uint32(i)).Bytes(), clearedBytes)
+		}
+	}
+
+	if r.ADPrecomputation.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's ADPrecomputation fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.ADPrecomputation.GetFingerprint(), 0)
+	}
+
+	// PermutedMessageKeys
+	for i := range r.PermutedMessageKeys {
+		clearedBytes = make([]byte, (r.PermutedMessageKeys[i].BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.PermutedMessageKeys[i].Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's PermutedMessageKeys value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.PermutedMessageKeys[i].Bytes(), clearedBytes)
+		}
+
+		if !reflect.DeepEqual(r.PermutedMessageKeys[i].GetGroupFingerprint(), 0) {
+			t.Errorf("Erase() did not properly delete the buffer's PermutedMessageKeys fingerprint at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.PermutedMessageKeys[i].GetGroupFingerprint(), 0)
+		}
+	}
+
+	// PermutedADKeys
+	for i := range r.PermutedADKeys {
+		clearedBytes = make([]byte, (r.PermutedADKeys[i].BitLen()+7)/8)
+		for j := range clearedBytes {
+			clearedBytes[j] = 0xFF
+		}
+
+		if !reflect.DeepEqual(r.PermutedADKeys[i].Bytes(), clearedBytes) {
+			t.Errorf("Erase() did not properly delete the buffer's PermutedADKeys value at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.PermutedADKeys[i].Bytes(), clearedBytes)
+		}
+
+		if !reflect.DeepEqual(r.PermutedADKeys[i].GetGroupFingerprint(), 0) {
+			t.Errorf("Erase() did not properly delete the buffer's PermutedADKeys fingerprint at %d"+
+				"\n\treceived: %#v\n\texpected: %#v",
+				i, r.PermutedADKeys[i].GetGroupFingerprint(), 0)
 		}
 	}
 }
