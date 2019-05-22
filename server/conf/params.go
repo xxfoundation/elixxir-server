@@ -6,24 +6,13 @@
 
 package conf
 
+// A viper configuration can be unmarshalled
+// into this object using Unmarshal(&params)
 type Params struct {
-	DB
-	Groups
-	Paths
-	Context
-	Registration
-}
-
-// NewParams returns a Param such that all Set functions are enabled.
-func NewParams() Params {
-
-	params := Params{}
-
-	//params.DB.enable = true
-	//params.Groups.enable = true
-	//params.Paths.enable = true
-	//params.Context.enable = true
-	//params.Registration.enable = true
-
-	return params
+	database     DB
+	groups       Groups
+	paths        Paths
+	servers 	 []string
+	nodeID  	 uint64
+	skipReg 	 bool
 }

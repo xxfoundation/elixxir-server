@@ -20,6 +20,7 @@ type Groups struct {
 
 // TODO: field names start with a capital by convention
 // but perhaps we should override to force a consistent scheme
+// See yaml package documentation for more info.
 type groups struct {
 	Cmix map[string]string
 	E2e map[string]string

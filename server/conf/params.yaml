@@ -1,5 +1,5 @@
 ---
-# Example server.yaml config file used for testing
+# Example yaml params file used for testing params object
 database:
   name: "name"
   username: "username"
