@@ -15,7 +15,7 @@ import (
 )
 
 // This test checks that unmarshalling the groups.yaml file
-// is equal to the expected DB object.
+// is equal to the expected groups object.
 func TestGroups_UnmarshallingFileEqualsExpected(t *testing.T) {
 
 	prime := large.NewInt(int64(17))
@@ -31,7 +31,7 @@ func TestGroups_UnmarshallingFileEqualsExpected(t *testing.T) {
 	}
 
 	actual := Groups{}
-	buf, _ := ioutil.ReadFile("./groups.yaml")
+	buf, _ := ioutil.ReadFile("./Groups.yaml")
 
 	err := yaml.Unmarshal(buf, &actual)
 	if err != nil {

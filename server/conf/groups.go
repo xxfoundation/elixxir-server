@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// Contains the cyclic group config params
 type Groups struct {
 	CMix *cyclic.Group
 	E2E  *cyclic.Group
@@ -27,8 +28,8 @@ type groups struct {
 }
 
 // UnmarshalYAML defines custom unmarshalling behavior
-// such that exported Group structure can contain cyclic groups
-// using the internal groups struct which contains string mappings
+// such that exported Group structure can contain cyclic Groups
+// using the internal Groups struct which contains string mappings
 func (Grps *Groups) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	grps := groups {}

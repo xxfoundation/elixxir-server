@@ -6,13 +6,15 @@
 
 package conf
 
-// A viper configuration can be unmarshalled
-// into this object using Unmarshal(&params)
+// This object is used by the server instance.
+// A viper (or any yaml based) configuration
+// can be unmarshalled into this object.
+// For viper just use Unmarshal(&params).
 type Params struct {
-	database     DB
-	groups       Groups
-	paths        Paths
-	servers 	 []string
-	nodeID  	 uint64
-	skipReg 	 bool
+	Database DB
+	Groups   Groups
+	Paths    Paths
+	Servers  []string
+	NodeID   int		`yaml:"nodeId"`
+	SkipReg  bool 		`yaml:"skipReg"`
 }

@@ -9,27 +9,30 @@ package conf
 import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"reflect"
 	"testing"
 )
 
-// This test checks that unmarshalling the params.yaml file
-// is equal to the expected Params object.
-func TestParams_UnmarshallingFileEqualsExpected(t *testing.T) {
+// This test checks that unmarshalling the path.yaml file
+// is equal to the expected Paths object.
+func TestPaths_UnmarshallingFileEqualsExpected(t *testing.T) {
 
-	buf, _ := ioutil.ReadFile("./params.yaml")
-	actual := Params{}
+	expected := Paths {
+		Cert: "~/.elixxir/cert.crt",
+		Key:  "~/.elixxir/key.pem",
+		Log:  "~/.elixxir/server.log",
+	}
+
+	buf, _ := ioutil.ReadFile("./paths.yaml")
+	actual := Paths{}
 
 	err := yaml.Unmarshal(buf, &actual)
 	if err != nil {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
-	if actual.NodeID != 100 {
-		t.Errorf("Params object did not match expected value for NodeID")
-	}
-
-	if actual.SkipReg != true {
-		t.Errorf("Params object did not match expected value for SkipReg")
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Paths object did not match expected values")
 	}
 
 }
