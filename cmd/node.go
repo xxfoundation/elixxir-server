@@ -11,14 +11,9 @@ import (
 	//"encoding/binary"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	//"gitlab.com/elixxir/comms/connect"
-	//"gitlab.com/elixxir/comms/node"
-	//"gitlab.com/elixxir/crypto/cyclic"
-	//"gitlab.com/elixxir/primitives/id"
-	//	"gitlab.com/elixxir/server/cryptops/realtime"
-	//"gitlab.com/elixxir/server/globals"
-	//"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/server/conf"
 	"runtime"
+
 	"strconv"
 	"strings"
 	"sync"
@@ -177,16 +172,18 @@ func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
 }
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(serverIndex int, batchSize uint64) {
-	viper.Debug()
-	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
-	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
+func StartServer(params conf.Params) {
 
 	//Set the max number of processes
 	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
 
 	//Start the performance monitor
 	go MonitorMemoryUsage()
+
+	viper.Debug()
+
+	jww.INFO.Printf("Log Filename: %v\n", params.LogPath)
+	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
 
 	// Set global batch size
 	//globals.BatchSize = batchSize
@@ -207,6 +204,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	dbAddresses := viper.GetStringSlice("dbAddresses")
 
 	//dbAddress := ""
+	serverIndex := params.ServerIdx
 	if (serverIndex >= 0) && (serverIndex < len(dbAddresses)) {
 		// There's a DB address for this server in the list and we can
 		// use it

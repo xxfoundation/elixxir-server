@@ -1,5 +1,0 @@
----
-cert: "~/.elixxir/cert.crt"
-key:  "~/.elixxir/key.pem"
-log:  "~/.elixxir/server.log"
-...

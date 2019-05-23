@@ -8,6 +8,7 @@
 package cmd
 
 import (
+	"gitlab.com/elixxir/server/server/conf"
 	//"gitlab.com/elixxir/server/globals"
 	"os"
 	"time"
@@ -70,9 +71,35 @@ communications.`,
 		}
 		// FIXME This way of getting the server index from the
 		// config file seems odd.
-		serverIdx = viper.GetInt("index")
-		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
+		params := createParams()
+		StartServer(params)
 	},
+}
+
+// createParams creates the conf.Params obj from viper
+func createParams() conf.Params {
+
+	params := conf.Params{
+		DBName:      viper.GetString("dbName"),
+		DBUsername:  viper.GetString("dbUsername"),
+		DBPassword:  viper.GetString("dbPassword"),
+		DBAddresses: viper.GetStringSlice("dbAddresses"),
+
+		CMix: getGroupFromConfig(viper.GetStringMapString("groups.cmix")),
+		E2E:  getGroupFromConfig(viper.GetStringMapString("groups.e2e")),
+
+		CertPath:  viper.GetString("certPath"),
+		KeyPath:   viper.GetString("keyPath"),
+		LogPath:   viper.GetString("logPath"),
+		Servers:   viper.GetStringSlice("servers"),
+		NodeID:    viper.GetUint64("nodeId"),
+		SkipReg:   viper.GetBool("skipReg"),
+		Gateways:  viper.GetStringSlice("gateways"),
+		BatchSize: viper.GetUint64("batchsize"),
+		ServerIdx: viper.GetInt("index"),
+	}
+
+	return params
 }
 
 // getLargeIntFromString checks the first 2 bytes. If '0x' parse a base16 number

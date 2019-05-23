@@ -6,15 +6,27 @@
 
 package conf
 
+import "gitlab.com/elixxir/crypto/cyclic"
+
 // This object is used by the server instance.
-// A viper (or any yaml based) configuration
-// can be unmarshalled into this object.
-// For viper just use Unmarshal(&params).
 type Params struct {
-	Database DB
-	Groups   Groups
-	Paths    Paths
+	DBName      string
+	DBUsername  string
+	DBPassword  string
+	DBAddresses []string
+
+	CMix *cyclic.Group
+	E2E  *cyclic.Group
+
+	CertPath string
+	KeyPath  string
+	LogPath  string
+
 	Servers  []string
-	NodeID   int		`yaml:"nodeId"`
-	SkipReg  bool 		`yaml:"skipReg"`
+	Gateways []string
+
+	NodeID    uint64
+	SkipReg   bool
+	BatchSize uint64
+	ServerIdx int
 }
