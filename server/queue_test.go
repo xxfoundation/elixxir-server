@@ -211,7 +211,6 @@ func makeTestGraph(instance *Instance, batchSize uint32) *services.Graph {
 	graph.First(mockModuleCopy)
 	graph.Connect(mockModuleCopy, mockModuleCopy)
 	graph.Last(mockModuleCopy)
-	// TODO Do we need to add a stream here as well?
 	graph.Link(instance.GetGroup())
 	graph.Build(batchSize)
 
