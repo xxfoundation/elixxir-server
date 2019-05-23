@@ -9,8 +9,8 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/conf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/round"
 )
 
