@@ -89,3 +89,33 @@ func (r *Buffer) GetBatchSize() uint32 {
 func (r *Buffer) GetExpandedBatchSize() uint32 {
 	return r.expandedBatchSize
 }
+
+// Erase clears all data contained in the buffer. All elements are set to zero
+// and all arrays are set to nil. All underlying released data will be removed
+// by the garbage collector.
+func (r *Buffer) Erase() {
+	r.batchSize = 0
+	r.expandedBatchSize = 0
+
+	r.CypherPublicKey.Erase()
+	r.Z.Erase()
+
+	r.R.Erase()
+	r.S.Erase()
+	r.U.Erase()
+	r.V.Erase()
+
+	r.Y_R.Erase()
+	r.Y_S.Erase()
+	r.Y_T.Erase()
+	r.Y_V.Erase()
+	r.Y_U.Erase()
+
+	r.Permutations = nil
+
+	r.MessagePrecomputation.Erase()
+	r.ADPrecomputation.Erase()
+
+	r.PermutedMessageKeys = nil
+	r.PermutedADKeys = nil
+}

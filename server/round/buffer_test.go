@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"math/rand"
+	"reflect"
 	"testing"
 )
 
@@ -154,5 +155,258 @@ func TestRound_Get(t *testing.T) {
 			t.Errorf("New RoundBuffer: Expanded Batch Size not correct, "+
 				"Expected %v, Recieved: %v", expandedBatchSize, r.GetExpandedBatchSize())
 		}
+	}
+}
+
+// Tests that Erase() destroys all data contained in the buffer.
+func TestBuffer_Erase(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	batchSize := rng.Uint32() % 1000
+	expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
+
+	r := NewBuffer(grp, batchSize, expandedBatchSize)
+
+	r.Erase()
+
+	// batchSize
+	if r.batchSize != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's batchSize"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.batchSize, 0)
+	}
+
+	// expandedBatchSize
+	if r.expandedBatchSize != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's expandedBatchSize"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.expandedBatchSize, 0)
+	}
+
+	// CypherPublicKey
+	clearedBytes := make([]byte, (r.CypherPublicKey.BitLen()+7)/8)
+	for i := range clearedBytes {
+		clearedBytes[i] = 0xFF
+	}
+
+	if !reflect.DeepEqual(r.CypherPublicKey.Bytes(), []byte{}) {
+		t.Errorf("Erase() did not properly delete the buffer's CypherPublicKey value"+
+			"\n\treceived: %#v\n\texpected: %#v",
+			r.CypherPublicKey.Bytes(), []byte{})
+	}
+
+	if r.CypherPublicKey.GetGroupFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's CypherPublicKey fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.CypherPublicKey.GetGroupFingerprint(), 0)
+	}
+
+	// Z
+	if !reflect.DeepEqual(r.Z.Bytes(), []byte{}) {
+		t.Errorf("Erase() did not properly delete the buffer's Z value"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Z.Bytes(), []byte{})
+	}
+
+	if r.Z.GetGroupFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Z fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Z.GetGroupFingerprint(), 0)
+	}
+
+	// R
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's R values to nil")
+			}
+		}()
+		r.R.Get(5)
+	}()
+
+	if r.R.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's R fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.R.GetFingerprint(), 0)
+	}
+
+	// S
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's S values to nil")
+			}
+		}()
+		r.S.Get(5)
+	}()
+
+	if r.S.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's S fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.S.GetFingerprint(), 0)
+	}
+
+	// U
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's U values to nil")
+			}
+		}()
+		r.U.Get(5)
+	}()
+
+	if r.U.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's U fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.U.GetFingerprint(), 0)
+	}
+
+	// V
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's V values to nil")
+			}
+		}()
+		r.V.Get(5)
+	}()
+
+	if r.V.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's V fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.V.GetFingerprint(), 0)
+	}
+
+	// Y_R
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's Y_R values to nil")
+			}
+		}()
+		r.Y_R.Get(5)
+	}()
+
+	if r.Y_R.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_R fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_R.GetFingerprint(), 0)
+	}
+
+	// Y_S
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's Y_S values to nil")
+			}
+		}()
+		r.Y_S.Get(5)
+	}()
+
+	if r.Y_S.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_S fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_S.GetFingerprint(), 0)
+	}
+
+	// Y_T
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's Y_T values to nil")
+			}
+		}()
+		r.Y_T.Get(5)
+	}()
+
+	if r.Y_T.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_T fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_T.GetFingerprint(), 0)
+	}
+
+	// Y_V
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's Y_V values to nil")
+			}
+		}()
+		r.Y_V.Get(5)
+	}()
+
+	if r.Y_V.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_V fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_V.GetFingerprint(), 0)
+	}
+
+	// Y_U
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's Y_U values to nil")
+			}
+		}()
+		r.Y_U.Get(5)
+	}()
+
+	if r.Y_U.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's Y_U fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.Y_U.GetFingerprint(), 0)
+	}
+
+	// Permutations
+	if r.Permutations != nil {
+		t.Errorf("Erase() did not properly delete the buffer's Permutations"+
+			"\n\treceived: %v\n\texpected: %v",
+			r.Permutations, nil)
+	}
+
+	// MessagePrecomputation
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's MessagePrecomputation values to nil")
+			}
+		}()
+		r.MessagePrecomputation.Get(5)
+	}()
+
+	if r.MessagePrecomputation.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's MessagePrecomputation fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.MessagePrecomputation.GetFingerprint(), 0)
+	}
+
+	// ADPrecomputation
+	go func() {
+		defer func() {
+			if rec := recover(); rec == nil {
+				t.Errorf("Erase() did not properly set the buffer's ADPrecomputation values to nil")
+			}
+		}()
+		r.ADPrecomputation.Get(5)
+	}()
+
+	if r.ADPrecomputation.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's ADPrecomputation fingerprint"+
+			"\n\treceived: %d\n\texpected: %d",
+			r.ADPrecomputation.GetFingerprint(), 0)
+	}
+
+	// PermutedMessageKeys
+	if r.PermutedMessageKeys != nil {
+		t.Errorf("Erase() did not properly delete the buffer's PermutedMessageKeys"+
+			"\n\treceived: %v\n\texpected: %v",
+			r.PermutedMessageKeys, nil)
+	}
+
+	// PermutedADKeys
+	if r.PermutedADKeys != nil {
+		t.Errorf("Erase() did not properly delete the buffer's PermutedADKeys"+
+			"\n\treceived: %v\n\texpected: %v",
+			r.PermutedADKeys, nil)
 	}
 }
