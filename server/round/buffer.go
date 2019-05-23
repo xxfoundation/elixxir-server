@@ -90,8 +90,9 @@ func (r *Buffer) GetExpandedBatchSize() uint32 {
 	return r.expandedBatchSize
 }
 
-// Erase clears all data contained in the buffer. Cyclic Ints and IntBuffers are
-// overwritten with ones and everything else is set to zero
+// Erase clears all data contained in the buffer. All elements are set to zero
+// and all arrays are set to nil. All underlying released data will be removed
+// by the garbage collector.
 func (r *Buffer) Erase() {
 	r.batchSize = 0
 	r.expandedBatchSize = 0
