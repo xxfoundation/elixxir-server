@@ -110,18 +110,11 @@ func (r *Buffer) Erase() {
 	r.Y_V.Erase()
 	r.Y_U.Erase()
 
-	for i := range r.Permutations {
-		r.Permutations[i] = 0
-	}
+	r.Permutations = nil
 
 	r.MessagePrecomputation.Erase()
 	r.ADPrecomputation.Erase()
 
-	for i := range r.PermutedMessageKeys {
-		r.PermutedMessageKeys[i].Erase()
-	}
-
-	for i := range r.PermutedADKeys {
-		r.PermutedADKeys[i].Erase()
-	}
+	r.PermutedMessageKeys = nil
+	r.PermutedADKeys = nil
 }
