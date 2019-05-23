@@ -82,7 +82,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 		for connectTo := 0; connectTo < len(impls); connectTo++ {
 			comms[connectFrom].ConnectToNode(
 				topology.GetNodeAtIndex(connectTo),
-					addrLst[connectTo], nil)
+				addrLst[connectTo], nil)
 		}
 	}
 

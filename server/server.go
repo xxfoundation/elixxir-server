@@ -158,5 +158,5 @@ func (i *Instance) InitNetwork(addr string,
 }
 
 func (i *Instance) Run() {
-	go queueRunner(i)
+	go i.resourceQueue.run(i)
 }
