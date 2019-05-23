@@ -90,8 +90,8 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.R
 	// won't have been set yet, so here, make sure maxBatchSize is at least
 	// batchSize
 	if maxBatchSize < batchSize {
-        jww.WARN.Print("Max batch size wasn't set. " +
-        	"Phases may be set up incorrectly.")
+		jww.WARN.Print("Max batch size wasn't set. " +
+			"Phases may be set up incorrectly.")
 		maxBatchSize = batchSize
 	}
 

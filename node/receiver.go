@@ -111,7 +111,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-    instance.GetResourceQueue().DenotePhaseCompletion(p)
+	instance.GetResourceQueue().DenotePhaseCompletion(p)
 	// Now, this round has completed this precomputation,
 	// so we can push it on the precomp queue if this is the first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {

@@ -261,7 +261,6 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	}
 	instances[0].InitFirstNode()
 
-
 	// Set up a round on all the instances
 	roundID := id.Round(45)
 	for i := 0; i < numNodes; i++ {
