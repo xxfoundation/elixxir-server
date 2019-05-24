@@ -52,9 +52,19 @@ func (r *PrecompBuffer) Push(precomputedRound *round.Round) {
 	}
 }
 
-func (r *PrecompBuffer) Pop() *round.Round {
-	// Return the next round in the buffer
-	return <-r.CompletedPrecomputations
+// Return the next round in the buffer, if it exists
+// Does not block
+// Receiving with `, ok` determines whether the channel has been closed or
+// not, not whether there are items available on the channel.
+// So, to return false if there wasn't something on the channel, we need
+// to select.
+func (r *PrecompBuffer) Pop() (*round.Round, bool) {
+	select {
+		case precomputedRound := <-r.CompletedPrecomputations:
+			return precomputedRound, true
+		default:
+			return nil, false
+	}
 }
 
 type lastNode struct {

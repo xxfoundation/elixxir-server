@@ -42,14 +42,22 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 // Receive PostNewBatch comm from the gateway
 // This should include an entire new batch that's ready for realtime processing
-func ReceivePostNewBatch(instance *server.Instance, newBatch *mixmessages.Batch) {
-	r := instance.GetCompletedPrecomps().Pop()
+func ReceivePostNewBatch(instance *server.Instance,
+	newBatch *mixmessages.Batch) error {
+	// This shouldn't block,
+	// and should return an error if there's no round available
+	// You'd want to return this error in the Ack that's available for the
+	// return value of the PostNewBatch comm.
+	r, ok := instance.GetCompletedPrecomps().Pop()
+	if !ok {
+		return errors.New("No precomputation available")
+	}
 	newBatch.Round.ID = uint64(r.GetID())
 	newBatch.ForPhase = int32(phase.RealDecrypt)
 	_, p, err := instance.GetRoundManager().HandleIncomingComm(r.GetID(),
 		phase.RealDecrypt.String())
 	if err != nil {
-		jww.ERROR.Panicf("Error on PostNewBatch comm")
+		jww.ERROR.Panicf("Error handling incoming PostNewBatch comm: %v", err)
 	}
 
 	// Queue the phase if it hasn't been done yet
@@ -73,6 +81,7 @@ func ReceivePostNewBatch(instance *server.Instance, newBatch *mixmessages.Batch)
 	}
 	// send all the slot IDs that didn't make it back to the gateway,
 	// in some future iteration
+	return nil
 }
 
 // Receive round public key from last node and sets it for the round for each node.
