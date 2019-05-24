@@ -40,6 +40,41 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 }
 
+// Receive PostNewBatch comm from the gateway
+// This should include an entire new batch that's ready for realtime processing
+func ReceivePostNewBatch(instance *server.Instance, newBatch *mixmessages.Batch) {
+	r := instance.GetCompletedPrecomps().Pop()
+	newBatch.Round.ID = uint64(r.GetID())
+	newBatch.ForPhase = int32(phase.RealDecrypt)
+	_, p, err := instance.GetRoundManager().HandleIncomingComm(r.GetID(),
+		phase.RealDecrypt.String())
+	if err != nil {
+		jww.ERROR.Panicf("Error on PostNewBatch comm")
+	}
+
+	// Queue the phase if it hasn't been done yet
+	// Not sure if this is necessary
+	// TODO Try commenting this out and see if it breaks the integration test
+	//  you know, for fun
+	if p.AttemptTransitionToQueued() {
+		instance.GetResourceQueue().UpsertPhase(p)
+	}
+
+	for i := 0; i < len(newBatch.Slots); i++ {
+		err := p.Input(uint32(i), newBatch.Slots[i])
+		if err != nil {
+			// All of the slots that didn't make it for some reason should
+			// get put in a list so the gateway can tell the clients that there
+			// was a problem
+			// In the meantime, we're just logging the error
+			jww.ERROR.Print(errors.Wrapf(err,
+				"Slot %v failed for realtime decrypt.", i))
+		}
+	}
+	// send all the slot IDs that didn't make it back to the gateway,
+	// in some future iteration
+}
+
 // Receive round public key from last node and sets it for the round for each node.
 // Also starts precomputation decrypt phase with a batch
 func ReceivePostRoundPublicKey(instance *server.Instance,

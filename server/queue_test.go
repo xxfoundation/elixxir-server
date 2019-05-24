@@ -178,8 +178,8 @@ func makeTestPhase(instance *Instance, name phase.Type,
 		roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 		getMessage phase.GetMessage, topology *circuit.Circuit,
 		nodeId *id.Node) error {
-        iWasCalled = true
-        return nil
+		iWasCalled = true
+		return nil
 	}
 	timeout := 500 * time.Millisecond
 	p := phase.New(makeTestGraph(instance, 1), name, transmissionHandler,
