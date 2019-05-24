@@ -6,15 +6,12 @@
 
 package conf
 
-// This object is used by the server instance.
-// A viper (or any yaml based) configuration
-// can be unmarshalled into this object.
-// For viper just use Unmarshal(&params).
-type Params struct {
-	Database DB
-	Groups   Groups
-	Paths    Paths
-	Servers  []string
-	NodeID   int  `yaml:"nodeId"`
-	SkipReg  bool `yaml:"skipReg"`
+// Paths contains the config params for
+// required file paths used by the system
+// TODO: maybe create a paths object
+// and have this one contain the actual file obj
+type Paths struct {
+	Cert string
+	Key  string
+	Log  string
 }
