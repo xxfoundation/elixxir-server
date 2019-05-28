@@ -14,35 +14,35 @@ import (
 	"testing"
 )
 
+var prime = large.NewInt(int64(17))
+var smallPrime = large.NewInt(int64(11))
+var generator = large.NewInt(int64(4))
+
+var cmix = cyclic.NewGroup(prime, generator, smallPrime)
+var e2e = cyclic.NewGroup(prime, generator, smallPrime)
+
+var ExpectedGroups = Groups{
+	CMix: cmix,
+	E2E:  e2e,
+}
+
 // This test checks that unmarshalling the groups.yaml file
 // is equal to the expected groups object.
 func TestGroups_UnmarshallingFileEqualsExpected(t *testing.T) {
 
-	prime := large.NewInt(int64(17))
-	smallPrime := large.NewInt(int64(11))
-	generator := large.NewInt(int64(4))
-
-	cmix := cyclic.NewGroup(prime, generator, smallPrime)
-	e2e := cyclic.NewGroup(prime, generator, smallPrime)
-
-	expected := Groups{
-		CMix: cmix,
-		E2E:  e2e,
-	}
-
-	actual := Groups{}
-	buf, _ := ioutil.ReadFile("./Groups.yaml")
+	actual := Params{}
+	buf, _ := ioutil.ReadFile("./params.yaml")
 
 	err := yaml.Unmarshal(buf, &actual)
 	if err != nil {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
-	if actual.E2E.GetFingerprint() != expected.E2E.GetFingerprint() {
+	if actual.Groups.E2E.GetFingerprint() != ExpectedGroups.E2E.GetFingerprint() {
 		t.Errorf("Groups object did not match expected values for E2E")
 	}
-	if actual.CMix.GetFingerprint() != expected.CMix.GetFingerprint() {
-		t.Errorf("Groups object did not match expected values for E2E")
+	if actual.Groups.CMix.GetFingerprint() != ExpectedGroups.CMix.GetFingerprint() {
+		t.Errorf("Groups object did not match expected values for CMIX")
 	}
 
 }

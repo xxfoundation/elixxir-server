@@ -7,29 +7,64 @@
 package conf
 
 import (
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
+	"github.com/spf13/viper"
+	"reflect"
 	"testing"
 )
 
-// This test checks that unmarshalling the params.yaml file
-// is equal to the expected Params object.
-func TestParams_UnmarshallingFileEqualsExpected(t *testing.T) {
+func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
-	buf, _ := ioutil.ReadFile("./params.yaml")
-	actual := Params{}
+	expectedParams := Params{
+		Database: ExpectedDB,
+		Groups:   ExpectedGroups,
+		Paths:    ExpectedPaths,
+		Servers:  []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
+		SkipReg:  true,
+		NodeID:   uint64(100),
+	}
 
-	err := yaml.Unmarshal(buf, &actual)
+	vip := viper.New()
+	vip.AddConfigPath(".")
+	vip.SetConfigFile("params.yaml")
+	vip.Set("NodeID", uint64(100))
+
+	err := vip.ReadInConfig()
+
 	if err != nil {
-		t.Errorf("Unable to decode into struct, %v", err)
+		t.Errorf("Failed to read in params.yaml into viper")
 	}
 
-	if actual.NodeID != 100 {
-		t.Errorf("Params object did not match expected value for NodeID")
+	params, err := NewParams(vip)
+
+	if err != nil {
+		t.Errorf("Failed in unmarshaling from viper object")
 	}
 
-	if actual.SkipReg != true {
-		t.Errorf("Params object did not match expected value for SkipReg")
+	if !reflect.DeepEqual(expectedParams.Servers, params.Servers) {
+		t.Errorf("Servers value does not match expected value")
+	}
+
+	if !reflect.DeepEqual(expectedParams.NodeID, params.NodeID) {
+		t.Errorf("NodeId value does not match expected value")
+	}
+
+	if !reflect.DeepEqual(expectedParams.SkipReg, params.SkipReg) {
+		t.Errorf("SkipReg value does not match expected value")
+	}
+
+	if params.Groups.E2E.GetFingerprint() != ExpectedGroups.E2E.GetFingerprint() {
+		t.Errorf("E2E object did not match expected values for E2E")
+	}
+	if params.Groups.CMix.GetFingerprint() != ExpectedGroups.CMix.GetFingerprint() {
+		t.Errorf("CMIX object did not match expected values for CMIX")
+	}
+
+	if !reflect.DeepEqual(expectedParams.Paths, params.Paths) {
+		t.Errorf("Paths value does not match expected value")
+	}
+
+	if !reflect.DeepEqual(expectedParams.Database, params.Database) {
+		t.Errorf("v value does not match expected value")
 	}
 
 }

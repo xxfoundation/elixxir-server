@@ -1,5 +1,6 @@
 ---
-# Example yaml params file used for testing params object
+# Example yaml params file used for testing
+# the params object and its dependencies
 database:
   name: "name"
   username: "username"
@@ -25,6 +26,5 @@ servers:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
   - "127.0.0.1:80"
-nodeId: 100
 skipReg: true
 ...

@@ -8,6 +8,7 @@ package conf
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"strings"
@@ -17,6 +18,22 @@ import (
 type Groups struct {
 	CMix *cyclic.Group
 	E2E  *cyclic.Group
+}
+
+// NewGroups creates a groups object from
+// a viper config.
+// TODO: This is a hack and UnmarshalYAML
+// should likely be used, but wasn't working
+// with viper.  Perhaps a missing decoder option?
+func NewGroups(vip *viper.Viper) Groups {
+
+	cmix := vip.GetStringMapString("groups.cmix")
+	e2e := vip.GetStringMapString("groups.e2e")
+
+	return Groups{
+		CMix: toGroup(cmix),
+		E2E:  toGroup(e2e),
+	}
 }
 
 // TODO: field names start with a capital by convention
