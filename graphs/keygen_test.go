@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
@@ -88,7 +89,12 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	// Since the user registry has no users,
 	// any user we pass into the stream will cause an error
 	nid := server.GenerateId()
-	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
+	params := conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+	}
+	instance := server.CreateServerInstance(params, nid, &globals.UserMap{})
 	var stream KeygenTestStream
 	stream.Link(grp, 1, instance)
 	stream.users[0] = id.ZeroID
@@ -126,13 +132,17 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
-
+	params := conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+	}
 	// Create a user registry and make a user in it
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
 	nid := server.GenerateId()
-	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
+	instance := server.CreateServerInstance(params, nid, &globals.UserMap{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)

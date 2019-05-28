@@ -19,6 +19,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		Groups:   ExpectedGroups,
 		Paths:    ExpectedPaths,
 		Servers:  []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
+		Gateways: []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
 		SkipReg:  true,
 		NodeID:   uint64(100),
 	}
@@ -44,6 +45,10 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Servers value does not match expected value")
 	}
 
+	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
+		t.Errorf("Gateways value does not match expected value")
+	}
+
 	if !reflect.DeepEqual(expectedParams.NodeID, params.NodeID) {
 		t.Errorf("NodeId value does not match expected value")
 	}
@@ -53,10 +58,10 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	}
 
 	if params.Groups.E2E.GetFingerprint() != ExpectedGroups.E2E.GetFingerprint() {
-		t.Errorf("E2E object did not match expected values for E2E")
+		t.Errorf("Groups object did not match expected values for E2E")
 	}
 	if params.Groups.CMix.GetFingerprint() != ExpectedGroups.CMix.GetFingerprint() {
-		t.Errorf("CMIX object did not match expected values for CMIX")
+		t.Errorf("Groups object did not match expected values for CMIX")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Paths, params.Paths) {

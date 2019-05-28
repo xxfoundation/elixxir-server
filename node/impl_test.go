@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -23,8 +24,10 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	roundID := id.Round(0)
 
 	grp := initImplGroup()
+	params := initParams()
 	nid := server.GenerateId()
-	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
+
+	instance := server.CreateServerInstance(params, nid, &globals.UserMap{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -170,6 +173,16 @@ func initImplGroup() *cyclic.Group {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 	return grp
+}
+
+func initParams() conf.Params {
+	grp := initImplGroup()
+	params := conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+	}
+	return params
 }
 
 func buildMockTopology(numNodes int) *circuit.Circuit {

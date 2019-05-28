@@ -19,6 +19,7 @@ type Params struct {
 	Groups   Groups
 	Paths    Paths
 	Servers  []string
+	Gateways []string
 	NodeID   uint64
 	SkipReg  bool `yaml:"skipReg"`
 }

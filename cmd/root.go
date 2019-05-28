@@ -16,15 +16,12 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"math"
 
 	// net/http must be imported before net/http/pprof for the pprof import
 	// to automatically initialize its http handlers
 	"net/http"
 	_ "net/http/pprof"
-	"strings"
 )
 
 var cfgFile string
@@ -68,39 +65,9 @@ communications.`,
 					"localhost:8087", nil))
 			}()
 		}
-		// FIXME This way of getting the server index from the
-		// config file seems odd.
-		serverIdx = viper.GetInt("index")
-		StartServer(serverIdx, uint64(viper.GetInt("batchsize")))
+
+		StartServer(viper.GetViper())
 	},
-}
-
-// getLargeIntFromString checks the first 2 bytes. If '0x' parse a base16 number
-// otherwise it parses a base10
-func getLargeIntFromString(largeIntStr string) *large.Int {
-	if len(largeIntStr) > 2 && "0x" == largeIntStr[:2] {
-		return large.NewIntFromString(largeIntStr[2:], 16)
-	}
-	return large.NewIntFromString(largeIntStr, 10)
-}
-
-// getGroupFromConfig takes a map object (from viper) and returns a group
-func getGroupFromConfig(config map[string]string) *cyclic.Group {
-	pStr, pOk := config["prime"]
-	qStr, qOk := config["smallprime"]
-	gStr, gOk := config["generator"]
-
-	if !gOk || !qOk || !pOk {
-		jww.FATAL.Panicf("Invalid Group Config "+
-			"(prime: %v, smallPrime: %v, generator: %v",
-			pOk, qOk, gOk)
-	}
-
-	// TODO: Is there any error checking we should do here? If so, what?
-	p := getLargeIntFromString(strings.ReplaceAll(pStr, " ", ""))
-	q := getLargeIntFromString(strings.ReplaceAll(qStr, " ", ""))
-	g := getLargeIntFromString(strings.ReplaceAll(gStr, " ", ""))
-	return cyclic.NewGroup(p, g, q)
 }
 
 // Execute adds all child commands to the root command and sets flags
