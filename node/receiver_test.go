@@ -100,15 +100,19 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 
 // Tests the happy path of ReceivePostNewBatch, demonstrating that it can start
 // realtime processing with a new batch from the gateway.
+// Note: In this case, the happy path includes an error from one of the slots
+// that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
-	// This round should be at a state where its precomp is complete.
-	// So, we might want more than one phase,
-	// since it's at a boundary between phases.
 	grp := initImplGroup()
 	topology := buildMockTopology(1)
+	registry := &globals.UserMap{}
 	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0),
-		&globals.UserMap{})
+		registry)
 	instance.InitFirstNode()
+
+	// Make and register a user
+	sender := registry.NewUser(grp)
+	registry.UpsertUser(sender)
 
 	const batchSize = 1
 	const roundID = 2
@@ -119,12 +123,6 @@ func TestReceivePostNewBatch(t *testing.T) {
 	gg := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()),
 		1, 1.0)
 
-	// Need to override realDecrypt's graph to make sure the correct data gets
-	// passed to the phase
-	// Can I make a real, actual phase here?
-	// That's the next least effort thing to get the test working...
-	//realDecrypt := initMockPhase()
-	//realDecrypt.Ptype = phase.RealDecrypt
 	realDecrypt := phase.New(realtime.InitDecryptGraph(gg), phase.RealDecrypt,
 		func(network *node.NodeComms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node) error {
 			return nil
@@ -132,19 +130,10 @@ func TestReceivePostNewBatch(t *testing.T) {
 
 	tagKey := realDecrypt.GetType().String()
 	responseMap := make(phase.ResponseMap)
-	// So, we can just make the responseMap accept all possible phase states,
-	// right? This shouldn't be use as a guideline for real usage, but should
-	// at least allow the test to pass.
-	// TODO Should move this back to the one state that it should be in for
-	//  the response on this node. Don't remember what that is.
-	responseMap[tagKey] =
-		phase.NewResponse(realDecrypt.GetType(), realDecrypt.GetType(),
-			phase.Available, phase.Verified, phase.Queued, phase.Computed,
-			phase.Running, phase.Initialized)
+	responseMap[tagKey] = phase.NewResponse(realDecrypt.GetType(),
+		realDecrypt.GetType(), phase.Available)
 
-	// Well, this round needs to at least be on the precomp queue?
-	// If it's not on the precomp queue,
-	// that would let us test the error being returned.
+	// We need this round to be on the precomp queue
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize)
@@ -162,26 +151,25 @@ func TestReceivePostNewBatch(t *testing.T) {
 			{
 				// Do the fields need to be populated?
 				// Yes, but only to check if the batch made it to the phase
-				SenderID:       []byte{1},
+				SenderID:       sender.ID.Bytes(),
 				MessagePayload: []byte{2},
 				AssociatedData: []byte{3},
-				Salt:           []byte{4},
-				KMACs:          [][]byte{{5}},
+				// Because the salt is just one byte,
+				// this should fail in the Realtime Decrypt graph.
+				Salt:  []byte{4},
+				KMACs: [][]byte{{5}},
 			},
 		},
 	}
+	// Actually, this should return an error because the batch has a malformed
+	// slot in it, so once we implement per-slot errors we can test all the
+	// realtime decrypt error cases from this reception handler if we want
 	err := ReceivePostNewBatch(instance, batch)
 	if err != nil {
 		t.Error(err)
 	}
-	// This should automatically cause the test to succeed if SetState has
-	// been implemented correctly in the mock phase
-	//realDecrypt.AttemptTransitionToQueued()
-	// It did not work. This means we either need to upgrade the mock phase
-	// with more functionality, or use a real phase.
 
-	// We verify that the Realtime Decrypt phase has been enqueued, and that the
-	// batch running in the phase has the correct data
+	// We verify that the Realtime Decrypt phase has been enqueued
 	if realDecrypt.GetState() != phase.Queued {
 		t.Errorf("Realtime decrypt states was %v, not %v",
 			realDecrypt.GetState(), phase.Queued)
@@ -516,7 +504,6 @@ func TestFinishRealtimeFunc(t *testing.T) {
 			grp, topology.GetNodeAtIndex(i), &globals.UserMap{}))
 	}
 	instances[0].InitFirstNode()
-
 
 	// Set up a round on all the instances
 	roundID := id.Round(42)

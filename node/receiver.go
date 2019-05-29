@@ -61,9 +61,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 	}
 
 	// Queue the phase if it hasn't been done yet
-	// Not sure if this is necessary
-	// TODO Try commenting this out and see if it breaks the integration test
-	//  you know, for fun
 	if p.AttemptTransitionToQueued() {
 		instance.GetResourceQueue().UpsertPhase(p)
 	}
@@ -71,10 +68,10 @@ func ReceivePostNewBatch(instance *server.Instance,
 	for i := 0; i < len(newBatch.Slots); i++ {
 		err := p.Input(uint32(i), newBatch.Slots[i])
 		if err != nil {
-			// All of the slots that didn't make it for some reason should
-			// get put in a list so the gateway can tell the clients that there
-			// was a problem
-			// In the meantime, we're just logging the error
+			// TODO All of the slots that didn't make it for some reason should
+			//  get put in a list so the gateway can tell the clients that there
+			//  was a problem
+			//  In the meantime, we're just logging the error
 			jww.ERROR.Print(errors.Wrapf(err,
 				"Slot %v failed for realtime decrypt.", i))
 		}
