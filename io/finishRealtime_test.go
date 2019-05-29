@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"testing"
 	"time"
@@ -56,9 +57,9 @@ func MockFinishRealtimeImplementation() *node.Implementation {
 	return impl
 }
 
-// Test that SendFinishRealtime correctly broadcasts message
+// Test that TransmitFinishRealtime correctly broadcasts message
 // to all other nodes
-func TestSendFinishRealtime(t *testing.T) {
+func TestTransmitFinishRealtime(t *testing.T) {
 	//Setup the network
 	numNodes := 4
 	numRecv := 0
@@ -72,7 +73,8 @@ func TestSendFinishRealtime(t *testing.T) {
 	defer Shutdown(comms)
 
 	rndID := id.Round(42)
-	err := SendFinishRealtime(comms[0], rndID, topology)
+	err := TransmitFinishRealtime(comms[0], 5, rndID,
+		phase.RealPermute, nil, nil, topology, nil)
 
 	if err != nil {
 		t.Errorf("SendFinishRealtime: Unexpected error: %+v", err)
@@ -111,15 +113,13 @@ func TestFinishRealtime(t *testing.T) {
 
 	rm.AddRound(round)
 
-	msg := &mixmessages.RoundInfo{ID: uint64(roundID)}
-
-	err := FinishRealtime(rm, msg)
+	err := FinishRealtime(rm, roundID)
 
 	if err != nil {
 		t.Errorf("FinishRealtime: Unexpected error: %+v", err)
 	}
 
-	err = FinishRealtime(rm, msg)
+	err = FinishRealtime(rm, roundID)
 
 	if err == nil {
 		t.Errorf("FinishRealtime: Should have returned error")

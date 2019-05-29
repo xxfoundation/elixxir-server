@@ -162,3 +162,21 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	}
 	return nil
 }
+
+func ReceiveFinishRealtime(instance *server.Instance,
+	message *mixmessages.RoundInfo) error {
+	rm := instance.GetRoundManager()
+	roundID := message.ID
+	tag := phase.RealPermute.String() + "Verification"
+	_, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
+	if err != nil {
+		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
+	}
+	err = io.FinishRealtime(rm, id.Round(roundID))
+	if err != nil {
+		return errors.Wrapf(err,
+			"Couldn't finish realtime for round %v", roundID)
+	}
+	instance.GetResourceQueue().DenotePhaseCompletion(p)
+	return nil
+}

@@ -49,7 +49,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 	//impl.Functions.PostRoundPublicKey =
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
-		return io.FinishRealtime(instance.GetRoundManager(), message)
+		return ReceiveFinishRealtime(instance, message)
 	}
 
 	impl.Functions.RequestNonce = func(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {

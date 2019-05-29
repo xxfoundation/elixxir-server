@@ -15,15 +15,18 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"sync"
 )
 
-// SendFinishRealtime broadcasts the finish realtime message to all other nodes
+// TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
-	topology *circuit.Circuit) error {
+func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
+	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
+	getMessage phase.GetMessage, topology *circuit.Circuit,
+	nodeID *id.Node) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len()-1)
@@ -66,7 +69,24 @@ func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
 		}
 	}
 
-	return errs
+	if errs != nil {
+		return errs
+	}
+
+	// If we got here, there weren't errors, so let's send to the first node
+	// so the round will be finished
+	recipient := topology.GetNodeAtIndex(0)
+	ack, err := network.SendFinishRealtime(recipient,
+		&mixmessages.RoundInfo{
+			ID: uint64(roundID),
+		})
+	if err != nil {
+		return err
+	} else if ack != nil && ack.Error != "" {
+		return errors.Errorf("Remote error: %v", ack.Error)
+	} else {
+		return nil
+	}
 }
 
 // FinishRealtime implements the server gRPC handler for receiving
@@ -75,8 +95,8 @@ func SendFinishRealtime(network *node.NodeComms, roundID id.Round,
 // and returns an error if it doesn't exist.
 // If it exists, it removes the round from the round manager, effectively
 // finishing it
-func FinishRealtime(rm *round.Manager, msg *mixmessages.RoundInfo) error {
-	rnd, err := rm.GetRound(id.Round(msg.ID))
+func FinishRealtime(rm *round.Manager, roundID id.Round) error {
+	rnd, err := rm.GetRound(roundID)
 	if err != nil {
 		return err
 	}
