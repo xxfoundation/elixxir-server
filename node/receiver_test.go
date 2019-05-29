@@ -528,8 +528,9 @@ func TestFinishRealtimeFunc(t *testing.T) {
 		// This is quite a bit of setup...
 		p := initMockPhase()
 		p.Ptype = phase.RealPermute
-		instances[i].GetRoundManager().AddRound(round.New(grp, roundID,
-			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3))
+		instances[i].GetRoundManager().AddRound(round.New(grp,
+			&globals.UserMap{}, roundID, []phase.Phase{p}, responseMap, topology,
+			topology.GetNodeAtIndex(i), 3))
 	}
 
 	// Call the FinishRealtime receive handler on each node
