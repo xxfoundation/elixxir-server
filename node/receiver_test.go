@@ -21,10 +21,13 @@ var receivedBatch *mixmessages.Batch
 
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
-	grp := initImplGroup()
 	topology := buildMockTopology(5)
 
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(1), &globals.UserMap{})
+	params := initParams()
+	params.NodeID = topology.GetNodeAtIndex(1)
+
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	grp := instance.GetGroup()
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -88,10 +91,12 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
-	grp := initImplGroup()
 	topology := buildMockTopology(5)
 
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
+	params := initParams()
+	params.NodeID = topology.GetNodeAtIndex(0)
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	grp := instance.GetGroup()
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -202,10 +207,12 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 			t.Error("There was no panic when an invalid round was passed")
 		}
 	}()
-	grp := initImplGroup()
 	topology := buildMockTopology(5)
 
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
+	params := initParams()
+	params.NodeID = topology.GetNodeAtIndex(0)
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
+
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
 	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
@@ -219,10 +226,14 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 // number of slots in the message
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-	grp := initImplGroup()
-	topology := buildMockTopology(5)
 
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
+	topology := buildMockTopology(5)
+	params := initParams()
+	params.NodeID = topology.GetNodeAtIndex(0)
+
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	grp := instance.GetGroup()
+
 	roundID := id.Round(45)
 	// Is this the right setup for the response?
 	response := phase.NewResponse(phase.PrecompReveal, phase.PrecompReveal,
@@ -250,14 +261,16 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 func TestPostPrecompResultFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
+	params := initParams()
 	const numNodes = 5
 	topology := buildMockTopology(numNodes)
 
 	// Set up all the instances
 	var instances []*server.Instance
 	for i := 0; i < numNodes; i++ {
+		params.NodeID = topology.GetNodeAtIndex(i)
 		instances = append(instances, server.CreateServerInstance(
-			grp, topology.GetNodeAtIndex(i), &globals.UserMap{}))
+			params, &globals.UserMap{}))
 	}
 	instances[0].InitFirstNode()
 
@@ -316,10 +329,12 @@ func TestFinishRealtimeFunc_Error_NoRound(t *testing.T) {
 			t.Error("There was no panic when an invalid round was passed")
 		}
 	}()
-	grp := initImplGroup()
+
 	topology := buildMockTopology(5)
 
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0), &globals.UserMap{})
+	params := initParams()
+	params.NodeID = topology.GetNodeAtIndex(0)
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
 	err := ReceiveFinishRealtime(instance, &mixmessages.RoundInfo{})
@@ -333,17 +348,18 @@ func TestFinishRealtimeFunc_Error_NoRound(t *testing.T) {
 func TestFinishRealtimeFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
+	params := initParams()
 	const numNodes = 5
 	topology := buildMockTopology(numNodes)
 
 	// Set up all the instances
 	var instances []*server.Instance
 	for i := 0; i < numNodes; i++ {
+		params.NodeID = topology.GetNodeAtIndex(i)
 		instances = append(instances, server.CreateServerInstance(
-			grp, topology.GetNodeAtIndex(i), &globals.UserMap{}))
+			params, &globals.UserMap{}))
 	}
 	instances[0].InitFirstNode()
-
 
 	// Set up a round on all the instances
 	roundID := id.Round(42)

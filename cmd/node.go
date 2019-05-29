@@ -11,6 +11,8 @@ import (
 	//"encoding/binary"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/server/server/conf"
+
 	//"gitlab.com/elixxir/comms/connect"
 	//"gitlab.com/elixxir/comms/node"
 	//"gitlab.com/elixxir/crypto/cyclic"
@@ -177,10 +179,11 @@ func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
 }
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(serverIndex int, batchSize uint64) {
-	viper.Debug()
-	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
-	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
+func StartServer(vip *viper.Viper) {
+	vip.Debug()
+
+	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("logPath"))
+	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
 	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
@@ -190,9 +193,24 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Set global batch size
 	//globals.BatchSize = batchSize
+
+	batchSize := vip.GetInt("batchsize")
+
 	jww.INFO.Printf("Batch Size: %v\n", batchSize)
 
-	gateways := viper.GetStringSlice("gateways")
+	// Load params object from viper conf
+	params, err := conf.NewParams(vip)
+	if err != nil {
+		jww.FATAL.Println("Unable to load params from viper")
+	}
+
+	// FIXME This way of getting the server index from the
+	// config file seems odd.
+	serverIdx = viper.GetInt("index")
+	//serverIndex := params.NodeID
+
+	gateways := params.Gateways
+
 	if len(gateways) < 1 {
 		// No gateways in config file or passed via command line
 		jww.FATAL.Panicf("Error: No gateways specified! Add to" +
@@ -204,9 +222,10 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//globals.GatewayAddress = gateways[0]
 
 	// Initialize the backend
-	dbAddresses := viper.GetStringSlice("dbAddresses")
+	dbAddresses := params.Database.Addresses
+
 	//dbAddress := ""
-	if (serverIndex >= 0) && (serverIndex < len(dbAddresses)) {
+	if (serverIdx >= 0) && (int(serverIdx) < len(dbAddresses)) {
 		// There's a DB address for this server in the list and we can
 		// use it
 		//	dbAddress = dbAddresses[serverIndex]
@@ -223,10 +242,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// these should be assigned variables in there.
 	jww.INFO.Printf("%v", viper.GetStringMapString(
 		"cryptographicParameters.cMix"))
-	grp := getGroupFromConfig(
-		viper.GetStringMapString("cryptographicParameters.cMix"))
-	e2eGrp := getGroupFromConfig(
-		viper.GetStringMapString("cryptographicParameters.e2e"))
+	grp := params.Groups.CMix
+	e2eGrp := params.Groups.E2E
 	// TODO: Add a Stringer interface to cyclic.Group
 	jww.INFO.Printf("cMix Group: %d", grp.GetFingerprint())
 	jww.INFO.Printf("E2E Group: %d", e2eGrp.GetFingerprint())
@@ -235,12 +252,12 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//globals.SetGroup(&grp)
 
 	// Populate users using group
-	//globals.PopulateDummyUsers(globals.GetGroup())
+	//globals.PopulateDummyUsers(globals.GetGroups())
 
 	// Get all servers
 	//io.Servers = getServers(serverIndex)
 
-	serverList := viper.GetStringSlice("servers")[0]
+	serverList := params.Servers[0]
 	for i := 1; i < len(viper.GetStringSlice("servers")); i++ {
 		serverList = serverList + "," +
 			viper.GetStringSlice("servers")[i]
@@ -248,7 +265,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	jww.INFO.Print("Server list: " + serverList)
 
 	// Start mix servers on localServer
-	localServer := serverList[serverIndex]
+	localServer := serverList[serverIdx]
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap and waiting rounds queue
 	//globals.GlobalRoundMap = globals.NewRoundMap()
@@ -262,7 +279,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	//	} else {
 	//		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
 	//	}
-	//globals.NodeID = new(id.Node).SetBytes(nodeIDbytes[:num])
+	//globals.ID = new(id.Node).SetBytes(nodeIDbytes[:num])
 
 	// Set skipReg from config file
 	//globals.SkipRegServer = viper.GetBool("skipReg")
@@ -289,7 +306,6 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Run as many as half the number of nodes times the number of
 	// passthroughs (which is 4).
 	//numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) / 2)
-
 	messageBufferSize = int(10 * batchSize)
 
 	if messageBufferSize < 1000 {

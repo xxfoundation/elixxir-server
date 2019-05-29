@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/conf"
 	"os"
 	"testing"
 	"time"
@@ -25,8 +26,16 @@ var dsaParams = signature.GetDefaultDSAParams()
 
 func TestMain(m *testing.M) {
 	grp := cyclic.NewGroup(dsaParams.GetP(), dsaParams.GetG(), dsaParams.GetQ())
+
 	nid := server.GenerateId()
-	serverInstance = server.CreateServerInstance(grp, nid, &globals.UserMap{})
+	params := conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+		NodeID: nid,
+	}
+
+	serverInstance = server.CreateServerInstance(params, &globals.UserMap{})
 	os.Exit(m.Run())
 }
 
