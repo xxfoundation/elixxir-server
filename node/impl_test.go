@@ -34,7 +34,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	topology := buildMockTopology(2)
 
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
+	r := round.New(grp, instance.GetUserRegistry(), roundID,
+		[]phase.Phase{mockPhase}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)

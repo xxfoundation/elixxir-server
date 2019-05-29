@@ -108,8 +108,9 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		// I also don't know what goes in expecteds.
 		phase.NewResponse(phase.PrecompGeneration, phase.PrecompGeneration)
 
-	r := round.New(grp, roundID, []phase.Phase{p}, responseMap, circuit.New(
-		[]*id.Node{instance.GetID()}), instance.GetID(), 1)
+	r := round.New(grp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
+		responseMap, circuit.New(
+			[]*id.Node{instance.GetID()}), instance.GetID(), 1)
 	instance.GetRoundManager().AddRound(r)
 
 	if p.GetState() != phase.Available {

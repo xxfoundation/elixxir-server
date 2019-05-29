@@ -60,10 +60,10 @@ func (r *PrecompBuffer) Push(precomputedRound *round.Round) {
 // to select.
 func (r *PrecompBuffer) Pop() (*round.Round, bool) {
 	select {
-		case precomputedRound := <-r.CompletedPrecomputations:
-			return precomputedRound, true
-		default:
-			return nil, false
+	case precomputedRound := <-r.CompletedPrecomputations:
+		return precomputedRound, true
+	default:
+		return nil, false
 	}
 }
 

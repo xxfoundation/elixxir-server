@@ -50,7 +50,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	// return value of the PostNewBatch comm.
 	r, ok := instance.GetCompletedPrecomps().Pop()
 	if !ok {
-		return errors.New("No precomputation available")
+		return errors.New("ReceivePostNewBatch(): No precomputation available")
 	}
 	newBatch.Round.ID = uint64(r.GetID())
 	newBatch.ForPhase = int32(phase.RealDecrypt)
@@ -79,8 +79,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 				"Slot %v failed for realtime decrypt.", i))
 		}
 	}
-	// send all the slot IDs that didn't make it back to the gateway,
-	// in some future iteration
+	// TODO send all the slot IDs that didn't make it back to the gateway
 	return nil
 }
 

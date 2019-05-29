@@ -7,17 +7,186 @@
 package node
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"reflect"
+	"runtime"
 	"testing"
+	"time"
 )
 
-var receivedBatch *mixmessages.Batch
+func TestReceivePostNewBatch_Errors(t *testing.T) {
+	// This round should be at a state where its precomp is complete.
+	// So, we might want more than one phase,
+	// since it's at a boundary between phases.
+	grp := initImplGroup()
+	topology := buildMockTopology(1)
+	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0),
+		&globals.UserMap{})
+	instance.InitFirstNode()
+
+	const batchSize = 1
+	const roundID = 2
+
+	// Does the mockPhase move through states?
+	precompReveal := initMockPhase()
+	precompReveal.Ptype = phase.PrecompReveal
+	realDecrypt := initMockPhase()
+	realDecrypt.Ptype = phase.RealDecrypt
+
+	tagKey := realDecrypt.Ptype.String()
+	responseMap := make(phase.ResponseMap)
+	responseMap[tagKey] =
+		phase.NewResponse(realDecrypt.GetType(), realDecrypt.GetType(),
+			phase.Available)
+
+	// Well, this round needs to at least be on the precomp queue?
+	// If it's not on the precomp queue,
+	// that would let us test the error being returned.
+	r := round.New(grp, instance.GetUserRegistry(), roundID,
+		[]phase.Phase{precompReveal, realDecrypt},
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+	instance.GetRoundManager().AddRound(r)
+
+	// Build a fake batch for the reception handler
+	// This emulates what the gateway would send to the comm
+	batch := &mixmessages.Batch{
+		Round: &mixmessages.RoundInfo{
+			ID: roundID,
+		},
+		ForPhase: int32(phase.RealDecrypt),
+		Slots: []*mixmessages.Slot{
+			{
+				// Do the fields need to be populated?
+				SenderID:       nil,
+				MessagePayload: nil,
+				AssociatedData: nil,
+				Salt:           nil,
+				KMACs:          nil,
+			},
+		},
+	}
+
+	err := ReceivePostNewBatch(instance, batch)
+	if err == nil {
+		t.Error("ReceivePostNewBatch should have errored out if there were no" +
+			" precomputations available")
+	}
+
+	// OK, let's put that round on the queue of completed precomps now,
+	// which should cause the reception handler to function normally.
+	// This should panic because the expected states aren't populated correctly,
+	// so the realtime can't continue to be processed.
+	defer func() {
+		panicResult := recover()
+		panicString := panicResult.(string)
+		if panicString == "" {
+			t.Error("There was no panicked error from the HandleIncomingComm" +
+				" call")
+		}
+	}()
+	instance.GetCompletedPrecomps().Push(r)
+	err = ReceivePostNewBatch(instance, batch)
+}
+
+// Tests the happy path of ReceivePostNewBatch, demonstrating that it can start
+// realtime processing with a new batch from the gateway.
+func TestReceivePostNewBatch(t *testing.T) {
+	// This round should be at a state where its precomp is complete.
+	// So, we might want more than one phase,
+	// since it's at a boundary between phases.
+	grp := initImplGroup()
+	topology := buildMockTopology(1)
+	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0),
+		&globals.UserMap{})
+	instance.InitFirstNode()
+
+	const batchSize = 1
+	const roundID = 2
+
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+	gg := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()),
+		1, 1.0)
+
+	// Need to override realDecrypt's graph to make sure the correct data gets
+	// passed to the phase
+	// Can I make a real, actual phase here?
+	// That's the next least effort thing to get the test working...
+	//realDecrypt := initMockPhase()
+	//realDecrypt.Ptype = phase.RealDecrypt
+	realDecrypt := phase.New(realtime.InitDecryptGraph(gg), phase.RealDecrypt,
+		func(network *node.NodeComms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node) error {
+			return nil
+		}, 5*time.Second)
+
+	tagKey := realDecrypt.GetType().String()
+	responseMap := make(phase.ResponseMap)
+	// So, we can just make the responseMap accept all possible phase states,
+	// right? This shouldn't be use as a guideline for real usage, but should
+	// at least allow the test to pass.
+	// TODO Should move this back to the one state that it should be in for
+	//  the response on this node. Don't remember what that is.
+	responseMap[tagKey] =
+		phase.NewResponse(realDecrypt.GetType(), realDecrypt.GetType(),
+			phase.Available, phase.Verified, phase.Queued, phase.Computed,
+			phase.Running, phase.Initialized)
+
+	// Well, this round needs to at least be on the precomp queue?
+	// If it's not on the precomp queue,
+	// that would let us test the error being returned.
+	r := round.New(grp, instance.GetUserRegistry(), roundID,
+		[]phase.Phase{realDecrypt}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize)
+	instance.GetRoundManager().AddRound(r)
+	instance.GetCompletedPrecomps().Push(r)
+
+	// Build a fake batch for the reception handler
+	// This emulates what the gateway would send to the comm
+	batch := &mixmessages.Batch{
+		Round: &mixmessages.RoundInfo{
+			ID: roundID,
+		},
+		ForPhase: int32(phase.RealDecrypt),
+		Slots: []*mixmessages.Slot{
+			{
+				// Do the fields need to be populated?
+				// Yes, but only to check if the batch made it to the phase
+				SenderID:       []byte{1},
+				MessagePayload: []byte{2},
+				AssociatedData: []byte{3},
+				Salt:           []byte{4},
+				KMACs:          [][]byte{{5}},
+			},
+		},
+	}
+	err := ReceivePostNewBatch(instance, batch)
+	if err != nil {
+		t.Error(err)
+	}
+	// This should automatically cause the test to succeed if SetState has
+	// been implemented correctly in the mock phase
+	//realDecrypt.AttemptTransitionToQueued()
+	// It did not work. This means we either need to upgrade the mock phase
+	// with more functionality, or use a real phase.
+
+	// We verify that the Realtime Decrypt phase has been enqueued, and that the
+	// batch running in the phase has the correct data
+	if realDecrypt.GetState() != phase.Queued {
+		t.Errorf("Realtime decrypt states was %v, not %v",
+			realDecrypt.GetState(), phase.Queued)
+	}
+}
 
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
@@ -39,7 +208,8 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 			phase.Available)
 
 	// Skip first node
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
+	r := round.New(grp, instance.GetUserRegistry(), roundID,
+		[]phase.Phase{mockPhase}, responseMap,
 		topology, topology.GetNodeAtIndex(1), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
@@ -106,7 +276,8 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 			phase.Available)
 
 	// Don't skip first node
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
+	r := round.New(grp, instance.GetUserRegistry(), roundID,
+		[]phase.Phase{mockPhase}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
@@ -232,7 +403,8 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// This is quite a bit of setup...
 	p := initMockPhase()
 	p.Ptype = phase.PrecompReveal
-	instance.GetRoundManager().AddRound(round.New(grp, roundID,
+	instance.GetRoundManager().AddRound(round.New(grp,
+		instance.GetUserRegistry(), roundID,
 		[]phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3))
 	// This should give an error because we give it fewer slots than are in the
@@ -271,7 +443,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		// This is quite a bit of setup...
 		p := initMockPhase()
 		p.Ptype = phase.PrecompReveal
-		instances[i].GetRoundManager().AddRound(round.New(grp, roundID,
+		instances[i].GetRoundManager().AddRound(round.New(grp,
+			instances[i].GetUserRegistry(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3))
 	}
 

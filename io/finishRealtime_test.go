@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/round"
 	"testing"
 	"time"
@@ -105,7 +106,7 @@ func TestFinishRealtime(t *testing.T) {
 
 	topology := circuit.New([]*id.Node{&id.Node{}})
 
-	round := round.New(grp, roundID, nil, nil, topology,
+	round := round.New(grp, &globals.UserMap{}, roundID, nil, nil, topology,
 		&id.Node{}, 5)
 
 	rm.AddRound(round)
