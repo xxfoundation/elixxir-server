@@ -26,13 +26,16 @@ var dsaParams = signature.GetDefaultDSAParams()
 
 func TestMain(m *testing.M) {
 	grp := cyclic.NewGroup(dsaParams.GetP(), dsaParams.GetG(), dsaParams.GetQ())
+
+	nid := server.GenerateId()
 	params := conf.Params{
 		Groups: conf.Groups{
 			CMix: grp,
 		},
+		NodeID: nid,
 	}
-	nid := server.GenerateId()
-	serverInstance = server.CreateServerInstance(params, nid, &globals.UserMap{})
+
+	serverInstance = server.CreateServerInstance(params, &globals.UserMap{})
 	os.Exit(m.Run())
 }
 

@@ -8,12 +8,13 @@ package conf
 
 import (
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/primitives/id"
 	"reflect"
 	"testing"
 )
 
 func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
-
+	nid := id.NewNodeFromBytes([]byte{})
 	expectedParams := Params{
 		Database: ExpectedDB,
 		Groups:   ExpectedGroups,
@@ -21,7 +22,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		Servers:  []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
 		Gateways: []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
 		SkipReg:  true,
-		NodeID:   uint64(100),
+		NodeID:   nid,
 	}
 
 	vip := viper.New()

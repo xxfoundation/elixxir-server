@@ -6,7 +6,11 @@
 
 package conf
 
-import "github.com/spf13/viper"
+import (
+	"encoding/binary"
+	"github.com/spf13/viper"
+	"gitlab.com/elixxir/primitives/id"
+)
 
 // This object is used by the server instance.
 // A viper (or any yaml based) configuration
@@ -20,7 +24,7 @@ type Params struct {
 	Paths    Paths
 	Servers  []string
 	Gateways []string
-	NodeID   uint64
+	NodeID   *id.Node
 	SkipReg  bool `yaml:"skipReg"`
 }
 
@@ -36,6 +40,11 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	params.Groups = NewGroups(vip)
+
+	nid := vip.GetUint64("nodeId")
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, nid)
+	params.NodeID = id.NewNodeFromBytes(buf)
 
 	return &params, nil
 }

@@ -25,9 +25,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	grp := initImplGroup()
 	params := initParams()
-	nid := server.GenerateId()
 
-	instance := server.CreateServerInstance(params, nid, &globals.UserMap{})
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -177,10 +176,14 @@ func initImplGroup() *cyclic.Group {
 
 func initParams() conf.Params {
 	grp := initImplGroup()
+
+	nid := server.GenerateId()
+
 	params := conf.Params{
 		Groups: conf.Groups{
 			CMix: grp,
 		},
+		NodeID: nid,
 	}
 	return params
 }

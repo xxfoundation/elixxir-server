@@ -16,7 +16,6 @@ import (
 
 // Holds long-lived server state
 type Instance struct {
-	id            *id.Node
 	roundManager  *round.Manager
 	network       *node.NodeComms
 	resourceQueue *ResourceQueue
@@ -55,7 +54,7 @@ func (i *Instance) GetNetwork() *node.NodeComms {
 
 //GetID returns the nodeID
 func (i *Instance) GetID() *id.Node {
-	return i.id.DeepCopy()
+	return i.params.NodeID.DeepCopy()
 }
 
 //GetPubKey returns the server DSA public key
@@ -90,11 +89,10 @@ func (i *Instance) InitLastNode() {
 
 // Create a server instance. To actually kick off the server,
 // call Run() on the resulting ServerIsntance.
-func CreateServerInstance(params conf.Params, nid *id.Node, db globals.UserRegistry) *Instance {
+func CreateServerInstance(params conf.Params, db globals.UserRegistry) *Instance {
 	instance := Instance{
 		roundManager:  round.NewManager(),
 		params:        params,
-		id:            nid,
 		resourceQueue: initQueue(),
 		userReg:       db,
 	}

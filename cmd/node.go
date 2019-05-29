@@ -206,8 +206,8 @@ func StartServer(vip *viper.Viper) {
 
 	// FIXME This way of getting the server index from the
 	// config file seems odd.
-	//serverIdx = viper.GetInt("index")
-	serverIndex := params.NodeID
+	serverIdx = viper.GetInt("index")
+	//serverIndex := params.NodeID
 
 	gateways := params.Gateways
 
@@ -225,7 +225,7 @@ func StartServer(vip *viper.Viper) {
 	dbAddresses := params.Database.Addresses
 
 	//dbAddress := ""
-	if (serverIndex >= 0) && (int(serverIndex) < len(dbAddresses)) {
+	if (serverIdx >= 0) && (int(serverIdx) < len(dbAddresses)) {
 		// There's a DB address for this server in the list and we can
 		// use it
 		//	dbAddress = dbAddresses[serverIndex]
@@ -265,7 +265,7 @@ func StartServer(vip *viper.Viper) {
 	jww.INFO.Print("Server list: " + serverList)
 
 	// Start mix servers on localServer
-	localServer := serverList[serverIndex]
+	localServer := serverList[serverIdx]
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap and waiting rounds queue
 	//globals.GlobalRoundMap = globals.NewRoundMap()

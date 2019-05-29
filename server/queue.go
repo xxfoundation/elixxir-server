@@ -85,7 +85,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 			err := handler()(server.GetNetwork(), curRound.GetBuffer().GetBatchSize(),
 				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetTopology(), server.id)
+				curRound.GetTopology(), server.params.NodeID)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",

@@ -554,17 +554,18 @@ func mockServerInstance() *server.Instance {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
-		},
-	}
 	// Create a user registry and make a user in it
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
 	nid := server.GenerateId()
-	instance := server.CreateServerInstance(params, nid, &globals.UserMap{})
+	params := conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+		NodeID: nid,
+	}
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
 
 	return instance
 }

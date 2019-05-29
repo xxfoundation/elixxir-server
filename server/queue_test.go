@@ -98,11 +98,12 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	// In this case, we actually need to set up and run the queue runner
 	q := initQueue()
 	params := conf.Params{
-		Groups:conf.Groups{
-			CMix:grp,
+		Groups: conf.Groups{
+			CMix: grp,
 		},
+		NodeID: id.NewNodeFromBytes([]byte{}),
 	}
-	instance := CreateServerInstance(params, id.NewNodeFromBytes([]byte{}), &globals.UserMap{})
+	instance := CreateServerInstance(params, &globals.UserMap{})
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase
@@ -184,8 +185,8 @@ func makeTestPhase(instance *Instance, name phase.Type,
 		roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 		getMessage phase.GetMessage, topology *circuit.Circuit,
 		nodeId *id.Node) error {
-        iWasCalled = true
-        return nil
+		iWasCalled = true
+		return nil
 	}
 	timeout := 500 * time.Millisecond
 	p := phase.New(makeTestGraph(instance, 1), name, transmissionHandler,

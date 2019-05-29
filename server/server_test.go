@@ -53,7 +53,10 @@ func TestInstance_GetNetwork(t *testing.T) {
 
 func TestInstance_GetID(t *testing.T) {
 	n := &id.Node{}
-	i := &Instance{id: n}
+	params := conf.Params{
+		NodeID: n,
+	}
+	i := &Instance{params: params}
 
 	if !reflect.DeepEqual(i.GetID(), n) {
 		t.Errorf("Instance.GetID: Returned incorrect " +
@@ -75,17 +78,19 @@ func mockServerInstance() *Instance {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
-		},
-	}
 	// Create a user registry and make a user in it
 	// Unfortunately, this has to time out the db connection before the rest
 	// of the test can run. It would be nice to have a method that only makes
 	// a user map to make tests run faster
 	nid := GenerateId()
-	instance := CreateServerInstance(params, nid, &globals.UserMap{})
+
+	params := conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+		NodeID: nid,
+	}
+	instance := CreateServerInstance(params, &globals.UserMap{})
 
 	return instance
 }
