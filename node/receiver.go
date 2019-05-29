@@ -50,7 +50,12 @@ func ReceivePostNewBatch(instance *server.Instance,
 	// return value of the PostNewBatch comm.
 	r, ok := instance.GetCompletedPrecomps().Pop()
 	if !ok {
-		return errors.New("ReceivePostNewBatch(): No precomputation available")
+		err := errors.New("ReceivePostNewBatch(): No precomputation available")
+		// This round should be at a state where its precomp is complete.
+		// So, we might want more than one phase,
+		// since it's at a boundary between phases.
+		jww.ERROR.Print(err)
+		return err
 	}
 	newBatch.Round.ID = uint64(r.GetID())
 	newBatch.ForPhase = int32(phase.RealDecrypt)
