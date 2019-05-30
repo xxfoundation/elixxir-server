@@ -37,10 +37,9 @@ func TestPhaseState_EnabledVerification(t *testing.T) {
 		getState: func() State {
 			return State(state)
 		},
-		connected: new(uint32),
+		connected:    new(uint32),
+		verification: true,
 	}
-
-	p.EnableVerification()
 
 	state = uint32(Available)
 	expected := Available

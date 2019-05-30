@@ -110,10 +110,11 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	// Is this the correct key for the map?
 	responseMap[phase.PrecompGeneration.String()] =
-		// Is the "rtn" parameter the phase that gets run on the next node? It
-		// would depend on topology, if my conjecture is correct...
-		// I also don't know what goes in expecteds.
-		phase.NewResponse(phase.PrecompGeneration, phase.PrecompGeneration)
+		phase.NewResponse(phase.ResponseDefinition{
+			phase.PrecompGeneration,
+			[]phase.State{phase.Available, phase.Queued, phase.Running},
+			phase.PrecompGeneration,
+		})
 
 	r := round.New(grp, roundID, []phase.Phase{p}, responseMap, circuit.New(
 		[]*id.Node{instance.GetID()}), instance.GetID(), 1)
@@ -189,8 +190,8 @@ func makeTestPhase(instance *Instance, name phase.Type,
 		return nil
 	}
 	timeout := 500 * time.Millisecond
-	p := phase.New(makeTestGraph(instance, 1), name, transmissionHandler,
-		timeout)
+	p := phase.New(phase.Definition{makeTestGraph(instance, 1), name, transmissionHandler,
+		timeout, false})
 	return p
 }
 

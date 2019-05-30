@@ -54,9 +54,11 @@ func TestNew(t *testing.T) {
 		return nil
 	}
 
-	phases = append(phases, phase.New(initMockGraph(services.
-		NewGraphGenerator(1, nil, 1, 1, 1)),
-		phase.RealPermute, handler, time.Minute))
+	phases = append(phases, phase.New(phase.Definition{initMockGraph(services.
+		NewGraphGenerator(1, nil, 1,
+			1, 1)),
+		phase.RealPermute, handler, time.Minute,
+		false}))
 
 	topology := circuit.New([]*id.Node{&id.Node{}})
 

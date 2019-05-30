@@ -13,22 +13,21 @@ import (
 //An interface which phase adheres to.  For use within
 //Handler testing to allow the interface to be overwritten
 type Phase interface {
-	EnableVerification()
 	ConnectToRound(id id.Round, setState Transition,
 		getState GetState)
 	GetGraph() *services.Graph
 	GetRoundID() id.Round
 	GetType() Type
+	GetTransmissionHandler() Transmit
+	GetTimeout() time.Duration
 	GetState() State
 	AttemptTransitionToQueued() bool
 	TransitionToRunning()
 	UpdateFinalStates() bool
-	GetTransmissionHandler() Transmit
-	GetTimeout() time.Duration
-	Cmp(Phase) bool
-	String() string
 	Send(chunk services.Chunk)
 	Input(index uint32, slot *mixmessages.Slot) error
+	Cmp(Phase) bool
+	String() string
 }
 
 // Holds a single phase to be executed by the server in a round
@@ -48,30 +47,22 @@ type phase struct {
 	verification bool
 }
 
-// New makes a new phase with the given graph, phase.Name, transmission handler, and timeout
-func New(g *services.Graph, name Type, tHandler Transmit, timeout time.Duration) Phase {
+// New makes a new phase with the given the phase definition structure
+// containing the graph, phase.Name, transmission handler, timeout, and
+// verification flag
+func New(def Definition) Phase {
 	connected := uint32(0)
 	return &phase{
-		graph:               g,
-		tYpe:                name,
-		transmissionHandler: tHandler,
-		timeout:             timeout,
+		graph:               def.Graph,
+		tYpe:                def.Type,
+		transmissionHandler: def.TransmissionHandler,
+		timeout:             def.Timeout,
+		verification:        def.DoVerification,
 		connected:           &connected,
 	}
 }
 
 /* Setters */
-// EnableVerification sets the internal variable phase.verification to true which
-// ensures the system will require an extra state before completing the phase
-func (p *phase) EnableVerification() {
-	if atomic.LoadUint32(p.connected) == 0 {
-		p.verification = true
-	} else {
-		jww.FATAL.Printf("Cannot set verification to true on phase %s"+
-			"Because it is connected to round %v",
-			p.GetType(), p.GetRoundID())
-	}
-}
 
 // ConnectToRound sets the round ID.  Can only be called once.
 // Should only be called from Round package that initializes states

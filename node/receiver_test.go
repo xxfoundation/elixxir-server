@@ -7,27 +7,211 @@
 package node
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"reflect"
+	"runtime"
 	"testing"
+	"time"
 )
 
 var receivedBatch *mixmessages.Batch
 
+func TestNewImplementation_PostPhase(t *testing.T) {
+	batchSize := uint32(11)
+	roundID := id.Round(0)
+
+	grp := initImplGroup()
+	nid := server.GenerateId()
+	params := conf.Params{
+		Groups: conf.Groups{CMix: grp},
+		NodeID: nid,
+	}
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	mockPhase := initMockPhase()
+
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
+		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
+			[]phase.State{phase.Available}, mockPhase.GetType()})
+
+	topology := buildMockTopology(2)
+
+	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
+		topology, topology.GetNodeAtIndex(0), batchSize)
+
+	instance.GetRoundManager().AddRound(r)
+
+	// get the impl
+	impl := NewImplementation(instance)
+
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{}
+
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				MessagePayload: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.ForPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	//send the mockBatch to the impl
+	impl.PostPhase(mockBatch)
+
+	//check the mock phase to see if the correct result has been stored
+	for index := range mockBatch.Slots {
+		if mockPhase.chunks[index].Begin() != uint32(index) {
+			t.Errorf("PostPhase: output chunk not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+		}
+
+		if mockPhase.indices[index] != uint32(index) {
+			t.Errorf("PostPhase: output index  not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+		}
+	}
+
+	var queued bool
+
+	select {
+	case <-instance.GetResourceQueue().GetQueue():
+		queued = true
+	default:
+		queued = false
+	}
+
+	if !queued {
+		t.Errorf("PostPhase: The phase was not queued properly")
+	}
+}
+
+/* Mock Graph */
+type mockCryptop struct{}
+
+func (*mockCryptop) GetName() string      { return "mockCryptop" }
+func (*mockCryptop) GetInputSize() uint32 { return 1 }
+
+type mockStream struct{}
+
+func (*mockStream) Input(uint32, *mixmessages.Slot) error { return nil }
+func (*mockStream) Output(uint32) *mixmessages.Slot       { return nil }
+func (*mockStream) GetName() string {
+	return "mockStream"
+}
+func (*mockStream) Link(*cyclic.Group, uint32, ...interface{}) {}
+
+/*Mock Phase*/
+type MockPhase struct {
+	graph        *services.Graph
+	chunks       []services.Chunk
+	indices      []uint32
+	stateChecker phase.GetState
+	Ptype        phase.Type
+}
+
+func (mp *MockPhase) Send(chunk services.Chunk) {
+	mp.chunks = append(mp.chunks, chunk)
+}
+
+func (mp *MockPhase) Input(index uint32, slot *mixmessages.Slot) error {
+	if len(slot.Salt) != 0 {
+		return errors.New("error to test edge case")
+	}
+	mp.indices = append(mp.indices, index)
+	return nil
+}
+
+func (mp *MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
+	getState phase.GetState) {
+	mp.stateChecker = getState
+	return
+}
+
+func (mp *MockPhase) GetState() phase.State     { return mp.stateChecker() }
+func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
+
+func (*MockPhase) EnableVerification()                    { return }
+func (*MockPhase) GetRoundID() id.Round                   { return 0 }
+func (mp *MockPhase) GetType() phase.Type                 { return mp.Ptype }
+func (*MockPhase) AttemptTransitionToQueued() bool        { return true }
+func (*MockPhase) TransitionToRunning()                   { return }
+func (*MockPhase) UpdateFinalStates() bool                { return false }
+func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
+func (*MockPhase) GetTimeout() time.Duration              { return 0 }
+func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
+func (*MockPhase) String() string                         { return "" }
+
+func initMockPhase() *MockPhase {
+	gc := services.NewGraphGenerator(1, nil, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
+	g := gc.NewGraph("MockGraph", &mockStream{})
+	var mockModule services.Module
+	mockModule.Adapt = func(stream services.Stream,
+		cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		return nil
+	}
+	mockModule.Cryptop = &mockCryptop{}
+	mockModuleCopy := mockModule.DeepCopy()
+	g.First(mockModuleCopy)
+	g.Last(mockModuleCopy)
+	return &MockPhase{graph: g}
+}
+
+func initImplGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	return grp
+}
+
+func buildMockTopology(numNodes int) *circuit.Circuit {
+	var nodeIDs []*id.Node
+
+	//Build IDs
+	for i := 0; i < numNodes; i++ {
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeIDs = append(nodeIDs, nodeID)
+	}
+
+	//Build the topology
+	return circuit.New(nodeIDs)
+}
+
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
+	grp := initImplGroup()
 	topology := buildMockTopology(5)
 
-	params := initParams()
-	params.NodeID = topology.GetNodeAtIndex(1)
+	params := conf.Params{
+		Groups: conf.Groups{CMix: grp},
+		NodeID: topology.GetNodeAtIndex(1),
+	}
 
 	instance := server.CreateServerInstance(params, &globals.UserMap{})
-	grp := instance.GetGroup()
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -37,9 +221,12 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	tagKey := mockPhase.GetType().String() + "Verification"
 	responseMap := make(phase.ResponseMap)
-	responseMap[tagKey] =
-		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
-			phase.Available)
+	responseMap[tagKey] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Available},
+			PhaseToExecute: mockPhase.GetType()},
+	)
 
 	// Skip first node
 	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
@@ -91,12 +278,15 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
+	grp := initImplGroup()
 	topology := buildMockTopology(5)
 
-	params := initParams()
-	params.NodeID = topology.GetNodeAtIndex(0)
+	params := conf.Params{
+		Groups: conf.Groups{CMix: grp},
+		NodeID: topology.GetNodeAtIndex(0),
+	}
+
 	instance := server.CreateServerInstance(params, &globals.UserMap{})
-	grp := instance.GetGroup()
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -106,9 +296,12 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	tagKey := mockPhase.GetType().String() + "Verification"
 	responseMap := make(phase.ResponseMap)
-	responseMap[tagKey] =
-		phase.NewResponse(mockPhase.GetType(), mockPhase.GetType(),
-			phase.Available)
+	responseMap[tagKey] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Available},
+			PhaseToExecute: mockPhase.GetType()},
+	)
 
 	// Don't skip first node
 	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
@@ -207,10 +400,14 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 			t.Error("There was no panic when an invalid round was passed")
 		}
 	}()
+	grp := initImplGroup()
 	topology := buildMockTopology(5)
 
-	params := initParams()
-	params.NodeID = topology.GetNodeAtIndex(0)
+	params := conf.Params{
+		Groups: conf.Groups{CMix: grp},
+		NodeID: topology.GetNodeAtIndex(0),
+	}
+
 	instance := server.CreateServerInstance(params, &globals.UserMap{})
 
 	// We haven't set anything up,
@@ -226,18 +423,23 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 // number of slots in the message
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-
+	grp := initImplGroup()
 	topology := buildMockTopology(5)
-	params := initParams()
-	params.NodeID = topology.GetNodeAtIndex(0)
 
+	params := conf.Params{
+		Groups: conf.Groups{CMix: grp},
+		NodeID: topology.GetNodeAtIndex(0),
+	}
 	instance := server.CreateServerInstance(params, &globals.UserMap{})
-	grp := instance.GetGroup()
 
 	roundID := id.Round(45)
 	// Is this the right setup for the response?
-	response := phase.NewResponse(phase.PrecompReveal, phase.PrecompReveal,
-		phase.Available)
+	response := phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  phase.PrecompReveal,
+			ExpectedStates: []phase.State{phase.Available},
+			PhaseToExecute: phase.PrecompReveal},
+	)
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompReveal.String()+"Verification"] = response
 	// This is quite a bit of setup...
@@ -261,14 +463,18 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 func TestPostPrecompResultFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
-	params := initParams()
 	const numNodes = 5
 	topology := buildMockTopology(numNodes)
 
 	// Set up all the instances
 	var instances []*server.Instance
 	for i := 0; i < numNodes; i++ {
-		params.NodeID = topology.GetNodeAtIndex(i)
+
+		params := conf.Params{
+			Groups: conf.Groups{CMix: grp},
+			NodeID: topology.GetNodeAtIndex(i),
+		}
+
 		instances = append(instances, server.CreateServerInstance(
 			params, &globals.UserMap{}))
 	}
@@ -277,8 +483,11 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Set up a round on all the instances
 	roundID := id.Round(45)
 	for i := 0; i < numNodes; i++ {
-		response := phase.NewResponse(phase.PrecompReveal, phase.PrecompReveal,
-			phase.Available)
+		response := phase.NewResponse(phase.ResponseDefinition{
+			PhaseAtSource:  phase.PrecompReveal,
+			ExpectedStates: []phase.State{phase.Available},
+			PhaseToExecute: phase.PrecompReveal})
+
 		responseMap := make(phase.ResponseMap)
 		responseMap[phase.PrecompReveal.String()+"Verification"] = response
 		// This is quite a bit of setup...
@@ -321,78 +530,68 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	}
 }
 
-// Shows that ReceivePostPrecompResult panics when the round isn't in
-// the round manager
-func TestFinishRealtimeFunc_Error_NoRound(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("There was no panic when an invalid round was passed")
-		}
-	}()
-
-	topology := buildMockTopology(5)
-
-	params := initParams()
-	params.NodeID = topology.GetNodeAtIndex(0)
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
-	// We haven't set anything up,
-	// so this should panic because the round can't be found
-	err := ReceiveFinishRealtime(instance, &mixmessages.RoundInfo{})
-
-	if err == nil {
-		t.Error("Didn't get an error from a nonexistent round")
-	}
-}
-
-// Shows that FinishRealtime correctly terminates the round
-func TestFinishRealtimeFunc(t *testing.T) {
+func TestReceiveFinishRealtime(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
-	params := initParams()
 	const numNodes = 5
 	topology := buildMockTopology(numNodes)
 
-	// Set up all the instances
-	var instances []*server.Instance
-	for i := 0; i < numNodes; i++ {
-		params.NodeID = topology.GetNodeAtIndex(i)
-		instances = append(instances, server.CreateServerInstance(
-			params, &globals.UserMap{}))
-	}
-	instances[0].InitFirstNode()
-
-	// Set up a round on all the instances
-	roundID := id.Round(42)
-	for i := 0; i < numNodes; i++ {
-		response := phase.NewResponse(phase.RealPermute, phase.RealPermute,
-			phase.Available)
-		responseMap := make(phase.ResponseMap)
-		responseMap[phase.RealPermute.String()+"Verification"] = response
-		// This is quite a bit of setup...
-		p := initMockPhase()
-		p.Ptype = phase.RealPermute
-		instances[i].GetRoundManager().AddRound(round.New(grp, roundID,
-			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3))
+	// Set instance for first node
+	params := conf.Params{
+		Groups: conf.Groups{CMix: grp},
+		NodeID: topology.GetNodeAtIndex(0),
 	}
 
-	// Call the FinishRealtime receive handler on each node
-	for i := 0; i < numNodes; i++ {
-		err := ReceiveFinishRealtime(instances[i],
-			&mixmessages.RoundInfo{
-				ID: uint64(roundID),
-			})
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance.InitFirstNode()
 
-		if err != nil {
-			t.Errorf("Error finishing realtime on node %v: %v", i, err)
-		}
+	// Set up a round first node
+	roundID := id.Round(45)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Available},
+		PhaseToExecute: phase.RealPermute})
+
+	responseMap := make(phase.ResponseMap)
+	responseMap["Completed"] = response
+
+	p := initMockPhase()
+	p.Ptype = phase.RealPermute
+
+	rnd := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3)
+
+	instance.GetRoundManager().AddRound(rnd)
+
+	// Initially, there should be zero rounds on the precomp queue
+	if len(instance.GetFinishedRounds()) != 0 {
+		t.Error("Expected completed precomps to be empty")
 	}
 
-	// Confirm that the round doesn't exist anymore in any of the nodes
-	for i := 0; i < numNodes; i++ {
-		_, err := instances[i].GetRoundManager().GetRound(roundID)
+	var err error
 
-		if err == nil {
-			t.Errorf("Expected round to not exist on node %v", i)
-		}
+	info := mixmessages.RoundInfo{
+		ID: uint64(roundID),
+	}
+
+	go func() {
+		err = ReceiveFinishRealtime(instance, &info)
+	}()
+
+	var finishedRoundID id.Round
+
+	select {
+	case finishedRoundID = <-instance.GetFinishedRounds():
+	case <-time.After(2 * time.Second):
+	}
+
+	if err != nil {
+		t.Errorf("ReceiveFinishRealtime: errored: %+v", err)
+	}
+
+	if finishedRoundID != roundID {
+		t.Errorf("ReceiveFinishRealtime: Expected round %v to finish, "+
+			"recieved %v", roundID, finishedRoundID)
 	}
 }

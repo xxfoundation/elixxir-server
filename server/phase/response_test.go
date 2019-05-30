@@ -9,35 +9,36 @@ var lookup = Type(0)
 var rtn = Type(1)
 var expecteds = []State{2, 3, 4}
 
-//Tests that the NewResponse returns the expected response
+//Tests that the NewResponse returns the expected ResponseDefinition
 func TestNewCMIXResponse(t *testing.T) {
-	rFace := NewResponse(lookup, rtn, expecteds...)
+	rFace := NewResponse(ResponseDefinition{lookup,
+		expecteds, rtn})
 
 	rExpected := buildTestResponse()
 
-	r := rFace.(response)
+	r := rFace.(ResponseDefinition)
 
 	if !reflect.DeepEqual(r, rExpected) {
 		t.Errorf("NewCMIXResponce: New Responce not the expected")
 	}
 }
 
-//Checks that GetPhaseLookup returns the correct response
+//Checks that GetPhaseLookup returns the correct ResponseDefinition
 func TestCMixResponse_GetPhaseLookup(t *testing.T) {
 	r := buildTestResponse()
 
 	if r.GetPhaseLookup() != lookup {
-		t.Errorf("response.GetPhaseLookup: Expected: %s, Recieved:%s",
+		t.Errorf("ResponseDefinition.GetPhaseLookup: Expected: %s, Recieved:%s",
 			lookup, r.GetPhaseLookup())
 	}
 }
 
-//Checks that GetReturnPhase returns the correct response
+//Checks that GetReturnPhase returns the correct ResponseDefinition
 func TestCMixResponse_GetReturnPhase(t *testing.T) {
 	r := buildTestResponse()
 
 	if r.GetReturnPhase() != rtn {
-		t.Errorf("response.GetReturnPhase: Expected: %s, Recieved:%s",
+		t.Errorf("ResponseDefinition.GetReturnPhase: Expected: %s, Recieved:%s",
 			rtn, r.GetReturnPhase())
 	}
 }
@@ -47,11 +48,11 @@ func TestCMixResponse_CheckState(t *testing.T) {
 	r := buildTestResponse()
 
 	if !r.CheckState(expecteds[0]) {
-		t.Errorf("response.CheckState: Returned false with valid state")
+		t.Errorf("ResponseDefinition.CheckState: Returned false with valid state")
 	}
 
 	if r.CheckState(State(55)) {
-		t.Errorf("response.CheckState: Returned true with invalid state")
+		t.Errorf("ResponseDefinition.CheckState: Returned true with invalid state")
 	}
 
 }
@@ -60,20 +61,20 @@ func TestCMixResponse_CheckState(t *testing.T) {
 func TestCMixResponse_String(t *testing.T) {
 	r := buildTestResponse()
 
-	expected := "phase.Responce{phaseLookup: 'PrecompGeneration', returnPhase:" +
-		"'PrecompShare', expectedStates: {'Queued', 'Running', 'Computed'}}"
+	expected := "phase.Responce{PhaseAtSource: 'PrecompGeneration', PhaseToExecute:" +
+		"'PrecompShare', ExpectedStates: {'Queued', 'Running', 'Computed'}}"
 
 	if r.String() != expected {
-		t.Error("response.String: Did not return the correct string")
+		t.Error("ResponseDefinition.String: Did not return the correct string")
 	}
 
 }
 
-//builds a response for testing
-func buildTestResponse() response {
-	return response{
-		phaseLookup:    lookup,
-		returnPhase:    rtn,
-		expectedStates: expecteds,
+//builds a ResponseDefinition for testing
+func buildTestResponse() ResponseDefinition {
+	return ResponseDefinition{
+		PhaseAtSource:  lookup,
+		PhaseToExecute: rtn,
+		ExpectedStates: expecteds,
 	}
 }
