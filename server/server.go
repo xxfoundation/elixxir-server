@@ -10,28 +10,27 @@ import (
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/round"
 )
 
 // Holds long-lived server state
 type Instance struct {
-	id            *id.Node
 	roundManager  *round.Manager
 	network       *node.NodeComms
 	resourceQueue *ResourceQueue
-	grp           *cyclic.Group
 	userReg       globals.UserRegistry
 	pubKey        *signature.DSAPublicKey
 	privKey       *signature.DSAPrivateKey
 	regPubKey     *signature.DSAPublicKey
-	skipReg       bool
 	firstNode
 	lastNode
+	params conf.Params
 }
 
-//GetGroup returns the group used by the server
+//GetGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
-	return i.grp
+	return i.params.Groups.CMix
 }
 
 //GetUserRegistry returns the user registry used by the server
@@ -55,7 +54,7 @@ func (i *Instance) GetNetwork() *node.NodeComms {
 
 //GetID returns the nodeID
 func (i *Instance) GetID() *id.Node {
-	return i.id.DeepCopy()
+	return i.params.NodeID.DeepCopy()
 }
 
 //GetPubKey returns the server DSA public key
@@ -75,7 +74,7 @@ func (i *Instance) GetRegPubKey() *signature.DSAPublicKey {
 
 //GetSkipReg returns the skipReg parameter
 func (i *Instance) GetSkipReg() bool {
-	return i.skipReg
+	return i.params.SkipReg
 }
 
 //Initializes the first node components of the instance
@@ -90,11 +89,10 @@ func (i *Instance) InitLastNode() {
 
 // Create a server instance. To actually kick off the server,
 // call Run() on the resulting ServerIsntance.
-func CreateServerInstance(grp *cyclic.Group, nid *id.Node, db globals.UserRegistry) *Instance {
+func CreateServerInstance(params conf.Params, db globals.UserRegistry) *Instance {
 	instance := Instance{
 		roundManager:  round.NewManager(),
-		grp:           grp,
-		id:            nid,
+		params:        params,
 		resourceQueue: initQueue(),
 		userReg:       db,
 	}
@@ -102,6 +100,7 @@ func CreateServerInstance(grp *cyclic.Group, nid *id.Node, db globals.UserRegist
 	// Create a node id object with the random bytes
 	// Generate DSA Private/Public key pair
 	rng := csprng.NewSystemRNG()
+	grp := params.Groups.CMix
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	instance.privKey = dsaParams.PrivateKeyGen(rng)
 	instance.pubKey = instance.privKey.PublicKeyGen()
@@ -116,7 +115,7 @@ func CreateServerInstance(grp *cyclic.Group, nid *id.Node, db globals.UserRegist
 			"9b5591765b530f5859fa97b22ce9b51385d3d13088795b2f9fd0cb59357fe938"+
 			"346117df2acf2bab22d942de1a70e8d5d62fc0e99d8742a0f16df94ce3a0abbb", 16))
 	// TODO: For now set this to false, but value should come from config file
-	instance.skipReg = false
+	instance.params.SkipReg = false
 
 	return &instance
 }

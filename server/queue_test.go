@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -96,17 +97,24 @@ func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 func TestResourceQueue_RunOne(t *testing.T) {
 	// In this case, we actually need to set up and run the queue runner
 	q := initQueue()
-	instance := CreateServerInstance(grp, id.NewNodeFromBytes([]byte{}), &globals.UserMap{})
+	params := conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+		NodeID: id.NewNodeFromBytes([]byte{}),
+	}
+	instance := CreateServerInstance(params, &globals.UserMap{})
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase
 	responseMap := make(phase.ResponseMap)
 	// Is this the correct key for the map?
 	responseMap[phase.PrecompGeneration.String()] =
-		// Is the "rtn" parameter the phase that gets run on the next node? It
-		// would depend on topology, if my conjecture is correct...
-		// I also don't know what goes in expecteds.
-		phase.NewResponse(phase.PrecompGeneration, phase.PrecompGeneration)
+		phase.NewResponse(phase.ResponseDefinition{
+			phase.PrecompGeneration,
+			[]phase.State{phase.Available, phase.Queued, phase.Running},
+			phase.PrecompGeneration,
+		})
 
 	r := round.New(grp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
 		responseMap, circuit.New(
@@ -183,8 +191,8 @@ func makeTestPhase(instance *Instance, name phase.Type,
 		return nil
 	}
 	timeout := 500 * time.Millisecond
-	p := phase.New(makeTestGraph(instance, 1), name, transmissionHandler,
-		timeout)
+	p := phase.New(phase.Definition{makeTestGraph(instance, 1), name, transmissionHandler,
+		timeout, false})
 	return p
 }
 

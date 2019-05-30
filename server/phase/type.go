@@ -42,6 +42,9 @@ const (
 // Number of phases
 const NUM_PHASES Type = PhaseError + 1
 
+//Verification text
+const Verification = "Verification"
+
 //Array used to get the phase Names for Printing
 var typeStrings = [NUM_PHASES]string{"PrecompGeneration",
 	"PrecompShare", "PrecompDecrypt", "PrecompPermute",

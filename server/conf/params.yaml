@@ -1,0 +1,34 @@
+---
+# Example yaml params file used for testing
+# the params object and its dependencies
+database:
+  name: "name"
+  username: "username"
+  password: "password"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+groups:
+  cmix:
+    prime: "17"
+    smallprime: "11"
+    generator: "4"
+  e2e:
+    prime: "0x11"
+    smallprime: "0x0B"
+    generator: "0x04"
+paths:
+  cert: "~/.elixxir/cert.crt"
+  key:  "~/.elixxir/key.pem"
+  log:  "~/.elixxir/server.log"
+servers:
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+gateways:
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+skipReg: true
+...

@@ -2,6 +2,7 @@ package server
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/round"
 	"sync"
 )
@@ -12,6 +13,8 @@ type firstNode struct {
 	// This struct handles rounds that have finished precomputation and are
 	// ready to run realtime
 	readyRounds *PrecompBuffer
+
+	finishedRound chan id.Round
 }
 
 type PrecompBuffer struct {
@@ -29,6 +32,7 @@ func (fn *firstNode) Initialize() {
 			//PushSignal: make(chan struct{}, 1),
 			PushSignal: make(chan struct{}),
 		}
+		fn.finishedRound = make(chan id.Round)
 	})
 }
 
@@ -38,6 +42,14 @@ func (fn *firstNode) GetNewBatchQueue() chan *mixmessages.Batch {
 
 func (fn *firstNode) GetCompletedPrecomps() *PrecompBuffer {
 	return fn.readyRounds
+}
+
+func (fn *firstNode) GetFinishedRounds() chan id.Round {
+	return fn.finishedRound
+}
+
+func (fn *firstNode) FinishRound(id id.Round) {
+	fn.finishedRound <- id
 }
 
 // Completes the precomputation for a round, and notifies someone who's waiting
@@ -65,19 +77,4 @@ func (r *PrecompBuffer) Pop() (*round.Round, bool) {
 	default:
 		return nil, false
 	}
-}
-
-type lastNode struct {
-	once                sync.Once
-	completedBatchQueue chan *mixmessages.Batch
-}
-
-func (ln *lastNode) Initialize() {
-	ln.once.Do(func() {
-		ln.completedBatchQueue = make(chan *mixmessages.Batch, 10)
-	})
-}
-
-func (ln *lastNode) GetCompletedBatchQueue() chan *mixmessages.Batch {
-	return ln.completedBatchQueue
 }

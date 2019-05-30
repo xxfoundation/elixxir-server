@@ -142,7 +142,8 @@ func TestPhase_ConnectToRound(t *testing.T) {
 
 	timeout := 50 * time.Second
 
-	pFace := New(nil, RealPermute, nil, timeout)
+	pFace := New(Definition{nil, RealPermute, nil,
+		timeout, false})
 
 	p := pFace.(*phase)
 
@@ -204,7 +205,8 @@ func TestPhase_ConnectToRound(t *testing.T) {
 	}
 
 	if p.GetState() != Initialized {
-		t.Error("State was changed from Initialized to incorrect value ", p.GetState())
+		t.Error("State was changed from Initialized to incorrect value ",
+			p.GetState())
 	}
 
 	p.TransitionToRunning()
@@ -225,7 +227,8 @@ func TestNew(t *testing.T) {
 	timeout := 50 * time.Second
 	// Testing whether the graph error handler is reachable is outside of the
 	// scope of this test
-	g := initMockGraph(services.NewGraphGenerator(1, nil, 1, 1, 1))
+	g := initMockGraph(services.NewGraphGenerator(1, nil,
+		1, 1, 1))
 	pass := false
 
 	transmit := func(network *node.NodeComms, batchSize uint32,
@@ -235,9 +238,10 @@ func TestNew(t *testing.T) {
 		return nil
 	}
 
-	phase := New(g, RealPermute, transmit, timeout)
-	err := phase.GetTransmissionHandler()(nil, 0, 0, 0, nil,
-		nil, nil, nil)
+	phase := New(Definition{g, RealPermute, transmit,
+		timeout, false})
+	err := phase.GetTransmissionHandler()(nil, 0, 0,
+		0, nil, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Transmission handler returned an error, how!? %+v", err)

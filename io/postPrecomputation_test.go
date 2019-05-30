@@ -98,16 +98,16 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 			MockPostPrecompResultImplementation(precompReceiver, roundReceiver),
 			MockPostPrecompResultImplementation(precompReceiver, roundReceiver),
 			MockPostPrecompResultImplementation(precompReceiver, roundReceiver),
-			MockPostPrecompResultImplementation(precompReceiver, roundReceiver)}, 40)
+			MockPostPrecompResultImplementation(precompReceiver, roundReceiver)}, 50)
 	defer Shutdown(comms)
 
 	rndID := id.Round(42)
 	batchSize := uint32(5)
-	err := TransmitPostPrecompResult(comms[numNodes-1], batchSize,
+	err := TransmitPrecompResult(comms[numNodes-1], batchSize,
 		rndID, phase.PrecompReveal, nil, getMockPostPrecompSlot, topology, nil)
 
 	if err != nil {
-		t.Errorf("TransmitPostPrecompResult: Unexpected error: %+v", err)
+		t.Errorf("TransmitPrecompResult: Unexpected error: %+v", err)
 	}
 
 	// Make sure that everything that was supposed to come through does come
@@ -118,7 +118,7 @@ Loop:
 		// TODO also receive from the precomp receiver
 		case receivedRoundID := <-roundReceiver:
 			if receivedRoundID != uint64(rndID) {
-				t.Errorf("TransmitPostPrecompResult: Incorrect round ID"+
+				t.Errorf("TransmitPrecompResult: Incorrect round ID"+
 					"Expected: %v, Received: %v", rndID, receivedRoundID)
 			}
 			numReceivedRounds++
