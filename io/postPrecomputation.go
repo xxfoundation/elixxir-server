@@ -12,10 +12,10 @@ import (
 	"sync"
 )
 
-// The last node (?) transmits the precomputation to all nodes but the first,
-// then the first node, after precomp strip
+// TransmitPrecompResult: The last node transmits the precomputation to all
+// nodes but the first, then the first node, after precomp strip
 // TODO Set this as the transmission handler for precomp strip?
-func TransmitPostPrecompResult(network *node.NodeComms, batchSize uint32,
+func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
 	nodeID *id.Node) error {

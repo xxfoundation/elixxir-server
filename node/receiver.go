@@ -17,6 +17,8 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 )
 
+// ReceivePostPhase handles the state checks and edge checks of receiving a
+// phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	rm := instance.GetRoundManager()
@@ -30,6 +32,13 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 	//queue the phase to be operated on if it is not queued yet
 	if p.AttemptTransitionToQueued() {
 		instance.GetResourceQueue().UpsertPhase(p)
+	}
+
+	//HACK HACK HACK
+	//The share phase needs a batchsize of 1, when it recieves from generation
+	//on the first node this will do the conversion on the batch
+	if p.GetType() == phase.PrecompShare && len(batch.Slots) != 1 {
+		batch.Slots = batch.Slots[:1]
 	}
 
 	//send the data to the phase
@@ -97,6 +106,8 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	}
 }
 
+// ReceivePostPrecompResult handles the state checks and edge checks of
+// receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot) error {
 	rm := instance.GetRoundManager()
@@ -120,20 +131,32 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	return nil
 }
 
+// ReceiveFinishRealtime handles the state checks and edge checks of
+// receiving the signal that the realtime has completed
 func ReceiveFinishRealtime(instance *server.Instance,
-	message *mixmessages.RoundInfo) error {
+	msg *mixmessages.RoundInfo) error {
+
+	//check that the round should have finished and return it
+	roundID := id.Round(msg.ID)
+
 	rm := instance.GetRoundManager()
-	roundID := message.ID
-	tag := phase.RealPermute.String() + "Verification"
-	_, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
+
+	tag := "Completed"
+	rnd, _, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
+		return err
 	}
-	err = io.FinishRealtime(rm, id.Round(roundID))
-	if err != nil {
-		return errors.Wrapf(err,
-			"Couldn't finish realtime for round %v", roundID)
+
+	//release the round's data
+	rnd.GetBuffer().Erase()
+
+	//delete the round from the manager
+	rm.DeleteRound(roundID)
+
+	//Send the finished signal on first node
+	if rnd.GetTopology().IsFirstNode(instance.GetID()) {
+		instance.FinishRound(roundID)
 	}
-	instance.GetResourceQueue().DenotePhaseCompletion(p)
+
 	return nil
 }

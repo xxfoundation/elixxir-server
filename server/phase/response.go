@@ -4,49 +4,51 @@ import (
 	"fmt"
 )
 
-// Response describes how the round should act when given an input coming
-// from a specific phase.  The specific phase is looked up in the
-// ResponseMap and the specifics are used to determine how to proceed
+// Response defines how a round should handle an incoming communication
+// That communication describes itself as being the completion on a phase
 type ResponseMap map[string]Response
 
 type Response interface {
 	CheckState(State) bool
 	GetPhaseLookup() Type
-	GetReturnPhase() Type
 	GetExpectedStates() []State
+	GetReturnPhase() Type
 	fmt.Stringer
 }
 
-type response struct {
-	phaseLookup    Type
-	returnPhase    Type
-	expectedStates []State
+type ResponseDefinition struct {
+	// PhaseAtSource is the phase a communication is the result of.
+	PhaseAtSource Type
+	// ExpectedStates are the states that phase must be in locally to proceed
+	ExpectedStates []State
+	// PhaseToExecute is the phase to execute locally
+	PhaseToExecute Type
 }
 
-//NewResponse Builds a new CMIX phase response adhering to the Response interface
-func NewResponse(lookup, rtn Type, expecteds ...State) Response {
-	return response{phaseLookup: lookup, returnPhase: rtn, expectedStates: expecteds}
+//NewResponse Builds a new CMIX phase ResponseDefinition adhering to the Response interface
+func NewResponse(def ResponseDefinition) Response {
+	return def.deepCopy()
 }
 
-//GetPhaseLookup Returns the phaseLookup
-func (r response) GetPhaseLookup() Type {
-	return r.phaseLookup
+//GetPhaseLookup Returns the PhaseAtSource
+func (r ResponseDefinition) GetPhaseLookup() Type {
+	return r.PhaseAtSource
 }
 
-//GetReturnPhase returns the returnPhase
-func (r response) GetReturnPhase() Type {
-	return r.returnPhase
+//GetReturnPhase returns the PhaseToExecute
+func (r ResponseDefinition) GetReturnPhase() Type {
+	return r.PhaseToExecute
 }
 
 //GetExpectedStates returns the expected states as a slice
-func (r response) GetExpectedStates() []State {
-	return r.expectedStates
+func (r ResponseDefinition) GetExpectedStates() []State {
+	return r.ExpectedStates
 }
 
 // CheckState returns true if the passed state is in
 // the expected states list, otherwise it returns false
-func (r response) CheckState(state State) bool {
-	for _, expected := range r.expectedStates {
+func (r ResponseDefinition) CheckState(state State) bool {
+	for _, expected := range r.ExpectedStates {
 		if state == expected {
 			return true
 		}
@@ -56,15 +58,27 @@ func (r response) CheckState(state State) bool {
 }
 
 // String adheres to the stringer interface
-func (r response) String() string {
+func (r ResponseDefinition) String() string {
 	validStates := "{'"
 
-	for _, s := range r.expectedStates[:len(r.expectedStates)-1] {
+	for _, s := range r.ExpectedStates[:len(r.ExpectedStates)-1] {
 		validStates += s.String() + "', '"
 	}
 
-	validStates += r.expectedStates[len(r.expectedStates)-1].String() + "'}"
+	validStates += r.ExpectedStates[len(r.ExpectedStates)-1].String() + "'}"
 
-	return fmt.Sprintf("phase.Responce{phaseLookup: '%s', returnPhase:'%s', expectedStates: %s}",
-		r.phaseLookup, r.returnPhase, validStates)
+	return fmt.Sprintf("phase.Responce{PhaseAtSource: '%s', PhaseToExecute:'%s', ExpectedStates: %s}",
+		r.PhaseAtSource, r.PhaseToExecute, validStates)
+}
+
+//deepCopy Creates a deep copy of the ResponseDefinition
+func (rd ResponseDefinition) deepCopy() ResponseDefinition {
+	rdNew := ResponseDefinition{
+		PhaseAtSource:  rd.PhaseAtSource,
+		PhaseToExecute: rd.PhaseToExecute,
+		ExpectedStates: make([]State, len(rd.ExpectedStates)),
+	}
+
+	copy(rdNew.ExpectedStates, rd.ExpectedStates)
+	return rdNew
 }

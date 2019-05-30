@@ -11,10 +11,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
 	"testing"
 	"time"
 )
@@ -58,7 +55,7 @@ func MockFinishRealtimeImplementation() *node.Implementation {
 
 // Test that TransmitFinishRealtime correctly broadcasts message
 // to all other nodes
-func TestTransmitFinishRealtime(t *testing.T) {
+func TestSendFinishRealtime(t *testing.T) {
 	//Setup the network
 	numNodes := 4
 	numRecv := 0
@@ -72,11 +69,11 @@ func TestTransmitFinishRealtime(t *testing.T) {
 	defer Shutdown(comms)
 
 	rndID := id.Round(42)
-	err := TransmitFinishRealtime(comms[0], 5, rndID,
-		phase.RealPermute, nil, nil, topology, nil)
+	err := TransmitFinishRealtime(comms[0], 0, rndID, 0,
+		nil, nil, topology, nil)
 
 	if err != nil {
-		t.Errorf("SendFinishRealtime: Unexpected error: %+v", err)
+		t.Errorf("TransmitFinishRealtime: Unexpected error: %+v", err)
 	}
 
 Loop:
@@ -84,7 +81,7 @@ Loop:
 		select {
 		case msg := <-received:
 			if id.Round(msg.ID) != rndID {
-				t.Errorf("SendFinishRealtime: Incorrect round ID"+
+				t.Errorf("TransmitFinishRealtime: Incorrect round ID"+
 					"Expected: %v, Received: %v", rndID, msg.ID)
 			}
 			numRecv++
@@ -95,32 +92,5 @@ Loop:
 			t.Errorf("Test timed out!")
 			break Loop
 		}
-	}
-}
-
-// Test that FinishRealtime correctly handles reception of finish realtime
-// message, by deleting the round from round manager
-// Confirm that the function errors out when the round doesn't exist
-func TestFinishRealtime(t *testing.T) {
-	rm := round.NewManager()
-	roundID := id.Round(42)
-
-	topology := circuit.New([]*id.Node{&id.Node{}})
-
-	round := round.New(grp, roundID, nil, nil, topology,
-		&id.Node{}, 5)
-
-	rm.AddRound(round)
-
-	err := FinishRealtime(rm, roundID)
-
-	if err != nil {
-		t.Errorf("FinishRealtime: Unexpected error: %+v", err)
-	}
-
-	err = FinishRealtime(rm, roundID)
-
-	if err == nil {
-		t.Errorf("FinishRealtime: Should have returned error")
 	}
 }

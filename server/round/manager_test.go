@@ -68,10 +68,15 @@ func TestManager_GetPhase(t *testing.T) {
 	// We have to make phases with fake graphs...
 	phases := make([]phase.Phase, int(phase.NUM_PHASES))
 	for i := 0; i < len(phases); i++ {
-		phases[i] = phase.New(initMockGraph(services.
-			NewGraphGenerator(1, nil, 1, 1, 1)),
-			phase.Type(uint32(i)), nil,
-			time.Second)
+		gc := services.NewGraphGenerator(1, nil,
+			1, 1, 1)
+
+		definition := phase.Definition{
+			initMockGraph(gc), phase.Type(uint32(i)), nil,
+			time.Second, false,
+		}
+
+		phases[i] = phase.New(definition)
 	}
 	round = New(grp, roundID, phases, nil, circuit.New([]*id.Node{&id.Node{}}), &id.Node{}, 1)
 	mgr.AddRound(round)
