@@ -49,6 +49,51 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 }
 
+// Receive PostNewBatch comm from the gateway
+// This should include an entire new batch that's ready for realtime processing
+func ReceivePostNewBatch(instance *server.Instance,
+	newBatch *mixmessages.Batch) error {
+	// This shouldn't block,
+	// and should return an error if there's no round available
+	// You'd want to return this error in the Ack that's available for the
+	// return value of the PostNewBatch comm.
+	r, ok := instance.GetCompletedPrecomps().Pop()
+	if !ok {
+		err := errors.New("ReceivePostNewBatch(): No precomputation available")
+		// This round should be at a state where its precomp is complete.
+		// So, we might want more than one phase,
+		// since it's at a boundary between phases.
+		jww.ERROR.Print(err)
+		return err
+	}
+	newBatch.Round.ID = uint64(r.GetID())
+	newBatch.ForPhase = int32(phase.RealDecrypt)
+	_, p, err := instance.GetRoundManager().HandleIncomingComm(r.GetID(),
+		phase.RealDecrypt.String())
+	if err != nil {
+		jww.ERROR.Panicf("Error handling incoming PostNewBatch comm: %v", err)
+	}
+
+	// Queue the phase if it hasn't been done yet
+	if p.AttemptTransitionToQueued() {
+		instance.GetResourceQueue().UpsertPhase(p)
+	}
+
+	for i := 0; i < len(newBatch.Slots); i++ {
+		err := p.Input(uint32(i), newBatch.Slots[i])
+		if err != nil {
+			// TODO All of the slots that didn't make it for some reason should
+			//  get put in a list so the gateway can tell the clients that there
+			//  was a problem
+			//  In the meantime, we're just logging the error
+			jww.ERROR.Print(errors.Wrapf(err,
+				"Slot %v failed for realtime decrypt.", i))
+		}
+	}
+	// TODO send all the slot IDs that didn't make it back to the gateway
+	return nil
+}
+
 // Receive round public key from last node and sets it for the round for each node.
 // Also starts precomputation decrypt phase with a batch
 func ReceivePostRoundPublicKey(instance *server.Instance,

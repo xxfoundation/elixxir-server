@@ -52,7 +52,7 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer, instance)
+	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	checkIntBuffer(stream.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
 	checkIntBuffer(stream.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
@@ -94,7 +94,7 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer, instance)
+	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -152,7 +152,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer, instance)
+	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
 		MessagePayload: []byte{0},
@@ -219,7 +219,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer, instance)
+	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	val := large.NewIntFromString(primeString, 16)
 	val = val.Mul(val, val)
@@ -251,7 +251,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer, instance)
+	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
 		SenderID:       []byte{1, 2},
@@ -295,7 +295,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer, instance)
+	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
 		SenderID:       id.NewUserFromUint(0, t).Bytes(),
@@ -340,7 +340,7 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 
-	stream.Link(grp, batchSize, roundBuffer, instance)
+	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -461,7 +461,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	}
 
-	g.Link(grp, roundBuffer, instance)
+	g.Link(grp, roundBuffer, registry)
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 

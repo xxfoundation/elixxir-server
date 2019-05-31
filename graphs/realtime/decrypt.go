@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -46,7 +45,7 @@ func (s *KeygenDecryptStream) GetName() string {
 //Link creates the stream's internal buffers and
 func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuf := source[0].(*round.Buffer)
-	userRegistry := source[1].(*server.Instance).GetUserRegistry()
+	userRegistry := source[1].(globals.UserRegistry)
 	users := make([]*id.User, batchSize)
 
 	for i := uint32(0); i < batchSize; i++ {

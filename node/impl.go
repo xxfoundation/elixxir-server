@@ -63,5 +63,8 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error {
 		return ReceivePostPrecompResult(instance, roundID, slots)
 	}
+	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch) error {
+		return ReceivePostNewBatch(instance, newBatch)
+	}
 	return impl
 }

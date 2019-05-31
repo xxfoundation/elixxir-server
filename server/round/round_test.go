@@ -7,6 +7,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -62,7 +63,7 @@ func TestNew(t *testing.T) {
 
 	topology := circuit.New([]*id.Node{&id.Node{}})
 
-	round := New(grp, roundId, phases, nil, topology,
+	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5)
 
 	if round.GetID() != roundId {

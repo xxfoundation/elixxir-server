@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync/atomic"
 )
@@ -33,7 +35,8 @@ type Round struct {
 
 // Creates and initializes a new round, including all phases, topology,
 // and batchsize
-func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.ResponseMap,
+func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
+	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32) *Round {
 
 	round := Round{}
@@ -99,7 +102,7 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase, responses phase.R
 	round.phaseMap = make(map[phase.Type]int)
 
 	for index, p := range phases {
-		p.GetGraph().Link(grp, &round)
+		p.GetGraph().Link(grp, round.GetBuffer(), userDB, csprng.NewSystemRNG)
 		round.phaseMap[p.GetType()] = index
 	}
 
