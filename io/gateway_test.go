@@ -4,6 +4,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"testing"
 	"time"
 )
@@ -67,11 +68,24 @@ func TestGetRoundBufferInfo_LessThanTimeout(t *testing.T) {
 }
 
 func TestGetCompletedBatch_Timeout(t *testing.T) {
-	// Timeout case: There are no batches completed
-	completedRounds := make(chan *mixmessages.Batch)
+
+	completedRoundQueue := make(chan *server.CompletedRound)
+
+	doneChan := make(chan struct{})
+
+	var batch *mixmessages.Batch
+	var err error
 
 	// Should timeout
-	batch, err := GetCompletedBatch(completedRounds, time.Second)
+	go func() {
+		batch, err = GetCompletedBatch(completedRoundQueue, 40*time.Millisecond)
+
+		doneChan <- struct{}{}
+
+	}()
+
+	<-doneChan
+
 	if err == nil {
 		t.Error("Should have gotten an error in the timeout case")
 	}
@@ -83,14 +97,37 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 func TestGetCompletedBatch_ShortWait(t *testing.T) {
 	// Not a timeout: There's an actual completed batch available in the
 	// channel after a certain period of time
-	completedRounds := make(chan *mixmessages.Batch)
+	completedRoundQueue := make(chan *server.CompletedRound, 1)
 
 	// Should not timeout: writes to the completed rounds after an amount of
 	// time
-	time.AfterFunc(200*time.Millisecond, func() {
-		completedRounds <- &mixmessages.Batch{}
-	})
-	batch, err := GetCompletedBatch(completedRounds, time.Second)
+
+	var batch *mixmessages.Batch
+	var err error
+
+	doneChan := make(chan struct{})
+
+	complete := &server.CompletedRound{
+		RoundID:    42, //meaning of life
+		Receiver:   make(chan services.Chunk),
+		GetMessage: func(uint32) *mixmessages.Slot { return nil },
+	}
+
+	go func() {
+		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond)
+		doneChan <- struct{}{}
+	}()
+
+	time.After(5 * time.Millisecond)
+
+	completedRoundQueue <- complete
+
+	complete.Receiver <- services.NewChunk(0, 3)
+
+	close(complete.Receiver)
+
+	<-doneChan
+
 	if err != nil {
 		t.Errorf("Got unexpected error on wait case: %v", err)
 	}
@@ -101,12 +138,35 @@ func TestGetCompletedBatch_ShortWait(t *testing.T) {
 
 func TestGetCompletedBatch_BatchReady(t *testing.T) {
 	// If there's already a completed batch, the comm should get it immediately
-	completedRounds := make(chan *mixmessages.Batch)
-	// Should not timeout: there's already a completed round on the channel
-	go func() { completedRounds <- &mixmessages.Batch{} }()
-	// This should allow the channel to be populated
-	time.Sleep(10 * time.Millisecond)
-	batch, err := GetCompletedBatch(completedRounds, time.Second)
+	completedRoundQueue := make(chan *server.CompletedRound, 1)
+
+	// Should not timeout: writes to the completed rounds after an amount of
+	// time
+
+	var batch *mixmessages.Batch
+	var err error
+
+	doneChan := make(chan struct{})
+
+	complete := &server.CompletedRound{
+		RoundID:    42, //meaning of life
+		Receiver:   make(chan services.Chunk, 1),
+		GetMessage: func(uint32) *mixmessages.Slot { return nil },
+	}
+
+	completedRoundQueue <- complete
+
+	complete.Receiver <- services.NewChunk(0, 3)
+
+	go func() {
+		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond)
+		doneChan <- struct{}{}
+	}()
+
+	close(complete.Receiver)
+
+	<-doneChan
+
 	if err != nil {
 		t.Errorf("Got unexpected error on wait case: %v", err)
 	}

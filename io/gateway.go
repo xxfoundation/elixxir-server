@@ -31,12 +31,32 @@ func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 
 // Returns a completed batch, or waits for a small amount of time for one to
 // materialize if there isn't one ready
-func GetCompletedBatch(completedRounds chan *mixmessages.Batch,
+func GetCompletedBatch(completedRoundQueue chan *server.CompletedRound,
 	timeout time.Duration) (*mixmessages.Batch, error) {
+
+	var roundQueue *server.CompletedRound
+
 	select {
-	case round := <-completedRounds:
-		return round, nil
+	case roundQueue = <-completedRoundQueue:
 	case <-time.After(timeout):
 		return nil, errors.New("No completed batches before the timeout")
 	}
+
+	//build the batch
+	batch := &mixmessages.Batch{
+		Round: &mixmessages.RoundInfo{ID: uint64(roundQueue.RoundID)},
+	}
+
+	var slots []*mixmessages.Slot
+
+	for chunk, ok := roundQueue.GetChunk(); ok; chunk, ok = roundQueue.GetChunk() {
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			slots = append(slots, roundQueue.GetMessage(i))
+		}
+	}
+
+	batch.Slots = slots
+
+	return batch, nil
+
 }

@@ -1,18 +1,21 @@
 package node
 
 import (
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )
 
 func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
-	nodeID *id.Node) ([]phase.Phase, phase.ResponseMap) {
+	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32) ([]phase.Phase,
+	phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
@@ -249,14 +252,27 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	//TRANSITION: Last node broadcasts sends the results to the gateways and
 	//broadcasts a completed message to all other nodes as a verification step.
 	if topology.IsLastNode(nodeID) {
+		//build the channel which will be used to send the data
+		chanLen := (batchSize + gc.GetOutputSize() - 1) / gc.GetOutputSize()
+		chunkChan := make(chan services.Chunk, chanLen)
+		//assign the handler
 		realtimePermuteDefinition.TransmissionHandler =
-			io.TransmitFinishRealtime
+			// finish realtime needs access to lastNode to send out the results,
+			// an anonymous function is used to wrap the function, passing
+			// access while maintaining the transmit signature
+			func(network *node.NodeComms, batchSize uint32,
+				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
+				getMessage phase.GetMessage, topology *circuit.Circuit,
+				nodeID *id.Node) error {
+				return io.TransmitFinishRealtime(network, batchSize, roundID,
+					phaseTy, getChunk, getMessage, topology, nodeID, lastNode,
+					chunkChan)
+			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)
 	}
 
-	// All nodes process the verification step during which they recieve
-	// conformation that the round completed
+	//All nodes process the verification step
 	responses[phase.RealPermute.String()+phase.Verification] = phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  phase.RealPermute,
