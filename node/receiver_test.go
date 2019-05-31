@@ -8,9 +8,9 @@ package node
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"github.com/pkg/errors"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -35,8 +35,12 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// since it's at a boundary between phases.
 	grp := initImplGroup()
 	topology := buildMockTopology(1)
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0),
-		&globals.UserMap{})
+	instance := server.CreateServerInstance(conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+		NodeID: topology.GetNodeAtIndex(0),
+	}, &globals.UserMap{})
 	instance.InitFirstNode()
 
 	const batchSize = 1
@@ -50,9 +54,11 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 
 	tagKey := realDecrypt.Ptype.String()
 	responseMap := make(phase.ResponseMap)
-	responseMap[tagKey] =
-		phase.NewResponse(realDecrypt.GetType(), realDecrypt.GetType(),
-			phase.Available)
+	responseMap[tagKey] = phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  realDecrypt.GetType(),
+		PhaseToExecute: realDecrypt.GetType(),
+		ExpectedStates: []phase.State{phase.Available},
+	})
 
 	// Well, this round needs to at least be on the precomp queue?
 	// If it's not on the precomp queue,
@@ -111,8 +117,12 @@ func TestReceivePostNewBatch(t *testing.T) {
 	grp := initImplGroup()
 	topology := buildMockTopology(1)
 	registry := &globals.UserMap{}
-	instance := server.CreateServerInstance(grp, topology.GetNodeAtIndex(0),
-		registry)
+	instance := server.CreateServerInstance(conf.Params{
+		Groups: conf.Groups{
+			CMix: grp,
+		},
+		NodeID: topology.GetNodeAtIndex(0),
+	}, registry)
 	instance.InitFirstNode()
 
 	// Make and register a user
@@ -128,15 +138,23 @@ func TestReceivePostNewBatch(t *testing.T) {
 	gg := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()),
 		1, 1.0)
 
-	realDecrypt := phase.New(realtime.InitDecryptGraph(gg), phase.RealDecrypt,
-		func(network *node.NodeComms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node) error {
+	realDecrypt := phase.New(phase.Definition{
+		Graph: realtime.InitDecryptGraph(gg),
+		Type:  phase.RealDecrypt,
+		TransmissionHandler: func(network *node.NodeComms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node) error {
 			return nil
-		}, 5*time.Second)
+		},
+		Timeout:        5 * time.Second,
+		DoVerification: false,
+	})
 
 	tagKey := realDecrypt.GetType().String()
 	responseMap := make(phase.ResponseMap)
-	responseMap[tagKey] = phase.NewResponse(realDecrypt.GetType(),
-		realDecrypt.GetType(), phase.Available)
+	responseMap[tagKey] = phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  realDecrypt.GetType(),
+		ExpectedStates: []phase.State{phase.Available},
+		PhaseToExecute: realDecrypt.GetType(),
+	})
 
 	// We need this round to be on the precomp queue
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
@@ -201,8 +219,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	topology := buildMockTopology(2)
 
-	r := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap,
-		topology, topology.GetNodeAtIndex(0), batchSize)
+	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -715,8 +733,8 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p := initMockPhase()
 	p.Ptype = phase.RealPermute
 
-	rnd := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3)
+	rnd := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{p},
+		responseMap, topology, topology.GetNodeAtIndex(0), 3)
 
 	instance.GetRoundManager().AddRound(rnd)
 
