@@ -7,7 +7,7 @@ import (
 
 // tests that the proper queue is returned
 func TestLastNode_GetCompletedBatchQueue(t *testing.T) {
-	ln := &lastNode{}
+	ln := &LastNode{}
 	ln.Initialize()
 
 	if !reflect.DeepEqual(ln.completedBatchQueue, ln.GetCompletedBatchQueue()) {

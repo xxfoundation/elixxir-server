@@ -24,7 +24,7 @@ type Instance struct {
 	privKey       *signature.DSAPrivateKey
 	regPubKey     *signature.DSAPublicKey
 	firstNode
-	lastNode
+	LastNode
 	params conf.Params
 }
 
@@ -84,7 +84,7 @@ func (i *Instance) InitFirstNode() {
 
 //Initializes the last node components of the instance
 func (i *Instance) InitLastNode() {
-	i.lastNode.Initialize()
+	i.LastNode.Initialize()
 }
 
 // Create a server instance. To actually kick off the server,

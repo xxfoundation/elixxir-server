@@ -716,6 +716,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 		Groups: conf.Groups{CMix: grp},
 		NodeID: topology.GetNodeAtIndex(0),
 	}
+
 	instance := server.CreateServerInstance(params, &globals.UserMap{})
 	instance.InitFirstNode()
 
@@ -733,8 +734,8 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p := initMockPhase()
 	p.Ptype = phase.RealPermute
 
-	rnd := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{p},
-		responseMap, topology, topology.GetNodeAtIndex(0), 3)
+	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3)
 
 	instance.GetRoundManager().AddRound(rnd)
 

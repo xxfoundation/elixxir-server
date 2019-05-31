@@ -15,7 +15,9 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/services"
 	"sync"
 )
 
@@ -25,11 +27,34 @@ import (
 func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
-	nodeID *id.Node) error {
+	nodeID *id.Node, lastNode *server.LastNode,
+	chunkChan chan services.Chunk) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len()-1)
 
+	//Send the batch to the gateway
+
+	wg.Add(1)
+	go func() {
+
+		complete := server.CompletedRound{
+			RoundID:    roundID,
+			Receiver:   chunkChan,
+			GetMessage: getMessage,
+		}
+
+		lastNode.SendCompletedBatchQueue(complete)
+
+		for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
+			chunkChan <- chunk
+		}
+		close(chunkChan)
+
+		wg.Done()
+	}()
+
+	//signal to all nodes that the round has been completed
 	for index := 1; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)

@@ -12,6 +12,8 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/services"
 	"testing"
 	"time"
 )
@@ -68,9 +70,49 @@ func TestSendFinishRealtime(t *testing.T) {
 			MockFinishRealtimeImplementation()}, 0)
 	defer Shutdown(comms)
 
+	const numChunks = 10
+
 	rndID := id.Round(42)
-	err := TransmitFinishRealtime(comms[0], 0, rndID, 0,
-		nil, nil, topology, nil)
+
+	ln := server.LastNode{}
+	ln.Initialize()
+
+	chunkChan := make(chan services.Chunk, numChunks)
+
+	chunkInputChan := make(chan services.Chunk, numChunks)
+
+	getChunk := func() (services.Chunk, bool) {
+		chunk, ok := <-chunkInputChan
+		return chunk, ok
+	}
+	doneCH := make(chan struct{})
+
+	var err error
+	go func() {
+		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
+			getChunk, nil, topology, nil, &ln, chunkChan)
+		doneCH <- struct{}{}
+	}()
+
+	for i := 0; i < numChunks; i++ {
+		chunkInputChan <- services.NewChunk(uint32(i*2), uint32(i*2+1))
+	}
+
+	close(chunkInputChan)
+
+	namReceivedChunks := 0
+
+	for range chunkChan {
+		namReceivedChunks++
+	}
+
+	if namReceivedChunks != numChunks {
+		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
+			"number of chunks; expected: %v, recieved: %v", numChunks,
+			namReceivedChunks)
+	}
+
+	<-doneCH
 
 	if err != nil {
 		t.Errorf("TransmitFinishRealtime: Unexpected error: %+v", err)
