@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
@@ -217,16 +218,15 @@ func StartServer(serverIndex int, batchSize uint64) {
 	)
 
 	// Load group from viper
-	grp := cyclic.Group{}
-	grpBuff := []byte(viper.GetString("group"))
-	err := grp.UnmarshalJSON(grpBuff)
-	if err != nil {
-		jww.FATAL.Panicf("Could Not Decode group from JSON: %s\n", err.Error())
-		return
-	}
+	cmix := viper.GetStringMapString("groups.cmix")
+	grp := toGroup(cmix)
 
 	// Set group globally
-	globals.SetGroup(&grp)
+	globals.SetGroup(grp)
+	jww.INFO.Printf("CMIX group p,q,g: %v %v %v\n",
+		grp.GetP().Text(16),
+		grp.GetQ().Text(16),
+		grp.GetG().Text(16))
 
 	// Populate users using group
 	globals.PopulateDummyUsers(globals.GetGroup())
@@ -308,6 +308,34 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// Main loop
 	run()
+}
+
+func toGroup(grp map[string]string) *cyclic.Group {
+	pStr, pOk := grp["prime"]
+	qStr, qOk := grp["smallprime"]
+	gStr, gOk := grp["generator"]
+
+	if !gOk || !qOk || !pOk {
+		jww.FATAL.Panicf("Invalid Group Config "+
+			"(prime: %v, smallPrime: %v, generator: %v",
+			pOk, qOk, gOk)
+		return nil
+	}
+
+	p := large.NewIntFromString(strings.ReplaceAll(pStr, " ", ""), 16)
+	q := large.NewIntFromString(strings.ReplaceAll(qStr, " ", ""), 16)
+	g := large.NewIntFromString(strings.ReplaceAll(gStr, " ", ""), 16)
+
+	if p == nil || q == nil || g == nil {
+		jww.FATAL.Panicf("Invalid Group Config " +
+			"failed to convert string to large int with" +
+			"(prime: %s, smallPrime: %s, generator: %s",
+			pStr, qStr, gStr)
+		return nil
+	}
+
+	return cyclic.NewGroup(p, g, q)
+
 }
 
 // Main server loop
