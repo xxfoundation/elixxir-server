@@ -13,7 +13,7 @@ import (
 // Module that implements Keygen, along with helper methods
 type KeygenSubStream struct {
 	// Server state that's needed for key generation
-	grp     *cyclic.Group
+	Grp     *cyclic.Group
 	userReg globals.UserRegistry
 
 	// Inputs: user IDs and salts (required for key generation)
@@ -21,8 +21,8 @@ type KeygenSubStream struct {
 	salts [][]byte
 
 	// Output: keys
-	keysA *cyclic.IntBuffer
-	keysB *cyclic.IntBuffer
+	KeysA *cyclic.IntBuffer
+	KeysB *cyclic.IntBuffer
 }
 
 // LinkStream This Link doesn't conform to the Stream interface because KeygenSubStream
@@ -33,12 +33,12 @@ type KeygenSubStream struct {
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
 	userReg globals.UserRegistry, inSalts [][]byte, inUsers []*id.User,
 	outKeysA, outKeysB *cyclic.IntBuffer) {
-	k.grp = grp
+	k.Grp = grp
 	k.userReg = userReg
 	k.salts = inSalts
 	k.users = inUsers
-	k.keysA = outKeysA
-	k.keysB = outKeysB
+	k.KeysA = outKeysA
+	k.KeysB = outKeysB
 }
 
 //Returns the substream, used to return an embedded struct off an interface
@@ -76,15 +76,15 @@ var Keygen = services.Module{
 				return err
 			}
 			//fixme: figure out why this only works when using a temp variable
-			tmp := kss.grp.NewInt(1)
-			keygen(kss.grp, kss.salts[i], user.BaseKey, tmp)
-			kss.grp.Set(kss.keysA.Get(i), tmp)
+			tmp := kss.Grp.NewInt(1)
+			keygen(kss.Grp, kss.salts[i], user.BaseKey, tmp)
+			kss.Grp.Set(kss.KeysA.Get(i), tmp)
 
 			hash.Reset()
 			hash.Write(kss.salts[i])
 
-			keygen(kss.grp, hash.Sum(nil), user.BaseKey, tmp)
-			kss.grp.Set(kss.keysB.Get(i), tmp)
+			keygen(kss.Grp, hash.Sum(nil), user.BaseKey, tmp)
+			kss.Grp.Set(kss.KeysB.Get(i), tmp)
 
 		}
 

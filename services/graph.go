@@ -254,3 +254,16 @@ func (g *Graph) Kill() bool {
 	}
 	return success
 }
+
+//Returns all modules with the passed name. used for testing.
+func (g *Graph) GetModuleByName(name string) []*Module {
+	var moduleList []*Module
+
+	for _, m := range g.modules {
+		if m.Name == name {
+			moduleList = append(moduleList, m)
+		}
+	}
+
+	return moduleList
+}

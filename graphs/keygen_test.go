@@ -200,8 +200,8 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		// Not necessary to avoid crashing
 		stream.salts[i] = []byte{}
 
-		grp.SetUint64(stream.keysA.Get(uint32(i)), uint64(i))
-		grp.SetUint64(stream.keysB.Get(uint32(i)), uint64(1000+i))
+		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
+		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
 		stream.salts[i] = testSalt
 		stream.users[i] = u.ID
 	}
@@ -218,8 +218,8 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// inspect stream output: XORing the salt with the output should
 			// return the original base key
-			resultA := stream.keysA.Get(uint32(i))
-			resultB := stream.keysB.Get(uint32(i))
+			resultA := stream.KeysA.Get(uint32(i))
+			resultB := stream.KeysB.Get(uint32(i))
 			resultABytes := resultA.Bytes()
 			resultBBytes := resultB.Bytes()
 			// So, why is ResultBytes 256 bytes long,

@@ -137,3 +137,7 @@ func (m Module) DeepCopy() *Module {
 
 	return &mCopy
 }
+
+func (m Module) GetID() uint64 {
+	return m.id
+}
