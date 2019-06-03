@@ -39,7 +39,9 @@ func (s *RevealStream) GetName() string {
 func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
-	s.LinkStream(grp, batchSize, roundBuffer, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)))
+	s.LinkStream(grp, batchSize, roundBuffer,
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 }
 
 // LinkStream is called by Link other stream objects from round
@@ -98,18 +100,21 @@ var RevealRootCoprime = services.Module{
 		}
 
 		rs := s.getSubStream()
+		tmp := rs.Grp.NewMaxInt()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Execute rootCoprime on the keys for the Message
 			// Eq 15.11 Root by cypher key to remove one layer of homomorphic
 			// encryption from partially encrypted message cypher text.
-			rootCoprime(rs.Grp, rs.CypherMsg.Get(i), rs.Z, rs.CypherMsg.Get(i))
+
+			rootCoprime(rs.Grp, rs.CypherMsg.Get(i), rs.Z, tmp)
+			rs.Grp.Set(rs.CypherMsg.Get(i), tmp)
 
 			// Execute rootCoprime on the keys for the associated data
 			// Eq 15.13 Root by cypher key to remove one layer of homomorphic
 			// encryption from partially encrypted associated data cypher text.
-			rootCoprime(rs.Grp, rs.CypherAD.Get(i), rs.Z, rs.CypherAD.Get(i))
-
+			rootCoprime(rs.Grp, rs.CypherAD.Get(i), rs.Z, tmp)
+			rs.Grp.Set(rs.CypherAD.Get(i), tmp)
 		}
 		return nil
 	},
