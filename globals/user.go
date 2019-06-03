@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
+// Copyright © 2019 Privategrity Corporation                                   /
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +115,7 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	recept := new(ForwardKey)
 
 	// Generate user parameters
-	usr.ID = new(id.User).SetUints(&[4]uint64{0, 0, 0, i})
+	usr.ID = id.NewUserFromUints(&[4]uint64{0, 0, 0, i})
 
 	h.Write([]byte(string(20000 + i)))
 	trans.BaseKey = grp.NewIntFromBytes(h.Sum(nil))

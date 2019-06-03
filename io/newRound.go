@@ -16,7 +16,6 @@ import (
 
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
 
@@ -166,7 +165,7 @@ func NewRound(clusterRoundID string) {
 
 	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_SHARE)
 
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		// Create the controller for RealtimeIdentify
 		realtimeIdentifyController := services.DispatchCryptop(globals.GetGroup(),
 			realtime.Identify{}, nil, nil, round)

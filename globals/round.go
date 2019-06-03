@@ -17,6 +17,10 @@ import (
 	"time"
 )
 
+// Server-wide nodeID and IsLastNode
+var NodeID *id.Node
+var IsLastNode bool
+
 // Server-wide configured batch size
 var BatchSize uint64
 
@@ -217,12 +221,12 @@ func NewRound(batchSize uint64, g *cyclic.Group) *Round {
 	case round = <-RoundRecycle:
 	default:
 		round = newRound(batchSize, OFF, g)
-		if id.IsLastNode {
+		if IsLastNode {
 			InitLastNode(round, g)
 		}
 	}
 	round = newRound(batchSize, OFF, g)
-	if id.IsLastNode {
+	if IsLastNode {
 		InitLastNode(round, g)
 	}
 

@@ -155,7 +155,7 @@ func (h RealtimeEncryptHandler) Handler(
 	}
 
 	sendTime := time.Now()
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		// Transition to RealtimePeel phase
 		jww.INFO.Printf("Starting RealtimePeel Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

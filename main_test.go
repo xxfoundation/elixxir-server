@@ -603,7 +603,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	RTIdentify.InChannel <- &ovPrm
 	rtnTmp := <-RTIdentify.OutChannel
 	esTmp := (*rtnTmp).(*realtime.Slot)
-	rID := new(id.User).SetBytes(esTmp.AssociatedData.
+	rID := id.NewUserFromBytes(esTmp.AssociatedData.
 		LeftpadBytes(id.UserLen))
 	copy(rID[:], esTmp.AssociatedData.LeftpadBytes(id.UserLen))
 	inputMsgPostID := services.Slot(&realtime.Slot{

@@ -8,15 +8,21 @@
 package cmd
 
 import (
+	"crypto/rand"
+	"encoding/binary"
+	"encoding/json"
+	"github.com/mitchellh/go-homedir"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/realtime"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
+	"io/ioutil"
 	"runtime"
 	"strconv"
 	"strings"
@@ -192,8 +198,8 @@ func StartServer(serverIndex int, batchSize uint64) {
 		return
 	} else {
 		// List of gateways found in config file, select one to use
-		// TODO: For now, just use the first one?
-		globals.GatewayAddress = gateways[0]
+		// TODO: For now, just use the same as server index?
+		globals.GatewayAddress = gateways[serverIndex]
 	}
 
 	// Initialize the backend
@@ -242,11 +248,14 @@ func StartServer(serverIndex int, batchSize uint64) {
 
 	// ensure that the Node ID is populated
 	viperNodeID := uint64(viper.GetInt("nodeid"))
+	nodeIDbytes := make([]byte, binary.MaxVarintLen64)
+	var num int
 	if viperNodeID == 0 {
-		id.SetNodeID(uint64(serverIndex))
+		num = binary.PutUvarint(nodeIDbytes, uint64(serverIndex))
 	} else {
-		id.SetNodeID(viperNodeID)
+		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
 	}
+	globals.NodeID = id.NewNodeFromBytes(nodeIDbytes[:num])
 
 	// Set skipReg from config file
 	globals.SkipRegServer = viper.GetBool("skipReg")
@@ -262,7 +271,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		keyPath)
 
 	// TODO Replace these concepts with a better system
-	id.IsLastNode = serverIndex == len(io.Servers)-1
+	globals.IsLastNode = serverIndex == len(io.Servers)-1
 	io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
 
 	// Block until we can reach every server
@@ -280,7 +289,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 		messageBufferSize = 1000
 	}
 
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
 		io.RoundCh = make(chan *string, PRECOMP_BUFFER_SIZE)
 		io.MessageCh = make(chan *realtime.Slot, messageBufferSize)
@@ -288,6 +297,14 @@ func StartServer(serverIndex int, batchSize uint64) {
 		go RunRealTime(batchSize, io.MessageCh, io.RoundCh, realtimeSignal)
 		go RunPrecomputation(io.RoundCh, realtimeSignal)
 	}
+
+	// Get the default parameters and generate a public key from it
+	dsaParams := signature.GetDefaultDSAParams()
+	publicKey := dsaParams.PrivateKeyGen(rand.Reader).PublicKeyGen()
+
+	// Save DSA public key and node ID to JSON file
+	outputDsaPubKeyToJson(publicKey, globals.NodeID, ".elixxir",
+		"server_info.json")
 
 	// Main loop
 	run()
@@ -297,7 +314,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 func run() {
 	io.TimeUp = time.Now().UnixNano()
 	// Run a round trip ping every couple seconds if last node
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		ticker := time.NewTicker(5 * time.Second)
 		quit := make(chan struct{})
 		go func() {
@@ -354,4 +371,42 @@ func getServers(serverIndex int) []string {
 		}
 	}
 	return servers
+}
+
+// outputDsaPubKeyToJson encodes the DSA public key and node ID to JSON and
+// outputs it to the specified directory with the specified file name.
+func outputDsaPubKeyToJson(publicKey *signature.DSAPublicKey, nodeID *id.Node,
+	dir, fileName string) {
+	// Encode the public key for the pem format
+	encodedKey, err := publicKey.PemEncode()
+	if err != nil {
+		jww.ERROR.Printf("Error Pem encoding public key: %s", err)
+	}
+
+	// Setup struct that will dictate the JSON structure
+	jsonStruct := struct {
+		Id             *id.Node
+		Dsa_public_key string
+	}{
+		Id:             nodeID,
+		Dsa_public_key: string(encodedKey),
+	}
+
+	// Generate JSON from structure
+	data, err := json.MarshalIndent(jsonStruct, "", "\t")
+	if err != nil {
+		jww.ERROR.Printf("Error encoding structure to JSON: %s", err)
+	}
+
+	// Get the user's home directory
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		jww.ERROR.Printf("Unable to retrieve user's home directory: %s", err)
+	}
+
+	// Write JSON to file
+	err = ioutil.WriteFile(homeDir+"/"+dir+"/"+fileName, data, 0644)
+	if err != nil {
+		jww.ERROR.Printf("Error writing JSON file: %s", err)
+	}
 }

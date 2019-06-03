@@ -13,7 +13,6 @@ import (
 
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
 
@@ -156,7 +155,7 @@ func (h PrecompEncryptHandler) Handler(
 	globals.GlobalRoundMap.SetPhase(roundId, globals.PRECOMP_REVEAL)
 
 	sendTime := time.Now()
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		// Transition to PrecompReveal phase
 		jww.INFO.Printf("Starting PrecompReveal Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

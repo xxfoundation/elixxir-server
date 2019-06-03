@@ -42,7 +42,7 @@ func RealtimeDecrypt(input *pb.RealtimeDecryptMessage) {
 	for i := 0; i < len(input.Slots); i++ {
 		// Convert input message to equivalent SlotDecrypt
 		in := input.Slots[i]
-		userId := new(id.User).SetBytes(in.SenderID)
+		userId := id.NewUserFromBytes(in.SenderID)
 		var slot services.Slot = &realtime.Slot{
 			Slot:           uint64(i),
 			CurrentID:      userId,
@@ -155,7 +155,7 @@ func (h RealtimeDecryptHandler) Handler(
 	globals.GlobalRoundMap.SetPhase(roundID, globals.REAL_PERMUTE)
 
 	sendTime := time.Now()
-	if id.IsLastNode {
+	if globals.IsLastNode {
 		// Transition to RealtimePermute phase
 		jww.INFO.Printf("Starting RealtimePermute  Phase to %v at %s",
 			NextServer, sendTime.Format(time.RFC3339))

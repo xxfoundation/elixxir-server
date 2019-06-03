@@ -21,7 +21,7 @@ func TestRealtimePeel(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1, grp)
 	globals.InitLastNode(round, grp)
-	id.IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
@@ -82,7 +82,7 @@ func TestRealtimePeelHandler_Handler(t *testing.T) {
 	roundId := "test"
 	round := globals.NewRound(1, globals.GetGroup())
 	globals.InitLastNode(round, globals.GetGroup())
-	id.IsLastNode = true
+	globals.IsLastNode = true
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 

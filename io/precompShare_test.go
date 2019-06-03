@@ -11,7 +11,6 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cryptops/precomputation"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -60,7 +59,7 @@ func TestPrecompShare(t *testing.T) {
 	// Create a new Round
 	roundId := "test"
 	round := globals.NewRound(1, globals.GetGroup())
-	id.IsLastNode = false
+	globals.IsLastNode = false
 	// Add round to the GlobalRoundMap
 	globals.GlobalRoundMap.AddRound(roundId, round)
 
