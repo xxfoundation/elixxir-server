@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cmix"
+	//	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -14,10 +14,10 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
-	"gitlab.com/elixxir/server/server"
+	//	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
-	"golang.org/x/crypto/blake2b"
+	//	"golang.org/x/crypto/blake2b"
 	"math/rand"
 	"runtime"
 	"testing"
@@ -696,6 +696,7 @@ func InitMegaGraph(gc services.GraphGenerator, t *testing.T) *services.Graph {
 	dPPermuteR := CreateDebugPrinter(t, "Permute").DeepCopy()
 	dPReveal := CreateDebugPrinter(t, "Reveal").DeepCopy()
 	dPStrip := CreateDebugPrinter(t, "Strip").DeepCopy()
+	dPStrip2 := CreateDebugPrinter(t, "Strip").DeepCopy()
 
 	dPDecryptRT := CreateDebugPrinter(t, "DecryptRT").DeepCopy()
 	dPPermuteMul2 := CreateDebugPrinter(t, "PermuteMul2").DeepCopy()
@@ -714,8 +715,9 @@ func InitMegaGraph(gc services.GraphGenerator, t *testing.T) *services.Graph {
 	g.Connect(dPReveal, stripInverse)
 	g.Connect(stripInverse, dPStrip)
 	g.Connect(dPStrip, stripMul2)
+	g.Connect(stripMul2, dPStrip2)
 	// NOTE: decryptKeyGen is skipped because it's values are hard coded
-	g.Connect(stripMul2, decryptMul3)
+	g.Connect(dPStrip2, decryptMul3)
 	g.Connect(decryptMul3, dPDecryptRT)
 	g.Connect(dPDecryptRT, permuteMul2)
 	g.Connect(permuteMul2, dPPermuteMul2)
@@ -724,6 +726,7 @@ func InitMegaGraph(gc services.GraphGenerator, t *testing.T) *services.Graph {
 	return g
 }
 
+/*
 func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
 		large.NewInt(2), large.NewInt(1283))
