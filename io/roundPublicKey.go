@@ -94,7 +94,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 		return errs
 	}
 
-	// When all responses are received we 'send'
+	// When all responses are receivedFinishRealtime we 'send'
 	// to the first node which is this node
 	thisNode := topology.GetNodeAtIndex(0)
 

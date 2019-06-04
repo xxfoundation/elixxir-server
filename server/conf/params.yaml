@@ -9,6 +9,7 @@ database:
     - "127.0.0.1:80"
     - "127.0.0.1:80"
     - "127.0.0.1:80"
+batchSize: 20
 groups:
   cmix:
     prime: "17"
@@ -22,10 +23,15 @@ paths:
   cert: "~/.elixxir/cert.crt"
   key:  "~/.elixxir/key.pem"
   log:  "~/.elixxir/server.log"
-servers:
+nodeAddresses:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
   - "127.0.0.1:80"
+nodeIDs:
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+thisNodeIndex: 1
 gateways:
   - "127.0.0.1:80"
   - "127.0.0.1:80"

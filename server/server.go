@@ -1,6 +1,8 @@
 package server
 
 import (
+	"encoding/base64"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/node"
@@ -8,24 +10,34 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
+	"runtime"
 )
 
 // Holds long-lived server state
 type Instance struct {
-	roundManager  *round.Manager
-	network       *node.NodeComms
-	resourceQueue *ResourceQueue
-	userReg       globals.UserRegistry
-	pubKey        *signature.DSAPublicKey
-	privKey       *signature.DSAPrivateKey
-	regPubKey     *signature.DSAPublicKey
+	roundManager   *round.Manager
+	network        *node.NodeComms
+	resourceQueue  *ResourceQueue
+	userReg        globals.UserRegistry
+	pubKey         *signature.DSAPublicKey
+	privKey        *signature.DSAPrivateKey
+	regPubKey      *signature.DSAPublicKey
+	topology       *circuit.Circuit
+	thisNode       *id.Node
+	graphGenerator services.GraphGenerator
 	firstNode
 	LastNode
 	params conf.Params
+}
+
+func (i *Instance) GetTopology() *circuit.Circuit {
+	return i.topology
 }
 
 //GetGroups returns the group used by the server
@@ -52,9 +64,9 @@ func (i *Instance) GetNetwork() *node.NodeComms {
 	return i.network
 }
 
-//GetID returns the nodeID
+//GetID returns this node's ID
 func (i *Instance) GetID() *id.Node {
-	return i.params.NodeID.DeepCopy()
+	return i.thisNode
 }
 
 //GetPubKey returns the server DSA public key
@@ -77,6 +89,15 @@ func (i *Instance) GetSkipReg() bool {
 	return i.params.SkipReg
 }
 
+func (i *Instance) GetBatchSize() uint32 {
+	return i.params.BatchSize
+}
+
+// FIXME Populate this from the YAML or something
+func (i *Instance) GetGraphGenerator() services.GraphGenerator {
+	return i.graphGenerator
+}
+
 //Initializes the first node components of the instance
 func (i *Instance) InitFirstNode() {
 	i.firstNode.Initialize()
@@ -88,14 +109,42 @@ func (i *Instance) InitLastNode() {
 }
 
 // Create a server instance. To actually kick off the server,
-// call Run() on the resulting ServerIsntance.
+// call Run() on the resulting ServerInstance.
 func CreateServerInstance(params conf.Params, db globals.UserRegistry) *Instance {
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
 	instance := Instance{
 		roundManager:  round.NewManager(),
 		params:        params,
 		resourceQueue: initQueue(),
 		userReg:       db,
+		//FIXME: make this smarter
+		graphGenerator: services.NewGraphGenerator(4, PanicHandler,
+			uint8(runtime.NumCPU()), 4, 0.0),
 	}
+
+	// Create the topology that will be used for all rounds
+	// Each nodeID should be base64 encoded in the yaml
+	var nodeIDs []*id.Node
+	var nodeIDDecodeErrorHappened bool
+	for i := range params.NodeIDs {
+		nodeID, err := base64.StdEncoding.DecodeString(params.NodeIDs[i])
+		if err != nil {
+			// This indicates a server misconfiguration which needs fixing for
+			// the server to function properly
+			err = errors.Wrapf(err, "Node ID at index %v failed to decode", i)
+			jww.ERROR.Print(err)
+			nodeIDDecodeErrorHappened = true
+		}
+		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
+	}
+	if nodeIDDecodeErrorHappened {
+		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
+	}
+	instance.topology = circuit.New(nodeIDs)
+	instance.thisNode = instance.topology.GetNodeAtIndex(params.ThisNodeIndex)
 
 	// Create a node id object with the random bytes
 	// Generate DSA Private/Public key pair

@@ -24,7 +24,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	//impl.Functions.RoundtripPing = func(*mixmessages.TimePing) {}
 	//impl.Functions.GetServerMetrics = func(*mixmessages.ServerMetrics) {}
-	//impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) {}
+	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) error {
+		return ReceiveCreateNewRound(instance, message)
+	}
 
 	// impl.Functions.StartRealtime =
 

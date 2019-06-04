@@ -4,7 +4,6 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/conf"
 	"reflect"
@@ -52,13 +51,12 @@ func TestInstance_GetNetwork(t *testing.T) {
 }
 
 func TestInstance_GetID(t *testing.T) {
-	n := &id.Node{}
-	params := conf.Params{
-		NodeID: n,
-	}
-	i := &Instance{params: params}
+	nid := GenerateId()
+	params := conf.Params{}
+	i := &Instance{params: params,
+		thisNode: nid}
 
-	if !reflect.DeepEqual(i.GetID(), n) {
+	if !reflect.DeepEqual(i.GetID(), nid) {
 		t.Errorf("Instance.GetID: Returned incorrect " +
 			"ID")
 	}
@@ -78,17 +76,13 @@ func mockServerInstance() *Instance {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	// Create a user registry and make a user in it
-	// Unfortunately, this has to time out the db connection before the rest
-	// of the test can run. It would be nice to have a method that only makes
-	// a user map to make tests run faster
 	nid := GenerateId()
 
 	params := conf.Params{
 		Groups: conf.Groups{
 			CMix: grp,
 		},
-		NodeID: nid,
+		NodeIDs: []string{nid.String()},
 	}
 	instance := CreateServerInstance(params, &globals.UserMap{})
 
