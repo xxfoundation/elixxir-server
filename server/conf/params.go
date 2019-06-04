@@ -7,9 +7,7 @@
 package conf
 
 import (
-	"encoding/binary"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/primitives/id"
 )
 
 // This object is used by the server instance.
@@ -19,13 +17,17 @@ import (
 // Note not all fields are in the YAML, ie NodeID
 // but all fields must be in the viper object
 type Params struct {
-	Database DB
-	Groups   Groups
-	Paths    Paths
-	Servers  []string
-	Gateways []string
-	NodeID   *id.Node
-	SkipReg  bool `yaml:"skipReg"`
+	Database      DB
+	Groups        Groups
+	Paths         Paths
+	NodeAddresses []string
+	// these are base64 strings, so instance creation must base64 decode these
+	// before using them as node IDs
+	NodeIDs       []string
+	ThisNodeIndex int
+	Gateways      []string
+	SkipReg       bool `yaml:"skipReg"`
+	BatchSize     uint32
 }
 
 // NewParams returns a params object if it is able to
@@ -40,11 +42,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	params.Groups = NewGroups(vip)
-
-	nid := vip.GetUint64("nodeId")
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, nid)
-	params.NodeID = id.NewNodeFromBytes(buf)
 
 	return &params, nil
 }

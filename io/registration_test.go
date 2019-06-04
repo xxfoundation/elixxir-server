@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		Groups: conf.Groups{
 			CMix: grp,
 		},
-		NodeID: nid,
+		NodeIDs: []string{nid.String()},
 	}
 
 	serverInstance = server.CreateServerInstance(params, &globals.UserMap{})

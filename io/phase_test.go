@@ -98,7 +98,7 @@ func TestTransmitPhase(t *testing.T) {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)
 	}
 
-	//Check that what was received is correct
+	//Check that what was receivedFinishRealtime is correct
 	if id.Round(receivedBatch.Round.ID) != roundID {
 		t.Errorf("TransmitPhase: Incorrect round ID"+
 			"Expected: %v, Recieved: %v", roundID, receivedBatch.Round.ID)

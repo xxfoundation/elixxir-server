@@ -204,11 +204,6 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Println("Unable to load params from viper")
 	}
 
-	// FIXME This way of getting the server index from the
-	// config file seems odd.
-	serverIdx = viper.GetInt("index")
-	//serverIndex := params.NodeID
-
 	gateways := params.Gateways
 
 	if len(gateways) < 1 {
@@ -257,15 +252,10 @@ func StartServer(vip *viper.Viper) {
 	// Get all servers
 	//io.Servers = getServers(serverIndex)
 
-	serverList := params.Servers[0]
-	for i := 1; i < len(viper.GetStringSlice("servers")); i++ {
-		serverList = serverList + "," +
-			viper.GetStringSlice("servers")[i]
-	}
-	jww.INFO.Print("Server list: " + serverList)
+	jww.INFO.Print("Server list: " + strings.Join(params.NodeAddresses, ","))
 
 	// Start mix servers on localServer
-	localServer := serverList[serverIdx]
+	localServer := params.NodeAddresses[serverIdx]
 	jww.INFO.Printf("Starting server on %v\n", localServer)
 	// Initialize GlobalRoundMap and waiting rounds queue
 	//globals.GlobalRoundMap = globals.NewRoundMap()

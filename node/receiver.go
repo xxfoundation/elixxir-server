@@ -15,7 +15,25 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/server/round"
 )
+
+//ReceiveCreateNewRound receives the create new round signal and creates the round
+func ReceiveCreateNewRound(instance *server.Instance, message *mixmessages.RoundInfo) error {
+	roundID := id.Round(message.ID)
+
+	//Build the components of the round
+	phases, phaseResponses := NewRoundComponents(instance.GetGraphGenerator(),
+		instance.GetTopology(), instance.GetID(), &instance.LastNode, instance.GetBatchSize())
+	//Build the round
+	rnd := round.New(instance.GetGroup(), instance.GetUserRegistry(), roundID,
+		phases, phaseResponses, instance.GetTopology(), instance.GetID(),
+		instance.GetBatchSize())
+	//Add the round to the manager
+	instance.GetRoundManager().AddRound(rnd)
+
+	return nil
+}
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation

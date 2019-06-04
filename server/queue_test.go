@@ -97,11 +97,13 @@ func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 func TestResourceQueue_RunOne(t *testing.T) {
 	// In this case, we actually need to set up and run the queue runner
 	q := initQueue()
+	nid := GenerateId()
 	params := conf.Params{
 		Groups: conf.Groups{
 			CMix: grp,
 		},
-		NodeID: id.NewNodeFromBytes([]byte{}),
+		NodeIDs:       []string{nid.String()},
+		ThisNodeIndex: 0,
 	}
 	instance := CreateServerInstance(params, &globals.UserMap{})
 	roundID := id.Round(1)
@@ -117,8 +119,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		})
 
 	r := round.New(grp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
-		responseMap, circuit.New(
-			[]*id.Node{instance.GetID()}), instance.GetID(), 1)
+		responseMap, instance.GetTopology(), instance.GetID(), 1)
 	instance.GetRoundManager().AddRound(r)
 
 	if p.GetState() != phase.Available {

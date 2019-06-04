@@ -31,7 +31,7 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	chunkChan chan services.Chunk) error {
 
 	var wg sync.WaitGroup
-	errChan := make(chan error, topology.Len()-1)
+	errChan := make(chan error, topology.Len())
 
 	//Send the batch to the gateway
 

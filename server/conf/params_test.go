@@ -8,21 +8,26 @@ package conf
 
 import (
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/primitives/id"
 	"reflect"
 	"testing"
 )
 
 func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
-	nid := id.NewNodeFromBytes([]byte{})
 	expectedParams := Params{
 		Database: ExpectedDB,
 		Groups:   ExpectedGroups,
 		Paths:    ExpectedPaths,
-		Servers:  []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
-		Gateways: []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
-		SkipReg:  true,
-		NodeID:   nid,
+		NodeAddresses: []string{"127.0.0.1:80", "127.0.0.1:80",
+			"127.0.0.1:80"},
+		Gateways:      []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
+		SkipReg:       true,
+		ThisNodeIndex: 1,
+		NodeIDs: []string{
+			"pneumonoultramicroscopicsilicovolcanoconios=",
+			"pneumonoultramicroscopicsilicovolcanoconios=",
+			"pneumonoultramicroscopicsilicovolcanoconios=",
+		},
+		BatchSize: 20,
 	}
 
 	vip := viper.New()
@@ -39,19 +44,27 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	params, err := NewParams(vip)
 
 	if err != nil {
-		t.Errorf("Failed in unmarshaling from viper object")
+		t.Fatalf("Failed in unmarshaling from viper object")
 	}
 
-	if !reflect.DeepEqual(expectedParams.Servers, params.Servers) {
-		t.Errorf("Servers value does not match expected value")
+	if !reflect.DeepEqual(expectedParams.NodeAddresses, params.NodeAddresses) {
+		t.Errorf("Server addresses value does not match expected value")
+	}
+
+	if !reflect.DeepEqual(expectedParams.BatchSize, params.BatchSize) {
+		t.Errorf("Batch size value does not match expected value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
 		t.Errorf("Gateways value does not match expected value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.NodeID, params.NodeID) {
-		t.Errorf("NodeId value does not match expected value")
+	if !reflect.DeepEqual(expectedParams.ThisNodeIndex, params.ThisNodeIndex) {
+		t.Errorf("NodeIndex value does not match expected value")
+	}
+
+	if !reflect.DeepEqual(expectedParams.NodeIDs, params.NodeIDs) {
+		t.Errorf("NodeIDs value does not match expected value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.SkipReg, params.SkipReg) {

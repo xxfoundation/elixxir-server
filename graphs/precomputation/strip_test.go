@@ -7,16 +7,12 @@
 package precomputation
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
-	"runtime"
 	"testing"
 )
 
@@ -219,7 +215,7 @@ func TestStripStream_Interface(t *testing.T) {
 
 }
 
-func TestStrip_Graph(t *testing.T) {
+/*func TestStrip_Graph(t *testing.T) {
 	grp := initStripGroup()
 
 	batchSize := uint32(100)
@@ -321,7 +317,7 @@ func TestStrip_Graph(t *testing.T) {
 			}
 		}
 	}
-}
+}*/
 
 func initStripGroup() *cyclic.Group {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
