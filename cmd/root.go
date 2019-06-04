@@ -156,7 +156,7 @@ func initConfig() {
 
 // initLog initializes logging thresholds and the log path.
 func initLog() {
-	if viper.Get("logPath") != nil {
+	if viper.Get("paths.log") != nil {
 		// If verbose flag set then log more info for debugging
 		if verbose || viper.GetBool("verbose") {
 			jww.SetLogThreshold(jww.LevelDebug)
@@ -166,7 +166,7 @@ func initLog() {
 			jww.SetStdoutThreshold(jww.LevelInfo)
 		}
 		// Create log file, overwrites if existing
-		logPath := viper.GetString("logPath")
+		logPath := viper.GetString("paths.log")
 		logFile, err := os.Create(logPath)
 		if err != nil {
 			jww.WARN.Println("Invalid or missing log path, default path used.")

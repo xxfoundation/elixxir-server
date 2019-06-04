@@ -177,7 +177,7 @@ func readSignal(rDone chan bool, realtimeSignal *sync.Cond) {
 // StartServer reads configuration options and starts the cMix server
 func StartServer(serverIndex int, batchSize uint64) {
 	viper.Debug()
-	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("logPath"))
+	jww.INFO.Printf("Log Filename: %v\n", viper.GetString("paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", viper.ConfigFileUsed())
 
 	//Set the max number of processes
@@ -203,16 +203,16 @@ func StartServer(serverIndex int, batchSize uint64) {
 	}
 
 	// Initialize the backend
-	dbAddresses := viper.GetStringSlice("dbAddresses")
+	dbAddresses := viper.GetStringSlice("database.addresses")
 	dbAddress := ""
 	if (serverIndex >= 0) && (serverIndex < len(dbAddresses)) {
 		// There's a DB address for this server in the list and we can use it
 		dbAddress = dbAddresses[serverIndex]
 	}
 	globals.Users = globals.NewUserRegistry(
-		viper.GetString("dbUsername"),
-		viper.GetString("dbPassword"),
-		viper.GetString("dbName"),
+		viper.GetString("database.username"),
+		viper.GetString("database.password"),
+		viper.GetString("database.name"),
 		dbAddress,
 	)
 
@@ -247,7 +247,7 @@ func StartServer(serverIndex int, batchSize uint64) {
 	globals.GlobalRoundMap = globals.NewRoundMap()
 
 	// ensure that the Node ID is populated
-	viperNodeID := uint64(viper.GetInt("nodeid"))
+	viperNodeID := uint64(viper.GetInt("nodeId"))
 	nodeIDbytes := make([]byte, binary.MaxVarintLen64)
 	var num int
 	if viperNodeID == 0 {
@@ -260,9 +260,9 @@ func StartServer(serverIndex int, batchSize uint64) {
 	// Set skipReg from config file
 	globals.SkipRegServer = viper.GetBool("skipReg")
 
-	certPath := viper.GetString("certPath")
-	keyPath := viper.GetString("keyPath")
-	gatewayCertPath := viper.GetString("gatewayCertPath")
+	certPath := viper.GetString("paths.cert")
+	keyPath := viper.GetString("paths.key")
+	gatewayCertPath := viper.GetString("paths.gatewayCert")
 	// Set the certPaths explicitly to avoid data races
 	connect.ServerCertPath = certPath
 	connect.GatewayCertPath = gatewayCertPath
