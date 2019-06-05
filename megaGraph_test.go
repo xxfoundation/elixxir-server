@@ -308,6 +308,26 @@ func createDummyUserList(grp *cyclic.Group,
 	return registry
 }
 
+func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
+	roundBuf *round.Buffer, registry *globals.UserMap,
+	rngConstructor func() csprng.Source, t *testing.T) *services.Graph {
+	//make the graph
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
+			g, m, err.Error()))
+	}
+	// NOTE: input size greater than 1 would necessarily cause a hang here
+	// since we never send more than 1 message through.
+	gc := services.NewGraphGenerator(1, PanicHandler,
+		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
+	megaGraph := InitMegaGraph(gc, t)
+	megaGraph.Build(batchSize)
+
+	megaGraph.Link(grp, roundBuf, registry, rngConstructor)
+	megaGraph.Run()
+	return megaGraph
+}
+
 // Perform an end to end test of the precomputation with batch size 1,
 // then use it to send the message through a 1-node system to smoke test
 // the cryptographic operations.
@@ -326,14 +346,8 @@ func createDummyUserList(grp *cyclic.Group,
 func TestEndToEndCryptops(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
-	//batchSize := uint64(1)
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4), large.NewInt(5))
-
-	// These produce useful printouts when the test fails.
-	RootingTest(grp, t)
-	RootingTestDouble(grp, t)
-	RootingTestTriple(grp, t)
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
 	batchSize := uint32(1)
@@ -341,24 +355,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	registry := createDummyUserList(grp, rngConstructor())
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 
-	//make the graph
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
-			g, m, err.Error()))
-	}
-	// NOTE: input size greater than 1 would necessarily cause a hang here
-	// since we never send more than 1 message through.
-	gc := services.NewGraphGenerator(1, PanicHandler,
-		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
-	megaGraph := InitMegaGraph(gc, t)
-	megaGraph.Build(batchSize)
-
-	//make the round buffer
-	roundBuf := round.NewBuffer(grp, batchSize,
-		megaGraph.GetExpandedBatchSize())
+	//make the round buffer and manually set the round keys
+	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
 	roundBuf.InitLastNode()
-
-	//Manually set the round keys
 	grp.SetBytes(roundBuf.Z, []byte{13})
 	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)
 	grp.SetBytes(roundBuf.R.Get(0), []byte{26})
@@ -370,10 +369,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	grp.SetBytes(roundBuf.V.Get(0), []byte{18})
 	grp.SetBytes(roundBuf.Y_V.Get(0), []byte{79})
 
-	megaGraph.Link(grp, roundBuf, registry, rngConstructor)
-	stream := megaGraph.GetStream()
-	megaStream := stream.(*MegaStream)
-	megaGraph.Run()
+	megaGraph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
+		rngConstructor, t)
+	megaStream := megaGraph.GetStream().(*MegaStream)
 
 	// Create messsages
 	megaStream.KeygenDecryptStream.Salts[0] = []byte{0}
@@ -430,6 +428,11 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	*/
 
+	// These produce useful printouts when the test fails.
+	RootingTest(grp, t)
+	RootingTestDouble(grp, t)
+	RootingTestTriple(grp, t)
+
 	// Verify Precomputation
 
 	// Compute result directly
@@ -446,7 +449,8 @@ func TestEndToEndCryptops(t *testing.T) {
 			ss.ADPrecomputation.Get(0).Bytes(), RP.Bytes())
 	}
 
-	/* Most of these are incorrect because we flipped the computation
+	/* Most of these are incorrect because we changed the computation to
+	   2 keys instead of 3 as well as flipped to using inverse on clients
 	expectedRTDecrypt := []*cyclic.Int{
 		// 57 for Msg and 94 for AD
 		grp.NewInt(15), grp.NewInt(72),
