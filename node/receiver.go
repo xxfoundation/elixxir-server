@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"google.golang.org/grpc/metadata"
 )
 
 //ReceiveCreateNewRound receives the create new round signal and creates the round
@@ -61,9 +62,60 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	//send the data to the phase
 	err = io.PostPhase(p, batch)
+
 	if err != nil {
 		jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 	}
+
+}
+
+// ReceiveStreamPostPhase handles the state checks and edge checks of receiving a
+// phase operation
+func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer, instance *server.Instance) error {
+
+	rm := instance.GetRoundManager()
+
+	ctx := streamServer.Context()
+
+	// Get streamServer side meta-data (header)
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		//jww.ERROR.Panicf("Error on comm, should be able to return: %+v", )
+		return errors.New("Error on comm, unable to get header")
+	}
+
+	// Unmarshal header
+	roundInfo := mixmessages.RoundInfo{}
+	roundInfoStr := md.Get("RoundInfo")[0] // ewww...
+	err := roundInfo.XXX_Unmarshal([]byte(roundInfoStr))
+	if err != nil {
+		return errors.New("Error on comm, unable to unmarshal header")
+	}
+
+	batchInfo := mixmessages.BatchInfo{
+		Round:    &roundInfo,
+		ForPhase: int32(3),
+	}
+
+	// Check if the operation can be done and get the correct phase if it can
+	_, p, err := rm.HandleIncomingComm(id.Round(batchInfo.Round.ID), phase.Type(int32(3)).String())
+	if err != nil {
+		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
+	}
+
+	//queue the phase to be operated on if it is not queued yet
+	if p.AttemptTransitionToQueued() {
+		instance.GetResourceQueue().UpsertPhase(p)
+	}
+
+	////HACK HACK HACK
+	////The share phase needs a batchsize of 1, when it recieves from generation
+	////on the first node this will do the conversion on the batch
+	//if p.GetType() == phase.PrecompShare && len(batch.Slots) != 1 {
+	//	batch.Slots = batch.Slots[:1]
+	//}
+
+	return io.StreamPostPhase(p, streamServer)
 
 }
 
