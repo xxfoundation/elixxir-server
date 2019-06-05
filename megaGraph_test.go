@@ -284,6 +284,29 @@ func RootingTestTriple(grp *cyclic.Group, t *testing.T) {
 		RSLT.Text(10), K1K2K3.Text(10))
 }
 
+// createDummyUserList creates a user list with a user of id 123,
+// a base key of 1, and some random dsa params.
+func createDummyUserList() []*globals.User {
+	// Create a user -- FIXME: Why are we doing this here? Graphs shouldn't
+	// need to be aware of users...it should be done and applied separately
+	// as a list of keys to apply. This approach leads to getting part way
+	// and then having time delays from user lookup and also sensitive
+	// keying material being spewed all over in copies..
+	registry := &globals.UserMap{}
+	var userList []*globals.User
+	u := new(globals.User)
+	u.ID = id.NewUserFromUints(&[4]uint64{0, 0, 0, 123})
+	baseKeyBytes := []byte{1}
+	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
+	// FIXME: This should really not be necessary and this API is wonky
+	dsaParams := signature.GetDefaultDSAParams()
+	dsaPrivateKey := dsaParams.PrivateKeyGen(rngConstructor())
+	u.PublicKey = dsaPrivateKey.PublicKeyGen()
+	registry.UpsertUser(u)
+	userList = append(userList, u)
+	return userList
+}
+
 // Perform an end to end test of the precomputation with batch size 1,
 // then use it to send the message through a 1-node system to smoke test
 // the cryptographic operations.
@@ -314,23 +337,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	rngConstructor := NewPsudoRNG // FIXME: Why?
 	batchSize := uint32(1)
 
-	// Create a user -- FIXME: Why are we doing this here? Graphs shouldn't
-	// need to be aware of users...it should be done and applied separately
-	// as a list of keys to apply. This approach leads to getting part way
-	// and then having time delays from user lookup and also sensitive
-	// keying material being spewed all over in copies..
-	registry := &globals.UserMap{}
-	var userList []*globals.User
-	u := new(globals.User)
-	u.ID = id.NewUserFromUints(&[4]uint64{0, 0, 0, 123})
-	baseKeyBytes := []byte{1}
-	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
-	// FIXME: This should really not be necessary and this API is wonky
-	dsaParams := signature.GetDefaultDSAParams()
-	dsaPrivateKey := dsaParams.PrivateKeyGen(rngConstructor())
-	u.PublicKey = dsaPrivateKey.PublicKeyGen()
-	registry.UpsertUser(u)
-	userList = append(userList, u)
+	userList = createDummyUserList()
 
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
