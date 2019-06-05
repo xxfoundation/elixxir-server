@@ -286,7 +286,8 @@ func RootingTestTriple(grp *cyclic.Group, t *testing.T) {
 
 // createDummyUserList creates a user list with a user of id 123,
 // a base key of 1, and some random dsa params.
-func createDummyUserList() []*globals.User {
+func createDummyUserList(grp *cyclic.Group,
+	rng csprng.Source) *globals.UserMap {
 	// Create a user -- FIXME: Why are we doing this here? Graphs shouldn't
 	// need to be aware of users...it should be done and applied separately
 	// as a list of keys to apply. This approach leads to getting part way
@@ -295,16 +296,16 @@ func createDummyUserList() []*globals.User {
 	registry := &globals.UserMap{}
 	var userList []*globals.User
 	u := new(globals.User)
-	u.ID = id.NewUserFromUints(&[4]uint64{0, 0, 0, 123})
+	u.ID = id.NewUserFromUint(uint64(123), nil)
 	baseKeyBytes := []byte{1}
 	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
 	// FIXME: This should really not be necessary and this API is wonky
 	dsaParams := signature.GetDefaultDSAParams()
-	dsaPrivateKey := dsaParams.PrivateKeyGen(rngConstructor())
+	dsaPrivateKey := dsaParams.PrivateKeyGen(rng)
 	u.PublicKey = dsaPrivateKey.PublicKeyGen()
 	registry.UpsertUser(u)
 	userList = append(userList, u)
-	return userList
+	return registry
 }
 
 // Perform an end to end test of the precomputation with batch size 1,
@@ -337,7 +338,8 @@ func TestEndToEndCryptops(t *testing.T) {
 	rngConstructor := NewPsudoRNG // FIXME: Why?
 	batchSize := uint32(1)
 
-	userList := createDummyUserList()
+	registry := createDummyUserList(grp, rngConstructor())
+	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
@@ -375,7 +377,7 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	// Create messsages
 	megaStream.KeygenDecryptStream.Salts[0] = []byte{0}
-	megaStream.KeygenDecryptStream.Users[0] = userList[0].ID
+	megaStream.KeygenDecryptStream.Users[0] = dummyUser.ID
 	ecrMsg := grp.NewInt(31)
 	ecrAD := grp.NewInt(1)
 
