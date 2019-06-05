@@ -337,7 +337,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	rngConstructor := NewPsudoRNG // FIXME: Why?
 	batchSize := uint32(1)
 
-	userList = createDummyUserList()
+	userList := createDummyUserList()
 
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
