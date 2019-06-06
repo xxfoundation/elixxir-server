@@ -786,7 +786,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	instance.GetRoundManager().AddRound(rnd)
 
 	// Initially, there should be zero rounds on the precomp queue
-	if len(instance.GetFinishedRounds()) != 0 {
+	if len(instance.GetFinishedRounds(t)) != 0 {
 		t.Error("Expected completed precomps to be empty")
 	}
 
@@ -803,7 +803,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	var finishedRoundID id.Round
 
 	select {
-	case finishedRoundID = <-instance.GetFinishedRounds():
+	case finishedRoundID = <-instance.GetFinishedRounds(t):
 	case <-time.After(2 * time.Second):
 	}
 

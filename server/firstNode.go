@@ -1,28 +1,85 @@
 package server
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/round"
 	"sync"
+	"testing"
+	"time"
 )
 
 type firstNode struct {
 	once          sync.Once
+	runOnce       sync.Once
 	newBatchQueue chan *mixmessages.Batch
 	// This struct handles rounds that have finished precomputation and are
 	// ready to run realtime
 	readyRounds *PrecompBuffer
 
 	finishedRound chan id.Round
+
+	currentRoundID id.Round
 }
 
-type PrecompBuffer struct {
-	CompletedPrecomputations chan *round.Round
-	// Whenever a round gets Pushed, this channel gets signaled
-	PushSignal chan struct{}
+// RoundCreationTransmitter is a function type which is used to notify all nodes
+// to create the round
+type RoundCreationTransmitter func(*node.NodeComms, *circuit.Circuit, id.Round) error
+
+// Run is a long running process on the first node which creates new rounds at
+// the correct time. It can only be called once. It is passed a function through
+// which to interface with the network
+func (fn *firstNode) Run(network *node.NodeComms,
+	topology *circuit.Circuit, fullRoundTimeout time.Duration,
+	transmitter RoundCreationTransmitter) {
+	fn.runOnce.Do(
+		func() {
+			go func() {
+				for {
+					fn.roundCreationRunner(network, topology, fullRoundTimeout,
+						transmitter)
+				}
+			}()
+		},
+	)
 }
 
+// roundCreationRunner is a long running process on the first node which
+// creates new rounds at the correct time. It is passed a function through
+// which to interface with the network
+func (fn *firstNode) roundCreationRunner(network *node.NodeComms,
+	topology *circuit.Circuit, fullRoundTimeout time.Duration,
+	transmitter RoundCreationTransmitter) {
+
+	err := transmitter(network, topology, fn.currentRoundID)
+
+	// TODO: proper error handling will broadcast a signal to kill to round,
+	// allowing to continue
+	if err != nil {
+		jww.FATAL.Panicf("Round failed to start: %+v", err)
+	}
+
+	select {
+	case finishedRound := <-fn.finishedRound:
+		//TODO: proper error handling
+		if finishedRound != fn.currentRoundID {
+			jww.FATAL.Panicf("Incorrect Round finished; Expected: "+
+				"%v, Recieved: %v", fn.currentRoundID, finishedRound)
+		}
+	case <-time.After(fullRoundTimeout):
+		//TODO: proper error handling
+		jww.FATAL.Panicf("Round did not finish within timeout of %v",
+			fullRoundTimeout)
+	}
+
+	fn.currentRoundID++
+}
+
+// Initialize populates the first node structure properly.  It can only be called
+// once.
 func (fn *firstNode) Initialize() {
 	fn.once.Do(func() {
 		fn.newBatchQueue = make(chan *mixmessages.Batch, 10)
@@ -32,24 +89,39 @@ func (fn *firstNode) Initialize() {
 			//PushSignal: make(chan struct{}, 1),
 			PushSignal: make(chan struct{}),
 		}
-		fn.finishedRound = make(chan id.Round)
+		fn.finishedRound = make(chan id.Round, 1)
+		fn.currentRoundID = 0
 	})
 }
 
+// GetNewBatchQueue returns the que which stores new batches
 func (fn *firstNode) GetNewBatchQueue() chan *mixmessages.Batch {
 	return fn.newBatchQueue
 }
 
+// GetCompletedPrecomps returns the PrecompBuffer which is used to track and
+// signal the completion of precomputations
 func (fn *firstNode) GetCompletedPrecomps() *PrecompBuffer {
 	return fn.readyRounds
 }
 
-func (fn *firstNode) GetFinishedRounds() chan id.Round {
+// FinishRound is used to denote a round, by its id, is completed
+func (fn *firstNode) FinishRound(id id.Round) {
+	fn.finishedRound <- id
+}
+
+// GetFinishedRounds returns the finished rounds channel just for testing
+func (fn *firstNode) GetFinishedRounds(t *testing.T) chan id.Round {
+	if t == nil {
+		jww.FATAL.Panicf("GetFinishedRounds can only be used in tests")
+	}
 	return fn.finishedRound
 }
 
-func (fn *firstNode) FinishRound(id id.Round) {
-	fn.finishedRound <- id
+type PrecompBuffer struct {
+	CompletedPrecomputations chan *round.Round
+	// Whenever a round gets Pushed, this channel gets signaled
+	PushSignal chan struct{}
 }
 
 // Completes the precomputation for a round, and notifies someone who's waiting
