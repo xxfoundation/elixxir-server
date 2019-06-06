@@ -123,7 +123,8 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 func (al *assignmentList) DenoteCompleted(numCompleted int) bool {
 	result := atomic.AddUint32(al.completed, uint32(numCompleted))
 	if result > uint32(len(al.assignments)) {
-		jww.FATAL.Panicf("completed more assignments then possible")
+		jww.FATAL.Panicf("completed more assignments then possible:"+
+			" %d > %d", result, len(al.assignments))
 	}
 
 	return result == uint32(len(al.assignments))
