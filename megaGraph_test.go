@@ -412,24 +412,44 @@ func TestEndToEndCryptops(t *testing.T) {
 	}
 
 	/*
-		From original/first version of code
-		expectedDecrypt := []*cyclic.Int{
-			grp.NewInt(5), grp.NewInt(17),
-			grp.NewInt(79), grp.NewInt(36),
-		}
-		expectedPermute := []*cyclic.Int{
-			grp.NewInt(23), grp.NewInt(61),
-			grp.NewInt(39), grp.NewInt(85),
-		}
-		// Expected encrypt is deleted, we don't need it anymore!
-		// The UV calcs are the same but the message parts aren't
-		expectedReveal := []*cyclic.Int{
-			grp.NewInt(42), grp.NewInt(13), // 42 -> 89 by manual calc!
-		}
-		expectedStrip := []*cyclic.Int{
-			grp.NewInt(3), grp.NewInt(87),
-		}
-
+				From original/first version of code
+				expectedDecrypt := []*cyclic.Int{
+					grp.NewInt(5), grp.NewInt(17),
+					grp.NewInt(79), grp.NewInt(36),
+				}
+				expectedPermute := []*cyclic.Int{
+					grp.NewInt(23), grp.NewInt(61),
+					grp.NewInt(39), grp.NewInt(85),
+				}
+				// Expected encrypt is deleted, we don't need it anymore!
+				// The UV calcs are the same but the message parts aren't
+				expectedReveal := []*cyclic.Int{
+					grp.NewInt(42), grp.NewInt(13), // 42 -> 89 by manual calc!
+				}
+				expectedStrip := []*cyclic.Int{
+					grp.NewInt(3), grp.NewInt(87),
+				}
+		 megaGraph_test.go:552: MegaStream
+		    megaGraph_test.go:504: 1N Precomp Decrypt:
+		            R([26], [69]), U([94], [87]),
+		            KeysMsg/AD: ([5] / [17]), CypherMsg/AD: ([79] / [36])
+		    megaGraph_test.go:552: MegaStream
+		    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]), ([18], [79]),
+		             [23], [39], [61], [85]
+		    megaGraph_test.go:552: MegaStream
+		    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]), ([18], [79]),
+		             [23], [39], [61], [85]
+		    megaGraph_test.go:552: MegaStream
+		    megaGraph_test.go:528: 1N Precomp Reveal: [89], [13]
+		    megaGraph_test.go:552: MegaStream
+		    megaGraph_test.go:521: 1N Precomp Strip: [1], [1], [89], [13]
+		    megaGraph_test.go:552: MegaStream
+		    megaGraph_test.go:534: 1N RT Decrypt: K: [1], R: [26], M: [57], K: [1], U: [94], M: [94]
+		    megaGraph_test.go:552: MegaStream
+		    megaGraph_test.go:542: 1N RT Identify: S: [77], M: [2], V: [18], M: [87]
+		    megaGraph_test.go:398: done slot: 0, total done: 1
+		    megaGraph_test.go:428: MP: 69 in GRP: xjz30UG9n4..., RP: 16 in GRP: xjz30UG9n4...
+		PASS
 	*/
 
 	// These produce useful printouts when the test fails.
@@ -438,6 +458,24 @@ func TestEndToEndCryptops(t *testing.T) {
 	RootingTestTriple(grp, t)
 
 	// Verify Precomputation
+
+	ds := streams["Decrypt"].DecryptStream
+	if ds.KeysMsg.Get(0).Cmp(grp.NewInt(5)) != 0 {
+		t.Errorf("Precomp Decrypt KeysMsg: %v != [5]",
+			ds.KeysMsg.Get(0).Bytes())
+	}
+	if ds.KeysAD.Get(0).Cmp(grp.NewInt(17)) != 0 {
+		t.Errorf("Precomp Decrypt KeysAD: %v != [17]",
+			ds.KeysAD.Get(0).Bytes())
+	}
+	if ds.CypherMsg.Get(0).Cmp(grp.NewInt(79)) != 0 {
+		t.Errorf("Precomp Decrypt CypherMsg: %v != [79]",
+			ds.CypherMsg.Get(0).Bytes())
+	}
+	if ds.CypherAD.Get(0).Cmp(grp.NewInt(36)) != 0 {
+		t.Errorf("Precomp Decrypt CypherAD: %v != [36]",
+			ds.CypherAD.Get(0).Bytes())
+	}
 
 	// Compute result directly
 	MP, RP := ComputeSingleNodePrecomputation(grp, roundBuf)
