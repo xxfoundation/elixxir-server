@@ -18,10 +18,10 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	//	"golang.org/x/crypto/blake2b"
+	"github.com/jinzhu/copier"
 	"math/rand"
 	"runtime"
 	"testing"
-	//"github.com/jinzhu/copier"
 )
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -310,7 +310,8 @@ func createDummyUserList(grp *cyclic.Group,
 
 func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	roundBuf *round.Buffer, registry *globals.UserMap,
-	rngConstructor func() csprng.Source, t *testing.T) *services.Graph {
+	rngConstructor func() csprng.Source, streams map[string]*MegaStream,
+	t *testing.T) *services.Graph {
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
@@ -320,7 +321,7 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	// since we never send more than 1 message through.
 	gc := services.NewGraphGenerator(1, PanicHandler,
 		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
-	megaGraph := InitMegaGraph(gc, t)
+	megaGraph := InitMegaGraph(gc, streams, t)
 	megaGraph.Build(batchSize)
 
 	megaGraph.Link(grp, roundBuf, registry, rngConstructor)
@@ -372,7 +373,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	streams := make(map[string]*MegaStream)
 
 	megaGraph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
-		rngConstructor, t)
+		rngConstructor, streams, t)
 	megaStream := megaGraph.GetStream().(*MegaStream)
 	streams["END"] = megaStream
 
@@ -517,88 +518,23 @@ var DummyKeygen = services.Module{
 	NumThreads: services.AutoNumThreads,
 }
 
-func DebugPrintDecryptStream(ds precomputation.DecryptStream, t *testing.T) {
-	t.Logf("1N Precomp Decrypt: \n\tR(%v, %v), U(%v, %v), "+
-		"\n\tKeysMsg/AD: (%v / %v), CypherMsg/AD: (%v / %v)",
-		ds.R.Get(0).Bytes(), ds.Y_R.Get(0).Bytes(),
-		ds.U.Get(0).Bytes(), ds.Y_U.Get(0).Bytes(),
-		ds.KeysMsg.Get(0).Bytes(), ds.KeysAD.Get(0).Bytes(),
-		ds.CypherMsg.Get(0).Bytes(), ds.CypherAD.Get(0).Bytes())
-}
-
-func DebugPrintPermuteStream(ps precomputation.PermuteStream, t *testing.T) {
-	t.Logf("1N Precomp Permute: (%v, %v), (%v, %v), \n\t %v, %v, %v, %v",
-		ps.S.Get(0).Bytes(), ps.Y_S.Get(0).Bytes(),
-		ps.V.Get(0).Bytes(), ps.Y_V.Get(0).Bytes(),
-		ps.KeysMsgPermuted[0].Bytes(), ps.CypherMsgPermuted[0].Bytes(),
-		ps.KeysADPermuted[0].Bytes(), ps.CypherADPermuted[0].Bytes())
-}
-
-func DebugPrintStripStream(ss precomputation.StripStream, t *testing.T) {
-	t.Logf("1N Precomp Strip: %v, %v, %v, %v",
-		ss.MessagePrecomputation.Get(0).Bytes(),
-		ss.ADPrecomputation.Get(0).Bytes(),
-		ss.CypherMsg.Get(0).Bytes(), ss.CypherAD.Get(0).Bytes())
-}
-
-func DebugPrintRevealStream(rs precomputation.RevealStream, t *testing.T) {
-	t.Logf("1N Precomp Reveal: %v, %v",
-		rs.CypherMsg.Get(0).Bytes(), rs.CypherAD.Get(0).Bytes())
-}
-
-func DebugPrintKeygenDecryptStream(ds realtime.KeygenDecryptStream,
-	t *testing.T) {
-	t.Logf("1N RT Decrypt: K: %v, R: %v, M: %v, K: %v, U: %v, M: %v",
-		ds.KeysMsg.Get(0).Bytes(), ds.R.Get(0).Bytes(),
-		ds.EcrMsg.Get(0).Bytes(), ds.KeysAD.Get(0).Bytes(),
-		ds.U.Get(0).Bytes(), ds.EcrAD.Get(0).Bytes())
-}
-
-func DebugPrintIdentifyStream(ds realtime.IdentifyStream,
-	t *testing.T) {
-	t.Logf("1N RT Identify: S: %v, M: %v, V: %v, M: %v",
-		ds.S.Get(0).Bytes(),
-		ds.EcrMsg.Get(0).Bytes(),
-		ds.V.Get(0).Bytes(), ds.EcrAD.Get(0).Bytes())
-}
-
-func CreateDebugPrinter(t *testing.T, ty string) *services.Module {
-	return &services.Module{
+// CreateStreamCopier takes a map object and copies the current state of the
+// stream object to the map with the given key
+func CreateStreamCopier(t *testing.T, key string,
+	streams map[string]*MegaStream) *services.Module {
+	return (&services.Module{
 		Adapt: func(s services.Stream, cryptop cryptops.Cryptop,
 			chunk services.Chunk) error {
 			t.Logf(s.GetName())
 			ms := s.(*MegaStream)
-			if ty == "Decrypt" {
-				ds := ms.DecryptStream
-				DebugPrintDecryptStream(ds, t)
-			}
-			if ty == "Permute" {
-				ps := ms.PermuteStream
-				DebugPrintPermuteStream(ps, t)
-			}
-			if ty == "Strip" {
-				ss := ms.StripStream
-				DebugPrintStripStream(ss, t)
-			}
-			if ty == "Reveal" {
-				rs := ms.StripStream.RevealStream
-				DebugPrintRevealStream(rs, t)
-			}
-			if ty == "DecryptRT" {
-				rs := ms.KeygenDecryptStream
-				DebugPrintKeygenDecryptStream(rs, t)
-			}
-			if ty == "PermuteMul2" {
-				rs := ms.IdentifyStream
-				DebugPrintIdentifyStream(rs, t)
-			}
+			streams[key] = ms.DeepCopy()
 			return nil
 		},
 		Cryptop:    cryptops.Mul2,
 		InputSize:  services.AutoInputSize,
 		Name:       "DebugPrinter",
 		NumThreads: services.AutoNumThreads,
-	}
+	}).DeepCopy()
 }
 
 type MegaStream struct {
@@ -612,6 +548,12 @@ type MegaStream struct {
 
 func (mega *MegaStream) GetName() string {
 	return "MegaStream"
+}
+
+func (mega *MegaStream) DeepCopy() *MegaStream {
+	ret := &MegaStream{}
+	copier.Copy(ret, mega)
+	return ret
 }
 
 func (mega *MegaStream) Link(grp *cyclic.Group, batchSize uint32,
@@ -690,7 +632,8 @@ var ReintegratePrecompPermute = services.Module{
 	StartThreshold: 1.0,
 }
 
-func InitMegaGraph(gc services.GraphGenerator, t *testing.T) *services.Graph {
+func InitMegaGraph(gc services.GraphGenerator, streams map[string]*MegaStream,
+	t *testing.T) *services.Graph {
 	g := gc.NewGraph("MegaGraph", &MegaStream{})
 
 	//modules for precomputation
@@ -708,15 +651,15 @@ func InitMegaGraph(gc services.GraphGenerator, t *testing.T) *services.Graph {
 	permuteMul2 := realtime.PermuteMul2.DeepCopy()
 	identifyMal2 := realtime.IdentifyMul2.DeepCopy()
 
-	dPDecrypt := CreateDebugPrinter(t, "Decrypt").DeepCopy()
-	dPPermute := CreateDebugPrinter(t, "Permute").DeepCopy()
-	dPPermuteR := CreateDebugPrinter(t, "Permute").DeepCopy()
-	dPReveal := CreateDebugPrinter(t, "Reveal").DeepCopy()
-	dPStrip := CreateDebugPrinter(t, "Strip").DeepCopy()
-	dPStrip2 := CreateDebugPrinter(t, "Strip").DeepCopy()
+	dPDecrypt := CreateStreamCopier(t, "Decrypt", streams)
+	dPPermute := CreateStreamCopier(t, "Permute", streams)
+	dPPermuteR := CreateStreamCopier(t, "Permute", streams)
+	dPReveal := CreateStreamCopier(t, "Reveal", streams)
+	dPStrip := CreateStreamCopier(t, "Strip", streams)
+	dPStrip2 := CreateStreamCopier(t, "Strip", streams)
 
-	dPDecryptRT := CreateDebugPrinter(t, "DecryptRT").DeepCopy()
-	dPPermuteMul2 := CreateDebugPrinter(t, "PermuteMul2").DeepCopy()
+	dPDecryptRT := CreateStreamCopier(t, "DecryptRT", streams)
+	dPPermuteMul2 := CreateStreamCopier(t, "PermuteRT", streams)
 
 	//g.First(generate)
 	// NOTE: Generate is skipped because it's values are hard coded
