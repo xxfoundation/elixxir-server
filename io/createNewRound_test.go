@@ -16,7 +16,7 @@ var receivedNewRound = make(chan *mixmessages.RoundInfo, 100)
 func MockCreateNewRoundImplementation() *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) error {
-		receivedFinishRealtime <- message
+		receivedNewRound <- message
 		return nil
 	}
 	return impl
@@ -26,7 +26,7 @@ func MockCreateNewRoundImplementation() *node.Implementation {
 // to all other nodes
 func TestTransmitCreateNewRound(t *testing.T) {
 	//Setup the network
-	numNodes := 4
+	numNodes := 5
 	numRecv := 0
 	// init every node including yourself because the first node uses the comm
 	// to create the new round for simplicity
@@ -53,7 +53,7 @@ func TestTransmitCreateNewRound(t *testing.T) {
 Loop:
 	for {
 		select {
-		case msg := <-receivedFinishRealtime:
+		case msg := <-receivedNewRound:
 			if id.Round(msg.ID) != rndID {
 				t.Errorf("TransmitFinishRealtime: Incorrect round ID"+
 					"Expected: %v, Received: %v", rndID, msg.ID)
