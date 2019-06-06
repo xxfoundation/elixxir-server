@@ -369,9 +369,12 @@ func TestEndToEndCryptops(t *testing.T) {
 	grp.SetBytes(roundBuf.V.Get(0), []byte{18})
 	grp.SetBytes(roundBuf.Y_V.Get(0), []byte{79})
 
+	streams := make(map[string]*MegaStream)
+
 	megaGraph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
 		rngConstructor, t)
 	megaStream := megaGraph.GetStream().(*MegaStream)
+	streams["END"] = megaStream
 
 	// Create messsages
 	megaStream.KeygenDecryptStream.Salts[0] = []byte{0}
@@ -439,7 +442,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	MP, RP := ComputeSingleNodePrecomputation(grp, roundBuf)
 	t.Logf("MP: %s, RP: %s",
 		MP.Text(10), RP.Text(10))
-	ss := megaStream.StripStream
+	ss := streams["END"].StripStream
 	if ss.MessagePrecomputation.Get(0).Cmp(MP) != 0 {
 		t.Errorf("%v != %v",
 			ss.MessagePrecomputation.Get(0).Bytes(), MP.Bytes())
@@ -473,11 +476,12 @@ func TestEndToEndCryptops(t *testing.T) {
 
 	expMsg := grp.NewInt(31)
 	expAD := grp.NewInt(1)
-	if megaStream.IdentifyStream.EcrMsgPermuted[0].Cmp(expMsg) != 0 {
+	is := streams["END"].IdentifyStream
+	if is.EcrMsgPermuted[0].Cmp(expMsg) != 0 {
 		t.Errorf("%v != %v", expMsg.Bytes(),
 			megaStream.IdentifyStream.EcrMsgPermuted[0].Bytes())
 	}
-	if megaStream.IdentifyStream.EcrADPermuted[0].Cmp(expAD) != 0 {
+	if is.EcrADPermuted[0].Cmp(expAD) != 0 {
 		t.Errorf("%v != %v", expAD.Bytes(),
 			megaStream.IdentifyStream.EcrADPermuted[0].Bytes())
 	}
