@@ -537,7 +537,7 @@ func TestBatchSize3(t *testing.T) {
 		large.NewInt(4), large.NewInt(5))
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
-	batchSize := uint32(1000)
+	batchSize := uint32(4)
 
 	registry := createDummyUserList(grp, rngConstructor())
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
@@ -592,6 +592,8 @@ func TestBatchSize3(t *testing.T) {
 				grp.NewInt(1))
 			grp.Set(megaStream.KeygenDecryptStream.KeysAD.Get(i),
 				grp.NewInt(1))
+
+			fmt.Printf("Sending chunk %d, and + 1\n", i)
 
 			chunk := services.NewChunk(i, i+1)
 			megaGraph.Send(chunk)
@@ -675,13 +677,16 @@ func CreateStreamCopier(t *testing.T, key string,
 			chunk services.Chunk) error {
 			//ms := s.(*MegaStream)
 			//streams[key] = ms.DeepCopy()
+			for i := chunk.Begin(); i < chunk.End(); i++ {
+				fmt.Printf("%s: %d\n", key, i)
+			}
 			return nil
 		},
-		Cryptop:    cryptops.Mul2,
-		InputSize:  services.AutoInputSize,
-		Name:       "DebugPrinter",
-		NumThreads: services.AutoNumThreads,
-		//		StartThreshold: 1.0,
+		Cryptop:        cryptops.Mul2,
+		InputSize:      services.AutoInputSize,
+		Name:           "DebugPrinter",
+		NumThreads:     services.AutoNumThreads,
+		StartThreshold: .5,
 	}).DeepCopy()
 }
 
@@ -769,7 +774,7 @@ var ReintegratePrecompPermute = services.Module{
 			ppsi.Grp.Set(ppsi.CypherMsg.Get(i), ppsi.CypherMsgPermuted[i])
 			ppsi.Grp.Set(ppsi.KeysAD.Get(i), ppsi.KeysADPermuted[i])
 			ppsi.Grp.Set(ppsi.CypherAD.Get(i), ppsi.CypherADPermuted[i])
-
+			fmt.Printf("PERMUTEREINTEGRATE: %d\n", i)
 		}
 		return nil
 	},
