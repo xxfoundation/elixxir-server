@@ -33,12 +33,24 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 				}
 
 				for _, om := range m.outputModules {
-					chunkList := om.assignmentList.PrimeOutputs(chunk)
+					chunkList, err := om.assignmentList.PrimeOutputs(chunk)
+					if err != nil {
+						go g.generator.errorHandler(g.name, m.Name, err)
+						return
+					}
+
 					for _, r := range chunkList {
+						//fmt.Printf( "%s sending (%v - %v) to %s \n",
+						//	m.Name, r.begin, r.end, om.Name)
 						om.input <- r
 					}
 
-					fin := om.assignmentList.DenoteCompleted(len(chunkList))
+					fin, err := om.assignmentList.DenoteCompleted(len(chunkList))
+
+					if err != nil {
+						go g.generator.errorHandler(g.name, m.Name, err)
+						return
+					}
 
 					if fin {
 						om.closeInput()

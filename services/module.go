@@ -116,7 +116,7 @@ func threshold(batchsize uint32, thresh float32) uint32 {
 		jww.FATAL.Panicf("utput threshold was %v, "+
 			"must be between 0 and 1", thresh)
 	}
-	return uint32(math.Floor(float64(thresh) * float64(batchsize-1)))
+	return uint32(float64(thresh) * float64(batchsize))
 }
 
 func (m Module) DeepCopy() *Module {
