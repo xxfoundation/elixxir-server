@@ -12,14 +12,12 @@ package io
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
-	"google.golang.org/grpc/metadata"
 	"io"
 )
 
@@ -67,22 +65,19 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 	recipient := topology.GetNextNode(nodeID)
 
 	// Create the message structure to send the messages
-	batchInfo := &mixmessages.BatchInfo{
+	batchInfo := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
 		ForPhase: int32(phaseTy),
 	}
 
-	// Create streaming context so you can close stream later
-	ctx, cancel := connect.StreamingContext()
-
-	// Create a new context with some metadata
-	ctx = metadata.AppendToOutgoingContext(ctx,
-		"BatchInfo", batchInfo.String())
+	// Get stream client context
+	ctx, cancel := network.GetPostPhaseStreamContext(batchInfo)
 
 	// Get stream client
 	streamClient, err := network.GetPostPhaseStream(recipient, ctx)
+
 	if err != nil {
 		jww.ERROR.Printf("Error on comm, unable to get streaming client: %+v", err)
 	}
@@ -91,6 +86,7 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 	for chunk, finish := getChunk(); !finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
+
 			err := streamClient.Send(msg)
 			if err != nil {
 				jww.ERROR.Printf("Error on comm, not able to send slot: %+v", err)
@@ -99,14 +95,20 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 	}
 
 	ack, err := streamClient.CloseAndRecv()
+
+	if err != nil {
+		return err
+	}
+
 	// Make sure the comm doesn't return an Ack with an error message
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s", ack.Error)
+		return err
 	}
 
 	cancel()
 
-	return err
+	return nil
 }
 
 // PostPhase implements the server gRPC handler for posting a
@@ -130,20 +132,40 @@ func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 
 // StreamPostPhase implements the server gRPC handler for posting a
 // phase from another node
-func StreamPostPhase(p phase.Phase, server mixmessages.Node_StreamPostPhaseServer) error {
+func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServer) error {
 
-	// Send a chunk per received slot until EOF
+	// TODO: Do we need header? Where does it go?
+	//batchInfo, err := node.GetPostPhaseStreamHeader(stream)
+	//if err != nil {
+	//	return err
+	//}
+
+	// Receive all slots and on EOF store all data
+	// into a global received batch variable then
+	// send ack back to client.
+	//var slots []*mixmessages.Slot
 	index := uint32(0)
 	for {
-		slot, err := server.Recv()
-		index++
+		slot, err := stream.Recv()
+		// If we are at end of receiving
+		// send ack and finish
 		if err == io.EOF {
-			// TODO: send ack here
+			ack := mixmessages.Ack{
+				Error: "",
+			}
 
-			return nil
+			//receivedBatch = mixmessages.Batch{
+			//	Round:    batchInfo.Round,
+			//	ForPhase: batchInfo.ForPhase,
+			//	Slots:    slots,
+			//}
+
+			err = stream.SendAndClose(&ack)
+			return err
 		}
+
+		// If we have another error, return err
 		if err != nil {
-			// TODO: Log error
 			return err
 		}
 
@@ -156,5 +178,6 @@ func StreamPostPhase(p phase.Phase, server mixmessages.Node_StreamPostPhaseServe
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
 
+		index++
 	}
 }

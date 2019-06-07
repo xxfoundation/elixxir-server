@@ -87,6 +87,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// Unmarshal header
 	roundInfo := mixmessages.RoundInfo{}
 	roundInfoStr := md.Get("RoundInfo")[0] // ewww...
+
 	err := roundInfo.XXX_Unmarshal([]byte(roundInfoStr))
 	if err != nil {
 		return errors.New("Error on comm, unable to unmarshal header")
