@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/jinzhu/copier"
 	"gitlab.com/elixxir/comms/mixmessages"
-	//	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -14,11 +15,9 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
-	//	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
-	//	"golang.org/x/crypto/blake2b"
-	"github.com/jinzhu/copier"
+	"golang.org/x/crypto/blake2b"
 	"math/rand"
 	"runtime"
 	"testing"
@@ -320,7 +319,7 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	// NOTE: input size greater than 1 would necessarily cause a hang here
 	// since we never send more than 1 message through.
 	gc := services.NewGraphGenerator(1, PanicHandler,
-		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
+		1, 1, 0)
 	megaGraph := InitMegaGraph(gc, streams, t)
 	megaGraph.Build(batchSize)
 
@@ -531,6 +530,7 @@ func TestEndToEndCryptops(t *testing.T) {
 }
 
 // TestBatchSize3 runs the End to End test with 3 messages instead of 1
+/*
 func TestBatchSize3(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
@@ -538,7 +538,7 @@ func TestBatchSize3(t *testing.T) {
 		large.NewInt(4), large.NewInt(5))
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
-	batchSize := uint32(3)
+	batchSize := uint32(4)
 
 	registry := createDummyUserList(grp, rngConstructor())
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
@@ -637,6 +637,7 @@ func TestBatchSize3(t *testing.T) {
 	}
 
 }
+*/
 
 /* BEGIN TEST AND DUMMY STRUCTURES */
 
@@ -832,19 +833,30 @@ func InitMegaGraph(gc services.GraphGenerator, streams map[string]*MegaStream,
 	g.Connect(permuteMul2, dPPermuteMul2)
 	g.Connect(dPPermuteMul2, identifyMal2)
 	g.Last(identifyMal2)
+	/*
+		g.First(decryptElgamal)
+		g.Connect(decryptElgamal, permuteElgamal)
+		g.Connect(permuteElgamal, permuteReintegrate)
+		g.Connect(permuteReintegrate, revealRoot)
+		g.Connect(revealRoot, stripInverse)
+		g.Connect(stripInverse, stripMul2)
+		g.Connect(stripMul2, decryptMul3)
+		g.Connect(decryptMul3, permuteMul2)
+		g.Connect(permuteMul2,identifyMal2)
+		g.Last(identifyMal2)
+	*/
 	return g
 }
 
-/*
 func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
 		large.NewInt(2), large.NewInt(1283))
 
-	nid := server.GenerateId()
+	//nid := server.GenerateId()
 
-	instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
+	//instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 
-	registry := instance.GetUserRegistry()
+	registry := &globals.UserMap{}
 	var userList []*globals.User
 
 	var salts [][]byte
@@ -925,7 +937,8 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
-	megaGraph := InitMegaGraph(gc, t)
+	streams := make(map[string]*MegaStream)
+	megaGraph := InitMegaGraph(gc, streams, t)
 
 	megaGraph.Build(batchSize)
 
@@ -986,7 +999,6 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 
 }
 
-/*
 func Test_MegaStream(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16), large.NewInt(2), large.NewInt(1283))
 
@@ -997,7 +1009,8 @@ func Test_MegaStream(t *testing.T) {
 	}
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
-	megaGraph := InitMegaGraph(gc, t)
+	streams := make(map[string]*MegaStream)
+	megaGraph := InitMegaGraph(gc, streams, t)
 
 	megaGraph.Build(batchSize)
 
@@ -1021,7 +1034,6 @@ func Test_MegaStream(t *testing.T) {
 	}
 
 }
-*/
 
 func NewPsudoRNG() csprng.Source {
 	return &PsudoRNG{
@@ -1043,8 +1055,6 @@ func (p *PsudoRNG) SetSeed(seed []byte) error {
 	return nil
 }
 
-/*
 func Test_MegaGraph(t *testing.T) {
 	RunMegaGraph(1000, NewPsudoRNG, t)
 }
-*/
