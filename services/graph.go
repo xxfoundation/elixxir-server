@@ -187,7 +187,11 @@ func (g *Graph) GetStream() Stream {
 
 func (g *Graph) Send(chunk Chunk) {
 
-	srList := g.firstModule.assignmentList.PrimeOutputs(chunk)
+	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
+
+	if err != nil {
+		g.generator.errorHandler(g.name, "input", err)
+	}
 
 	for _, r := range srList {
 		g.firstModule.input <- r
@@ -198,14 +202,22 @@ func (g *Graph) Send(chunk Chunk) {
 
 	if numSent == g.batchSize && g.batchSize < g.expandBatchSize {
 		endChunk := NewChunk(g.batchSize, g.expandBatchSize)
-		srList = g.firstModule.assignmentList.PrimeOutputs(endChunk)
+		srList, err = g.firstModule.assignmentList.PrimeOutputs(endChunk)
+
+		if err != nil {
+			g.generator.errorHandler(g.name, "input", err)
+		}
 
 		for _, r := range srList {
 			g.firstModule.input <- r
 		}
 	}
 
-	done := g.firstModule.assignmentList.DenoteCompleted(len(srList))
+	done, err := g.firstModule.assignmentList.DenoteCompleted(len(srList))
+
+	if err != nil {
+		g.generator.errorHandler(g.name, "input", err)
+	}
 
 	if done {
 		// FIXME: Perhaps not the correct place to close the channel.

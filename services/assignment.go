@@ -7,7 +7,8 @@
 package services
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
+	"errors"
+	"fmt"
 	"sync/atomic"
 )
 
@@ -55,16 +56,16 @@ func newAssignment(start uint32) *assignment {
 }
 
 //Denotes that a portion of an assignment is complete
-func (a *assignment) Enqueue(weight, maxCount uint32) bool {
+func (a *assignment) Enqueue(weight, maxCount uint32) (bool, error) {
 
 	cnt := atomic.AddUint32(a.count, weight)
 
 	if cnt > maxCount {
-		jww.FATAL.Panicf("assignment size overflow, Expected: <=%v, "+
-			"Got: %v from Weight: %v", maxCount, cnt, weight)
+		return false, errors.New(fmt.Sprintf("assignment size overflow, Expected: <=%v, "+
+			"Got: %v from Weight: %v", maxCount, cnt, weight))
 	}
 
-	return cnt == maxCount
+	return cnt == maxCount, nil
 }
 
 // Gets the chunk represented by the assignment
@@ -73,7 +74,7 @@ func (a *assignment) GetChunk(size uint32) Chunk {
 }
 
 // Denotes all assignments which have completed based upon an incoming chunk and
-func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
+func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, error) {
 	position := c.Begin()
 
 	var cList []Chunk
@@ -89,7 +90,11 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 			weight = undenotedComplete
 		}
 
-		ready := al.assignments[assignmentNum].Enqueue(weight, al.maxCount)
+		ready, err := al.assignments[assignmentNum].Enqueue(weight, al.maxCount)
+
+		if err != nil {
+			return nil, err
+		}
 
 		if ready {
 			cList = append(cList, al.assignments[assignmentNum].GetChunk(al.numSlots))
@@ -116,16 +121,16 @@ func (al *assignmentList) PrimeOutputs(c Chunk) []Chunk {
 		}
 	}
 
-	return cList
+	return cList, nil
 }
 
 //Checks if all assignments within a chunk are complete
-func (al *assignmentList) DenoteCompleted(numCompleted int) bool {
+func (al *assignmentList) DenoteCompleted(numCompleted int) (bool, error) {
 	result := atomic.AddUint32(al.completed, uint32(numCompleted))
 	if result > uint32(len(al.assignments)) {
-		jww.FATAL.Panicf("completed more assignments then possible:"+
-			" %d > %d", result, len(al.assignments))
+		return false, errors.New(fmt.Sprintf("completed more assignments then possible:"+
+			" %d > %d", result, len(al.assignments)))
 	}
 
-	return result == uint32(len(al.assignments))
+	return result == uint32(len(al.assignments)), nil
 }
