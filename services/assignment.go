@@ -107,7 +107,7 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, error) {
 	//Get the updated state of the prime counter
 	addingIndex := atomic.AddUint32(al.waitingIndex, uint32(len(cList)))
 	initialChunk := addingIndex - uint32(len(cList))
-	if initialChunk*al.numSlots <= al.threshold {
+	if initialChunk*al.numSlots < al.threshold {
 		for index, chunk := range cList {
 			al.waiting[initialChunk+uint32(index)] = chunk
 		}
