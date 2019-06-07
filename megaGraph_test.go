@@ -530,7 +530,6 @@ func TestEndToEndCryptops(t *testing.T) {
 }
 
 // TestBatchSize3 runs the End to End test with 3 messages instead of 1
-/*
 func TestBatchSize3(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
@@ -538,7 +537,7 @@ func TestBatchSize3(t *testing.T) {
 		large.NewInt(4), large.NewInt(5))
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
-	batchSize := uint32(4)
+	batchSize := uint32(1000)
 
 	registry := createDummyUserList(grp, rngConstructor())
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
@@ -574,8 +573,8 @@ func TestBatchSize3(t *testing.T) {
 	// Send message through the graph
 	go func() {
 		for i := uint32(0); i < batchSize; i++ {
-			ecrMsg := grp.NewInt(31 + int64(i))
-			ecrAD := grp.NewInt(1 + int64(i))
+			ecrMsg := grp.NewInt((31+int64(i))%106 + 1)
+			ecrAD := grp.NewInt((1+int64(i))%106 + 1)
 			grp.Set(megaStream.DecryptStream.KeysMsg.Get(i),
 				grp.NewInt(1))
 			grp.Set(megaStream.DecryptStream.KeysAD.Get(i),
@@ -637,7 +636,6 @@ func TestBatchSize3(t *testing.T) {
 	}
 
 }
-*/
 
 /* BEGIN TEST AND DUMMY STRUCTURES */
 
