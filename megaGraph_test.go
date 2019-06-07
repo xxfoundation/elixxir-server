@@ -685,7 +685,7 @@ func CreateStreamCopier(t *testing.T, key string,
 		InputSize:      services.AutoInputSize,
 		Name:           "DebugPrinter",
 		NumThreads:     services.AutoNumThreads,
-		StartThreshold: 1.0,
+		StartThreshold: 0.0,
 	}).DeepCopy()
 }
 
