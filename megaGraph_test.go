@@ -573,8 +573,8 @@ func TestBatchSize3(t *testing.T) {
 	// Send message through the graph
 	go func() {
 		for i := uint32(0); i < batchSize; i++ {
-			ecrMsg := grp.NewInt((31+int64(i))%106 + 1)
-			ecrAD := grp.NewInt((1+int64(i))%106 + 1)
+			ecrMsg := grp.NewInt((30+int64(i))%106 + 1)
+			ecrAD := grp.NewInt((int64(i))%106 + 1)
 			grp.Set(megaStream.DecryptStream.KeysMsg.Get(i),
 				grp.NewInt(1))
 			grp.Set(megaStream.DecryptStream.KeysAD.Get(i),
@@ -592,8 +592,6 @@ func TestBatchSize3(t *testing.T) {
 				grp.NewInt(1))
 			grp.Set(megaStream.KeygenDecryptStream.KeysAD.Get(i),
 				grp.NewInt(1))
-
-			fmt.Printf("Sending chunk %d, and + 1\n", i)
 
 			chunk := services.NewChunk(i, i+1)
 			megaGraph.Send(chunk)
@@ -625,16 +623,18 @@ func TestBatchSize3(t *testing.T) {
 
 	// Verify Realtime
 
-	expMsg := grp.NewInt(31)
-	expAD := grp.NewInt(1)
 	is := streams["END"].IdentifyStream
-	if is.EcrMsgPermuted[0].Cmp(expMsg) != 0 {
-		t.Errorf("%v != %v", expMsg.Bytes(),
-			megaStream.IdentifyStream.EcrMsgPermuted[0].Bytes())
-	}
-	if is.EcrADPermuted[0].Cmp(expAD) != 0 {
-		t.Errorf("%v != %v", expAD.Bytes(),
-			megaStream.IdentifyStream.EcrADPermuted[0].Bytes())
+	for i := uint32(0); i < batchSize; i++ {
+		expMsg := grp.NewInt((30+int64(i))%106 + 1)
+		expAD := grp.NewInt(int64(i)%106 + 1)
+		if is.EcrMsgPermuted[i].Cmp(expMsg) != 0 {
+			t.Errorf("%v != %v", expMsg.Bytes(),
+				megaStream.IdentifyStream.EcrMsgPermuted[i].Bytes())
+		}
+		if is.EcrADPermuted[i].Cmp(expAD) != 0 {
+			t.Errorf("%v != %v", expAD.Bytes(),
+				megaStream.IdentifyStream.EcrADPermuted[i].Bytes())
+		}
 	}
 
 }
@@ -677,16 +677,16 @@ func CreateStreamCopier(t *testing.T, key string,
 			chunk services.Chunk) error {
 			//ms := s.(*MegaStream)
 			//streams[key] = ms.DeepCopy()
-			for i := chunk.Begin(); i < chunk.End(); i++ {
-				fmt.Printf("%s: %d\n", key, i)
-			}
+			//for i := chunk.Begin(); i < chunk.End(); i++ {
+			//	fmt.Printf("%s: %d\n", key, i)
+			//}
 			return nil
 		},
 		Cryptop:        cryptops.Mul2,
 		InputSize:      services.AutoInputSize,
 		Name:           "DebugPrinter",
 		NumThreads:     services.AutoNumThreads,
-		StartThreshold: .5,
+		StartThreshold: 1.0,
 	}).DeepCopy()
 }
 
@@ -774,7 +774,6 @@ var ReintegratePrecompPermute = services.Module{
 			ppsi.Grp.Set(ppsi.CypherMsg.Get(i), ppsi.CypherMsgPermuted[i])
 			ppsi.Grp.Set(ppsi.KeysAD.Get(i), ppsi.KeysADPermuted[i])
 			ppsi.Grp.Set(ppsi.CypherAD.Get(i), ppsi.CypherADPermuted[i])
-			fmt.Printf("PERMUTEREINTEGRATE: %d\n", i)
 		}
 		return nil
 	},
@@ -1059,5 +1058,5 @@ func (p *PsudoRNG) SetSeed(seed []byte) error {
 }
 
 func Test_MegaGraph(t *testing.T) {
-	RunMegaGraph(1000, NewPsudoRNG, t)
+	RunMegaGraph(3, NewPsudoRNG, t)
 }
