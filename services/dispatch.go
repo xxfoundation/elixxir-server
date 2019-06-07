@@ -40,6 +40,8 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 					}
 
 					for _, r := range chunkList {
+						//fmt.Printf( "%s sending (%v - %v) to %s \n",
+						//	m.Name, r.begin, r.end, om.Name)
 						om.input <- r
 					}
 
