@@ -556,6 +556,7 @@ func TestBatchSize3(t *testing.T) {
 		grp.SetBytes(roundBuf.Y_U.Get(i), []byte{87})
 		grp.SetBytes(roundBuf.V.Get(i), []byte{18})
 		grp.SetBytes(roundBuf.Y_V.Get(i), []byte{79})
+		roundBuf.Permutations[i] = (i + 1) % batchSize
 	}
 	streams := make(map[string]*MegaStream)
 
@@ -602,38 +603,36 @@ func TestBatchSize3(t *testing.T) {
 	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			numDoneSlots++
-			t.Logf("done slot: %d, total done: %d",
-				i, numDoneSlots)
 		}
 	}
 
 	// Compute result directly
 	MP, RP := ComputeSingleNodePrecomputation(grp, roundBuf)
-	t.Logf("MP: %s, RP: %s",
-		MP.Text(10), RP.Text(10))
 	ss := streams["END"].StripStream
-	if ss.MessagePrecomputation.Get(0).Cmp(MP) != 0 {
-		t.Errorf("%v != %v",
-			ss.MessagePrecomputation.Get(0).Bytes(), MP.Bytes())
-	}
-	if ss.ADPrecomputation.Get(0).Cmp(RP) != 0 {
-		t.Errorf("%v != %v",
-			ss.ADPrecomputation.Get(0).Bytes(), RP.Bytes())
-	}
-
-	// Verify Realtime
-
 	is := streams["END"].IdentifyStream
 	for i := uint32(0); i < batchSize; i++ {
-		expMsg := grp.NewInt((30+int64(i))%106 + 1)
-		expAD := grp.NewInt(int64(i)%106 + 1)
-		if is.EcrMsgPermuted[i].Cmp(expMsg) != 0 {
-			t.Errorf("%v != %v", expMsg.Bytes(),
-				megaStream.IdentifyStream.EcrMsgPermuted[i].Bytes())
+		// Verify precomputation
+		if ss.MessagePrecomputation.Get(i).Cmp(MP) != 0 {
+			t.Errorf("%v != %v",
+				ss.MessagePrecomputation.Get(i).Bytes(), MP.Bytes())
 		}
-		if is.EcrADPermuted[i].Cmp(expAD) != 0 {
-			t.Errorf("%v != %v", expAD.Bytes(),
-				megaStream.IdentifyStream.EcrADPermuted[i].Bytes())
+		if ss.ADPrecomputation.Get(i).Cmp(RP) != 0 {
+			t.Errorf("%v != %v",
+				ss.ADPrecomputation.Get(i).Bytes(), RP.Bytes())
+		}
+
+		// Verify Realtime
+		for i := uint32(0); i < batchSize; i++ {
+			expMsg := grp.NewInt(int64(30 + (3+i)%batchSize + 1))
+			expAD := grp.NewInt(int64((3+i)%batchSize + 1))
+			if is.EcrMsgPermuted[i].Cmp(expMsg) != 0 {
+				t.Errorf("%v != %v", expMsg.Bytes(),
+					is.EcrMsgPermuted[i].Bytes())
+			}
+			if is.EcrADPermuted[i].Cmp(expAD) != 0 {
+				t.Errorf("%v != %v", expAD.Bytes(),
+					is.EcrADPermuted[i].Bytes())
+			}
 		}
 	}
 
@@ -1057,6 +1056,8 @@ func (p *PsudoRNG) SetSeed(seed []byte) error {
 	return nil
 }
 
+/*
 func Test_MegaGraph(t *testing.T) {
 	RunMegaGraph(3, NewPsudoRNG, t)
 }
+*/
