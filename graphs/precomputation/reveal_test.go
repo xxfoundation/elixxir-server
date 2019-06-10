@@ -7,12 +7,16 @@
 package precomputation
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -213,7 +217,7 @@ func TestRevealStream_Interface(t *testing.T) {
 
 }
 
-/*func TestReveal_Graph(t *testing.T) {
+func TestReveal_Graph(t *testing.T) {
 
 	grp := initRevealGroup()
 
@@ -245,14 +249,21 @@ func TestRevealStream_Interface(t *testing.T) {
 
 	stream := g.GetStream().(*RevealStream)
 
-	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
-		grp.RandomCoprime(stream.CypherMsg.Get(i))
-		grp.RandomCoprime(stream.CypherAD.Get(i))
-	}
-
 	// Build i/o used for testing
 	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+
+	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
+		grp.RandomCoprime(stream.CypherMsg.Get(i))
+		grp.RandomCoprime(stream.CypherAD.Get(i))
+
+		//These two lines copy the generated values
+		grp.Set(CypherMsgExpected.Get(i),stream.CypherMsg.Get(i))
+		grp.Set(CypherADExpected.Get(i),stream.CypherAD.Get(i))
+
+	}
+
+
 
 	// Run the graph
 	g.Run()
@@ -272,12 +283,16 @@ func TestRevealStream_Interface(t *testing.T) {
 
 	for ok {
 		chunk, ok = g.GetOutput()
+		tmp := s.Grp.NewInt(1)
 		for i := chunk.Begin(); i < chunk.End(); i++ {
+
 			// Compute expected result for this slot
-			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, CypherMsgExpected.Get(i))
+			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherMsgExpected.Get(i), tmp)
 
 			// Execute root coprime on the keys for the Associated Data
-			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, CypherADExpected.Get(i))
+			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherADExpected.Get(i), tmp)
 
 			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompReveal: Message Keys Cypher not equal on slot %v expected %v received %v",
@@ -290,7 +305,7 @@ func TestRevealStream_Interface(t *testing.T) {
 			}
 		}
 	}
-}*/
+}
 
 func initRevealGroup() *cyclic.Group {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
