@@ -256,15 +256,22 @@ func TestStrip_Graph(t *testing.T) {
 
 	stream := g.GetStream().(*StripStream)
 
+
+	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+
 	// Fill the fields of the stream object for testing
 	for i := uint32(0); i < g.GetBatchSize(); i++ {
 		grp.RandomCoprime(stream.CypherMsg.Get(i))
 		grp.RandomCoprime(stream.CypherAD.Get(i))
+
+		//These two lines copy the generated values
+		grp.Set(CypherMsgExpected.Get(i),stream.CypherMsg.Get(i))
+		grp.Set(CypherADExpected.Get(i),stream.CypherAD.Get(i))
+
 	}
 
 	// Build i/o used for testing
-	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	MessagePrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	ADPrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
@@ -286,10 +293,15 @@ func TestStrip_Graph(t *testing.T) {
 
 	for ok {
 		chunk, ok = g.GetOutput()
+		tmp := s.Grp.NewInt(1)
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Compute root coprime for msg & associated data
-			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, CypherMsgExpected.Get(i))
-			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, CypherADExpected.Get(i))
+			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherMsgExpected.Get(i), tmp)
+
+			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherADExpected.Get(i), tmp)
+
 
 			// Compute inverse
 			cryptops.Inverse(s.Grp, MessagePrecomputationExpected.Get(i), MessagePrecomputationExpected.Get(i))
