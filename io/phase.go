@@ -120,8 +120,7 @@ func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 		curIdx := uint32(index)
 		err := p.Input(curIdx, messages)
 		if err != nil {
-			return errors.Errorf("Error on slot %d: %v", curIdx,
-				err)
+			return errors.Errorf("Error on slot %d: %v", curIdx, err)
 		}
 		chunk := services.NewChunk(curIdx, curIdx+1)
 		p.Send(chunk)
@@ -134,16 +133,8 @@ func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 // phase from another node
 func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServer) error {
 
-	// TODO: Do we need header? Where does it go?
-	//batchInfo, err := node.GetPostPhaseStreamHeader(stream)
-	//if err != nil {
-	//	return err
-	//}
-
-	// Receive all slots and on EOF store all data
-	// into a global received batch variable then
-	// send ack back to client.
-	//var slots []*mixmessages.Slot
+	// Send a chunk for each slot received until EOF
+	// then send ack back to client.
 	index := uint32(0)
 	for {
 		slot, err := stream.Recv()
@@ -154,25 +145,18 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 				Error: "",
 			}
 
-			//receivedBatch = mixmessages.Batch{
-			//	Round:    batchInfo.Round,
-			//	ForPhase: batchInfo.ForPhase,
-			//	Slots:    slots,
-			//}
-
 			err = stream.SendAndClose(&ack)
+
 			return err
 		}
 
-		// If we have another error, return err
 		if err != nil {
 			return err
 		}
 
 		err = p.Input(index, slot)
 		if err != nil {
-			return errors.Errorf("Error on slot %d: %v", index,
-				err)
+			return errors.Errorf("Error on slot %d: %v", index, err)
 		}
 
 		chunk := services.NewChunk(index, index+1)

@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
-	"google.golang.org/grpc/metadata"
 )
 
 //ReceiveCreateNewRound receives the create new round signal and creates the round
@@ -75,31 +74,13 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 	rm := instance.GetRoundManager()
 
-	ctx := streamServer.Context()
-
-	// Get streamServer side meta-data (header)
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		//jww.ERROR.Panicf("Error on comm, should be able to return: %+v", )
-		return errors.New("Error on comm, unable to get header")
-	}
-
-	// Unmarshal header
-	roundInfo := mixmessages.RoundInfo{}
-	roundInfoStr := md.Get("RoundInfo")[0] // ewww...
-
-	err := roundInfo.XXX_Unmarshal([]byte(roundInfoStr))
+	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
-		return errors.New("Error on comm, unable to unmarshal header")
-	}
-
-	batchInfo := mixmessages.BatchInfo{
-		Round:    &roundInfo,
-		ForPhase: int32(3),
+		return err
 	}
 
 	// Check if the operation can be done and get the correct phase if it can
-	_, p, err := rm.HandleIncomingComm(id.Round(batchInfo.Round.ID), phase.Type(int32(3)).String())
+	_, p, err := rm.HandleIncomingComm(id.Round(batchInfo.Round.ID), phase.Type(batchInfo.ForPhase).String())
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 	}
@@ -112,7 +93,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	////HACK HACK HACK
 	////The share phase needs a batchsize of 1, when it recieves from generation
 	////on the first node this will do the conversion on the batch
-	//if p.GetType() == phase.PrecompShare && len(batch.Slots) != 1 {
+	//if p.GetType() == phase.PrecompShare && len(batchInfo.Slots) != 1 {
 	//	batch.Slots = batch.Slots[:1]
 	//}
 

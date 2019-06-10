@@ -7,11 +7,15 @@
 package io
 
 import (
+	"context"
+	"errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
+	"google.golang.org/grpc/metadata"
+	"io"
 	"testing"
 )
 
@@ -61,7 +65,93 @@ func TestPostPhase(t *testing.T) {
 	}
 }
 
+var mockStreamSlotIndex int
+
+type MockStreamPostPhaseServer struct {
+	batch mixmessages.Batch
+}
+
+func (stream MockStreamPostPhaseServer) SendAndClose(*mixmessages.Ack) error {
+	if len(stream.batch.Slots) == mockStreamSlotIndex {
+		return nil
+	}
+	return errors.New("stream closed without all slots being received")
+}
+
+func (stream MockStreamPostPhaseServer) Recv() (*mixmessages.Slot, error) {
+	if mockStreamSlotIndex >= len(stream.batch.Slots) {
+		return nil, io.EOF
+	}
+	slot := stream.batch.Slots[mockStreamSlotIndex]
+	mockStreamSlotIndex++
+	return slot, nil
+}
+
+func (MockStreamPostPhaseServer) SetHeader(metadata.MD) error {
+	return nil
+}
+
+func (MockStreamPostPhaseServer) SendHeader(metadata.MD) error {
+	return nil
+}
+
+func (MockStreamPostPhaseServer) SetTrailer(metadata.MD) {
+}
+
+func (MockStreamPostPhaseServer) Context() context.Context {
+	return nil
+}
+
+func (MockStreamPostPhaseServer) SendMsg(m interface{}) error {
+	return nil
+}
+
+func (MockStreamPostPhaseServer) RecvMsg(m interface{}) error {
+	return nil
+}
+
+// Test that post phase properly sends the results to the phase via mockPhase
+func TestStreamPostPhase(t *testing.T) {
+
+	numSlots := 3
+
+	//Get a mock phase
+	mockPhase := &MockPhase{}
+
+	//Build a mock mockBatch to receive
+	mockBatch := mixmessages.Batch{}
+	for i := 0; i < numSlots; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				MessagePayload: []byte{byte(i)},
+			})
+	}
+
+	// receive the mockBatch into the mock stream 'buffer'
+	mockStreamServer := MockStreamPostPhaseServer{batch: mockBatch}
+
+	err := StreamPostPhase(mockPhase, mockStreamServer)
+
+	if err != nil {
+		t.Errorf("StreamPostPhase: Unexpected error returned: %+v", err)
+	}
+
+	for index := range mockBatch.Slots {
+		if mockPhase.chunks[index].Begin() != uint32(index) {
+			t.Errorf("StreamPostPhase: output chunk not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+		}
+
+		if mockPhase.indices[index] != uint32(index) {
+			t.Errorf("StreamPostPhase: output index  not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+		}
+	}
+}
+
 var receivedBatch *mixmessages.Batch
+
+//var receivedStreamServer mixmessages.Node_StreamPostPhaseServer
 
 // Tests that a batch sent via transmit phase arrives correctly
 func TestTransmitPhase(t *testing.T) {
@@ -123,3 +213,13 @@ func mockPostPhaseImplementation() *node.Implementation {
 	}
 	return impl
 }
+
+//
+//func mockStreamPostPhaseImplementation() *node.Implementation {
+//	impl := node.NewImplementation()
+//	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer) error {
+//
+//		receivedStreamServer = stream
+//		return nil
+//	}
+//}
