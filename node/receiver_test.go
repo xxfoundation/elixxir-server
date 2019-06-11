@@ -330,6 +330,7 @@ func (MockStreamPostPhaseServer) SetTrailer(metadata.MD) {
 }
 
 func (stream MockStreamPostPhaseServer) Context() context.Context {
+	// Create mock batch info from mock batch
 	mockBatch := stream.batch
 	mockBatchInfo := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
@@ -337,6 +338,8 @@ func (stream MockStreamPostPhaseServer) Context() context.Context {
 		},
 		ForPhase: mockBatch.ForPhase,
 	}
+
+	// Create an incoming context from batch info metadata
 	ctx, _ := context.WithCancel(context.Background())
 
 	m := make(map[string]string)
@@ -407,12 +410,12 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
 		if mockPhase.chunks[index].Begin() != uint32(index) {
-			t.Errorf("PostPhase: output chunk not equal to passed;"+
+			t.Errorf("StreamPostPhase: output chunk not equal to passed;"+
 				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
 		}
 
 		if mockPhase.indices[index] != uint32(index) {
-			t.Errorf("PostPhase: output index  not equal to passed;"+
+			t.Errorf("StreamPostPhase: output index  not equal to passed;"+
 				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
 		}
 	}
@@ -427,7 +430,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 
 	if !queued {
-		t.Errorf("PostPhase: The phase was not queued properly")
+		t.Errorf("StreamPostPhase: The phase was not queued properly")
 	}
 }
 
