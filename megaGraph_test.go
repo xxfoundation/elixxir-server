@@ -704,19 +704,20 @@ type DebugStream struct {
 	precomputation.StripStream //Strip contains reveal
 	realtime.KeygenDecryptStream
 	realtime.IdentifyStream //Identify contains permute
+	Outputs                 []*mixmessages.Slot
 }
 
-func (mega *DebugStream) GetName() string {
+func (ds *DebugStream) GetName() string {
 	return "DebugStream"
 }
 
-func (mega *DebugStream) DeepCopy() *DebugStream {
+func (ds *DebugStream) DeepCopy() *DebugStream {
 	ret := &DebugStream{}
-	copier.Copy(ret, mega)
+	copier.Copy(ret, ds)
 	return ret
 }
 
-func (mega *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
+func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	source ...interface{}) {
 	roundBuf := source[0].(*round.Buffer)
 	userRegistry := source[1].(*globals.UserMap)
@@ -734,13 +735,13 @@ func (mega *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	cypherADPermuted := make([]*cyclic.Int, batchSize)
 
 	//Link precomputation
-	mega.LinkGenerateStream(grp, batchSize, roundBuf, rngConstructor)
-	mega.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg,
+	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngConstructor)
+	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg,
 		cypherMsg, keysAD, cypherAD)
-	mega.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysMsg,
+	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysMsg,
 		cypherMsg, keysAD, cypherAD, keysMsgPermuted, cypherMsgPermuted,
 		keysADPermuted, cypherADPermuted)
-	mega.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg,
+	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg,
 		cypherAD, keysMsg, keysAD)
 
 	//Generate Passthroughs for realtime
@@ -754,21 +755,43 @@ func (mega *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 		users[i] = &id.User{}
 	}
 
-	mega.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
 		userRegistry, ecrMsg, ecrAD, grp.NewIntBuffer(batchSize,
 			grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
 		make([][]byte, batchSize))
 
-	mega.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrMsg, ecrAD,
+	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrMsg, ecrAD,
 		ecrMsgPermuted, ecrADPermuted)
 }
 
-func (*DebugStream) Input(index uint32, slot *mixmessages.Slot) error {
-	return nil
+func (ds *DebugStream) Input(index uint32, slot *mixmessages.Slot) error {
+	es := make([]error, 6)
+	es[0] = ds.GenerateStream.Input(index, slot)
+	es[1] = ds.DecryptStream.Input(index, slot)
+	es[2] = ds.PermuteStream.Input(index, slot)
+	es[3] = ds.StripStream.Input(index, slot)
+	es[4] = ds.KeygenDecryptStream.Input(index, slot)
+	es[5] = ds.IdentifyStream.Input(index, slot)
+
+	var lastErr error
+	for i := 0; i < len(es); i++ {
+		if es[i] != nil {
+			fmt.Printf("Error DebugStream Input: %v\n", es[i])
+			lastErr = es[i]
+		}
+	}
+	return lastErr
 }
 
-func (*DebugStream) Output(index uint32) *mixmessages.Slot {
+func (ds *DebugStream) Output(index uint32) *mixmessages.Slot {
+	ds.Outputs = make([]*mixmessages.Slot, 6)
+	ds.Outputs[0] = ds.GenerateStream.Output(index)
+	ds.Outputs[1] = ds.DecryptStream.Output(index)
+	ds.Outputs[2] = ds.PermuteStream.Output(index)
+	ds.Outputs[3] = ds.StripStream.Output(index)
+	ds.Outputs[4] = ds.KeygenDecryptStream.Output(index)
+	ds.Outputs[5] = ds.IdentifyStream.Output(index)
 	return nil
 }
 
