@@ -328,6 +328,28 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	return dGrph
 }
 
+func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
+	roundBuf *round.Buffer, registry *globals.UserMap,
+	rngConstructor func() csprng.Source, streams map[string]*DebugStream,
+	t *testing.T) *services.Graph {
+	//make the graph
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
+			g, m, err.Error()))
+	}
+	// NOTE: input size greater than 1 would necessarily cause a hang here
+	// since we never send more than 1 message through.
+	gc := services.NewGraphGenerator(1, PanicHandler,
+		1, 1, 0)
+	dGrph := InitDbgGraph3(gc, streams, grp, batchSize, roundBuf, registry,
+		rngConstructor, t)
+	dGrph.Build(batchSize)
+
+	dGrph.Link(grp, roundBuf, registry, rngConstructor)
+	dGrph.Run()
+	return dGrph
+}
+
 // Perform an end to end test of the precomputation with batch size 1,
 // then use it to send the message through a 1-node system to smoke test
 // the cryptographic operations.
@@ -879,6 +901,87 @@ func InitDbgGraph(gc services.GraphGenerator, streams map[string]*DebugStream,
 	return g
 }
 
+func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
+	grp *cyclic.Group, batchSize uint32, roundBuf *round.Buffer,
+	registry *globals.UserMap, rngConstructor func() csprng.Source,
+	t *testing.T) *services.Graph {
+	dStrms := make([]*DebugStream, 3)
+	for i := 0; i < 3; i++ {
+		dStrms[i] = &DebugStream{}
+		dStrms[i].Link(grp, batchSize, roundBuf, registry,
+			rngConstructor)
+	}
+	g := gc.NewGraph("DbgGraph", dStrms[0])
+
+	//modules for precomputation
+	//generate := precomputation.Generate.DeepCopy()
+	decryptElgamal := precomputation.DecryptElgamal.DeepCopy()
+	adaptFnc := decryptElgamal.Adapt
+	decryptElgamal.Adapt = func(s services.Stream, cryptop cryptops.Cryptop,
+		chunk services.Chunk) error {
+		var err error
+		for i := 0; i < 3; i++ {
+			t.Logf("Running Decrypt %d", i)
+			err = adaptFnc(s, cryptop, chunk)
+			for j := chunk.Begin(); j < chunk.End(); j++ {
+				// Copy output of current stream to tmp
+				dStrms[i].Output(j)
+				output := dStrms[i].Outputs[1]
+				t.Logf("%v", output)
+				// Input cur stream to next stream
+				dStrms[(i+1)%3].Input(j, output)
+				// Todo: Call link to copy right keys??
+			}
+		}
+		return err
+	}
+	permuteElgamal := precomputation.PermuteElgamal.DeepCopy()
+	permuteReintegrate := ReintegratePrecompPermute.DeepCopy()
+	revealRoot := precomputation.RevealRootCoprime.DeepCopy()
+	stripInverse := precomputation.StripInverse.DeepCopy()
+	stripMul2 := precomputation.StripMul2.DeepCopy()
+
+	//modules for real time
+	//decryptKeygen := DummyKeygen.DeepCopy()
+	decryptMul3 := realtime.DecryptMul3.DeepCopy()
+	permuteMul2 := realtime.PermuteMul2.DeepCopy()
+	identifyMul2 := realtime.IdentifyMul2.DeepCopy()
+
+	dPDecrypt := CreateStreamCopier(t, "Decrypt", streams)
+	dPPermute := CreateStreamCopier(t, "Permute", streams)
+	dPPermuteR := CreateStreamCopier(t, "Permute", streams)
+	dPReveal := CreateStreamCopier(t, "Reveal", streams)
+	dPStrip := CreateStreamCopier(t, "Strip", streams)
+	dPStrip2 := CreateStreamCopier(t, "Strip", streams)
+
+	dPDecryptRT := CreateStreamCopier(t, "DecryptRT", streams)
+	dPPermuteMul2 := CreateStreamCopier(t, "PermuteRT", streams)
+
+	//g.First(generate)
+	// NOTE: Generate is skipped because it's values are hard coded
+	//g.Connect(generate, decryptElgamal)
+	g.First(decryptElgamal)
+	g.Connect(decryptElgamal, dPDecrypt)
+	g.Connect(dPDecrypt, permuteElgamal)
+	g.Connect(permuteElgamal, dPPermute)
+	g.Connect(dPPermute, permuteReintegrate)
+	g.Connect(permuteReintegrate, dPPermuteR)
+	g.Connect(dPPermuteR, revealRoot)
+	g.Connect(revealRoot, dPReveal)
+	g.Connect(dPReveal, stripInverse)
+	g.Connect(stripInverse, dPStrip)
+	g.Connect(dPStrip, stripMul2)
+	g.Connect(stripMul2, dPStrip2)
+	// NOTE: decryptKeyGen is skipped because it's values are hard coded
+	g.Connect(dPStrip2, decryptMul3)
+	g.Connect(decryptMul3, dPDecryptRT)
+	g.Connect(dPDecryptRT, permuteMul2)
+	g.Connect(permuteMul2, dPPermuteMul2)
+	g.Connect(dPPermuteMul2, identifyMul2)
+	g.Last(identifyMul2)
+	return g
+}
+
 func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 	t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
@@ -1144,7 +1247,7 @@ func Test3NodeE2E(t *testing.T) {
 
 	streams := make(map[string]*DebugStream)
 
-	dGrph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
+	dGrph := buildAndStartGraph3(batchSize, grp, roundBuf, registry,
 		rngConstructor, streams, t)
 	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
