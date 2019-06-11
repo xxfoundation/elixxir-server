@@ -842,7 +842,7 @@ func InitDbgGraph(gc services.GraphGenerator, streams map[string]*DebugStream,
 	//decryptKeygen := DummyKeygen.DeepCopy()
 	decryptMul3 := realtime.DecryptMul3.DeepCopy()
 	permuteMul2 := realtime.PermuteMul2.DeepCopy()
-	identifyMal2 := realtime.IdentifyMul2.DeepCopy()
+	identifyMul2 := realtime.IdentifyMul2.DeepCopy()
 
 	dPDecrypt := CreateStreamCopier(t, "Decrypt", streams)
 	dPPermute := CreateStreamCopier(t, "Permute", streams)
@@ -874,8 +874,8 @@ func InitDbgGraph(gc services.GraphGenerator, streams map[string]*DebugStream,
 	g.Connect(decryptMul3, dPDecryptRT)
 	g.Connect(dPDecryptRT, permuteMul2)
 	g.Connect(permuteMul2, dPPermuteMul2)
-	g.Connect(dPPermuteMul2, identifyMal2)
-	g.Last(identifyMal2)
+	g.Connect(dPPermuteMul2, identifyMul2)
+	g.Last(identifyMul2)
 	return g
 }
 
