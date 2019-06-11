@@ -402,7 +402,8 @@ func TestEndToEndCryptops(t *testing.T) {
 	}()
 
 	numDoneSlots := 0
-	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
+	for (chunk, ok := megaGraph.GetOutput(); ok;
+		chunk, ok = megaGraph.GetOutput()) {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			numDoneSlots++
 			t.Logf("done slot: %d, total done: %d",
@@ -433,21 +434,26 @@ func TestEndToEndCryptops(t *testing.T) {
 	            R([26], [69]), U([94], [87]),
 	            KeysMsg/AD: ([5] / [17]), CypherMsg/AD: ([79] / [36])
 	    megaGraph_test.go:552: MegaStream
-	    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]), ([18], [79]),
+	    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]),
+		([18], [79]),
 	             [23], [39], [61], [85]
 	    megaGraph_test.go:552: MegaStream
-	    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]), ([18], [79]),
+	    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]),
+		([18], [79]),
 	             [23], [39], [61], [85]
 	    megaGraph_test.go:552: MegaStream
 	    megaGraph_test.go:528: 1N Precomp Reveal: [89], [13]
 	    megaGraph_test.go:552: MegaStream
 	    megaGraph_test.go:521: 1N Precomp Strip: [1], [1], [89], [13]
 	    megaGraph_test.go:552: MegaStream
-	    megaGraph_test.go:534: 1N RT Decrypt: K: [1], R: [26], M: [57], K: [1], U: [94], M: [94]
+	    megaGraph_test.go:534: 1N RT Decrypt: K: [1], R: [26], M: [57],
+		K: [1], U: [94], M: [94]
 	    megaGraph_test.go:552: MegaStream
-	    megaGraph_test.go:542: 1N RT Identify: S: [77], M: [2], V: [18], M: [87]
+	    megaGraph_test.go:542: 1N RT Identify: S: [77], M: [2], V: [18],
+		M: [87]
 	    megaGraph_test.go:398: done slot: 0, total done: 1
-	    megaGraph_test.go:428: MP: 69 in GRP: xjz30UG9n4..., RP: 16 in GRP: xjz30UG9n4...
+	    megaGraph_test.go:428: MP: 69 in GRP: xjz30UG9n4...,
+		RP: 16 in GRP: xjz30UG9n4...
 	PASS
 	*/
 
@@ -600,7 +606,8 @@ func TestBatchSize3(t *testing.T) {
 	}()
 
 	numDoneSlots := 0
-	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
+	for (chunk, ok := megaGraph.GetOutput(); ok;
+		chunk, ok = megaGraph.GetOutput()) {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			numDoneSlots++
 		}
@@ -614,7 +621,8 @@ func TestBatchSize3(t *testing.T) {
 		// Verify precomputation
 		if ss.MessagePrecomputation.Get(i).Cmp(MP) != 0 {
 			t.Errorf("%v != %v",
-				ss.MessagePrecomputation.Get(i).Bytes(), MP.Bytes())
+				ss.MessagePrecomputation.Get(i).Bytes(),
+				MP.Bytes())
 		}
 		if ss.ADPrecomputation.Get(i).Cmp(RP) != 0 {
 			t.Errorf("%v != %v",
@@ -727,10 +735,13 @@ func (mega *MegaStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	//Link precomputation
 	mega.LinkGenerateStream(grp, batchSize, roundBuf, rngConstructor)
-	mega.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg, cypherMsg, keysAD, cypherAD)
-	mega.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysMsg, cypherMsg, keysAD, cypherAD,
-		keysMsgPermuted, cypherMsgPermuted, keysADPermuted, cypherADPermuted)
-	mega.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg, cypherAD, keysMsg, keysAD)
+	mega.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg,
+		cypherMsg, keysAD, cypherAD)
+	mega.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysMsg,
+		cypherMsg, keysAD, cypherAD, keysMsgPermuted, cypherMsgPermuted,
+		keysADPermuted, cypherADPermuted)
+	mega.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg,
+		cypherAD, keysMsg, keysAD)
 
 	//Generate Passthroughs for realtime
 	ecrMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
@@ -744,10 +755,13 @@ func (mega *MegaStream) Link(grp *cyclic.Group, batchSize uint32,
 	}
 
 	mega.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
-		userRegistry, ecrMsg, ecrAD, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize))
+		userRegistry, ecrMsg, ecrAD, grp.NewIntBuffer(batchSize,
+			grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
+		make([][]byte, batchSize))
 
-	mega.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrMsg, ecrAD, ecrMsgPermuted, ecrADPermuted)
+	mega.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrMsg, ecrAD,
+		ecrMsgPermuted, ecrADPermuted)
 }
 
 func (*MegaStream) Input(index uint32, slot *mixmessages.Slot) error {
@@ -759,7 +773,8 @@ func (*MegaStream) Output(index uint32) *mixmessages.Slot {
 }
 
 var ReintegratePrecompPermute = services.Module{
-	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop,
+		chunk services.Chunk) error {
 		mega, ok := stream.(*MegaStream)
 
 		if !ok {
@@ -769,10 +784,14 @@ var ReintegratePrecompPermute = services.Module{
 		ppsi := mega.PermuteStream
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			ppsi.Grp.Set(ppsi.KeysMsg.Get(i), ppsi.KeysMsgPermuted[i])
-			ppsi.Grp.Set(ppsi.CypherMsg.Get(i), ppsi.CypherMsgPermuted[i])
-			ppsi.Grp.Set(ppsi.KeysAD.Get(i), ppsi.KeysADPermuted[i])
-			ppsi.Grp.Set(ppsi.CypherAD.Get(i), ppsi.CypherADPermuted[i])
+			ppsi.Grp.Set(ppsi.KeysMsg.Get(i),
+				ppsi.KeysMsgPermuted[i])
+			ppsi.Grp.Set(ppsi.CypherMsg.Get(i),
+				ppsi.CypherMsgPermuted[i])
+			ppsi.Grp.Set(ppsi.KeysAD.Get(i),
+				ppsi.KeysADPermuted[i])
+			ppsi.Grp.Set(ppsi.CypherAD.Get(i),
+				ppsi.CypherADPermuted[i])
 		}
 		return nil
 	},
@@ -849,7 +868,8 @@ func InitMegaGraph(gc services.GraphGenerator, streams map[string]*MegaStream,
 	return g
 }
 
-func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *testing.T) {
+func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source,
+	t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
 		large.NewInt(2), large.NewInt(1283))
 
@@ -899,7 +919,8 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 			t.Error("MegaGraph: could not rng")
 		}
 		messageBytes[len(messageBytes)-1] |= 0x01
-		messageList = append(messageList, grp.NewIntFromBytes(messageBytes))
+		messageList = append(messageList,
+			grp.NewIntFromBytes(messageBytes))
 
 		adBytes := make([]byte, 32)
 		_, err = rng.Read(adBytes)
