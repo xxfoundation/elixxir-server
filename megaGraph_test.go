@@ -402,9 +402,9 @@ func TestEndToEndCryptops(t *testing.T) {
 	}()
 
 	numDoneSlots := 0
-	for (chunk, ok := megaGraph.GetOutput(); ok;
-		chunk, ok = megaGraph.GetOutput()) {
-		for i := chunk.Begin(); i < chunk.End(); i++ {
+	for chnk, ok := megaGraph.GetOutput(); ok; chnk, ok =
+		megaGraph.GetOutput() {
+		for i := chnk.Begin(); i < chnk.End(); i++ {
 			numDoneSlots++
 			t.Logf("done slot: %d, total done: %d",
 				i, numDoneSlots)
@@ -606,8 +606,8 @@ func TestBatchSize3(t *testing.T) {
 	}()
 
 	numDoneSlots := 0
-	for (chunk, ok := megaGraph.GetOutput(); ok;
-		chunk, ok = megaGraph.GetOutput()) {
+	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok =
+		megaGraph.GetOutput()) {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			numDoneSlots++
 		}
@@ -1007,8 +1007,8 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source,
 
 	numDoneSlots := 0
 
-	for (chunk, ok := megaGraph.GetOutput(); ok;
-		chunk, ok = megaGraph.GetOutput()) {
+	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok =
+		megaGraph.GetOutput() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			numDoneSlots++
 			fmt.Println("done slot:", i, " total done:",
