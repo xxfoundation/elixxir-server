@@ -457,26 +457,26 @@ func TestEndToEndCryptops(t *testing.T) {
 	RootingTestTriple(grp, t)
 
 	// Verify Precomputation
-	/*
-		// NOTE: This is broken fornow until we understand why the deep copy
-		// does'nt work
-		ds := streams["Decrypt"].DecryptStream
-		if ds.KeysMsg.Get(0).Cmp(grp.NewInt(5)) != 0 {
-			t.Errorf("Precomp Decrypt KeysMsg: %v != [5]",
-				ds.KeysMsg.Get(0).Bytes())
-		}
-		if ds.KeysAD.Get(0).Cmp(grp.NewInt(17)) != 0 {
-			t.Errorf("Precomp Decrypt KeysAD: %v != [17]",
-				ds.KeysAD.Get(0).Bytes())
-		}
-		if ds.CypherMsg.Get(0).Cmp(grp.NewInt(79)) != 0 {
-			t.Errorf("Precomp Decrypt CypherMsg: %v != [79]",
-				ds.CypherMsg.Get(0).Bytes())
-		}
-		if ds.CypherAD.Get(0).Cmp(grp.NewInt(36)) != 0 {
-			t.Errorf("Precomp Decrypt CypherAD: %v != [36]",
-				ds.CypherAD.Get(0).Bytes())
-		}
+	/* TODO: We need to check for these intermediate values
+	// NOTE: This is broken fornow until we understand why the deep copy
+	// does'nt work
+	ds := streams["Decrypt"].DecryptStream
+	if ds.KeysMsg.Get(0).Cmp(grp.NewInt(5)) != 0 {
+		t.Errorf("Precomp Decrypt KeysMsg: %v != [5]",
+			ds.KeysMsg.Get(0).Bytes())
+	}
+	if ds.KeysAD.Get(0).Cmp(grp.NewInt(17)) != 0 {
+		t.Errorf("Precomp Decrypt KeysAD: %v != [17]",
+			ds.KeysAD.Get(0).Bytes())
+	}
+	if ds.CypherMsg.Get(0).Cmp(grp.NewInt(79)) != 0 {
+		t.Errorf("Precomp Decrypt CypherMsg: %v != [79]",
+			ds.CypherMsg.Get(0).Bytes())
+	}
+	if ds.CypherAD.Get(0).Cmp(grp.NewInt(36)) != 0 {
+		t.Errorf("Precomp Decrypt CypherAD: %v != [36]",
+			ds.CypherAD.Get(0).Bytes())
+	}
 	*/
 
 	// Compute result directly
