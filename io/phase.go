@@ -136,6 +136,7 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 	// Send a chunk for each slot received until EOF
 	// then send ack back to client.
 	index := uint32(0)
+
 	for {
 		slot, err := stream.Recv()
 		// If we are at end of receiving

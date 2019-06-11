@@ -7,6 +7,7 @@
 package node
 
 import (
+	"context"
 	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -23,6 +24,8 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"google.golang.org/grpc/metadata"
+	"io"
 	"reflect"
 	"runtime"
 	"testing"
@@ -265,6 +268,141 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	//send the mockBatch to the impl
 	impl.PostPhase(mockBatch)
+
+	//check the mock phase to see if the correct result has been stored
+	for index := range mockBatch.Slots {
+		if mockPhase.chunks[index].Begin() != uint32(index) {
+			t.Errorf("PostPhase: output chunk not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+		}
+
+		if mockPhase.indices[index] != uint32(index) {
+			t.Errorf("PostPhase: output index  not equal to passed;"+
+				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+		}
+	}
+
+	var queued bool
+
+	select {
+	case <-instance.GetResourceQueue().GetQueue():
+		queued = true
+	default:
+		queued = false
+	}
+
+	if !queued {
+		t.Errorf("PostPhase: The phase was not queued properly")
+	}
+}
+
+type MockStreamPostPhaseServer struct {
+	batch *mixmessages.Batch
+}
+
+var mockStreamSlotIndex int
+
+func (stream MockStreamPostPhaseServer) SendAndClose(*mixmessages.Ack) error {
+	if len(stream.batch.Slots) == mockStreamSlotIndex {
+		return nil
+	}
+	return errors.New("stream closed without all slots being received")
+}
+
+func (stream MockStreamPostPhaseServer) Recv() (*mixmessages.Slot, error) {
+	if mockStreamSlotIndex >= len(stream.batch.Slots) {
+		return nil, io.EOF
+	}
+	slot := stream.batch.Slots[mockStreamSlotIndex]
+	mockStreamSlotIndex++
+	return slot, nil
+}
+
+func (MockStreamPostPhaseServer) SetHeader(metadata.MD) error {
+	return nil
+}
+
+func (MockStreamPostPhaseServer) SendHeader(metadata.MD) error {
+	return nil
+}
+
+func (MockStreamPostPhaseServer) SetTrailer(metadata.MD) {
+}
+
+func (stream MockStreamPostPhaseServer) Context() context.Context {
+	mockBatch := stream.batch
+	mockBatchInfo := mixmessages.BatchInfo{
+		Round: &mixmessages.RoundInfo{
+			ID: mockBatch.Round.ID,
+		},
+		ForPhase: mockBatch.ForPhase,
+	}
+	ctx, _ := context.WithCancel(context.Background())
+
+	m := make(map[string]string)
+	m["batchinfo"] = mockBatchInfo.String()
+
+	md := metadata.New(m)
+	ctx = metadata.NewIncomingContext(ctx, md)
+
+	return ctx
+}
+
+func (MockStreamPostPhaseServer) SendMsg(m interface{}) error {
+	return nil
+}
+
+func (MockStreamPostPhaseServer) RecvMsg(m interface{}) error {
+	return nil
+}
+
+func TestNewImplementation_StreamPostPhase(t *testing.T) {
+	batchSize := uint32(11)
+	roundID := id.Round(0)
+
+	grp := initImplGroup()
+	params := conf.Params{
+		Groups:        conf.Groups{CMix: grp},
+		NodeIDs:       buildMockNodeIDs(2),
+		ThisNodeIndex: 0,
+	}
+	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	mockPhase := initMockPhase()
+
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
+		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
+			[]phase.State{phase.Available}, mockPhase.GetType()})
+
+	topology := instance.GetTopology()
+
+	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+
+	instance.GetRoundManager().AddRound(r)
+
+	// get the impl
+	impl := NewImplementation(instance)
+
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{}
+
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				MessagePayload: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.ForPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	mockStreamServer := MockStreamPostPhaseServer{
+		batch: mockBatch,
+	}
+
+	//send the mockBatch to the impl
+	impl.StreamPostPhase(mockStreamServer)
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {

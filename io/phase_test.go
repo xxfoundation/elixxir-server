@@ -98,7 +98,7 @@ func (MockStreamPostPhaseServer) SendHeader(metadata.MD) error {
 func (MockStreamPostPhaseServer) SetTrailer(metadata.MD) {
 }
 
-func (MockStreamPostPhaseServer) Context() context.Context {
+func (stream MockStreamPostPhaseServer) Context() context.Context {
 	return nil
 }
 
@@ -150,8 +150,7 @@ func TestStreamPostPhase(t *testing.T) {
 }
 
 var receivedBatch *mixmessages.Batch
-
-//var receivedStreamServer mixmessages.Node_StreamPostPhaseServer
+var receiveStreamServer mixmessages.Node_StreamPostPhaseServer
 
 // Tests that a batch sent via transmit phase arrives correctly
 func TestTransmitPhase(t *testing.T) {
@@ -206,6 +205,60 @@ func TestTransmitPhase(t *testing.T) {
 	}
 }
 
+// Tests that a batch sent via transmit phase arrives correctly
+func TestStreamTransmitPhase(t *testing.T) {
+
+	// Setup the network
+	comms, topology := buildTestNetworkComponents(
+		[]*node.Implementation{nil, mockStreamPostPhaseImplementation()}, 10)
+	defer Shutdown(comms)
+
+	// Build the mock functions called by the transmitter
+	chunkCnt := uint32(0)
+	batchSize := uint32(5)
+	roundID := id.Round(5)
+	phaseTy := phase.Type(2)
+
+	getChunk := func() (services.Chunk, bool) {
+		if chunkCnt < batchSize {
+			chunk, ok := services.NewChunk(chunkCnt, chunkCnt+1), false
+			chunkCnt++
+			return chunk, ok
+		}
+		return services.NewChunk(0, 0), true
+	}
+
+	getMsg := func(index uint32) *mixmessages.Slot {
+		return &mixmessages.Slot{MessagePayload: []byte{0}}
+	}
+
+	// call the transmitter
+	err := StreamTransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
+		getMsg, topology, topology.GetNodeAtIndex(0))
+
+	if err != nil {
+		t.Errorf("StreamTransmitPhase failed %v", err)
+	}
+
+	//Check that what was received is correct
+	if id.Round(receivedBatch.Round.ID) != roundID {
+		t.Errorf("StreamTransmitPhase: Incorrect round ID"+
+			"Expected: %v, Recieved: %v", roundID, receivedBatch.Round.ID)
+	}
+
+	if phase.Type(receivedBatch.ForPhase) != phaseTy {
+		t.Errorf("StreamTransmitPhase: Incorrect Phase type"+
+			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.ForPhase)
+	}
+
+	if uint32(len(receivedBatch.Slots)) != batchSize {
+		t.Errorf("StreamTransmitPhase: Recieved Batch of wrong size"+
+			"Expected: %v, Recieved: %v", batchSize,
+			uint32(len(receivedBatch.Slots)))
+	}
+
+}
+
 func mockPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
@@ -214,12 +267,58 @@ func mockPostPhaseImplementation() *node.Implementation {
 	return impl
 }
 
-//
-//func mockStreamPostPhaseImplementation() *node.Implementation {
-//	impl := node.NewImplementation()
-//	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer) error {
-//
-//		receivedStreamServer = stream
-//		return nil
-//	}
-//}
+func mockStreamPostPhaseImplementation() *node.Implementation {
+	impl := node.NewImplementation()
+	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer) error {
+		receivedBatch = &mixmessages.Batch{}
+		return mockStreamPostPhase(stream)
+	}
+
+	return impl
+}
+
+func mockStreamPostPhase(stream mixmessages.Node_StreamPostPhaseServer) error {
+
+	// Receive all slots and on EOF store all data
+	// into a global received batch variable then
+	// send ack back to client.
+	var slots []*mixmessages.Slot
+	index := uint32(0)
+	for {
+		slot, err := stream.Recv()
+		// If we are at end of receiving
+		// send ack and finish
+		if err == io.EOF {
+			ack := mixmessages.Ack{
+				Error: "",
+			}
+
+			batchInfo, err := node.GetPostPhaseStreamHeader(stream)
+			if err != nil {
+				return err
+			}
+
+			// Create batch using batch info header
+			// and temporary slot buffer contents
+			receivedBatch = &mixmessages.Batch{
+				Round:    batchInfo.Round,
+				ForPhase: batchInfo.ForPhase,
+				Slots:    slots,
+			}
+
+			err = stream.SendAndClose(&ack)
+			return err
+		}
+
+		// If we have another error, return err
+		if err != nil {
+			return err
+		}
+
+		// Store slot received into temporary buffer
+		slots = append(slots, slot)
+
+		index++
+	}
+
+}
