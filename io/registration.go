@@ -139,5 +139,5 @@ func ConfirmRegistration(instance *server.Instance,
 	grp := instance.GetGroup()
 	// Return signed Client public key to Client with empty error field
 	return data, sig.R.Bytes(), sig.S.Bytes(), instance.GetPubKey().GetKey().Bytes(),
-		grp.GetP().Bytes(), grp.GetQ().Bytes(), grp.GetG().Bytes(), nil
+		grp.GetPBytes(), grp.GetQ().Bytes(), grp.GetG().Bytes(), nil
 }
