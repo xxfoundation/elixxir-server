@@ -17,17 +17,20 @@ import (
 // Note not all fields are in the YAML, ie NodeID
 // but all fields must be in the viper object
 type Params struct {
-	Database      DB
+	//Node Identity Params
+	Index    int
+	Database DB
+	SkipReg  bool `yaml:"skipReg"`
+
+	//Network Identity Params
 	Groups        Groups
 	Paths         Paths
 	NodeAddresses []string
 	// these are base64 strings, so instance creation must base64 decode these
 	// before using them as node IDs
-	NodeIDs       []string
-	ThisNodeIndex int
-	Gateways      []string
-	SkipReg       bool `yaml:"skipReg"`
-	BatchSize     uint32
+	NodeIDs  []string
+	Gateways []string
+	Batch    uint32
 }
 
 // NewParams returns a params object if it is able to

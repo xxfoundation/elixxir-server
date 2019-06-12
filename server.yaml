@@ -1,86 +1,40 @@
-logPath: "server.log"
-verbose: "false"
-batchSize: 1
-dbUsername: "node"
-dbPassword: ""
-dbName: "cmix_server"
-dbAddresses:
-    - ""
-servers:
-    - 0.0.0.0:11420
+---
+# Example yaml params file used for testing
+# the params object and its dependencies
+database:
+  name: "name"
+  username: "username"
+  password: "password"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+batchSize: 20
+groups:
+  cmix:
+    prime: "17"
+    smallprime: "11"
+    generator: "4"
+  e2e:
+    prime: "0x11"
+    smallprime: "0x0B"
+    generator: "0x04"
+paths:
+  cert: "~/.elixxir/cert.crt"
+  key:  "~/.elixxir/key.pem"
+  log:  "~/.elixxir/server.log"
+nodeAddresses:
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+nodeIDs:
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+thisNodeIndex: 1
 gateways:
-    - "0.0.0.0:8443"
-# === REQUIRED FOR ENABLING TLS ===
-# Path to the server private key file
-keyPath: ""
-# Path to the server certificate file
-certPath: ""
-# Path to the gateway certificate file
-gatewayCertPath: ""
-
-# Parameters for cMix and end-to-end (E2E) cryptography. Prefix of '0x' denotes
-# hexadecimal (base 16), and no prefix denotes base 10. No other bases are
-# acceptable.
-#
-#
-# Prime is s*q+1 where q is prime, s is preferred to be 2 (see definition of
-# "Strong Prime"). SmallPrime is q, and the Generator is typically 2 although
-# typically it is chosen to maximize group size. See RFC3526:
-#
-# https://tools.ietf.org/html/rfc3526
-#
-# NOTE: These are system wide, so don't change unless you really know what you
-#       are doing.
-cryptographicParameters:
-    e2e: # This is a DSA Key
-      prime: # MODP 2048, group id 14 from RFC3526
-        0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1
-        29024E088A67CC74020BBEA63B139B22514A08798E3404DD
-        EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245
-        E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED
-        EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D
-        C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F
-        83655D23DCA3AD961C62F356208552BB9ED529077096966D
-        670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B
-        E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9
-        DE2BCBF6955817183995497CEA956AE515D2261898FA0510
-        15728E5A8AACAA68FFFFFFFFFFFFFFFF
-      smallPrime:
-        0x7FFFFFFFFFFFFFFFE487ED5110B4611A62633145C06E0E689
-        48127044533E63A0105DF531D89CD9128A5043CC71A026EF7
-        CA8CD9E69D218D98158536F92F8A1BA7F09AB6B6A8E122F24
-        2DABB312F3F637A262174D31BF6B585FFAE5B7A035BF6F71C
-        35FDAD44CFD2D74F9208BE258FF324943328F6722D9EE1003
-        E5C50B1DF82CC6D241B0E2AE9CD348B1FD47E9267AFC1B2AE
-        91EE51D6CB0E3179AB1042A95DCF6A9483B84B4B36B3861AA
-        7255E4C0278BA3604650C10BE19482F23171B671DF1CF3B96
-        0C074301CD93C1D17603D147DAE2AEF837A62964EF15E5FB4
-        AAC0B8C1CCAA4BE754AB5728AE9130C4C7D02880AB9472D45
-        5655347FFFFFFFFFFFFFFF
-      generator: 2
-    cMix: # Key used for cMix el-gamal group computations
-      prime: # MODP 2048, group id 14 from RFC3526
-        0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1
-        29024E088A67CC74020BBEA63B139B22514A08798E3404DD
-        EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245
-        E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED
-        EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D
-        C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F
-        83655D23DCA3AD961C62F356208552BB9ED529077096966D
-        670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B
-        E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9
-        DE2BCBF6955817183995497CEA956AE515D2261898FA0510
-        15728E5A8AACAA68FFFFFFFFFFFFFFFF
-      smallPrime:
-        0x7FFFFFFFFFFFFFFFE487ED5110B4611A62633145C06E0E689
-        48127044533E63A0105DF531D89CD9128A5043CC71A026EF7
-        CA8CD9E69D218D98158536F92F8A1BA7F09AB6B6A8E122F24
-        2DABB312F3F637A262174D31BF6B585FFAE5B7A035BF6F71C
-        35FDAD44CFD2D74F9208BE258FF324943328F6722D9EE1003
-        E5C50B1DF82CC6D241B0E2AE9CD348B1FD47E9267AFC1B2AE
-        91EE51D6CB0E3179AB1042A95DCF6A9483B84B4B36B3861AA
-        7255E4C0278BA3604650C10BE19482F23171B671DF1CF3B96
-        0C074301CD93C1D17603D147DAE2AEF837A62964EF15E5FB4
-        AAC0B8C1CCAA4BE754AB5728AE9130C4C7D02880AB9472D45
-        5655347FFFFFFFFFFFFFFF
-      generator: 2
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+skipReg: true
+...

@@ -19,15 +19,15 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		Paths:    ExpectedPaths,
 		NodeAddresses: []string{"127.0.0.1:80", "127.0.0.1:80",
 			"127.0.0.1:80"},
-		Gateways:      []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
-		SkipReg:       true,
-		ThisNodeIndex: 1,
+		Gateways: []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
+		SkipReg:  true,
+		Index:    1,
 		NodeIDs: []string{
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 		},
-		BatchSize: 20,
+		Batch: 20,
 	}
 
 	vip := viper.New()
@@ -51,7 +51,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Server addresses value does not match expected value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.BatchSize, params.BatchSize) {
+	if !reflect.DeepEqual(expectedParams.Batch, params.Batch) {
 		t.Errorf("Batch size value does not match expected value")
 	}
 
@@ -59,7 +59,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Gateways value does not match expected value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.ThisNodeIndex, params.ThisNodeIndex) {
+	if !reflect.DeepEqual(expectedParams.Index, params.Index) {
 		t.Errorf("NodeIndex value does not match expected value")
 	}
 

@@ -1,6 +1,7 @@
 ---
 # Example yaml params file used for testing
 # the params object and its dependencies
+index: "1"
 database:
   name: "name"
   username: "username"
@@ -9,7 +10,7 @@ database:
     - "127.0.0.1:80"
     - "127.0.0.1:80"
     - "127.0.0.1:80"
-batchSize: 20
+skipReg: true
 groups:
   cmix:
     prime: "17"
@@ -31,10 +32,9 @@ nodeIDs:
   - "pneumonoultramicroscopicsilicovolcanoconios="
   - "pneumonoultramicroscopicsilicovolcanoconios="
   - "pneumonoultramicroscopicsilicovolcanoconios="
-thisNodeIndex: 1
 gateways:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
   - "127.0.0.1:80"
-skipReg: true
+batch: 20
 ...
