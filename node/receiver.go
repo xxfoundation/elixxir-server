@@ -93,11 +93,11 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	//HACK HACK HACK
 	//The share phase needs a batchsize of 1, when it recieves from generation
 	//on the first node this will do the conversion on the batch
-	if p.GetType() == phase.PrecompShare && len(batchInfo.Slots) != 1 {
-		batch.Slots = batch.Slots[:1]
+	if p.GetType() == phase.PrecompShare && batchInfo.BatchSize != 1 {
+		batchInfo.BatchSize = 1
 	}
 
-	return io.StreamPostPhase(p, streamServer)
+	return io.StreamPostPhase(p, batchInfo.BatchSize, streamServer)
 
 }
 

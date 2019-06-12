@@ -7,6 +7,7 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -73,11 +74,13 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 
 // StreamPostPhase implements the server gRPC handler for posting a
 // phase from another node
-func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServer) error {
+func StreamPostPhase(p phase.Phase, batchSize uint32,
+	stream mixmessages.Node_StreamPostPhaseServer) error {
 
 	// Send a chunk for each slot received along with
 	// its index until an error is received
 	slot, err := stream.Recv()
+	slotsReceived := uint32(1)
 	for ; err == nil; slot, err = stream.Recv() {
 
 		index := slot.Index
@@ -91,6 +94,8 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
+
+		slotsReceived++
 	}
 
 	// Set error in ack message if we didn't receive all slots
@@ -101,6 +106,12 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 		ack = mixmessages.Ack{
 			Error: "failed to receive all slots: " + err.Error(),
 		}
+	}
+
+	if slotsReceived != batchSize {
+		ack.Error += fmt.Sprintf("mismatch between batch size %v"+
+			"and received num slots %v", batchSize, slotsReceived)
+
 	}
 
 	// Close the stream by sending ack

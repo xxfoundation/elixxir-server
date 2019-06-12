@@ -68,14 +68,14 @@ func (MockStreamPostPhaseServer) RecvMsg(m interface{}) error {
 // Test that post phase properly sends the results to the phase via mockPhase
 func TestStreamPostPhase(t *testing.T) {
 
-	numSlots := 3
+	batchSize := 3
 
 	//Get a mock phase
 	mockPhase := &MockPhase{}
 
 	//Build a mock mockBatch to receive
 	mockBatch := mixmessages.Batch{}
-	for i := 0; i < numSlots; i++ {
+	for i := 0; i < batchSize; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
 				Index:          uint32(i),
@@ -86,7 +86,7 @@ func TestStreamPostPhase(t *testing.T) {
 	// receive the mockBatch into the mock stream 'buffer'
 	mockStreamServer := MockStreamPostPhaseServer{batch: mockBatch}
 
-	err := StreamPostPhase(mockPhase, mockStreamServer)
+	err := StreamPostPhase(mockPhase, uint32(batchSize), mockStreamServer)
 
 	if err != nil {
 		t.Errorf("StreamPostPhase: Unexpected error returned: %+v", err)
