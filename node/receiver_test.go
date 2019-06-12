@@ -336,7 +336,8 @@ func (stream MockStreamPostPhaseServer) Context() context.Context {
 		Round: &mixmessages.RoundInfo{
 			ID: mockBatch.Round.ID,
 		},
-		ForPhase: mockBatch.ForPhase,
+		ForPhase:  mockBatch.ForPhase,
+		BatchSize: uint32(len(mockBatch.Slots)),
 	}
 
 	// Create an incoming context from batch info metadata

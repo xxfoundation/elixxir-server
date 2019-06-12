@@ -80,7 +80,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	// Send a chunk for each slot received along with
 	// its index until an error is received
 	slot, err := stream.Recv()
-	slotsReceived := uint32(1)
+	slotsReceived := uint32(0)
 	for ; err == nil; slot, err = stream.Recv() {
 
 		index := slot.Index
@@ -109,9 +109,8 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	}
 
 	if slotsReceived != batchSize {
-		ack.Error += fmt.Sprintf("mismatch between batch size %v"+
-			"and received num slots %v", batchSize, slotsReceived)
-
+		panic(fmt.Sprintf("mismatch between batch size %v"+
+			"and received num slots %v", batchSize, slotsReceived))
 	}
 
 	// Close the stream by sending ack
