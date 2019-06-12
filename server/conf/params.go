@@ -41,10 +41,25 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params := Params{}
 
 	params.Index = vip.GetInt("index")
+
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
 	params.Database.Addresses = vip.GetStringSlice("database.addresses")
+
+	params.SkipReg = vip.GetBool("skipReg")
+
+	params.Groups.CMix = toGroup(vip.GetStringMapString("groups.cmix"))
+	params.Groups.E2E = toGroup(vip.GetStringMapString("groups.e2e"))
+
+	params.Paths.Cert = vip.GetString("cert")
+	params.Paths.Key = vip.GetString("key")
+	params.Paths.Log = vip.GetString("log")
+
+	params.NodeAddresses = vip.GetStringSlice("nodeAddresses")
+	params.NodeIDs = vip.GetStringSlice("nodeIDs")
+	params.Gateways = vip.GetStringSlice("gateways")
+	params.Batch = vip.GetUint32("batch")
 
 	params.Groups = NewGroups(vip)
 
