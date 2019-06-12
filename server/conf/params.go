@@ -39,10 +39,12 @@ type Params struct {
 func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params := Params{}
-	err := vip.Unmarshal(&params)
-	if err != nil {
-		return nil, err
-	}
+
+	params.Index = vip.GetInt("index")
+	params.Database.Name = vip.GetString("database.name")
+	params.Database.Username = vip.GetString("database.username")
+	params.Database.Password = vip.GetString("database.password")
+	params.Database.Addresses = vip.GetStringSlice("database.addresses")
 
 	params.Groups = NewGroups(vip)
 
