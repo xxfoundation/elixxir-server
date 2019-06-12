@@ -33,6 +33,9 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 		ForPhase: int32(phaseTy),
 	}
 
+	// This gets the streaming client which used to send slots
+	// using the recipient node id and the batch info header
+	// It's context must be canceled after receiving an ack
 	streamClient, cancel, err := network.GetPostPhaseStreamClient(recipient, header)
 	if err != nil {
 		jww.ERROR.Printf("Error on comm, unable to get streaming client: %+v", err)
@@ -50,7 +53,10 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 		}
 	}
 
+	// Receive ack and cancel client streaming context
 	ack, err := streamClient.CloseAndRecv()
+
+	cancel()
 
 	if err != nil {
 		return err
@@ -62,8 +68,6 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 		return err
 	}
 
-	cancel()
-
 	return nil
 }
 
@@ -71,7 +75,8 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 // phase from another node
 func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServer) error {
 
-	// Send a chunk for each slot received until EOF
+	// Send a chunk for each slot received along with
+	// its index until an error is received
 	slot, err := stream.Recv()
 	for ; err == nil; slot, err = stream.Recv() {
 
@@ -88,14 +93,17 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 		p.Send(chunk)
 	}
 
-	if err != io.EOF {
-		return err
-	}
-
-	// Send ack back to client
+	// Set error in ack message if we didn't receive all slots
 	ack := mixmessages.Ack{
 		Error: "",
 	}
+	if err != io.EOF {
+		ack = mixmessages.Ack{
+			Error: "failed to receive all slots: " + err.Error(),
+		}
+	}
 
+	// Close the stream by sending ack
+	// and returning whether it succeeded
 	return stream.SendAndClose(&ack)
 }
