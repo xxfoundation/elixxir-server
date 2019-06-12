@@ -72,66 +72,30 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServer) error {
 
 	// Send a chunk for each slot received until EOF
-	// then send ack back to client.
-	//index := uint32(0)
-
-	for {
-		slot, err := stream.Recv()
-		// If we are at end of receiving
-		// send ack and finish
-		if err == io.EOF {
-			ack := mixmessages.Ack{
-				Error: "",
-			}
-
-			err = stream.SendAndClose(&ack)
-
-			return err
-		}
-
-		if err != nil {
-			return err
-		}
+	slot, err := stream.Recv()
+	for ; err == nil; slot, err = stream.Recv() {
 
 		index := slot.Index
-		err = p.Input(index, slot)
-		if err != nil {
-			return errors.Errorf("Error on slot %d: %v", index, err)
+
+		phaseErr := p.Input(index, slot)
+		if phaseErr != nil {
+			jww.ERROR.Printf("Failed on phase input %v for slot %v ",
+				index, slot)
+			return phaseErr
 		}
 
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
-
-		//index++
 	}
 
-	//var slot *mixmessages.Slot
-	//var err error
+	if err != io.EOF {
+		return err
+	}
 
-	//// Send a chunk for each slot received until EOF
-	//for ; err == nil; slot, err = stream.Recv() {
-	//
-	//	index := slot.Index
-	//
-	//	phaseErr := p.Input(index, slot)
-	//	if phaseErr != nil {
-	//		jww.ERROR.Printf("Failed on phase input %v for slot %v ",
-	//			index, slot)
-	//		return phaseErr
-	//	}
-	//
-	//	chunk := services.NewChunk(index, index+1)
-	//	p.Send(chunk)
-	//}
-	//
-	//// Send ack back to client
-	//if err != io.EOF {
-	//	ack := mixmessages.Ack{
-	//		Error: "",
-	//	}
-	//
-	//	err = stream.SendAndClose(&ack)
-	//}
-	//
-	//return err
+	// Send ack back to client
+	ack := mixmessages.Ack{
+		Error: "",
+	}
+
+	return stream.SendAndClose(&ack)
 }
