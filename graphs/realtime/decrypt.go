@@ -124,6 +124,7 @@ func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error
 
 func (ds *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
+		Index:          index,
 		SenderID:       (*ds.Users[index])[:],
 		Salt:           ds.Salts[index],
 		MessagePayload: ds.EcrMsg.Get(index).Bytes(),

@@ -393,6 +393,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	for i := uint32(0); i < batchSize; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
+				Index:          i,
 				MessagePayload: []byte{byte(i)},
 			})
 	}

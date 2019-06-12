@@ -70,6 +70,7 @@ func (ss *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (ss *ShareStream) Output(index uint32) *mixmessages.Slot {
 
 	return &mixmessages.Slot{
+		Index:                       index,
 		PartialRoundPublicCypherKey: ss.PartialPublicCypherKey.Bytes(),
 	}
 }

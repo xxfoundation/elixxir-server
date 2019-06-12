@@ -26,20 +26,14 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 
 	recipient := topology.GetNextNode(nodeID)
 
-	// Create the message structure to send the messages
-	batchInfo := mixmessages.BatchInfo{
+	header := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
 		ForPhase: int32(phaseTy),
 	}
 
-	// Get stream client context
-	ctx, cancel := network.GetPostPhaseStreamContext(batchInfo)
-
-	// Get stream client
-	streamClient, err := network.GetPostPhaseStream(recipient, ctx)
-
+	streamClient, cancel, err := network.GetPostPhaseStreamClient(recipient, header)
 	if err != nil {
 		jww.ERROR.Printf("Error on comm, unable to get streaming client: %+v", err)
 	}
@@ -79,7 +73,7 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 
 	// Send a chunk for each slot received until EOF
 	// then send ack back to client.
-	index := uint32(0)
+	//index := uint32(0)
 
 	for {
 		slot, err := stream.Recv()
@@ -99,6 +93,7 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 			return err
 		}
 
+		index := slot.Index
 		err = p.Input(index, slot)
 		if err != nil {
 			return errors.Errorf("Error on slot %d: %v", index, err)
@@ -107,6 +102,36 @@ func StreamPostPhase(p phase.Phase, stream mixmessages.Node_StreamPostPhaseServe
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
 
-		index++
+		//index++
 	}
+
+	//var slot *mixmessages.Slot
+	//var err error
+
+	//// Send a chunk for each slot received until EOF
+	//for ; err == nil; slot, err = stream.Recv() {
+	//
+	//	index := slot.Index
+	//
+	//	phaseErr := p.Input(index, slot)
+	//	if phaseErr != nil {
+	//		jww.ERROR.Printf("Failed on phase input %v for slot %v ",
+	//			index, slot)
+	//		return phaseErr
+	//	}
+	//
+	//	chunk := services.NewChunk(index, index+1)
+	//	p.Send(chunk)
+	//}
+	//
+	//// Send ack back to client
+	//if err != io.EOF {
+	//	ack := mixmessages.Ack{
+	//		Error: "",
+	//	}
+	//
+	//	err = stream.SendAndClose(&ack)
+	//}
+	//
+	//return err
 }
