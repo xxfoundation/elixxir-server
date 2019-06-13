@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/copier"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -17,7 +16,6 @@ import (
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
-	"golang.org/x/crypto/blake2b"
 	"math/rand"
 	"runtime"
 	"testing"
@@ -73,7 +71,8 @@ func ComputeSingleNodePrecomputation(grp *cyclic.Group, round *round.Buffer) (
 // Compute Precomputation for N nodes
 // NOTE: This does not handle precomputation under permutation, but it will
 //       handle multi-node precomputation checks.
-func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Round) (
+func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Buffer,
+	t *testing.T) (
 	*cyclic.Int, *cyclic.Int) {
 	MP := grp.NewInt(1)
 	RP := grp.NewInt(1)
@@ -82,8 +81,7 @@ func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Round) (
 	uInv := grp.NewMaxInt()
 	vInv := grp.NewMaxInt()
 
-	for i := range rounds {
-		keys := rounds[i].GetBuffer()
+	for i, keys := range rounds {
 		grp.Inverse(keys.R.Get(0), rInv)
 		grp.Inverse(keys.S.Get(0), sInv)
 		grp.Inverse(keys.U.Get(0), uInv)
@@ -94,6 +92,8 @@ func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Round) (
 
 		grp.Mul(RP, uInv, RP)
 		grp.Mul(RP, vInv, RP)
+		t.Logf("Node: %d, MP: %v, RP: %v\n", i,
+			MP.Bytes(), RP.Bytes())
 	}
 	return MP, RP
 }
@@ -756,6 +756,11 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	keysADPermuted := make([]*cyclic.Int, batchSize)
 	cypherADPermuted := make([]*cyclic.Int, batchSize)
 
+	// Make sure we are using the same buffer for Msg precomps in roundbuf
+	// FIXME: is there another way to do this?
+	roundBuf.PermutedMessageKeys = keysMsgPermuted
+	roundBuf.PermutedADKeys = keysADPermuted
+
 	//Link precomputation
 	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngConstructor)
 	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg,
@@ -799,7 +804,8 @@ func (ds *DebugStream) Input(index uint32, slot *mixmessages.Slot) error {
 	var lastErr error
 	for i := 0; i < len(es); i++ {
 		if es[i] != nil {
-			fmt.Printf("Error DebugStream Input: %v\n", es[i])
+			// NOTE: Supressed because generally useless
+			//fmt.Printf("Error DebugStream Input: %v\n", es[i])
 			lastErr = es[i]
 		}
 	}
@@ -901,33 +907,21 @@ func InitDbgGraph(gc services.GraphGenerator, streams map[string]*DebugStream,
 	return g
 }
 
-func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
-	grp *cyclic.Group, batchSize uint32, roundBuf *round.Buffer,
-	registry *globals.UserMap, rngConstructor func() csprng.Source,
-	t *testing.T) *services.Graph {
-	dStrms := make([]*DebugStream, 3)
-	for i := 0; i < 3; i++ {
-		dStrms[i] = &DebugStream{}
-		dStrms[i].Link(grp, batchSize, roundBuf, registry,
-			rngConstructor)
-	}
-	g := gc.NewGraph("DbgGraph", dStrms[0])
-
-	//modules for precomputation
-	//generate := precomputation.Generate.DeepCopy()
-	decryptElgamal := precomputation.DecryptElgamal.DeepCopy()
-	adaptFnc := decryptElgamal.Adapt
-	decryptElgamal.Adapt = func(s services.Stream, cryptop cryptops.Cryptop,
+func wrapAdapt(batchSize uint32, outIdx int, name string, dStrms []*DebugStream,
+	adaptFnc func(s services.Stream, cryptop cryptops.Cryptop,
+		chunk services.Chunk) error, t *testing.T) func(s services.Stream,
+	cryptop cryptops.Cryptop,
+	chunk services.Chunk) error {
+	adapt := func(s services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
 		var err error
-		for i := 0; i < 3; i++ {
-			t.Logf("Running Decrypt %d", i)
-			err = adaptFnc(s, cryptop, chunk)
+		for i := uint32(0); i < batchSize; i++ {
+			t.Logf("Running %s %d", name, i)
+			err = adaptFnc(dStrms[i], cryptop, chunk)
 			for j := chunk.Begin(); j < chunk.End(); j++ {
 				// Copy output of current stream to tmp
 				dStrms[i].Output(j)
-				output := dStrms[i].Outputs[1]
-				t.Logf("%v", output)
+				output := dStrms[i].Outputs[outIdx]
 				// Input cur stream to next stream
 				dStrms[(i+1)%3].Input(j, output)
 				// Todo: Call link to copy right keys??
@@ -935,16 +929,46 @@ func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
 		}
 		return err
 	}
+	return adapt
+}
+
+func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
+	grp *cyclic.Group, batchSize uint32, roundBuf *round.Buffer,
+	registry *globals.UserMap, rngConstructor func() csprng.Source,
+	t *testing.T) *services.Graph {
+	dStrms := make([]*DebugStream, 3)
+	for i := 1; i < 3; i++ {
+		dStrms[i] = &DebugStream{}
+		dStrms[i].Link(grp, batchSize, roundBuf, registry,
+			rngConstructor)
+	}
+	dStrms[0] = &DebugStream{}
+	g := gc.NewGraph("DbgGraph", dStrms[0])
+
+	//modules for precomputation
+	//generate := precomputation.Generate.DeepCopy()
+	decryptElgamal := precomputation.DecryptElgamal.DeepCopy()
+	decryptElgamal.Adapt = wrapAdapt(3, 1, "Decrypt", dStrms,
+		decryptElgamal.Adapt, t)
 	permuteElgamal := precomputation.PermuteElgamal.DeepCopy()
+	permuteElgamal.Adapt = wrapAdapt(3, 2, "Permute", dStrms,
+		permuteElgamal.Adapt, t)
 	permuteReintegrate := ReintegratePrecompPermute.DeepCopy()
 	revealRoot := precomputation.RevealRootCoprime.DeepCopy()
+	revealRoot.Adapt = wrapAdapt(3, 3, "Reveal", dStrms,
+		revealRoot.Adapt, t)
 	stripInverse := precomputation.StripInverse.DeepCopy()
 	stripMul2 := precomputation.StripMul2.DeepCopy()
 
 	//modules for real time
 	//decryptKeygen := DummyKeygen.DeepCopy()
 	decryptMul3 := realtime.DecryptMul3.DeepCopy()
+	decryptMul3.Adapt = wrapAdapt(3, 4, "DecryptRT", dStrms,
+		decryptMul3.Adapt, t)
+
 	permuteMul2 := realtime.PermuteMul2.DeepCopy()
+	permuteMul2.Adapt = wrapAdapt(3, 5, "PermuteRT", dStrms,
+		permuteMul2.Adapt, t)
 	identifyMul2 := realtime.IdentifyMul2.DeepCopy()
 
 	dPDecrypt := CreateStreamCopier(t, "Decrypt", streams)
@@ -1003,20 +1027,10 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 		u := registry.NewUser(grp)
 		u.ID = id.NewUserFromUint(uint64(i), t)
 
-		baseKeyBytes := make([]byte, 32)
-		_, err := rng.Read(baseKeyBytes)
-		if err != nil {
-			t.Error("DbgGraph: could not rng")
-		}
-		baseKeyBytes[len(baseKeyBytes)-1] |= 0x01
-		u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
+		u.BaseKey = grp.NewInt(1)
 		registry.UpsertUser(u)
 
 		salt := make([]byte, 32)
-		_, err = rng.Read(salt)
-		if err != nil {
-			t.Error("DbgGraph: could not rng")
-		}
 		salts = append(salts, salt)
 
 		userList = append(userList, u)
@@ -1045,29 +1059,13 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 		ADList = append(ADList, grp.NewIntFromBytes(adBytes))
 	}
 
-	hash, err := blake2b.New256(nil)
-
-	if err != nil {
-		t.Errorf("Could not get blake2b hash: %s", err.Error())
-	}
-
 	var ecrMsgs []*cyclic.Int
 	var ecrAD []*cyclic.Int
 
 	//encrypt the messages
 	for i := uint32(0); i < batchSize; i++ {
-		keyMsg := cmix.ClientKeyGen(grp, salts[i],
-			[]*cyclic.Int{userList[i].BaseKey})
-
-		hash.Reset()
-		hash.Write(salts[i])
-
-		ADMsg := cmix.ClientKeyGen(grp, hash.Sum(nil),
-			[]*cyclic.Int{userList[i].BaseKey})
-
-		ecrMsgs = append(ecrMsgs, grp.Mul(messageList[i], keyMsg,
-			grp.NewInt(1)))
-		ecrAD = append(ecrAD, grp.Mul(ADList[i], ADMsg, grp.NewInt(1)))
+		ecrMsgs = append(ecrMsgs, messageList[i])
+		ecrAD = append(ecrAD, ADList[i])
 	}
 
 	//make the graph
@@ -1213,11 +1211,9 @@ func (p *PsudoRNG) SetSeed(seed []byte) error {
 	return nil
 }
 
-/*
 func Test_DbgGraph(t *testing.T) {
 	RunDbgGraph(3, NewPsudoRNG, t)
 }
-*/
 
 // Test3NodeE2E performs a basic test with 3 simulated nodes. To make
 // this work, wrappers around the adapters are introduced to copy
@@ -1235,7 +1231,12 @@ func Test3NodeE2E(t *testing.T) {
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
 	roundBuf.InitLastNode()
 	grp.SetBytes(roundBuf.Z, []byte{13})
-	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)
+	tmp := grp.NewInt(1)
+	// >>> ((4**13)**13)**13%107
+	// 10
+	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)     // First node
+	grp.Exp(roundBuf.CypherPublicKey, roundBuf.Z, tmp) // Mid
+	grp.Exp(tmp, roundBuf.Z, roundBuf.CypherPublicKey) // Last
 	grp.SetBytes(roundBuf.R.Get(0), []byte{26})
 	grp.SetBytes(roundBuf.Y_R.Get(0), []byte{69})
 	grp.SetBytes(roundBuf.S.Get(0), []byte{77})
@@ -1244,6 +1245,8 @@ func Test3NodeE2E(t *testing.T) {
 	grp.SetBytes(roundBuf.Y_U.Get(0), []byte{87})
 	grp.SetBytes(roundBuf.V.Get(0), []byte{18})
 	grp.SetBytes(roundBuf.Y_V.Get(0), []byte{79})
+
+	t.Logf("Public Key: %v", roundBuf.CypherPublicKey.Bytes())
 
 	streams := make(map[string]*DebugStream)
 
@@ -1288,9 +1291,15 @@ func Test3NodeE2E(t *testing.T) {
 	}
 
 	// Compute result directly
-	MP, RP := ComputeSingleNodePrecomputation(grp, roundBuf)
-	t.Logf("MP: %s, RP: %s",
-		MP.Text(10), RP.Text(10))
+
+	// We're using the same keys for all nodes (this is a shortcut but is OK
+	// AND it tests for if round buffer data is overwritten)
+	bufs := make([]*round.Buffer, 3)
+	bufs[0] = roundBuf
+	bufs[1] = roundBuf
+	bufs[2] = roundBuf
+
+	MP, RP := ComputePrecomputation(grp, bufs, t)
 	ss := streams["END"].StripStream
 	if ss.MessagePrecomputation.Get(0).Cmp(MP) != 0 {
 		t.Errorf("%v != %v",
@@ -1307,10 +1316,10 @@ func Test3NodeE2E(t *testing.T) {
 	is := streams["END"].IdentifyStream
 	if is.EcrMsgPermuted[0].Cmp(expMsg) != 0 {
 		t.Errorf("%v != %v", expMsg.Bytes(),
-			megaStream.IdentifyStream.EcrMsgPermuted[0].Bytes())
+			is.EcrMsgPermuted[0].Bytes())
 	}
 	if is.EcrADPermuted[0].Cmp(expAD) != 0 {
 		t.Errorf("%v != %v", expAD.Bytes(),
-			megaStream.IdentifyStream.EcrADPermuted[0].Bytes())
+			is.EcrADPermuted[0].Bytes())
 	}
 }
