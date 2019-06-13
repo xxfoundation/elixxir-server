@@ -31,6 +31,10 @@ type Params struct {
 	NodeIDs  []string
 	Gateways []string
 	Batch    uint32
+
+	// Public and private keys
+	PublicKey  string
+	PrivateKey string
 }
 
 // NewParams returns a params object if it is able to
@@ -60,6 +64,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.NodeIDs = vip.GetStringSlice("nodeIDs")
 	params.Gateways = vip.GetStringSlice("gateways")
 	params.Batch = vip.GetUint32("batch")
+
+	params.PublicKey = vip.GetString("publicKey")
+	params.PrivateKey = vip.GetString("privateKey")
 
 	params.Groups = NewGroups(vip)
 

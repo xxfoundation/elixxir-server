@@ -37,4 +37,6 @@ gateways:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
 batch: 20
+publicKey: "pubkey"
+privateKey: "privkey"
 ...
