@@ -293,7 +293,7 @@ func TestDecryptGraph(t *testing.T) {
 	KeysADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
-	//Run the graph
+	//RunFirstNode the graph
 	g.Run()
 
 	//Send inputs into the graph

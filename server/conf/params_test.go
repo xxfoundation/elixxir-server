@@ -16,7 +16,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	expectedParams := Params{
 		Database: ExpectedDB,
 		Groups:   ExpectedGroups,
-		Paths:    ExpectedPaths,
+		Path:     ExpectedPaths,
 		NodeAddresses: []string{"127.0.0.1:80", "127.0.0.1:80",
 			"127.0.0.1:80"},
 		Gateways: []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
@@ -78,7 +78,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Groups object did not match expected values for CMIX")
 	}
 
-	if !reflect.DeepEqual(expectedParams.Paths, params.Paths) {
+	if !reflect.DeepEqual(expectedParams.Path, params.Path) {
 		t.Errorf("Paths value does not match expected value")
 	}
 

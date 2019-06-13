@@ -8,7 +8,14 @@
 package cmd
 
 import (
-	"fmt"
+	"gitlab.com/elixxir/crypto/csprng"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/server"
+	"time"
+
 	//"encoding/binary"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -22,7 +29,6 @@ import (
 	//"gitlab.com/elixxir/server/globals"
 	//"gitlab.com/elixxir/server/io"
 	"runtime"
-	"strings"
 	//"sync/atomic"
 	//"time"
 )
@@ -46,8 +52,6 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Println("Unable to load params from viper")
 	}
 
-	fmt.Printf("conf: %v\n", params.Index)
-
 	//Check that there is a gateway
 	if len(params.Gateways) < 1 {
 		// No gateways in config file or passed via command line
@@ -56,80 +60,38 @@ func StartServer(vip *viper.Viper) {
 		return
 	}
 
-	//get the index of the server
-
 	// Initialize the backend
-	//dbAddress := params.Database.Addresses[serverIdx]
+	dbAddress := params.Database.Addresses[params.Index]
 
-	/*users := globals.NewUserRegistry(
+	userDatabase := globals.NewUserRegistry(
 		params.Database.Username,
 		params.Database.Password,
 		params.Database.Name,
 		dbAddress,
-	)*/
+	)
 
-	// Load group from viper
-	// TODO: when you go back to hook up the new round/DSA stuff to main,
-	// these should be assigned variables in there.
-	jww.INFO.Printf("%v", viper.GetStringMapString(
-		"cryptographicParameters.cMix"))
+	//Build DSA key
+	rng := csprng.NewSystemRNG()
 	grp := params.Groups.CMix
-	e2eGrp := params.Groups.E2E
-	// TODO: Add a Stringer interface to cyclic.Group
-	jww.INFO.Printf("cMix Group: %d", grp.GetFingerprint())
-	jww.INFO.Printf("E2E Group: %d", e2eGrp.GetFingerprint())
+	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	privKey := dsaParams.PrivateKeyGen(rng)
+	pubKey := privKey.PublicKeyGen()
 
-	jww.INFO.Print("Server list: " + strings.Join(params.NodeAddresses, ","))
+	// Create instance
+	instance := server.CreateServerInstance(params, userDatabase, pubKey, privKey)
 
-	// Start mix servers on localServer
-	localServer := params.NodeAddresses[serverIdx]
-	jww.INFO.Printf("Starting server on %v\n", localServer)
+	// initialize the network
+	instance.InitNetwork(node.NewImplementation)
 
-	// ensure that the Node ID is populated
-	//	viperNodeID := uint64(viper.GetInt("nodeid"))
-	//	nodeIDbytes := make([]byte, binary.MaxVarintLen64)
-	//	var num int
-	//	if viperNodeID == 0 {
-	//		num = binary.PutUvarint(nodeIDbytes, uint64(serverIndex))
-	//	} else {
-	//		num = binary.PutUvarint(nodeIDbytes, viperNodeID)
-	//	}
-	//globals.ID = new(id.Node).SetBytes(nodeIDbytes[:num])
+	//FIXME: check that all other nodes are online
 
-	// Set skipReg from config file
-	//globals.SkipRegServer = viper.GetBool("skipReg")
+	//Begin the resource queue
+	instance.Run()
 
-	//	certPath := viper.GetString("certPath")
-	//	keyPath := viper.GetString("keyPath")
-	//	gatewayCertPath := viper.GetString("gatewayCertPath")
-	// Set the certPaths explicitly to avoid data races
-	//connect.ServerCertPath = certPath
-	//connect.GatewayCertPath = gatewayCertPath
-	// Kick off Comms server
-	//go node.StartServer(localServer, io.NewServerImplementation(),
-	//  certPath, keyPath)
-
-	// TODO Replace these concepts with a better system
-	//globals.IsLastNode = serverIndex == len(io.Servers)-1
-	//io.NextServer = io.Servers[(serverIndex+1)%len(io.Servers)]
-
-	// Block until we can reach every server
-	//io.VerifyServersOnline()
-
-	//globals.RoundRecycle = make(chan *globals.Round, PRECOMP_BUFFER_SIZE)
-
-	// Run as many as half the number of nodes times the number of
-	// passthroughs (which is 4).
-	//numPrecompSimultaneous = int((uint64(len(io.Servers)) * 4) / 2)
-	//if globals.IsLastNode {
-	//	realtimeSignal := &sync.Cond{L: &sync.Mutex{}}
-	//	io.RoundCh = make(chan *string, PRECOMP_BUFFER_SIZE)
-	//	io.MessageCh = make(chan *realtime.Slot, messageBufferSize)
-	//	// Last Node handles when realtime and precomp get run
-	//	go RunRealTime(batchSize, io.MessageCh, io.RoundCh, realtimeSignal)
-	//	go RunPrecomputation(io.RoundCh, realtimeSignal)
-	//}
-
-	// Main loop
-	//run()
+	//Start runners for first node
+	if instance.IsFirstNode() {
+		instance.InitFirstNode()
+		instance.RunFirstNode(instance.GetNetwork(), instance.GetTopology(),
+			5*time.Second, io.TransmitCreateNewRound)
+	}
 }

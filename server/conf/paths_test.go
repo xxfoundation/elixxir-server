@@ -14,9 +14,10 @@ import (
 )
 
 var ExpectedPaths = Paths{
-	Cert: "~/.elixxir/cert.crt",
-	Key:  "~/.elixxir/key.pem",
-	Log:  "~/.elixxir/server.log",
+	Cert:        "~/.elixxir/cert.crt",
+	Key:         "~/.elixxir/key.pem",
+	Log:         "~/.elixxir/server.log",
+	GatewayCert: "~/.elixxir/gateway.log",
 }
 
 // This test checks that unmarshalling the path.yaml file
@@ -31,7 +32,7 @@ func TestPaths_UnmarshallingFileEqualsExpected(t *testing.T) {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
-	if !reflect.DeepEqual(ExpectedPaths, actual.Paths) {
+	if !reflect.DeepEqual(ExpectedPaths, actual.Path) {
 		t.Errorf("Paths object did not match ExpectedPaths values")
 	}
 

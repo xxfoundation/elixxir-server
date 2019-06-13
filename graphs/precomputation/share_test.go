@@ -196,7 +196,7 @@ func TestShare_Graph(t *testing.T) {
 	// Build i/o used for testing
 	PubicCypherKeyExpected := grp.ExpG(roundBuffer.Z, grp.NewInt(1))
 
-	// Run the graph
+	// RunFirstNode the graph
 	g.Run()
 
 	// Send inputs into the graph

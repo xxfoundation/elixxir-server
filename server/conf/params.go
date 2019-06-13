@@ -21,20 +21,16 @@ type Params struct {
 	Index    int
 	Database DB
 	SkipReg  bool `yaml:"skipReg"`
+	Path     Paths
 
 	//Network Identity Params
+	Batch         uint32
 	Groups        Groups
-	Paths         Paths
 	NodeAddresses []string
 	// these are base64 strings, so instance creation must base64 decode these
 	// before using them as node IDs
 	NodeIDs  []string
 	Gateways []string
-	Batch    uint32
-
-	// Public and private keys
-	PublicKey  string
-	PrivateKey string
 }
 
 // NewParams returns a params object if it is able to
@@ -53,22 +49,18 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.SkipReg = vip.GetBool("skipReg")
 
+	params.Path.Cert = vip.GetString("path.cert")
+	params.Path.GatewayCert = vip.GetString("path.gateway_cert")
+	params.Path.Key = vip.GetString("path.key")
+	params.Path.Log = vip.GetString("path.log")
+
+	params.Batch = vip.GetUint32("batch")
 	params.Groups.CMix = toGroup(vip.GetStringMapString("groups.cmix"))
 	params.Groups.E2E = toGroup(vip.GetStringMapString("groups.e2e"))
-
-	params.Paths.Cert = vip.GetString("cert")
-	params.Paths.Key = vip.GetString("key")
-	params.Paths.Log = vip.GetString("log")
 
 	params.NodeAddresses = vip.GetStringSlice("nodeAddresses")
 	params.NodeIDs = vip.GetStringSlice("nodeIDs")
 	params.Gateways = vip.GetStringSlice("gateways")
-	params.Batch = vip.GetUint32("batch")
-
-	params.PublicKey = vip.GetString("publicKey")
-	params.PrivateKey = vip.GetString("privateKey")
-
-	params.Groups = NewGroups(vip)
 
 	return &params, nil
 }

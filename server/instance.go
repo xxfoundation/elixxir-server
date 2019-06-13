@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -27,13 +27,12 @@ type Instance struct {
 	userReg        globals.UserRegistry
 	pubKey         *signature.DSAPublicKey
 	privKey        *signature.DSAPrivateKey
-	regPubKey      *signature.DSAPublicKey
 	topology       *circuit.Circuit
 	thisNode       *id.Node
 	graphGenerator services.GraphGenerator
 	firstNode
 	LastNode
-	params conf.Params
+	params *conf.Params
 }
 
 func (i *Instance) GetTopology() *circuit.Circuit {
@@ -79,18 +78,14 @@ func (i *Instance) GetPrivKey() *signature.DSAPrivateKey {
 	return i.privKey
 }
 
-//GetRegPubKey returns the registration server DSA public key
-func (i *Instance) GetRegPubKey() *signature.DSAPublicKey {
-	return i.regPubKey
-}
-
 //GetSkipReg returns the skipReg parameter
 func (i *Instance) GetSkipReg() bool {
 	return i.params.SkipReg
 }
 
+//GetBatchSize returns the batch size
 func (i *Instance) GetBatchSize() uint32 {
-	return i.params.BatchSize
+	return i.params.Batch
 }
 
 // FIXME Populate this from the YAML or something
@@ -108,9 +103,22 @@ func (i *Instance) InitLastNode() {
 	i.LastNode.Initialize()
 }
 
+//IsFirstNode returns if the node is first node
+func (i *Instance) IsFirstNode() bool {
+	return i.topology.IsFirstNode(i.thisNode)
+}
+
+//IsLastNode returns if the node is last node
+func (i *Instance) IsLastNode() bool {
+	return i.topology.IsLastNode(i.thisNode)
+}
+
 // Create a server instance. To actually kick off the server,
-// call Run() on the resulting ServerInstance.
-func CreateServerInstance(params conf.Params, db globals.UserRegistry) *Instance {
+// call RunFirstNode() on the resulting ServerInstance.
+func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
+	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey) *Instance {
+
+	//TODO: build system wide error handeling
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
@@ -144,25 +152,13 @@ func CreateServerInstance(params conf.Params, db globals.UserRegistry) *Instance
 		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 	instance.topology = circuit.New(nodeIDs)
-	instance.thisNode = instance.topology.GetNodeAtIndex(params.ThisNodeIndex)
+	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
 	// Create a node id object with the random bytes
 	// Generate DSA Private/Public key pair
-	rng := csprng.NewSystemRNG()
-	grp := params.Groups.CMix
-	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
-	instance.privKey = dsaParams.PrivateKeyGen(rng)
-	instance.pubKey = instance.privKey.PublicKeyGen()
+	instance.pubKey = publicKey
+	instance.privKey = privateKey
 	// Hardcoded registration server publicKey
-	instance.regPubKey = signature.ReconstructPublicKey(dsaParams,
-		large.NewIntFromString("1ae3fd4e9829fb464459e05bca392bec5067152fb43a569ad3c3b68bbcad84f0"+
-			"ff8d31c767da3eabcfc0870d82b39568610b52f2b72b493bbede6e952c9a7fd4"+
-			"4a8161e62a9046828c4a65f401b2f054ebf7376e89dab547d8a3c3d46891e78a"+
-			"cfc4015713cbfb5b0b6cab0f8dfb46b891f3542046ace4cab984d5dfef4f52d4"+
-			"347dc7e52f6a7ea851dda076f0ed1fef86ec6b5c2a4807149906bf8e0bf70b30"+
-			"1147fea88fd95009edfbe0de8ffc1a864e4b3a24265b61a1c47a4e9307e7c84f"+
-			"9b5591765b530f5859fa97b22ce9b51385d3d13088795b2f9fd0cb59357fe938"+
-			"346117df2acf2bab22d942de1a70e8d5d62fc0e99d8742a0f16df94ce3a0abbb", 16))
 	// TODO: For now set this to false, but value should come from config file
 	instance.params.SkipReg = false
 
@@ -191,17 +187,27 @@ func GenerateId() *id.Node {
 	return nid
 }
 
-// TODO(sb) Should there be a version of this that uses the network definition
-//  file to create all the connections in the network?
 // Initializes the network on this server instance
 // After the network object is created, you still need to use it to connect
 // to other servers in the network using ConnectToNode or ConnectToGateway.
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func (i *Instance) InitNetwork(addr string,
-	makeImplementation func(*Instance) *node.Implementation,
-	certPath string, keyPath string) *node.NodeComms {
-	i.network = node.StartNode(addr, makeImplementation(i), certPath, keyPath)
+func (i *Instance) InitNetwork(
+	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
+	addr := i.params.NodeAddresses[i.params.Index]
+	i.network = node.StartNode(addr, makeImplementation(i), i.params.Path.Cert,
+		i.params.Path.Key)
+
+	tlsCert := connect.NewCredentialsFromFile(i.params.Path.Cert, "")
+
+	for x := 0; x < len(i.params.NodeIDs); x++ {
+		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.NodeAddresses[x],
+			tlsCert)
+	}
+
+	i.network.ConnectToGateway(i.thisNode.NewGateway(),
+		i.params.Gateways[i.params.Index], tlsCert)
+
 	return i.network
 }
 

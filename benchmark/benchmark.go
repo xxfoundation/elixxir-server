@@ -109,7 +109,7 @@ func GenerateRounds(nodeCount int, BatchSize uint64,
 	}
 
 	maxInt := grp.NewMaxInt()
-	// Run the GENERATION step
+	// RunFirstNode the GENERATION step
 	generations := make([]*services.ThreadController, nodeCount)
 	for i := 0; i < nodeCount; i++ {
 		// Since round.Z is generated on creation of the Generation precomp,
@@ -344,7 +344,7 @@ func MultiNodePrecomp(nodeCount int, BatchSize uint64,
 	//go DecryptPermuteTranslate(decrypts[nodeCount-1].OutChannel,
 	//	permutes[0].InChannel)
 
-	// Run Share -- Then save the result to both rounds
+	// RunFirstNode Share -- Then save the result to both rounds
 	// Note that the outchannel for N1Share is the input channel for N2share
 	shareMsg := services.Slot(&precomputation.SlotShare{
 		PartialRoundPublicCypherKey: grp.GetGCyclic()})
@@ -593,7 +593,7 @@ func PrecompIterations(nodeCount int, batchSize uint64, iterations int) {
 	*/
 }
 
-// Run realtime simulation for given number of of iterations
+// RunFirstNode realtime simulation for given number of of iterations
 func RealtimeIterations(nodeCount int, batchSize uint64, iterations int) {
 	/*	prime := large.NewInt(0)
 		prime.SetString(PRIME, 16)

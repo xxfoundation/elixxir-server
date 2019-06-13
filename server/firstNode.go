@@ -29,10 +29,10 @@ type firstNode struct {
 // to create the round
 type RoundCreationTransmitter func(*node.NodeComms, *circuit.Circuit, id.Round) error
 
-// Run is a long running process on the first node which creates new rounds at
+// RunFirstNode is a long running process on the first node which creates new rounds at
 // the correct time. It can only be called once. It is passed a function through
 // which to interface with the network
-func (fn *firstNode) Run(network *node.NodeComms,
+func (fn *firstNode) RunFirstNode(network *node.NodeComms,
 	topology *circuit.Circuit, fullRoundTimeout time.Duration,
 	transmitter RoundCreationTransmitter) {
 	fn.runOnce.Do(
