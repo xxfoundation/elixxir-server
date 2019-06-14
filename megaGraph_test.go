@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/copier"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -17,7 +16,6 @@ import (
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
-	"golang.org/x/crypto/blake2b"
 	"math/rand"
 	"runtime"
 	"testing"
@@ -73,7 +71,8 @@ func ComputeSingleNodePrecomputation(grp *cyclic.Group, round *round.Buffer) (
 // Compute Precomputation for N nodes
 // NOTE: This does not handle precomputation under permutation, but it will
 //       handle multi-node precomputation checks.
-func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Round) (
+func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Buffer,
+	t *testing.T) (
 	*cyclic.Int, *cyclic.Int) {
 	MP := grp.NewInt(1)
 	RP := grp.NewInt(1)
@@ -82,8 +81,7 @@ func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Round) (
 	uInv := grp.NewMaxInt()
 	vInv := grp.NewMaxInt()
 
-	for i := range rounds {
-		keys := rounds[i].GetBuffer()
+	for i, keys := range rounds {
 		grp.Inverse(keys.R.Get(0), rInv)
 		grp.Inverse(keys.S.Get(0), sInv)
 		grp.Inverse(keys.U.Get(0), uInv)
@@ -94,6 +92,8 @@ func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Round) (
 
 		grp.Mul(RP, uInv, RP)
 		grp.Mul(RP, vInv, RP)
+		t.Logf("Node: %d, MP: %v, RP: %v\n", i,
+			MP.Bytes(), RP.Bytes())
 	}
 	return MP, RP
 }
@@ -309,7 +309,7 @@ func createDummyUserList(grp *cyclic.Group,
 
 func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	roundBuf *round.Buffer, registry *globals.UserMap,
-	rngConstructor func() csprng.Source, streams map[string]*MegaStream,
+	rngConstructor func() csprng.Source, streams map[string]*DebugStream,
 	t *testing.T) *services.Graph {
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
@@ -320,12 +320,34 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	// since we never send more than 1 message through.
 	gc := services.NewGraphGenerator(1, PanicHandler,
 		1, 1, 0)
-	megaGraph := InitMegaGraph(gc, streams, t)
-	megaGraph.Build(batchSize)
+	dGrph := InitDbgGraph(gc, streams, t)
+	dGrph.Build(batchSize)
 
-	megaGraph.Link(grp, roundBuf, registry, rngConstructor)
-	megaGraph.Run()
-	return megaGraph
+	dGrph.Link(grp, roundBuf, registry, rngConstructor)
+	dGrph.Run()
+	return dGrph
+}
+
+func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
+	roundBuf *round.Buffer, registry *globals.UserMap,
+	rngConstructor func() csprng.Source, streams map[string]*DebugStream,
+	t *testing.T) *services.Graph {
+	//make the graph
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
+			g, m, err.Error()))
+	}
+	// NOTE: input size greater than 1 would necessarily cause a hang here
+	// since we never send more than 1 message through.
+	gc := services.NewGraphGenerator(1, PanicHandler,
+		1, 1, 0)
+	dGrph := InitDbgGraph3(gc, streams, grp, batchSize, roundBuf, registry,
+		rngConstructor, t)
+	dGrph.Build(batchSize)
+
+	dGrph.Link(grp, roundBuf, registry, rngConstructor)
+	dGrph.Run()
+	return dGrph
 }
 
 // Perform an end to end test of the precomputation with batch size 1,
@@ -369,11 +391,11 @@ func TestEndToEndCryptops(t *testing.T) {
 	grp.SetBytes(roundBuf.V.Get(0), []byte{18})
 	grp.SetBytes(roundBuf.Y_V.Get(0), []byte{79})
 
-	streams := make(map[string]*MegaStream)
+	streams := make(map[string]*DebugStream)
 
-	megaGraph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
+	dGrph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
 		rngConstructor, streams, t)
-	megaStream := megaGraph.GetStream().(*MegaStream)
+	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 
 	// Create messsages
@@ -398,57 +420,63 @@ func TestEndToEndCryptops(t *testing.T) {
 			grp.NewInt(1))
 
 		chunk := services.NewChunk(0, 1)
-		megaGraph.Send(chunk)
+		dGrph.Send(chunk)
 	}()
 
 	numDoneSlots := 0
-	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
-		for i := chunk.Begin(); i < chunk.End(); i++ {
+	for chnk, ok := dGrph.GetOutput(); ok; chnk, ok =
+		dGrph.GetOutput() {
+		for i := chnk.Begin(); i < chnk.End(); i++ {
 			numDoneSlots++
 			t.Logf("done slot: %d, total done: %d",
 				i, numDoneSlots)
 		}
 	}
 
-	/*
-				From original/first version of code
-				expectedDecrypt := []*cyclic.Int{
-					grp.NewInt(5), grp.NewInt(17),
-					grp.NewInt(79), grp.NewInt(36),
-				}
-				expectedPermute := []*cyclic.Int{
-					grp.NewInt(23), grp.NewInt(61),
-					grp.NewInt(39), grp.NewInt(85),
-				}
-				// Expected encrypt is deleted, we don't need it anymore!
-				// The UV calcs are the same but the message parts aren't
-				expectedReveal := []*cyclic.Int{
-					grp.NewInt(42), grp.NewInt(13), // 42 -> 89 by manual calc!
-				}
-				expectedStrip := []*cyclic.Int{
-					grp.NewInt(3), grp.NewInt(87),
-				}
-		 megaGraph_test.go:552: MegaStream
-		    megaGraph_test.go:504: 1N Precomp Decrypt:
-		            R([26], [69]), U([94], [87]),
-		            KeysMsg/AD: ([5] / [17]), CypherMsg/AD: ([79] / [36])
-		    megaGraph_test.go:552: MegaStream
-		    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]), ([18], [79]),
-		             [23], [39], [61], [85]
-		    megaGraph_test.go:552: MegaStream
-		    megaGraph_test.go:513: 1N Precomp Permute: ([77], [81]), ([18], [79]),
-		             [23], [39], [61], [85]
-		    megaGraph_test.go:552: MegaStream
-		    megaGraph_test.go:528: 1N Precomp Reveal: [89], [13]
-		    megaGraph_test.go:552: MegaStream
-		    megaGraph_test.go:521: 1N Precomp Strip: [1], [1], [89], [13]
-		    megaGraph_test.go:552: MegaStream
-		    megaGraph_test.go:534: 1N RT Decrypt: K: [1], R: [26], M: [57], K: [1], U: [94], M: [94]
-		    megaGraph_test.go:552: MegaStream
-		    megaGraph_test.go:542: 1N RT Identify: S: [77], M: [2], V: [18], M: [87]
-		    megaGraph_test.go:398: done slot: 0, total done: 1
-		    megaGraph_test.go:428: MP: 69 in GRP: xjz30UG9n4..., RP: 16 in GRP: xjz30UG9n4...
-		PASS
+	/* TODO: Check the following intermediate values
+	From original/first version of code
+	expectedDecrypt := []*cyclic.Int{
+		grp.NewInt(5), grp.NewInt(17),
+		grp.NewInt(79), grp.NewInt(36),
+	}
+	expectedPermute := []*cyclic.Int{
+		grp.NewInt(23), grp.NewInt(61),
+		grp.NewInt(39), grp.NewInt(85),
+	}
+	// Expected encrypt is deleted, we don't need it anymore!
+	// The UV calcs are the same but the message parts aren't
+	expectedReveal := []*cyclic.Int{
+		grp.NewInt(42), grp.NewInt(13), // 42 -> 89 by manual calc!
+	}
+	expectedStrip := []*cyclic.Int{
+		grp.NewInt(3), grp.NewInt(87),
+	}
+	 dGrph_test.go:552: DebugStream
+	    dGrph_test.go:504: 1N Precomp Decrypt:
+	            R([26], [69]), U([94], [87]),
+	            KeysMsg/AD: ([5] / [17]), CypherMsg/AD: ([79] / [36])
+	    dGrph_test.go:552: DebugStream
+	    dGrph_test.go:513: 1N Precomp Permute: ([77], [81]),
+		([18], [79]),
+	             [23], [39], [61], [85]
+	    dGrph_test.go:552: DebugStream
+	    dGrph_test.go:513: 1N Precomp Permute: ([77], [81]),
+		([18], [79]),
+	             [23], [39], [61], [85]
+	    dGrph_test.go:552: DebugStream
+	    dGrph_test.go:528: 1N Precomp Reveal: [89], [13]
+	    dGrph_test.go:552: DebugStream
+	    dGrph_test.go:521: 1N Precomp Strip: [1], [1], [89], [13]
+	    dGrph_test.go:552: DebugStream
+	    dGrph_test.go:534: 1N RT Decrypt: K: [1], R: [26], M: [57],
+		K: [1], U: [94], M: [94]
+	    dGrph_test.go:552: DebugStream
+	    dGrph_test.go:542: 1N RT Identify: S: [77], M: [2], V: [18],
+		M: [87]
+	    dGrph_test.go:398: done slot: 0, total done: 1
+	    dGrph_test.go:428: MP: 69 in GRP: xjz30UG9n4...,
+		RP: 16 in GRP: xjz30UG9n4...
+	PASS
 	*/
 
 	// These produce useful printouts when the test fails.
@@ -457,26 +485,26 @@ func TestEndToEndCryptops(t *testing.T) {
 	RootingTestTriple(grp, t)
 
 	// Verify Precomputation
-	/*
-		// NOTE: This is broken fornow until we understand why the deep copy
-		// does'nt work
-		ds := streams["Decrypt"].DecryptStream
-		if ds.KeysMsg.Get(0).Cmp(grp.NewInt(5)) != 0 {
-			t.Errorf("Precomp Decrypt KeysMsg: %v != [5]",
-				ds.KeysMsg.Get(0).Bytes())
-		}
-		if ds.KeysAD.Get(0).Cmp(grp.NewInt(17)) != 0 {
-			t.Errorf("Precomp Decrypt KeysAD: %v != [17]",
-				ds.KeysAD.Get(0).Bytes())
-		}
-		if ds.CypherMsg.Get(0).Cmp(grp.NewInt(79)) != 0 {
-			t.Errorf("Precomp Decrypt CypherMsg: %v != [79]",
-				ds.CypherMsg.Get(0).Bytes())
-		}
-		if ds.CypherAD.Get(0).Cmp(grp.NewInt(36)) != 0 {
-			t.Errorf("Precomp Decrypt CypherAD: %v != [36]",
-				ds.CypherAD.Get(0).Bytes())
-		}
+	/* TODO: We need to check for these intermediate values
+	// NOTE: This is broken fornow until we understand why the deep copy
+	// does'nt work
+	ds := streams["Decrypt"].DecryptStream
+	if ds.KeysMsg.Get(0).Cmp(grp.NewInt(5)) != 0 {
+		t.Errorf("Precomp Decrypt KeysMsg: %v != [5]",
+			ds.KeysMsg.Get(0).Bytes())
+	}
+	if ds.KeysAD.Get(0).Cmp(grp.NewInt(17)) != 0 {
+		t.Errorf("Precomp Decrypt KeysAD: %v != [17]",
+			ds.KeysAD.Get(0).Bytes())
+	}
+	if ds.CypherMsg.Get(0).Cmp(grp.NewInt(79)) != 0 {
+		t.Errorf("Precomp Decrypt CypherMsg: %v != [79]",
+			ds.CypherMsg.Get(0).Bytes())
+	}
+	if ds.CypherAD.Get(0).Cmp(grp.NewInt(36)) != 0 {
+		t.Errorf("Precomp Decrypt CypherAD: %v != [36]",
+			ds.CypherAD.Get(0).Bytes())
+	}
 	*/
 
 	// Compute result directly
@@ -558,11 +586,11 @@ func TestBatchSize3(t *testing.T) {
 		grp.SetBytes(roundBuf.Y_V.Get(i), []byte{79})
 		roundBuf.Permutations[i] = (i + 1) % batchSize
 	}
-	streams := make(map[string]*MegaStream)
+	streams := make(map[string]*DebugStream)
 
-	megaGraph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
+	dGrph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
 		rngConstructor, streams, t)
-	megaStream := megaGraph.GetStream().(*MegaStream)
+	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 
 	// Create messsages
@@ -595,12 +623,13 @@ func TestBatchSize3(t *testing.T) {
 				grp.NewInt(1))
 
 			chunk := services.NewChunk(i, i+1)
-			megaGraph.Send(chunk)
+			dGrph.Send(chunk)
 		}
 	}()
 
 	numDoneSlots := 0
-	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
+	for chunk, ok := dGrph.GetOutput(); ok; chunk, ok =
+		dGrph.GetOutput() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			numDoneSlots++
 		}
@@ -614,7 +643,8 @@ func TestBatchSize3(t *testing.T) {
 		// Verify precomputation
 		if ss.MessagePrecomputation.Get(i).Cmp(MP) != 0 {
 			t.Errorf("%v != %v",
-				ss.MessagePrecomputation.Get(i).Bytes(), MP.Bytes())
+				ss.MessagePrecomputation.Get(i).Bytes(),
+				MP.Bytes())
 		}
 		if ss.ADPrecomputation.Get(i).Cmp(RP) != 0 {
 			t.Errorf("%v != %v",
@@ -670,11 +700,11 @@ var DummyKeygen = services.Module{
 // CreateStreamCopier takes a map object and copies the current state of the
 // stream object to the map with the given key
 func CreateStreamCopier(t *testing.T, key string,
-	streams map[string]*MegaStream) *services.Module {
+	streams map[string]*DebugStream) *services.Module {
 	return (&services.Module{
 		Adapt: func(s services.Stream, cryptop cryptops.Cryptop,
 			chunk services.Chunk) error {
-			//ms := s.(*MegaStream)
+			//ms := s.(*DebugStream)
 			//streams[key] = ms.DeepCopy()
 			//for i := chunk.Begin(); i < chunk.End(); i++ {
 			//	fmt.Printf("%s: %d\n", key, i)
@@ -689,26 +719,27 @@ func CreateStreamCopier(t *testing.T, key string,
 	}).DeepCopy()
 }
 
-type MegaStream struct {
+type DebugStream struct {
 	precomputation.GenerateStream
 	precomputation.DecryptStream
 	precomputation.PermuteStream
 	precomputation.StripStream //Strip contains reveal
 	realtime.KeygenDecryptStream
 	realtime.IdentifyStream //Identify contains permute
+	Outputs                 []*mixmessages.Slot
 }
 
-func (mega *MegaStream) GetName() string {
-	return "MegaStream"
+func (ds *DebugStream) GetName() string {
+	return "DebugStream"
 }
 
-func (mega *MegaStream) DeepCopy() *MegaStream {
-	ret := &MegaStream{}
-	copier.Copy(ret, mega)
+func (ds *DebugStream) DeepCopy() *DebugStream {
+	ret := &DebugStream{}
+	copier.Copy(ret, ds)
 	return ret
 }
 
-func (mega *MegaStream) Link(grp *cyclic.Group, batchSize uint32,
+func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	source ...interface{}) {
 	roundBuf := source[0].(*round.Buffer)
 	userRegistry := source[1].(*globals.UserMap)
@@ -725,12 +756,20 @@ func (mega *MegaStream) Link(grp *cyclic.Group, batchSize uint32,
 	keysADPermuted := make([]*cyclic.Int, batchSize)
 	cypherADPermuted := make([]*cyclic.Int, batchSize)
 
+	// Make sure we are using the same buffer for Msg precomps in roundbuf
+	// FIXME: is there another way to do this?
+	roundBuf.PermutedMessageKeys = keysMsgPermuted
+	roundBuf.PermutedADKeys = keysADPermuted
+
 	//Link precomputation
-	mega.LinkGenerateStream(grp, batchSize, roundBuf, rngConstructor)
-	mega.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg, cypherMsg, keysAD, cypherAD)
-	mega.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysMsg, cypherMsg, keysAD, cypherAD,
-		keysMsgPermuted, cypherMsgPermuted, keysADPermuted, cypherADPermuted)
-	mega.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg, cypherAD, keysMsg, keysAD)
+	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngConstructor)
+	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg,
+		cypherMsg, keysAD, cypherAD)
+	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysMsg,
+		cypherMsg, keysAD, cypherAD, keysMsgPermuted, cypherMsgPermuted,
+		keysADPermuted, cypherADPermuted)
+	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg,
+		cypherAD, keysMsg, keysAD)
 
 	//Generate Passthroughs for realtime
 	ecrMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
@@ -743,24 +782,51 @@ func (mega *MegaStream) Link(grp *cyclic.Group, batchSize uint32,
 		users[i] = &id.User{}
 	}
 
-	mega.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
-		userRegistry, ecrMsg, ecrAD, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize))
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
+		userRegistry, ecrMsg, ecrAD, grp.NewIntBuffer(batchSize,
+			grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
+		make([][]byte, batchSize))
 
-	mega.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrMsg, ecrAD, ecrMsgPermuted, ecrADPermuted)
+	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrMsg, ecrAD,
+		ecrMsgPermuted, ecrADPermuted)
 }
 
-func (*MegaStream) Input(index uint32, slot *mixmessages.Slot) error {
-	return nil
+func (ds *DebugStream) Input(index uint32, slot *mixmessages.Slot) error {
+	es := make([]error, 6)
+	es[0] = ds.GenerateStream.Input(index, slot)
+	es[1] = ds.DecryptStream.Input(index, slot)
+	es[2] = ds.PermuteStream.Input(index, slot)
+	es[3] = ds.StripStream.Input(index, slot)
+	es[4] = ds.KeygenDecryptStream.Input(index, slot)
+	es[5] = ds.IdentifyStream.Input(index, slot)
+
+	var lastErr error
+	for i := 0; i < len(es); i++ {
+		if es[i] != nil {
+			// NOTE: Supressed because generally useless
+			//fmt.Printf("Error DebugStream Input: %v\n", es[i])
+			lastErr = es[i]
+		}
+	}
+	return lastErr
 }
 
-func (*MegaStream) Output(index uint32) *mixmessages.Slot {
+func (ds *DebugStream) Output(index uint32) *mixmessages.Slot {
+	ds.Outputs = make([]*mixmessages.Slot, 6)
+	ds.Outputs[0] = ds.GenerateStream.Output(index)
+	ds.Outputs[1] = ds.DecryptStream.Output(index)
+	ds.Outputs[2] = ds.PermuteStream.Output(index)
+	ds.Outputs[3] = ds.StripStream.Output(index)
+	ds.Outputs[4] = ds.KeygenDecryptStream.Output(index)
+	ds.Outputs[5] = ds.IdentifyStream.Output(index)
 	return nil
 }
 
 var ReintegratePrecompPermute = services.Module{
-	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		mega, ok := stream.(*MegaStream)
+	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop,
+		chunk services.Chunk) error {
+		mega, ok := stream.(*DebugStream)
 
 		if !ok {
 			return services.InvalidTypeAssert
@@ -769,10 +835,14 @@ var ReintegratePrecompPermute = services.Module{
 		ppsi := mega.PermuteStream
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			ppsi.Grp.Set(ppsi.KeysMsg.Get(i), ppsi.KeysMsgPermuted[i])
-			ppsi.Grp.Set(ppsi.CypherMsg.Get(i), ppsi.CypherMsgPermuted[i])
-			ppsi.Grp.Set(ppsi.KeysAD.Get(i), ppsi.KeysADPermuted[i])
-			ppsi.Grp.Set(ppsi.CypherAD.Get(i), ppsi.CypherADPermuted[i])
+			ppsi.Grp.Set(ppsi.KeysMsg.Get(i),
+				ppsi.KeysMsgPermuted[i])
+			ppsi.Grp.Set(ppsi.CypherMsg.Get(i),
+				ppsi.CypherMsgPermuted[i])
+			ppsi.Grp.Set(ppsi.KeysAD.Get(i),
+				ppsi.KeysADPermuted[i])
+			ppsi.Grp.Set(ppsi.CypherAD.Get(i),
+				ppsi.CypherADPermuted[i])
 		}
 		return nil
 	},
@@ -783,9 +853,9 @@ var ReintegratePrecompPermute = services.Module{
 	StartThreshold: 1.0,
 }
 
-func InitMegaGraph(gc services.GraphGenerator, streams map[string]*MegaStream,
+func InitDbgGraph(gc services.GraphGenerator, streams map[string]*DebugStream,
 	t *testing.T) *services.Graph {
-	g := gc.NewGraph("MegaGraph", &MegaStream{})
+	g := gc.NewGraph("DbgGraph", &DebugStream{})
 
 	//modules for precomputation
 	//generate := precomputation.Generate.DeepCopy()
@@ -800,7 +870,7 @@ func InitMegaGraph(gc services.GraphGenerator, streams map[string]*MegaStream,
 	//decryptKeygen := DummyKeygen.DeepCopy()
 	decryptMul3 := realtime.DecryptMul3.DeepCopy()
 	permuteMul2 := realtime.PermuteMul2.DeepCopy()
-	identifyMal2 := realtime.IdentifyMul2.DeepCopy()
+	identifyMul2 := realtime.IdentifyMul2.DeepCopy()
 
 	dPDecrypt := CreateStreamCopier(t, "Decrypt", streams)
 	dPPermute := CreateStreamCopier(t, "Permute", streams)
@@ -832,24 +902,112 @@ func InitMegaGraph(gc services.GraphGenerator, streams map[string]*MegaStream,
 	g.Connect(decryptMul3, dPDecryptRT)
 	g.Connect(dPDecryptRT, permuteMul2)
 	g.Connect(permuteMul2, dPPermuteMul2)
-	g.Connect(dPPermuteMul2, identifyMal2)
-	g.Last(identifyMal2)
-	/*
-		g.First(decryptElgamal)
-		g.Connect(decryptElgamal, permuteElgamal)
-		g.Connect(permuteElgamal, permuteReintegrate)
-		g.Connect(permuteReintegrate, revealRoot)
-		g.Connect(revealRoot, stripInverse)
-		g.Connect(stripInverse, stripMul2)
-		g.Connect(stripMul2, decryptMul3)
-		g.Connect(decryptMul3, permuteMul2)
-		g.Connect(permuteMul2,identifyMal2)
-		g.Last(identifyMal2)
-	*/
+	g.Connect(dPPermuteMul2, identifyMul2)
+	g.Last(identifyMul2)
 	return g
 }
 
-func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *testing.T) {
+func wrapAdapt(batchSize uint32, outIdx int, name string, dStrms []*DebugStream,
+	adaptFnc func(s services.Stream, cryptop cryptops.Cryptop,
+		chunk services.Chunk) error, t *testing.T) func(s services.Stream,
+	cryptop cryptops.Cryptop,
+	chunk services.Chunk) error {
+	adapt := func(s services.Stream, cryptop cryptops.Cryptop,
+		chunk services.Chunk) error {
+		var err error
+		for i := uint32(0); i < batchSize; i++ {
+			t.Logf("Running %s %d", name, i)
+			err = adaptFnc(dStrms[i], cryptop, chunk)
+			for j := chunk.Begin(); j < chunk.End(); j++ {
+				// Copy output of current stream to tmp
+				dStrms[i].Output(j)
+				output := dStrms[i].Outputs[outIdx]
+				// Input cur stream to next stream
+				dStrms[(i+1)%3].Input(j, output)
+				// Todo: Call link to copy right keys??
+			}
+		}
+		return err
+	}
+	return adapt
+}
+
+func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
+	grp *cyclic.Group, batchSize uint32, roundBuf *round.Buffer,
+	registry *globals.UserMap, rngConstructor func() csprng.Source,
+	t *testing.T) *services.Graph {
+	dStrms := make([]*DebugStream, 3)
+	for i := 1; i < 3; i++ {
+		dStrms[i] = &DebugStream{}
+		dStrms[i].Link(grp, batchSize, roundBuf, registry,
+			rngConstructor)
+	}
+	dStrms[0] = &DebugStream{}
+	g := gc.NewGraph("DbgGraph", dStrms[0])
+
+	//modules for precomputation
+	//generate := precomputation.Generate.DeepCopy()
+	decryptElgamal := precomputation.DecryptElgamal.DeepCopy()
+	decryptElgamal.Adapt = wrapAdapt(3, 1, "Decrypt", dStrms,
+		decryptElgamal.Adapt, t)
+	permuteElgamal := precomputation.PermuteElgamal.DeepCopy()
+	permuteElgamal.Adapt = wrapAdapt(3, 2, "Permute", dStrms,
+		permuteElgamal.Adapt, t)
+	permuteReintegrate := ReintegratePrecompPermute.DeepCopy()
+	revealRoot := precomputation.RevealRootCoprime.DeepCopy()
+	revealRoot.Adapt = wrapAdapt(3, 3, "Reveal", dStrms,
+		revealRoot.Adapt, t)
+	stripInverse := precomputation.StripInverse.DeepCopy()
+	stripMul2 := precomputation.StripMul2.DeepCopy()
+
+	//modules for real time
+	//decryptKeygen := DummyKeygen.DeepCopy()
+	decryptMul3 := realtime.DecryptMul3.DeepCopy()
+	decryptMul3.Adapt = wrapAdapt(3, 4, "DecryptRT", dStrms,
+		decryptMul3.Adapt, t)
+
+	permuteMul2 := realtime.PermuteMul2.DeepCopy()
+	permuteMul2.Adapt = wrapAdapt(3, 5, "PermuteRT", dStrms,
+		permuteMul2.Adapt, t)
+	identifyMul2 := realtime.IdentifyMul2.DeepCopy()
+
+	dPDecrypt := CreateStreamCopier(t, "Decrypt", streams)
+	dPPermute := CreateStreamCopier(t, "Permute", streams)
+	dPPermuteR := CreateStreamCopier(t, "Permute", streams)
+	dPReveal := CreateStreamCopier(t, "Reveal", streams)
+	dPStrip := CreateStreamCopier(t, "Strip", streams)
+	dPStrip2 := CreateStreamCopier(t, "Strip", streams)
+
+	dPDecryptRT := CreateStreamCopier(t, "DecryptRT", streams)
+	dPPermuteMul2 := CreateStreamCopier(t, "PermuteRT", streams)
+
+	//g.First(generate)
+	// NOTE: Generate is skipped because it's values are hard coded
+	//g.Connect(generate, decryptElgamal)
+	g.First(decryptElgamal)
+	g.Connect(decryptElgamal, dPDecrypt)
+	g.Connect(dPDecrypt, permuteElgamal)
+	g.Connect(permuteElgamal, dPPermute)
+	g.Connect(dPPermute, permuteReintegrate)
+	g.Connect(permuteReintegrate, dPPermuteR)
+	g.Connect(dPPermuteR, revealRoot)
+	g.Connect(revealRoot, dPReveal)
+	g.Connect(dPReveal, stripInverse)
+	g.Connect(stripInverse, dPStrip)
+	g.Connect(dPStrip, stripMul2)
+	g.Connect(stripMul2, dPStrip2)
+	// NOTE: decryptKeyGen is skipped because it's values are hard coded
+	g.Connect(dPStrip2, decryptMul3)
+	g.Connect(decryptMul3, dPDecryptRT)
+	g.Connect(dPDecryptRT, permuteMul2)
+	g.Connect(permuteMul2, dPPermuteMul2)
+	g.Connect(dPPermuteMul2, identifyMul2)
+	g.Last(identifyMul2)
+	return g
+}
+
+func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
+	t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
 		large.NewInt(2), large.NewInt(1283))
 
@@ -869,20 +1027,10 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 		u := registry.NewUser(grp)
 		u.ID = id.NewUserFromUint(uint64(i), t)
 
-		baseKeyBytes := make([]byte, 32)
-		_, err := rng.Read(baseKeyBytes)
-		if err != nil {
-			t.Error("MegaGraph: could not rng")
-		}
-		baseKeyBytes[len(baseKeyBytes)-1] |= 0x01
-		u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
+		u.BaseKey = grp.NewInt(1)
 		registry.UpsertUser(u)
 
 		salt := make([]byte, 32)
-		_, err = rng.Read(salt)
-		if err != nil {
-			t.Error("MegaGraph: could not rng")
-		}
 		salts = append(salts, salt)
 
 		userList = append(userList, u)
@@ -896,24 +1044,19 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 		messageBytes := make([]byte, 32)
 		_, err := rng.Read(messageBytes)
 		if err != nil {
-			t.Error("MegaGraph: could not rng")
+			t.Error("DbgGraph: could not rng")
 		}
 		messageBytes[len(messageBytes)-1] |= 0x01
-		messageList = append(messageList, grp.NewIntFromBytes(messageBytes))
+		messageList = append(messageList,
+			grp.NewIntFromBytes(messageBytes))
 
 		adBytes := make([]byte, 32)
 		_, err = rng.Read(adBytes)
 		if err != nil {
-			t.Error("MegaGraph: could not rng")
+			t.Error("DbgGraph: could not rng")
 		}
 		adBytes[len(adBytes)-1] |= 0x01
 		ADList = append(ADList, grp.NewIntFromBytes(adBytes))
-	}
-
-	hash, err := blake2b.New256(nil)
-
-	if err != nil {
-		t.Errorf("Could not get blake2b hash: %s", err.Error())
 	}
 
 	var ecrMsgs []*cyclic.Int
@@ -921,30 +1064,26 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 
 	//encrypt the messages
 	for i := uint32(0); i < batchSize; i++ {
-		keyMsg := cmix.ClientKeyGen(grp, salts[i], []*cyclic.Int{userList[i].BaseKey})
-
-		hash.Reset()
-		hash.Write(salts[i])
-
-		ADMsg := cmix.ClientKeyGen(grp, hash.Sum(nil), []*cyclic.Int{userList[i].BaseKey})
-
-		ecrMsgs = append(ecrMsgs, grp.Mul(messageList[i], keyMsg, grp.NewInt(1)))
-		ecrAD = append(ecrAD, grp.Mul(ADList[i], ADMsg, grp.NewInt(1)))
+		ecrMsgs = append(ecrMsgs, messageList[i])
+		ecrAD = append(ecrAD, ADList[i])
 	}
 
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
+			g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
-	streams := make(map[string]*MegaStream)
-	megaGraph := InitMegaGraph(gc, streams, t)
+	gc := services.NewGraphGenerator(4, PanicHandler,
+		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
+	streams := make(map[string]*DebugStream)
+	dGrph := InitDbgGraph(gc, streams, t)
 
-	megaGraph.Build(batchSize)
+	dGrph.Build(batchSize)
 
 	//make the round buffer
-	roundBuf := round.NewBuffer(grp, batchSize, megaGraph.GetExpandedBatchSize())
+	roundBuf := round.NewBuffer(grp, batchSize,
+		dGrph.GetExpandedBatchSize())
 	roundBuf.InitLastNode()
 
 	//do a mock share phase
@@ -956,82 +1095,98 @@ func RunMegaGraph(batchSize uint32, rngConstructor func() csprng.Source, t *test
 	grp.SetBytes(roundBuf.Z, zBytes)
 	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)
 
-	megaGraph.Link(grp, roundBuf, registry, rngConstructor)
+	dGrph.Link(grp, roundBuf, registry, rngConstructor)
 
-	stream := megaGraph.GetStream()
+	stream := dGrph.GetStream()
 
-	megaStream := stream.(*MegaStream)
+	megaStream := stream.(*DebugStream)
 
-	megaGraph.Run()
+	dGrph.Run()
 
 	go func() {
 		t.Log("Beginning test")
 		for i := uint32(0); i < batchSize; i++ {
 			megaStream.KeygenDecryptStream.Salts[i] = salts[i]
 			megaStream.KeygenDecryptStream.Users[i] = userList[i].ID
-			grp.Set(megaStream.IdentifyStream.EcrMsg.Get(i), ecrMsgs[i])
-			grp.Set(megaStream.IdentifyStream.EcrAD.Get(i), ecrAD[i])
+			grp.Set(megaStream.IdentifyStream.EcrMsg.Get(i),
+				ecrMsgs[i])
+			grp.Set(megaStream.IdentifyStream.EcrAD.Get(i),
+				ecrAD[i])
 			chunk := services.NewChunk(i, i+1)
-			megaGraph.Send(chunk)
+			dGrph.Send(chunk)
 		}
 	}()
 
 	numDoneSlots := 0
 
-	for chunk, ok := megaGraph.GetOutput(); ok; chunk, ok = megaGraph.GetOutput() {
+	for chunk, ok := dGrph.GetOutput(); ok; chunk, ok =
+		dGrph.GetOutput() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			numDoneSlots++
-			fmt.Println("done slot:", i, " total done:", numDoneSlots)
+			fmt.Println("done slot:", i, " total done:",
+				numDoneSlots)
 		}
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
-		if megaStream.IdentifyStream.EcrMsg.Get(i).Cmp(messageList[i]) != 0 {
-			t.Errorf("MegaGraph: Decrypted message not the same as send message on slot %v, "+
-				"Sent: %s, Decrypted: %s", i, messageList[i].Text(16),
-				megaStream.IdentifyStream.EcrMsg.Get(i).Text(16))
+		if megaStream.IdentifyStream.EcrMsg.Get(i).Cmp(
+			messageList[i]) != 0 {
+			t.Errorf("DbgGraph: Decrypted message not"+
+				" the same as message on slot %v,"+
+				"Sent: %s, Decrypted: %s", i,
+				messageList[i].Text(16),
+				megaStream.IdentifyStream.EcrMsg.Get(
+					i).Text(16))
 		}
 		if megaStream.IdentifyStream.EcrAD.Get(i).Cmp(ADList[i]) != 0 {
-			t.Errorf("MegaGraph: Decrypted AD not the same as send message on slot %v, "+
-				"Sent: %s, Decrypted: %s", i, ADList[i].Text(16),
+			t.Errorf("DbgGraph: Decrypted AD not the same"+
+				" as send message on slot %v, "+
+				"Sent: %s, Decrypted: %s", i,
+				ADList[i].Text(16),
 				megaStream.IdentifyStream.EcrAD.Get(i).Text(16))
 		}
 	}
 
 }
 
-func Test_MegaStream(t *testing.T) {
-	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16), large.NewInt(2), large.NewInt(1283))
+func Test_DebugStream(t *testing.T) {
+	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
+		large.NewInt(2), large.NewInt(1283))
 
 	batchSize := uint32(1000)
 
 	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
+			g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
-	streams := make(map[string]*MegaStream)
-	megaGraph := InitMegaGraph(gc, streams, t)
+	gc := services.NewGraphGenerator(4, PanicHandler,
+		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
+	streams := make(map[string]*DebugStream)
+	dGrph := InitDbgGraph(gc, streams, t)
 
-	megaGraph.Build(batchSize)
+	dGrph.Build(batchSize)
 
 	//make the round buffer
-	roundBuf := round.NewBuffer(grp, batchSize, megaGraph.GetExpandedBatchSize())
+	roundBuf := round.NewBuffer(grp, batchSize,
+		dGrph.GetExpandedBatchSize())
 
-	megaGraph.Link(grp, roundBuf, &globals.UserMap{}, csprng.NewSystemRNG)
+	dGrph.Link(grp, roundBuf, &globals.UserMap{}, csprng.NewSystemRNG)
 
-	stream := megaGraph.GetStream()
+	stream := dGrph.GetStream()
 
 	_, ok := stream.(precomputation.GenerateSubstreamInterface)
 
 	if !ok {
-		t.Errorf("MegaStream: type assert failed when getting 'GenerateSubstreamInterface'")
+		t.Errorf("DebugStream: type assert failed when " +
+			"getting 'GenerateSubstreamInterface'")
 	}
 
 	_, ok = stream.(precomputation.PrecompDecryptSubstreamInterface)
 
 	if !ok {
-		t.Errorf("MegaStream: type assert failed when getting 'PrecompDecryptSubstreamInterface'")
+		t.Errorf("DebugStream: type assert failed when " +
+			"getting 'PrecompDecryptSubstreamInterface'")
 	}
 
 }
@@ -1056,8 +1211,115 @@ func (p *PsudoRNG) SetSeed(seed []byte) error {
 	return nil
 }
 
-/*
-func Test_MegaGraph(t *testing.T) {
-	RunMegaGraph(3, NewPsudoRNG, t)
+func Test_DbgGraph(t *testing.T) {
+	RunDbgGraph(3, NewPsudoRNG, t)
 }
-*/
+
+// Test3NodeE2E performs a basic test with 3 simulated nodes. To make
+// this work, wrappers around the adapters are introduced to copy
+// what would be sent over the network between each stream instead.
+func Test3NodeE2E(t *testing.T) {
+	//nodeCount := 3
+	batchSize := uint32(1)
+	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
+		large.NewInt(4), large.NewInt(5))
+	rngConstructor := NewPsudoRNG // FIXME: Why?
+	registry := createDummyUserList(grp, rngConstructor())
+	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
+
+	//make the round buffer and manually set the round keys
+	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
+	roundBuf.InitLastNode()
+	grp.SetBytes(roundBuf.Z, []byte{13})
+	tmp := grp.NewInt(1)
+	// >>> ((4**13)**13)**13%107
+	// 10
+	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)     // First node
+	grp.Exp(roundBuf.CypherPublicKey, roundBuf.Z, tmp) // Mid
+	grp.Exp(tmp, roundBuf.Z, roundBuf.CypherPublicKey) // Last
+	grp.SetBytes(roundBuf.R.Get(0), []byte{26})
+	grp.SetBytes(roundBuf.Y_R.Get(0), []byte{69})
+	grp.SetBytes(roundBuf.S.Get(0), []byte{77})
+	grp.SetBytes(roundBuf.Y_S.Get(0), []byte{81})
+	grp.SetBytes(roundBuf.U.Get(0), []byte{94})
+	grp.SetBytes(roundBuf.Y_U.Get(0), []byte{87})
+	grp.SetBytes(roundBuf.V.Get(0), []byte{18})
+	grp.SetBytes(roundBuf.Y_V.Get(0), []byte{79})
+
+	t.Logf("Public Key: %v", roundBuf.CypherPublicKey.Bytes())
+
+	streams := make(map[string]*DebugStream)
+
+	dGrph := buildAndStartGraph3(batchSize, grp, roundBuf, registry,
+		rngConstructor, streams, t)
+	megaStream := dGrph.GetStream().(*DebugStream)
+	streams["END"] = megaStream
+
+	// Create messsages
+	megaStream.KeygenDecryptStream.Salts[0] = []byte{0}
+	megaStream.KeygenDecryptStream.Users[0] = dummyUser.ID
+	ecrMsg := grp.NewInt(31)
+	ecrAD := grp.NewInt(1)
+
+	// Send message through the graph
+	go func() {
+		grp.Set(megaStream.DecryptStream.KeysMsg.Get(0), grp.NewInt(1))
+		grp.Set(megaStream.DecryptStream.KeysAD.Get(0), grp.NewInt(1))
+		grp.Set(megaStream.DecryptStream.CypherMsg.Get(0),
+			grp.NewInt(1))
+		grp.Set(megaStream.DecryptStream.CypherAD.Get(0), grp.NewInt(1))
+
+		grp.Set(megaStream.KeygenDecryptStream.EcrMsg.Get(0), ecrMsg)
+		grp.Set(megaStream.KeygenDecryptStream.EcrAD.Get(0), ecrAD)
+		grp.Set(megaStream.KeygenDecryptStream.KeysMsg.Get(0),
+			grp.NewInt(1))
+		grp.Set(megaStream.KeygenDecryptStream.KeysAD.Get(0),
+			grp.NewInt(1))
+
+		chunk := services.NewChunk(0, 1)
+		dGrph.Send(chunk)
+	}()
+
+	numDoneSlots := 0
+	for chnk, ok := dGrph.GetOutput(); ok; chnk, ok =
+		dGrph.GetOutput() {
+		for i := chnk.Begin(); i < chnk.End(); i++ {
+			numDoneSlots++
+			t.Logf("done slot: %d, total done: %d",
+				i, numDoneSlots)
+		}
+	}
+
+	// Compute result directly
+
+	// We're using the same keys for all nodes (this is a shortcut but is OK
+	// AND it tests for if round buffer data is overwritten)
+	bufs := make([]*round.Buffer, 3)
+	bufs[0] = roundBuf
+	bufs[1] = roundBuf
+	bufs[2] = roundBuf
+
+	MP, RP := ComputePrecomputation(grp, bufs, t)
+	ss := streams["END"].StripStream
+	if ss.MessagePrecomputation.Get(0).Cmp(MP) != 0 {
+		t.Errorf("%v != %v",
+			ss.MessagePrecomputation.Get(0).Bytes(), MP.Bytes())
+	}
+	if ss.ADPrecomputation.Get(0).Cmp(RP) != 0 {
+		t.Errorf("%v != %v",
+			ss.ADPrecomputation.Get(0).Bytes(), RP.Bytes())
+	}
+
+	// Verify Realtime
+	expMsg := grp.NewInt(31)
+	expAD := grp.NewInt(1)
+	is := streams["END"].IdentifyStream
+	if is.EcrMsgPermuted[0].Cmp(expMsg) != 0 {
+		t.Errorf("%v != %v", expMsg.Bytes(),
+			is.EcrMsgPermuted[0].Bytes())
+	}
+	if is.EcrADPermuted[0].Cmp(expAD) != 0 {
+		t.Errorf("%v != %v", expAD.Bytes(),
+			is.EcrADPermuted[0].Bytes())
+	}
+}
