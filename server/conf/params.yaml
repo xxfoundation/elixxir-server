@@ -1,7 +1,7 @@
 ---
 # Example yaml params file used for testing
 # the params object and its dependencies
-index: "1"
+index: 1
 database:
   name: "name"
   username: "username"
@@ -20,10 +20,12 @@ groups:
     prime: "0x11"
     smallprime: "0x0B"
     generator: "0x04"
-paths:
+reg_server_pk: "publicKey"
+path:
   cert: "~/.elixxir/cert.crt"
   key:  "~/.elixxir/key.pem"
   log:  "~/.elixxir/server.log"
+  gateway_cert: "~/.elixxir/gateway.log"
 nodeAddresses:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
@@ -37,7 +39,5 @@ gateways:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
 batch: 20
-dsakey:
-  publicKey: "pubkey"
-  privateKey: "privkey"
+
 ...

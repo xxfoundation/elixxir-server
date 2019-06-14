@@ -77,6 +77,8 @@ func StartServer(vip *viper.Viper) {
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
 
+	//TODO: store DSA key for NDF
+
 	// Create instance
 	instance := server.CreateServerInstance(params, userDatabase, pubKey, privKey)
 

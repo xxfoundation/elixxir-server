@@ -561,7 +561,7 @@ func mockServerInstance() *server.Instance {
 		},
 		NodeIDs: []string{nid.String()},
 	}
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 
 	return instance
 }

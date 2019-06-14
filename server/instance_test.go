@@ -53,7 +53,7 @@ func TestInstance_GetNetwork(t *testing.T) {
 func TestInstance_GetID(t *testing.T) {
 	nid := GenerateId()
 	params := conf.Params{}
-	i := &Instance{params: params,
+	i := &Instance{params: &params,
 		thisNode: nid}
 
 	if !reflect.DeepEqual(i.GetID(), nid) {
@@ -84,7 +84,7 @@ func mockServerInstance() *Instance {
 		},
 		NodeIDs: []string{nid.String()},
 	}
-	instance := CreateServerInstance(params, &globals.UserMap{})
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 
 	return instance
 }

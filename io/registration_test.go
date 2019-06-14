@@ -27,21 +27,36 @@ var dsaParams = signature.GetDefaultDSAParams()
 func TestMain(m *testing.M) {
 	grp := cyclic.NewGroup(dsaParams.GetP(), dsaParams.GetG(), dsaParams.GetQ())
 
+	rng := csprng.NewSystemRNG()
+	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	privKey := dsaParams.PrivateKeyGen(rng)
+	pubKey := privKey.PublicKeyGen()
+
 	nid := server.GenerateId()
 	params := conf.Params{
 		Groups: conf.Groups{
 			CMix: grp,
 		},
 		NodeIDs: []string{nid.String()},
+		SkipReg: false,
+		RegServerPK: "-----BEGIN PUBLIC KEY-----\n" +
+			"GuP9Tpgp+0ZEWeBbyjkr7FBnFS+0Olaa08O2i7ythPD/jTHHZ9o+q8/Ahw2Cs5V" +
+			"oYQtS8rcrSTu+3m6VLJp/1EqBYeYqkEaCjEpl9AGy8FTr9zduidq1R9ijw9Roke" +
+			"eKz8QBVxPL+1sLbKsPjftGuJHzVCBGrOTKuYTV3+9PUtQ0fcflL2p+qFHdoHbw7" +
+			"R/vhuxrXCpIBxSZBr+OC/cLMBFH/qiP2VAJ7fvg3o/8GoZOSzokJlthocR6TpMH" +
+			"58hPm1WRdltTD1hZ+peyLOm1E4XT0TCIeVsvn9DLWTV/6Tg0YRffKs8rqyLZQt4" +
+			"acOjV1i/A6Z2HQqDxbflM46Cruw==\n" +
+			"-----END PUBLIC KEY-----\n",
 	}
 
-	serverInstance = server.CreateServerInstance(params, &globals.UserMap{})
+	serverInstance = server.CreateServerInstance(&params, &globals.UserMap{},
+		pubKey, privKey)
 	os.Exit(m.Run())
 }
 
 // Test request nonce
 func TestRequestNonce(t *testing.T) {
-	regPrivKey := signature.ReconstructPrivateKey(serverInstance.GetRegPubKey(),
+	regPrivKey := signature.ReconstructPrivateKey(serverInstance.GetRegServerPubKey(),
 		large.NewIntFromString("dab0febfab103729077ad4927754f6390e366fdf4c58e8d40dadb3e94c444b54", 16))
 	rng := csprng.NewSystemRNG()
 	privKey := dsaParams.PrivateKeyGen(rng)

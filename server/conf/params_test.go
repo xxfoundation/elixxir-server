@@ -27,7 +27,8 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 		},
-		Batch: 20,
+		Batch:       20,
+		RegServerPK: "publicKey",
 	}
 
 	vip := viper.New()
@@ -83,7 +84,11 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedParams.Database, params.Database) {
-		t.Errorf("v value does not match expected value")
+		t.Errorf("database value does not match expected value")
 	}
 
+	if !reflect.DeepEqual(expectedParams.RegServerPK, params.RegServerPK) {
+		t.Errorf("registration server public key value does not match " +
+			"expected value")
+	}
 }

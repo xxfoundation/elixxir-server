@@ -7,6 +7,7 @@
 package conf
 
 import (
+	"fmt"
 	"github.com/spf13/viper"
 )
 
@@ -26,6 +27,7 @@ type Params struct {
 	//Network Identity Params
 	Batch         uint32
 	Groups        Groups
+	RegServerPK   string
 	NodeAddresses []string
 	// these are base64 strings, so instance creation must base64 decode these
 	// before using them as node IDs
@@ -51,6 +53,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Path.Cert = vip.GetString("path.cert")
 	params.Path.GatewayCert = vip.GetString("path.gateway_cert")
+	fmt.Println(vip.GetString("path.gateway_cert"))
 	params.Path.Key = vip.GetString("path.key")
 	params.Path.Log = vip.GetString("path.log")
 
@@ -61,6 +64,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.NodeAddresses = vip.GetStringSlice("nodeAddresses")
 	params.NodeIDs = vip.GetStringSlice("nodeIDs")
 	params.Gateways = vip.GetStringSlice("gateways")
+	params.RegServerPK = vip.GetString("reg_server_pk")
 
 	return &params, nil
 }

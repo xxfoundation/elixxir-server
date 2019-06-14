@@ -95,7 +95,7 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 		},
 		NodeIDs: []string{nid.String()},
 	}
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	var stream KeygenTestStream
 	stream.Link(grp, 1, instance)
 	stream.users[0] = id.ZeroID
@@ -142,7 +142,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		},
 		NodeIDs: []string{nid.String()},
 	}
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)

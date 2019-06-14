@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -9,6 +10,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -21,15 +23,16 @@ import (
 
 // Holds long-lived server state
 type Instance struct {
-	roundManager   *round.Manager
-	network        *node.NodeComms
-	resourceQueue  *ResourceQueue
-	userReg        globals.UserRegistry
-	pubKey         *signature.DSAPublicKey
-	privKey        *signature.DSAPrivateKey
-	topology       *circuit.Circuit
-	thisNode       *id.Node
-	graphGenerator services.GraphGenerator
+	roundManager    *round.Manager
+	network         *node.NodeComms
+	resourceQueue   *ResourceQueue
+	userReg         globals.UserRegistry
+	pubKey          *signature.DSAPublicKey
+	privKey         *signature.DSAPrivateKey
+	regServerPubKey *signature.DSAPublicKey
+	topology        *circuit.Circuit
+	thisNode        *id.Node
+	graphGenerator  services.GraphGenerator
 	firstNode
 	LastNode
 	params *conf.Params
@@ -81,6 +84,11 @@ func (i *Instance) GetPrivKey() *signature.DSAPrivateKey {
 //GetSkipReg returns the skipReg parameter
 func (i *Instance) GetSkipReg() bool {
 	return i.params.SkipReg
+}
+
+//GetRegServerPubKey returns the public key of the registration server
+func (i *Instance) GetRegServerPubKey() *signature.DSAPublicKey {
+	return i.regServerPubKey
 }
 
 //GetBatchSize returns the batch size
@@ -151,6 +159,24 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	if nodeIDDecodeErrorHappened {
 		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
 	}
+
+	if params.RegServerPK != "" {
+		grp := instance.params.Groups.CMix
+		dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+
+		block, _ := pem.Decode([]byte(params.RegServerPK))
+
+		if block == nil || block.Type != "PUBLIC KEY" {
+			jww.ERROR.Panic("Registration Server Public Key did not " +
+				"decode correctly")
+		}
+
+		instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
+			large.NewIntFromBytes(block.Bytes))
+	} else {
+		jww.WARN.Print("No registration key given, registration not possible")
+	}
+
 	instance.topology = circuit.New(nodeIDs)
 	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
