@@ -43,7 +43,7 @@ func init() {
 var benchmarkCmd = &cobra.Command{
 	Use:   "benchmark",
 	Short: "Server benchmarking tests",
-	Long:  "RunFirstNode internal benchmark funcs by specifying node & batch sizes",
+	Long:  "Run internal benchmark funcs by specifying node & batch sizes",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Running benchmarks for %d nodes with %d batch "+
 			"size and %d iterations...\n", nodeCount,
