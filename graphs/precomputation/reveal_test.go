@@ -258,12 +258,10 @@ func TestReveal_Graph(t *testing.T) {
 		grp.RandomCoprime(stream.CypherAD.Get(i))
 
 		//These two lines copy the generated values
-		grp.Set(CypherMsgExpected.Get(i),stream.CypherMsg.Get(i))
-		grp.Set(CypherADExpected.Get(i),stream.CypherAD.Get(i))
+		grp.Set(CypherMsgExpected.Get(i), stream.CypherMsg.Get(i))
+		grp.Set(CypherADExpected.Get(i), stream.CypherAD.Get(i))
 
 	}
-
-
 
 	// Run the graph
 	g.Run()

@@ -814,12 +814,17 @@ func (ds *DebugStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 func (ds *DebugStream) Output(index uint32) *mixmessages.Slot {
 	ds.Outputs = make([]*mixmessages.Slot, 6)
+
 	ds.Outputs[0] = ds.GenerateStream.Output(index)
 	ds.Outputs[1] = ds.DecryptStream.Output(index)
 	ds.Outputs[2] = ds.PermuteStream.Output(index)
 	ds.Outputs[3] = ds.StripStream.Output(index)
 	ds.Outputs[4] = ds.KeygenDecryptStream.Output(index)
 	ds.Outputs[5] = ds.IdentifyStream.Output(index)
+
+	for i := 0; i < 6; i++ {
+		ds.Outputs[i].Index = index
+	}
 	return nil
 }
 
