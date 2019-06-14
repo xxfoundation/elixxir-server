@@ -7,7 +7,6 @@
 package conf
 
 import (
-	"fmt"
 	"github.com/spf13/viper"
 )
 
@@ -15,13 +14,11 @@ import (
 // A viper (or any yaml based) configuration
 // can be unmarshalled into this object.
 // For viper just use Unmarshal(&params).
-// Note not all fields are in the YAML, ie NodeID
-// but all fields must be in the viper object
 type Params struct {
 	//Node Identity Params
 	Index    int
 	Database DB
-	SkipReg  bool `yaml:"skipReg"`
+	SkipReg  bool
 	Path     Paths
 
 	//Network Identity Params
@@ -53,7 +50,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Path.Cert = vip.GetString("path.cert")
 	params.Path.GatewayCert = vip.GetString("path.gateway_cert")
-	fmt.Println(vip.GetString("path.gateway_cert"))
 	params.Path.Key = vip.GetString("path.key")
 	params.Path.Log = vip.GetString("path.log")
 

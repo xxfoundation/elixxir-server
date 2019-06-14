@@ -94,6 +94,6 @@ func StartServer(vip *viper.Viper) {
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
 		instance.RunFirstNode(instance.GetNetwork(), instance.GetTopology(),
-			5*time.Second, io.TransmitCreateNewRound)
+			10*time.Second, io.TransmitCreateNewRound)
 	}
 }
