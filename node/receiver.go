@@ -61,9 +61,43 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	//send the data to the phase
 	err = io.PostPhase(p, batch)
+
 	if err != nil {
 		jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 	}
+
+}
+
+// ReceiveStreamPostPhase handles the state checks and edge checks of receiving a
+// phase operation
+func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer, instance *server.Instance) error {
+
+	rm := instance.GetRoundManager()
+
+	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
+	if err != nil {
+		return err
+	}
+
+	// Check if the operation can be done and get the correct phase if it can
+	_, p, err := rm.HandleIncomingComm(id.Round(batchInfo.Round.ID), phase.Type(batchInfo.ForPhase).String())
+	if err != nil {
+		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
+	}
+
+	//queue the phase to be operated on if it is not queued yet
+	if p.AttemptTransitionToQueued() {
+		instance.GetResourceQueue().UpsertPhase(p)
+	}
+
+	//HACK HACK HACK
+	//The share phase needs a batchsize of 1, when it recieves from generation
+	//on the first node this will do the conversion on the batch
+	if p.GetType() == phase.PrecompShare && batchInfo.BatchSize != 1 {
+		batchInfo.BatchSize = 1
+	}
+
+	return io.StreamPostPhase(p, batchInfo.BatchSize, streamServer)
 
 }
 

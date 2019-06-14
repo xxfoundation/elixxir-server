@@ -63,8 +63,7 @@ func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 		curIdx := uint32(index)
 		err := p.Input(curIdx, messages)
 		if err != nil {
-			return errors.Errorf("Error on slot %d: %v", curIdx,
-				err)
+			return errors.Errorf("Error on slot %d: %v", curIdx, err)
 		}
 		chunk := services.NewChunk(curIdx, curIdx+1)
 		p.Send(chunk)

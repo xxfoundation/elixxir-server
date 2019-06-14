@@ -256,7 +256,6 @@ func TestStrip_Graph(t *testing.T) {
 
 	stream := g.GetStream().(*StripStream)
 
-
 	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
@@ -266,8 +265,8 @@ func TestStrip_Graph(t *testing.T) {
 		grp.RandomCoprime(stream.CypherAD.Get(i))
 
 		//These two lines copy the generated values
-		grp.Set(CypherMsgExpected.Get(i),stream.CypherMsg.Get(i))
-		grp.Set(CypherADExpected.Get(i),stream.CypherAD.Get(i))
+		grp.Set(CypherMsgExpected.Get(i), stream.CypherMsg.Get(i))
+		grp.Set(CypherADExpected.Get(i), stream.CypherAD.Get(i))
 
 	}
 
@@ -301,7 +300,6 @@ func TestStrip_Graph(t *testing.T) {
 
 			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, tmp)
 			s.Grp.Set(CypherADExpected.Get(i), tmp)
-
 
 			// Compute inverse
 			cryptops.Inverse(s.Grp, MessagePrecomputationExpected.Get(i), MessagePrecomputationExpected.Get(i))

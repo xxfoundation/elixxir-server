@@ -96,6 +96,7 @@ func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 // Output returns a message with the stream data.
 func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
+		Index:          index,
 		MessagePayload: is.EcrMsgPermuted[index].Bytes(),
 		AssociatedData: is.EcrADPermuted[index].Bytes(),
 	}
