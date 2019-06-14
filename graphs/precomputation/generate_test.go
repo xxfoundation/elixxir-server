@@ -164,7 +164,7 @@ func TestGenerateGraph(t *testing.T) {
 
 	//stream := g.GetStream().(*GenerateStream)
 
-	//RunFirstNode the graph
+	//Run the graph
 	g.Run()
 
 	//Send inputs into the graph

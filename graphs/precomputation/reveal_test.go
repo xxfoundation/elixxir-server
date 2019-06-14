@@ -263,7 +263,7 @@ func TestReveal_Graph(t *testing.T) {
 
 	}
 
-	// RunFirstNode the graph
+	// Run the graph
 	g.Run()
 
 	// Send inputs into the graph

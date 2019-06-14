@@ -274,7 +274,7 @@ func TestStrip_Graph(t *testing.T) {
 	MessagePrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 	ADPrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
-	// RunFirstNode the graph
+	// Run the graph
 	g.Run()
 
 	// Send inputs into the graph
