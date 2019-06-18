@@ -29,6 +29,8 @@ func ReceiveCreateNewRound(instance *server.Instance, message *mixmessages.Round
 	rnd := round.New(instance.GetGroup(), instance.GetUserRegistry(), roundID,
 		phases, phaseResponses, instance.GetTopology(), instance.GetID(),
 		instance.GetBatchSize())
+	//Initialize crypto fields for round
+	rnd.GetBuffer().InitCryptoFields(instance.GetGroup())
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
