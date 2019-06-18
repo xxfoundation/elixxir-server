@@ -410,3 +410,72 @@ func TestBuffer_Erase(t *testing.T) {
 			r.PermutedADKeys, nil)
 	}
 }
+
+// Tests that after calling InitBatchWideKeys that
+// the Z value is initialized and permutations are
+// shuffled up to and including batchSize and remain
+// ordered from batchSize+1 to expandedBatchSize
+func TestRound_InitBatchWideKeys(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+
+	tests := 30
+
+	for i := 0; i < tests; i++ {
+
+		batchSize := rng.Uint32() % 1000
+
+		expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
+
+		r := NewBuffer(grp, batchSize, expandedBatchSize)
+
+		if r.GetBatchSize() != batchSize {
+			t.Errorf("NewBuffer: Batch Size not stored correctly, "+
+				"Expected %v, Recieved: %v", batchSize, r.batchSize)
+		}
+
+		if r.GetExpandedBatchSize() != expandedBatchSize {
+			t.Errorf("NewBuffer: Expanded Batch Size not stored correctly, "+
+				"Expected %v, Recieved: %v", expandedBatchSize, r.expandedBatchSize)
+		}
+
+		if r.Z.Cmp(grp.NewMaxInt()) != 0 {
+			t.Errorf("NewBuffer: Z not initlized correctly")
+		}
+
+		for itr, p := range r.Permutations {
+			if p != uint32(itr) {
+				t.Errorf("New RoundBuffer: Permutation on index %v not pointing to itself, pointing to %v",
+					itr, p)
+			}
+		}
+
+		// Init batch wide keys
+		z := grp.NewIntFromUInt(rng.Uint64())
+		r.InitBatchWideKeys(grp, z)
+
+		bits := uint32(256)
+		expectedZ := grp.FindSmallCoprimeInverse(r.Z, bits)
+
+		if r.Z.Cmp(expectedZ) != 0 {
+			t.Errorf("Init batch wide keys: Z not set to correct value")
+		}
+
+		for itr, p := range r.Permutations {
+			if r.GetExpandedBatchSize() > r.GetBatchSize() {
+
+				if itr >= int(r.GetBatchSize()) {
+					if p != uint32(itr) {
+						t.Errorf("Init batch wide keys: Permutation on index %v not pointing to itself, pointing to %v",
+							itr, p)
+					}
+				}
+
+			} else {
+				if p != uint32(itr) {
+					t.Errorf("Init batch wide keys: Permutation on index %v not pointing to itself, pointing to %v",
+						itr, p)
+				}
+			}
+		}
+	}
+}

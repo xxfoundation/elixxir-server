@@ -8,6 +8,7 @@ package round
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/shuffle"
 )
 
 type Buffer struct {
@@ -80,6 +81,21 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 func (r *Buffer) InitLastNode() {
 	r.PermutedMessageKeys = make([]*cyclic.Int, r.expandedBatchSize)
 	r.PermutedADKeys = make([]*cyclic.Int, r.expandedBatchSize)
+}
+
+func (r *Buffer) InitBatchWideKeys(g *cyclic.Group, z *cyclic.Int) {
+
+	// Set private key using small coprime inverse
+	// with 256 bits
+	bits := uint32(256)
+	r.Z = g.FindSmallCoprimeInverse(z, bits)
+
+	// Permute up to the batch size
+	if r.batchSize <= r.expandedBatchSize {
+		batchSizePerm := r.Permutations[:r.batchSize]
+		shuffle.Shuffle32(&batchSizePerm)
+	}
+
 }
 
 func (r *Buffer) GetBatchSize() uint32 {
