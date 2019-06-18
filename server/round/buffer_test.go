@@ -422,7 +422,7 @@ func TestRound_InitBatchWideKeys(t *testing.T) {
 
 	for i := 0; i < tests; i++ {
 
-		batchSize := rng.Uint32() % 1000
+		batchSize := rng.Uint32()%1000 + 1000
 
 		expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
 
@@ -460,22 +460,48 @@ func TestRound_InitBatchWideKeys(t *testing.T) {
 			t.Errorf("Init batch wide keys: Z not set to correct value")
 		}
 
-		for itr, p := range r.Permutations {
-			if r.GetExpandedBatchSize() > r.GetBatchSize() {
+		// if batch size is g.t expanded batch size
+		// then shuffle up to batch size and all
+		// following elements point to themselves
+		if r.GetExpandedBatchSize() > r.GetBatchSize() {
 
-				if itr >= int(r.GetBatchSize()) {
-					if p != uint32(itr) {
-						t.Errorf("Init batch wide keys: Permutation on index %v not pointing to itself, pointing to %v",
-							itr, p)
-					}
+			// Ensure we have shuffled up to batch size
+			sumPerm := uint32(0)
+			numEqual := uint32(0)
+
+			for itr, p := range r.Permutations[:batchSize] {
+				if itr == int(p) {
+					numEqual++
 				}
+				sumPerm += p
+			}
 
-			} else {
+			if numEqual > uint32(0.1*float32(r.GetBatchSize())) {
+				t.Errorf("Init batch wide keys: Not sufficiently shuffled")
+			}
+
+			if sumPerm != (batchSize)*(batchSize-1)/2 {
+				t.Errorf("Init batch wide keys: Mismatch in summing permutations")
+			}
+
+			// ensure every index after batch size points to itself
+			for itr, p := range r.Permutations[batchSize+1:] {
+				index := itr + int(batchSize) + 1
+				if p != uint32(index) {
+					t.Errorf("Init batch wide keys: Permutation on index %v not pointing to itself, pointing to %v",
+						itr, p)
+				}
+			}
+		} else {
+			// if batch size is g.t expanded batch size
+			// then all elements should point to themselves
+			for itr, p := range r.Permutations {
 				if p != uint32(itr) {
 					t.Errorf("Init batch wide keys: Permutation on index %v not pointing to itself, pointing to %v",
 						itr, p)
 				}
 			}
 		}
+
 	}
 }
