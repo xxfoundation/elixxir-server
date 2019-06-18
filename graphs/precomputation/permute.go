@@ -82,6 +82,8 @@ func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize u
 	ps.CypherADPermuted = cypherADPermuted
 	ps.CypherMsgPermuted = cypherMsgPermuted
 
+	// these are connected to the round buffer on last node so they are stored
+	// during the reveal phase for use in strip
 	if len(roundBuffer.PermutedMessageKeys) != 0 {
 		ps.KeysMsgPermuted = roundBuffer.PermutedMessageKeys
 	} else {

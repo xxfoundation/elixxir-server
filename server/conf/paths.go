@@ -11,7 +11,8 @@ package conf
 // TODO: maybe create a paths object
 // and have this one contain the actual file obj
 type Paths struct {
-	Cert string
-	Key  string
-	Log  string
+	Cert        string
+	GatewayCert string
+	Key         string
+	Log         string
 }

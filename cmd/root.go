@@ -16,8 +16,6 @@ import (
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"math"
-
 	// net/http must be imported before net/http/pprof for the pprof import
 	// to automatically initialize its http handlers
 	"net/http"
@@ -28,7 +26,6 @@ var cfgFile string
 var verbose bool
 var serverIdx int
 var batchSize uint64
-var nodeID uint64
 var validConfig bool
 var showVer bool
 
@@ -102,8 +99,6 @@ func init() {
 		"Config index to use for local server")
 	rootCmd.Flags().Uint64VarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
-	rootCmd.Flags().Uint64VarP(&nodeID, "nodeID", "n",
-		math.MaxUint64, "Unique identifier for this node")
 	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
 		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,

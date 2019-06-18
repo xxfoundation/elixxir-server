@@ -44,7 +44,7 @@ func TestTransmitCreateNewRound(t *testing.T) {
 	ln := server.LastNode{}
 	ln.Initialize()
 
-	err := TransmitCreateNewRound(comms[0], rndID, topology)
+	err := TransmitCreateNewRound(comms[0], topology, rndID)
 
 	if err != nil {
 		t.Errorf("TransmitFinishRealtime: Unexpected error: %+v", err)
@@ -94,7 +94,7 @@ func TestTransmitCreateNewRound_Error(t *testing.T) {
 	ln := server.LastNode{}
 	ln.Initialize()
 
-	err := TransmitCreateNewRound(comms[0], rndID, topology)
+	err := TransmitCreateNewRound(comms[0], topology, rndID)
 
 	if err == nil {
 		t.Error("SendFinishRealtime: error did not occur when provoked")

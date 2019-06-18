@@ -58,13 +58,13 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// So, we might want more than one phase,
 	// since it's at a boundary between phases.
 	grp := initImplGroup()
-	instance := server.CreateServerInstance(conf.Params{
+	instance := server.CreateServerInstance(&conf.Params{
 		Groups: conf.Groups{
 			CMix: grp,
 		},
-		NodeIDs:       buildMockNodeIDs(5),
-		ThisNodeIndex: 0,
-	}, &globals.UserMap{})
+		NodeIDs: buildMockNodeIDs(5),
+		Index:   0,
+	}, &globals.UserMap{}, nil, nil)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -141,13 +141,13 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 func TestReceivePostNewBatch(t *testing.T) {
 	grp := initImplGroup()
 	registry := &globals.UserMap{}
-	instance := server.CreateServerInstance(conf.Params{
+	instance := server.CreateServerInstance(&conf.Params{
 		Groups: conf.Groups{
 			CMix: grp,
 		},
-		NodeIDs:       buildMockNodeIDs(1),
-		ThisNodeIndex: 0,
-	}, registry)
+		NodeIDs: buildMockNodeIDs(1),
+		Index:   0,
+	}, registry, nil, nil)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -231,11 +231,12 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	grp := initImplGroup()
 	params := conf.Params{
-		Groups:        conf.Groups{CMix: grp},
-		NodeIDs:       buildMockNodeIDs(2),
-		ThisNodeIndex: 0,
+		Groups:  conf.Groups{CMix: grp},
+		NodeIDs: buildMockNodeIDs(2),
+		Index:   0,
 	}
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -560,12 +561,13 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	grp := initImplGroup()
 
 	params := conf.Params{
-		Groups:        conf.Groups{CMix: grp},
-		NodeIDs:       buildMockNodeIDs(5),
-		ThisNodeIndex: 1,
+		Groups:  conf.Groups{CMix: grp},
+		NodeIDs: buildMockNodeIDs(5),
+		Index:   1,
 	}
 
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -637,12 +639,13 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	grp := initImplGroup()
 
 	params := conf.Params{
-		Groups:        conf.Groups{CMix: grp},
-		NodeIDs:       buildMockNodeIDs(5),
-		ThisNodeIndex: 0,
+		Groups:  conf.Groups{CMix: grp},
+		NodeIDs: buildMockNodeIDs(5),
+		Index:   0,
 	}
 
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
 	topology := instance.GetTopology()
 
 	batchSize := uint32(11)
@@ -761,12 +764,13 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	grp := initImplGroup()
 
 	params := conf.Params{
-		Groups:        conf.Groups{CMix: grp},
-		NodeIDs:       buildMockNodeIDs(5),
-		ThisNodeIndex: 0,
+		Groups:  conf.Groups{CMix: grp},
+		NodeIDs: buildMockNodeIDs(5),
+		Index:   0,
 	}
 
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
 
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
@@ -784,11 +788,12 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	grp := initImplGroup()
 
 	params := conf.Params{
-		Groups:        conf.Groups{CMix: grp},
-		NodeIDs:       buildMockNodeIDs(5),
-		ThisNodeIndex: 0,
+		Groups:  conf.Groups{CMix: grp},
+		NodeIDs: buildMockNodeIDs(5),
+		Index:   0,
 	}
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
 	topology := instance.GetTopology()
 
 	roundID := id.Round(45)
@@ -831,13 +836,13 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 
 		params := conf.Params{
-			Groups:        conf.Groups{CMix: grp},
-			NodeIDs:       nodeIDs,
-			ThisNodeIndex: i,
+			Groups:  conf.Groups{CMix: grp},
+			NodeIDs: nodeIDs,
+			Index:   i,
 		}
 
 		instances = append(instances, server.CreateServerInstance(
-			params, &globals.UserMap{}))
+			&params, &globals.UserMap{}, nil, nil))
 	}
 	instances[0].InitFirstNode()
 	topology := instances[0].GetTopology()
@@ -900,12 +905,13 @@ func TestReceiveFinishRealtime(t *testing.T) {
 
 	// Set instance for first node
 	params := conf.Params{
-		Groups:        conf.Groups{CMix: grp},
-		NodeIDs:       buildMockNodeIDs(numNodes),
-		ThisNodeIndex: 0,
+		Groups:  conf.Groups{CMix: grp},
+		NodeIDs: buildMockNodeIDs(numNodes),
+		Index:   0,
 	}
 
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -984,11 +990,12 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		Groups: conf.Groups{
 			CMix: grp,
 		},
-		NodeIDs:       nodeIDs,
-		ThisNodeIndex: 0,
+		NodeIDs: nodeIDs,
+		Index:   0,
 	}
 
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
 
 	return instance
 }

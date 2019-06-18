@@ -29,7 +29,7 @@ func RequestNonce(instance *server.Instance,
 
 	if !instance.GetSkipReg() {
 		// Verify signed public key using hardcoded RegistrationServer public key
-		valid := instance.GetRegPubKey().Verify(hash, signature.DSASignature{
+		valid := instance.GetRegServerPubKey().Verify(hash, signature.DSASignature{
 			R: large.NewIntFromBytes(R),
 			S: large.NewIntFromBytes(S),
 		})

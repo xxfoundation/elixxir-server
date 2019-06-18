@@ -97,7 +97,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 	go benchmark.PermuteEncryptTranslate(N2Permute.OutChannel, N1Encrypt.InChannel,
 		Node2Round, grp)
 
-	// Run Generate
+	// RunFirstNode Generate
 	genMsg := services.Slot(&precomputation.SlotGeneration{Slot: 0})
 	N1Generation.InChannel <- &genMsg
 	_ = <-N1Generation.OutChannel
@@ -110,7 +110,7 @@ func TestEndToEndCryptopsWith2Nodes(t *testing.T) {
 
 	// TODO: Pre-can the keys to use here if necessary.
 
-	// Run Share -- Then save the result to both rounds
+	// RunFirstNode Share -- Then save the result to both rounds
 	// Note that the outchannel for N1Share is the input channel for N2share
 	shareMsg := services.Slot(&precomputation.SlotShare{
 		PartialRoundPublicCypherKey: grp.GetGCyclic()})

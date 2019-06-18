@@ -16,18 +16,19 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	expectedParams := Params{
 		Database: ExpectedDB,
 		Groups:   ExpectedGroups,
-		Paths:    ExpectedPaths,
+		Path:     ExpectedPaths,
 		NodeAddresses: []string{"127.0.0.1:80", "127.0.0.1:80",
 			"127.0.0.1:80"},
-		Gateways:      []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
-		SkipReg:       true,
-		ThisNodeIndex: 1,
+		Gateways: []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
+		SkipReg:  true,
+		Index:    1,
 		NodeIDs: []string{
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 			"pneumonoultramicroscopicsilicovolcanoconios=",
 		},
-		BatchSize: 20,
+		Batch:       20,
+		RegServerPK: "publicKey",
 	}
 
 	vip := viper.New()
@@ -51,7 +52,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Server addresses value does not match expected value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.BatchSize, params.BatchSize) {
+	if !reflect.DeepEqual(expectedParams.Batch, params.Batch) {
 		t.Errorf("Batch size value does not match expected value")
 	}
 
@@ -59,7 +60,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Gateways value does not match expected value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.ThisNodeIndex, params.ThisNodeIndex) {
+	if !reflect.DeepEqual(expectedParams.Index, params.Index) {
 		t.Errorf("NodeIndex value does not match expected value")
 	}
 
@@ -78,12 +79,16 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Groups object did not match expected values for CMIX")
 	}
 
-	if !reflect.DeepEqual(expectedParams.Paths, params.Paths) {
+	if !reflect.DeepEqual(expectedParams.Path, params.Path) {
 		t.Errorf("Paths value does not match expected value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Database, params.Database) {
-		t.Errorf("v value does not match expected value")
+		t.Errorf("database value does not match expected value")
 	}
 
+	if !reflect.DeepEqual(expectedParams.RegServerPK, params.RegServerPK) {
+		t.Errorf("registration server public key value does not match " +
+			"expected value")
+	}
 }

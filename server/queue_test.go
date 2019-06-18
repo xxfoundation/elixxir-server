@@ -102,10 +102,10 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		Groups: conf.Groups{
 			CMix: grp,
 		},
-		NodeIDs:       []string{nid.String()},
-		ThisNodeIndex: 0,
+		NodeIDs: []string{nid.String()},
+		Index:   0,
 	}
-	instance := CreateServerInstance(params, &globals.UserMap{})
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase

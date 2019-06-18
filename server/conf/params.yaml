@@ -1,6 +1,7 @@
 ---
 # Example yaml params file used for testing
 # the params object and its dependencies
+index: 1
 database:
   name: "name"
   username: "username"
@@ -9,7 +10,7 @@ database:
     - "127.0.0.1:80"
     - "127.0.0.1:80"
     - "127.0.0.1:80"
-batchSize: 20
+skipReg: true
 groups:
   cmix:
     prime: "17"
@@ -19,10 +20,12 @@ groups:
     prime: "0x11"
     smallprime: "0x0B"
     generator: "0x04"
-paths:
+reg_server_pk: "publicKey"
+path:
   cert: "~/.elixxir/cert.crt"
   key:  "~/.elixxir/key.pem"
   log:  "~/.elixxir/server.log"
+  gateway_cert: "~/.elixxir/gateway.log"
 nodeAddresses:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
@@ -31,10 +34,10 @@ nodeIDs:
   - "pneumonoultramicroscopicsilicovolcanoconios="
   - "pneumonoultramicroscopicsilicovolcanoconios="
   - "pneumonoultramicroscopicsilicovolcanoconios="
-thisNodeIndex: 1
 gateways:
   - "127.0.0.1:80"
   - "127.0.0.1:80"
   - "127.0.0.1:80"
-skipReg: true
+batch: 20
+
 ...
