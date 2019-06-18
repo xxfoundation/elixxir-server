@@ -367,11 +367,11 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	grp := initImplGroup()
 	params := conf.Params{
-		Groups:        conf.Groups{CMix: grp},
-		NodeIDs:       buildMockNodeIDs(2),
-		ThisNodeIndex: 0,
+		Groups:  conf.Groups{CMix: grp},
+		NodeIDs: buildMockNodeIDs(2),
+		Index:   0,
 	}
-	instance := server.CreateServerInstance(params, &globals.UserMap{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
