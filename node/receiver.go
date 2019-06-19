@@ -22,6 +22,8 @@ import (
 func ReceiveCreateNewRound(instance *server.Instance, message *mixmessages.RoundInfo) error {
 	roundID := id.Round(message.ID)
 
+	jww.INFO.Printf("[%s]: CreateNewRound START: %d", instance, roundID)
+
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(instance.GetGraphGenerator(),
 		instance.GetTopology(), instance.GetID(), &instance.LastNode, instance.GetBatchSize())
@@ -34,17 +36,22 @@ func ReceiveCreateNewRound(instance *server.Instance, message *mixmessages.Round
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
+	jww.INFO.Printf("[%s]: CreateNewRound END: %d", instance, roundID)
+
 	return nil
 }
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
+	roundID := id.Round(batch.Round.ID)
+
+	jww.INFO.Printf("[%s]: PostPhase START: %d", instance, roundID)
 
 	rm := instance.GetRoundManager()
 
 	//Check if the operation can be done and get the correct phase if it can
-	_, p, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.ForPhase).String())
+	_, p, err := rm.HandleIncomingComm(roundID, phase.Type(batch.ForPhase).String())
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 	}
@@ -67,6 +74,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 	if err != nil {
 		jww.ERROR.Panicf("Error on PostPhase comm, should be able to return: %+v", err)
 	}
+	jww.INFO.Printf("[%s]: PostPhase END: %d", instance, roundID)
 
 }
 

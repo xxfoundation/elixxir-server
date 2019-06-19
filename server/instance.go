@@ -253,3 +253,12 @@ func (i *Instance) InitNetwork(
 func (i *Instance) Run() {
 	go i.resourceQueue.run(i)
 }
+
+func (i *Instance) String() string {
+	id := i.thisNode
+	numNodes := i.topology.Len()
+	myLoc := i.topology.GetNodeLocation(id)
+	// TODO: IP Address an dlistening port would be helpful!
+	ipAddr := "HostUnknown:PortUnknown"
+	return fmt.Sprintf("%s - (%d/%d)", ipAddr, myLoc, numNodes)
+}
