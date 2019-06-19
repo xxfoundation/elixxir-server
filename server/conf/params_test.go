@@ -13,28 +13,18 @@ import (
 )
 
 func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
+
 	expectedParams := Params{
-		Database: ExpectedDB,
-		Groups:   ExpectedGroups,
-		Path:     ExpectedPaths,
-		NodeAddresses: []string{"127.0.0.1:80", "127.0.0.1:80",
-			"127.0.0.1:80"},
-		Gateways: []string{"127.0.0.1:80", "127.0.0.1:80", "127.0.0.1:80"},
-		SkipReg:  true,
-		Index:    1,
-		NodeIDs: []string{
-			"pneumonoultramicroscopicsilicovolcanoconios=",
-			"pneumonoultramicroscopicsilicovolcanoconios=",
-			"pneumonoultramicroscopicsilicovolcanoconios=",
-		},
-		Batch:       20,
-		RegServerPK: "publicKey",
+		Node:          ExpectedNode,
+		Database:      ExpectedDatabase,
+		Gateways:      ExpectedGateways,
+		Permissioning: ExpectedPermissioning,
+		Global:        ExpectedGlobal,
 	}
 
 	vip := viper.New()
 	vip.AddConfigPath(".")
 	vip.SetConfigFile("params.yaml")
-	vip.Set("NodeID", uint64(100))
 
 	err := vip.ReadInConfig()
 
@@ -48,47 +38,24 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Fatalf("Failed in unmarshaling from viper object")
 	}
 
-	if !reflect.DeepEqual(expectedParams.NodeAddresses, params.NodeAddresses) {
-		t.Errorf("Server addresses value does not match expected value")
-	}
-
-	if !reflect.DeepEqual(expectedParams.Batch, params.Batch) {
-		t.Errorf("Batch size value does not match expected value")
-	}
-
-	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
-		t.Errorf("Gateways value does not match expected value")
-	}
-
-	if !reflect.DeepEqual(expectedParams.Index, params.Index) {
-		t.Errorf("NodeIndex value does not match expected value")
-	}
-
-	if !reflect.DeepEqual(expectedParams.NodeIDs, params.NodeIDs) {
-		t.Errorf("NodeIDs value does not match expected value")
-	}
-
-	if !reflect.DeepEqual(expectedParams.SkipReg, params.SkipReg) {
-		t.Errorf("SkipReg value does not match expected value")
-	}
-
-	if params.Groups.E2E.GetFingerprint() != ExpectedGroups.E2E.GetFingerprint() {
-		t.Errorf("Groups object did not match expected values for E2E")
-	}
-	if params.Groups.CMix.GetFingerprint() != ExpectedGroups.CMix.GetFingerprint() {
-		t.Errorf("Groups object did not match expected values for CMIX")
-	}
-
-	if !reflect.DeepEqual(expectedParams.Path, params.Path) {
-		t.Errorf("Paths value does not match expected value")
+	if !reflect.DeepEqual(expectedParams.Node, params.Node) {
+		t.Errorf("Params value does not match expected value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Database, params.Database) {
-		t.Errorf("database value does not match expected value")
+		t.Errorf("Params database value does not match expected value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.RegServerPK, params.RegServerPK) {
-		t.Errorf("registration server public key value does not match " +
-			"expected value")
+	if !reflect.DeepEqual(expectedParams.Global, params.Global) {
+		t.Errorf("Params global value does not match expected value")
 	}
+
+	if !reflect.DeepEqual(expectedParams.Permissioning, params.Permissioning) {
+		t.Errorf("Params node value does not match expected value")
+	}
+
+	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
+		t.Errorf("Params node value does not match expected value")
+	}
+
 }

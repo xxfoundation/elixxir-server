@@ -6,10 +6,8 @@
 
 package conf
 
-// Contains Database config params
-type Database struct {
-	Name      string
-	Username  string
-	Password  string
-	Addresses []string
+type Global struct {
+	Batch   uint32
+	Skipreg bool
+	Groups  Groups
 }

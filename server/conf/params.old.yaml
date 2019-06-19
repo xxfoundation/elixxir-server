@@ -1,0 +1,46 @@
+---
+# Example yaml params file used for testing
+# the params object and its dependencies
+index: 1
+database:
+  name: "name"
+  username: "username"
+  password: "password"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+skipReg: true
+groups:
+  cmix:
+    prime: "17"
+    smallprime: "11"
+    generator: "4"
+  e2e:
+    prime: "0x11"
+    smallprime: "0x0B"
+    generator: "0x04"
+reg_server_pk: "publicKey"
+path:
+  cert: "~/.elixxir/cert.crt"
+  key:  "~/.elixxir/key.pem"
+  log:  "~/.elixxir/server.log"
+  gateway_cert: "~/.elixxir/gateway.log"
+  permissioningCert: "~/.elixxir/permissioning.crt"
+nodeAddresses:
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+nodeID: "pneumonoultramicroscopicsilicovolcanoconios="
+nodeIDs:
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+  - "pneumonoultramicroscopicsilicovolcanoconios="
+gateways:
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+  - "127.0.0.1:80"
+permissioning: "127.0.0.1:80"
+registrationCode: "pneumonoultramicroscopicsilicovolcanoconios="
+batch: 20
+...

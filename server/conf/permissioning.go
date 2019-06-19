@@ -6,10 +6,8 @@
 
 package conf
 
-// Contains Database config params
-type Database struct {
-	Name      string
-	Username  string
-	Password  string
-	Addresses []string
+type Permissioning struct {
+	Paths   Paths
+	Address string
+	Regcode string
 }

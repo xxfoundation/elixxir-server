@@ -102,7 +102,7 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	stream.salts[0] = []byte("cesium chloride")
 	err = Keygen.Adapt(&stream, MockKeygenOp, services.NewChunk(0, 1))
 	if err == nil {
-		t.Error("Passing a user ID that wasn't in the DB didn't result in an error")
+		t.Error("Passing a user ID that wasn't in the Database didn't result in an error")
 	}
 }
 

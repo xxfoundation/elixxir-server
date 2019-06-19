@@ -42,7 +42,7 @@ func (i *Instance) GetTopology() *circuit.Circuit {
 	return i.topology
 }
 
-//GetGroups returns the group used by the server
+//InitGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
 	return i.params.Groups.CMix
 }
