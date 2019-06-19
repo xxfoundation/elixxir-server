@@ -10,6 +10,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
+	"testing"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type ResourceQueue struct {
 	phaseQueue  chan phase.Phase
 	finishChan  chan phase.Phase
 	timer       *time.Timer
+	killChan    chan struct{}
 }
 
 //initQueue begins a queue with default channel buffer sizes
@@ -25,8 +27,10 @@ func initQueue() *ResourceQueue {
 	return &ResourceQueue{
 		// these are the phases
 		phaseQueue: make(chan phase.Phase, 5000),
-		// there will only active phase, and this channel is used to kill it
+		// there will only active phase, and this channel is used to killChan it
 		finishChan: make(chan phase.Phase, 1),
+		// this channel will be used to killChan the queue
+		killChan: make(chan struct{}),
 	}
 }
 
@@ -44,14 +48,26 @@ func (rq *ResourceQueue) DenotePhaseCompletion(p phase.Phase) {
 }
 
 // GetQueue returns the internal channel used as a queue. Used in testing.
-func (rq *ResourceQueue) GetQueue() chan phase.Phase {
+func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
+	if t == nil {
+		jww.FATAL.Panicf("Queue.GetQueue is only for testing!")
+	}
 	return rq.phaseQueue
+}
+
+//kill the queue
+func (rq *ResourceQueue) kill() {
+	rq.killChan <- struct{}{}
 }
 
 func (rq *ResourceQueue) run(server *Instance) {
 	for true {
 		//get the next phase to execute
-		rq.activePhase = <-rq.phaseQueue
+		select {
+		case rq.activePhase = <-rq.phaseQueue:
+		case <-rq.killChan:
+			return
+		}
 
 		//update the next phase to running
 		rq.activePhase.TransitionToRunning()
@@ -62,7 +78,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		var getChunk phase.GetChunk
 		getChunk = func() (services.Chunk, bool) {
 			chunk, ok := runningPhase.GetGraph().GetOutput()
-			//Fixme: add a method to kill this directly
+			//Fixme: add a method to killChan this directly
 			if !ok {
 				//send the phase into the channel to denote it is complete
 				rq.DenotePhaseCompletion(runningPhase)
@@ -110,16 +126,18 @@ func (rq *ResourceQueue) run(server *Instance) {
 			case rtnPhase = <-rq.finishChan:
 			case <-rq.timer.C:
 				timeout = true
+			case <-rq.killChan:
+				return
 			}
 
 			//process timeout
 			if timeout {
-				//FIXME: also kill the transmission handler
+				//FIXME: also killChan the transmission handler
 				kill := rq.activePhase.GetGraph().Kill()
 				if kill {
 					jww.CRITICAL.Printf("Graph %v of phase %v of round %v was killed due to timeout",
 						rq.activePhase.GetGraph().GetName(), rq.activePhase.GetType().String(), rq.activePhase.GetRoundID())
-					//FIXME: send kill round message
+					//FIXME: send killChan round message
 				} else {
 					jww.FATAL.Panicf("Graph %v of phase %v of round %v could not be killed after timeout",
 						rq.activePhase.GetGraph().GetName(), rq.activePhase.GetType().String(), rq.activePhase.GetRoundID())
@@ -129,7 +147,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 			//check that the correct phase is ending
 			if !rq.activePhase.Cmp(rtnPhase) {
 				jww.FATAL.Panicf("phase %s of round %v is currently running, "+
-					"a kill message of %s cannot be processed", rq.activePhase.GetType().String(),
+					"a killChan message of %s cannot be processed", rq.activePhase.GetType().String(),
 					rq.activePhase.GetRoundID(), rtnPhase)
 			}
 

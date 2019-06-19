@@ -56,7 +56,7 @@ func (fn *firstNode) roundCreationRunner(network *node.NodeComms,
 
 	err := transmitter(network, topology, fn.currentRoundID)
 
-	// TODO: proper error handling will broadcast a signal to kill to round,
+	// TODO: proper error handling will broadcast a signal to killChan to round,
 	// allowing to continue
 	if err != nil {
 		jww.FATAL.Panicf("Round failed to start: %+v", err)

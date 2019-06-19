@@ -286,7 +286,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	var queued bool
 
 	select {
-	case <-instance.GetResourceQueue().GetQueue():
+	case <-instance.GetResourceQueue().GetQueue(t):
 		queued = true
 	default:
 		queued = false
@@ -426,7 +426,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	var queued bool
 
 	select {
-	case <-instance.GetResourceQueue().GetQueue():
+	case <-instance.GetResourceQueue().GetQueue(t):
 		queued = true
 	default:
 		queued = false
@@ -623,7 +623,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	var queued bool
 
 	select {
-	case <-instance.GetResourceQueue().GetQueue():
+	case <-instance.GetResourceQueue().GetQueue(t):
 		queued = true
 	default:
 		queued = false
@@ -716,7 +716,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	var queued bool
 
 	select {
-	case <-instance.GetResourceQueue().GetQueue():
+	case <-instance.GetResourceQueue().GetQueue(t):
 		queued = true
 	default:
 		queued = false

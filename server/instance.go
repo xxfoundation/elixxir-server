@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"google.golang.org/grpc/credentials"
 	"runtime"
 )
 
@@ -224,15 +225,27 @@ func (i *Instance) InitNetwork(
 	i.network = node.StartNode(addr, makeImplementation(i), i.params.Path.Cert,
 		i.params.Path.Key)
 
-	tlsCert := connect.NewCredentialsFromFile(i.params.Path.Cert, "")
+	var tlsCert credentials.TransportCredentials
+
+	if i.params.Path.Cert != "" {
+		tlsCert = connect.NewCredentialsFromFile(i.params.Path.Cert, "")
+	} else {
+		jww.WARN.Printf("Starting node without TLS credentials")
+	}
 
 	for x := 0; x < len(i.params.NodeIDs); x++ {
 		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.NodeAddresses[x],
 			tlsCert)
 	}
 
-	i.network.ConnectToGateway(i.thisNode.NewGateway(),
-		i.params.Gateways[i.params.Index], tlsCert)
+	if i.params.Gateways != nil {
+		i.network.ConnectToGateway(i.thisNode.NewGateway(),
+			i.params.Gateways[i.params.Index], tlsCert)
+	} else {
+		jww.WARN.Printf("No Gateway avalible, starting without gateway")
+	}
+
+	jww.INFO.Printf("Network Interface Initilized for Node ")
 
 	return i.network
 }

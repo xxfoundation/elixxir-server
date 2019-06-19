@@ -180,7 +180,7 @@ var iWasCalled bool
 func makeTestPhase(instance *Instance, name phase.Type,
 	roundID id.Round) phase.Phase {
 
-	// FIXME We need to be able to kill this,
+	// FIXME We need to be able to killChan this,
 	//  or tell whether something was killed before calling DenotePhaseComplete.
 	//  It could be done by changing the way that GetChunk works/the GetChunk
 	//  header.
