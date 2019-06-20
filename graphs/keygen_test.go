@@ -89,11 +89,24 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	// Since the user registry has no users,
 	// any user we pass into the stream will cause an error
 	nid := server.GenerateId()
+
+	smallprime := fmt.Sprintf("%x", 1283)
+	generator := fmt.Sprintf("%x", 2)
+	cmix := map[string]string{
+		"prime":      primeString,
+		"smallprime": smallprime,
+		"generator":  generator,
+	}
+
 	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
+		Global: conf.Global{
+			Groups: conf.Groups{
+				CMix: cmix,
+			},
 		},
-		NodeIDs: []string{nid.String()},
+		Node: conf.Node{
+			Ids: []string{nid.String()},
+		},
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	var stream KeygenTestStream
@@ -134,13 +147,25 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
+	smallprime := fmt.Sprintf("%x", 1283)
+	generator := fmt.Sprintf("%x", 2)
+
+	cmix := map[string]string{
+		"prime":      primeString,
+		"smallprime": smallprime,
+		"generator":  generator,
+	}
 	// Create a user registry and make a user in it
 	nid := server.GenerateId()
 	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
+		Node: conf.Node{
+			Ids: []string{nid.String()},
 		},
-		NodeIDs: []string{nid.String()},
+		Global: conf.Global{
+			Groups: conf.Groups{
+				CMix: cmix,
+			},
+		},
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	registry := instance.GetUserRegistry()

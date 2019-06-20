@@ -83,7 +83,7 @@ func (i *Instance) GetPrivKey() *signature.DSAPrivateKey {
 
 //GetSkipReg returns the skipReg parameter
 func (i *Instance) GetSkipReg() bool {
-	return i.params.Global.Skipreg
+	return i.params.Global.SkipReg
 }
 
 //GetRegServerPubKey returns the public key of the registration server
@@ -145,8 +145,8 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// Each nodeID should be base64 encoded in the yaml
 	var nodeIDs []*id.Node
 	var nodeIDDecodeErrorHappened bool
-	for i := range params.NodeIDs {
-		nodeID, err := base64.StdEncoding.DecodeString(params.NodeIDs[i])
+	for i := range params.Node.Ids {
+		nodeID, err := base64.StdEncoding.DecodeString(params.Node.Ids[i])
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
@@ -160,11 +160,12 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
-	if params.RegServerPK != "" {
-		grp := instance.params.Groups.CMix
+	permissioningPk := GetPublicKey(params.Permissioning.Paths.Cert)
+	if permissioningPk != "" {
+		grp := instance.params.Global.Groups.GetCMix()
 		dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 
-		block, _ := pem.Decode([]byte(params.RegServerPK))
+		block, _ := pem.Decode([]byte(permissioningPk))
 
 		if block == nil || block.Type != "PUBLIC KEY" {
 			jww.ERROR.Panic("Registration Server Public Key did not " +
@@ -186,9 +187,15 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	instance.privKey = privateKey
 	// Hardcoded registration server publicKey
 	// TODO: For now set this to false, but value should come from config file
-	instance.params.SkipReg = false
+	instance.params.Global.SkipReg = false
 
 	return &instance
+}
+
+// TODO: Implement a function which takes a crt file
+// and extracts the public key as a string
+func GetPublicKey(s string) string {
+	return ""
 }
 
 // GenerateId generates a random ID and returns it
@@ -220,19 +227,19 @@ func GenerateId() *id.Node {
 // Shutdown() on the network object.
 func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
-	addr := i.params.NodeAddresses[i.params.Index]
-	i.network = node.StartNode(addr, makeImplementation(i), i.params.Path.Cert,
-		i.params.Path.Key)
+	addr := i.params.Node.Addresses[i.params.Index]
+	i.network = node.StartNode(addr, makeImplementation(i), i.params.Node.Paths.Cert,
+		i.params.Node.Paths.Key)
 
-	tlsCert := connect.NewCredentialsFromFile(i.params.Path.Cert, "")
+	tlsCert := connect.NewCredentialsFromFile(i.params.Node.Paths.Cert, "")
 
-	for x := 0; x < len(i.params.NodeIDs); x++ {
-		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.NodeAddresses[x],
+	for x := 0; x < len(i.params.Node.Ids); x++ {
+		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.Node.Addresses[x],
 			tlsCert)
 	}
 
 	i.network.ConnectToGateway(i.thisNode.NewGateway(),
-		i.params.Gateways[i.params.Index], tlsCert)
+		i.params.Gateways.Addresses[i.params.Index], tlsCert)
 
 	return i.network
 }

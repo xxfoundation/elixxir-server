@@ -53,7 +53,7 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	//Check that there is a gateway
-	if len(params.Gateways) < 1 {
+	if len(params.Gateways.Addresses) < 1 {
 		// No gateways in config file or passed via command line
 		jww.FATAL.Panicf("Error: No gateways specified! Add to" +
 			" configuration file!")
@@ -72,7 +72,7 @@ func StartServer(vip *viper.Viper) {
 
 	//Build DSA key
 	rng := csprng.NewSystemRNG()
-	grp := params.Groups.CMix
+	grp := params.Global.Groups.GetCMix()
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -74,15 +75,27 @@ func mockServerInstance() *Instance {
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+
+	smallprime := fmt.Sprintf("%x", 1283)
+	generator := fmt.Sprintf("%x", 2)
 
 	nid := GenerateId()
 
+	cmix := map[string]string{
+		"prime":      primeString,
+		"smallprime": smallprime,
+		"generator":  generator,
+	}
+
 	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
+		Node: conf.Node{
+			Ids: []string{nid.String()},
 		},
-		NodeIDs: []string{nid.String()},
+		Global: conf.Global{
+			Groups: conf.Groups{
+				CMix: cmix,
+			},
+		},
 	}
 	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 

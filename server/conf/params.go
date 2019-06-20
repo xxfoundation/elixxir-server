@@ -13,6 +13,7 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
+	Index         int // TODO: Do we need this field and how do we populate it?
 	Node          Node
 	Database      Database
 	Gateways      Gateways
