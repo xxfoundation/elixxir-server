@@ -44,7 +44,7 @@ func (i *Instance) GetTopology() *circuit.Circuit {
 
 //InitGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
-	return i.params.Groups.CMix
+	return i.params.Global.Groups.GetCMix()
 }
 
 //GetUserRegistry returns the user registry used by the server
@@ -83,7 +83,7 @@ func (i *Instance) GetPrivKey() *signature.DSAPrivateKey {
 
 //GetSkipReg returns the skipReg parameter
 func (i *Instance) GetSkipReg() bool {
-	return i.params.SkipReg
+	return i.params.Global.Skipreg
 }
 
 //GetRegServerPubKey returns the public key of the registration server
@@ -93,7 +93,7 @@ func (i *Instance) GetRegServerPubKey() *signature.DSAPublicKey {
 
 //GetBatchSize returns the batch size
 func (i *Instance) GetBatchSize() uint32 {
-	return i.params.Batch
+	return i.params.Global.Batch
 }
 
 // FIXME Populate this from the YAML or something

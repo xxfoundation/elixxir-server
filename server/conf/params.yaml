@@ -30,15 +30,15 @@ permissioning:
   paths:
     cert: "~/.elixxir/permissioning.crt"
   address: "127.0.0.1:80"
-  regcode: "pneumonoultramicroscopicsilicovolcanoconios="
+  regCode: "pneumonoultramicroscopicsilicovolcanoconios="
 global:
   batch: 20
-  skipreg: true
+  skipReg: true
   groups:
     cmix:
-      prime: "17"
-      smallprime: "11"
-      generator: "4"
+      prime: "0x11"
+      smallprime: "0x0B"
+      generator: "0x04"
     e2e:
       prime: "0x11"
       smallprime: "0x0B"

@@ -22,12 +22,12 @@ var generator = large.NewInt(int64(4))
 var ExpectedGroup = cyclic.NewGroup(prime, generator, smallPrime)
 
 var ExpectedGroups = Groups{
-	Cmix: map[string]string{
-		"prime":      "17",
-		"smallprime": "11",
-		"generator":  "4",
+	CMix: map[string]string{
+		"prime":      "0x11",
+		"smallprime": "0x0B",
+		"generator":  "0x04",
 	},
-	E2e: map[string]string{
+	E2E: map[string]string{
 		"prime":      "0x11",
 		"smallprime": "0x0B",
 		"generator":  "0x04",

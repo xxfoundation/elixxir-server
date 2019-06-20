@@ -15,16 +15,16 @@ import (
 
 // Contains the cyclic group config params
 type Groups struct {
-	Cmix map[string]string
-	E2e  map[string]string
+	CMix map[string]string `yaml:"cmix"`
+	E2E  map[string]string `yaml:"e2e"`
 }
 
 func (g Groups) GetCMix() *cyclic.Group {
-	return toGroup(g.Cmix)
+	return toGroup(g.CMix)
 }
 
 func (g Groups) GetE2E() *cyclic.Group {
-	return toGroup(g.E2e)
+	return toGroup(g.E2E)
 }
 
 // toGroup takes a group represented by a map of string to string

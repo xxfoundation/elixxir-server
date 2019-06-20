@@ -9,5 +9,5 @@ package conf
 type Permissioning struct {
 	Paths   Paths
 	Address string
-	Regcode string
+	RegCode string `yaml:"regCode"`
 }

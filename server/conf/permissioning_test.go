@@ -20,7 +20,7 @@ var ExpectedPermissioning = Permissioning{
 		Log:  "",
 	},
 	Address: "127.0.0.1:80",
-	Regcode: "pneumonoultramicroscopicsilicovolcanoconios=",
+	RegCode: "pneumonoultramicroscopicsilicovolcanoconios=",
 }
 
 // This test checks that unmarshalling the params.yaml file

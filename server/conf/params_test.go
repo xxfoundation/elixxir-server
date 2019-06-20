@@ -39,7 +39,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedParams.Node, params.Node) {
-		t.Errorf("Params value does not match expected value")
+		t.Errorf("Params node value does not match expected value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Database, params.Database) {
@@ -51,11 +51,11 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedParams.Permissioning, params.Permissioning) {
-		t.Errorf("Params node value does not match expected value")
+		t.Errorf("Params permissioning value does not match expected value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
-		t.Errorf("Params node value does not match expected value")
+		t.Errorf("Params gateways value does not match expected value")
 	}
 
 }
