@@ -50,11 +50,11 @@ func toGroup(grp map[string]string) *cyclic.Group {
 }
 
 // toLargeInt takes in a string representation of a large int.
-// If the first 2 bytes are '0x' it parses a base 16 number,
-// otherwise it parses a base 10 and returns the result.
-func toLargeInt(str string) *large.Int {
-	if len(str) > 2 && "0x" == str[:2] {
-		return large.NewIntFromString(str[2:], 16)
+// The string representation must be in hex.  It can either
+// be preceded by an 0x or not.
+func toLargeInt(hexStr string) *large.Int {
+	if len(hexStr) > 2 && "0x" == hexStr[:2] {
+		return large.NewIntFromString(hexStr[2:], 16)
 	}
-	return large.NewIntFromString(str, 10)
+	return large.NewIntFromString(hexStr, 16)
 }

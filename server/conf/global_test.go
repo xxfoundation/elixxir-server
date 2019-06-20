@@ -16,6 +16,7 @@ import (
 var ExpectedGlobal = Global{
 	Batch:   uint32(20),
 	SkipReg: true,
+	Verbose: true,
 	Groups:  ExpectedGroups,
 }
 

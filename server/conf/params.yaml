@@ -30,9 +30,10 @@ permissioning:
   paths:
     cert: "~/.elixxir/permissioning.crt"
   address: "127.0.0.1:80"
-  regCode: "pneumonoultramicroscopicsilicovolcanoconios="
+  registrationCode: "pneumonoultramicroscopicsilicovolcanoconios="
 global:
   batch: 20
+  verbose: true
   skipReg: true
   groups:
     cmix:

@@ -236,12 +236,16 @@ func TestReceivePostNewBatch(t *testing.T) {
 func TestNewImplementation_PostPhase(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
-
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(2),
-		Index:   0,
+		Global: conf.Global{
+			Groups: grps,
+		},
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(2),
+		},
+		Index: 0,
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
 		nil, nil)
@@ -540,9 +544,9 @@ func initImplGroup() *cyclic.Group {
 
 func initConfGroups(grp *cyclic.Group) conf.Groups {
 
-	primeString := grp.GetP().Text(16)
-	smallprime := grp.GetQ().Text(16)
-	generator := grp.GetG().Text(16)
+	primeString := grp.GetP().TextVerbose(16, 0)
+	smallprime := grp.GetQ().TextVerbose(16, 0)
+	generator := grp.GetG().TextVerbose(16, 0)
 
 	cmix := map[string]string{
 		"prime":      primeString,

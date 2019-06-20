@@ -7,7 +7,7 @@
 package conf
 
 type Permissioning struct {
-	Paths   Paths
-	Address string
-	RegCode string `yaml:"regCode"`
+	Paths            Paths
+	Address          string
+	RegistrationCode string `yaml:"registrationCode"`
 }

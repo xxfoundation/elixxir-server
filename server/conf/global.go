@@ -9,5 +9,6 @@ package conf
 type Global struct {
 	Batch   uint32
 	SkipReg bool `yaml:"skipReg"`
+	Verbose bool
 	Groups  Groups
 }
