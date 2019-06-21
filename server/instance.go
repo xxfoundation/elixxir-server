@@ -160,7 +160,7 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
-	permissioningPk := GetPublicKey(params.Permissioning.Paths.Cert)
+	permissioningPk := params.Permissioning.GetPublicKey()
 	if permissioningPk != "" {
 		grp := instance.params.Global.Groups.GetCMix()
 		dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
@@ -190,12 +190,6 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	instance.params.Global.SkipReg = false
 
 	return &instance
-}
-
-// TODO: Implement a function which takes a crt file
-// and extracts the public key as a string
-func GetPublicKey(s string) string {
-	return ""
 }
 
 // GenerateId generates a random ID and returns it
