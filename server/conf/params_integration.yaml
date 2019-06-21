@@ -1,0 +1,46 @@
+# START YAML ===
+# Example of deployment config
+node:
+  id: ""
+  paths:
+    cert: "~/.elixxir/cmix.crt"
+    key:  "~/.elixxir/cmix.key"
+    log:  "/tmp/server.log"
+  addresses:
+    - "192.168.1.0:11420"
+    - "192.168.1.1:11420"
+    - "192.168.1.2:11420"
+database:
+  name: "cmix_server"
+  username: "cmix"
+  password: "this_is_not_a_real_password_nor_should_it_ever_be"
+  addresses:
+    - "terraform-north-pole.rds.amazonaws.com:5432"
+    - "terraform-south-pole.rds.amazonaws.com:5432"
+    - "terraform-center-of-earth.rds.amazonaws.com:5432"
+gateways:
+  paths:
+    cert: "~/.elixxir/gateway.cmix.rip.crt"
+  addresses:
+    - "gateway-0.default.cmix.rip:11420"
+    - "gateway-1.default.cmix.rip:11420"
+    - "gateway-2.default.cmix.rip:11420"
+permissioning:
+  paths:
+    cert: "~/.elixxir/registration.cmix.rip.crt"
+  address: "permissioning.default.cmix.rip:11420"
+  registrationCode: ""
+global:
+  verbose: false
+  batch: 4
+  skipReg: false
+  groups:
+    cmix:
+      prime: "0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF"
+      smallprime: "0x7FFFFFFFFFFFFFFFE487ED5110B4611A62633145C06E0E68948127044533E63A0105DF531D89CD9128A5043CC71A026EF7CA8CD9E69D218D98158536F92F8A1BA7F09AB6B6A8E122F242DABB312F3F637A262174D31BF6B585FFAE5B7A035BF6F71C35FDAD44CFD2D74F9208BE258FF324943328F6722D9EE1003E5C50B1DF82CC6D241B0E2AE9CD348B1FD47E9267AFC1B2AE91EE51D6CB0E3179AB1042A95DCF6A9483B84B4B36B3861AA7255E4C0278BA3604650C10BE19482F23171B671DF1CF3B960C074301CD93C1D17603D147DAE2AEF837A62964EF15E5FB4AAC0B8C1CCAA4BE754AB5728AE9130C4C7D02880AB9472D455655347FFFFFFFFFFFFFFF"
+      generator: "0x02"
+    e2e:
+      prime: "00:a6:df:8a:49:44:a4:c9:e2:4d:dc:77:b3:09:53:ae:c9:bf:1b:4c:92:39:79:2f:d5:56:cd:71:66:fe:00:1d:da:d7:35:d5:4c:6f:77:3b:11:d8:cb:07:b1:76:57:75:ac:9a:55:74:5f:05:5f:b9:bf:35:90:c2:9a:4a:84:6c:f6:1a:68:7d:16:5a:c2:c4:a3:21:18:6f:47:01:6f:aa:a7:f8:ca:06:cb:62:ae:a9:8d:2d:c9:b2:6c:4a:89:cf:0f:31:75:60:26:54:03:bb:d4:51:c8:ff:20:e7:ff:54:0c:bc:49:77:c6:ad:72:ac:57:93:f4:6a:f2:2c:57:8e:93:ca:77:69:c9:c6:2b:b8:31:bc:0d:86:ba:b7:20:92:b5:b0:03:9f:50:49:ee:7b:5c:82:23:ad:d2:80:e8:5e:37:e8:b6:19:0a:bd:90:79:9c:5b:e6:3d:e8:df:b6:9d:2a:b3:a0:32:1e:ce:2b:d5:b2:ee:99:19:38:b0:3b:e4:08:83:c7:14:01:8d:d4:84:cd:55:23:b8:1e:f6:e0:f6:c0:2c:01:a8:1c:66:df:d2:4e:22:df:8f:0c:1f:ab:34:1c:e3:32:35:df:49:06:07:81:9b:4e:bf:05:17:f8:22:38:ec:b3:a3:b8:ed:fa:00:dc:40:fc:0b:df:eb:59:f3:a8:29:31:5e:be:08:e5:11:e8:95:41:54:89:46:5f:7c:87:59:e2:4d:a1:cc:13:7a:03:9f:3f:49:18:4d:f3:e4:b3:dc:cb:98:d4:82:4a:a1:3c:0f:2a:19:0f:3d:e8:38:05:43:cb:eb:aa:0e:b8:ef:c5:89:26:3f:cd:e8:2c:f2:da:b4:8d:8d:4d:81:b2:b7:99:31:ee:e8:3d:57:de:1a:6f:00:02:50:d9:02:41:04:54:c2:ed:94:3d:04:e5:52:79:44:0b:d1:ca:63:76:cf:a8:e9:0d:a3:9e:6c:24:51:34:bd:ec:dc:08:4b:ca:c3:8a:92:f1:6a:7a:69:d2:79:60:3d:b6:51:83:d1:a0:5a:ef:67:29:66:cb:de:70:eb:a7"
+      smallprime: "00:92:20:39:f1:91:4b:ec:4f:0c:63:a2:aa:ee:7e:83:77:1a:72:35:75:21:5e:0e:e3:76:63:a8:33:58:90:1a:fb"
+      generator: "40:af:3d:79:8c:f6:96:4c:a6:c2:72:60:85:fd:a1:9e:f2:03:ef:55:58:89:5e:e8:7a:db:fb:82:86:b6:10:6c:83:7b:a1:9b:5b:28:86:54:27:ea:d7:da:10:1e:a4:90:16:3d:2c:26:66:d9:2b:21:8f:b1:78:b0:62:2b:4a:21:98:17:e9:3c:36:a0:46:e6:5c:7a:9d:c5:c2:c0:d9:aa:ea:ee:c0:43:47:e2:9d:a7:02:87:88:cf:c4:61:9c:54:43:d9:f4:63:d8:87:2b:5e:df:8d:4e:17:31:9c:6d:ed:ea:58:1c:1b:ca:9a:8a:50:25:0f:60:b8:a7:0d:76:af:d2:de:13:73:5b:64:a8:a7:c5:ba:8b:da:cb:6a:31:ab:8b:01:1c:3f:0f:45:8d:88:17:c5:53:53:b0:9d:7b:22:e7:16:f7:49:a9:03:84:dd:5c:88:a0:17:1b:dd:44:ad:32:16:bb:0f:78:7d:0b:07:e7:34:4d:c1:25:51:2c:fb:c6:2f:a1:21:db:a5:c1:f3:20:00:87:bc:12:2c:3e:4f:40:b0:05:63:cb:4e:67:ab:8b:62:99:07:13:82:2a:d5:56:c6:c8:9d:9b:03:76:24:12:a9:16:63:41:07:82:b1:02:e1:99:54:52:f1:da:72:5c:33:ad:03:cc:87:77:f0:74:4c:83:74:6d:ea:ea:5a:e6:19:2d:4c:bc:d1:08:e1:92:0d:8a:7f:f4:39:60:a6:9d:d1:e7:8b:59:ce:27:fb:2c:3d:6c:d2:e0:ab:67:4c:77:a7:c1:2f:02:46:c2:83:3d:51:6c:de:38:8c:cf:00:7d:03:d7: bf:10:54:b9:92:32:a2:b9:4e:9f:fb:91:39:e6:4d: 7b:6a:b2:e0:4d:e2:cb:fb:bc:81:fb:5a:60:5e:0d:0e:b2:0d:0f:93:e3:ae:85:76:4c:74:9c:2e:a5:14:bd:d5:28:77:17:67:d1:77:34:ea:fd:ae:24:6d:45:15:b0:01:fb:65:00:02:af:bb:69:dd:eb:04:29:74:f9:6f:b7:4e:ec:c5:70:8d:3e:74"
+# === END YAML

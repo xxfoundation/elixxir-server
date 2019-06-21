@@ -10,7 +10,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"strings"
+	"regexp"
 )
 
 // Contains the cyclic group config params
@@ -41,12 +41,22 @@ func toGroup(grp map[string]string) *cyclic.Group {
 			pOk, qOk, gOk)
 	}
 
-	// TODO: Is there any error checking we should do here? If so, what?
-	p := toLargeInt(strings.ReplaceAll(pStr, " ", ""))
-	q := toLargeInt(strings.ReplaceAll(qStr, " ", ""))
-	g := toLargeInt(strings.ReplaceAll(gStr, " ", ""))
+	p := toLargeInt(removeNonAlphaNumeric(pStr))
+	q := toLargeInt(removeNonAlphaNumeric(qStr))
+	g := toLargeInt(removeNonAlphaNumeric(gStr))
 
 	return cyclic.NewGroup(p, g, q)
+}
+
+// removeNonAlphaNumeric removes all non alpha-numeric
+// characters from string and returns the result
+func removeNonAlphaNumeric(s string) string {
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		jww.FATAL.Panicf("Failed to remove "+
+			"alpha-numerics from %s", s)
+	}
+	return reg.ReplaceAllString(s, "")
 }
 
 // toLargeInt takes in a string representation of a large int.

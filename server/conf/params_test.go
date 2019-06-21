@@ -59,3 +59,29 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	}
 
 }
+
+func TestParams_Integration(t *testing.T) {
+	vip := viper.New()
+	vip.AddConfigPath(".")
+	vip.SetConfigFile("params_integration.yaml")
+
+	err := vip.ReadInConfig()
+
+	if err != nil {
+		t.Errorf("Failed to read in params.yaml into viper")
+	}
+
+	params, err := NewParams(vip)
+
+	if err != nil {
+		t.Fatalf("Failed in unmarshaling from viper object")
+	}
+
+	cmix := params.Global.Groups.GetCMix()
+	e2e := params.Global.Groups.GetE2E()
+
+	print(cmix)
+	print(e2e)
+	print(params)
+
+}

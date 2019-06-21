@@ -186,8 +186,6 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	instance.pubKey = publicKey
 	instance.privKey = privateKey
 	// Hardcoded registration server publicKey
-	// TODO: For now set this to false, but value should come from config file
-	instance.params.Global.SkipReg = false
 
 	return &instance
 }
