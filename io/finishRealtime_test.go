@@ -7,6 +7,8 @@
 package io
 
 import (
+	"fmt"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -107,4 +109,42 @@ Loop:
 			break Loop
 		}
 	}
+}
+
+func MockFinishRealtimeImplementation_Error() *node.Implementation {
+	impl := node.NewImplementation()
+	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) error {
+		return errors.New("Test error")
+	}
+	return impl
+}
+
+//Tests that the error handeling code works properly
+func TestTransmitFinishRealtime_Error(t *testing.T) {
+	//Setup the network
+	comms, topology := buildTestNetworkComponents(
+		[]*node.Implementation{
+			MockFinishRealtimeImplementation_Error(),
+			MockFinishRealtimeImplementation_Error(),
+			MockFinishRealtimeImplementation_Error(),
+			MockFinishRealtimeImplementation_Error(),
+			MockFinishRealtimeImplementation_Error()}, 2000)
+	defer Shutdown(comms)
+
+	batchSize := uint32(10)
+
+	rndID := id.Round(42)
+
+	ln := server.LastNode{}
+	ln.Initialize()
+
+	err := TransmitFinishRealtime(comms[0], batchSize, rndID, phaseTy, getChunk, getMsg,
+		topology, nid, lastNode, chunkChan)
+
+	if err == nil {
+		t.Error("SendFinishRealtime: error did not occur when provoked")
+	}
+
+	fmt.Println(err.Error())
+
 }
