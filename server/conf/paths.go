@@ -13,9 +13,3 @@ type Paths struct {
 	Key  string
 	Log  string
 }
-
-//
-//func (paths Paths) GetPublicKey() string {
-//	//paths.Cert
-//	x509.ParseCertificate()
-//}
