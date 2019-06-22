@@ -181,10 +181,11 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// FIXME: temporary hack for integration
 	if len(nodeIDs) == 0 {
 		jww.WARN.Print("No node ids given in conf, generating fake IDs")
-		nodeIDs := make([]*id.Node, len(params.Node.Addresses))
+		ids := make([]*id.Node, len(params.Node.Addresses))
 		for index := range params.Node.Addresses {
-			nodeIDs[index] = GenerateId()
+			ids[index] = GenerateId()
 		}
+		nodeIDs = ids
 	}
 
 	instance.topology = circuit.New(nodeIDs)
