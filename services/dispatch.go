@@ -26,6 +26,7 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 				m.state.denoteClose(threadID, nil)
 				done = true
 			} else {
+
 				err := m.Adapt(s, m.Cryptop, chunk)
 
 				if err != nil {

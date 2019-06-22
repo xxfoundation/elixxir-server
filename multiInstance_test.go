@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/phase"
 	"reflect"
 	"sync"
 	"testing"
@@ -98,9 +99,26 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	t.Logf("Initalizing the first node, begining operations")
 	//Initialize the first node
+	localBatchSize := batchsize
+	starter := func(instance *server.Instance, rid id.Round) error {
+		newBatch := &mixmessages.Batch{
+			Slots:    make([]*mixmessages.Slot, localBatchSize),
+			ForPhase: int32(phase.PrecompGeneration),
+			Round: &mixmessages.RoundInfo{
+				ID: uint64(rid),
+			},
+		}
+		for i := 0; i < int(localBatchSize); i++ {
+			newBatch.Slots[i] = &mixmessages.Slot{}
+		}
+
+		node.ReceivePostPhase(newBatch, instance)
+		return nil
+	}
+
 	firstNode.InitFirstNode()
-	firstNode.RunFirstNode(firstNode.GetNetwork(), firstNode.GetTopology(),
-		10*time.Second, io.TransmitCreateNewRound)
+	firstNode.RunFirstNode(firstNode, 10*time.Second,
+		io.TransmitCreateNewRound, starter)
 
 	//build a batch to send to first node
 	newbatch := mixmessages.Batch{}

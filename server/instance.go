@@ -260,5 +260,5 @@ func (i *Instance) String() string {
 	myLoc := i.topology.GetNodeLocation(id)
 	// TODO: IP Address an dlistening port would be helpful!
 	ipAddr := "HostUnknown:PortUnknown"
-	return fmt.Sprintf("%s - (%d/%d)", ipAddr, myLoc, numNodes)
+	return fmt.Sprintf("%s - (%d/%d)", ipAddr, myLoc+1, numNodes)
 }

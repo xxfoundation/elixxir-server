@@ -10,7 +10,9 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
@@ -46,6 +48,9 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 		}
 	}
 
+	jww.INFO.Printf("RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
+		roundID, phaseTy)
+
 	// Make sure the comm doesn't return an Ack with an error message
 	ack, err := network.SendPostPhase(recipient, batch)
 	if ack != nil && ack.Error != "" {
@@ -60,6 +65,7 @@ func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 
 	// Send a chunk per slot
 	for index, messages := range batch.Slots {
+		fmt.Println("sending internal: ", index)
 		curIdx := uint32(index)
 		err := p.Input(curIdx, messages)
 		if err != nil {

@@ -13,10 +13,6 @@ import (
 	"sync/atomic"
 )
 
-var ErrRoundDoesNotHaveResponse = errors.New("The round does not a response to the given input")
-var ErrPhaseInIncorrectStateToContinue = errors.New("The phase in the given round is not " +
-	"at the correct state to proceed")
-
 type Round struct {
 	id     id.Round
 	buffer *Buffer
@@ -68,6 +64,10 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 			// 1 is subtracted because Initialized doesnt hold a true state
 			newState := localStateOffset + uint32(to) - 1
 			expectedOld := localStateOffset + uint32(from) - 1
+
+			//fmt.Printf("ExpectedOld: %v, ExpectedNew: %v, ActualOld: %v\n",
+			//	expectedOld, newState, atomic.LoadUint32(round.state))
+
 			return atomic.CompareAndSwapUint32(round.state, expectedOld, newState)
 		}
 
@@ -158,8 +158,9 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 	response, ok := r.responses[commTag]
 
 	if !ok {
-		return nil, errors.WithMessage(ErrRoundDoesNotHaveResponse,
-			fmt.Sprintf("Round: %v, Input: %s", r.id, commTag))
+		errStr := fmt.Sprintf("The round does not have "+
+			"a response to the given input, Round: %v, Input: %s", r.id, commTag)
+		return nil, errors.Errorf(errStr)
 	}
 
 	phaseToCheck, err := r.GetPhase(response.GetPhaseLookup())
@@ -177,8 +178,12 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 
 		return returnPhase, nil
 	} else {
-
-		return nil, ErrPhaseInIncorrectStateToContinue
+		errStr := fmt.Sprintf("The phase \"%s\" in the given round (%v)"+
+			"\n  is at state \"%s\" which is not a valid state to proceed. "+
+			"\n  Current phase is \"%s\" at state \"%s\"",
+			phaseToCheck.GetType(), r.id, phaseToCheck.GetState(),
+			r.GetCurrentPhase().GetType(), r.GetCurrentPhase().GetState())
+		return nil, errors.New(errStr)
 	}
 }
 

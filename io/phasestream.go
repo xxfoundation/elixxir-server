@@ -44,7 +44,9 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 
 	// For each message chunk (slot) stream it out
 	for chunk, finish := getChunk(); !finish; chunk, finish = getChunk() {
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
+			fmt.Println("sending external: ", i)
 			msg := getMessage(i)
 
 			err := streamClient.Send(msg)
@@ -56,6 +58,9 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 
 	// Receive ack and cancel client streaming context
 	ack, err := streamClient.CloseAndRecv()
+
+	jww.INFO.Printf("RID %d StreamTransmitPhase FOR \"%s\" COMPLETE/SEND",
+		roundID, phaseTy)
 
 	cancel()
 

@@ -24,7 +24,8 @@ func ReceiveCreateNewRound(instance *server.Instance,
 	message *mixmessages.RoundInfo) error {
 	roundID := id.Round(message.ID)
 
-	jww.INFO.Printf("[%s]: CreateNewRound START: %d", instance, roundID)
+	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance,
+		roundID)
 
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(
@@ -46,7 +47,8 @@ func ReceiveCreateNewRound(instance *server.Instance,
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
-	jww.INFO.Printf("[%s]: CreateNewRound END: %d", instance, roundID)
+	jww.INFO.Printf("[%s]: RID %d CreateNewRound COMPLETE", instance,
+		roundID)
 
 	return nil
 }
@@ -61,13 +63,12 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 	//Check if the operation can be done and get the correct phase if it can
 	phaseTy := phase.Type(batch.ForPhase).String()
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
-	jww.INFO.Printf("[%s]: PostPhase START: %d, %s", instance, roundID,
-		phaseTy)
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v",
 			err)
 	}
-
+	jww.INFO.Printf("[%s]: RID %d PostPhase FOR \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy)
 	//queue the phase to be operated on if it is not queued yet
 	if p.AttemptTransitionToQueued() {
 		instance.GetResourceQueue().UpsertPhase(p)
@@ -88,16 +89,12 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 		jww.ERROR.Panicf("Error on PostPhase comm, should be"+
 			" able to return: %+v", err)
 	}
-	jww.INFO.Printf("[%s]: PostPhase END: %d, %s", instance, roundID,
-		phaseTy)
-
 }
 
 // ReceiveStreamPostPhase handles the state checks and edge checks of
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance) error {
-	roundID := id.Round(batch.Round.ID)
 
 	rm := instance.GetRoundManager()
 
@@ -106,16 +103,18 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 		return err
 	}
 
+	roundID := id.Round(batchInfo.Round.ID)
+
 	// Check if the operation can be done and get the correct
 	// phase if it can
-	phaseTy := phase.Type(batch.ForPhase).String()
+	phaseTy := phase.Type(batchInfo.ForPhase).String()
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
-	jww.INFO.Printf("[%s]: StreamPostPhase START: %d, %s", instance,
-		roundID, phaseTy)
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v",
 			err)
 	}
+	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FOR \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy)
 
 	//queue the phase to be operated on if it is not queued yet
 	if p.AttemptTransitionToQueued() {
@@ -131,9 +130,6 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	}
 
 	strmerr := io.StreamPostPhase(p, batchInfo.BatchSize, streamServer)
-
-	jww.INFO.Printf("[%s]: StreamPostPhase END: %d, %s", instance,
-		roundID, phaseTy)
 
 	return strmerr
 

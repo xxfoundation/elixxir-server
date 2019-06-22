@@ -36,9 +36,7 @@ func initQueue() *ResourceQueue {
 
 // UpsertPhase adds the phase to the queue to be operated on if it is not already there
 func (rq *ResourceQueue) UpsertPhase(p phase.Phase) {
-	if p.AttemptTransitionToQueued() {
-		rq.phaseQueue <- p
-	}
+	rq.phaseQueue <- p
 }
 
 // DenotePhaseCompletion send the phase which has been completed into the queue's
@@ -68,6 +66,9 @@ func (rq *ResourceQueue) run(server *Instance) {
 		case <-rq.killChan:
 			return
 		}
+
+		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
+			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 
 		//update the next phase to running
 		rq.activePhase.TransitionToRunning()

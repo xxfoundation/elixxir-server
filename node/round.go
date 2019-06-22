@@ -22,7 +22,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	generalExpectedStates := []phase.State{phase.Available, phase.Queued,
 		phase.Running}
 
-	defaultTimeout := 500 * time.Millisecond
+	defaultTimeout := 5000 * time.Millisecond
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -34,27 +34,25 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 		Timeout:             defaultTimeout,
 	}
 
-	// On every node but the first, it receives generate and executes generate,
-	// First node starts the round via its business logic so it has no
-	// receiver for the generate, the first thing in the round
-	if !topology.IsFirstNode(nodeID) {
-		responses[phase.PrecompGeneration.String()] = phase.NewResponse(
-			phase.ResponseDefinition{
-				PhaseAtSource:  phase.PrecompGeneration,
-				ExpectedStates: generalExpectedStates,
-				PhaseToExecute: phase.PrecompGeneration,
-			})
-	} else {
+	// On every node it receives generate and executes generate,
+	responses[phase.PrecompGeneration.String()] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  phase.PrecompGeneration,
+			ExpectedStates: generalExpectedStates,
+			PhaseToExecute: phase.PrecompGeneration,
+		})
+	if topology.IsFirstNode(nodeID) {
 		//TRANSITION: On first node, generate is received from the last node after
 		//every node has completed the phase, it transitions to share phase through
 		//a verification state
 		precompGenerateDefinition.DoVerification = true
-		responses[phase.PrecompGeneration.String()] = phase.NewResponse(
-			phase.ResponseDefinition{
-				PhaseAtSource:  phase.PrecompGeneration,
-				ExpectedStates: []phase.State{phase.Computed},
-				PhaseToExecute: phase.PrecompShare,
-			})
+		responses[phase.PrecompGeneration.String()+phase.Verification] =
+			phase.NewResponse(
+				phase.ResponseDefinition{
+					PhaseAtSource:  phase.PrecompGeneration,
+					ExpectedStates: []phase.State{phase.Computed},
+					PhaseToExecute: phase.PrecompShare,
+				})
 	}
 
 	/*--PRECOMP SHARE---------------------------------------------------------*/
