@@ -37,7 +37,7 @@ import (
 func StartServer(vip *viper.Viper) {
 	vip.Debug()
 
-	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("logPath"))
+	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
@@ -51,6 +51,8 @@ func StartServer(vip *viper.Viper) {
 	if err != nil {
 		jww.FATAL.Println("Unable to load params from viper")
 	}
+
+	jww.INFO.Printf("Loaded params: %v", params)
 
 	//Check that there is a gateway
 	if len(params.Gateways.Addresses) < 1 {
