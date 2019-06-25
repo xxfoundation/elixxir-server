@@ -118,7 +118,7 @@ func MockFinishRealtimeImplementation_Error() *node.Implementation {
 	return impl
 }
 
-func TestTransmiteFinishRealtime_Error(t *testing.T) {
+func TestTransmitFinishRealtime_Error(t *testing.T) {
 	//Setup the network
 	comms, topology := buildTestNetworkComponents(
 		[]*node.Implementation{
