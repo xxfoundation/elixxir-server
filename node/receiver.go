@@ -44,7 +44,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 	rm := instance.GetRoundManager()
 
 	//Check if the operation can be done and get the correct phase if it can
-	_, p, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.ForPhase).String())
+	_, p, err := rm.HandleIncomingComm(id.Round(batch.Round.ID), phase.Type(batch.FromPhase).String())
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 	}
@@ -82,7 +82,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	}
 
 	// Check if the operation can be done and get the correct phase if it can
-	_, p, err := rm.HandleIncomingComm(id.Round(batchInfo.Round.ID), phase.Type(batchInfo.ForPhase).String())
+	_, p, err := rm.HandleIncomingComm(id.Round(batchInfo.Round.ID), phase.Type(batchInfo.FromPhase).String())
 	if err != nil {
 		jww.ERROR.Panicf("Error on comm, should be able to return: %+v", err)
 	}
@@ -121,7 +121,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return err
 	}
 	newBatch.Round.ID = uint64(r.GetID())
-	newBatch.ForPhase = int32(phase.RealDecrypt)
+	newBatch.FromPhase = int32(phase.RealDecrypt)
 	_, p, err := instance.GetRoundManager().HandleIncomingComm(r.GetID(),
 		phase.RealDecrypt.String())
 	if err != nil {
@@ -188,7 +188,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		fakeBatch := &mixmessages.Batch{}
 
 		fakeBatch.Round = pk.Round
-		fakeBatch.ForPhase = int32(phase.PrecompDecrypt)
+		fakeBatch.FromPhase = int32(phase.PrecompDecrypt)
 		fakeBatch.Slots = make([]*mixmessages.Slot, batchSize)
 
 		for i := uint32(0); i < batchSize; i++ {

@@ -32,8 +32,8 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
-		ForPhase: int32(phaseTy),
-		Slots:    make([]*mixmessages.Slot, batchSize),
+		FromPhase: int32(phaseTy),
+		Slots:     make([]*mixmessages.Slot, batchSize),
 	}
 
 	// For each message chunk (slot), fill the slots buffer

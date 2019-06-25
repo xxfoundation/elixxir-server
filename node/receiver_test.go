@@ -99,7 +99,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Round: &mixmessages.RoundInfo{
 			ID: roundID,
 		},
-		ForPhase: int32(phase.RealDecrypt),
+		FromPhase: int32(phase.RealDecrypt),
 		Slots: []*mixmessages.Slot{
 			{
 				// Do the fields need to be populated?
@@ -195,7 +195,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 		Round: &mixmessages.RoundInfo{
 			ID: roundID,
 		},
-		ForPhase: int32(phase.RealDecrypt),
+		FromPhase: int32(phase.RealDecrypt),
 		Slots: []*mixmessages.Slot{
 			{
 				// Do the fields need to be populated?
@@ -264,7 +264,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 			})
 	}
 
-	mockBatch.ForPhase = int32(mockPhase.GetType())
+	mockBatch.FromPhase = int32(mockPhase.GetType())
 	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
 
 	//send the mockBatch to the impl
@@ -337,7 +337,7 @@ func (stream MockStreamPostPhaseServer) Context() context.Context {
 		Round: &mixmessages.RoundInfo{
 			ID: mockBatch.Round.ID,
 		},
-		ForPhase:  mockBatch.ForPhase,
+		FromPhase: mockBatch.FromPhase,
 		BatchSize: uint32(len(mockBatch.Slots)),
 	}
 
@@ -400,7 +400,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 			})
 	}
 
-	mockBatch.ForPhase = int32(mockPhase.GetType())
+	mockBatch.FromPhase = int32(mockPhase.GetType())
 	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
 
 	mockStreamServer := MockStreamPostPhaseServer{
@@ -684,7 +684,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	// Create expected batch
 	expectedBatch.Round = mockPk.Round
-	expectedBatch.ForPhase = int32(phase.PrecompDecrypt)
+	expectedBatch.FromPhase = int32(phase.PrecompDecrypt)
 	expectedBatch.Slots = make([]*mixmessages.Slot, batchSize)
 
 	for i := uint32(0); i < batchSize; i++ {
@@ -735,7 +735,7 @@ func batchEq(a *mixmessages.Batch, b *mixmessages.Batch) bool {
 		return false
 	}
 
-	if a.GetForPhase() != b.GetForPhase() {
+	if a.GetFromPhase() != b.GetFromPhase() {
 		return false
 	}
 
