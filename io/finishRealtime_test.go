@@ -7,7 +7,6 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -113,14 +112,13 @@ Loop:
 
 func MockFinishRealtimeImplementation_Error() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) error {
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
 		return errors.New("Test error")
 	}
 	return impl
 }
 
-//Tests that the error handeling code works properly
-func TestTransmitFinishRealtime_Error(t *testing.T) {
+func TestTransmiteFinishRealtime_Error(t *testing.T) {
 	//Setup the network
 	comms, topology := buildTestNetworkComponents(
 		[]*node.Implementation{
@@ -128,23 +126,54 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 			MockFinishRealtimeImplementation_Error(),
 			MockFinishRealtimeImplementation_Error(),
 			MockFinishRealtimeImplementation_Error(),
-			MockFinishRealtimeImplementation_Error()}, 2000)
+			MockFinishRealtimeImplementation_Error()}, 0)
 	defer Shutdown(comms)
 
-	batchSize := uint32(10)
+	const numChunks = 10
 
 	rndID := id.Round(42)
 
 	ln := server.LastNode{}
 	ln.Initialize()
 
-	err := TransmitFinishRealtime(comms[0], batchSize, rndID, phaseTy, getChunk, getMsg,
-		topology, nid, lastNode, chunkChan)
+	chunkChan := make(chan services.Chunk, numChunks)
 
-	if err == nil {
-		t.Error("SendFinishRealtime: error did not occur when provoked")
+	chunkInputChan := make(chan services.Chunk, numChunks)
+
+	getChunk := func() (services.Chunk, bool) {
+		chunk, ok := <-chunkInputChan
+		return chunk, ok
+	}
+	doneCH := make(chan struct{})
+
+	var err error
+	go func() {
+		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
+			getChunk, nil, topology, nil, &ln, chunkChan)
+		doneCH <- struct{}{}
+	}()
+
+	for i := 0; i < numChunks; i++ {
+		chunkInputChan <- services.NewChunk(uint32(i*2), uint32(i*2+1))
 	}
 
-	fmt.Println(err.Error())
+	close(chunkInputChan)
 
+	namReceivedChunks := 0
+
+	for range chunkChan {
+		namReceivedChunks++
+	}
+
+	if namReceivedChunks != numChunks {
+		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
+			"number of chunks; expected: %v, recieved: %v", numChunks,
+			namReceivedChunks)
+	}
+
+	<-doneCH
+
+	if err == nil {
+		t.Error("SendFinishRealtime: error did not occur when provoked", err)
+	}
 }
