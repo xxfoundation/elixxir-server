@@ -104,9 +104,9 @@ func TestTransmitPhase(t *testing.T) {
 			"Expected: %v, Recieved: %v", roundID, receivedBatch.Round.ID)
 	}
 
-	if phase.Type(receivedBatch.ForPhase) != phaseTy {
+	if phase.Type(receivedBatch.FromPhase) != phaseTy {
 		t.Errorf("TransmitPhase: Incorrect Phase type"+
-			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.ForPhase)
+			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.FromPhase)
 	}
 
 	if uint32(len(receivedBatch.Slots)) != batchSize {

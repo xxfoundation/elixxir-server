@@ -31,7 +31,7 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
-		ForPhase: int32(phaseTy),
+		FromPhase: int32(phaseTy),
 	}
 
 	// This gets the streaming client which used to send slots
