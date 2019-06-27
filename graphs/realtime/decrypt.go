@@ -163,12 +163,12 @@ var DecryptMul3 = services.Module{
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("RealtimeDecrypt", &KeygenDecryptStream{})
 
-	//decryptKeygen := graphs.Keygen.DeepCopy()
+	decryptKeygen := graphs.Keygen.DeepCopy()
 	decryptMul3 := DecryptMul3.DeepCopy()
 
-	//g.First(decryptKeygen)
-	//.Connect(decryptKeygen, decryptMul3)
-	g.First(decryptMul3)
+	g.First(decryptKeygen)
+	g.Connect(decryptKeygen, decryptMul3)
+	//g.First(decryptMul3)
 	g.Last(decryptMul3)
 
 	return g

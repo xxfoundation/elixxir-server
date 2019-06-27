@@ -28,6 +28,7 @@ var serverIdx int
 var batchSize uint64
 var validConfig bool
 var showVer bool
+var keepBuffers bool
 
 // If true, runs pprof http server
 var profile bool
@@ -103,15 +104,33 @@ func init() {
 		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at localhost:8087 for profiling")
+	rootCmd.Flags().BoolVarP(&keepBuffers, "keepBuffers", "k", false,
+		"maintains all old round information forever, will eventually "+
+			"run out of memory")
 	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
 		time.Second, "Determines the amount of time the  GetRoundBufferInfo"+
 			" RPC will wait before returning an error")
 
-	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
-	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
-	viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
-	viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
-	viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
+	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
+	handleFlagBingingError(err, "batchSize")
+
+	err = viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
+	handleFlagBingingError(err, "nodeID")
+
+	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
+	handleFlagBingingError(err, "profile")
+
+	err = viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
+	handleFlagBingingError(err, "index")
+
+	err = viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
+	handleFlagBingingError(err, "roundBufferTimeout")
+}
+
+func handleFlagBingingError(err error, flag string) {
+	if err != nil {
+		jww.CRITICAL.Panicf("Error on binding flat \"%s\":%+v", flag, err)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -39,13 +39,16 @@ func (*MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
 	getState phase.GetState) {
 	return
 }
-func (*MockPhase) GetGraph() *services.Graph              { return nil }
-func (*MockPhase) GetRoundID() id.Round                   { return 0 }
-func (*MockPhase) GetType() phase.Type                    { return 0 }
-func (*MockPhase) GetState() phase.State                  { return 0 }
-func (*MockPhase) AttemptTransitionToQueued() bool        { return false }
-func (*MockPhase) TransitionToRunning()                   { return }
-func (*MockPhase) UpdateFinalStates() bool                { return false }
+func (*MockPhase) GetGraph() *services.Graph { return nil }
+func (*MockPhase) GetRoundID() id.Round      { return 0 }
+func (*MockPhase) GetType() phase.Type       { return 0 }
+func (*MockPhase) GetState() phase.State     { return 0 }
+func (mp *MockPhase) AttemptToQueue(queue chan<- phase.Phase) bool {
+	queue <- mp
+	return true
+}
+func (mp *MockPhase) IsQueued() bool                      { return true }
+func (*MockPhase) UpdateFinalStates()                     { return }
 func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
 func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }

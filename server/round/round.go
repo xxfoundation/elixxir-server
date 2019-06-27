@@ -101,6 +101,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	round.topology = circuit
 
 	round.buffer = NewBuffer(grp, batchSize, maxBatchSize)
+	round.buffer.InitCryptoFields(grp)
 	round.phaseMap = make(map[phase.Type]int)
 
 	if round.topology.IsLastNode(nodeID) {

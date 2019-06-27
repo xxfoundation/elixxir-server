@@ -48,7 +48,7 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	close(chunkChan)
 
 	//signal to all nodes that the round has been completed
-	for index := 1; index < topology.Len(); index++ {
+	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)
 		go func() {

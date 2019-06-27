@@ -16,10 +16,11 @@ import (
 // For viper just use Unmarshal(&params).
 type Params struct {
 	//Node Identity Params
-	Index    int
-	Database DB
-	SkipReg  bool
-	Path     Paths
+	Index       int
+	Database    DB
+	SkipReg     bool
+	KeepBuffers bool
+	Path        Paths
 
 	//Network Identity Params
 	Batch         uint32
@@ -47,6 +48,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Database.Addresses = vip.GetStringSlice("database.addresses")
 
 	params.SkipReg = vip.GetBool("skipReg")
+	params.KeepBuffers = vip.GetBool("keepBuffers")
 
 	params.Path.Cert = vip.GetString("path.cert")
 	params.Path.GatewayCert = vip.GetString("path.gateway_cert")

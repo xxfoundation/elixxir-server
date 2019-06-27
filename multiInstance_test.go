@@ -5,6 +5,7 @@ import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/format"
@@ -14,16 +15,14 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
-	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
-	"reflect"
 	"sync"
 	"testing"
 	"time"
 )
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	MultiInstanceTest(3, 8, t)
+	MultiInstanceTest(3, 4, t)
 }
 
 func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
@@ -98,76 +97,47 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	t.Logf("Initalizing the first node, begining operations")
 	//Initialize the first node
-	localBatchSize := batchsize
-	starter := func(instance *server.Instance, rid id.Round) error {
-		newBatch := &mixmessages.Batch{
-			Slots:     make([]*mixmessages.Slot, localBatchSize),
-			FromPhase: int32(phase.PrecompGeneration),
-			Round: &mixmessages.RoundInfo{
-				ID: uint64(rid),
-			},
-		}
-		for i := 0; i < int(localBatchSize); i++ {
-			newBatch.Slots[i] = &mixmessages.Slot{}
-		}
-
-		//get the round from the instance
-		rm := instance.GetRoundManager()
-		r, err := rm.GetRound(rid)
-
-		if err != nil {
-			jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
-				"round (%v) right after round init", rid)
-		}
-
-		//get the phase
-		p := r.GetCurrentPhase()
-
-		//queue the phase to be operated on if it is not queued yet
-		p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
-		//send the data to the phase
-		err = io.PostPhase(p, newBatch)
-
-		if err != nil {
-			jww.ERROR.Panicf("Error first node generation init: "+
-				"should be able to return: %+v", err)
-		}
-		return nil
-	}
 
 	firstNode.InitFirstNode()
 	firstNode.RunFirstNode(firstNode, 10*time.Second,
-		io.TransmitCreateNewRound, starter)
+		io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
 
 	lastNode.InitLastNode()
 
 	//build a batch to send to first node
-	newbatch := mixmessages.Batch{}
+	expectedbatch := mixmessages.Batch{}
+	ecrbatch := mixmessages.Batch{}
 	for i := 0; i < batchsize; i++ {
 		//make the salt
 		salt := make([]byte, 32)
 		binary.BigEndian.PutUint64(salt[0:8], uint64(100+6*i))
 
 		//make the payload
-		payload := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(32)
-		fmt.Println(payload)
+		payloadA := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(format.PayloadLen)
+		payloadB := grp.NewIntFromUInt(uint64((513 + i) * 256)).LeftpadBytes(format.PayloadLen)
 
 		//make the message
 		msg := format.NewMessage()
-		msg.Payload.SetPayload(payload)
-		msg.AssociatedData.SetRecipientID(salt)
+		msg.SetPayloadA(payloadA)
+		msg.SetPayloadB(payloadB)
 
 		//encrypt the message
-		//		ecrMsg := cmix.ClientEncryptDecrypt(true, grp, msg, salt, baseKeys)
+		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
 
 		//make the slot
+		ecrslot := &mixmessages.Slot{}
+		ecrslot.MessagePayload = ecrMsg.GetPayloadA()
+		ecrslot.AssociatedData = ecrMsg.GetPayloadB()
+		ecrslot.SenderID = userID.Bytes()
+		ecrslot.Salt = salt
+		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)
+
 		slot := &mixmessages.Slot{}
-		slot.MessagePayload = msg.SerializePayload()
-		slot.AssociatedData = msg.SerializeAssociatedData()
+		slot.MessagePayload = msg.GetPayloadA()
+		slot.AssociatedData = msg.GetPayloadB()
 		slot.SenderID = userID.Bytes()
 		slot.Salt = salt
-		newbatch.Slots = append(newbatch.Slots, slot)
+		expectedbatch.Slots = append(expectedbatch.Slots, slot)
 	}
 
 	//wait until the first node is ready for a batch
@@ -183,7 +153,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 
 	//send the batch to the node
-	err = node.ReceivePostNewBatch(firstNode, &newbatch)
+	err = node.ReceivePostNewBatch(firstNode, &ecrbatch)
 
 	if err != nil {
 		t.Errorf("MultiNode Test: Error returned from first node "+
@@ -202,7 +172,8 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	//get round buffers for probing
 	var roundBufs []*round.Buffer
 	for _, instance := range instances {
-		roundBufs = append(roundBufs, getRoundBuf(instance, 0))
+		r, _ := instance.GetRoundManager().GetRound(0)
+		roundBufs = append(roundBufs, r.GetBuffer())
 	}
 
 	//build i/o map of permutations
@@ -221,12 +192,12 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	for i := 0; i < batchsize; i++ {
 
-		inputSlot := newbatch.Slots[i]
+		inputSlot := expectedbatch.Slots[i]
 		outputSlot := completedBatch.Slots[permutationMapping[i]]
 
 		success := true
 
-		if !reflect.DeepEqual(inputSlot.MessagePayload, outputSlot.MessagePayload) {
+		if grp.NewIntFromBytes(inputSlot.MessagePayload).Cmp(grp.NewIntFromBytes(outputSlot.MessagePayload)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload A did "+
 				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
 				grp.NewIntFromBytes(inputSlot.MessagePayload).Text(16),
@@ -234,7 +205,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 			success = false
 		}
 
-		if !reflect.DeepEqual(inputSlot.AssociatedData, outputSlot.AssociatedData) {
+		if grp.NewIntFromBytes(inputSlot.AssociatedData).Cmp(grp.NewIntFromBytes(outputSlot.AssociatedData)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload B did "+
 				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
 				grp.NewIntFromBytes(inputSlot.AssociatedData).Text(16),
@@ -256,8 +227,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//---CHECK PRECOMPUTATION---------------------------------------------------
 
-	//SHARE PHASE
-
+	//SHARE PHASE=
 	pk := roundBufs[0].CypherPublicKey.DeepCopy()
 	//test that all nodes have the same PK
 	for itr, buf := range roundBufs {
@@ -330,11 +300,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 }
 
-func getRoundBuf(instance *server.Instance, id id.Round) *round.Buffer {
-	r, _ := instance.GetRoundManager().GetRound(0)
-	return r.GetBuffer()
-}
-
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*conf.Params {
 
 	//generate IDs and addresses
@@ -365,6 +330,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			NodeIDs:       nidLst,
 			Batch:         uint32(batchsize),
 			Index:         i,
+			KeepBuffers:   true,
 		}
 
 		paramsLst = append(paramsLst, &param)

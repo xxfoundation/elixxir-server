@@ -20,7 +20,6 @@ import (
 )
 
 var mockStreamSlotIndex int
-var receiveStreamServer mixmessages.Node_StreamPostPhaseServer
 
 type MockStreamPostPhaseServer struct {
 	batch mixmessages.Batch
@@ -121,9 +120,9 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 	getChunk := func() (services.Chunk, bool) {
 		if chunkCnt < batchSize {
-			chunk, ok := services.NewChunk(chunkCnt, chunkCnt+1), true
+			chunk, _ := services.NewChunk(chunkCnt, chunkCnt+1), true
 			chunkCnt++
-			return chunk, ok
+			return chunk, true
 		}
 		return services.NewChunk(0, 0), false
 	}
@@ -149,9 +148,9 @@ func TestStreamTransmitPhase(t *testing.T) {
 			"Expected: %v, Recieved: %v", roundID, receivedBatch.Round.ID)
 	}
 
-	if phase.Type(receivedBatch.ForPhase) != phaseTy {
+	if phase.Type(receivedBatch.FromPhase) != phaseTy {
 		t.Errorf("StreamTransmitPhase: Incorrect Phase type"+
-			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.ForPhase)
+			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.FromPhase)
 	}
 
 	if uint32(len(receivedBatch.Slots)) != batchSize {
@@ -196,9 +195,9 @@ func mockStreamPostPhase(stream mixmessages.Node_StreamPostPhaseServer) error {
 			// Create batch using batch info header
 			// and temporary slot buffer contents
 			receivedBatch = &mixmessages.Batch{
-				Round:    batchInfo.Round,
-				ForPhase: batchInfo.ForPhase,
-				Slots:    slots,
+				Round:     batchInfo.Round,
+				FromPhase: batchInfo.FromPhase,
+				Slots:     slots,
 			}
 
 			err = stream.SendAndClose(&ack)

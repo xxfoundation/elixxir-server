@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -25,7 +24,6 @@ func (cr *CompletedRound) GetChunk() (services.Chunk, bool) {
 }
 
 func (ln *LastNode) Initialize() {
-	fmt.Println("initing last node")
 	ln.once.Do(func() {
 		ln.completedBatchQueue = make(chan *CompletedRound, 10)
 	})

@@ -87,6 +87,11 @@ func (i *Instance) GetSkipReg() bool {
 	return i.params.SkipReg
 }
 
+//GetKeepBuffers returns if buffers are to be held on it
+func (i *Instance) GetKeepBuffers() bool {
+	return i.params.KeepBuffers
+}
+
 //GetRegServerPubKey returns the public key of the registration server
 func (i *Instance) GetRegServerPubKey() *signature.DSAPublicKey {
 	return i.regServerPubKey
@@ -255,9 +260,9 @@ func (i *Instance) Run() {
 }
 
 func (i *Instance) String() string {
-	id := i.thisNode
+	nid := i.thisNode
 	numNodes := i.topology.Len()
-	myLoc := i.topology.GetNodeLocation(id)
+	myLoc := i.topology.GetNodeLocation(nid)
 	// TODO: IP Address an dlistening port would be helpful!
 	return services.NameStringer("HostUnknown:PortUnknown", myLoc, numNodes)
 }

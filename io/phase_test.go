@@ -79,9 +79,9 @@ func TestTransmitPhase(t *testing.T) {
 
 	getChunk := func() (services.Chunk, bool) {
 		if chunkCnt < batchSize {
-			chunk, ok := services.NewChunk(chunkCnt, chunkCnt+1), true
+			chunk := services.NewChunk(chunkCnt, chunkCnt+1)
 			chunkCnt++
-			return chunk, ok
+			return chunk, true
 		}
 		return services.NewChunk(0, 0), false
 	}
@@ -104,9 +104,9 @@ func TestTransmitPhase(t *testing.T) {
 			"Expected: %v, Recieved: %v", roundID, receivedBatch.Round.ID)
 	}
 
-	if phase.Type(receivedBatch.ForPhase) != phaseTy {
+	if phase.Type(receivedBatch.FromPhase) != phaseTy {
 		t.Errorf("TransmitPhase: Incorrect Phase type"+
-			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.ForPhase)
+			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.FromPhase)
 	}
 
 	if uint32(len(receivedBatch.Slots)) != batchSize {

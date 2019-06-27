@@ -33,8 +33,8 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
-		ForPhase: int32(phaseTy),
-		Slots:    make([]*mixmessages.Slot, batchSize),
+		FromPhase: int32(phaseTy),
+		Slots:     make([]*mixmessages.Slot, batchSize),
 	}
 
 	// For each message chunk (slot), fill the slots buffer
@@ -70,7 +70,7 @@ func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 		err := p.Input(curIdx, message)
 		if err != nil {
 			return errors.Errorf("Error on Round %v, phase \"%s\" "+
-				"slot %d, contents: %v: %v", batch.Round.ID, phase.Type(batch.ForPhase),
+				"slot %d, contents: %v: %v", batch.Round.ID, phase.Type(batch.FromPhase),
 				curIdx, message, err)
 		}
 		chunk := services.NewChunk(curIdx, curIdx+1)

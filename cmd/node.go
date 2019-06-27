@@ -8,15 +8,12 @@
 package cmd
 
 import (
-	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/phase"
 	"time"
 
 	//"encoding/binary"
@@ -96,26 +93,7 @@ func StartServer(vip *viper.Viper) {
 	//Start runners for first node
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
-
-		batchSize := params.Batch
-
-		starter := func(instance *server.Instance, rid id.Round) error {
-			newBatch := &mixmessages.Batch{
-				Slots:    make([]*mixmessages.Slot, batchSize),
-				ForPhase: int32(phase.PrecompGeneration),
-				Round: &mixmessages.RoundInfo{
-					ID: uint64(rid),
-				},
-			}
-			for i := 0; i < int(batchSize); i++ {
-				newBatch.Slots[i] = &mixmessages.Slot{}
-			}
-
-			node.ReceivePostPhase(newBatch, instance)
-			return nil
-		}
-
 		instance.RunFirstNode(instance, 10*time.Second,
-			io.TransmitCreateNewRound, starter)
+			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 }
