@@ -98,8 +98,14 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		maxBatchSize = batchSize
 	}
 
+	round.topology = circuit
+
 	round.buffer = NewBuffer(grp, batchSize, maxBatchSize)
 	round.phaseMap = make(map[phase.Type]int)
+
+	if round.topology.IsLastNode(nodeID) {
+		round.buffer.InitLastNode()
+	}
 
 	for index, p := range phases {
 		p.GetGraph().Link(grp, round.GetBuffer(), userDB, csprng.NewSystemRNG)
@@ -110,16 +116,10 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 
 	copy(round.phases[:], phases[:])
 
-	round.topology = circuit
-
-	if round.topology.IsLastNode(nodeID) {
-		round.buffer.InitLastNode()
-	}
-
 	round.responses = responses
 
 	//set the state of the first phase to available
-	success := atomic.CompareAndSwapUint32(round.state, uint32(phase.Initialized), uint32(phase.Available))
+	success := atomic.CompareAndSwapUint32(round.state, uint32(phase.Initialized), uint32(phase.Active))
 	if !success {
 		jww.FATAL.Println("phase state initialization failed")
 	}
@@ -145,9 +145,13 @@ func (r *Round) GetPhase(p phase.Type) (phase.Phase, error) {
 	return r.phases[i], nil
 }
 
+func (r *Round) GetCurrentPhaseType() phase.Type {
+	return phase.Type((atomic.LoadUint32(r.state) - 1) /
+		(uint32(phase.NumStates) - 2))
+}
+
 func (r *Round) GetCurrentPhase() phase.Phase {
-	phase := atomic.LoadUint32(r.state) / uint32(phase.NumStates)
-	return r.phases[phase]
+	return r.phases[r.GetCurrentPhaseType()]
 }
 
 func (r *Round) GetTopology() *circuit.Circuit {
@@ -178,11 +182,11 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 
 		return returnPhase, nil
 	} else {
-		errStr := fmt.Sprintf("The phase \"%s\" in the given round (%v)"+
-			"\n  is at state \"%s\" which is not a valid state to proceed. "+
-			"\n  Current phase is \"%s\" at state \"%s\"",
+		errStr := fmt.Sprintf("The lookup phase \"%s\" in the given "+
+			"round (%v) is at state \"%s\" which is \n not a valid state to "+
+			"proceed to phase %s. \n valid states are: %v",
 			phaseToCheck.GetType(), r.id, phaseToCheck.GetState(),
-			r.GetCurrentPhase().GetType(), r.GetCurrentPhase().GetState())
+			response.GetReturnPhase(), response.GetExpectedStates())
 		return nil, errors.New(errStr)
 	}
 }

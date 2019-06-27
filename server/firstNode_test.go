@@ -61,8 +61,8 @@ func TestFirstNode_roundCreationRunner(t *testing.T) {
 
 	fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(nil, nil, 2*time.Millisecond,
-		mockTransmitter)
+	fn.roundCreationRunner(nil, 2*time.Millisecond,
+		mockTransmitter, nil)
 }
 
 // tests roundCreationRunner stops timeout when waiting a short
@@ -82,8 +82,8 @@ func TestFirstNode_roundCreationRunner_wait(t *testing.T) {
 			}
 		}()
 
-		fn.roundCreationRunner(nil, nil, 5*time.Millisecond,
-			mockTransmitter)
+		fn.roundCreationRunner(nil, 5*time.Millisecond,
+			mockTransmitter, nil)
 
 	}()
 
@@ -111,8 +111,8 @@ func TestFirstNode_roundCreationRunner_Timeout(t *testing.T) {
 
 	//fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(nil, nil, 2*time.Millisecond,
-		mockTransmitter)
+	fn.roundCreationRunner(nil, 2*time.Millisecond,
+		mockTransmitter, nil)
 
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
 }
@@ -136,8 +136,8 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 
 	fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(nil, nil, 2*time.Millisecond,
-		mockTransmitter_Error)
+	fn.roundCreationRunner(nil, 2*time.Millisecond,
+		mockTransmitter_Error, nil)
 
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
 }

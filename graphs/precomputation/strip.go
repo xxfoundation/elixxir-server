@@ -25,12 +25,12 @@ type StripStream struct {
 	Grp *cyclic.Group
 
 	// Link to round object
-	MessagePrecomputation *cyclic.IntBuffer
-	ADPrecomputation      *cyclic.IntBuffer
+	MessagePrecomputation          *cyclic.IntBuffer
+	ADPrecomputation               *cyclic.IntBuffer
+	EncryptedMessagePrecomputation []*cyclic.Int
+	EncryptedADPrecomputation      []*cyclic.Int
 
 	// Unique to stream
-	KeysMsg   *cyclic.IntBuffer
-	KeysAD    *cyclic.IntBuffer
 	CypherMsg *cyclic.IntBuffer
 	CypherAD  *cyclic.IntBuffer
 
@@ -49,15 +49,13 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	ss.LinkPrecompStripStream(grp, batchSize, roundBuffer,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 
 }
 
 func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	batchSize uint32, roundBuf *round.Buffer,
-	cypherMsg, cypherAD, keysMsg, keysAD *cyclic.IntBuffer) {
+	cypherMsg, cypherAD *cyclic.IntBuffer) {
 
 	ss.Grp = grp
 
@@ -65,9 +63,9 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 		0, batchSize)
 	ss.ADPrecomputation = roundBuf.ADPrecomputation.GetSubBuffer(
 		0, batchSize)
+	ss.EncryptedMessagePrecomputation = roundBuf.PermutedMessageKeys
+	ss.EncryptedADPrecomputation = roundBuf.PermutedADKeys
 
-	ss.KeysMsg = keysMsg
-	ss.KeysAD = keysAD
 	ss.CypherMsg = cypherMsg
 	ss.CypherAD = cypherAD
 
@@ -105,14 +103,12 @@ func (ss *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns a cmix slot message
 func (ss *StripStream) Output(index uint32) *mixmessages.Slot {
-
 	return &mixmessages.Slot{
 		Index: index,
-		PartialMessageCypherText: ss.CypherMsg.Get(
+		PartialMessageCypherText: ss.MessagePrecomputation.Get(
 			index).Bytes(),
-		PartialAssociatedDataCypherText: ss.CypherAD.Get(index).Bytes(),
+		PartialAssociatedDataCypherText: ss.ADPrecomputation.Get(index).Bytes(),
 	}
-
 }
 
 // StripInverse is a module in precomputation strip implementing
@@ -133,10 +129,10 @@ var StripInverse = services.Module{
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
 			// Eq 16.1: Invert the round message private key
-			inverse(ss.Grp, ss.KeysMsg.Get(i), ss.KeysMsg.Get(i))
+			inverse(ss.Grp, ss.EncryptedMessagePrecomputation[i], ss.MessagePrecomputation.Get(i))
 
 			// Eq 16.2: Invert the round associated data private key
-			inverse(ss.Grp, ss.KeysAD.Get(i), ss.KeysAD.Get(i))
+			inverse(ss.Grp, ss.EncryptedADPrecomputation[i], ss.ADPrecomputation.Get(i))
 
 		}
 		return nil
@@ -166,19 +162,15 @@ var StripMul2 = services.Module{
 			//          to remove the homomorphic encryption from
 			//          encrypted message key and reveal the message
 			//          precomputation
-			mul2(ss.Grp, ss.CypherMsg.Get(i),
-				ss.KeysMsg.Get(i))
-			ss.Grp.Set(ss.MessagePrecomputation.Get(i),
-				ss.KeysMsg.Get(i))
+
+			mul2(ss.Grp, ss.CypherMsg.Get(i), ss.MessagePrecomputation.Get(i))
 
 			// Eq 16.2: Use the inverted round associated data
 			//          private key to remove the homomorphic
 			//          encryption from encrypted associated data
 			//          key and reveal the associated data
 			//          precomputation
-			mul2(ss.Grp, ss.CypherAD.Get(i),
-				ss.KeysAD.Get(i))
-			ss.Grp.Set(ss.ADPrecomputation.Get(i), ss.KeysAD.Get(i))
+			mul2(ss.Grp, ss.CypherAD.Get(i), ss.ADPrecomputation.Get(i))
 		}
 		return nil
 	},

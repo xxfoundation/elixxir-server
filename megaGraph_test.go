@@ -769,7 +769,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 		cypherMsg, keysAD, cypherAD, keysMsgPermuted, cypherMsgPermuted,
 		keysADPermuted, cypherADPermuted)
 	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg,
-		cypherAD, keysMsg, keysAD)
+		cypherAD)
 
 	//Generate Passthroughs for realtime
 	ecrMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))

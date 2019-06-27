@@ -7,6 +7,7 @@
 package node
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -64,23 +65,36 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 	phaseTy := phase.Type(batch.ForPhase).String()
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.ERROR.Panicf("Error on comm, should be able to return: %+v",
-			err)
+		jww.ERROR.Panicf("[%s]: Error on reception of "+
+			"PostPhase comm, should be able to return: \n %+v",
+			instance, err)
 	}
-	jww.INFO.Printf("[%s]: RID %d PostPhase FOR \"%s\" RECIEVE/START", instance,
-		roundID, phaseTy)
+	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
-	if p.AttemptTransitionToQueued() {
-		instance.GetResourceQueue().UpsertPhase(p)
-	}
+	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
 	//HACK HACK HACK
-	//The share phase needs a batchsize of 1, when it recieves
+	//The share phase needs a batchsize of 1, when it receives
 	// from generation on the first node this will do the
 	// conversion on the batch
 	if p.GetType() == phase.PrecompShare && len(batch.Slots) != 1 {
 		batch.Slots = batch.Slots[:1]
+		batch.Slots[0].PartialRoundPublicCypherKey =
+			instance.GetGroup().GetG().Bytes()
+		jww.INFO.Printf("[%s]: RID %d PostPhase PRECOMP SHARE HACK "+
+			"HACK HACK", instance, roundID)
 	}
+
+	if p.GetType() == phase.PrecompReveal {
+		for _, slot := range batch.Slots {
+			fmt.Println("NID", instance.GetTopology().GetNodeLocation(instance.GetID()),
+				"cypherText:", instance.GetGroup().NewIntFromBytes(slot.PartialMessageCypherText).Text(16))
+		}
+
+	}
+
+	batch.ForPhase = int32(p.GetType())
 
 	//send the data to the phase
 	err = io.PostPhase(p, batch)
@@ -110,16 +124,15 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	phaseTy := phase.Type(batchInfo.ForPhase).String()
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.ERROR.Panicf("Error on comm, should be able to return: %+v",
-			err)
+		jww.ERROR.Panicf("[%s]: Error on reception of "+
+			"StreamPostPhase comm, should be able to return: \n %+v",
+			instance, err)
 	}
-	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FOR \"%s\" RECIEVE/START", instance,
-		roundID, phaseTy)
+	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy, p.GetType())
 
 	//queue the phase to be operated on if it is not queued yet
-	if p.AttemptTransitionToQueued() {
-		instance.GetResourceQueue().UpsertPhase(p)
-	}
+	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
 	//HACK HACK HACK
 	//The share phase needs a batchsize of 1, when it recieves
@@ -145,45 +158,50 @@ func ReceivePostNewBatch(instance *server.Instance,
 	// return value of the PostNewBatch comm.
 	r, ok := instance.GetCompletedPrecomps().Pop()
 	if !ok {
-		err := errors.New(
-			"ReceivePostNewBatch(): No precomputation available")
+		err := errors.New(fmt.Sprintf(
+			"[%s]: ReceivePostNewBatch(): No precomputation available",
+			instance))
 		// This round should be at a state where its precomp
 		// is complete. So, we might want more than one
 		// phase, since it's at a boundary between phases.
 		jww.ERROR.Print(err)
 		return err
 	}
-	newBatch.Round.ID = uint64(r.GetID())
-	jww.INFO.Printf("[%s]: PostNewBatch START: %d", instance,
+	newBatch.Round = &mixmessages.RoundInfo{
+		ID: uint64(r.GetID()),
+	}
+
+	jww.INFO.Printf("[%s]: RID %d PostNewBatch START", instance,
 		newBatch.Round.ID)
 
-	newBatch.ForPhase = int32(phase.RealDecrypt)
-	_, p, err := instance.GetRoundManager().HandleIncomingComm(r.GetID(),
-		phase.RealDecrypt.String())
+	p, err := r.GetPhase(phase.RealDecrypt)
+
 	if err != nil {
 		jww.ERROR.Panicf(
-			"Error handling incoming PostNewBatch comm: %v", err)
+			"[%s]: RID %d Error on incoming PostNewBatch comm, could "+
+				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
+			phase.RealDecrypt, err)
+	}
+
+	if p.GetState() != phase.Active {
+		jww.ERROR.Panicf(
+			"[%s]: RID %d Error on incoming PostNewBatch comm, phase "+
+				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
+			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
 	}
 
 	// Queue the phase if it hasn't been done yet
-	if p.AttemptTransitionToQueued() {
-		instance.GetResourceQueue().UpsertPhase(p)
+	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
+
+	err = io.PostPhase(p, newBatch)
+
+	if err != nil {
+		jww.CRITICAL.Panicf("[%s]: RID %d Error on incoming PostNewBatch comm at io"+
+			"PostPhase", instance, newBatch.Round.ID)
 	}
 
-	for i := 0; i < len(newBatch.Slots); i++ {
-		err := p.Input(uint32(i), newBatch.Slots[i])
-		if err != nil {
-			// TODO All of the slots that didn't make it
-			// for some reason should get put in a list so
-			// the gateway can tell the clients that there
-			// was a problem In the meantime, we're just
-			// logging the error
-			jww.ERROR.Print(errors.Wrapf(err,
-				"Slot %v failed for realtime decrypt.", i))
-		}
-	}
 	// TODO send all the slot IDs that didn't make it back to the gateway
-	jww.INFO.Printf("[%s]: PostNewBatch END: %d", instance,
+	jww.INFO.Printf("[%s]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
 	return nil
@@ -196,7 +214,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	pk *mixmessages.RoundPublicKey, impl *node.Implementation) {
 
 	roundID := id.Round(pk.Round.ID)
-	jww.INFO.Printf("[%s]: PostRoundPublicKey START: %d", instance,
+	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey START", instance,
 		roundID)
 
 	rm := instance.GetRoundManager()
@@ -204,24 +222,24 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	tag := phase.PrecompShare.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
-		jww.ERROR.Panicf("Error on comm, should be able to return: %+v",
-			err)
-	}
-
-	// Queue the phase to be operated on if it is not queued yet
-	// Why does this need to be done? Wouldn't the phase have already been
-	// run before the verification step happens?
-	if p.AttemptTransitionToQueued() {
-		instance.GetResourceQueue().UpsertPhase(p)
+		jww.ERROR.Panicf("[%s]: Error on reception of "+
+			"PostRoundPublicKey comm, should be able to return: \n %+v",
+			instance, err)
 	}
 
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
-		jww.ERROR.Panicf("Error on PostRoundPublicKey comm, should"+
-			" be able to return: %+v", err)
+		jww.ERROR.Panicf("[%s]: Error on posting PostRoundPublicKey "+
+			"to io, should be able to return: %+v", instance, err)
 	}
 
-	instance.GetResourceQueue().DenotePhaseCompletion(p)
+	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey PK is: %s",
+		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))
+
+	p.UpdateFinalStates()
+
+	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey END", instance,
+		roundID)
 
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
 		// We need to make a fake batch here because
@@ -233,26 +251,45 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		// support this edge case.
 
 		batchSize := r.GetBuffer().GetBatchSize()
-		fakeBatch := &mixmessages.Batch{}
+		blankBatch := &mixmessages.Batch{}
 
-		fakeBatch.Round = pk.Round
-		fakeBatch.ForPhase = int32(phase.PrecompDecrypt)
-		fakeBatch.Slots = make([]*mixmessages.Slot, batchSize)
+		blankBatch.Round = pk.Round
+		blankBatch.ForPhase = int32(phase.PrecompDecrypt)
+		blankBatch.Slots = make([]*mixmessages.Slot, batchSize)
 
 		for i := uint32(0); i < batchSize; i++ {
-			fakeBatch.Slots[i] = &mixmessages.Slot{
+			blankBatch.Slots[i] = &mixmessages.Slot{
 				EncryptedMessageKeys:            []byte{1},
 				EncryptedAssociatedDataKeys:     []byte{1},
 				PartialMessageCypherText:        []byte{1},
 				PartialAssociatedDataCypherText: []byte{1},
 			}
 		}
+		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
+		if err != nil {
+			jww.ERROR.Panicf("Error on first node PostRoundPublicKey "+
+				"comm, should be able to get decrypt phase: %+v", err)
+		}
 
-		impl.Functions.PostPhase(fakeBatch)
+		jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance,
+			roundID, decrypt.GetType())
+
+		queued :=
+			decrypt.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
+
+		if !queued {
+			jww.ERROR.Panicf("Error on first node PostRoundPublicKey " +
+				"comm, should be able to queue decrypt phase")
+		}
+
+		err = io.PostPhase(decrypt, blankBatch)
+
+		if err != nil {
+			jww.ERROR.Panicf("Error on first node PostRoundPublicKey "+
+				"comm, should be able to post to decrypt phase: %+v", err)
+		}
 
 	}
-	jww.INFO.Printf("[%s]: PostRoundPublicKey END: %d", instance,
-		roundID)
 
 }
 
@@ -261,7 +298,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot) error {
 
-	jww.INFO.Printf("[%s]: PostPrecompResult START: %d", instance,
+	jww.INFO.Printf("[%s]: RID %d PostPrecompResult START", instance,
 		roundID)
 
 	rm := instance.GetRoundManager()
@@ -269,21 +306,23 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.ERROR.Panicf("Error on comm, should be able to return: %+v",
-			err)
+		jww.ERROR.Panicf("[%s]: Error on reception of "+
+			"PostPrecompResult comm, should be able to return: \n %+v",
+			instance, err)
 	}
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-	instance.GetResourceQueue().DenotePhaseCompletion(p)
+
+	p.UpdateFinalStates()
 	// Now, this round has completed this precomputation,
 	// so we can push it on the precomp queue if this is the first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
 		instance.GetCompletedPrecomps().Push(r)
 	}
-	jww.INFO.Printf("[%s]: PostPrecompResult END: %d", instance,
+	jww.INFO.Printf("[%s]: RID %d PostPrecompResult END", instance,
 		roundID)
 	return nil
 }
@@ -300,20 +339,25 @@ func ReceiveFinishRealtime(instance *server.Instance,
 
 	rm := instance.GetRoundManager()
 
-	tag := "Completed"
-	rnd, _, err := rm.HandleIncomingComm(id.Round(roundID), tag)
+	tag := phase.RealPermute.String() + "Verification"
+	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
+
 	if err != nil {
-		return err
+		jww.ERROR.Panicf("[%s]: Error on reception of "+
+			"FinishRealtime comm, should be able to return: \n %+v",
+			instance, err)
 	}
 
+	p.UpdateFinalStates()
+
 	//release the round's data
-	rnd.GetBuffer().Erase()
+	//r.GetBuffer().Erase()
 
 	//delete the round from the manager
-	rm.DeleteRound(roundID)
+	//rm.DeleteRound(roundID)
 
 	//Send the finished signal on first node
-	if rnd.GetTopology().IsFirstNode(instance.GetID()) {
+	if r.GetTopology().IsFirstNode(instance.GetID()) {
 		instance.FinishRound(roundID)
 	}
 	jww.INFO.Printf("[%s]: ReceiveFinishRealtime END: %d", instance,

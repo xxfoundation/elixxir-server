@@ -101,41 +101,8 @@ func TestNew(t *testing.T) {
 		t.Error("Current phase should have been realtime permute")
 	}
 	// Try getting and setting the state of the phase
-	if round.GetCurrentPhase().GetState() != phase.Available {
+	if round.GetCurrentPhase().GetState() != phase.Active {
 		t.Errorf("phase's state is %v, should have been Available",
 			round.GetCurrentPhase().GetState())
-	}
-	// This should fail...
-	panicChan := make(chan bool)
-
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				panicChan <- false
-				return
-			}
-			t.Errorf("Round: should be unreachable code")
-		}()
-		round.GetCurrentPhase().TransitionToRunning()
-		panicChan <- true
-	}()
-
-	runningSuccess := <-panicChan
-	if runningSuccess {
-		t.Error("Shouldn't have been able to successfully increment phase to" +
-			" Queued")
-	}
-	// and the state should remain Initialized
-	if round.GetCurrentPhase().GetState() != phase.Available {
-		t.Error("phase's state should have remained Available")
-	}
-
-	// However, setting the state to Queued should succeed
-	if !round.GetCurrentPhase().AttemptTransitionToQueued() {
-		t.Error("Should have been able to take state from Available to Queued")
-	}
-	// And, the state should be set to Queued
-	if round.GetCurrentPhase().GetState() != phase.Queued {
-		t.Error("phase's state should be Queued")
 	}
 }

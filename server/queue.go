@@ -35,8 +35,8 @@ func initQueue() *ResourceQueue {
 }
 
 // UpsertPhase adds the phase to the queue to be operated on if it is not already there
-func (rq *ResourceQueue) UpsertPhase(p phase.Phase) {
-	rq.phaseQueue <- p
+func (rq *ResourceQueue) GetPhaseQueue() chan<- phase.Phase {
+	return rq.phaseQueue
 }
 
 // DenotePhaseCompletion send the phase which has been completed into the queue's
@@ -70,18 +70,17 @@ func (rq *ResourceQueue) run(server *Instance) {
 		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 
-		//update the next phase to running
-		rq.activePhase.TransitionToRunning()
-
 		runningPhase := rq.activePhase
 
 		//Build the chunk accessor which will also increment the queue when appropriate
 		var getChunk phase.GetChunk
 		getChunk = func() (services.Chunk, bool) {
 			chunk, ok := runningPhase.GetGraph().GetOutput()
+			//fmt.Println(runningPhase.GetType(), "chunk:", chunk, "ok:", ok)
 			//Fixme: add a method to killChan this directly
 			if !ok {
 				//send the phase into the channel to denote it is complete
+				runningPhase.UpdateFinalStates()
 				rq.DenotePhaseCompletion(runningPhase)
 			}
 			return chunk, ok
@@ -99,7 +98,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 
-			err := handler()(server.GetNetwork(), curRound.GetBuffer().GetBatchSize(),
+			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
 				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
 				curRound.GetTopology(),
@@ -119,42 +118,42 @@ func (rq *ResourceQueue) run(server *Instance) {
 		var rtnPhase phase.Phase
 		timeout := false
 
-		//wait until a phase completes or it's timeout is reached
-		completed := false
-
-		for !completed {
-			select {
-			case rtnPhase = <-rq.finishChan:
-			case <-rq.timer.C:
-				timeout = true
-			case <-rq.killChan:
-				return
-			}
-
-			//process timeout
-			if timeout {
-				//FIXME: also killChan the transmission handler
-				kill := rq.activePhase.GetGraph().Kill()
-				if kill {
-					jww.CRITICAL.Printf("Graph %v of phase %v of round %v was killed due to timeout",
-						rq.activePhase.GetGraph().GetName(), rq.activePhase.GetType().String(), rq.activePhase.GetRoundID())
-					//FIXME: send killChan round message
-				} else {
-					jww.FATAL.Panicf("Graph %v of phase %v of round %v could not be killed after timeout",
-						rq.activePhase.GetGraph().GetName(), rq.activePhase.GetType().String(), rq.activePhase.GetRoundID())
-				}
-			}
-
-			//check that the correct phase is ending
-			if !rq.activePhase.Cmp(rtnPhase) {
-				jww.FATAL.Panicf("phase %s of round %v is currently running, "+
-					"a killChan message of %s cannot be processed", rq.activePhase.GetType().String(),
-					rq.activePhase.GetRoundID(), rtnPhase)
-			}
-
-			//update the ending phase to the next phase which also allows the next phase in the round to run
-			//fixme: what do we do about the timer if there is another step to completion
-			completed = rtnPhase.UpdateFinalStates()
+		select {
+		case rtnPhase = <-rq.finishChan:
+		case <-rq.timer.C:
+			timeout = true
+		case <-rq.killChan:
+			return
 		}
+
+		//process timeout
+		if timeout {
+			jww.CRITICAL.Printf("[%s]: RID %d Graph %s of phase %s has timed out",
+				server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
+				rq.activePhase.GetType().String())
+			//FIXME: also killChan the transmission handler
+			kill := rq.activePhase.GetGraph().Kill()
+			if kill {
+				jww.CRITICAL.Printf("[%s]: RID %d Graph %s of phase %s killed due to timeout",
+					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
+					rq.activePhase.GetType().String())
+				//FIXME: send killChan round message
+			} else {
+				jww.FATAL.Panicf("[%s]: RID %d Graph %s of phase %scould not be killed after timeout",
+					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
+					rq.activePhase.GetType().String())
+			}
+		}
+
+		//check that the correct phase is ending
+		if !rq.activePhase.Cmp(rtnPhase) {
+			jww.FATAL.Panicf("INCORRECT PHASE RECIEVED phase %s of "+
+				"round %v is currently running, a completion signal of %s "+
+				" cannot be processed", rq.activePhase.GetType(),
+				rq.activePhase.GetRoundID(), rtnPhase.GetType())
+		}
+
+		jww.INFO.Printf("[%s]: RID %d Finishing execution of Phase \"%s\"", server,
+			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 	}
 }

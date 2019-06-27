@@ -10,7 +10,6 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -41,15 +40,17 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
-	for chunk, finish := getChunk(); !finish; chunk, finish = getChunk() {
+	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 			batch.Slots[i] = msg
 		}
 	}
 
-	jww.INFO.Printf("RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
-		roundID, phaseTy)
+	name := services.NameStringer("HostUnknown:PortUnknown",
+		topology.GetNodeLocation(nodeID), topology.Len())
+	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
+		name, roundID, phaseTy)
 
 	// Make sure the comm doesn't return an Ack with an error message
 	ack, err := network.SendPostPhase(recipient, batch)
@@ -64,12 +65,13 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 
 	// Send a chunk per slot
-	for index, messages := range batch.Slots {
-		fmt.Println("sending internal: ", index)
+	for index, message := range batch.Slots {
 		curIdx := uint32(index)
-		err := p.Input(curIdx, messages)
+		err := p.Input(curIdx, message)
 		if err != nil {
-			return errors.Errorf("Error on slot %d: %v", curIdx, err)
+			return errors.Errorf("Error on Round %v, phase \"%s\" "+
+				"slot %d, contents: %v: %v", batch.Round.ID, phase.Type(batch.ForPhase),
+				curIdx, message, err)
 		}
 		chunk := services.NewChunk(curIdx, curIdx+1)
 		p.Send(chunk)

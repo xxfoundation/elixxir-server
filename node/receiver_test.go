@@ -82,7 +82,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	responseMap[tagKey] = phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  realDecrypt.GetType(),
 		PhaseToExecute: realDecrypt.GetType(),
-		ExpectedStates: []phase.State{phase.Available},
+		ExpectedStates: []phase.State{phase.Active},
 	})
 
 	// Well, this round needs to at least be on the precomp queue?
@@ -178,7 +178,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[tagKey] = phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  realDecrypt.GetType(),
-		ExpectedStates: []phase.State{phase.Available},
+		ExpectedStates: []phase.State{phase.Active},
 		PhaseToExecute: realDecrypt.GetType(),
 	})
 
@@ -219,9 +219,8 @@ func TestReceivePostNewBatch(t *testing.T) {
 	}
 
 	// We verify that the Realtime Decrypt phase has been enqueued
-	if realDecrypt.GetState() != phase.Queued {
-		t.Errorf("Realtime decrypt states was %v, not %v",
-			realDecrypt.GetState(), phase.Queued)
+	if !realDecrypt.IsQueued() {
+		t.Errorf("Realtime decrypt is not queued")
 	}
 }
 
@@ -242,7 +241,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Available}, mockPhase.GetType()})
+			[]phase.State{phase.Active}, mockPhase.GetType()})
 
 	topology := instance.GetTopology()
 
@@ -377,7 +376,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Available}, mockPhase.GetType()})
+			[]phase.State{phase.Active}, mockPhase.GetType()})
 
 	topology := instance.GetTopology()
 
@@ -482,12 +481,15 @@ func (mp *MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
 func (mp *MockPhase) GetState() phase.State     { return mp.stateChecker() }
 func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
 
-func (*MockPhase) EnableVerification()                    { return }
-func (*MockPhase) GetRoundID() id.Round                   { return 0 }
-func (mp *MockPhase) GetType() phase.Type                 { return mp.Ptype }
-func (*MockPhase) AttemptTransitionToQueued() bool        { return true }
-func (*MockPhase) TransitionToRunning()                   { return }
-func (*MockPhase) UpdateFinalStates() bool                { return false }
+func (*MockPhase) EnableVerification()    { return }
+func (*MockPhase) GetRoundID() id.Round   { return 0 }
+func (mp *MockPhase) GetType() phase.Type { return mp.Ptype }
+func (mp *MockPhase) AttemptToQueue(queue chan<- phase.Phase) bool {
+	queue <- mp
+	return true
+}
+func (mp *MockPhase) IsQueued() bool                      { return true }
+func (*MockPhase) UpdateFinalStates()                     { return }
 func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
 func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
@@ -580,7 +582,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	responseMap[tagKey] = phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  mockPhase.GetType(),
-			ExpectedStates: []phase.State{phase.Available},
+			ExpectedStates: []phase.State{phase.Active},
 			PhaseToExecute: mockPhase.GetType()},
 	)
 
@@ -620,18 +622,6 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		t.Errorf("CypherPublicKey doesn't match expected value of the public key")
 	}
 
-	var queued bool
-
-	select {
-	case <-instance.GetResourceQueue().GetQueue(t):
-		queued = true
-	default:
-		queued = false
-	}
-
-	if !queued {
-		t.Errorf("PostPhase: The phase was not queued properly")
-	}
 }
 
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
@@ -659,7 +649,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	responseMap[tagKey] = phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  mockPhase.GetType(),
-			ExpectedStates: []phase.State{phase.Available},
+			ExpectedStates: []phase.State{phase.Active},
 			PhaseToExecute: mockPhase.GetType()},
 	)
 
@@ -712,20 +702,6 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 		// Error here
 		t.Errorf("CypherPublicKey doesn't match expected value of the public key")
 	}
-
-	var queued bool
-
-	select {
-	case <-instance.GetResourceQueue().GetQueue(t):
-		queued = true
-	default:
-		queued = false
-	}
-
-	if !queued {
-		t.Errorf("PostPhase: The phase was not queued properly")
-	}
-
 }
 
 // batchEq compares two batches to see if they are equal
@@ -801,7 +777,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	response := phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  phase.PrecompReveal,
-			ExpectedStates: []phase.State{phase.Available},
+			ExpectedStates: []phase.State{phase.Active},
 			PhaseToExecute: phase.PrecompReveal},
 	)
 	responseMap := make(phase.ResponseMap)
@@ -852,7 +828,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		response := phase.NewResponse(phase.ResponseDefinition{
 			PhaseAtSource:  phase.PrecompReveal,
-			ExpectedStates: []phase.State{phase.Available},
+			ExpectedStates: []phase.State{phase.Active},
 			PhaseToExecute: phase.PrecompReveal})
 
 		responseMap := make(phase.ResponseMap)
@@ -920,7 +896,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 
 	response := phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  phase.RealPermute,
-		ExpectedStates: []phase.State{phase.Available},
+		ExpectedStates: []phase.State{phase.Active},
 		PhaseToExecute: phase.RealPermute})
 
 	responseMap := make(phase.ResponseMap)
@@ -992,6 +968,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		},
 		NodeIDs: nodeIDs,
 		Index:   0,
+		Batch:   5,
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},

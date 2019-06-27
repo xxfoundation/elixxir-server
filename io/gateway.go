@@ -10,6 +10,7 @@ import (
 // gateway.go is for gateway<->node comms
 
 var Err_NoCompletedBatch = errors.New("No completed batches before the timeout")
+var Err_EmptyRoundBuff = errors.New("No completed batches before the timeout")
 
 func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 	timeout time.Duration) (int, error) {
@@ -26,7 +27,7 @@ func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 			return len(roundBuffer.CompletedPrecomputations), nil
 		case <-time.After(timeout):
 			// Timeout and fail
-			return len(roundBuffer.CompletedPrecomputations), errors.New("round buffer is empty")
+			return len(roundBuffer.CompletedPrecomputations), Err_EmptyRoundBuff
 		}
 	}
 }

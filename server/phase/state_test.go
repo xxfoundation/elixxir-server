@@ -41,21 +41,9 @@ func TestPhaseState_EnabledVerification(t *testing.T) {
 		verification: true,
 	}
 
-	state = uint32(Available)
-	expected := Available
-	if p.GetState() != Available {
-		t.Errorf("State was %v, but should have been %v",
-			p.GetState(), expected)
-	}
-	p.AttemptTransitionToQueued()
-	expected = Queued
-	if p.GetState() != expected {
-		t.Errorf("State was %v, but should have been %v",
-			p.GetState(), expected)
-	}
-	p.TransitionToRunning()
-	expected = Running
-	if p.GetState() != expected {
+	state = uint32(Active)
+	expected := Active
+	if p.GetState() != Active {
 		t.Errorf("State was %v, but should have been %v",
 			p.GetState(), expected)
 	}
@@ -109,21 +97,9 @@ func TestPhaseState_WithoutVerification(t *testing.T) {
 		connected: new(uint32),
 	}
 
-	state = uint32(Available)
-	expected := Available
-	if p.GetState() != Available {
-		t.Errorf("State was %v, but should have been %v",
-			p.GetState(), expected)
-	}
-	p.AttemptTransitionToQueued()
-	expected = Queued
-	if p.GetState() != expected {
-		t.Errorf("State was %v, but should have been %v",
-			p.GetState(), expected)
-	}
-	p.TransitionToRunning()
-	expected = Running
-	if p.GetState() != expected {
+	state = uint32(Active)
+	expected := Active
+	if p.GetState() != Active {
 		t.Errorf("State was %v, but should have been %v",
 			p.GetState(), expected)
 	}

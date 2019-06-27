@@ -23,9 +23,17 @@ func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
 
 	errChan := make(chan error, topology.Len()-1)
 	// Build the message containing the precomputations
+
 	slots := make([]*mixmessages.Slot, batchSize)
-	for i := uint32(0); i < batchSize; i++ {
-		slots[i] = getMessage(i)
+
+	// For each message chunk (slot), fill the slots buffer
+	// Note that this will panic if there are more slots than batchSize
+	// (shouldn't be possible?)
+	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			msg := getMessage(i)
+			slots[i] = msg
+		}
 	}
 
 	// Send to all nodes but the first (including this one, which is the last node)

@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/format"
@@ -17,6 +15,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/server/round"
 	"reflect"
 	"sync"
 	"testing"
@@ -102,8 +101,8 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	localBatchSize := batchsize
 	starter := func(instance *server.Instance, rid id.Round) error {
 		newBatch := &mixmessages.Batch{
-			Slots:    make([]*mixmessages.Slot, localBatchSize),
-			ForPhase: int32(phase.PrecompGeneration),
+			Slots:     make([]*mixmessages.Slot, localBatchSize),
+			FromPhase: int32(phase.PrecompGeneration),
 			Round: &mixmessages.RoundInfo{
 				ID: uint64(rid),
 			},
@@ -112,7 +111,28 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 			newBatch.Slots[i] = &mixmessages.Slot{}
 		}
 
-		node.ReceivePostPhase(newBatch, instance)
+		//get the round from the instance
+		rm := instance.GetRoundManager()
+		r, err := rm.GetRound(rid)
+
+		if err != nil {
+			jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
+				"round (%v) right after round init", rid)
+		}
+
+		//get the phase
+		p := r.GetCurrentPhase()
+
+		//queue the phase to be operated on if it is not queued yet
+		p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
+
+		//send the data to the phase
+		err = io.PostPhase(p, newBatch)
+
+		if err != nil {
+			jww.ERROR.Panicf("Error first node generation init: "+
+				"should be able to return: %+v", err)
+		}
 		return nil
 	}
 
@@ -120,28 +140,31 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	firstNode.RunFirstNode(firstNode, 10*time.Second,
 		io.TransmitCreateNewRound, starter)
 
+	lastNode.InitLastNode()
+
 	//build a batch to send to first node
 	newbatch := mixmessages.Batch{}
 	for i := 0; i < batchsize; i++ {
 		//make the salt
-		salt := make([]byte, 64)
+		salt := make([]byte, 32)
 		binary.BigEndian.PutUint64(salt[0:8], uint64(100+6*i))
 
 		//make the payload
-		payload := make([]byte, format.TOTAL_LEN)
-		binary.BigEndian.PutUint64(payload[0:8], uint64(500+12*i))
+		payload := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(32)
+		fmt.Println(payload)
 
 		//make the message
 		msg := format.NewMessage()
 		msg.Payload.SetPayload(payload)
+		msg.AssociatedData.SetRecipientID(salt)
 
 		//encrypt the message
-		ecrMsg := cmix.ClientEncryptDecrypt(true, grp, msg, salt, baseKeys)
+		//		ecrMsg := cmix.ClientEncryptDecrypt(true, grp, msg, salt, baseKeys)
 
 		//make the slot
 		slot := &mixmessages.Slot{}
-		slot.MessagePayload = ecrMsg.SerializePayload()
-		slot.AssociatedData = ecrMsg.SerializeAssociatedData()
+		slot.MessagePayload = msg.SerializePayload()
+		slot.AssociatedData = msg.SerializeAssociatedData()
 		slot.SenderID = userID.Bytes()
 		slot.Salt = salt
 		newbatch.Slots = append(newbatch.Slots, slot)
@@ -153,7 +176,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	for numPrecompsAvalible == 0 {
 		numPrecompsAvalible, err = io.GetRoundBufferInfo(firstNode.GetCompletedPrecomps(), 100*time.Millisecond)
-		if err != nil {
+		if err != nil && err != io.Err_EmptyRoundBuff {
 			t.Errorf("MultiNode Test: Error returned from first node "+
 				"`GetRoundBufferInfo`: %v", err)
 		}
@@ -174,35 +197,142 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		completedBatch, err = io.GetCompletedBatch(lastNode.GetCompletedBatchQueue(), 100*time.Millisecond)
 	}
 
+	//---BUILD PROBING TOOLS----------------------------------------------------
+
+	//get round buffers for probing
+	var roundBufs []*round.Buffer
+	for _, instance := range instances {
+		roundBufs = append(roundBufs, getRoundBuf(instance, 0))
+	}
+
+	//build i/o map of permutations
+	permutationMapping := make([]uint32, batchsize)
+	for i := uint32(0); i < uint32(batchsize); i++ {
+		slotIndex := i
+		for _, buf := range roundBufs {
+			slotIndex = buf.Permutations[slotIndex]
+		}
+		permutationMapping[i] = slotIndex
+	}
+
+	//---CHECK OUTPUTS----------------------------------------------------------
+
 	found := 0
 
 	for i := 0; i < batchsize; i++ {
-		completedSlot := completedBatch.Slots[i]
-		for j := 0; j < batchsize; j++ {
-			if reflect.DeepEqual(completedSlot.MessagePayload, newbatch.Slots[i].MessagePayload) {
-				found++
-				break
-			}
+
+		inputSlot := newbatch.Slots[i]
+		outputSlot := completedBatch.Slots[permutationMapping[i]]
+
+		success := true
+
+		if !reflect.DeepEqual(inputSlot.MessagePayload, outputSlot.MessagePayload) {
+			t.Errorf("Input slot %v permuted to slot %v payload A did "+
+				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
+				grp.NewIntFromBytes(inputSlot.MessagePayload).Text(16),
+				grp.NewIntFromBytes(outputSlot.MessagePayload).Text(16))
+			success = false
+		}
+
+		if !reflect.DeepEqual(inputSlot.AssociatedData, outputSlot.AssociatedData) {
+			t.Errorf("Input slot %v permuted to slot %v payload B did "+
+				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
+				grp.NewIntFromBytes(inputSlot.AssociatedData).Text(16),
+				grp.NewIntFromBytes(outputSlot.AssociatedData).Text(16))
+			success = false
+		}
+
+		if success {
+			found++
 		}
 	}
 
 	if found < batchsize {
-		var expectedPayloads string
-		for _, slot := range newbatch.Slots {
-			expectedPayloads += "   " +
-				base64.StdEncoding.EncodeToString(slot.MessagePayload) + "\n"
-		}
-
-		var recievedPayloads string
-		for _, slot := range completedBatch.Slots {
-			recievedPayloads += "   " +
-				base64.StdEncoding.EncodeToString(slot.MessagePayload) + "\n"
-		}
-
-		t.Errorf("Multinode instance test: not all messages "+
-			"came out correctly\n Expected: \n %s Recieved: \n %s",
-			expectedPayloads, recievedPayloads)
+		t.Errorf("%v/%v of messages came out incorrect",
+			batchsize-found, batchsize)
+	} else {
+		t.Logf("All messages recieved, passed")
 	}
+
+	//---CHECK PRECOMPUTATION---------------------------------------------------
+
+	//SHARE PHASE
+
+	pk := roundBufs[0].CypherPublicKey.DeepCopy()
+	//test that all nodes have the same PK
+	for itr, buf := range roundBufs {
+		pkNode := buf.CypherPublicKey.DeepCopy()
+		if pkNode.Cmp(pk) != 0 {
+			t.Errorf("Multinode instance test: node %v does not have "+
+				"the same CypherPublicKey as node 1; node 1: %s, node %v: %s",
+				itr+1, pk.Text(16), itr+1, pkNode.Text(16))
+		}
+	}
+
+	//test that the PK is the composition of the Zs
+	for _, buf := range roundBufs {
+		Z := buf.Z.DeepCopy()
+		pkOld := pk.DeepCopy()
+		grp.RootCoprime(pkOld, Z, pk)
+	}
+
+	if pk.GetLargeInt().Cmp(grp.GetG()) != 0 {
+		t.Errorf("Multinode instance test: inverse PK is not equal "+
+			"to generator: Expected: %s, Recieved: %s",
+			grp.GetG().Text(16), roundBufs[0].CypherPublicKey.Text(16))
+	}
+
+	//Final result
+	//Traverse the nodes to find the final precomputation for each slot
+
+	//create precomp buffer
+	payloadAPrecomps := make([]*cyclic.Int, batchsize)
+	payloadBPrecomps := make([]*cyclic.Int, batchsize)
+
+	for i := 0; i < batchsize; i++ {
+		payloadAPrecomps[i] = grp.NewInt(1)
+		payloadBPrecomps[i] = grp.NewInt(1)
+	}
+
+	//precomp Decrypt
+	for i := uint32(0); i < uint32(batchsize); i++ {
+		for _, buf := range roundBufs {
+			grp.Mul(payloadAPrecomps[i], buf.R.Get(i), payloadAPrecomps[i])
+			grp.Mul(payloadBPrecomps[i], buf.U.Get(i), payloadBPrecomps[i])
+		}
+	}
+
+	//precomp permute
+	for i := uint32(0); i < uint32(batchsize); i++ {
+		slotIndex := i
+		for _, buf := range roundBufs {
+			grp.Mul(payloadAPrecomps[i], buf.R.Get(slotIndex), payloadAPrecomps[i])
+			grp.Mul(payloadBPrecomps[i], buf.U.Get(slotIndex), payloadBPrecomps[i])
+			slotIndex = buf.Permutations[slotIndex]
+		}
+		grp.Inverse(payloadAPrecomps[i], payloadAPrecomps[i])
+		grp.Inverse(payloadBPrecomps[i], payloadBPrecomps[i])
+	}
+
+	for i := 0; i < batchsize; i++ {
+		resultPayloadA := roundBufs[len(roundBufs)-1].MessagePrecomputation.Get(permutationMapping[i])
+		if payloadAPrecomps[i].Cmp(resultPayloadA) != 0 {
+			t.Errorf("Multinode instance test: precomputation for payloadA slot %v "+
+				"incorrect; Expected: %s, Recieved: %s", i,
+				payloadAPrecomps[i].Text(16), resultPayloadA.Text(16))
+		}
+		resultPayloadB := roundBufs[len(roundBufs)-1].ADPrecomputation.Get(permutationMapping[i])
+		if payloadBPrecomps[i].Cmp(resultPayloadB) != 0 {
+			t.Errorf("Multinode instance test: precomputation for payloadB slot %v "+
+				"incorrect; Expected: %s, Recieved: %s", i,
+				payloadBPrecomps[i].Text(16), resultPayloadB.Text(16))
+		}
+	}
+}
+
+func getRoundBuf(instance *server.Instance, id id.Round) *round.Buffer {
+	r, _ := instance.GetRoundManager().GetRound(0)
+	return r.GetBuffer()
 }
 
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*conf.Params {

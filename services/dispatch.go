@@ -52,8 +52,8 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 						go g.generator.errorHandler(g.name, m.Name, err)
 						return
 					}
-
 					if fin {
+
 						om.closeInput()
 					}
 				}
