@@ -276,8 +276,8 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	for i := uint32(0); i < uint32(batchsize); i++ {
 		slotIndex := i
 		for _, buf := range roundBufs {
-			grp.Mul(payloadAPrecomps[i], buf.R.Get(slotIndex), payloadAPrecomps[i])
-			grp.Mul(payloadBPrecomps[i], buf.U.Get(slotIndex), payloadBPrecomps[i])
+			grp.Mul(payloadAPrecomps[i], buf.S.Get(slotIndex), payloadAPrecomps[i])
+			grp.Mul(payloadBPrecomps[i], buf.V.Get(slotIndex), payloadBPrecomps[i])
 			slotIndex = buf.Permutations[slotIndex]
 		}
 		grp.Inverse(payloadAPrecomps[i], payloadAPrecomps[i])
