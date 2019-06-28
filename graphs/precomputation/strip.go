@@ -106,9 +106,9 @@ func (ss *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (ss *StripStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index: index,
-		PartialMessageCypherText: ss.CypherMsg.Get(
+		PartialMessageCypherText: ss.MessagePrecomputation.Get(
 			index).Bytes(),
-		PartialAssociatedDataCypherText: ss.CypherAD.Get(index).Bytes(),
+		PartialAssociatedDataCypherText: ss.ADPrecomputation.Get(index).Bytes(),
 	}
 }
 
