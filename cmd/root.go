@@ -63,7 +63,6 @@ communications.`,
 					"localhost:8087", nil))
 			}()
 		}
-
 		StartServer(viper.GetViper())
 	},
 }
@@ -94,7 +93,7 @@ func init() {
 	// will be global for your application.
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
 		"config file (default is $HOME/.elixxir/server.yaml)")
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", true,
 		"Verbose mode for debugging")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
@@ -160,7 +159,11 @@ func initConfig() {
 		validConfig = false
 	}
 
-	f.Close()
+	err = f.Close()
+
+	if err != nil {
+		jww.ERROR.Printf("Could not close config file: %+v", err)
+	}
 
 	viper.SetConfigFile(cfgFile)
 
@@ -177,7 +180,7 @@ func initConfig() {
 
 // initLog initializes logging thresholds and the log path.
 func initLog() {
-	if viper.Get("logPath") != nil {
+	if viper.Get("node.paths.log") != nil {
 		// If verbose flag set then log more info for debugging
 		if verbose || viper.GetBool("verbose") {
 			jww.SetLogThreshold(jww.LevelDebug)
@@ -187,7 +190,7 @@ func initLog() {
 			jww.SetStdoutThreshold(jww.LevelInfo)
 		}
 		// Create log file, overwrites if existing
-		logPath := viper.GetString("logPath")
+		logPath := viper.GetString("node.paths.log")
 		logFile, err := os.Create(logPath)
 		if err != nil {
 			jww.WARN.Println("Invalid or missing log path, " +

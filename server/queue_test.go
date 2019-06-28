@@ -99,12 +99,21 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	// In this case, we actually need to set up and run the queue runner
 	q := initQueue()
 	nid := GenerateId()
+
+	cmix := map[string]string{
+		"prime":      pString,
+		"smallprime": qString,
+		"generator":  gString,
+	}
+
 	params := conf.Params{
 		Groups: conf.Groups{
-			CMix: grp,
+			CMix: cmix,
 		},
-		NodeIDs: []string{nid.String()},
-		Index:   0,
+		Node: conf.Node{
+			Ids: []string{nid.String()},
+		},
+		Index: 0,
 	}
 	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	roundID := id.Round(1)

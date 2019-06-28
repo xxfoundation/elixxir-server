@@ -1,7 +1,16 @@
 ---
 # Example yaml params file used for testing
 # the params object and its dependencies
-index: 1
+node:
+  id: "pneumonoultramicroscopicsilicovolcanoconios="
+  paths:
+    cert: "~/.elixxir/cert.crt"
+    key:  "~/.elixxir/key.pem"
+    log:  "~/.elixxir/server.log"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
 database:
   name: "name"
   username: "username"
@@ -10,34 +19,29 @@ database:
     - "127.0.0.1:80"
     - "127.0.0.1:80"
     - "127.0.0.1:80"
-skipReg: true
+gateways:
+  paths:
+    cert: "~/.elixxir/gateway.crt"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+permissioning:
+  paths:
+    cert: "~/.elixxir/permissioning.crt"
+  address: "127.0.0.1:80"
+  registrationCode: "pneumonoultramicroscopicsilicovolcanoconios="
 groups:
   cmix:
-    prime: "17"
-    smallprime: "11"
-    generator: "4"
+    prime: "0x11"
+    smallprime: "0x0B"
+    generator: "0x04"
   e2e:
     prime: "0x11"
     smallprime: "0x0B"
     generator: "0x04"
-reg_server_pk: "publicKey"
-path:
-  cert: "~/.elixxir/cert.crt"
-  key:  "~/.elixxir/key.pem"
-  log:  "~/.elixxir/server.log"
-  gateway_cert: "~/.elixxir/gateway.log"
-nodeAddresses:
-  - "127.0.0.1:80"
-  - "127.0.0.1:80"
-  - "127.0.0.1:80"
-nodeIDs:
-  - "pneumonoultramicroscopicsilicovolcanoconios="
-  - "pneumonoultramicroscopicsilicovolcanoconios="
-  - "pneumonoultramicroscopicsilicovolcanoconios="
-gateways:
-  - "127.0.0.1:80"
-  - "127.0.0.1:80"
-  - "127.0.0.1:80"
 batch: 20
-
+verbose: true
+skipReg: true
+keepBuffers: true
 ...

@@ -13,20 +13,19 @@ import (
 	"testing"
 )
 
-var ExpectedDatabase = Database{
-	Name:     "name",
-	Username: "username",
-	Password: "password",
-	Addresses: []string{
-		"127.0.0.1:80",
-		"127.0.0.1:80",
-		"127.0.0.1:80",
+var ExpectedPermissioning = Permissioning{
+	Paths: Paths{
+		Cert: "~/.elixxir/permissioning.crt",
+		Key:  "",
+		Log:  "",
 	},
+	Address:          "127.0.0.1:80",
+	RegistrationCode: "pneumonoultramicroscopicsilicovolcanoconios=",
 }
 
 // This test checks that unmarshalling the params.yaml file
-// has the expected Database object.
-func TestDB_UnmarshallingFileEqualsExpected(t *testing.T) {
+// has the expected Permissioning object.
+func TestPermissioning_UnmarshallingFileEqualsExpected(t *testing.T) {
 
 	buf, _ := ioutil.ReadFile("./params.yaml")
 
@@ -37,8 +36,8 @@ func TestDB_UnmarshallingFileEqualsExpected(t *testing.T) {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
-	if !reflect.DeepEqual(ExpectedDatabase, actual.Database) {
-		t.Errorf("Database object did not match value")
+	if !reflect.DeepEqual(ExpectedPermissioning, actual.Permissioning) {
+		t.Errorf("Permissioning object did not match expected value")
 	}
 
 }

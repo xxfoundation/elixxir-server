@@ -361,7 +361,7 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	//Send the finished signal on first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
 		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
-			"SENDING END ROUND SIGNAL", instance, roundID)
+			" SENDING END ROUND SIGNAL", instance, roundID)
 		instance.FinishRound(roundID)
 	}
 

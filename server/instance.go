@@ -45,7 +45,7 @@ func (i *Instance) GetTopology() *circuit.Circuit {
 
 //GetGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
-	return i.params.Groups.CMix
+	return i.params.Groups.GetCMix()
 }
 
 //GetUserRegistry returns the user registry used by the server
@@ -151,8 +151,8 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// Each nodeID should be base64 encoded in the yaml
 	var nodeIDs []*id.Node
 	var nodeIDDecodeErrorHappened bool
-	for i := range params.NodeIDs {
-		nodeID, err := base64.StdEncoding.DecodeString(params.NodeIDs[i])
+	for i := range params.Node.Ids {
+		nodeID, err := base64.StdEncoding.DecodeString(params.Node.Ids[i])
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
@@ -166,11 +166,12 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
-	if params.RegServerPK != "" {
-		grp := instance.params.Groups.CMix
+	permissioningPk := params.Permissioning.GetPublicKey()
+	if permissioningPk != "" {
+		grp := instance.params.Groups.GetCMix()
 		dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 
-		block, _ := pem.Decode([]byte(params.RegServerPK))
+		block, _ := pem.Decode([]byte(permissioningPk))
 
 		if block == nil || block.Type != "PUBLIC KEY" {
 			jww.ERROR.Panic("Registration Server Public Key did not " +
@@ -183,6 +184,16 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.WARN.Print("No registration key given, registration not possible")
 	}
 
+	// FIXME: temporary hack for integration
+	if len(nodeIDs) == 0 {
+		jww.WARN.Print("No node ids given in conf, generating fake IDs")
+		ids := make([]*id.Node, len(params.Node.Addresses))
+		for index := range params.Node.Addresses {
+			ids[index] = GenerateId()
+		}
+		nodeIDs = ids
+	}
+
 	instance.topology = circuit.New(nodeIDs)
 	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
@@ -190,9 +201,6 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// Generate DSA Private/Public key pair
 	instance.pubKey = publicKey
 	instance.privKey = privateKey
-	// Hardcoded registration server publicKey
-	// TODO: For now set this to false, but value should come from config file
-	instance.params.SkipReg = false
 
 	return &instance
 }
@@ -226,26 +234,26 @@ func GenerateId() *id.Node {
 // Shutdown() on the network object.
 func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
-	addr := i.params.NodeAddresses[i.params.Index]
-	i.network = node.StartNode(addr, makeImplementation(i), i.params.Path.Cert,
-		i.params.Path.Key)
+	addr := i.params.Node.Addresses[i.params.Index]
+	i.network = node.StartNode(addr, makeImplementation(i), i.params.Node.Paths.Cert,
+		i.params.Node.Paths.Key)
 
 	var tlsCert credentials.TransportCredentials
 
-	if i.params.Path.Cert != "" {
-		tlsCert = connect.NewCredentialsFromFile(i.params.Path.Cert, "")
+	if i.params.Node.Paths.Cert != "" {
+		tlsCert = connect.NewCredentialsFromFile(i.params.Node.Paths.Cert, "")
 	} else {
 		jww.WARN.Printf("Starting node without TLS credentials")
 	}
 
-	for x := 0; x < len(i.params.NodeIDs); x++ {
-		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.NodeAddresses[x],
+	for x := 0; x < len(i.params.Node.Ids); x++ {
+		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.Node.Addresses[x],
 			tlsCert)
 	}
 
-	if i.params.Gateways != nil {
+	if i.params.Gateways.Addresses != nil {
 		i.network.ConnectToGateway(i.thisNode.NewGateway(),
-			i.params.Gateways[i.params.Index], tlsCert)
+			i.params.Gateways.Addresses[i.params.Index], tlsCert)
 	} else {
 		jww.WARN.Printf("No Gateway avalible, starting without gateway")
 	}

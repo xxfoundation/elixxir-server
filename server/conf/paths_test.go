@@ -7,8 +7,7 @@
 package conf
 
 var ExpectedPaths = Paths{
-	Cert:        "~/.elixxir/cert.crt",
-	Key:         "~/.elixxir/key.pem",
-	Log:         "~/.elixxir/server.log",
-	GatewayCert: "~/.elixxir/gateway.log",
+	Cert: "~/.elixxir/cert.crt",
+	Key:  "~/.elixxir/key.pem",
+	Log:  "~/.elixxir/server.log",
 }

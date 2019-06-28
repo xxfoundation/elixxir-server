@@ -323,14 +323,14 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 	for i := 0; i < numNodes; i++ {
 
 		param := conf.Params{
-			Groups: conf.Groups{
-				CMix: grp,
+			Groups: initConfGroups(grp),
+			Node: conf.Node{
+				Ids:       nidLst,
+				Addresses: addrLst,
 			},
-			NodeAddresses: addrLst,
-			NodeIDs:       nidLst,
-			Batch:         uint32(batchsize),
-			Index:         i,
-			KeepBuffers:   true,
+			Batch:       uint32(batchsize),
+			Index:       i,
+			KeepBuffers: true,
 		}
 
 		paramsLst = append(paramsLst, &param)
@@ -353,4 +353,23 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
+}
+
+func initConfGroups(grp *cyclic.Group) conf.Groups {
+
+	primeString := grp.GetP().TextVerbose(16, 0)
+	smallprime := grp.GetQ().TextVerbose(16, 0)
+	generator := grp.GetG().TextVerbose(16, 0)
+
+	cmixMap := map[string]string{
+		"prime":      primeString,
+		"smallprime": smallprime,
+		"generator":  generator,
+	}
+
+	grps := conf.Groups{
+		CMix: cmixMap,
+	}
+
+	return grps
 }
