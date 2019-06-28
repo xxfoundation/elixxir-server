@@ -50,7 +50,7 @@ func TestFirstNode_roundCreationRunner(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("RoundCreationRunner: happy path test should not " +
-				"error")
+				"error: %+v", r)
 		}
 	}()
 
@@ -61,8 +61,8 @@ func TestFirstNode_roundCreationRunner(t *testing.T) {
 
 	fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(nil, 2*time.Millisecond,
-		mockTransmitter, nil)
+	fn.roundCreationRunner(&Instance{}, 2*time.Millisecond,
+		mockTransmitter, func( *Instance, id.Round)error{return nil})
 }
 
 // tests roundCreationRunner stops timeout when waiting a short
@@ -82,9 +82,8 @@ func TestFirstNode_roundCreationRunner_wait(t *testing.T) {
 			}
 		}()
 
-		fn.roundCreationRunner(nil, 5*time.Millisecond,
-			mockTransmitter, nil)
-
+		fn.roundCreationRunner(&Instance{}, 2*time.Millisecond,
+			mockTransmitter, func( *Instance, id.Round)error{return nil})
 	}()
 
 	time.After(1 * time.Millisecond)
@@ -111,8 +110,8 @@ func TestFirstNode_roundCreationRunner_Timeout(t *testing.T) {
 
 	//fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(nil, 2*time.Millisecond,
-		mockTransmitter, nil)
+	fn.roundCreationRunner(&Instance{}, 2*time.Millisecond,
+		mockTransmitter, func( *Instance, id.Round)error{return nil})
 
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
 }
@@ -122,9 +121,9 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			if r.(string) != "Round failed to start: test error" {
-				t.Errorf("RoundCreationRunner: panic returned incorrect"+
-					"for network error: %s", r)
+			if r.(string) != "Round failed to create round remotely: test error" {
+				t.Errorf("RoundCreationRunner: panic returned incorrect "+
+					"error for network error: %s", r)
 			}
 		}
 	}()
@@ -136,8 +135,8 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 
 	fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(nil, 2*time.Millisecond,
-		mockTransmitter_Error, nil)
+	fn.roundCreationRunner(&Instance{}, 2*time.Millisecond,
+		mockTransmitter_Error, func( *Instance, id.Round)error{return nil})
 
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
 }

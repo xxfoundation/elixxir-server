@@ -7,7 +7,6 @@
 package precomputation
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -64,6 +63,7 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 		0, batchSize)
 	ss.ADPrecomputation = roundBuf.ADPrecomputation.GetSubBuffer(
 		0, batchSize)
+
 	ss.EncryptedMessagePrecomputation = roundBuf.PermutedMessageKeys
 	ss.EncryptedADPrecomputation = roundBuf.PermutedADKeys
 
@@ -128,8 +128,7 @@ var StripInverse = services.Module{
 		ss := sssi.GetStripSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			fmt.Println(i)
-			fmt.Println(ss.EncryptedMessagePrecomputation[i])
+
 			// Eq 16.1: Invert the round message private key
 			inverse(ss.Grp, ss.EncryptedMessagePrecomputation[i], ss.MessagePrecomputation.Get(i))
 

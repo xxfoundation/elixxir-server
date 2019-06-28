@@ -237,6 +237,11 @@ func TestStrip_Graph(t *testing.T) {
 	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 	roundBuffer.InitLastNode()
 
+	for i:=uint32(0);i<g.GetExpandedBatchSize();i++{
+		roundBuffer.PermutedMessageKeys[i] = grp.NewInt(1)
+		roundBuffer.PermutedADKeys[i] = grp.NewInt(1)
+	}
+
 	// Fill the fields of the round object for testing
 	for i := uint32(0); i < g.GetBatchSize(); i++ {
 		grp.Set(roundBuffer.ADPrecomputation.Get(i), grp.NewInt(int64(1)))

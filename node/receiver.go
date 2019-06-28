@@ -307,7 +307,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 	if err != nil {
 		jww.CRITICAL.Panicf("[%s]: RID %d Error on incoming PostNewBatch comm at io"+
-			"PostPhase", instance, newBatch.Round.ID)
+			"PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
 	// TODO send all the slot IDs that didn't make it back to the gateway

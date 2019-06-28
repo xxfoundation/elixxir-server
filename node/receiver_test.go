@@ -211,7 +211,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 				AssociatedData: []byte{3},
 				// Because the salt is just one byte,
 				// this should fail in the Realtime Decrypt graph.
-				Salt:  []byte{4},
+				Salt:  make([]byte,32),
 				KMACs: [][]byte{{5}},
 			},
 		},
