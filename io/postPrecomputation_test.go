@@ -8,6 +8,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"testing"
 	"time"
@@ -103,8 +104,27 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 
 	rndID := id.Round(42)
 	batchSize := uint32(5)
+
+	slotCount := uint32(0)
+
+	getchunk := func() (services.Chunk, bool) {
+
+		chunk := services.NewChunk(slotCount, slotCount+1)
+
+		good := true
+
+		if slotCount >= batchSize {
+			good = false
+		}
+
+		slotCount++
+
+		return chunk, good
+	}
+
 	err := TransmitPrecompResult(comms[numNodes-1], batchSize,
-		rndID, phase.PrecompReveal, nil, getMockPostPrecompSlot, topology, nil)
+		rndID, phase.PrecompReveal, getchunk, getMockPostPrecompSlot,
+		topology, nil)
 
 	if err != nil {
 		t.Errorf("TransmitPrecompResult: Unexpected error: %+v", err)
