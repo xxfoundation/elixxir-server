@@ -185,14 +185,16 @@ func TestStripStream_Output(t *testing.T) {
 
 		output := stream.Output(b)
 
-		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[0]) {
-			t.Errorf("StripStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], output.PartialMessageCypherText)
+		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
+			t.Errorf("StripStream.Output() incorrect recieved "+
+				"CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], output.EncryptedMessageKeys)
 		}
 
-		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[1]) {
-			t.Errorf("StripStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], output.PartialAssociatedDataCypherText)
+		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
+			t.Errorf("StripStream.Output() incorrect recieved CypherAD"+
+				" data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], output.EncryptedAssociatedDataKeys)
 		}
 
 	}
@@ -237,7 +239,7 @@ func TestStrip_Graph(t *testing.T) {
 	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
 	roundBuffer.InitLastNode()
 
-	for i:=uint32(0);i<g.GetExpandedBatchSize();i++{
+	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
 		roundBuffer.PermutedMessageKeys[i] = grp.NewInt(1)
 		roundBuffer.PermutedADKeys[i] = grp.NewInt(1)
 	}

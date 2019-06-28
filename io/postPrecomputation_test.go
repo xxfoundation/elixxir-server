@@ -38,9 +38,9 @@ func TestPostPrecompResult(t *testing.T) {
 	const start = 2
 	for precompValue := start; precompValue < bs+start; precompValue++ {
 		slots = append(slots, &mixmessages.Slot{
-			PartialMessageCypherText: grp.NewInt(int64(precompValue)).
+			EncryptedMessageKeys: grp.NewInt(int64(precompValue)).
 				Bytes(),
-			PartialAssociatedDataCypherText: grp.NewInt(int64(precompValue + bs)).
+			EncryptedAssociatedDataKeys: grp.NewInt(int64(precompValue + bs)).
 				Bytes(),
 		})
 	}
@@ -55,11 +55,15 @@ func TestPostPrecompResult(t *testing.T) {
 		index := uint32(precompValue - start)
 		messagePrecomp := r.MessagePrecomputation.Get(index)
 		if messagePrecomp.Cmp(grp.NewInt(int64(precompValue))) != 0 {
-			t.Errorf("Message precomp didn't match at index %v", index)
+			t.Errorf("Message precomp didn't match at index %v;"+
+				"Expected: %v, Recieved: %v", index, precompValue,
+				messagePrecomp.Text(16))
 		}
 		adPrecomp := r.ADPrecomputation.Get(index)
 		if adPrecomp.Cmp(grp.NewInt(int64(precompValue+bs))) != 0 {
-			t.Errorf("Associated data precomp didn't match at index %v", index)
+			t.Errorf("Associated data precomp didn't match at index %v;"+
+				"Expected: %v, Recieved: %v", index, precompValue+bs,
+				adPrecomp.Text(16))
 		}
 	}
 }
