@@ -87,7 +87,8 @@ func StartServer(vip *viper.Viper) {
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 
-	//FIXME: check that all other nodes are online
+	// Check that all other nodes are online
+	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 
 	//Begin the resource queue
 	instance.Run()

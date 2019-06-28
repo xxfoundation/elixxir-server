@@ -72,5 +72,10 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch) error {
 		return ReceivePostNewBatch(instance, newBatch)
 	}
+
+	// NOTE: AskOnline is notably absent here, despite having a transmitter.
+	//       Until server start up is complicated enough to have state we
+	//       need to check before it can process messages, we leave
+	//       the simple ping response in comms lib for processing the RPC.
 	return impl
 }
