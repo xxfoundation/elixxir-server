@@ -67,10 +67,12 @@ func (u *User) DeepCopy() *User {
 	newUser.ID = u.ID
 	newUser.BaseKey = u.BaseKey.DeepCopy()
 
-	params := u.PublicKey.GetParams()
-	newUser.PublicKey = signature.ReconstructPublicKey(signature.
-		CustomDSAParams(params.GetP(), params.GetQ(),
-			params.GetG()), u.PublicKey.GetKey())
+	if u.PublicKey != nil {
+		params := u.PublicKey.GetParams()
+		newUser.PublicKey = signature.ReconstructPublicKey(signature.
+			CustomDSAParams(params.GetP(), params.GetQ(),
+				params.GetG()), u.PublicKey.GetKey())
+	}
 
 	newUser.Nonce = nonce.Nonce{
 		GenTime:    u.Nonce.GenTime,

@@ -19,9 +19,6 @@ import (
 	"sync"
 )
 
-var ErrRoundPublicKeyTimeout = errors.New("RoundPublicKey broadcast" +
-	" timed out ")
-
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
 func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
@@ -31,7 +28,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 
 	var roundPublicKeys [][]byte
 
-	for chunk, finish := getChunk(); !finish; chunk, finish = getChunk() {
+	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 			roundPublicKeys = append(roundPublicKeys, msg.PartialRoundPublicCypherKey)

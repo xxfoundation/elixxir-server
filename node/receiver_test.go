@@ -40,12 +40,18 @@ func TestReceiveCreateNewRound(t *testing.T) {
 
 	fakeRoundInfo := &mixmessages.RoundInfo{ID: roundID}
 
-	ReceiveCreateNewRound(instance, fakeRoundInfo)
+	err := ReceiveCreateNewRound(instance, fakeRoundInfo)
+
+	if err != nil {
+		t.Errorf("ReceiveCreateNewRound: error on call: %+v",
+			err)
+	}
 
 	rnd, err := instance.GetRoundManager().GetRound(id.Round(roundID))
 
 	if err != nil {
-		t.Errorf("ReceiveCreateNewRound: new round not created: %+v", err)
+		t.Errorf("ReceiveCreateNewRound: new round not created: %+v",
+			err)
 	}
 
 	if rnd == nil {
@@ -58,12 +64,15 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// So, we might want more than one phase,
 	// since it's at a boundary between phases.
 	grp := initImplGroup()
+
+	grps := initConfGroups(grp)
+
 	instance := server.CreateServerInstance(&conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(5),
 		},
-		NodeIDs: buildMockNodeIDs(5),
-		Index:   0,
+		Index: 0,
 	}, &globals.UserMap{}, nil, nil)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -82,7 +91,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	responseMap[tagKey] = phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  realDecrypt.GetType(),
 		PhaseToExecute: realDecrypt.GetType(),
-		ExpectedStates: []phase.State{phase.Available},
+		ExpectedStates: []phase.State{phase.Active},
 	})
 
 	// Well, this round needs to at least be on the precomp queue?
@@ -140,13 +149,14 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 // that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 	registry := &globals.UserMap{}
 	instance := server.CreateServerInstance(&conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(1),
 		},
-		NodeIDs: buildMockNodeIDs(1),
-		Index:   0,
+		Index: 0,
 	}, registry, nil, nil)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -178,7 +188,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[tagKey] = phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  realDecrypt.GetType(),
-		ExpectedStates: []phase.State{phase.Available},
+		ExpectedStates: []phase.State{phase.Active},
 		PhaseToExecute: realDecrypt.GetType(),
 	})
 
@@ -205,7 +215,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 				AssociatedData: []byte{3},
 				// Because the salt is just one byte,
 				// this should fail in the Realtime Decrypt graph.
-				Salt:  []byte{4},
+				Salt:  make([]byte, 32),
 				KMACs: [][]byte{{5}},
 			},
 		},
@@ -219,21 +229,22 @@ func TestReceivePostNewBatch(t *testing.T) {
 	}
 
 	// We verify that the Realtime Decrypt phase has been enqueued
-	if realDecrypt.GetState() != phase.Queued {
-		t.Errorf("Realtime decrypt states was %v, not %v",
-			realDecrypt.GetState(), phase.Queued)
+	if !realDecrypt.IsQueued() {
+		t.Errorf("Realtime decrypt is not queued")
 	}
 }
 
 func TestNewImplementation_PostPhase(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
-
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(2),
-		Index:   0,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(2),
+		},
+		Index: 0,
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
 		nil, nil)
@@ -242,7 +253,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Available}, mockPhase.GetType()})
+			[]phase.State{phase.Active}, mockPhase.GetType()})
 
 	topology := instance.GetTopology()
 
@@ -286,7 +297,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	var queued bool
 
 	select {
-	case <-instance.GetResourceQueue().GetQueue():
+	case <-instance.GetResourceQueue().GetQueue(t):
 		queued = true
 	default:
 		queued = false
@@ -366,10 +377,14 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	roundID := id.Round(0)
 
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
+
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(2),
-		Index:   0,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(2),
+		},
+		Index: 0,
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	mockPhase := initMockPhase()
@@ -377,7 +392,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Available}, mockPhase.GetType()})
+			[]phase.State{phase.Active}, mockPhase.GetType()})
 
 	topology := instance.GetTopology()
 
@@ -408,7 +423,12 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 
 	//send the mockBatch to the impl
-	impl.StreamPostPhase(mockStreamServer)
+	err := impl.StreamPostPhase(mockStreamServer)
+
+	if err != nil {
+		t.Errorf("StreamPostPhase: error on call: %+v",
+			err)
+	}
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
@@ -426,7 +446,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	var queued bool
 
 	select {
-	case <-instance.GetResourceQueue().GetQueue():
+	case <-instance.GetResourceQueue().GetQueue(t):
 		queued = true
 	default:
 		queued = false
@@ -482,12 +502,15 @@ func (mp *MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
 func (mp *MockPhase) GetState() phase.State     { return mp.stateChecker() }
 func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
 
-func (*MockPhase) EnableVerification()                    { return }
-func (*MockPhase) GetRoundID() id.Round                   { return 0 }
-func (mp *MockPhase) GetType() phase.Type                 { return mp.Ptype }
-func (*MockPhase) AttemptTransitionToQueued() bool        { return true }
-func (*MockPhase) TransitionToRunning()                   { return }
-func (*MockPhase) UpdateFinalStates() bool                { return false }
+func (*MockPhase) EnableVerification()    { return }
+func (*MockPhase) GetRoundID() id.Round   { return 0 }
+func (mp *MockPhase) GetType() phase.Type { return mp.Ptype }
+func (mp *MockPhase) AttemptToQueue(queue chan<- phase.Phase) bool {
+	queue <- mp
+	return true
+}
+func (mp *MockPhase) IsQueued() bool                      { return true }
+func (*MockPhase) UpdateFinalStates()                     { return }
 func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
 func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
@@ -522,6 +545,25 @@ func initImplGroup() *cyclic.Group {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 	return grp
+}
+
+func initConfGroups(grp *cyclic.Group) conf.Groups {
+
+	primeString := grp.GetP().TextVerbose(16, 0)
+	smallprime := grp.GetQ().TextVerbose(16, 0)
+	generator := grp.GetG().TextVerbose(16, 0)
+
+	cmix := map[string]string{
+		"prime":      primeString,
+		"smallprime": smallprime,
+		"generator":  generator,
+	}
+
+	grps := conf.Groups{
+		CMix: cmix,
+	}
+
+	return grps
 }
 
 // Builds a list of node IDs for testing
@@ -559,11 +601,14 @@ func buildMockNodeIDs(numNodes int) []string {
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(5),
-		Index:   1,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(5),
+		},
+		Index: 1,
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
@@ -580,7 +625,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	responseMap[tagKey] = phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  mockPhase.GetType(),
-			ExpectedStates: []phase.State{phase.Available},
+			ExpectedStates: []phase.State{phase.Active},
 			PhaseToExecute: mockPhase.GetType()},
 	)
 
@@ -620,52 +665,55 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		t.Errorf("CypherPublicKey doesn't match expected value of the public key")
 	}
 
-	var queued bool
-
-	select {
-	case <-instance.GetResourceQueue().GetQueue():
-		queued = true
-	default:
-		queued = false
-	}
-
-	if !queued {
-		t.Errorf("PostPhase: The phase was not queued properly")
-	}
 }
 
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(5),
-		Index:   0,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(5),
+		},
+		Index: 0,
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
 		nil, nil)
 	topology := instance.GetTopology()
 
-	batchSize := uint32(11)
+	batchSize := uint32(3)
 	roundID := id.Round(0)
 
-	mockPhase := initMockPhase()
-	mockPhase.Ptype = phase.PrecompShare
-
-	tagKey := mockPhase.GetType().String() + "Verification"
 	responseMap := make(phase.ResponseMap)
+
+	mockPhaseShare := initMockPhase()
+	mockPhaseShare.Ptype = phase.PrecompShare
+
+	tagKey := mockPhaseShare.GetType().String() + "Verification"
 	responseMap[tagKey] = phase.NewResponse(
 		phase.ResponseDefinition{
-			PhaseAtSource:  mockPhase.GetType(),
-			ExpectedStates: []phase.State{phase.Available},
-			PhaseToExecute: mockPhase.GetType()},
+			PhaseAtSource:  mockPhaseShare.GetType(),
+			ExpectedStates: []phase.State{phase.Active},
+			PhaseToExecute: mockPhaseShare.GetType()},
+	)
+
+	mockPhaseDecrypt := initMockPhase()
+	mockPhaseDecrypt.Ptype = phase.PrecompDecrypt
+
+	tagKey = mockPhaseDecrypt.GetType().String()
+	responseMap[tagKey] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  mockPhaseDecrypt.GetType(),
+			ExpectedStates: []phase.State{phase.Active},
+			PhaseToExecute: mockPhaseDecrypt.GetType()},
 	)
 
 	// Don't skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{mockPhase}, responseMap,
+		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
@@ -679,53 +727,20 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	actualBatch := &mixmessages.Batch{}
-	expectedBatch := &mixmessages.Batch{}
-
-	// Create expected batch
-	expectedBatch.Round = mockPk.Round
-	expectedBatch.FromPhase = int32(phase.PrecompDecrypt)
-	expectedBatch.Slots = make([]*mixmessages.Slot, batchSize)
-
-	for i := uint32(0); i < batchSize; i++ {
-		expectedBatch.Slots[i] = &mixmessages.Slot{
-			EncryptedMessageKeys:            []byte{1},
-			EncryptedAssociatedDataKeys:     []byte{1},
-			PartialMessageCypherText:        []byte{1},
-			PartialAssociatedDataCypherText: []byte{1},
-		}
-	}
-
-	impl.Functions.PostPhase = func(message *mixmessages.Batch) {
-		actualBatch = message
-	}
-
 	impl.Functions.PostRoundPublicKey(mockPk)
 
 	// Verify that a PostPhase is called by ensuring callback
 	// does set the actual by comparing it to the expected batch
-	if !batchEq(actualBatch, expectedBatch) {
-		t.Errorf("Expected batch was not equal to actual batch in mock postphase")
+	if uint32(len(mockPhaseDecrypt.indices)) != batchSize {
+		t.Errorf("first node did not recieve the correct number of " +
+			"elements")
 	}
 
 	if r.GetBuffer().CypherPublicKey.Cmp(grp.NewInt(42)) != 0 {
 		// Error here
-		t.Errorf("CypherPublicKey doesn't match expected value of the public key")
+		t.Errorf("CypherPublicKey doesn't match expected value of the " +
+			"public key")
 	}
-
-	var queued bool
-
-	select {
-	case <-instance.GetResourceQueue().GetQueue():
-		queued = true
-	default:
-		queued = false
-	}
-
-	if !queued {
-		t.Errorf("PostPhase: The phase was not queued properly")
-	}
-
 }
 
 // batchEq compares two batches to see if they are equal
@@ -762,11 +777,14 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 		}
 	}()
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(5),
-		Index:   0,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(5),
+		},
+		Index: 0,
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
@@ -786,12 +804,16 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(5),
-		Index:   0,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(5),
+		},
+		Index: 0,
 	}
+
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
 		nil, nil)
 	topology := instance.GetTopology()
@@ -801,7 +823,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	response := phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  phase.PrecompReveal,
-			ExpectedStates: []phase.State{phase.Available},
+			ExpectedStates: []phase.State{phase.Active},
 			PhaseToExecute: phase.PrecompReveal},
 	)
 	responseMap := make(phase.ResponseMap)
@@ -828,6 +850,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 func TestPostPrecompResultFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
+	grps := initConfGroups(grp)
 	const numNodes = 5
 	nodeIDs := buildMockNodeIDs(5)
 
@@ -836,11 +859,12 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 
 		params := conf.Params{
-			Groups:  conf.Groups{CMix: grp},
-			NodeIDs: nodeIDs,
-			Index:   i,
+			Groups: grps,
+			Node: conf.Node{
+				Ids: nodeIDs,
+			},
+			Index: i,
 		}
-
 		instances = append(instances, server.CreateServerInstance(
 			&params, &globals.UserMap{}, nil, nil))
 	}
@@ -852,7 +876,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		response := phase.NewResponse(phase.ResponseDefinition{
 			PhaseAtSource:  phase.PrecompReveal,
-			ExpectedStates: []phase.State{phase.Available},
+			ExpectedStates: []phase.State{phase.Active},
 			PhaseToExecute: phase.PrecompReveal})
 
 		responseMap := make(phase.ResponseMap)
@@ -902,12 +926,15 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
+	grps := initConfGroups(grp)
 
 	// Set instance for first node
 	params := conf.Params{
-		Groups:  conf.Groups{CMix: grp},
-		NodeIDs: buildMockNodeIDs(numNodes),
-		Index:   0,
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(numNodes),
+		},
+		Index: 0,
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
@@ -920,11 +947,11 @@ func TestReceiveFinishRealtime(t *testing.T) {
 
 	response := phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  phase.RealPermute,
-		ExpectedStates: []phase.State{phase.Available},
+		ExpectedStates: []phase.State{phase.Active},
 		PhaseToExecute: phase.RealPermute})
 
 	responseMap := make(phase.ResponseMap)
-	responseMap["Completed"] = response
+	responseMap["RealPermuteVerification"] = response
 
 	p := initMockPhase()
 	p.Ptype = phase.RealPermute
@@ -986,12 +1013,15 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		nodeIDs = append(nodeIDs, id.NewNodeFromUInt(i, t).String())
 	}
 
+	grps := initConfGroups(grp)
+
 	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: grp,
+		Groups: grps,
+		Batch:  5,
+		Node: conf.Node{
+			Ids: nodeIDs,
 		},
-		NodeIDs: nodeIDs,
-		Index:   0,
+		Index: 0,
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},

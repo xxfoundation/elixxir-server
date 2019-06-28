@@ -39,7 +39,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
-		ReceivePostRoundPublicKey(instance, pk, impl)
+		ReceivePostRoundPublicKey(instance, pk)
 	}
 
 	// impl.Functions.RequestNonce =

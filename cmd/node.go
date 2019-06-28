@@ -37,7 +37,7 @@ import (
 func StartServer(vip *viper.Viper) {
 	vip.Debug()
 
-	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("logPath"))
+	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
@@ -52,8 +52,10 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Println("Unable to load params from viper")
 	}
 
+	jww.INFO.Printf("Loaded params: %v", params)
+
 	//Check that there is a gateway
-	if len(params.Gateways) < 1 {
+	if len(params.Gateways.Addresses) < 1 {
 		// No gateways in config file or passed via command line
 		jww.FATAL.Panicf("Error: No gateways specified! Add to" +
 			" configuration file!")
@@ -72,7 +74,7 @@ func StartServer(vip *viper.Viper) {
 
 	//Build DSA key
 	rng := csprng.NewSystemRNG()
-	grp := params.Groups.CMix
+	grp := params.Groups.GetCMix()
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
@@ -93,7 +95,7 @@ func StartServer(vip *viper.Viper) {
 	//Start runners for first node
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
-		instance.RunFirstNode(instance.GetNetwork(), instance.GetTopology(),
-			10*time.Second, io.TransmitCreateNewRound)
+		instance.RunFirstNode(instance, 10*time.Second,
+			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 }

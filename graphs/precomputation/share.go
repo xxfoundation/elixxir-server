@@ -46,10 +46,6 @@ func (ss *ShareStream) LinkShareStream(grp *cyclic.Group, batchSize uint32, roun
 	ss.PartialPublicCypherKey = ss.Grp.NewInt(1)
 }
 
-type shareSubstreamInterface interface {
-	GetSubStream() *ShareStream
-}
-
 // getSubStream implements reveal interface to return stream object
 func (ss *ShareStream) GetSubStream() *ShareStream {
 	return ss
@@ -68,7 +64,6 @@ func (ss *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns a cmix slot message
 func (ss *ShareStream) Output(index uint32) *mixmessages.Slot {
-
 	return &mixmessages.Slot{
 		Index:                       index,
 		PartialRoundPublicCypherKey: ss.PartialPublicCypherKey.Bytes(),
@@ -112,6 +107,8 @@ func InitShareGraph(gc services.GraphGenerator) *services.Graph {
 
 	g.First(shareExp)
 	g.Last(shareExp)
+
+	g.OverrideBatchSize(1)
 
 	return g
 }

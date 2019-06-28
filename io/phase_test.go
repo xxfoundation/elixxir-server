@@ -53,6 +53,7 @@ func TestPostPhase(t *testing.T) {
 	}
 
 	mockBatch.Slots[0].Salt = []byte{42}
+	mockBatch.Round = &mixmessages.RoundInfo{}
 
 	err = PostPhase(mockPhase, &mockBatch)
 
@@ -79,11 +80,11 @@ func TestTransmitPhase(t *testing.T) {
 
 	getChunk := func() (services.Chunk, bool) {
 		if chunkCnt < batchSize {
-			chunk, ok := services.NewChunk(chunkCnt, chunkCnt+1), false
+			chunk := services.NewChunk(chunkCnt, chunkCnt+1)
 			chunkCnt++
-			return chunk, ok
+			return chunk, true
 		}
-		return services.NewChunk(0, 0), true
+		return services.NewChunk(0, 0), false
 	}
 
 	getMsg := func(index uint32) *mixmessages.Slot {

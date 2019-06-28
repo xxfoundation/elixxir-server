@@ -126,7 +126,9 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, error) {
 
 //Checks if all assignments within a chunk are complete
 func (al *assignmentList) DenoteCompleted(numCompleted int) (bool, error) {
+
 	result := atomic.AddUint32(al.completed, uint32(numCompleted))
+	//fmt.Println("denoting complete:", result, "/", len(al.assignments))
 	if result > uint32(len(al.assignments)) {
 		return false, errors.New(fmt.Sprintf("completed more assignments then possible:"+
 			" %d > %d", result, len(al.assignments)))

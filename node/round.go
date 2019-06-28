@@ -19,10 +19,9 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 
 	responses := make(phase.ResponseMap)
 
-	generalExpectedStates := []phase.State{phase.Available, phase.Queued,
-		phase.Running}
+	generalExpectedStates := []phase.State{phase.Active}
 
-	defaultTimeout := 500 * time.Millisecond
+	defaultTimeout := 5000 * time.Millisecond
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -30,10 +29,9 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompGenerateDefinition := phase.Definition{
 		Graph:               precomputation.InitGenerateGraph(gc),
 		Type:                phase.PrecompGeneration,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: io.TransmitPhase,
 		Timeout:             defaultTimeout,
 	}
-
 	// On every node but the first, it receives generate and executes generate,
 	// First node starts the round via its business logic so it has no
 	// receiver for the generate, the first thing in the round
@@ -48,13 +46,13 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 		//TRANSITION: On first node, generate is received from the last node after
 		//every node has completed the phase, it transitions to share phase through
 		//a verification state
-		precompGenerateDefinition.DoVerification = true
-		responses[phase.PrecompGeneration.String()] = phase.NewResponse(
-			phase.ResponseDefinition{
-				PhaseAtSource:  phase.PrecompGeneration,
-				ExpectedStates: []phase.State{phase.Computed},
-				PhaseToExecute: phase.PrecompShare,
-			})
+		responses[phase.PrecompGeneration.String()] =
+			phase.NewResponse(
+				phase.ResponseDefinition{
+					PhaseAtSource:  phase.PrecompShare,
+					ExpectedStates: generalExpectedStates,
+					PhaseToExecute: phase.PrecompShare,
+				})
 	}
 
 	/*--PRECOMP SHARE---------------------------------------------------------*/
@@ -68,7 +66,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompShareDefinition := phase.Definition{
 		Graph:               precomputation.InitShareGraph(gcShare),
 		Type:                phase.PrecompShare,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: io.TransmitPhase,
 		Timeout:             defaultTimeout,
 		DoVerification:      true,
 	}
@@ -109,7 +107,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompDecryptDefinition := phase.Definition{
 		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: io.TransmitPhase,
 		Timeout:             defaultTimeout,
 	}
 
@@ -127,6 +125,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	// transmission from the last node.  It transitions into the permute phase
 	if topology.IsFirstNode(nodeID) {
 		DecryptResponse.PhaseToExecute = phase.PrecompPermute
+		DecryptResponse.ExpectedStates = []phase.State{phase.Verified}
 	}
 
 	responses[phase.PrecompDecrypt.String()] =
@@ -138,7 +137,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompPermuteDefinition := phase.Definition{
 		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: io.TransmitPhase,
 		Timeout:             defaultTimeout,
 	}
 
@@ -154,10 +153,11 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	// node after every node finishes precomp permute and it receives the
 	// transmission from the last node.  It transitions into the reveal phase
 	if topology.IsFirstNode(nodeID) {
+		PermuteResponse.ExpectedStates = []phase.State{phase.Verified}
 		PermuteResponse.PhaseToExecute = phase.PrecompReveal
 	}
 
-	responses[phase.PrecompReveal.String()] =
+	responses[phase.PrecompPermute.String()] =
 		phase.NewResponse(PermuteResponse)
 
 	/*--PRECOMP REVEAL--------------------------------------------------------*/
@@ -166,7 +166,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompRevealDefinition := phase.Definition{
 		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: io.TransmitPhase,
 		Timeout:             defaultTimeout,
 		DoVerification:      true,
 	}
@@ -209,7 +209,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	realtimeDecryptDefinition := phase.Definition{
 		Graph:               realtime.InitDecryptGraph(gc),
 		Type:                phase.RealDecrypt,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: io.TransmitPhase,
 		Timeout:             defaultTimeout,
 	}
 
@@ -222,20 +222,20 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	// server/firstNode.go for the first node, so it has no normal receiver,
 	// instead it receives from last node after all nodes have done decrypt
 	// and transitions to permute
-
 	if topology.IsFirstNode(nodeID) {
+		decryptResponse.ExpectedStates = []phase.State{phase.Verified}
 		decryptResponse.PhaseToExecute = phase.RealPermute
 	}
 
-	responses[phase.RealPermute.String()] = decryptResponse
+	responses[phase.RealDecrypt.String()] = decryptResponse
 
 	/*--REALTIME PERMUTE------------------------------------------------------*/
 
 	// Build Realtime Decrypt phase and response
 	realtimePermuteDefinition := phase.Definition{
-		Graph:               realtime.InitDecryptGraph(gc),
-		Type:                phase.RealDecrypt,
-		TransmissionHandler: io.StreamTransmitPhase,
+		Graph:               realtime.InitPermuteGraph(gc),
+		Type:                phase.RealPermute,
+		TransmissionHandler: io.TransmitPhase,
 		Timeout:             defaultTimeout,
 		DoVerification:      true,
 	}

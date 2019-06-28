@@ -168,6 +168,7 @@ func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 
 	g.First(decryptKeygen)
 	g.Connect(decryptKeygen, decryptMul3)
+	//g.First(decryptMul3)
 	g.Last(decryptMul3)
 
 	return g

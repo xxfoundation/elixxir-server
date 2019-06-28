@@ -11,56 +11,56 @@ import (
 )
 
 // This object is used by the server instance.
-// A viper (or any yaml based) configuration
-// can be unmarshalled into this object.
-// For viper just use Unmarshal(&params).
+// It should be constructed using a viper object
 type Params struct {
-	//Node Identity Params
-	Index    int
-	Database DB
-	SkipReg  bool
-	Path     Paths
+	Index       int // TODO: Do we need this field and how do we populate it?
+	Batch       uint32
+	SkipReg     bool `yaml:"skipReg"`
+	Verbose     bool
+	KeepBuffers bool
+	Groups      Groups
 
-	//Network Identity Params
-	Batch         uint32
-	Groups        Groups
-	RegServerPK   string
-	NodeAddresses []string
-	// these are base64 strings, so instance creation must base64 decode these
-	// before using them as node IDs
-	NodeIDs  []string
-	Gateways []string
+	Node          Node
+	Database      Database
+	Gateways      Gateways
+	Permissioning Permissioning
 }
 
-// NewParams returns a params object if it is able to
-// unmarshal the viper config, otherwise it returns
-// an error.
+// NewParams gets elements of the viper object
+// and updates the params object. It returns params
+// unless it fails to parse in which it case returns error
 func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params := Params{}
 
 	params.Index = vip.GetInt("index")
 
+	params.Node.Id = vip.GetString("node.id")
+	params.Node.Ids = vip.GetStringSlice("node.ids")
+	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
+	params.Node.Paths.Key = vip.GetString("node.paths.key")
+	params.Node.Paths.Log = vip.GetString("node.paths.log")
+	params.Node.Addresses = vip.GetStringSlice("node.addresses")
+
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
 	params.Database.Addresses = vip.GetStringSlice("database.addresses")
 
-	params.SkipReg = vip.GetBool("skipReg")
+	params.Gateways.Paths.Cert = vip.GetString("gateways.paths.cert")
+	params.Gateways.Addresses = vip.GetStringSlice("gateways.addresses")
 
-	params.Path.Cert = vip.GetString("path.cert")
-	params.Path.GatewayCert = vip.GetString("path.gateway_cert")
-	params.Path.Key = vip.GetString("path.key")
-	params.Path.Log = vip.GetString("path.log")
+	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
+	params.Permissioning.Address = vip.GetString("permissioning.address")
+	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
 
 	params.Batch = vip.GetUint32("batch")
-	params.Groups.CMix = toGroup(vip.GetStringMapString("groups.cmix"))
-	params.Groups.E2E = toGroup(vip.GetStringMapString("groups.e2e"))
+	params.SkipReg = vip.GetBool("skipReg")
+	params.Verbose = vip.GetBool("verbose")
+	params.KeepBuffers = vip.GetBool("keepBuffers")
 
-	params.NodeAddresses = vip.GetStringSlice("nodeAddresses")
-	params.NodeIDs = vip.GetStringSlice("nodeIDs")
-	params.Gateways = vip.GetStringSlice("gateways")
-	params.RegServerPK = vip.GetString("reg_server_pk")
+	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
+	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
 
 	return &params, nil
 }

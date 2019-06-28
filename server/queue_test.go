@@ -71,22 +71,23 @@ func (*MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
 	return
 }
 
-func (*MockPhase) GetGraph() *services.Graph              { return nil }
-func (*MockPhase) GetRoundID() id.Round                   { return 0 }
-func (*MockPhase) GetType() phase.Type                    { return 0 }
-func (*MockPhase) GetState() phase.State                  { return 0 }
-func (*MockPhase) AttemptTransitionToQueued() bool        { return false }
-func (*MockPhase) TransitionToRunning()                   { return }
-func (*MockPhase) UpdateFinalStates() bool                { return false }
-func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
-func (*MockPhase) GetTimeout() time.Duration              { return 5 * time.Second }
-func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
-func (*MockPhase) String() string                         { return "" }
+func (*MockPhase) GetGraph() *services.Graph                    { return nil }
+func (*MockPhase) GetRoundID() id.Round                         { return 0 }
+func (*MockPhase) GetType() phase.Type                          { return 0 }
+func (*MockPhase) GetState() phase.State                        { return 0 }
+func (*MockPhase) TransitionToRunning()                         { return }
+func (*MockPhase) AttemptToQueue(queue chan<- phase.Phase) bool { return false }
+func (*MockPhase) IsQueued() bool                               { return false }
+func (*MockPhase) UpdateFinalStates()                           { return }
+func (*MockPhase) GetTransmissionHandler() phase.Transmit       { return nil }
+func (*MockPhase) GetTimeout() time.Duration                    { return 5 * time.Second }
+func (*MockPhase) Cmp(phase.Phase) bool                         { return false }
+func (*MockPhase) String() string                               { return "" }
 
 func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 	q := initQueue()
 	p := &MockPhase{}
-	q.UpsertPhase(p)
+	q.GetPhaseQueue() <- p
 	q.DenotePhaseCompletion(p)
 	// After these calls, the finishing queue should have something on it
 	if len(q.finishChan) != 1 {
@@ -98,12 +99,21 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	// In this case, we actually need to set up and run the queue runner
 	q := initQueue()
 	nid := GenerateId()
+
+	cmix := map[string]string{
+		"prime":      pString,
+		"smallprime": qString,
+		"generator":  gString,
+	}
+
 	params := conf.Params{
 		Groups: conf.Groups{
-			CMix: grp,
+			CMix: cmix,
 		},
-		NodeIDs: []string{nid.String()},
-		Index:   0,
+		Node: conf.Node{
+			Ids: []string{nid.String()},
+		},
+		Index: 0,
 	}
 	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	roundID := id.Round(1)
@@ -114,7 +124,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	responseMap[phase.PrecompGeneration.String()] =
 		phase.NewResponse(phase.ResponseDefinition{
 			phase.PrecompGeneration,
-			[]phase.State{phase.Available, phase.Queued, phase.Running},
+			[]phase.State{phase.Active},
 			phase.PrecompGeneration,
 		})
 
@@ -122,16 +132,16 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		responseMap, instance.GetTopology(), instance.GetID(), 1)
 	instance.GetRoundManager().AddRound(r)
 
-	if p.GetState() != phase.Available {
-		t.Error("Before enqueueing, the phase's state should be Available")
+	if p.GetState() != phase.Active {
+		t.Error("Before enqueueing, the phase's state should be Active")
 	}
 
-	q.UpsertPhase(p)
+	p.AttemptToQueue(q.GetPhaseQueue())
 	// Verify state before the queue runs
 	if len(q.phaseQueue) != 1 {
 		t.Error("Before running, the queue should have one phase")
 	}
-	if p.GetState() != phase.Queued {
+	if !p.IsQueued() {
 		t.Error("After enqueueing, the phase's state should be Queued")
 	}
 
@@ -141,9 +151,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	if !iWasCalled {
 		t.Error("Transmission handler never got called")
 	}
-	if p.GetState() != phase.Running {
-		t.Error("While running, the phase's state should be Running")
-	}
+
 	if len(q.phaseQueue) != 0 {
 		t.Error("The phase queue should have been emptied after the queue ran" +
 			" the only phase")
@@ -151,10 +159,6 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	q.DenotePhaseCompletion(p)
 	time.Sleep(20 * time.Millisecond)
-	// Verify state after the queue finished the phase
-	if p.GetState() != phase.Verified {
-		t.Error("After phase completion, the phase's state should be Verified")
-	}
 }
 
 type mockStream struct{}
@@ -180,7 +184,7 @@ var iWasCalled bool
 func makeTestPhase(instance *Instance, name phase.Type,
 	roundID id.Round) phase.Phase {
 
-	// FIXME We need to be able to kill this,
+	// FIXME We need to be able to killChan this,
 	//  or tell whether something was killed before calling DenotePhaseComplete.
 	//  It could be done by changing the way that GetChunk works/the GetChunk
 	//  header.

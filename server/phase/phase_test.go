@@ -65,9 +65,9 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 }
 
 func TestPhase_GetState(t *testing.T) {
-	state := Available
+	state := Active
 	p := phase{getState: func() State {
-		return Available
+		return Active
 	}}
 	if p.GetState() != state {
 		t.Error("State from function was different than expected")
@@ -181,39 +181,6 @@ func TestPhase_ConnectToRound(t *testing.T) {
 
 	if p.GetState() != Initialized {
 		t.Error("State wasn't set to Initialized")
-	}
-
-	roundId2 := id.Round(85)
-	state2 := Running
-	setState2 := func(from, to State) bool {
-		state2 = to
-		return true
-	}
-	getState2 := func() State {
-		return state2
-	}
-	// Call connect to round again on phase with round and set & get state handlers
-	p.ConnectToRound(roundId2, setState2, getState2)
-
-	if *p.connected != 2 {
-		t.Errorf("phase connected should be incremented from 1 to 2")
-	}
-
-	// The round ID should be set to correct value
-	if p.roundID != roundId {
-		t.Error("Round ID changed to incorrect value")
-	}
-
-	if p.GetState() != Initialized {
-		t.Error("State was changed from Initialized to incorrect value ",
-			p.GetState())
-	}
-
-	p.TransitionToRunning()
-
-	// We should be able to change the state with the function we passed
-	if p.GetState() != Running {
-		t.Error("After changing the state, it wasn't set to Running")
 	}
 }
 

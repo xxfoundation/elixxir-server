@@ -35,7 +35,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 }
 
 func TestNewRoundComponents_MiddleNode(t *testing.T) {
-	expectedMiddleNodeResponses := 8
+	expectedMiddleNodeResponses := 10
 
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
@@ -61,7 +61,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 }
 
 func TestNewRoundComponents_LastNode(t *testing.T) {
-	expectedLastNodeResponses := 8
+	expectedLastNodeResponses := 10
 
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
