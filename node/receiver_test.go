@@ -211,7 +211,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 				AssociatedData: []byte{3},
 				// Because the salt is just one byte,
 				// this should fail in the Realtime Decrypt graph.
-				Salt:  make([]byte,32),
+				Salt:  make([]byte, 32),
 				KMACs: [][]byte{{5}},
 			},
 		},
@@ -649,24 +649,36 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 		nil, nil)
 	topology := instance.GetTopology()
 
-	batchSize := uint32(11)
+	batchSize := uint32(3)
 	roundID := id.Round(0)
 
-	mockPhase := initMockPhase()
-	mockPhase.Ptype = phase.PrecompShare
-
-	tagKey := mockPhase.GetType().String() + "Verification"
 	responseMap := make(phase.ResponseMap)
+
+	mockPhaseShare := initMockPhase()
+	mockPhaseShare.Ptype = phase.PrecompShare
+
+	tagKey := mockPhaseShare.GetType().String() + "Verification"
 	responseMap[tagKey] = phase.NewResponse(
 		phase.ResponseDefinition{
-			PhaseAtSource:  mockPhase.GetType(),
+			PhaseAtSource:  mockPhaseShare.GetType(),
 			ExpectedStates: []phase.State{phase.Active},
-			PhaseToExecute: mockPhase.GetType()},
+			PhaseToExecute: mockPhaseShare.GetType()},
+	)
+
+	mockPhaseDecrypt := initMockPhase()
+	mockPhaseDecrypt.Ptype = phase.PrecompDecrypt
+
+	tagKey = mockPhaseDecrypt.GetType().String()
+	responseMap[tagKey] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  mockPhaseDecrypt.GetType(),
+			ExpectedStates: []phase.State{phase.Active},
+			PhaseToExecute: mockPhaseDecrypt.GetType()},
 	)
 
 	// Don't skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{mockPhase}, responseMap,
+		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap,
 		topology, topology.GetNodeAtIndex(0), batchSize)
 
 	instance.GetRoundManager().AddRound(r)
@@ -680,38 +692,19 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	actualBatch := &mixmessages.Batch{}
-	expectedBatch := &mixmessages.Batch{}
-
-	// Create expected batch
-	expectedBatch.Round = mockPk.Round
-	expectedBatch.FromPhase = int32(phase.PrecompDecrypt)
-	expectedBatch.Slots = make([]*mixmessages.Slot, batchSize)
-
-	for i := uint32(0); i < batchSize; i++ {
-		expectedBatch.Slots[i] = &mixmessages.Slot{
-			EncryptedMessageKeys:            []byte{1},
-			EncryptedAssociatedDataKeys:     []byte{1},
-			PartialMessageCypherText:        []byte{1},
-			PartialAssociatedDataCypherText: []byte{1},
-		}
-	}
-
-	impl.Functions.PostPhase = func(message *mixmessages.Batch) {
-		actualBatch = message
-	}
-
 	impl.Functions.PostRoundPublicKey(mockPk)
 
 	// Verify that a PostPhase is called by ensuring callback
 	// does set the actual by comparing it to the expected batch
-	if !batchEq(actualBatch, expectedBatch) {
-		t.Errorf("Expected batch was not equal to actual batch in mock postphase")
+	if uint32(len(mockPhaseDecrypt.indices)) != batchSize {
+		t.Errorf("first node did not recieve the correct number of " +
+			"elements")
 	}
 
 	if r.GetBuffer().CypherPublicKey.Cmp(grp.NewInt(42)) != 0 {
 		// Error here
-		t.Errorf("CypherPublicKey doesn't match expected value of the public key")
+		t.Errorf("CypherPublicKey doesn't match expected value of the " +
+			"public key")
 	}
 }
 
@@ -911,7 +904,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 		PhaseToExecute: phase.RealPermute})
 
 	responseMap := make(phase.ResponseMap)
-	responseMap["Completed"] = response
+	responseMap["RealPermuteVerification"] = response
 
 	p := initMockPhase()
 	p.Ptype = phase.RealPermute

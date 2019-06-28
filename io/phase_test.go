@@ -53,6 +53,7 @@ func TestPostPhase(t *testing.T) {
 	}
 
 	mockBatch.Slots[0].Salt = []byte{42}
+	mockBatch.Round = &mixmessages.RoundInfo{}
 
 	err = PostPhase(mockPhase, &mockBatch)
 
