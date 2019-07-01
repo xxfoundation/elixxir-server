@@ -84,6 +84,10 @@ func StartServer(vip *viper.Viper) {
 	// Create instance
 	instance := server.CreateServerInstance(params, userDatabase, pubKey, privKey)
 
+	if instance.IsFirstNode() {
+		instance.InitFirstNode()
+	}
+
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 
@@ -95,7 +99,6 @@ func StartServer(vip *viper.Viper) {
 
 	//Start runners for first node
 	if instance.IsFirstNode() {
-		instance.InitFirstNode()
 		instance.RunFirstNode(instance, 10*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
