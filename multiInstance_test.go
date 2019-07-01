@@ -92,6 +92,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	t.Logf("Running the Queue for %v nodes", numNodes)
 	//begin every instance
 	for _, instance := range instances {
+		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 		instance.Run()
 	}
 

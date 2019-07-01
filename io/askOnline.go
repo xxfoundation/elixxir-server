@@ -21,6 +21,8 @@ func VerifyServersOnline(comms *node.NodeComms, servers *circuit.Circuit) {
 		jww.INFO.Printf("Waiting for cMix server %s (%d/%d)...",
 			server, i+1, servers.Len())
 		if err != nil {
+			jww.INFO.Printf("Could not contact cMix server %s (%d/%d)...",
+				server, i+1, servers.Len())
 			time.Sleep(250 * time.Millisecond)
 		} else {
 			i++
