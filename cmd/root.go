@@ -64,6 +64,9 @@ communications.`,
 			}()
 		}
 		StartServer(viper.GetViper())
+
+		// Prevent node from exiting
+		select {}
 	},
 }
 
@@ -75,7 +78,7 @@ func Execute() {
 		jww.ERROR.Printf("Node Exiting with error: %s", err.Error())
 		os.Exit(1)
 	}
-
+	jww.INFO.Printf("Node exiting without error...")
 }
 
 // init is the initialization function for Cobra which defines commands
