@@ -65,13 +65,17 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
 	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
 
+	// In the event IDs are not able to be provided,
+	// we can hash the node addresses as a workaround
 	if len(params.Node.Ids) == 0 {
 		hash, err := blake2b.New256(nil)
 		if err != nil {
 			jww.FATAL.Panicf("Unable to create ID hash %v", err)
 		}
+
 		jww.WARN.Printf("No Node IDs found, " +
 			"generating from hash of Node address...")
+
 		for i, addr := range params.Node.Addresses {
 			hash.Reset()
 			hash.Write([]byte(addr))
