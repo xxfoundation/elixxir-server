@@ -242,8 +242,6 @@ func (i *Instance) InitNetwork(
 
 	if i.params.Node.Paths.Cert != "" {
 		tlsCert = connect.NewCredentialsFromFile(i.params.Node.Paths.Cert, "")
-	} else {
-		jww.WARN.Printf("Starting node without TLS credentials")
 	}
 
 	for x := 0; x < len(i.params.Node.Ids); x++ {

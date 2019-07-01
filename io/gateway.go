@@ -14,6 +14,11 @@ var Err_EmptyRoundBuff = errors.New("No completed batches before the timeout")
 
 func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 	timeout time.Duration) (int, error) {
+	// Verify completed precomputations
+	if roundBuffer == nil {
+		time.Sleep(timeout)
+		return 0, Err_EmptyRoundBuff
+	}
 	numRounds := len(roundBuffer.CompletedPrecomputations)
 	if numRounds != 0 {
 		// There are rounds ready, so return
