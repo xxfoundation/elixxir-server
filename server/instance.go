@@ -238,22 +238,27 @@ func (i *Instance) InitNetwork(
 	i.network = node.StartNode(addr, makeImplementation(i), i.params.Node.Paths.Cert,
 		i.params.Node.Paths.Key)
 
-	var tlsCert credentials.TransportCredentials
+	var serverCert credentials.TransportCredentials
 
 	if i.params.Node.Paths.Cert != "" {
-		tlsCert = connect.NewCredentialsFromFile(i.params.Node.Paths.Cert, "")
-	} else {
-		jww.WARN.Printf("Starting node without TLS credentials")
+		serverCert = connect.NewCredentialsFromFile(i.params.Node.Paths.Cert,
+			"*.cmix.rip")
 	}
 
 	for x := 0; x < len(i.params.Node.Ids); x++ {
 		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.Node.Addresses[x],
-			tlsCert)
+			serverCert)
 	}
 
+	var gwCert credentials.TransportCredentials
+
+	if i.params.Gateways.Paths.Cert != "" {
+		gwCert = connect.NewCredentialsFromFile(i.params.Gateways.Paths.Cert,
+			"gateway*.cmix.rip")
+	}
 	if i.params.Gateways.Addresses != nil {
 		i.network.ConnectToGateway(i.thisNode.NewGateway(),
-			i.params.Gateways.Addresses[i.params.Index], tlsCert)
+			i.params.Gateways.Addresses[i.params.Index], gwCert)
 	} else {
 		jww.WARN.Printf("No Gateway avalible, starting without gateway")
 	}
