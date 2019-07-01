@@ -14,7 +14,10 @@ import (
 )
 
 var ExpectedNode = Node{
-	Id:    "pneumonoultramicroscopicsilicovolcanoconios=",
+	Id: "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE=",
+	Ids: []string{"Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE=",
+		"Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE=",
+		"Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="},
 	Paths: ExpectedPaths,
 	Addresses: []string{
 		"127.0.0.1:80",
@@ -37,7 +40,8 @@ func TestNode_UnmarshallingFileEqualsExpected(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(ExpectedNode, actual.Node) {
-		t.Errorf("Node object did not match expected value")
+		t.Errorf("Params node value does not match expected value\nActual: %v"+
+			"\nExpected: %v", actual.Node, ExpectedNode)
 	}
 
 }
