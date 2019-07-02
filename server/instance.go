@@ -179,7 +179,6 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.ERROR.Panic("Registration Server Public Key did not " +
 			"decode correctly")
 	}
-
 	instance.topology = circuit.New(nodeIDs)
 	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
