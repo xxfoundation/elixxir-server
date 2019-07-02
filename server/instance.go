@@ -166,23 +166,21 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
+	// FIXME: This can't fail because it's hard coded right now.
+	// Once that is removed existing tests should be changed!
 	permissioningPk := params.Permissioning.GetPublicKey()
-	if permissioningPk != "" {
-		grp := instance.params.Groups.GetCMix()
-		dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	grp := instance.params.Groups.GetCMix()
+	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 
-		block, _ := pem.Decode([]byte(permissioningPk))
+	block, _ := pem.Decode([]byte(permissioningPk))
 
-		if block == nil || block.Type != "PUBLIC KEY" {
-			jww.ERROR.Panic("Registration Server Public Key did not " +
-				"decode correctly")
-		}
-
-		instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
-			large.NewIntFromBytes(block.Bytes))
-	} else {
-		jww.WARN.Print("No registration key given, registration not possible")
+	if block == nil || block.Type != "PUBLIC KEY" {
+		jww.ERROR.Panic("Registration Server Public Key did not " +
+			"decode correctly")
 	}
+
+	instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
+		large.NewIntFromBytes(block.Bytes))
 
 	// FIXME: temporary hack for integration
 	if len(nodeIDs) == 0 {
