@@ -8,9 +8,7 @@
 package cmd
 
 import (
-	"encoding/base64"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -79,7 +77,8 @@ func StartServer(vip *viper.Viper) {
 
 	//Add a dummy user for gateway
 	dummy := userDatabase.NewUser(grp)
-	makeDummyUser(grp, dummy)
+	dummy.ID = id.MakeDummyUserID()
+	dummy.BaseKey = grp.NewIntFromBytes((*dummy.ID)[:])
 	userDatabase.UpsertUser(dummy)
 
 	//Build DSA key
@@ -111,16 +110,4 @@ func StartServer(vip *viper.Viper) {
 		instance.RunFirstNode(instance, 10*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
-}
-
-func makeDummyUser(grp *cyclic.Group, dummy *globals.User) {
-	dummyBytes := make([]byte, id.UserLen)
-	_, err := base64.Encoding.Decode(base64.StdEncoding, dummyBytes, []byte("dummy"))
-	if err != nil {
-		jww.FATAL.Panicf("Error on creating dummy userID: %+v", err)
-	}
-
-	dummy.ID = id.NewUserFromBytes(dummyBytes)
-
-	dummy.BaseKey = grp.NewIntFromBytes(dummyBytes)
 }

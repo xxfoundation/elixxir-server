@@ -147,7 +147,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	for numPrecompsAvalible == 0 {
 		numPrecompsAvalible, err = io.GetRoundBufferInfo(firstNode.GetCompletedPrecomps(), 100*time.Millisecond)
-		if err != nil && err != io.Err_EmptyRoundBuff {
+		if err != nil {
 			t.Errorf("MultiNode Test: Error returned from first node "+
 				"`GetRoundBufferInfo`: %v", err)
 		}
@@ -162,10 +162,9 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 
 	//wait for last node to be ready to receive the batch
-	var completedBatch *mixmessages.Batch
-	err = io.Err_NoCompletedBatch
-	for err == io.Err_NoCompletedBatch {
-		completedBatch, err = io.GetCompletedBatch(lastNode.GetCompletedBatchQueue(), 100*time.Millisecond)
+	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
+	for len(completedBatch.Slots) == 0 {
+		completedBatch, _ = io.GetCompletedBatch(lastNode.GetCompletedBatchQueue(), 100*time.Millisecond)
 	}
 
 	//---BUILD PROBING TOOLS----------------------------------------------------
