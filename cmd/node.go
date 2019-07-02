@@ -8,8 +8,11 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"gitlab.com/elixxir/crypto/csprng"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
@@ -64,7 +67,9 @@ func StartServer(vip *viper.Viper) {
 
 	// Initialize the backend
 	dbAddress := params.Database.Addresses[params.Index]
+	grp := params.Groups.GetCMix()
 
+	//Initialize the user database
 	userDatabase := globals.NewUserRegistry(
 		params.Database.Username,
 		params.Database.Password,
@@ -72,9 +77,13 @@ func StartServer(vip *viper.Viper) {
 		dbAddress,
 	)
 
+	//Add a dummy user for gateway
+	dummy := userDatabase.NewUser(grp)
+	makeDummyUser(grp, dummy)
+	userDatabase.UpsertUser(dummy)
+
 	//Build DSA key
 	rng := csprng.NewSystemRNG()
-	grp := params.Groups.GetCMix()
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
@@ -102,4 +111,16 @@ func StartServer(vip *viper.Viper) {
 		instance.RunFirstNode(instance, 10*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
+}
+
+func makeDummyUser(grp *cyclic.Group, dummy *globals.User) {
+	dummyBytes := make([]byte, id.UserLen)
+	_, err := base64.Encoding.Decode(base64.StdEncoding, dummyBytes, []byte("dummy"))
+	if err != nil {
+		jww.FATAL.Panicf("Error on creating dummy userID: %+v", err)
+	}
+
+	dummy.ID = id.NewUserFromBytes(dummyBytes)
+
+	dummy.BaseKey = grp.NewIntFromBytes(dummyBytes)
 }
