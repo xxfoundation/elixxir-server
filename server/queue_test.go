@@ -40,11 +40,9 @@ var gString = "5C7FF6B06F8F143FE8288433493E4769C4D988ACE5BE25A0E24809670716C613"
 
 var qString = "F2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F"
 
-var p = large.NewIntFromString(pString, 16)
+var pPrime = large.NewIntFromString(pString, 16)
 var g = large.NewIntFromString(gString, 16)
-var q = large.NewIntFromString(qString, 16)
-
-var grp = cyclic.NewGroup(p, g, q)
+var qPrime = large.NewIntFromString(qString, 16)
 
 // This MockPhase is only used to test denoting phase completion while the queue
 // runner isn't running
@@ -128,7 +126,9 @@ func TestResourceQueue_RunOne(t *testing.T) {
 			phase.PrecompGeneration,
 		})
 
-	r := round.New(grp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
+	myGrp := cyclic.NewGroup(pPrime, g, qPrime)
+
+	r := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
 		responseMap, instance.GetTopology(), instance.GetID(), 1)
 	instance.GetRoundManager().AddRound(r)
 
