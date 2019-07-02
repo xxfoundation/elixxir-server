@@ -67,14 +67,14 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	tag := phase.PrecompShare.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
-		jww.ERROR.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
 	}
 
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
-		jww.ERROR.Panicf("[%s]: Error on posting PostRoundPublicKey "+
+		jww.FATAL.Panicf("[%s]: Error on posting PostRoundPublicKey "+
 			"to io, should be able to return: %+v", instance, err)
 	}
 
@@ -112,7 +112,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
 		if err != nil {
-			jww.ERROR.Panicf("Error on first node PostRoundPublicKey "+
+			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to get decrypt phase: %+v", err)
 		}
 
@@ -123,14 +123,14 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 			decrypt.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
 		if !queued {
-			jww.ERROR.Panicf("Error on first node PostRoundPublicKey " +
+			jww.FATAL.Panicf("Error on first node PostRoundPublicKey " +
 				"comm, should be able to queue decrypt phase")
 		}
 
 		err = io.PostPhase(decrypt, blankBatch)
 
 		if err != nil {
-			jww.ERROR.Panicf("Error on first node PostRoundPublicKey "+
+			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}
@@ -149,7 +149,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.ERROR.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostPrecompResult comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -182,7 +182,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 
 	if err != nil {
-		jww.ERROR.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -209,7 +209,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 	err = io.PostPhase(p, batch)
 
 	if err != nil {
-		jww.ERROR.Panicf("Error on PostPhase comm, should be"+
+		jww.FATAL.Panicf("Error on PostPhase comm, should be"+
 			" able to return: %+v", err)
 	}
 }
@@ -233,7 +233,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.ERROR.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -287,14 +287,14 @@ func ReceivePostNewBatch(instance *server.Instance,
 	p, err := r.GetPhase(phase.RealDecrypt)
 
 	if err != nil {
-		jww.ERROR.Panicf(
+		jww.FATAL.Panicf(
 			"[%s]: RID %d Error on incoming PostNewBatch comm, could "+
 				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
 			phase.RealDecrypt, err)
 	}
 
 	if p.GetState() != phase.Active {
-		jww.ERROR.Panicf(
+		jww.FATAL.Panicf(
 			"[%s]: RID %d Error on incoming PostNewBatch comm, phase "+
 				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
@@ -306,8 +306,8 @@ func ReceivePostNewBatch(instance *server.Instance,
 	err = io.PostPhase(p, newBatch)
 
 	if err != nil {
-		jww.CRITICAL.Panicf("[%s]: RID %d Error on incoming PostNewBatch comm at io"+
-			"PostPhase: %+v", instance, newBatch.Round.ID, err)
+		jww.FATAL.Panicf("[%s]: RID %d Error on incoming PostNewBatch comm at"+
+			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
 	// TODO send all the slot IDs that didn't make it back to the gateway
@@ -333,7 +333,7 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 
 	if err != nil {
-		jww.ERROR.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
 	}

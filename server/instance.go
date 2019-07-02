@@ -134,7 +134,8 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 
 	//TODO: build system wide error handeling
 	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
+			m, err.Error()))
 	}
 
 	instance := Instance{
@@ -182,16 +183,6 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 			large.NewIntFromBytes(block.Bytes))
 	} else {
 		jww.WARN.Print("No registration key given, registration not possible")
-	}
-
-	// FIXME: temporary hack for integration
-	if len(nodeIDs) == 0 {
-		jww.WARN.Print("No node ids given in conf, generating fake IDs")
-		ids := make([]*id.Node, len(params.Node.Addresses))
-		for index := range params.Node.Addresses {
-			ids[index] = GenerateId()
-		}
-		nodeIDs = ids
 	}
 
 	instance.topology = circuit.New(nodeIDs)
