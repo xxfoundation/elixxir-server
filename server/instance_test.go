@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/server/server/conf"
 	"reflect"
 	"testing"
+	"os"
 )
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -31,6 +32,7 @@ func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp  := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
 	instance = mockServerInstance(grp)
+	os.Exit(m.Run())
 }
 
 func TestInstance_GetGroup(t *testing.T) {
@@ -86,9 +88,9 @@ func TestInstance_Topology(t *testing.T) {
 
 	//Build the topology
 	top := circuit.New(nodeIDs)
-	i := &Instance{topology: top}
+	i := &Instance{topology: top, thisNode: nodeIDs[2]}
 
-	if !reflect.DeepEqual(i.GetTopology(), t) {
+	if !reflect.DeepEqual(i.GetTopology(), top) {
 		t.Errorf("Instance.GetTopology: Returned incorrect " +
 			"Topology")
 	}
@@ -98,6 +100,42 @@ func TestInstance_Topology(t *testing.T) {
 	}
 	if !i.IsLastNode() {
 		t.Errorf("I should be last node!")
+	}
+}
+
+func TestInstance_BadNodeID(t *testing.T) {
+	prime := large.NewIntFromString(MODP768, 16)
+	grp  := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
+	primeString := grp.GetP().TextVerbose(16, 0)
+
+	smallprime := grp.GetQ().TextVerbose(16, 0)
+	generator := grp.GetG().TextVerbose(16, 0)
+
+	cmix := map[string]string{
+		"prime":      primeString,
+		"smallprime": smallprime,
+		"generator":  generator,
+	}
+
+	params := conf.Params{
+		Node: conf.Node{
+			Ids: []string{"TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBv***="},
+		},
+		Groups: conf.Groups{
+			CMix: cmix,
+		},
+	}
+
+	defer func() {
+		if rec := recover(); rec == nil {
+			t.Logf("Caught expected panic on bad node id")
+		}
+	}()
+
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+
+	if instance != nil {
+		t.Errorf("BadeNode ID, so Instance should not have returned!!")
 	}
 }
 
