@@ -169,8 +169,8 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// FIXME: This can't fail because it's hard coded right now.
 	// Once that is removed existing tests should be changed!
 	permissioningPk := params.Permissioning.GetPublicKey()
-	grp := instance.params.Groups.GetCMix()
-	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	//grp := instance.params.Groups.GetCMix()
+	//dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 
 	block, _ := pem.Decode([]byte(permissioningPk))
 
