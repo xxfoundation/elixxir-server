@@ -216,7 +216,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		OnConflict("(id) DO UPDATE").
 		Set("transmission_base_key = EXCLUDED.transmission_base_key," +
 			"transmission_recursive_key = EXCLUDED.transmission_recursive_key," +
-			"reception_base_key = EXCLUDED.reception_base_key," +
+			"base_key = EXCLUDED.base_key," +
 			"reception_recursive_key = EXCLUDED.reception_recursive_key," +
 			"pub_keyy = EXCLUDED.pub_keyy," +
 			"pub_keyp = EXCLUDED.pub_keyp," +

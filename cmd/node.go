@@ -107,7 +107,7 @@ func StartServer(vip *viper.Viper) {
 
 	//Start runners for first node
 	if instance.IsFirstNode() {
-		instance.RunFirstNode(instance, 10*time.Second,
+		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 }
