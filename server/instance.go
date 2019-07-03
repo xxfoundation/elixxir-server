@@ -9,6 +9,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
@@ -169,8 +170,8 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// FIXME: This can't fail because it's hard coded right now.
 	// Once that is removed existing tests should be changed!
 	permissioningPk := params.Permissioning.GetPublicKey()
-	//grp := instance.params.Groups.GetCMix()
-	//dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	grp := instance.params.Groups.GetCMix()
+	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 
 	block, _ := pem.Decode([]byte(permissioningPk))
 
@@ -178,6 +179,8 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.ERROR.Panic("Registration Server Public Key did not " +
 			"decode correctly")
 	}
+	instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
+			large.NewIntFromBytes(block.Bytes))
 	instance.topology = circuit.New(nodeIDs)
 	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
