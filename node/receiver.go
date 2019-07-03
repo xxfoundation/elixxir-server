@@ -284,6 +284,11 @@ func ReceivePostNewBatch(instance *server.Instance,
 	jww.INFO.Printf("[%s]: RID %d PostNewBatch START", instance,
 		newBatch.Round.ID)
 
+	if uint32(len(newBatch.Slots)) != r.GetBuffer().GetBatchSize() {
+		jww.FATAL.Panicf("[%s]: RID %d PostNewBatch ERROR - Gateway sent "+
+			"batch with improper size", instance, newBatch.Round.ID)
+	}
+
 	p, err := r.GetPhase(phase.RealDecrypt)
 
 	if err != nil {
