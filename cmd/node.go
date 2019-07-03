@@ -105,9 +105,11 @@ func StartServer(vip *viper.Viper) {
 	//Begin the resource queue
 	instance.Run()
 
+	roundBufferTimeout := time.Duration(vip.GetInt("roundBufferTimeout"))
+
 	//Start runners for first node
 	if instance.IsFirstNode() {
-		instance.RunFirstNode(instance, 10*time.Second,
+		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 }
