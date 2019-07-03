@@ -67,6 +67,9 @@ func StartServer(vip *viper.Viper) {
 	dbAddress := params.Database.Addresses[params.Index]
 	grp := params.Groups.GetCMix()
 
+	// Initialize the global group
+	globals.SetGroup(grp)
+
 	//Initialize the user database
 	userDatabase := globals.NewUserRegistry(
 		params.Database.Username,

@@ -128,7 +128,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//process timeout
 		if timeout {
-			jww.CRITICAL.Printf("[%s]: RID %d Graph %s of phase %s has timed out",
+			jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s has timed out",
 				server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
 			//FIXME: also killChan the transmission handler
@@ -139,7 +139,8 @@ func (rq *ResourceQueue) run(server *Instance) {
 					rq.activePhase.GetType().String())
 				//FIXME: send killChan round message
 			} else {
-				jww.FATAL.Panicf("[%s]: RID %d Graph %s of phase %scould not be killed after timeout",
+				jww.FATAL.Panicf("[%s]: RID %d Graph %s of phase %s could not"+
+					" be killed after timeout",
 					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 					rq.activePhase.GetType().String())
 			}

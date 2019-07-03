@@ -131,10 +131,10 @@ func (i *Instance) IsLastNode() bool {
 func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey) *Instance {
 
-	//TODO: build system wide error handeling
+	//TODO: build system wide error handling
 	PanicHandler := func(g, m string, err error) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err.Error()))
+			m, err))
 	}
 
 	instance := Instance{
@@ -163,7 +163,7 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
 	}
 	if nodeIDDecodeErrorHappened {
-		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
+		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
 	// FIXME: This can't fail because it's hard coded right now.
