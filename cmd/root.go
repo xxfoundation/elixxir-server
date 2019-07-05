@@ -114,24 +114,24 @@ func init() {
 			" RPC will wait before returning an error")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
-	handleFlagBingingError(err, "batchSize")
+	handleBindingError(err, "batchSize")
 
 	err = viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
-	handleFlagBingingError(err, "nodeID")
+	handleBindingError(err, "nodeID")
 
 	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
-	handleFlagBingingError(err, "profile")
+	handleBindingError(err, "profile")
 
 	err = viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
-	handleFlagBingingError(err, "index")
+	handleBindingError(err, "index")
 
 	err = viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
-	handleFlagBingingError(err, "roundBufferTimeout")
+	handleBindingError(err, "roundBufferTimeout")
 }
 
-func handleFlagBingingError(err error, flag string) {
+func handleBindingError(err error, flag string) {
 	if err != nil {
-		jww.CRITICAL.Panicf("Error on binding flat \"%s\":%+v", flag, err)
+		jww.CRITICAL.Panicf("Error on binding flag \"%s\":%+v", flag, err)
 	}
 }
 
