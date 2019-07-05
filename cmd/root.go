@@ -60,7 +60,7 @@ communications.`,
 				// pprof. This provides simple access
 				// control for the profiling
 				jww.FATAL.Println(http.ListenAndServe(
-					"localhost:8087", nil))
+					"0.0.0.0:8087", nil))
 			}()
 		}
 		StartServer(viper.GetViper())
@@ -105,7 +105,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
 		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
-		"Runs a pprof server at localhost:8087 for profiling")
+		"Runs a pprof server at 0.0.0.0:8087 for profiling")
 	rootCmd.Flags().BoolVarP(&keepBuffers, "keepBuffers", "k", false,
 		"maintains all old round information forever, will eventually "+
 			"run out of memory")
@@ -131,7 +131,7 @@ func init() {
 
 func handleBindingError(err error, flag string) {
 	if err != nil {
-		jww.CRITICAL.Panicf("Error on binding flag \"%s\":%+v", flag, err)
+		jww.FATAL.Panicf("Error on binding flag \"%s\":%+v", flag, err)
 	}
 }
 
