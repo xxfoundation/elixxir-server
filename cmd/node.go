@@ -98,6 +98,9 @@ func StartServer(vip *viper.Viper) {
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
 	}
+	if instance.IsLastNode() {
+		instance.InitLastNode()
+	}
 
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)

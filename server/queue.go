@@ -134,7 +134,8 @@ func (rq *ResourceQueue) run(server *Instance) {
 			//FIXME: also killChan the transmission handler
 			kill := rq.activePhase.GetGraph().Kill()
 			if kill {
-				jww.CRITICAL.Printf("[%s]: RID %d Graph %s of phase %s killed due to timeout",
+				jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s killed"+
+					" due to timeout",
 					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 					rq.activePhase.GetType().String())
 				//FIXME: send killChan round message
