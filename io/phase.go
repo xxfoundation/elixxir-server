@@ -47,8 +47,8 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 		}
 	}
 
-	name := services.NameStringer("HostUnknown:PortUnknown",
-		topology.GetNodeLocation(nodeID), topology.Len())
+	addr := network.String()
+	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, phaseTy)
 

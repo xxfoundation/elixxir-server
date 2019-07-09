@@ -9,8 +9,8 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -180,7 +180,7 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 			"decode correctly")
 	}
 	instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
-			large.NewIntFromBytes(block.Bytes))
+		large.NewIntFromBytes(block.Bytes))
 	instance.topology = circuit.New(nodeIDs)
 	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
@@ -263,6 +263,6 @@ func (i *Instance) String() string {
 	nid := i.thisNode
 	numNodes := i.topology.Len()
 	myLoc := i.topology.GetNodeLocation(nid)
-	// TODO: IP Address an dlistening port would be helpful!
-	return services.NameStringer("HostUnknown:PortUnknown", myLoc, numNodes)
+	addr := i.network.String()
+	return services.NameStringer(addr, myLoc, numNodes)
 }
