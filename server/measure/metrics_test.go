@@ -1,7 +1,6 @@
 package measure
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -24,13 +23,13 @@ func TestMeasure(t *testing.T) {
 	}
 
 	if metrics.Events[0].Timestamp.After(before) != true && metrics.Events[0].Timestamp.Before(after) != true {
-		fmt.Printf("%s, %s, %s\n", before.String(), metrics.Events[0].Timestamp.String(), after.String())
-		t.Error("Metric recorded invalid timestamp for event 0")
+		t.Errorf("Metric recorded invalid timestamp for event 0.\r\nExpected timestamp to be between the before and after timestamps.\r\nBefore: %s\r\nGot: %s\r\nAfter: %s",
+			before.String(), metrics.Events[0].Timestamp.String(), after.String())
 	}
 
 	if metrics.Events[1].Timestamp.After(before) != true && metrics.Events[1].Timestamp.Before(after) != true {
-		fmt.Printf("%s, %s, %s\n", before.String(), metrics.Events[1].Timestamp.String(), after.String())
-		t.Error("Metric recorded invalid timestamp for event 1")
+		t.Errorf("Metric recorded invalid timestamp for event 1.\r\nExpected timestamp to be between the before and after timestamps.\r\nBefore: %s\r\nGot: %s\r\nAfter: %s",
+			before.String(), metrics.Events[1].Timestamp.String(), after.String())
 	}
 }
 
