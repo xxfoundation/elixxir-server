@@ -6,6 +6,7 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
+	"strings"
 	"testing"
 	"time"
 )
@@ -267,6 +268,57 @@ func TestPhase_Measure(t *testing.T) {
 	p := New(Definition{nil, RealPermute, nil,
 		50 * time.Second, false})
 
-	p.getMeasureInfo("test1")
-	p.getMeasureInfo("test2")
+	r := p.getMeasureInfo("test1")
+	rs := strings.Split(r, "\t")
+	if len(rs) != 6 {
+		t.Errorf("Measure did not return enough variables in log.\n\tExpected: 5 vars\n\tGot: %d vars", len(rs)-1)
+	}
+	if rs[1] != "round ID: 0\n" {
+		t.Errorf("Measure did not return correct round ID.\n\tExpected: \"round ID: 0\"\n\tGot: \"%s\"", rs[1])
+	}
+	if rs[2] != "phase: 6\n" {
+		t.Errorf("Measure did not return correct phase.\n\tExpected: \"phase: 6\"\n\tGot: \"%s\"", rs[2])
+	}
+	if rs[3] != "tag: test1\n" {
+		t.Errorf("Measure did not return correct tag.\n\tExpected: \"tag: test1\"\n\tGot: \"%s\"", rs[3])
+	}
+	//TODO: timestamp test
+	deltatest := strings.Split(rs[5], " ")
+	if len(deltatest) != 2 {
+		t.Errorf("Measure returned a delta that parsed to more than two strings in space slit.\n\tGot: \"%s\"", rs[5])
+	}
+	delta, err := time.ParseDuration(deltatest[1])
+	if err != nil {
+		t.Errorf("Measure returned un-parsable delta.\n\tGot: \"%s\"", deltatest[1])
+	}
+	if delta.Nanoseconds() < 0 {
+		t.Errorf("Measure returned a negative duration.\n\tGot: \"%s\"", deltatest[1])
+	}
+
+	r = p.getMeasureInfo("test2")
+	rs = strings.Split(r, "\t")
+	if len(rs) != 6 {
+		t.Errorf("Measure did not return enough variables in log.\n\tExpected: 5 vars\n\tGot: %d vars", len(rs)-1)
+	}
+	if rs[1] != "round ID: 0\n" {
+		t.Errorf("Measure did not return correct round ID.\n\tExpected: \"round ID: 0\"\n\tGot: \"%s\"", rs[1])
+	}
+	if rs[2] != "phase: 6\n" {
+		t.Errorf("Measure did not return correct phase.\n\tExpected: \"phase: 6\"\n\tGot: \"%s\"", rs[2])
+	}
+	if rs[3] != "tag: test2\n" {
+		t.Errorf("Measure did not return correct tag.\n\tExpected: \"tag: test2\"\n\tGot: \"%s\"", rs[3])
+	}
+	//TODO: timestamp test
+	deltatest = strings.Split(rs[5], " ")
+	if len(deltatest) != 2 {
+		t.Errorf("Measure returned a delta that parsed to more than two strings in space slit.\n\tGot: \"%s\"", rs[5])
+	}
+	delta, err = time.ParseDuration(deltatest[1])
+	if err != nil {
+		t.Errorf("Measure returned un-parsable delta.\n\tGot: \"%s\"", deltatest[1])
+	}
+	if delta.Nanoseconds() < 0 {
+		t.Errorf("Measure returned a negative duration.\n\tGot: \"%s\"", deltatest[1])
+	}
 }
