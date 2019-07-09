@@ -29,6 +29,7 @@ type Phase interface {
 	Input(index uint32, slot *mixmessages.Slot) error
 	Cmp(Phase) bool
 	String() string
+	getMeasureInfo(tag string) string
 	Measure(tag string)
 }
 
@@ -189,23 +190,28 @@ func (p *phase) Input(index uint32, slot *mixmessages.Slot) error {
 	return p.GetGraph().GetStream().Input(index, slot)
 }
 
-func (p *phase) getMeasureInfo(tag string) string {
-
-}
-
 // Measure logs the output of the measure function
-func (p *phase) Measure(tag string) {
+func (p *phase) getMeasureInfo(tag string) string {
+	// Generate our metric and get the timestamp from it, plus a temp delta var
 	timestamp := p.Metrics.Measure(tag)
 	delta := time.Duration(0)
 
-	// Calculate the difference between this event and the last one
+	// Calculate the difference between this event and the last one, if there is
+	// a last one.
 	if len(p.Metrics.Events) > 1 {
 		prevTimestamp := p.Metrics.Events[len(p.Metrics.Events)-2].Timestamp
 		currTimestamp := p.Metrics.Events[len(p.Metrics.Events)-1].Timestamp
 		delta = currTimestamp.Sub(prevTimestamp)
 	}
 
-	jww.INFO.Printf("Recorded phase measurement, round ID %d, phase %d, "+
-		"tag %s, timestamp %s, delta %s",
+	// Format string to return
+	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %d\n\t"+
+		"tag: %s\n\ttimestamp: %s\n\tdelta: %s",
 		p.roundID, p.tYpe, tag, timestamp.String(), delta.String())
+	return result
+}
+
+// Wrapper function to log output to console
+func (p *phase) Measure(tag string) {
+	jww.INFO.Print(p.getMeasureInfo(tag))
 }

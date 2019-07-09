@@ -36,16 +36,25 @@ func TestMeasure(t *testing.T) {
 
 // Test mutex lock properly locks to make sure function is thread safe
 func TestMeasureLock(t *testing.T) {
+	// Make and lock metric
 	metrics := new(Metrics)
 	metrics.Lock()
 
+	// Create a new channeled bool to allow another goroutine to write to it.
+	// This way a test goroutine can communicate back to us.
 	result := make(chan bool)
 
+	// Run measure in a new goroutine and hope it crashes, if it doesn't the
+	// result becomes true. This is bad because we want the function to crash,
+	// we previously write locked the metrics struct (and therefore it's Events
+	// array) so other goroutines can't write to it.
 	go func() {
 		metrics.Measure("test1")
 		result <- true
 	}()
 
+	// We wait a second to see if the function does write true to the result var.
+	// If it does, it did not panic (because the mutex lock didn't work), which is bad.
 	select {
 	case <-result:
 		t.Error("Measure() does not correctly lock thread")

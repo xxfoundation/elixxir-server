@@ -21,11 +21,13 @@ type Metric struct {
 
 // Create a new Metric and add it to the Metrics variable of the phase
 func (m *Metrics) Measure(tag string) time.Time {
+	// Create new Metric instance
 	measure := Metric{
 		Tag:       tag,
 		Timestamp: time.Now(),
 	}
 
+	// Lock Events so other goroutines can't write and mangle data, then append
 	m.Lock()
 	m.Events = append(m.Events, measure)
 	m.Unlock()

@@ -261,9 +261,12 @@ func TestNew(t *testing.T) {
 	}
 }
 
+// Test that the function does not break calculating delta when a previous
+// metric does not exist
 func TestPhase_Measure(t *testing.T) {
 	p := New(Definition{nil, RealPermute, nil,
 		50 * time.Second, false})
 
-	p.Measure("test1")
+	p.getMeasureInfo("test1")
+	p.getMeasureInfo("test2")
 }
