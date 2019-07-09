@@ -5,6 +5,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"time"
@@ -28,6 +29,7 @@ type Phase interface {
 	Input(index uint32, slot *mixmessages.Slot) error
 	Cmp(Phase) bool
 	String() string
+	Measure(tag string)
 }
 
 // Holds a single phase to be executed by the server in a round
@@ -45,6 +47,8 @@ type phase struct {
 	//This bool denotes if the phase goes straight to completed or waits for an
 	//External check at Computed
 	verification bool
+
+	Metrics measure.Metrics
 }
 
 // New makes a new phase with the given the phase definition structure
@@ -183,4 +187,18 @@ func (p *phase) Send(chunk services.Chunk) {
 // Input updates the graph's stream with the passed data at the passed index
 func (p *phase) Input(index uint32, slot *mixmessages.Slot) error {
 	return p.GetGraph().GetStream().Input(index, slot)
+}
+
+// Measure logs the output of the measure function
+func (p *phase) Measure(tag string) {
+	timestamp := p.Metrics.Measure(tag)
+
+	// Calculate the difference between this event and the last one
+	prevEventTimestamp := p.Metrics.Events[len(p.Metrics.Events)-2].Timestamp
+	currEventTimestamp := p.Metrics.Events[len(p.Metrics.Events)-1].Timestamp
+	delta := currEventTimestamp.Sub(prevEventTimestamp)
+
+	jww.INFO.Printf("Recorded phase measurement, round ID %d, phase %d, " +
+		"tag %s, timestamp %s, delta %s",
+		p.roundID, p.tYpe, tag, timestamp.String(), delta.String())
 }
