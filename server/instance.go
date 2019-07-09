@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"google.golang.org/grpc/credentials"
 	"runtime"
+	"strings"
 )
 
 // Holds long-lived server state
@@ -263,6 +264,8 @@ func (i *Instance) String() string {
 	nid := i.thisNode
 	numNodes := i.topology.Len()
 	myLoc := i.topology.GetNodeLocation(nid)
-	addr := i.network.String()
+	localServer := i.network.String()
+	port := strings.Split(localServer, ":")[1]
+	addr := fmt.Sprintf("%s:%s", nid, port)
 	return services.NameStringer(addr, myLoc, numNodes)
 }
