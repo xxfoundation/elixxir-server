@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"io"
+	"strings"
 )
 
 // StreamTransmitPhase streams slot messages to the provided Node.
@@ -58,8 +59,10 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 
 	// Receive ack and cancel client streaming context
 	ack, err := streamClient.CloseAndRecv()
-	name := services.NameStringer("HostUnknown:PortUnknown",
-		topology.GetNodeLocation(nodeID), topology.Len())
+	localServer := network.String()
+	port := strings.Split(localServer, ":")[1]
+	addr := fmt.Sprintf("%s:%s", nodeID, port)
+	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
 
 	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, phaseTy)
