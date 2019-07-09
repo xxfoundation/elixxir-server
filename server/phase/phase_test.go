@@ -260,3 +260,10 @@ func TestNew(t *testing.T) {
 		t.Error("Timeout wasn't set")
 	}
 }
+
+func TestPhase_Measure(t *testing.T) {
+	p := New(Definition{nil, RealPermute, nil,
+		50 * time.Second, false})
+
+	p.Measure("test1")
+}

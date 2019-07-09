@@ -189,16 +189,23 @@ func (p *phase) Input(index uint32, slot *mixmessages.Slot) error {
 	return p.GetGraph().GetStream().Input(index, slot)
 }
 
+func (p *phase) getMeasureInfo(tag string) string {
+
+}
+
 // Measure logs the output of the measure function
 func (p *phase) Measure(tag string) {
 	timestamp := p.Metrics.Measure(tag)
+	delta := time.Duration(0)
 
 	// Calculate the difference between this event and the last one
-	prevEventTimestamp := p.Metrics.Events[len(p.Metrics.Events)-2].Timestamp
-	currEventTimestamp := p.Metrics.Events[len(p.Metrics.Events)-1].Timestamp
-	delta := currEventTimestamp.Sub(prevEventTimestamp)
+	if len(p.Metrics.Events) > 1 {
+		prevTimestamp := p.Metrics.Events[len(p.Metrics.Events)-2].Timestamp
+		currTimestamp := p.Metrics.Events[len(p.Metrics.Events)-1].Timestamp
+		delta = currTimestamp.Sub(prevTimestamp)
+	}
 
-	jww.INFO.Printf("Recorded phase measurement, round ID %d, phase %d, " +
+	jww.INFO.Printf("Recorded phase measurement, round ID %d, phase %d, "+
 		"tag %s, timestamp %s, delta %s",
 		p.roundID, p.tYpe, tag, timestamp.String(), delta.String())
 }
