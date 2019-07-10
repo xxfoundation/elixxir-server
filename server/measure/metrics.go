@@ -1,7 +1,6 @@
 package measure
 
 import (
-	"github.com/jinzhu/copier"
 	"sync"
 	"time"
 )
@@ -20,9 +19,14 @@ type Metric struct {
 	Timestamp time.Time
 }
 
-func (m Metrics) GetEvents() (metrics []Metric, err error) {
-	e := copier.Copy(&metrics, &m.Events)
-	return metrics, e
+func (m Metrics) GetEvents() []Metric {
+	metricsArray := make([]Metric, len(m.Events))
+
+	for i := 0; i <= len(m.Events) - 1; i++ {
+		metricsArray[i] = Metric(m.Events[i])
+	}
+
+	return metricsArray
 }
 
 // Create a new Metric and add it to the Metrics variable of the phase

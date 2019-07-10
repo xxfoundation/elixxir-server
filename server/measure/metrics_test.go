@@ -70,10 +70,7 @@ func TestGetEvents(t *testing.T) {
 	metrics.Measure("test2")
 	after := time.Now()
 
-	events, err := metrics.GetEvents()
-	if err != nil {
-		t.Error("GetEvents returned an error getting events.")
-	}
+	events := metrics.GetEvents()
 	if len(events) != 2 {
 		t.Errorf("GetEvents returned with an incorrect number of events.\n\tGot:      %d\n\tExpected: %d", len(events), 2)
 	}
