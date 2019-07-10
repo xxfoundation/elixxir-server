@@ -306,7 +306,7 @@ func TestPhase_Measure(t *testing.T) {
 		}
 		// We have to define our own time format because Go doesn't have one for
 		// the format outputted by timestamp.String()
-		tf := "2006-01-02 03:04:05.99 -0700 MST"
+		tf := "2006-01-02 15:04:05.99 -0700 MST"
 		// Use some magic to remove the "m=+0.004601744" (example) part of the
 		// outputted timestamp, since time.Parse() can't understand it
 		ts := strings.Split(tstest[1], " ")
