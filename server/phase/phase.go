@@ -212,5 +212,5 @@ func getMeasureInfo(p *phase, tag string) string {
 
 // Wrapper function to log output to console
 func (p *phase) Measure(tag string) {
-	jww.INFO.Print(getMeasureInfo(p, tag))
+	jww.DEBUG.Print(getMeasureInfo(p, tag))
 }
