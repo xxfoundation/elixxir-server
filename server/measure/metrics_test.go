@@ -22,13 +22,13 @@ func TestMeasure(t *testing.T) {
 		t.Error("Metric tags were not recorded correctly")
 	}
 
-	if metrics.Events[0].Timestamp.After(before) != true && metrics.Events[0].Timestamp.Before(after) != true {
-		t.Errorf("Metric recorded invalid timestamp for event 0.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot: %s\n\tAfter: %s",
+	if metrics.Events[0].Timestamp.After(before) != true || metrics.Events[0].Timestamp.Before(after) != true {
+		t.Errorf("Metric recorded invalid timestamp for event 0.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
 			before.String(), metrics.Events[0].Timestamp.String(), after.String())
 	}
 
-	if metrics.Events[1].Timestamp.After(before) != true && metrics.Events[1].Timestamp.Before(after) != true {
-		t.Errorf("Metric recorded invalid timestamp for event 1.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot: %s\n\tAfter: %s",
+	if metrics.Events[1].Timestamp.After(before) != true || metrics.Events[1].Timestamp.Before(after) != true {
+		t.Errorf("Metric recorded invalid timestamp for event 1.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
 			before.String(), metrics.Events[1].Timestamp.String(), after.String())
 	}
 }
@@ -59,5 +59,33 @@ func TestMeasureLock(t *testing.T) {
 		t.Error("Measure() does not correctly lock thread")
 	case <-time.After(1 * time.Second):
 		return
+	}
+}
+
+func TestGetEvents(t *testing.T) {
+	metrics := new(Metrics)
+
+	before := time.Now()
+	metrics.Measure("test1")
+	metrics.Measure("test2")
+	after := time.Now()
+
+	events, err := metrics.GetEvents()
+	if err != nil {
+		t.Error("GetEvents returned an error getting events.")
+	}
+	if len(events) != 2 {
+		t.Errorf("GetEvents returned with an incorrect number of events.\n\tGot:      %d\n\tExpected: %d", len(events), 2)
+	}
+	if (events[0].Tag != "test1") && (events[1].Tag != "test2") {
+		t.Error("GetEvents returned tags that were not recorded correctly")
+	}
+	if events[0].Timestamp.After(before) != true || events[0].Timestamp.Before(after) != true {
+		t.Errorf("GetEvents returned invalid timestamp for event 0.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
+			before.String(), metrics.Events[0].Timestamp.String(), after.String())
+	}
+	if events[1].Timestamp.After(before) != true || events[1].Timestamp.Before(after) != true {
+		t.Errorf("GetEvents returned invalid timestamp for event 1.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
+			before.String(), metrics.Events[1].Timestamp.String(), after.String())
 	}
 }
