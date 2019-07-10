@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"reflect"
 	"testing"
 )
 
@@ -18,12 +19,19 @@ var prime = large.NewInt(int64(17))
 var smallPrime = large.NewInt(int64(11))
 var generator = large.NewInt(int64(4))
 
-var cmix = cyclic.NewGroup(prime, generator, smallPrime)
-var e2e = cyclic.NewGroup(prime, generator, smallPrime)
+var ExpectedGroup = cyclic.NewGroup(prime, generator, smallPrime)
 
 var ExpectedGroups = Groups{
-	CMix: cmix,
-	E2E:  e2e,
+	CMix: map[string]string{
+		"prime":      "0x11",
+		"smallprime": "0x0B",
+		"generator":  "0x04",
+	},
+	E2E: map[string]string{
+		"prime":      "0x11",
+		"smallprime": "0x0B",
+		"generator":  "0x04",
+	},
 }
 
 // This test checks that unmarshalling the groups.yaml file
@@ -38,11 +46,42 @@ func TestGroups_UnmarshallingFileEqualsExpected(t *testing.T) {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
-	if actual.Groups.E2E.GetFingerprint() != ExpectedGroups.E2E.GetFingerprint() {
-		t.Errorf("Groups object did not match expected values for E2E")
-	}
-	if actual.Groups.CMix.GetFingerprint() != ExpectedGroups.CMix.GetFingerprint() {
-		t.Errorf("Groups object did not match expected values for CMIX")
+	if !reflect.DeepEqual(ExpectedGroups, actual.Groups) {
+		t.Errorf("Groups object did not match expected value")
 	}
 
+}
+
+// This test checks that the CMIX fingerprint
+// matches the actualy cyclic group object
+func TestGroup_GetCMixValidFingerprint(t *testing.T) {
+	actual := Params{}
+	buf, _ := ioutil.ReadFile("./params.yaml")
+
+	err := yaml.Unmarshal(buf, &actual)
+	if err != nil {
+		t.Errorf("Unable to decode into struct, %v", err)
+	}
+
+	fp := actual.Groups.GetCMix().GetFingerprint()
+	if fp != ExpectedGroup.GetFingerprint() {
+		t.Errorf("CMix finger print did not match expected value")
+	}
+}
+
+// This test checks that the E2E fingerprint
+// matches the actualy cyclic group object
+func TestGroup_GetE2EValidFingerprint(t *testing.T) {
+	actual := Params{}
+	buf, _ := ioutil.ReadFile("./params.yaml")
+
+	err := yaml.Unmarshal(buf, &actual)
+	if err != nil {
+		t.Errorf("Unable to decode into struct, %v", err)
+	}
+
+	fp := actual.Groups.GetE2E().GetFingerprint()
+	if fp != ExpectedGroup.GetFingerprint() {
+		t.Errorf("E2E finger print did not match expected value")
+	}
 }

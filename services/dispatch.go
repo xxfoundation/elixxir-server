@@ -26,6 +26,7 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 				m.state.denoteClose(threadID, nil)
 				done = true
 			} else {
+
 				err := m.Adapt(s, m.Cryptop, chunk)
 
 				if err != nil {
@@ -51,8 +52,8 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 						go g.generator.errorHandler(g.name, m.Name, err)
 						return
 					}
-
 					if fin {
+
 						om.closeInput()
 					}
 				}

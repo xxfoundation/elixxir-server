@@ -6,7 +6,9 @@
 
 package services
 
-import "sync"
+import (
+	"sync"
+)
 
 type IO_Notify chan Chunk
 

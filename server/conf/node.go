@@ -6,10 +6,10 @@
 
 package conf
 
-// Contains Database config params
-type Database struct {
-	Name      string
-	Username  string
-	Password  string
+// Contains Node config params
+type Node struct {
+	Id        string
+	Ids       []string
+	Paths     Paths
 	Addresses []string
 }

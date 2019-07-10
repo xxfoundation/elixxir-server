@@ -35,10 +35,7 @@ type UserDB struct {
 	Id string
 
 	// Keys
-	TransmissionBaseKey      []byte
-	TransmissionRecursiveKey []byte
-	BaseKey                  []byte
-	ReceptionRecursiveKey    []byte
+	BaseKey []byte
 
 	// DSA Public Key
 	PubKeyY []byte
@@ -184,6 +181,7 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 
 	if err != nil {
 		// If there was an error, no user for the given ID was found
+		jww.ERROR.Printf("Unable to find user %v", id)
 		return nil, errors.New(err.Error())
 	}
 	// If we found a user for the given ID, return it
@@ -214,10 +212,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 	_, err := m.db.Model(dbUser).
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
-		Set("transmission_base_key = EXCLUDED.transmission_base_key," +
-			"transmission_recursive_key = EXCLUDED.transmission_recursive_key," +
-			"reception_base_key = EXCLUDED.reception_base_key," +
-			"reception_recursive_key = EXCLUDED.reception_recursive_key," +
+		Set("base_key = EXCLUDED.base_key," +
 			"pub_keyy = EXCLUDED.pub_keyy," +
 			"pub_keyp = EXCLUDED.pub_keyp," +
 			"pub_keyq = EXCLUDED.pub_keyq," +
@@ -314,7 +309,6 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 	newUser = new(User)
 	newUser.ID = decodeUser(user.Id)
-
 	newUser.BaseKey = grp.NewIntFromBytes(user.BaseKey)
 
 	newUser.PublicKey = signature.ReconstructPublicKey(

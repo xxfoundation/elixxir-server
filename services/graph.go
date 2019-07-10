@@ -47,10 +47,17 @@ type Graph struct {
 
 	outputSize      uint32
 	outputThreshold float32
+
+	overrideBatchSize uint32
 }
 
 // This is too long of a function
 func (g *Graph) Build(batchSize uint32) {
+
+	if g.overrideBatchSize != 0 {
+		batchSize = g.overrideBatchSize
+	}
+
 	//Checks graph is properly formatted
 	g.checkGraph()
 
@@ -185,9 +192,15 @@ func (g *Graph) GetStream() Stream {
 	return g.stream
 }
 
+func (g *Graph) OverrideBatchSize(b uint32) {
+	g.overrideBatchSize = b
+}
+
 func (g *Graph) Send(chunk Chunk) {
 
 	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
+
+	//fmt.Println(g.name,"sending", chunk, "srList", srList)
 
 	if err != nil {
 		g.generator.errorHandler(g.name, "input", err)
@@ -220,6 +233,7 @@ func (g *Graph) Send(chunk Chunk) {
 	}
 
 	if done {
+		//fmt.Println(g.name,"done sending to graph")
 		// FIXME: Perhaps not the correct place to close the channel.
 		// Ideally, only the sender closes, and only if there's one sender.
 		// Does commenting this fix the double close?

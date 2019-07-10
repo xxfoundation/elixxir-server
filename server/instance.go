@@ -18,7 +18,9 @@ import (
 	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"google.golang.org/grpc/credentials"
 	"runtime"
+	"strings"
 )
 
 // Holds long-lived server state
@@ -44,7 +46,7 @@ func (i *Instance) GetTopology() *circuit.Circuit {
 
 //GetGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
-	return i.params.Groups.CMix
+	return i.params.Groups.GetCMix()
 }
 
 //GetUserRegistry returns the user registry used by the server
@@ -84,6 +86,11 @@ func (i *Instance) GetPrivKey() *signature.DSAPrivateKey {
 //GetSkipReg returns the skipReg parameter
 func (i *Instance) GetSkipReg() bool {
 	return i.params.SkipReg
+}
+
+//GetKeepBuffers returns if buffers are to be held on it
+func (i *Instance) GetKeepBuffers() bool {
+	return i.params.KeepBuffers
 }
 
 //GetRegServerPubKey returns the public key of the registration server
@@ -126,9 +133,10 @@ func (i *Instance) IsLastNode() bool {
 func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey) *Instance {
 
-	//TODO: build system wide error handeling
+	//TODO: build system wide error handling
 	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
+			m, err))
 	}
 
 	instance := Instance{
@@ -145,8 +153,8 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// Each nodeID should be base64 encoded in the yaml
 	var nodeIDs []*id.Node
 	var nodeIDDecodeErrorHappened bool
-	for i := range params.NodeIDs {
-		nodeID, err := base64.StdEncoding.DecodeString(params.NodeIDs[i])
+	for i := range params.Node.Ids {
+		nodeID, err := base64.StdEncoding.DecodeString(params.Node.Ids[i])
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
@@ -157,26 +165,23 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
 	}
 	if nodeIDDecodeErrorHappened {
-		jww.ERROR.Panic("One or more node IDs didn't base64 decode correctly")
+		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
-	if params.RegServerPK != "" {
-		grp := instance.params.Groups.CMix
-		dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	// FIXME: This can't fail because it's hard coded right now.
+	// Once that is removed existing tests should be changed!
+	permissioningPk := params.Permissioning.GetPublicKey()
+	grp := instance.params.Groups.GetCMix()
+	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 
-		block, _ := pem.Decode([]byte(params.RegServerPK))
+	block, _ := pem.Decode([]byte(permissioningPk))
 
-		if block == nil || block.Type != "PUBLIC KEY" {
-			jww.ERROR.Panic("Registration Server Public Key did not " +
-				"decode correctly")
-		}
-
-		instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
-			large.NewIntFromBytes(block.Bytes))
-	} else {
-		jww.WARN.Print("No registration key given, registration not possible")
+	if block == nil || block.Type != "PUBLIC KEY" {
+		jww.ERROR.Panic("Registration Server Public Key did not " +
+			"decode correctly")
 	}
-
+	instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
+		large.NewIntFromBytes(block.Bytes))
 	instance.topology = circuit.New(nodeIDs)
 	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
@@ -184,9 +189,6 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 	// Generate DSA Private/Public key pair
 	instance.pubKey = publicKey
 	instance.privKey = privateKey
-	// Hardcoded registration server publicKey
-	// TODO: For now set this to false, but value should come from config file
-	instance.params.SkipReg = false
 
 	return &instance
 }
@@ -220,23 +222,50 @@ func GenerateId() *id.Node {
 // Shutdown() on the network object.
 func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
-	addr := i.params.NodeAddresses[i.params.Index]
-	i.network = node.StartNode(addr, makeImplementation(i), i.params.Path.Cert,
-		i.params.Path.Key)
+	addr := i.params.Node.Addresses[i.params.Index]
+	i.network = node.StartNode(addr, makeImplementation(i), i.params.Node.Paths.Cert,
+		i.params.Node.Paths.Key)
 
-	tlsCert := connect.NewCredentialsFromFile(i.params.Path.Cert, "")
+	var serverCert credentials.TransportCredentials
 
-	for x := 0; x < len(i.params.NodeIDs); x++ {
-		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.NodeAddresses[x],
-			tlsCert)
+	if i.params.Node.Paths.Cert != "" {
+		serverCert = connect.NewCredentialsFromFile(i.params.Node.Paths.Cert,
+			"*.cmix.rip")
 	}
 
-	i.network.ConnectToGateway(i.thisNode.NewGateway(),
-		i.params.Gateways[i.params.Index], tlsCert)
+	for x := 0; x < len(i.params.Node.Ids); x++ {
+		i.network.ConnectToNode(i.topology.GetNodeAtIndex(x), i.params.Node.Addresses[x],
+			serverCert)
+	}
+
+	var gwCert credentials.TransportCredentials
+
+	if i.params.Gateways.Paths.Cert != "" {
+		gwCert = connect.NewCredentialsFromFile(i.params.Gateways.Paths.Cert,
+			"gateway*.cmix.rip")
+	}
+	if i.params.Gateways.Addresses != nil {
+		i.network.ConnectToGateway(i.thisNode.NewGateway(),
+			i.params.Gateways.Addresses[i.params.Index], gwCert)
+	} else {
+		jww.WARN.Printf("No Gateway avalible, starting without gateway")
+	}
+
+	jww.INFO.Printf("Network Interface Initilized for Node ")
 
 	return i.network
 }
 
 func (i *Instance) Run() {
 	go i.resourceQueue.run(i)
+}
+
+func (i *Instance) String() string {
+	nid := i.thisNode
+	numNodes := i.topology.Len()
+	myLoc := i.topology.GetNodeLocation(nid)
+	localServer := i.network.String()
+	port := strings.Split(localServer, ":")[1]
+	addr := fmt.Sprintf("%s:%s", nid, port)
+	return services.NameStringer(addr, myLoc, numNodes)
 }

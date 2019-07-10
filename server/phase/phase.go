@@ -22,9 +22,9 @@ type Phase interface {
 	GetTransmissionHandler() Transmit
 	GetTimeout() time.Duration
 	GetState() State
-	AttemptTransitionToQueued() bool
-	TransitionToRunning()
-	UpdateFinalStates() bool
+	UpdateFinalStates()
+	AttemptToQueue(queue chan<- Phase) bool
+	IsQueued() bool
 	Send(chunk services.Chunk)
 	Input(index uint32, slot *mixmessages.Slot) error
 	Cmp(Phase) bool
@@ -44,6 +44,8 @@ type phase struct {
 	transitionToState Transition
 	getState          GetState
 
+	queued *uint32
+
 	//This bool denotes if the phase goes straight to completed or waits for an
 	//External check at Computed
 	verification bool
@@ -56,6 +58,7 @@ type phase struct {
 // verification flag
 func New(def Definition) Phase {
 	connected := uint32(0)
+	queued := uint32(0)
 	return &phase{
 		graph:               def.Graph,
 		tYpe:                def.Type,
@@ -63,6 +66,7 @@ func New(def Definition) Phase {
 		timeout:             def.Timeout,
 		verification:        def.DoVerification,
 		connected:           &connected,
+		queued:              &queued,
 	}
 }
 
@@ -103,23 +107,20 @@ func (p *phase) GetState() State {
 	return p.getState()
 }
 
-// AttemptTransitionToQueued attempts to move the phase to queued.
-// it returns success/failure.  This somewhat unsafe and should only
-// be used after a state check which ensures it should happen
-// This does not panic unlike others because it is used to atomicly check
-// if anther action should be taken while attempting to transition
-func (p *phase) AttemptTransitionToQueued() bool {
-	return p.transitionToState(Available, Queued)
+// AttemptToQueue attempts to set the internal phase state to queued.
+// it returns success/failure. The phase will call itself on the passed
+// function to queue itself
+func (p *phase) AttemptToQueue(queue chan<- Phase) bool {
+	success := atomic.CompareAndSwapUint32(p.queued, uint32(0), uint32(1))
+	if success {
+		queue <- p
+	}
+	return success
 }
 
-// TransitionToRunning transitions the phase state from queued to
-// running and panics if it cannot be done
-func (p *phase) TransitionToRunning() {
-	success := p.transitionToState(Queued, Running)
-	if !success {
-		jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
-			"to be transitioned to Running", p.tYpe, p.roundID)
-	}
+//IsQueued returns if the phase has been queued or not
+func (p *phase) IsQueued() bool {
+	return atomic.LoadUint32(p.queued) == 1
 }
 
 // UpdateFinalStates first transitions to the computed state and
@@ -130,18 +131,17 @@ func (p *phase) TransitionToRunning() {
 // Fixme: find a better name that expresses it always moves towards
 // finishing, but doesnt always finish, even when it returns false
 // It it cannot move, it panics
-func (p *phase) UpdateFinalStates() bool {
+func (p *phase) UpdateFinalStates() {
 
 	if !p.verification {
-		success := p.transitionToState(Running, Verified)
+		success := p.transitionToState(Active, Verified)
 
 		if !success {
 			jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
 				"to be transitioned to Computed", p.tYpe, p.roundID)
 		}
-		return true
 	} else {
-		success := p.transitionToState(Running, Computed)
+		success := p.transitionToState(Active, Computed)
 
 		if !success {
 
@@ -150,10 +150,8 @@ func (p *phase) UpdateFinalStates() bool {
 				jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
 					"to be transitioned to Computed or Verified", p.tYpe, p.roundID)
 			}
-			return true
 		}
 	}
-	return false
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function

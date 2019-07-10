@@ -1,6 +1,7 @@
 package server
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -34,5 +35,10 @@ func (ln *LastNode) GetCompletedBatchQueue() chan *CompletedRound {
 }
 
 func (ln *LastNode) SendCompletedBatchQueue(cr CompletedRound) {
-	ln.completedBatchQueue <- &cr
+	select {
+	case ln.completedBatchQueue <- &cr:
+	default:
+		jww.ERROR.Printf("Completed batch queue full, " +
+			"batch dropped. Check Gateway")
+	}
 }

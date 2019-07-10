@@ -28,6 +28,7 @@ var serverIdx int
 var batchSize uint64
 var validConfig bool
 var showVer bool
+var keepBuffers bool
 
 // If true, runs pprof http server
 var profile bool
@@ -59,11 +60,13 @@ communications.`,
 				// pprof. This provides simple access
 				// control for the profiling
 				jww.FATAL.Println(http.ListenAndServe(
-					"localhost:8087", nil))
+					"0.0.0.0:8087", nil))
 			}()
 		}
-
 		StartServer(viper.GetViper())
+
+		// Prevent node from exiting
+		select {}
 	},
 }
 
@@ -75,7 +78,7 @@ func Execute() {
 		jww.ERROR.Printf("Node Exiting with error: %s", err.Error())
 		os.Exit(1)
 	}
-
+	jww.INFO.Printf("Node exiting without error...")
 }
 
 // init is the initialization function for Cobra which defines commands
@@ -93,7 +96,7 @@ func init() {
 	// will be global for your application.
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
 		"config file (default is $HOME/.elixxir/server.yaml)")
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false,
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", true,
 		"Verbose mode for debugging")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
@@ -102,16 +105,34 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
 		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
-		"Runs a pprof server at localhost:8087 for profiling")
+		"Runs a pprof server at 0.0.0.0:8087 for profiling")
+	rootCmd.Flags().BoolVarP(&keepBuffers, "keepBuffers", "k", false,
+		"maintains all old round information forever, will eventually "+
+			"run out of memory")
 	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
 		time.Second, "Determines the amount of time the  GetRoundBufferInfo"+
 			" RPC will wait before returning an error")
 
-	viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
-	viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
-	viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
-	viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
-	viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
+	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
+	handleBindingError(err, "batchSize")
+
+	err = viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
+	handleBindingError(err, "nodeID")
+
+	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
+	handleBindingError(err, "profile")
+
+	err = viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
+	handleBindingError(err, "index")
+
+	err = viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
+	handleBindingError(err, "roundBufferTimeout")
+}
+
+func handleBindingError(err error, flag string) {
+	if err != nil {
+		jww.FATAL.Panicf("Error on binding flag \"%s\":%+v", flag, err)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -141,7 +162,11 @@ func initConfig() {
 		validConfig = false
 	}
 
-	f.Close()
+	err = f.Close()
+
+	if err != nil {
+		jww.ERROR.Printf("Could not close config file: %+v", err)
+	}
 
 	viper.SetConfigFile(cfgFile)
 
@@ -158,7 +183,7 @@ func initConfig() {
 
 // initLog initializes logging thresholds and the log path.
 func initLog() {
-	if viper.Get("logPath") != nil {
+	if viper.Get("node.paths.log") != nil {
 		// If verbose flag set then log more info for debugging
 		if verbose || viper.GetBool("verbose") {
 			jww.SetLogThreshold(jww.LevelDebug)
@@ -168,7 +193,7 @@ func initLog() {
 			jww.SetStdoutThreshold(jww.LevelInfo)
 		}
 		// Create log file, overwrites if existing
-		logPath := viper.GetString("logPath")
+		logPath := viper.GetString("node.paths.log")
 		logFile, err := os.Create(logPath)
 		if err != nil {
 			jww.WARN.Println("Invalid or missing log path, " +

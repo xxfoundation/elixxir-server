@@ -10,6 +10,7 @@ package cmd
 import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
@@ -37,7 +38,7 @@ import (
 func StartServer(vip *viper.Viper) {
 	vip.Debug()
 
-	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("logPath"))
+	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
@@ -52,8 +53,10 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Println("Unable to load params from viper")
 	}
 
+	jww.INFO.Printf("Loaded params: %v", params)
+
 	//Check that there is a gateway
-	if len(params.Gateways) < 1 {
+	if len(params.Gateways.Addresses) < 1 {
 		// No gateways in config file or passed via command line
 		jww.FATAL.Panicf("Error: No gateways specified! Add to" +
 			" configuration file!")
@@ -62,7 +65,12 @@ func StartServer(vip *viper.Viper) {
 
 	// Initialize the backend
 	dbAddress := params.Database.Addresses[params.Index]
+	grp := params.Groups.GetCMix()
 
+	// Initialize the global group
+	globals.SetGroup(grp)
+
+	//Initialize the user database
 	userDatabase := globals.NewUserRegistry(
 		params.Database.Username,
 		params.Database.Password,
@@ -70,9 +78,14 @@ func StartServer(vip *viper.Viper) {
 		dbAddress,
 	)
 
+	//Add a dummy user for gateway
+	dummy := userDatabase.NewUser(grp)
+	dummy.ID = id.MakeDummyUserID()
+	dummy.BaseKey = grp.NewIntFromBytes((*dummy.ID)[:])
+	userDatabase.UpsertUser(dummy)
+
 	//Build DSA key
 	rng := csprng.NewSystemRNG()
-	grp := params.Groups.CMix
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	privKey := dsaParams.PrivateKeyGen(rng)
 	pubKey := privKey.PublicKeyGen()
@@ -82,18 +95,25 @@ func StartServer(vip *viper.Viper) {
 	// Create instance
 	instance := server.CreateServerInstance(params, userDatabase, pubKey, privKey)
 
+	if instance.IsFirstNode() {
+		instance.InitFirstNode()
+	}
+	if instance.IsLastNode() {
+		instance.InitLastNode()
+	}
+
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 
-	//FIXME: check that all other nodes are online
+	// Check that all other nodes are online
+	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 
 	//Begin the resource queue
 	instance.Run()
 
 	//Start runners for first node
 	if instance.IsFirstNode() {
-		instance.InitFirstNode()
-		instance.RunFirstNode(instance.GetNetwork(), instance.GetTopology(),
-			10*time.Second, io.TransmitCreateNewRound)
+		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
+			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 }
