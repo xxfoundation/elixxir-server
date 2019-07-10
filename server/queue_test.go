@@ -82,6 +82,7 @@ func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
 func (*MockPhase) GetTimeout() time.Duration              { return 5 * time.Second }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
+func (*MockPhase) Measure(string)                         { return }
 
 func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 	q := initQueue()

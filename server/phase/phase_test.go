@@ -265,12 +265,14 @@ func TestNew(t *testing.T) {
 // Test that the function does not break calculating delta when a previous
 // metric does not exist
 func TestPhase_Measure(t *testing.T) {
-	p := New(Definition{nil, RealPermute, nil,
-		50 * time.Second, false})
+	p := &phase{
+		roundID: 0,
+		tYpe: RealPermute,
+	}
 
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
-		r := p.getMeasureInfo(name)
+		r := getMeasureInfo(p, name)
 		rs := strings.Split(r, "\t")
 
 		if len(rs) != 6 {

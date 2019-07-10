@@ -29,7 +29,6 @@ type Phase interface {
 	Input(index uint32, slot *mixmessages.Slot) error
 	Cmp(Phase) bool
 	String() string
-	getMeasureInfo(tag string) string
 	Measure(tag string)
 }
 
@@ -191,7 +190,7 @@ func (p *phase) Input(index uint32, slot *mixmessages.Slot) error {
 }
 
 // Measure logs the output of the measure function
-func (p *phase) getMeasureInfo(tag string) string {
+func getMeasureInfo(p *phase, tag string) string {
 	// Generate our metric and get the timestamp from it, plus a temp delta var
 	timestamp := p.Metrics.Measure(tag)
 	delta := time.Duration(0)
@@ -213,5 +212,5 @@ func (p *phase) getMeasureInfo(tag string) string {
 
 // Wrapper function to log output to console
 func (p *phase) Measure(tag string) {
-	jww.INFO.Print(p.getMeasureInfo(tag))
+	jww.INFO.Print(getMeasureInfo(p, tag))
 }
