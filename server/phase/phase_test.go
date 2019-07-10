@@ -270,22 +270,28 @@ func TestPhase_Measure(t *testing.T) {
 		50 * time.Second, false})
 
 	for i := 0; i < 10; i++ {
-		r := p.getMeasureInfo("test" + strconv.Itoa(i))
+		name := "test" + strconv.Itoa(i)
+		r := p.getMeasureInfo(name)
 		rs := strings.Split(r, "\t")
-		if len(rs) != 6 {
-			t.Errorf("Measure did not return enough variables in log.\n\tExpected: 5 vars\n\tGot: %d vars", len(rs)-1)
+
+		if len(rs) == 6 {
+			t.Errorf("Measure did not return enough variables in log for %s."+
+				"\n\tExpected: %d vars\n\tGot: %d vars",
+				name, 5, len(rs)-1)
 		}
 
 		if rs[1] != "round ID: 0\n" {
-			t.Errorf("Measure did not return correct round ID.\n\tExpected: \"round ID: 0\"\n\tGot: \"%s\"", rs[1])
+			t.Errorf("Measure did not return correct round ID."+
+				"\n\tExpected: %q\n\tGot:      %q", "round ID: 0\n",
+				rs[1])
 		}
 
 		if rs[2] != "phase: 6\n" {
 			t.Errorf("Measure did not return correct phase.\n\tExpected: \"phase: 6\"\n\tGot: \"%s\"", rs[2])
 		}
 
-		if rs[3] != "tag: test" + strconv.Itoa(i) + "\n" {
-			t.Errorf("Measure did not return correct tag.\n\tExpected: \"tag: test" + strconv.Itoa(i) + "\"\n\tGot: \"%s\"", rs[3])
+		if rs[3] != "tag: test"+strconv.Itoa(i)+"\n" {
+			t.Errorf("Measure did not return correct tag.\n\tExpected: \"tag: test"+strconv.Itoa(i)+"\"\n\tGot: \"%s\"", rs[3])
 		}
 
 		tstest := strings.SplitN(rs[4], " ", 2)
