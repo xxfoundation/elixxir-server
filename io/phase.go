@@ -10,6 +10,7 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -18,6 +19,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
+	"strings"
 )
 
 // TransmitPhase sends a cMix Batch of messages to the provided Node.
@@ -47,8 +49,10 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 		}
 	}
 
-	name := services.NameStringer("HostUnknown:PortUnknown",
-		topology.GetNodeLocation(nodeID), topology.Len())
+	localServer := network.String()
+	port := strings.Split(localServer, ":")[1]
+	addr := fmt.Sprintf("%s:%s", nodeID, port)
+	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, phaseTy)
 
