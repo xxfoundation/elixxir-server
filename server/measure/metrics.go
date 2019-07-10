@@ -19,6 +19,7 @@ type Metric struct {
 	Timestamp time.Time
 }
 
+// GetEvents returns a copy of the Events array, containing all Metric events
 func (m Metrics) GetEvents() []Metric {
 	metricsArray := make([]Metric, len(m.Events))
 
@@ -29,7 +30,7 @@ func (m Metrics) GetEvents() []Metric {
 	return metricsArray
 }
 
-// Create a new Metric and add it to the Metrics variable of the phase
+// Measure creates a new Metric and add it to the Metrics variable of the phase
 func (m *Metrics) Measure(tag string) time.Time {
 	// Create new Metric instance
 	measure := Metric{
