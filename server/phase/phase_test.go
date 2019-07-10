@@ -292,7 +292,7 @@ func TestPhase_Measure(t *testing.T) {
 		if len(tstest) != 2 {
 			t.Errorf("Measure returned a delta that parsed to more than two strings in space slit.\n\tGot: \"%s\"", rs[4])
 		}
-		_, err := time.Parse(time.RFC3339, tstest[1])
+		_, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(tstest[1]))
 		if err != nil {
 			t.Errorf("Measure returned un-parsable timestamp\n\tGot: \"%s\"", rs[4])
 		}

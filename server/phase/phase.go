@@ -207,7 +207,7 @@ func (p *phase) getMeasureInfo(tag string) string {
 	// Format string to return
 	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %d\n\t"+
 		"tag: %s\n\ttimestamp: %s\n\tdelta: %s",
-		p.roundID, p.tYpe, tag, timestamp.String(), delta.String())
+		p.roundID, p.tYpe, tag, timestamp.Format(time.RFC3339Nano), delta.String())
 	return result
 }
 
