@@ -72,7 +72,14 @@ var Keygen = services.Module{
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			user, err := kss.userReg.GetUser(kss.users[i])
+
 			if err != nil {
+				if err.Error() == "pg: no rows in result set" {
+					jww.INFO.Printf("No user found for slot %d", i)
+					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
+					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
+					return nil
+				}
 				return err
 			}
 			//fixme: figure out why this only works when using a temp variable

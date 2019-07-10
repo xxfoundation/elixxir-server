@@ -34,28 +34,21 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	errChan := make(chan error, topology.Len())
 
 	//Send the batch to the gateway
+	complete := server.CompletedRound{
+		RoundID:    roundID,
+		Receiver:   chunkChan,
+		GetMessage: getMessage,
+	}
 
-	wg.Add(1)
-	go func() {
+	lastNode.SendCompletedBatchQueue(complete)
 
-		complete := server.CompletedRound{
-			RoundID:    roundID,
-			Receiver:   chunkChan,
-			GetMessage: getMessage,
-		}
-
-		lastNode.SendCompletedBatchQueue(complete)
-
-		for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-			chunkChan <- chunk
-		}
-		close(chunkChan)
-
-		wg.Done()
-	}()
+	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
+		chunkChan <- chunk
+	}
+	close(chunkChan)
 
 	//signal to all nodes that the round has been completed
-	for index := 1; index < topology.Len(); index++ {
+	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)
 		go func() {

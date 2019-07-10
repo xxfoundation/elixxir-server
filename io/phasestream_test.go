@@ -20,7 +20,6 @@ import (
 )
 
 var mockStreamSlotIndex int
-var receiveStreamServer mixmessages.Node_StreamPostPhaseServer
 
 type MockStreamPostPhaseServer struct {
 	batch mixmessages.Batch
@@ -121,11 +120,11 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 	getChunk := func() (services.Chunk, bool) {
 		if chunkCnt < batchSize {
-			chunk, ok := services.NewChunk(chunkCnt, chunkCnt+1), false
+			chunk, _ := services.NewChunk(chunkCnt, chunkCnt+1), true
 			chunkCnt++
-			return chunk, ok
+			return chunk, true
 		}
-		return services.NewChunk(0, 0), true
+		return services.NewChunk(0, 0), false
 	}
 
 	getMsg := func(index uint32) *mixmessages.Slot {

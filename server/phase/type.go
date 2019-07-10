@@ -35,6 +35,9 @@ const (
 	// recipients, and broadcasts the recipients
 	RealPermute
 
+	// Complete phase denotes the round has completed
+	Complete
+
 	// Error: A Fatal Error has occurred, cannot continue
 	PhaseError
 )

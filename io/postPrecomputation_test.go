@@ -8,6 +8,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"testing"
 	"time"
@@ -37,9 +38,9 @@ func TestPostPrecompResult(t *testing.T) {
 	const start = 2
 	for precompValue := start; precompValue < bs+start; precompValue++ {
 		slots = append(slots, &mixmessages.Slot{
-			PartialMessageCypherText: grp.NewInt(int64(precompValue)).
+			EncryptedMessageKeys: grp.NewInt(int64(precompValue)).
 				Bytes(),
-			PartialAssociatedDataCypherText: grp.NewInt(int64(precompValue + bs)).
+			EncryptedAssociatedDataKeys: grp.NewInt(int64(precompValue + bs)).
 				Bytes(),
 		})
 	}
@@ -54,11 +55,15 @@ func TestPostPrecompResult(t *testing.T) {
 		index := uint32(precompValue - start)
 		messagePrecomp := r.MessagePrecomputation.Get(index)
 		if messagePrecomp.Cmp(grp.NewInt(int64(precompValue))) != 0 {
-			t.Errorf("Message precomp didn't match at index %v", index)
+			t.Errorf("Message precomp didn't match at index %v;"+
+				"Expected: %v, Recieved: %v", index, precompValue,
+				messagePrecomp.Text(16))
 		}
 		adPrecomp := r.ADPrecomputation.Get(index)
 		if adPrecomp.Cmp(grp.NewInt(int64(precompValue+bs))) != 0 {
-			t.Errorf("Associated data precomp didn't match at index %v", index)
+			t.Errorf("Associated data precomp didn't match at index %v;"+
+				"Expected: %v, Recieved: %v", index, precompValue+bs,
+				adPrecomp.Text(16))
 		}
 	}
 }
@@ -103,8 +108,27 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 
 	rndID := id.Round(42)
 	batchSize := uint32(5)
+
+	slotCount := uint32(0)
+
+	getchunk := func() (services.Chunk, bool) {
+
+		chunk := services.NewChunk(slotCount, slotCount+1)
+
+		good := true
+
+		if slotCount >= batchSize {
+			good = false
+		}
+
+		slotCount++
+
+		return chunk, good
+	}
+
 	err := TransmitPrecompResult(comms[numNodes-1], batchSize,
-		rndID, phase.PrecompReveal, nil, getMockPostPrecompSlot, topology, nil)
+		rndID, phase.PrecompReveal, getchunk, getMockPostPrecompSlot,
+		topology, nil)
 
 	if err != nil {
 		t.Errorf("TransmitPrecompResult: Unexpected error: %+v", err)

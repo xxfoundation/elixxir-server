@@ -13,10 +13,12 @@ import (
 	"testing"
 )
 
-var ExpectedDatabase = Database{
-	Name:     "name",
-	Username: "username",
-	Password: "password",
+var ExpectedNode = Node{
+	Id: "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE=",
+	Ids: []string{"Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE=",
+		"Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE=",
+		"Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="},
+	Paths: ExpectedPaths,
 	Addresses: []string{
 		"127.0.0.1:80",
 		"127.0.0.1:80",
@@ -25,8 +27,8 @@ var ExpectedDatabase = Database{
 }
 
 // This test checks that unmarshalling the params.yaml file
-// has the expected Database object.
-func TestDB_UnmarshallingFileEqualsExpected(t *testing.T) {
+// has the expected Node object.
+func TestNode_UnmarshallingFileEqualsExpected(t *testing.T) {
 
 	buf, _ := ioutil.ReadFile("./params.yaml")
 
@@ -37,8 +39,9 @@ func TestDB_UnmarshallingFileEqualsExpected(t *testing.T) {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
-	if !reflect.DeepEqual(ExpectedDatabase, actual.Database) {
-		t.Errorf("Database object did not match value")
+	if !reflect.DeepEqual(ExpectedNode, actual.Node) {
+		t.Errorf("Params node value does not match expected value\nActual: %v"+
+			"\nExpected: %v", actual.Node, ExpectedNode)
 	}
 
 }

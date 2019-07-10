@@ -7,7 +7,7 @@ import (
 
 var lookup = Type(0)
 var rtn = Type(1)
-var expecteds = []State{2, 3, 4}
+var expecteds = []State{1}
 
 //Tests that the NewResponse returns the expected ResponseDefinition
 func TestNewCMIXResponse(t *testing.T) {
@@ -62,7 +62,7 @@ func TestCMixResponse_String(t *testing.T) {
 	r := buildTestResponse()
 
 	expected := "phase.Responce{PhaseAtSource: 'PrecompGeneration', PhaseToExecute:" +
-		"'PrecompShare', ExpectedStates: {'Queued', 'Running', 'Computed'}}"
+		"'PrecompShare', ExpectedStates: {'Active'}}"
 
 	if r.String() != expected {
 		t.Error("ResponseDefinition.String: Did not return the correct string")

@@ -769,7 +769,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 		cypherMsg, keysAD, cypherAD, keysMsgPermuted, cypherMsgPermuted,
 		keysADPermuted, cypherADPermuted)
 	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherMsg,
-		cypherAD, keysMsg, keysAD)
+		cypherAD)
 
 	//Generate Passthroughs for realtime
 	ecrMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
@@ -793,13 +793,14 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 }
 
 func (ds *DebugStream) Input(index uint32, slot *mixmessages.Slot) error {
-	es := make([]error, 6)
+	es := make([]error, 7)
 	es[0] = ds.GenerateStream.Input(index, slot)
 	es[1] = ds.DecryptStream.Input(index, slot)
 	es[2] = ds.PermuteStream.Input(index, slot)
 	es[3] = ds.StripStream.Input(index, slot)
 	es[4] = ds.KeygenDecryptStream.Input(index, slot)
 	es[5] = ds.IdentifyStream.Input(index, slot)
+	es[6] = ds.StripStream.RevealStream.Input(index, slot)
 
 	var lastErr error
 	for i := 0; i < len(es); i++ {
@@ -813,7 +814,7 @@ func (ds *DebugStream) Input(index uint32, slot *mixmessages.Slot) error {
 }
 
 func (ds *DebugStream) Output(index uint32) *mixmessages.Slot {
-	ds.Outputs = make([]*mixmessages.Slot, 6)
+	ds.Outputs = make([]*mixmessages.Slot, 7)
 
 	ds.Outputs[0] = ds.GenerateStream.Output(index)
 	ds.Outputs[1] = ds.DecryptStream.Output(index)
@@ -821,8 +822,9 @@ func (ds *DebugStream) Output(index uint32) *mixmessages.Slot {
 	ds.Outputs[3] = ds.StripStream.Output(index)
 	ds.Outputs[4] = ds.KeygenDecryptStream.Output(index)
 	ds.Outputs[5] = ds.IdentifyStream.Output(index)
+	ds.Outputs[6] = ds.StripStream.RevealStream.Output(index)
 
-	for i := 0; i < 6; i++ {
+	for i := 0; i < len(ds.Outputs); i++ {
 		ds.Outputs[i].Index = index
 	}
 	return nil
@@ -929,6 +931,9 @@ func wrapAdapt(batchSize uint32, outIdx int, name string, dStrms []*DebugStream,
 				output := dStrms[i].Outputs[outIdx]
 				// Input cur stream to next stream
 				dStrms[(i+1)%3].Input(j, output)
+				/*if err!=nil{
+					t.Errorf("Errored on wrap adapt %v", err)
+				}*/
 				// Todo: Call link to copy right keys??
 			}
 		}
@@ -960,7 +965,7 @@ func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
 		permuteElgamal.Adapt, t)
 	permuteReintegrate := ReintegratePrecompPermute.DeepCopy()
 	revealRoot := precomputation.RevealRootCoprime.DeepCopy()
-	revealRoot.Adapt = wrapAdapt(3, 3, "Reveal", dStrms,
+	revealRoot.Adapt = wrapAdapt(3, 6, "Reveal", dStrms,
 		revealRoot.Adapt, t)
 	stripInverse := precomputation.StripInverse.DeepCopy()
 	stripMul2 := precomputation.StripMul2.DeepCopy()

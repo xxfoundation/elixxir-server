@@ -29,18 +29,20 @@ type firstNode struct {
 // to create the round
 type RoundCreationTransmitter func(*node.NodeComms, *circuit.Circuit, id.Round) error
 
+// RoundStarter is a function type which is used to start a round locally
+type RoundStarter func(instance *Instance, roundID id.Round) error
+
 // RunFirstNode is a long running process on the first node which creates new rounds at
 // the correct time. It can only be called once. It is passed a function through
 // which to interface with the network
-func (fn *firstNode) RunFirstNode(network *node.NodeComms,
-	topology *circuit.Circuit, fullRoundTimeout time.Duration,
-	transmitter RoundCreationTransmitter) {
+func (fn *firstNode) RunFirstNode(instance *Instance, fullRoundTimeout time.Duration,
+	transmitter RoundCreationTransmitter, starter RoundStarter) {
 	fn.runOnce.Do(
 		func() {
 			go func() {
 				for {
-					fn.roundCreationRunner(network, topology, fullRoundTimeout,
-						transmitter)
+					fn.roundCreationRunner(instance, fullRoundTimeout,
+						transmitter, starter)
 				}
 			}()
 		},
@@ -50,16 +52,21 @@ func (fn *firstNode) RunFirstNode(network *node.NodeComms,
 // roundCreationRunner is a long running process on the first node which
 // creates new rounds at the correct time. It is passed a function through
 // which to interface with the network
-func (fn *firstNode) roundCreationRunner(network *node.NodeComms,
-	topology *circuit.Circuit, fullRoundTimeout time.Duration,
-	transmitter RoundCreationTransmitter) {
+func (fn *firstNode) roundCreationRunner(instance *Instance, fullRoundTimeout time.Duration,
+	transmitter RoundCreationTransmitter, starter RoundStarter) {
 
-	err := transmitter(network, topology, fn.currentRoundID)
+	err := transmitter(instance.GetNetwork(), instance.GetTopology(), fn.currentRoundID)
 
-	// TODO: proper error handling will broadcast a signal to kill to round,
+	// TODO: proper error handling will broadcast a signal to killChan to round,
 	// allowing to continue
 	if err != nil {
-		jww.FATAL.Panicf("Round failed to start: %+v", err)
+		jww.FATAL.Panicf("Round failed to create round remotely: %+v", err)
+	}
+
+	//start the round locally
+	err = starter(instance, fn.currentRoundID)
+	if err != nil {
+		jww.FATAL.Panicf("Round failed to start round locally: %+v", err)
 	}
 
 	select {

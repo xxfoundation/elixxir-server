@@ -180,26 +180,21 @@ func TestStripStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		msg := &mixmessages.Slot{
-			PartialMessageCypherText:        expected[0],
-			PartialAssociatedDataCypherText: expected[1],
-		}
-
-		err := stream.Input(b, msg)
-		if err != nil {
-			t.Errorf("StripStream.Output() errored on slot %v: %s", b, err.Error())
-		}
+		grp.SetBytes(stream.MessagePrecomputation.Get(b), expected[0])
+		grp.SetBytes(stream.ADPrecomputation.Get(b), expected[1])
 
 		output := stream.Output(b)
 
-		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[0]) {
-			t.Errorf("StripStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
+			t.Errorf("StripStream.Output() incorrect recieved "+
+				"CypherMsg data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], output.EncryptedMessageKeys)
 		}
 
-		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[1]) {
-			t.Errorf("StripStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
+			t.Errorf("StripStream.Output() incorrect recieved CypherAD"+
+				" data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], output.EncryptedAssociatedDataKeys)
 		}
 
 	}
@@ -242,6 +237,12 @@ func TestStrip_Graph(t *testing.T) {
 
 	// Build the round
 	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
+	roundBuffer.InitLastNode()
+
+	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
+		roundBuffer.PermutedMessageKeys[i] = grp.NewInt(1)
+		roundBuffer.PermutedADKeys[i] = grp.NewInt(1)
+	}
 
 	// Fill the fields of the round object for testing
 	for i := uint32(0); i < g.GetBatchSize(); i++ {

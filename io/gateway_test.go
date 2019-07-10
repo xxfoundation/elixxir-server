@@ -35,8 +35,8 @@ func TestGetRoundBufferInfo_Timeout(t *testing.T) {
 		CompletedPrecomputations: make(chan *round.Round, 1),
 		PushSignal:               make(chan struct{}),
 	}
-	_, err := GetRoundBufferInfo(c, 200*time.Millisecond)
-	if err == nil {
+	rbi, _ := GetRoundBufferInfo(c, 2*time.Millisecond)
+	if rbi != 0 {
 		t.Error("Round buffer info timeout should have resulted in an error")
 	}
 }
@@ -74,11 +74,10 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 	doneChan := make(chan struct{})
 
 	var batch *mixmessages.Batch
-	var err error
 
 	// Should timeout
 	go func() {
-		batch, err = GetCompletedBatch(completedRoundQueue, 40*time.Millisecond)
+		batch, _ = GetCompletedBatch(completedRoundQueue, 40*time.Millisecond)
 
 		doneChan <- struct{}{}
 
@@ -86,11 +85,8 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 
 	<-doneChan
 
-	if err == nil {
+	if len(batch.Slots) != 0 {
 		t.Error("Should have gotten an error in the timeout case")
-	}
-	if batch != nil {
-		t.Error("Should have gotten a nil batch in the timeout case")
 	}
 }
 
