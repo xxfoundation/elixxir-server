@@ -6,6 +6,7 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
+	"strings"
 	"testing"
 	"time"
 )
@@ -225,5 +226,82 @@ func TestNew(t *testing.T) {
 	}
 	if phase.GetTimeout() != timeout {
 		t.Error("Timeout wasn't set")
+	}
+}
+
+// Test that the function does not break calculating delta when a previous
+// metric does not exist
+func TestPhase_Measure(t *testing.T) {
+	p := &phase{
+		roundID: 0,
+		tYpe: RealPermute,
+	}
+
+	for i := 0; i < 10; i++ {
+		name := fmt.Sprintf("test%d", i)
+		r := getMeasureInfo(p, name)
+		rs := strings.Split(r, "\t")
+
+		if len(rs) != 6 {
+			t.Errorf("Measure did not return enough variables in log for %s."+
+				"\n\tExpected: %d vars\n\tGot:      %d vars",
+				name, 5, len(rs)-1)
+		}
+
+		if rs[1] != "round ID: 0\n" {
+			t.Errorf("Measure did not return correct round ID."+
+				"\n\tExpected: %q\n\tGot:      %q",
+				"round ID: 0\n", rs[1])
+		}
+
+		if rs[2] != "phase: 6\n" {
+			t.Errorf("Measure did not return correct phase.\n\t" +
+				"Expected: %q\n\tGot:      %q",
+				"phase: 6\n", rs[2])
+		}
+
+		if rs[3] != fmt.Sprintf("tag: test%d\n", i) {
+			t.Errorf("Measure did not return correct tag.\n\t" +
+				"Expected: %q\n\tGot:      %q",
+				fmt.Sprintf("tag: test%d\n", i), rs[3])
+		}
+
+		tstest := strings.SplitN(rs[4], " ", 2)
+		if len(tstest) != 2 {
+			t.Errorf("Measure returned a delta that parsed to more than two strings in space slit." +
+				"\n\tGot: %q", rs[4])
+		}
+		// We have to define our own time format because Go doesn't have one for
+		// the format outputted by timestamp.String()
+		tf := "2006-01-02 15:04:05.99 -0700 MST"
+		// Use some magic to remove the "m=+0.004601744" (example) part of the
+		// outputted timestamp, since time.Parse() can't understand it
+		ts := strings.Split(tstest[1], " ")
+		ts = ts[:len(ts) - 1]
+		// Join the newly cut string together with space separators and test it
+		ts2 := strings.Join(ts, " ")
+		_, err := time.Parse(tf, strings.TrimSpace(ts2))
+		if err != nil {
+			t.Errorf("Measure returned un-parsable timestamp\n\tGot: %q", rs[4])
+		}
+
+		deltatest := strings.Split(rs[5], " ")
+		if len(deltatest) != 2 {
+			t.Errorf("Measure returned a delta that parsed to more than two strings in space slit." +
+				"\n\tGot: %q", rs[5])
+		}
+		if i == 0 && deltatest[1] != "0s" {
+			t.Errorf("Measure returned a delta that isn't 0s for first measurement." +
+				"\n\tExpected: %q\n\tGot:      %q",
+				"0s", deltatest[1])
+		}
+		delta, err := time.ParseDuration(deltatest[1])
+		if err != nil {
+			t.Errorf("Measure returned un-parsable delta.\n\tGot: \"%s\"", deltatest[1])
+			return
+		}
+		if delta.Nanoseconds() < 0 {
+			t.Errorf("Measure returned a negative duration.\n\tGot: \"%s\"", deltatest[1])
+		}
 	}
 }

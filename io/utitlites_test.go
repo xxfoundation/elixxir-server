@@ -53,6 +53,7 @@ func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
 func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
+func (*MockPhase) Measure(string)                         { return }
 
 func buildTestNetworkComponents(impls []*node.Implementation,
 	portStart int) ([]*node.NodeComms, *circuit.Circuit) {

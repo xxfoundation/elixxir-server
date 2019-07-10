@@ -5,6 +5,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"time"
@@ -28,6 +29,7 @@ type Phase interface {
 	Input(index uint32, slot *mixmessages.Slot) error
 	Cmp(Phase) bool
 	String() string
+	Measure(tag string)
 }
 
 // Holds a single phase to be executed by the server in a round
@@ -47,6 +49,8 @@ type phase struct {
 	//This bool denotes if the phase goes straight to completed or waits for an
 	//External check at Computed
 	verification bool
+
+	Metrics measure.Metrics
 }
 
 // New makes a new phase with the given the phase definition structure
@@ -181,4 +185,30 @@ func (p *phase) Send(chunk services.Chunk) {
 // Input updates the graph's stream with the passed data at the passed index
 func (p *phase) Input(index uint32, slot *mixmessages.Slot) error {
 	return p.GetGraph().GetStream().Input(index, slot)
+}
+
+// Measure logs the output of the measure function
+func getMeasureInfo(p *phase, tag string) string {
+	// Generate our metric and get the timestamp from it, plus a temp delta var
+	timestamp := p.Metrics.Measure(tag)
+	delta := time.Duration(0)
+
+	// Calculate the difference between this event and the last one, if there is
+	// a last one.
+	if len(p.Metrics.Events) > 1 {
+		prevTimestamp := p.Metrics.Events[len(p.Metrics.Events)-2].Timestamp
+		currTimestamp := p.Metrics.Events[len(p.Metrics.Events)-1].Timestamp
+		delta = currTimestamp.Sub(prevTimestamp)
+	}
+
+	// Format string to return
+	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %d\n\t"+
+		"tag: %s\n\ttimestamp: %s\n\tdelta: %s",
+		p.roundID, p.tYpe, tag, timestamp.String(), delta.String())
+	return result
+}
+
+// Wrapper function to log output to console
+func (p *phase) Measure(tag string) {
+	jww.DEBUG.Print(getMeasureInfo(p, tag))
 }
