@@ -118,7 +118,7 @@ func (g *Graph) Build(batchSize uint32) {
 // This has to be global to communicate between checkDAG and checkAllNodesUsed
 var visitedModules []uint64 = nil
 
-// checkGraph checks that our graph is valid, meaning more than 1 vertex, has a
+// checkGraph checks that the graph is valid, meaning more than 1 vertex, has a
 // first and last module, is a Directed Acyclic Graph, and all vertexes in the
 // graph are used
 func (g *Graph) checkGraph() {
@@ -135,9 +135,9 @@ func (g *Graph) checkGraph() {
 		jww.FATAL.Panicf("No last module")
 	}
 
-	// Make an array of visited modules, containing our first ID
+	// Make an array of visited modules, containing the first ID
 	visited := make([]uint64, 0)
-	// Clear our visitedModules
+	// Clear the visitedModules
 	visitedModules = make([]uint64, 0)
 	// Start checking based on the firstModule
 	err := g.checkDAG(g.firstModule, visited)
@@ -171,10 +171,10 @@ func (g *Graph) checkAllNodesUsed() error {
 // A graph loopback occurs when a node tries to call a node already called back
 // the chain.
 func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
-	// Add node to visitedModules, since we've visited it
+	// Add node to visitedModules, since it's just being visited
 	visitedModules = append(visitedModules, mod.id)
 
-	// Reached the end of this path, check that the end is our lastModule
+	// Reached the end of this path, check that the end is the lastModule
 	if len(mod.outputModules) == 0 && mod.id != g.lastModule.id {
 		return fmt.Errorf("graph path ended at vertex ID %d," +
 			" not lastModule ID %d", mod.id, g.lastModule.id)
