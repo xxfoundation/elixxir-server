@@ -118,7 +118,9 @@ func (g *Graph) Build(batchSize uint32) {
 // This has to be global to communicate between checkDAG and checkAllNodesUsed
 var visitedModules []uint64 = nil
 
-// checkGraph checks that our graph is valid.
+// checkGraph checks that our graph is valid, meaning more than 1 vertex, has a
+// first and last module, is a Directed Acyclic Graph, and all vertexes in the
+// graph are used
 func (g *Graph) checkGraph() {
 	//Check if graph has modules
 	if len(g.modules) == 0 {
