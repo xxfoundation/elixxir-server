@@ -12,9 +12,8 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
 )
@@ -48,11 +47,12 @@ type UserMap sync.Map
 
 // Structure representing a User in the system
 type User struct {
-	ID        *id.User
-	HUID      []byte
-	BaseKey   *cyclic.Int
-	PublicKey *signature.DSAPublicKey
-	Nonce     nonce.Nonce
+	ID           *id.User
+	HUID         []byte
+	BaseKey      *cyclic.Int
+	RsaPublicKey *rsa.PublicKey
+	PublicKey    *cyclic.Int
+	Nonce        nonce.Nonce
 
 	salts [][]byte
 	sync.Mutex
@@ -66,12 +66,16 @@ func (u *User) DeepCopy() *User {
 	newUser := new(User)
 	newUser.ID = u.ID
 	newUser.BaseKey = u.BaseKey.DeepCopy()
+	newUser.PublicKey = u.PublicKey.DeepCopy()
 
 	if u.PublicKey != nil {
-		params := u.PublicKey.GetParams()
-		newUser.PublicKey = signature.ReconstructPublicKey(signature.
-			CustomDSAParams(params.GetP(), params.GetQ(),
-				params.GetG()), u.PublicKey.GetKey())
+		rsaPublicKey, err := rsa.LoadPublicKeyFromPem(rsa.
+			CreatePublicKeyPem(u.RsaPublicKey))
+		if err != nil {
+			jww.ERROR.Printf("Unable to convert PEM to public key: %+v",
+				errors.New(err.Error()))
+		}
+		newUser.RsaPublicKey = rsaPublicKey
 	}
 
 	newUser.Nonce = nonce.Nonce{
@@ -96,13 +100,8 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	h.Reset()
 	h.Write([]byte(string(40000 + i)))
 	usr.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
-
-	usr.PublicKey = signature.ReconstructPublicKey(
-		signature.CustomDSAParams(
-			large.NewInt(0), large.NewInt(0), large.NewInt(0),
-		),
-		large.NewInt(0),
-	)
+	usr.PublicKey = grp.NewInt(int64(0))
+	usr.RsaPublicKey = new(rsa.PublicKey)
 
 	usr.Nonce = *new(nonce.Nonce)
 
