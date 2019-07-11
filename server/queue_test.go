@@ -227,8 +227,10 @@ func makeTestGraph(instance *Instance, batchSize uint32) *services.Graph {
 	graph.First(firstGraphNode)
 	graph.Connect(firstGraphNode, secondGraphNode)
 	graph.Last(secondGraphNode)
-	graph.Link(instance.GetGroup())
-	graph.Build(batchSize)
+
+	//graph.Build(batchSize)
+
+	//graph.Link(instance.GetGroup())
 
 	return graph
 }

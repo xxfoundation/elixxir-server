@@ -58,7 +58,7 @@ func (g *Graph) Build(batchSize uint32) {
 	if g.overrideBatchSize != 0 {
 		batchSize = g.overrideBatchSize
 	}
-
+	
 	//Checks graph is properly formatted
 	g.checkGraph()
 
