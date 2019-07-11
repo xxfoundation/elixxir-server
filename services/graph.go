@@ -119,7 +119,7 @@ func (g *Graph) Build(batchSize uint32) {
 // This has to be global to communicate between checkDAG and checkAllNodesUsed
 var visitedModules []uint64 = nil
 
-// checkGraph checks that our graph is valid
+// checkGraph checks that our graph is valid.
 func (g *Graph) checkGraph() {
 	//Check if graph has modules
 	if len(g.modules) == 0 {
@@ -160,27 +160,29 @@ func (g *Graph) checkAllNodesUsed() error {
 			}
 		}
 		if seen == false {
-			return errors.New(fmt.Sprintf("Graph node %d was not used in graph anywhere\n", v.id))
+			return fmt.Errorf("graph node %d was not used in graph anywhere\n", v.id)
 		}
 	}
 	return nil
 }
 
 // checkDAG checks that no nodes cause a loopback or are run twice in any path
+// A graph loopback occurs when a node tries to call a node already called back
+// the chain.
 func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
-	// We've visited this graph module, woo!
+	// Add node to visitedModules, since we've visited it
 	visitedModules = append(visitedModules, mod.id)
 
-	// We reached the end of this path, check that the end is our lastModule
+	// Reached the end of this path, check that the end is our lastModule
 	if len(mod.outputModules) == 0 && mod.id != g.lastModule.id {
-		return errors.New(fmt.Sprintf("Graph path ended at node ID %d," +
+		return fmt.Errorf("graph path ended at vertex ID %d," +
 			" not lastModule ID %d", mod.id, g.lastModule.id))
 	}
 
 	// Check that this node isn't already in the visited path
 	for i, visitedModule := range visited {
 		if mod.id == visitedModule {
-			return errors.New(fmt.Sprintf("Node %d was visited multiple times", i))
+			return fmt.Errorf("node %d was visited multiple times", i))
 		}
 	}
 
