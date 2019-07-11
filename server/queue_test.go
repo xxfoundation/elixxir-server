@@ -228,9 +228,5 @@ func makeTestGraph(instance *Instance, batchSize uint32) *services.Graph {
 	graph.Connect(firstGraphNode, secondGraphNode)
 	graph.Last(secondGraphNode)
 
-	//graph.Build(batchSize)
-
-	//graph.Link(instance.GetGroup())
-
 	return graph
 }
