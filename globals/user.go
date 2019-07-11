@@ -100,7 +100,7 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	h.Reset()
 	h.Write([]byte(string(40000 + i)))
 	usr.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
-	usr.PublicKey = grp.NewInt(int64(0))
+	usr.PublicKey = grp.NewIntFromBytes(h.Sum(nil))
 	usr.RsaPublicKey = new(rsa.PublicKey)
 
 	usr.Nonce = *new(nonce.Nonce)
