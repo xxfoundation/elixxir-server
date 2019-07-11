@@ -7,7 +7,6 @@
 package services
 
 import (
-	"errors"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -176,13 +175,13 @@ func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
 	// Reached the end of this path, check that the end is our lastModule
 	if len(mod.outputModules) == 0 && mod.id != g.lastModule.id {
 		return fmt.Errorf("graph path ended at vertex ID %d," +
-			" not lastModule ID %d", mod.id, g.lastModule.id))
+			" not lastModule ID %d", mod.id, g.lastModule.id)
 	}
 
 	// Check that this node isn't already in the visited path
 	for i, visitedModule := range visited {
 		if mod.id == visitedModule {
-			return fmt.Errorf("node %d was visited multiple times", i))
+			return fmt.Errorf("node %d was visited multiple times", i)
 		}
 	}
 
