@@ -169,6 +169,84 @@ var ModuleD = Module{
 	StartThreshold: 1.0,
 }
 
+// TestGraphBacktrack checks error checking to see if a graph path goes back on itself
+func TestGraphBacktrack(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Connect(moduleC, moduleA)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	visited := make([]uint64, 0)
+	err := g.checkDAG(moduleA, visited)
+	if err == nil {
+		t.Error("dagcheck returned no error for a node ending on node other than Last")
+	}
+}
+
+// TestGraphNodeNoVisit checks error checking to see if all graph nodes are visited
+func TestGraphNodeNoVisit(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	// We are bypassing checkGraph/build, so we need to (re)init this var ourselves
+	visitedModules = make([]uint64, 0)
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	visited := make([]uint64, 0)
+	err := g.checkDAG(moduleA, visited)
+	if err != nil {
+		t.Error("checkAllNodesUsed returned error on checkDAG")
+	}
+	err = g.checkAllNodesUsed()
+	if err == nil {
+		t.Error("checkAllNodesUsed returned incorrectly that all nodes have been used")
+	}
+}
+
+// TestGraphWrongEndNode checks error checking to see if a graph path ends on a node other than g.Last
+func TestGraphWrongEndNode(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Last(moduleD)
+
+	visited := make([]uint64, 0)
+	err := g.checkDAG(moduleA, visited)
+	if err == nil {
+		t.Error("dagcheck returned no error for a node ending on node other than Last")
+	}
+}
+
 func TestGraph(t *testing.T) {
 
 	fmt.Println("num threads: ", runtime.NumCPU())
