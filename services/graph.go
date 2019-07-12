@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"math"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -116,7 +117,12 @@ func (g *Graph) Build(batchSize uint32) {
 }
 
 // This has to be global to communicate between checkDAG and checkAllNodesUsed
-var visitedModules []uint64 = nil
+// It has to be lockable, otherwise multiple threads checking the graph at the
+// same time can overwrite the mods value and break checkAllNodesUsed()
+var visitedModules struct {
+	sync.RWMutex
+	mods []uint64
+}
 
 // checkGraph checks that the graph is valid, meaning more than 1 vertex, has a
 // first and last module, is a Directed Acyclic Graph, and all vertexes in the
@@ -135,10 +141,15 @@ func (g *Graph) checkGraph() {
 		jww.FATAL.Panicf("No last module")
 	}
 
+	if g.firstModule == g.lastModule || len(g.modules) == 1 {
+		return
+	}
+
 	// Make an array of visited modules, containing the first ID
 	visited := make([]uint64, 0)
 	// Clear the visitedModules
-	visitedModules = make([]uint64, 0)
+	visitedModules.Lock()
+	visitedModules.mods = make([]uint64, 0)
 	// Start checking based on the firstModule
 	err := g.checkDAG(g.firstModule, visited)
 	if err != nil {
@@ -146,6 +157,7 @@ func (g *Graph) checkGraph() {
 	}
 
 	err = g.checkAllNodesUsed()
+	visitedModules.Unlock()
 	if err != nil {
 		jww.FATAL.Panic(err)
 	}
@@ -155,7 +167,7 @@ func (g *Graph) checkGraph() {
 func (g *Graph) checkAllNodesUsed() error {
 	for _, v := range g.modules {
 		seen := false
-		for _, y := range visitedModules {
+		for _, y := range visitedModules.mods {
 			if v.id == y {
 				seen = true
 			}
@@ -172,7 +184,7 @@ func (g *Graph) checkAllNodesUsed() error {
 // the chain.
 func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
 	// Add node to visitedModules, since it's just being visited
-	visitedModules = append(visitedModules, mod.id)
+	visitedModules.mods = append(visitedModules.mods, mod.id)
 
 	// Reached the end of this path, check that the end is the lastModule
 	if len(mod.outputModules) == 0 && mod.id != g.lastModule.id {
