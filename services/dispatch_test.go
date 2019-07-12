@@ -205,7 +205,7 @@ func TestGraphNodeNoVisit(t *testing.T) {
 	moduleD := ModuleD.DeepCopy()
 
 	// We are bypassing checkGraph/build, so we need to (re)init this var ourselves
-	visitedModules = make([]uint64, 0)
+	visitedModules.mods = make([]uint64, 0)
 
 	g.First(moduleA)
 	g.Connect(moduleA, moduleB)
