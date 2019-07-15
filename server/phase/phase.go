@@ -30,6 +30,7 @@ type Phase interface {
 	Cmp(Phase) bool
 	String() string
 	Measure(tag string)
+	GetMeasure()
 }
 
 // Holds a single phase to be executed by the server in a round
@@ -105,6 +106,10 @@ func (p *phase) GetType() Type {
 // GetState returns the current state of the phase
 func (p *phase) GetState() State {
 	return p.getState()
+}
+
+func (p *phase) GetMeasure() measure.Metrics {
+	return p.Metrics
 }
 
 // AttemptToQueue attempts to set the internal phase state to queued.

@@ -342,7 +342,6 @@ func ReceiveFinishRealtime(instance *server.Instance,
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
 	}
-
 	p.UpdateFinalStates()
 
 	if !instance.GetKeepBuffers() {
@@ -368,6 +367,17 @@ func ReceiveFinishRealtime(instance *server.Instance,
 		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
 			" SENDING END ROUND SIGNAL", instance, roundID)
 		instance.FinishRound(roundID)
+	}
+
+	return nil
+}
+
+func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) error {
+	// write function on round getMEasurements returnign structure that has map of phase to metrics
+	round, err := instance.GetRoundManager().GetRound(id.Round(msg.ID))
+	if err != nil {
+		jww.ERROR.Printf("ERR NO ROUND FOUND WITH ID %s", msg.String())
+		return err
 	}
 
 	return nil
