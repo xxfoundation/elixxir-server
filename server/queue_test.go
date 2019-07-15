@@ -63,6 +63,8 @@ func (mp *MockPhase) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
+
+
 func (*MockPhase) EnableVerification() { return }
 func (*MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
 	getState phase.GetState) {

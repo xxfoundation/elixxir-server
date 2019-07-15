@@ -63,6 +63,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		//get the next phase to execute
 		select {
 		case rq.activePhase = <-rq.phaseQueue:
+			rq.activePhase.Measure("Phase was selected, has been given resources to execute.")
 		case <-rq.killChan:
 			return
 		}
