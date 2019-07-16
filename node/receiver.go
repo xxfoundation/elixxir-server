@@ -65,7 +65,9 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	rm := instance.GetRoundManager()
 
 	tag := phase.PrecompShare.String() + "Verification"
+
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
+	p.Measure(tag)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
@@ -148,6 +150,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
+	p.Measure(tag)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostPrecompResult comm, should be able to return: \n %+v",
@@ -180,7 +183,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
-
+	p.Measure("Receive post phase " + string(roundID))
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
@@ -232,6 +235,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// Check if the operation can be done and get the correct
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
+	p.Measure("Recieve stream PostPhase " + string(roundID))
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
@@ -336,7 +340,7 @@ func ReceiveFinishRealtime(instance *server.Instance,
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
-
+	p.Measure(tag)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",

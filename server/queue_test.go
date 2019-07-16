@@ -101,6 +101,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	q := initQueue()
 	nid := GenerateId()
 
+
 	cmix := map[string]string{
 		"prime":      pString,
 		"smallprime": qString,
@@ -147,19 +148,18 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	if !p.IsQueued() {
 		t.Error("After enqueueing, the phase's state should be Queued")
 	}
-
 	go q.run(instance)
 	time.Sleep(20 * time.Millisecond)
 	// Verify state while the queue is running
 	if !iWasCalled {
 		t.Error("Transmission handler never got called")
 	}
-
+	//log := io.Writer()
+	//log
 	if len(q.phaseQueue) != 0 {
 		t.Error("The phase queue should have been emptied after the queue ran" +
 			" the only phase")
 	}
-
 	q.DenotePhaseCompletion(p)
 	time.Sleep(20 * time.Millisecond)
 }
