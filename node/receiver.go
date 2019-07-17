@@ -70,12 +70,13 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	tag := phase.PrecompShare.String() + "Verification"
 
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
-	p.Measure(tag)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure(tag)
+
 
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
@@ -153,12 +154,13 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
-	p.Measure(tag)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostPrecompResult comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure(tag)
+
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
@@ -186,12 +188,13 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
-	p.Measure("Receive post phase " + string(roundID))
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure("Receive post phase " + string(roundID))
+
 	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
@@ -238,12 +241,13 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// Check if the operation can be done and get the correct
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
-	p.Measure("Recieve stream PostPhase " + string(roundID))
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure("Recieve stream PostPhase " + string(roundID))
+
 	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 
@@ -343,12 +347,12 @@ func ReceiveFinishRealtime(instance *server.Instance,
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
-	p.Measure(tag)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure(tag)
 
 	p.UpdateFinalStates()
 
