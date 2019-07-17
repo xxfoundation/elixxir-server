@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"time"
@@ -54,6 +55,7 @@ func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
+func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
 
 func buildTestNetworkComponents(impls []*node.Implementation,
 	portStart int) ([]*node.NodeComms, *circuit.Circuit) {

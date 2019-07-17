@@ -9,6 +9,7 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync/atomic"
 )
@@ -190,6 +191,20 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 			response.GetReturnPhase(), response.GetExpectedStates())
 		return nil, errors.New(errStr)
 	}
+}
+
+// Return a RoundMetrics object based on this round & its phases
+func (r *Round) GetMeasurements(nid string, numNodes, index int) measure.RoundMetrics {
+	rid := r.GetID()
+	rm := measure.NewRoundMetrics(nid, uint32(rid), numNodes, index)
+
+	// Add metrics for each phase in this round to the RoundMetrics
+	for k, v := range r.phaseMap {
+		pm := r.phases[v].GetMeasure()
+		rm.AddPhase(k.String(), pm)
+	}
+
+	return rm
 }
 
 // String stringer interface implementation for rounds.

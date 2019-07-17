@@ -30,7 +30,7 @@ type Phase interface {
 	Cmp(Phase) bool
 	String() string
 	Measure(tag string)
-	GetMeasure()
+	GetMeasure() measure.Metrics
 }
 
 // Holds a single phase to be executed by the server in a round

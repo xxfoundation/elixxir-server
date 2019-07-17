@@ -26,7 +26,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveCreateNewRound(instance, message)
 	}
 
-	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo) error {
+	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
 		return ReceiveGetMeasure(instance, message)
 	}
 

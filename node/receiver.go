@@ -7,6 +7,7 @@
 package node
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -372,13 +373,34 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	return nil
 }
 
-func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) error {
-	// write function on round getMEasurements returnign structure that has map of phase to metrics
-	round, err := instance.GetRoundManager().GetRound(id.Round(msg.ID))
+// Receiver for GetMeasure finds the round in msg and responds with a RoundMetrics message
+func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
+	roundID := id.Round(msg.ID)
+
+	rm := instance.GetRoundManager()
+
+	// Check that the round exists, grab it
+	r, err := rm.GetRound(roundID)
 	if err != nil {
 		jww.ERROR.Printf("ERR NO ROUND FOUND WITH ID %s", msg.String())
-		return err
+		return nil, err
 	}
 
-	return nil
+	// Get information on node & topology for the metrics object
+	nodeId := instance.GetID()
+	topology := instance.GetTopology()
+	numNodes := topology.Len()
+	index := topology.GetNodeLocation(nodeId)
+
+	metrics := r.GetMeasurements(nodeId.String(), numNodes, index)
+
+	s, err := json.Marshal(metrics)
+
+	jww.INFO.Print(s)
+
+	ret := mixmessages.RoundMetrics{
+		RoundMetricJSON: string(s),
+	}
+
+	return &ret, nil
 }
