@@ -66,9 +66,10 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 			if err != nil {
 				errChan <- err
 			}
-
+			
 			wg.Done()
 		}()
+
 	}
 
 	// Wait for all responses

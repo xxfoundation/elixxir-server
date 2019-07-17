@@ -239,6 +239,7 @@ func (g *Graph) Send(chunk Chunk) {
 		// Does commenting this fix the double close?
 		// It does not.
 		g.firstModule.closeInput()
+		
 	}
 }
 

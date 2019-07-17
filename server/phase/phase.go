@@ -184,7 +184,9 @@ func (p *phase) String() string {
 // Send via the graph. This function allows for this graph function
 // to be accessed via the interface
 func (p *phase) Send(chunk services.Chunk) {
+	p.Measure("Send the first slot")
 	p.graph.Send(chunk)
+
 }
 
 // Input updates the graph's stream with the passed data at the passed index

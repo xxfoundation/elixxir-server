@@ -76,6 +76,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		//Build the chunk accessor which will also increment the queue when appropriate
 		var getChunk phase.GetChunk
 		getChunk = func() (services.Chunk, bool) {
+			runningPhase.Measure("Received slot for the first time")
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 			//fmt.Println(runningPhase.GetType(), "chunk:", chunk, "ok:", ok)
 			//Fixme: add a method to killChan this directly
@@ -97,6 +98,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//start the phase's transmission handler
 		handler := rq.activePhase.GetTransmissionHandler
+		rq.activePhase.Measure("Start transmitter")
 		go func() {
 
 			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
