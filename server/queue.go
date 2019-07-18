@@ -108,7 +108,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
 				curRound.GetTopology(),
-				server.GetID())
+				server.GetID(), runningPhase.Measure)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",

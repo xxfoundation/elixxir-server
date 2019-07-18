@@ -51,7 +51,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 	pass := false
 	handler := func(network *node.NodeComms, batchSize uint32,
 		roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nodes *circuit.Circuit, nid *id.Node) error {
+		getMessage GetMessage, nodes *circuit.Circuit, nid *id.Node, measure Measure) error {
 		pass = true
 		return nil
 	}
@@ -59,7 +59,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 		transmissionHandler: handler,
 	}
 	// This call should set pass to true
-	err := p.GetTransmissionHandler()(nil, 0, 0, 0, nil, nil, nil, nil)
+	err := p.GetTransmissionHandler()(nil, 0, 0, 0, nil, nil, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Transmission handler returned an error, how!? %+v", err)
@@ -206,7 +206,7 @@ func TestNew(t *testing.T) {
 
 	transmit := func(network *node.NodeComms, batchSize uint32,
 		roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nodes *circuit.Circuit, nid *id.Node) error {
+		getMessage GetMessage, nodes *circuit.Circuit, nid *id.Node, measure Measure) error {
 		pass = true
 		return nil
 	}
@@ -214,7 +214,7 @@ func TestNew(t *testing.T) {
 	phase := New(Definition{g, RealPermute, transmit,
 		timeout, false})
 	err := phase.GetTransmissionHandler()(nil, 0, 0,
-		0, nil, nil, nil, nil)
+		0, nil, nil, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Transmission handler returned an error, how!? %+v", err)

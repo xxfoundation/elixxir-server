@@ -194,7 +194,7 @@ func makeTestPhase(instance *Instance, name phase.Type,
 	transmissionHandler := func(network *node.NodeComms, batchSize uint32,
 		roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 		getMessage phase.GetMessage, topology *circuit.Circuit,
-		nodeId *id.Node) error {
+		nodeId *id.Node, measure phase.Measure) error {
 		iWasCalled = true
 		return nil
 	}

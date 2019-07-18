@@ -66,7 +66,7 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 
 	//call the transmitter
 	err := TransmitRoundPublicKey(comms[0], 1, roundID, phaseTy,
-		getChunk, getMsg, topology, topology.GetNodeAtIndex(0))
+		getChunk, getMsg, topology, topology.GetNodeAtIndex(0), nil)
 
 	if err != nil {
 		t.Errorf("TransmitRoundPublicKey: Unexpected error: %+v", err)

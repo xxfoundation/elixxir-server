@@ -36,8 +36,7 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		&instance.LastNode,
 		instance.GetBatchSize())
 	//Probably only have to do this once? Reviewer, thoughts?
-	tag := "[" + instance.String() +"]: RID " + string(roundID) + " CreateNewRound RECIEVE"
-	phases[0].Measure(tag)
+
 	//Build the round
 	rnd := round.New(
 		instance.GetGroup(),
