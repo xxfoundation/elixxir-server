@@ -173,7 +173,7 @@ func (g *Graph) checkAllNodesUsed() error {
 			}
 		}
 		if seen == false {
-			return fmt.Errorf("graph vertex %d was not used in graph anywhere\n", v.id)
+			return fmt.Errorf("graph vertex %d was not used in graph anywhere", v.id)
 		}
 	}
 	return nil

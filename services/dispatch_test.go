@@ -221,6 +221,33 @@ func TestGraphNodeNoVisit(t *testing.T) {
 	}
 }
 
+// TestGraphNodeNoVisit checks that no error is reported when all graph nodes are visited
+func TestGraphNodeAllVisited(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	// We are bypassing checkGraph/build, so we need to (re)init this var ourselves
+	visitedModules.mods = make([]uint64, 0)
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	visitedModules.mods = []uint64{1, 2, 3, 4}
+	err := g.checkAllNodesUsed()
+	if err != nil {
+		t.Error("checkAllNodesUsed returned incorrectly that all vertexes have *not* been used")
+	}
+}
+
 // TestGraphWrongEndNode checks error checking to see if a graph path ends on a node other than g.Last
 func TestGraphWrongEndNode(t *testing.T) {
 	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
