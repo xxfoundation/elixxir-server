@@ -53,6 +53,7 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nodeID, port)
 	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
+	tag := name + ": RID" + string(roundID) + "TransmitPhase FOR \"
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, phaseTy)
 
