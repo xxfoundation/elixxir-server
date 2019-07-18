@@ -195,6 +195,77 @@ func TestGraphBacktrack(t *testing.T) {
 	}
 }
 
+// TestGraphNoModules checks error happens when graph has no modules
+func TestGraphNoModules(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	err := g.checkGraph()
+	if err.Error() != "no modules in graph" {
+		t.Error("checkGraph did not return an error for no modules in graph")
+	}
+}
+
+// TestGraphNodeNoFirstModule checks an error is thrown when no first module is
+// specified
+func TestGraphNodeNoFirstModule(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	err := g.checkGraph()
+	if err.Error() != "no first module" {
+		t.Error("checkGraph did not return an error for no first module in graph")
+	}
+}
+
+// TestGraphNodeNoLastModule checks an error is thrown when no last module is
+// specified
+func TestGraphNodeNoLastModule(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleC, moduleD)
+
+	err := g.checkGraph()
+	if err.Error() != "no last module" {
+		t.Error("checkGraph did not return an error for no last module in graph")
+	}
+}
+
+// TestGraphNodeNoOneModule checks that a correct graph with one node works
+func TestGraphNodeOneModule(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+
+	g.First(moduleA)
+	g.Last(moduleA)
+
+	err := g.checkGraph()
+	if err != nil {
+		t.Error("checkGraph returned an error for a correct one node graph")
+	}
+}
+
 // TestGraphNodeNoVisit checks error checking to see if all graph nodes are visited
 func TestGraphNodeNoVisit(t *testing.T) {
 	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)

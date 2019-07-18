@@ -61,7 +61,10 @@ func (g *Graph) Build(batchSize uint32) {
 	}
 
 	//Checks graph is properly formatted
-	g.checkGraph()
+	err := g.checkGraph()
+	if err != nil {
+		jww.FATAL.Panic(err)
+	}
 
 	//Find expanded batch size
 	var integers []uint32
@@ -127,22 +130,22 @@ var visitedModules struct {
 // checkGraph checks that the graph is valid, meaning more than 1 vertex, has a
 // first and last module, is a Directed Acyclic Graph, and all vertexes in the
 // graph are used
-func (g *Graph) checkGraph() {
+func (g *Graph) checkGraph() error {
 	//Check if graph has modules
 	if len(g.modules) == 0 {
-		jww.FATAL.Panicf("No modules in graph")
+		return fmt.Errorf("no modules in graph")
 	}
 
 	if g.firstModule == nil {
-		jww.FATAL.Panicf("No first module")
+		return fmt.Errorf("no first module")
 	}
 
 	if g.lastModule == nil {
-		jww.FATAL.Panicf("No last module")
+		return fmt.Errorf("no last module")
 	}
 
 	if g.firstModule == g.lastModule || len(g.modules) == 1 {
-		return
+		return nil
 	}
 
 	// Make an array of visited modules, containing the first ID
@@ -153,14 +156,15 @@ func (g *Graph) checkGraph() {
 	// Start checking based on the firstModule
 	err := g.checkDAG(g.firstModule, visited)
 	if err != nil {
-		jww.FATAL.Panic(err)
+		return err
 	}
 
 	err = g.checkAllNodesUsed()
 	visitedModules.Unlock()
 	if err != nil {
-		jww.FATAL.Panic(err)
+		return err
 	}
+	return nil
 }
 
 // checkAllNodesUsed checks that all nodes in a graph are called
