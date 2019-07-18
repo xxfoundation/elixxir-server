@@ -123,7 +123,7 @@ func (g *Graph) Build(batchSize uint32) {
 // It has to be lockable, otherwise multiple threads checking the graph at the
 // same time can overwrite the mods value and break checkAllNodesUsed()
 var visitedModules struct {
-	sync.RWMutex
+	sync.Mutex
 	mods []uint64
 }
 
