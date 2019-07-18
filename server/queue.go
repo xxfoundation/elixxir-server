@@ -79,13 +79,14 @@ func (rq *ResourceQueue) run(server *Instance) {
 		getChunk = func() (services.Chunk, bool) {
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 			//fmt.Println(runningPhase.GetType(), "chunk:", chunk, "ok:", ok)
-			tag := "Signalling node that the round has been completed"
-			runningPhase.Measure(tag)
+
 			//Fixme: add a method to killChan this directly
 			if !ok {
 				//send the phase into the channel to denote it is complete
 				runningPhase.UpdateFinalStates()
 				rq.DenotePhaseCompletion(runningPhase)
+				tag := "Signalling node that the round has been completed"
+				runningPhase.Measure(tag)
 			}
 			return chunk, ok
 		}
