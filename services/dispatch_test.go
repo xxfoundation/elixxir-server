@@ -218,7 +218,7 @@ func TestGraphNodeNoVisit(t *testing.T) {
 	}
 }
 
-// TestGraphNodeNoVisit checks that no error is reported when all graph nodes are visited
+// TestGraphNodeAllVisited checks that no error is reported when all graph nodes are visited
 func TestGraphNodeAllVisited(t *testing.T) {
 	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
