@@ -27,7 +27,7 @@ import (
 func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode, phase phase.Phase,
+	nodeID *id.Node, lastNode *server.LastNode,
 	chunkChan chan services.Chunk) error {
 
 	var wg sync.WaitGroup
@@ -66,8 +66,6 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 			if err != nil {
 				errChan <- err
 			}
-			tag := "Signalling node " + string(localIndex) + " that the round has been completed"
-			phase.Measure(tag)
 			wg.Done()
 		}()
 
