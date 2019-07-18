@@ -15,6 +15,7 @@ import (
 	"math"
 	"math/rand"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -189,8 +190,8 @@ func TestGraphBacktrack(t *testing.T) {
 
 	visited := make([]uint64, 0)
 	err := g.checkDAG(moduleA, visited)
-	if err == nil {
-		t.Error("dagcheck returned no error for a node ending on node other than Last")
+	if !strings.HasSuffix(err.Error(), "was visited multiple times") {
+		t.Error("dagcheck returned no error for a vertex going back up the chain")
 	}
 }
 
@@ -213,14 +214,10 @@ func TestGraphNodeNoVisit(t *testing.T) {
 	g.Connect(moduleC, moduleD)
 	g.Last(moduleD)
 
-	visited := make([]uint64, 0)
-	err := g.checkDAG(moduleA, visited)
-	if err != nil {
-		t.Error("checkAllNodesUsed returned error on checkDAG")
-	}
-	err = g.checkAllNodesUsed()
-	if err == nil {
-		t.Error("checkAllNodesUsed returned incorrectly that all nodes have been used")
+	visitedModules.mods = []uint64{1, 2, 3}
+	err := g.checkAllNodesUsed()
+	if !strings.HasSuffix(err.Error(), " was not used in graph anywhere") {
+		t.Error("checkAllNodesUsed returned incorrectly that all vertexes have been used")
 	}
 }
 
@@ -242,8 +239,8 @@ func TestGraphWrongEndNode(t *testing.T) {
 
 	visited := make([]uint64, 0)
 	err := g.checkDAG(moduleA, visited)
-	if err == nil {
-		t.Error("dagcheck returned no error for a node ending on node other than Last")
+	if !strings.HasPrefix(err.Error(), "graph path ended at vertex ID") {
+		t.Error("dagcheck returned no error for a path ending on vertex other than Last")
 	}
 }
 

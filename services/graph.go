@@ -173,7 +173,7 @@ func (g *Graph) checkAllNodesUsed() error {
 			}
 		}
 		if seen == false {
-			return fmt.Errorf("graph node %d was not used in graph anywhere\n", v.id)
+			return fmt.Errorf("graph vertex %d was not used in graph anywhere\n", v.id)
 		}
 	}
 	return nil
@@ -195,7 +195,7 @@ func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
 	// Check that this node isn't already in the visited path
 	for i, visitedModule := range visited {
 		if mod.id == visitedModule {
-			return fmt.Errorf("node %d was visited multiple times", i)
+			return fmt.Errorf("vertex %d was visited multiple times", i)
 		}
 	}
 
