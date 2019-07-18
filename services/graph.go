@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/phase"
 	"math"
 	"sync/atomic"
 	"time"
@@ -197,7 +196,9 @@ func (g *Graph) OverrideBatchSize(b uint32) {
 	g.overrideBatchSize = b
 }
 
-func (g *Graph) Send(chunk Chunk, measure phase.Measure) {
+type Measure func(tag string)
+
+func (g *Graph) Send(chunk Chunk, measure Measure) {
 
 	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
 

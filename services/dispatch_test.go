@@ -206,7 +206,7 @@ func TestGraph(t *testing.T) {
 	go func(g *Graph) {
 
 		for i := uint32(0); i < g.GetBatchSize(); i++ {
-			g.Send(NewChunk(i, i+1))
+			g.Send(NewChunk(i, i+1), nil)
 		}
 	}(g)
 

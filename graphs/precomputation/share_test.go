@@ -202,7 +202,7 @@ func TestShare_Graph(t *testing.T) {
 	// Send inputs into the graph
 	go func(g *services.Graph) {
 
-		g.Send(services.NewChunk(0, 1))
+		g.Send(services.NewChunk(0, 1), nil)
 	}(g)
 
 	ok := true

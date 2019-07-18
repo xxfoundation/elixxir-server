@@ -487,7 +487,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	// Here's the actual data for the test
 
 	g.Run()
-	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()))
+	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()),nil)
 
 	ok := true
 	var chunk services.Chunk
