@@ -91,7 +91,7 @@ func TestTransmitPhase(t *testing.T) {
 		return &mixmessages.Slot{MessagePayload: []byte{0}}
 	}
 
-	m:= func(tag string){}
+	m := func(tag string) {}
 
 	//call the transmitter
 	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
@@ -118,7 +118,6 @@ func TestTransmitPhase(t *testing.T) {
 			uint32(len(receivedBatch.Slots)))
 	}
 }
-
 
 func mockPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()

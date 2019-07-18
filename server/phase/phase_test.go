@@ -239,7 +239,7 @@ func TestNew(t *testing.T) {
 func TestPhase_Measure(t *testing.T) {
 	p := &phase{
 		roundID: 0,
-		tYpe: RealPermute,
+		tYpe:    RealPermute,
 	}
 
 	for i := 0; i < 10; i++ {
@@ -260,20 +260,20 @@ func TestPhase_Measure(t *testing.T) {
 		}
 
 		if rs[2] != "phase: 6\n" {
-			t.Errorf("Measure did not return correct phase.\n\t" +
+			t.Errorf("Measure did not return correct phase.\n\t"+
 				"Expected: %q\n\tGot:      %q",
 				"phase: 6\n", rs[2])
 		}
 
 		if rs[3] != fmt.Sprintf("tag: test%d\n", i) {
-			t.Errorf("Measure did not return correct tag.\n\t" +
+			t.Errorf("Measure did not return correct tag.\n\t"+
 				"Expected: %q\n\tGot:      %q",
 				fmt.Sprintf("tag: test%d\n", i), rs[3])
 		}
 
 		tstest := strings.SplitN(rs[4], " ", 2)
 		if len(tstest) != 2 {
-			t.Errorf("Measure returned a delta that parsed to more than two strings in space slit." +
+			t.Errorf("Measure returned a delta that parsed to more than two strings in space slit."+
 				"\n\tGot: %q", rs[4])
 		}
 		// We have to define our own time format because Go doesn't have one for
@@ -282,7 +282,7 @@ func TestPhase_Measure(t *testing.T) {
 		// Use some magic to remove the "m=+0.004601744" (example) part of the
 		// outputted timestamp, since time.Parse() can't understand it
 		ts := strings.Split(tstest[1], " ")
-		ts = ts[:len(ts) - 1]
+		ts = ts[:len(ts)-1]
 		// Join the newly cut string together with space separators and test it
 		ts2 := strings.Join(ts, " ")
 		_, err := time.Parse(tf, strings.TrimSpace(ts2))
@@ -292,11 +292,11 @@ func TestPhase_Measure(t *testing.T) {
 
 		deltatest := strings.Split(rs[5], " ")
 		if len(deltatest) != 2 {
-			t.Errorf("Measure returned a delta that parsed to more than two strings in space slit." +
+			t.Errorf("Measure returned a delta that parsed to more than two strings in space slit."+
 				"\n\tGot: %q", rs[5])
 		}
 		if i == 0 && deltatest[1] != "0s" {
-			t.Errorf("Measure returned a delta that isn't 0s for first measurement." +
+			t.Errorf("Measure returned a delta that isn't 0s for first measurement."+
 				"\n\tExpected: %q\n\tGot:      %q",
 				"0s", deltatest[1])
 		}

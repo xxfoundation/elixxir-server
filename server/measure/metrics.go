@@ -8,7 +8,7 @@ import (
 // Metrics struct holds list of different metrics for the phase. RWMutex allows
 // to be read in multiple threads at once, but only allows one writen in
 // one at a time
-type Metrics struct{
+type Metrics struct {
 	Events []Metric
 	sync.RWMutex
 }
@@ -23,7 +23,7 @@ type Metric struct {
 func (m Metrics) GetEvents() []Metric {
 	metricsArray := make([]Metric, len(m.Events))
 
-	for i := 0; i <= len(m.Events) - 1; i++ {
+	for i := 0; i <= len(m.Events)-1; i++ {
 		metricsArray[i] = Metric(m.Events[i])
 	}
 

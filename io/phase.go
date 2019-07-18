@@ -65,6 +65,7 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	}
 	return err
 }
+
 //here below??
 
 // PostPhase implements the server gRPC handler for posting a
