@@ -194,8 +194,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 			instance, err)
 	}
 	fmt.Println(p)
-	tag := "RID " + string(roundID) + " FROM " + string(phaseTy) + " FOR " +
-		p.GetType().String() + " RECIEVE/START"
+	tag := fmt.Sprintf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy, p.GetType())
 	p.Measure(tag)
 
 	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
@@ -249,8 +249,8 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	tag := "RID " + string(roundID) + " StreamPostPhase FROM \"" + phaseTy +
-		"\" TO \"" + p.GetType().String() + "\" RECIEVE/START"
+	tag := fmt.Sprintf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy, p.GetType())
 	p.Measure(tag)
 
 	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,

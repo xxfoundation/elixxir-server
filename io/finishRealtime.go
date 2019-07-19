@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
+	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 	"sync"
 )
 
@@ -52,7 +53,7 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 		localIndex := index
 		wg.Add(1)
 		if measure != nil {
-			tag := "Signaling node " + string(index)
+			tag := fmt.Sprintf("Signaling node %s", index)
 			measure(tag)
 		}
 		go func() {
