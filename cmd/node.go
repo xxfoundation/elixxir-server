@@ -8,13 +8,16 @@
 package cmd
 
 import (
+	"encoding/json"
 	"gitlab.com/elixxir/crypto/csprng"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
+	"io/ioutil"
 	"time"
 
 	//"encoding/binary"
@@ -31,7 +34,6 @@ import (
 	//"gitlab.com/elixxir/server/io"
 	"runtime"
 	//"sync/atomic"
-	//"time"
 )
 
 // StartServer reads configuration options and starts the cMix server
@@ -85,10 +87,37 @@ func StartServer(vip *viper.Viper) {
 	userDatabase.UpsertUser(dummy)
 
 	//Build DSA key
+
+	var privKey *signature.DSAPrivateKey
+	var pubKey *signature.DSAPublicKey
+
 	rng := csprng.NewSystemRNG()
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
-	privKey := dsaParams.PrivateKeyGen(rng)
-	pubKey := privKey.PublicKeyGen()
+
+	if dsaKeyPairPath == "" {
+		privKey = dsaParams.PrivateKeyGen(rng)
+		pubKey = privKey.PublicKeyGen()
+	} else {
+		dsaKeyBytes, err := ioutil.ReadFile(dsaKeyPairPath)
+
+		if err != nil {
+			jww.FATAL.Panicf("Could not read dsa keys file: %v", err)
+		}
+
+		dsaKeys := DSAKeysJson{}
+
+		err = json.Unmarshal(dsaKeyBytes, &dsaKeys)
+
+		if err != nil {
+			jww.FATAL.Panicf("Could not unmarshal dsa keys file: %v", err)
+		}
+
+		dsaPrivInt := large.NewIntFromString(dsaKeys.PrivateKeyHex, 16)
+		dsaPubInt := large.NewIntFromString(dsaKeys.PublicKeyHex, 16)
+
+		pubKey = signature.ReconstructPublicKey(dsaParams, dsaPubInt)
+		privKey = signature.ReconstructPrivateKey(pubKey, dsaPrivInt)
+	}
 
 	//TODO: store DSA key for NDF
 
@@ -116,4 +145,10 @@ func StartServer(vip *viper.Viper) {
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
+
+}
+
+type DSAKeysJson struct {
+	PrivateKeyHex string
+	PublicKeyHex  string
 }
