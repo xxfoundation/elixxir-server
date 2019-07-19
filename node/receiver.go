@@ -36,11 +36,9 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		&instance.LastNode,
 		instance.GetBatchSize())
 
-	for i := range phases {
-		tag := "RID " + string(roundID) + " CreateNewRound RECEIVE"
-		phases[i].Measure(tag)
+	if len(phases)!=0 {
+		phases[0].Measure("Receive Create New Round")
 	}
-
 	//Build the round
 	rnd := round.New(
 		instance.GetGroup(),
