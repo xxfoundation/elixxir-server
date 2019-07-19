@@ -35,7 +35,11 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetID(),
 		&instance.LastNode,
 		instance.GetBatchSize())
-	//Probably only have to do this once? Reviewer, thoughts?
+
+	for i := range phases {
+		tag := "RID " + string(roundID) + " CreateNewRound RECEIVE"
+		phases[i].Measure(tag)
+	}
 
 	//Build the round
 	rnd := round.New(
@@ -75,7 +79,6 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 			instance, err)
 	}
 	p.Measure(tag)
-
 
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
@@ -192,7 +195,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	tag := instance.String() + ": RID " + string(roundID) + " FROM " + string(phaseTy) + " FOR " +
+	fmt.Println(p)
+	tag := "RID " + string(roundID) + " FROM " + string(phaseTy) + " FOR " +
 		p.GetType().String() + " RECIEVE/START"
 	p.Measure(tag)
 
@@ -247,7 +251,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	tag := instance.String() + ": RID " + string(roundID) + " StreamPostPhase FROM \"" +  phaseTy +
+	tag := "RID " + string(roundID) + " StreamPostPhase FROM \"" + phaseTy +
 		"\" TO \"" + p.GetType().String() + "\" RECIEVE/START"
 	p.Measure(tag)
 

@@ -266,7 +266,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 				nodeID *id.Node, measure phase.Measure) error {
 				return io.TransmitFinishRealtime(network, batchSize, roundID,
 					phaseTy, getChunk, getMessage, topology, nodeID, lastNode,
-					chunkChan)
+					chunkChan, nil)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)

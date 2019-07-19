@@ -185,6 +185,7 @@ func (p *phase) String() string {
 // to be accessed via the interface
 func (p *phase) Send(chunk services.Chunk) {
 	p.Measure("Sending a slot")
+	chunk.End()
 	p.graph.Send(chunk, nil)
 
 }

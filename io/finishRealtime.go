@@ -28,7 +28,7 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
 	nodeID *id.Node, lastNode *server.LastNode,
-	chunkChan chan services.Chunk) error {
+	chunkChan chan services.Chunk, measure phase.Measure) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len())
@@ -51,6 +51,10 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)
+		if measure != nil {
+			tag := "Singaling node " + string(index)
+			measure(tag)
+		}
 		go func() {
 			recipient := topology.GetNodeAtIndex(localIndex)
 
