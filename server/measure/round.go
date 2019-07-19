@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package measure
 
 import (
@@ -36,7 +42,7 @@ func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
 func (rm *RoundMetrics) MarshallJSON() ([]byte, error) {
 	b, err := json.Marshal(rm)
 	if err != nil {
-		return b, nil
+		return nil, err
 	}
-	return nil, err
+	return b, nil
 }
