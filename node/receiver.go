@@ -373,7 +373,7 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	return nil
 }
 
-// Receiver for GetMeasure finds the round in msg and responds with a RoundMetrics message
+// ReceiveGetMeasure finds the round in msg and response with a RoundMetrics message
 func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
 	roundID := id.Round(msg.ID)
 
