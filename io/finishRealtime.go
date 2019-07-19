@@ -10,6 +10,7 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -18,7 +19,6 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
-	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 	"sync"
 )
 
