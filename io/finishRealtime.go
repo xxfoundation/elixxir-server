@@ -53,7 +53,7 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 		localIndex := index
 		wg.Add(1)
 		if measure != nil {
-			tag := fmt.Sprintf("Signaling node %s", index)
+			tag := fmt.Sprintf("Signaling node %d", index)
 			measure(tag)
 		}
 		go func() {
