@@ -222,12 +222,11 @@ func makeTestGraph(instance *Instance, batchSize uint32) *services.Graph {
 		Name:           "mockModule",
 		NumThreads:     services.AutoNumThreads,
 	}
-	mockModuleCopy := mockModule.DeepCopy()
-	graph.First(mockModuleCopy)
-	graph.Connect(mockModuleCopy, mockModuleCopy)
-	graph.Last(mockModuleCopy)
-	graph.Link(instance.GetGroup())
-	graph.Build(batchSize)
+	firstGraphNode := mockModule.DeepCopy()
+	secondGraphNode := mockModule.DeepCopy()
+	graph.First(firstGraphNode)
+	graph.Connect(firstGraphNode, secondGraphNode)
+	graph.Last(secondGraphNode)
 
 	return graph
 }

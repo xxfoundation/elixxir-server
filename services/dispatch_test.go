@@ -15,6 +15,7 @@ import (
 	"math"
 	"math/rand"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -167,6 +168,172 @@ var ModuleD = Module{
 	InputSize:      14,
 	Name:           "ModuleD",
 	StartThreshold: 1.0,
+}
+
+// TestGraphBacktrack checks error checking to see if a graph path goes back on itself
+func TestGraphBacktrack(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Connect(moduleC, moduleA)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	visited := make([]uint64, 0)
+	err := g.checkDAG(moduleA, visited)
+	if !strings.HasSuffix(err.Error(), "was visited multiple times") {
+		t.Error("dagcheck returned no error for a vertex going back up the chain")
+	}
+}
+
+// TestGraphNoModules checks error happens when graph has no modules
+func TestGraphNoModules(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	err := g.checkGraph()
+	if err.Error() != "no modules in graph" {
+		t.Error("checkGraph did not return an error for no modules in graph")
+	}
+}
+
+// TestGraphNodeNoFirstModule checks an error is thrown when no first module is
+// specified
+func TestGraphNodeNoFirstModule(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	err := g.checkGraph()
+	if err.Error() != "no first module" {
+		t.Error("checkGraph did not return an error for no first module in graph")
+	}
+}
+
+// TestGraphNodeNoLastModule checks an error is thrown when no last module is
+// specified
+func TestGraphNodeNoLastModule(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleC, moduleD)
+
+	err := g.checkGraph()
+	if err.Error() != "no last module" {
+		t.Error("checkGraph did not return an error for no last module in graph")
+	}
+}
+
+// TestGraphNodeNoOneModule checks that a correct graph with one node works
+func TestGraphNodeOneModule(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+
+	g.First(moduleA)
+	g.Last(moduleA)
+
+	err := g.checkGraph()
+	if err != nil {
+		t.Error("checkGraph returned an error for a correct one node graph")
+	}
+}
+
+// TestGraphNodeNoVisit checks error checking to see if all graph nodes are visited
+func TestGraphNodeNoVisit(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	visitedModules.mods = []uint64{1, 2, 3}
+	err := g.checkAllNodesUsed()
+	if !strings.HasSuffix(err.Error(), " was not used in graph anywhere") {
+		t.Error("checkAllNodesUsed returned incorrectly that all vertexes have been used")
+	}
+}
+
+// TestGraphNodeAllVisited checks that no error is reported when all graph nodes are visited
+func TestGraphNodeAllVisited(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	visitedModules.mods = []uint64{1, 2, 3, 4}
+	err := g.checkAllNodesUsed()
+	if err != nil {
+		t.Error("checkAllNodesUsed returned incorrectly that all vertexes have *not* been used")
+	}
+}
+
+// TestGraphWrongEndNode checks error checking to see if a graph path ends on a node other than g.Last
+func TestGraphWrongEndNode(t *testing.T) {
+	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Last(moduleD)
+
+	visited := make([]uint64, 0)
+	err := g.checkDAG(moduleA, visited)
+	if !strings.HasPrefix(err.Error(), "graph path ended at vertex ID") {
+		t.Error("dagcheck returned no error for a path ending on vertex other than Last")
+	}
 }
 
 func TestGraph(t *testing.T) {
