@@ -63,7 +63,7 @@ func (g *Graph) Build(batchSize uint32) {
 	//Checks graph is properly formatted
 	err := g.checkGraph()
 	if err != nil {
-		jww.FATAL.Panic(err)
+		jww.FATAL.Printf("CheckGraph failed : %+v", err)
 	}
 
 	//Find expanded batch size
