@@ -326,7 +326,7 @@ func TestIdentifyStream_InGraph(t *testing.T) {
 		}
 
 		atomic.AddUint32(done, 1)
-		g.Send(services.NewChunk(g.GetExpandedBatchSize()-1, g.GetExpandedBatchSize()), nil )
+		g.Send(services.NewChunk(g.GetExpandedBatchSize()-1, g.GetExpandedBatchSize()), nil)
 	}(g)
 
 	ok := true

@@ -36,7 +36,7 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		&instance.LastNode,
 		instance.GetBatchSize())
 
-	if len(phases)!=0 {
+	if len(phases) != 0 {
 		phases[0].Measure("Receive Create New Round")
 	}
 	//Build the round
