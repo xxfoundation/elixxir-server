@@ -34,7 +34,12 @@ import (
 	//"gitlab.com/elixxir/server/io"
 	"runtime"
 	//"sync/atomic"
+	"crypto/sha256"
+	"gitlab.com/elixxir/crypto/cyclic"
 )
+
+// Number of hard-coded users to create
+var numDemoUsers = int(256)
 
 // StartServer reads configuration options and starts the cMix server
 func StartServer(vip *viper.Viper) {
@@ -67,10 +72,10 @@ func StartServer(vip *viper.Viper) {
 
 	// Initialize the backend
 	dbAddress := params.Database.Addresses[params.Index]
-	grp := params.Groups.GetCMix()
+	cmixGrp := params.Groups.GetCMix()
 
 	// Initialize the global group
-	globals.SetGroup(grp)
+	globals.SetGroup(cmixGrp)
 
 	//Initialize the user database
 	userDatabase := globals.NewUserRegistry(
@@ -81,18 +86,20 @@ func StartServer(vip *viper.Viper) {
 	)
 
 	//Add a dummy user for gateway
-	dummy := userDatabase.NewUser(grp)
+	dummy := userDatabase.NewUser(cmixGrp)
 	dummy.ID = id.MakeDummyUserID()
-	dummy.BaseKey = grp.NewIntFromBytes((*dummy.ID)[:])
+	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
 	userDatabase.UpsertUser(dummy)
 
-	//Build DSA key
+	//populate the dummy precanned users
+	PopulateDummyUsers(userDatabase, cmixGrp)
 
+	//Build DSA key
 	var privKey *signature.DSAPrivateKey
 	var pubKey *signature.DSAPublicKey
 
 	rng := csprng.NewSystemRNG()
-	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	dsaParams := signature.CustomDSAParams(cmixGrp.GetP(), cmixGrp.GetQ(), cmixGrp.GetG())
 
 	if dsaKeyPairPath == "" {
 		privKey = dsaParams.PrivateKeyGen(rng)
@@ -151,4 +158,18 @@ func StartServer(vip *viper.Viper) {
 type DSAKeysJson struct {
 	PrivateKeyHex string
 	PublicKeyHex  string
+}
+
+// Create dummy users to be manually inserted into the database
+func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
+	// Deterministically create named users for demo
+	for i := 0; i < numDemoUsers; i++ {
+		u := ur.NewUser(grp)
+
+		h := sha256.New()
+		h.Write([]byte(string(20000 + i)))
+		u.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
+
+		ur.UpsertUser(u)
+	}
 }
