@@ -107,20 +107,6 @@ func NewUserRegistry(username, password,
 	}
 }
 
-// Create dummy users to be manually inserted into the database
-func (d *UserDatabase) PopulateDummyUsers(grp *cyclic.Group) {
-	// Deterministically create named users for demo
-	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := d.NewUser(grp)
-		d.UpsertUser(u)
-	}
-	// Named channel bot users
-	for i := 0; i < NUM_DEMO_CHANNELS; i++ {
-		u := d.NewUser(grp)
-		d.UpsertUser(u)
-	}
-}
-
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
 func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) error {
