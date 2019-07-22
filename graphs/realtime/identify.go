@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -97,8 +98,8 @@ func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index:          index,
-		MessagePayload: is.EcrMsgPermuted[index].Bytes(),
-		AssociatedData: is.EcrADPermuted[index].Bytes(),
+		MessagePayload: is.EcrMsgPermuted[index].LeftpadBytes(format.PayloadLen),
+		AssociatedData: is.EcrADPermuted[index].LeftpadBytes(format.PayloadLen),
 	}
 }
 
