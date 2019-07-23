@@ -22,7 +22,7 @@ import (
 
 const MaxSalts = 300
 
-var errNonexistantUser = "user %v not found in user registry"
+var ErrNonexistantUser = errors.New("user not found in user registry")
 var errTooManySalts = "user %v must rekey, has stored too many salts"
 var ErrSaltIncorrectLength = errors.New("salt of incorrect length, must be 256 bits")
 var ErrUserIDTooShort = errors.New("User id length too short")
@@ -115,7 +115,7 @@ func (m *UserMap) InsertSalt(id *id.User, salt []byte) error {
 
 	userFace, ok := (*sync.Map)(m).Load(*id)
 	if !ok {
-		return errors.New(fmt.Sprintf(errNonexistantUser, id))
+		return ErrNonexistantUser
 	}
 
 	user := userFace.(*User)
@@ -146,7 +146,7 @@ func (m *UserMap) GetUser(id *id.User) (*User, error) {
 
 	u, ok := (*sync.Map)(m).Load(*id)
 	if !ok {
-		err = errors.New(fmt.Sprintf(errNonexistantUser, id))
+		err = ErrNonexistantUser
 	} else {
 		user := u.(*User)
 		user.Lock()

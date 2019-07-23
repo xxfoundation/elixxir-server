@@ -74,7 +74,8 @@ var Keygen = services.Module{
 			user, err := kss.userReg.GetUser(kss.users[i])
 
 			if err != nil {
-				if err.Error() == "pg: no rows in result set" {
+				if err.Error() == "pg: no rows in result set" ||
+					err == globals.ErrNonexistantUser {
 					jww.INFO.Printf("No user found for slot %d", i)
 					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
