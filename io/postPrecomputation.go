@@ -18,7 +18,7 @@ import (
 func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
-	nodeID *id.Node) error {
+	nodeID *id.Node, measure phase.Measure) error {
 	var wg sync.WaitGroup
 
 	errChan := make(chan error, topology.Len()-1)

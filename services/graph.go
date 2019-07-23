@@ -281,7 +281,9 @@ func (g *Graph) OverrideBatchSize(b uint32) {
 	g.overrideBatchSize = b
 }
 
-func (g *Graph) Send(chunk Chunk) {
+type Measure func(tag string)
+
+func (g *Graph) Send(chunk Chunk, measure Measure) {
 
 	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
 
@@ -324,6 +326,9 @@ func (g *Graph) Send(chunk Chunk) {
 		// Does commenting this fix the double close?
 		// It does not.
 		g.firstModule.closeInput()
+		if measure != nil {
+			measure("Signaling that the last slot has been sent")
+		}
 	}
 }
 

@@ -91,9 +91,11 @@ func TestTransmitPhase(t *testing.T) {
 		return &mixmessages.Slot{MessagePayload: []byte{0}}
 	}
 
+	m := func(tag string) {}
+
 	//call the transmitter
 	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
-		getMsg, topology, topology.GetNodeAtIndex(0))
+		getMsg, topology, topology.GetNodeAtIndex(0), m)
 
 	if err != nil {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)

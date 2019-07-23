@@ -420,7 +420,7 @@ func TestEndToEndCryptops(t *testing.T) {
 			grp.NewInt(1))
 
 		chunk := services.NewChunk(0, 1)
-		dGrph.Send(chunk)
+		dGrph.Send(chunk, nil)
 	}()
 
 	numDoneSlots := 0
@@ -623,7 +623,7 @@ func TestBatchSize3(t *testing.T) {
 				grp.NewInt(1))
 
 			chunk := services.NewChunk(i, i+1)
-			dGrph.Send(chunk)
+			dGrph.Send(chunk, nil)
 		}
 	}()
 
@@ -1123,7 +1123,7 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 			grp.Set(megaStream.IdentifyStream.EcrAD.Get(i),
 				ecrAD[i])
 			chunk := services.NewChunk(i, i+1)
-			dGrph.Send(chunk)
+			dGrph.Send(chunk, nil)
 		}
 	}()
 
@@ -1287,7 +1287,7 @@ func Test3NodeE2E(t *testing.T) {
 			grp.NewInt(1))
 
 		chunk := services.NewChunk(0, 1)
-		dGrph.Send(chunk)
+		dGrph.Send(chunk, nil)
 	}()
 
 	numDoneSlots := 0

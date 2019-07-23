@@ -3,14 +3,14 @@ package server
 import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/conf"
+	"os"
 	"reflect"
 	"testing"
-	"os"
 )
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -27,17 +27,16 @@ const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 
 var instance *Instance
 
-
 func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
-	grp  := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
 	instance = mockServerInstance(grp)
 	os.Exit(m.Run())
 }
 
 func TestInstance_GetGroup(t *testing.T) {
 	prime := large.NewIntFromString(MODP768, 16)
-	grp  := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
 	if instance.GetGroup().GetFingerprint() != grp.GetFingerprint() {
 		t.Errorf("Instance.GetGroup: Returned incorrect group")
 	}
@@ -105,7 +104,7 @@ func TestInstance_Topology(t *testing.T) {
 
 func TestInstance_BadNodeID(t *testing.T) {
 	prime := large.NewIntFromString(MODP768, 16)
-	grp  := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
 	primeString := grp.GetP().TextVerbose(16, 0)
 
 	smallprime := grp.GetQ().TextVerbose(16, 0)

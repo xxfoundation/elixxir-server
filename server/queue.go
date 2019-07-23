@@ -63,6 +63,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		//get the next phase to execute
 		select {
 		case rq.activePhase = <-rq.phaseQueue:
+			rq.activePhase.Measure("Phase was selected, has been given resources to execute.")
 		case <-rq.killChan:
 			return
 		}
@@ -77,11 +78,15 @@ func (rq *ResourceQueue) run(server *Instance) {
 		getChunk = func() (services.Chunk, bool) {
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 			//fmt.Println(runningPhase.GetType(), "chunk:", chunk, "ok:", ok)
+			runningPhase.Measure("Recieved for the first time")
+
 			//Fixme: add a method to killChan this directly
 			if !ok {
 				//send the phase into the channel to denote it is complete
 				runningPhase.UpdateFinalStates()
 				rq.DenotePhaseCompletion(runningPhase)
+				tag := "Signaled node that the round has been completed"
+				runningPhase.Measure(tag)
 			}
 			return chunk, ok
 		}
@@ -96,13 +101,14 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//start the phase's transmission handler
 		handler := rq.activePhase.GetTransmissionHandler
+		rq.activePhase.Measure("Start transmitter")
 		go func() {
 
 			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
 				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
 				curRound.GetTopology(),
-				server.GetID())
+				server.GetID(), runningPhase.Measure)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",

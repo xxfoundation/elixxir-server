@@ -26,7 +26,7 @@ import (
 func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type,
 	getChunk phase.GetChunk, getMessage phase.GetMessage,
-	topology *circuit.Circuit, nodeID *id.Node) error {
+	topology *circuit.Circuit, nodeID *id.Node, measure phase.Measure) error {
 
 	recipient := topology.GetNextNode(nodeID)
 
@@ -53,6 +53,9 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nodeID, port)
 	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
+	tag := fmt.Sprintf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
+		name, roundID, phaseTy)
+	measure(tag)
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, phaseTy)
 
@@ -63,6 +66,8 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	}
 	return err
 }
+
+//here below??
 
 // PostPhase implements the server gRPC handler for posting a
 // phase from another node

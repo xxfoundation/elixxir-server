@@ -63,7 +63,7 @@ func TestSendFinishRealtime(t *testing.T) {
 	var err error
 	go func() {
 		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
-			getChunk, nil, topology, nil, &ln, chunkChan)
+			getChunk, nil, topology, nil, &ln, chunkChan, nil)
 		doneCH <- struct{}{}
 	}()
 
@@ -149,7 +149,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	var err error
 	go func() {
 		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
-			getChunk, nil, topology, nil, &ln, chunkChan)
+			getChunk, nil, topology, nil, &ln, chunkChan, nil)
 		doneCH <- struct{}{}
 	}()
 
