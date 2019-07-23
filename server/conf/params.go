@@ -56,6 +56,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
 	params.Permissioning.Address = vip.GetString("permissioning.address")
 	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
+	params.Permissioning.PublicKey = vip.GetString("permissioning.publicKey")
 
 	params.Batch = vip.GetUint32("batch")
 	params.SkipReg = vip.GetBool("skipReg")
