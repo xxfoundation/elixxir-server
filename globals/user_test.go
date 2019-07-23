@@ -13,6 +13,8 @@ import (
 	"testing"
 )
 
+const numTestDemoUsers = 256
+
 // TestUserRegistry tests the constructors/getters/setters
 // surrounding the User struct and the UserRegistry interface
 // TODO: This test needs split up
@@ -21,7 +23,7 @@ func TestUserRegistry(t *testing.T) {
 
 	users := UserRegistry(&UserMap{})
 
-	for i := 0; i < NUM_DEMO_USERS; i++ {
+	for i := 0; i < numTestDemoUsers; i++ {
 		u := users.NewUser(grp)
 		users.UpsertUser(u)
 	}
@@ -30,9 +32,9 @@ func TestUserRegistry(t *testing.T) {
 
 	numUsers := users.CountUsers()
 
-	if numUsers != NUM_DEMO_USERS {
+	if numUsers != numTestDemoUsers {
 		t.Errorf("Count users is not working correctly. "+
-			"Expected: %v Actual: %v", NUM_DEMO_USERS, numUsers)
+			"Expected: %v Actual: %v", numTestDemoUsers, numUsers)
 	}
 
 	id9 := id.NewUserFromUint(9, t)
@@ -61,9 +63,9 @@ func TestUserRegistry(t *testing.T) {
 
 	users.DeleteUser(usr9.ID)
 
-	if users.CountUsers() != NUM_DEMO_USERS-1 {
+	if users.CountUsers() != numTestDemoUsers-1 {
 		t.Errorf("User has not been deleted correctly. "+
-			"Expected # of users: %v Actual: %v", NUM_DEMO_USERS-1, users.CountUsers())
+			"Expected # of users: %v Actual: %v", numTestDemoUsers-1, users.CountUsers())
 	}
 
 	if _, userExists := users.GetUser(usr9.ID); userExists == nil {
