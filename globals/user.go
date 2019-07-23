@@ -189,7 +189,7 @@ func (m *UserMap) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
 // UpsertUser inserts given user into userCollection or update the user if it
 // already exists (Upsert operation).
 func (m *UserMap) UpsertUser(user *User) {
-	(*sync.Map)(m).Store(*user.ID, user)
+	(*sync.Map)(m).Store(*(user.ID), user)
 }
 
 // CountUsers returns a count of the users in userCollection.
