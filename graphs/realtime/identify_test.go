@@ -52,16 +52,16 @@ func TestIdentifyStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	round := round.NewBuffer(grp, batchSize, batchSize)
+	r := round.NewBuffer(grp, batchSize, batchSize)
 
-	is.Link(grp, batchSize, round)
+	is.Link(grp, batchSize, r)
 
 	checkIntBuffer(is.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
 	checkIntBuffer(is.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
 
-	checkStreamIntBuffer(grp, is.MsgPrecomputation, round.MessagePrecomputation,
+	checkStreamIntBuffer(grp, is.MsgPrecomputation, r.MessagePrecomputation,
 		"MessagePrecomputation", t)
-	checkStreamIntBuffer(grp, is.ADPrecomputation, round.ADPrecomputation,
+	checkStreamIntBuffer(grp, is.ADPrecomputation, r.ADPrecomputation,
 		"ADPrecomputation", t)
 }
 
@@ -232,12 +232,12 @@ func TestIdentifyStream_Output(t *testing.T) {
 
 		output := is.Output(b)
 
-		if !reflect.DeepEqual(output.MessagePayload, expected[0]) {
+		if !reflect.DeepEqual(output.MessagePayload, grp.NewIntFromBytes(expected[0]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
 			t.Errorf("IdentifyStream.Output() incorrect recieved MessagePayload data at %v: Expected: %v, Recieved: %v",
 				b, expected[0], output.MessagePayload)
 		}
 
-		if !reflect.DeepEqual(output.AssociatedData, expected[1]) {
+		if !reflect.DeepEqual(output.AssociatedData, grp.NewIntFromBytes(expected[1]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
 			t.Errorf("IdentifyStream.Output() incorrect recieved AssociatedData data at %v: Expected: %v, Recieved: %v",
 				b, expected[1], output.AssociatedData)
 		}

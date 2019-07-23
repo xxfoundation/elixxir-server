@@ -121,7 +121,7 @@ func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) error {
 	if count, _ := m.db.Model(&s).Count(); count > maxSalts {
 		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
 			" been used for User %d", userId)
-		return ERR_TOOMANYSALTS
+		return errors.New(fmt.Sprintf(errTooManySalts, userId))
 	}
 
 	// Insert salt into the DB

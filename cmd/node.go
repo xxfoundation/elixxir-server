@@ -90,6 +90,9 @@ func StartServer(vip *viper.Viper) {
 	dummy.ID = id.MakeDummyUserID()
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
 	userDatabase.UpsertUser(dummy)
+	_, err = userDatabase.GetUser(dummy.ID)
+
+	jww.INFO.Println("getting user:", err)
 
 	//populate the dummy precanned users
 	PopulateDummyUsers(userDatabase, cmixGrp)
