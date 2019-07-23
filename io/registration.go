@@ -28,6 +28,7 @@ func RequestNonce(instance *server.Instance,
 
 	if !instance.GetSkipReg() {
 		// Concatenate Client public key byte slices
+		// FIXME: MOVE THE SIGNATURE VERIFICATION TO COMMS
 		data := make([]byte, 0)
 		data = append(data, Y...)
 		data = append(data, P...)
