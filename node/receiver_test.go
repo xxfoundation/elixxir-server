@@ -8,6 +8,7 @@ package node
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -21,6 +22,7 @@ import (
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -516,6 +518,7 @@ func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
+func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
 
 func initMockPhase() *MockPhase {
 	gc := services.NewGraphGenerator(1, nil, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
@@ -991,6 +994,76 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	if finishedRoundID != roundID {
 		t.Errorf("ReceiveFinishRealtime: Expected round %v to finish, "+
 			"recieved %v", roundID, finishedRoundID)
+	}
+}
+
+func TestReceiveGetMeasure(t *testing.T) {
+	// Smoke tests the management part of PostPrecompResult
+	grp := initImplGroup()
+	const numNodes = 5
+	grps := initConfGroups(grp)
+
+	// Set instance for first node
+	params := conf.Params{
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(numNodes),
+		},
+		Index: 0,
+	}
+
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil)
+	instance.InitFirstNode()
+	topology := instance.GetTopology()
+
+	// Set up a round first node
+	roundID := id.Round(45)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
+
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	p := initMockPhase()
+	p.Ptype = phase.RealPermute
+
+	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3)
+
+	instance.GetRoundManager().AddRound(rnd)
+
+	var err error
+	var resp *mixmessages.RoundMetrics
+
+	info := mixmessages.RoundInfo{
+		ID: uint64(roundID),
+	}
+
+	resp, err = ReceiveGetMeasure(instance, &info)
+
+	if err != nil {
+		t.Errorf("Failed to return metrics: %+v", err)
+	}
+	remade := *new(measure.RoundMetrics)
+
+	err = json.Unmarshal([]byte(resp.RoundMetricJSON), &remade)
+
+	if err != nil {
+		t.Errorf("Failed to extract data from JSON: %+v", err)
+	}
+
+	info = mixmessages.RoundInfo{
+		ID: uint64(roundID) - 1,
+	}
+
+	_, err = ReceiveGetMeasure(instance, &info)
+
+	if err == nil {
+		t.Errorf("This should have thrown an error, instead got: %+v", err)
 	}
 }
 

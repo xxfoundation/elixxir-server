@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -82,6 +83,7 @@ func (*MockPhase) GetTimeout() time.Duration                    { return 5 * tim
 func (*MockPhase) Cmp(phase.Phase) bool                         { return false }
 func (*MockPhase) String() string                               { return "" }
 func (*MockPhase) Measure(string)                               { return }
+func (*MockPhase) GetMeasure() measure.Metrics                  { return *new(measure.Metrics) }
 
 func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 	q := initQueue()
