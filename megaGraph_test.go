@@ -1225,7 +1225,7 @@ func Test_DbgGraph(t *testing.T) {
 	RunDbgGraph(3, NewPsudoRNG, t)
 }
 
-/*
+/**/
 // Test3NodeE2E performs a basic test with 3 simulated nodes. To make
 // this work, wrappers around the adapters are introduced to copy
 // what would be sent over the network between each stream instead.
@@ -1334,4 +1334,4 @@ func Test3NodeE2E(t *testing.T) {
 			is.EcrADPermuted[0].Bytes())
 	}
 }
-*/
+/**/
