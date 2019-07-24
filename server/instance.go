@@ -168,20 +168,20 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
-	// FIXME: This can't fail because it's hard coded right now.
-	// Once that is removed existing tests should be changed!
-	permissioningPk := params.Permissioning.PublicKey
-	grp := instance.params.Groups.GetCMix()
-	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
+	// If specified, import the Permissioning DSA Public Key
+	if permissioningPk := params.Permissioning.PublicKey; permissioningPk != "" {
+		grp := instance.params.Groups.GetCMix()
+		dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 
-	block, _ := pem.Decode([]byte(permissioningPk))
+		block, _ := pem.Decode([]byte(permissioningPk))
 
-	if block == nil || block.Type != "PUBLIC KEY" {
-		jww.ERROR.Panic("Registration Server Public Key did not " +
-			"decode correctly")
+		if block == nil || block.Type != "PUBLIC KEY" {
+			jww.ERROR.Panic("Registration Server Public Key did not " +
+				"decode correctly")
+		}
+		instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
+			large.NewIntFromBytes(block.Bytes))
 	}
-	instance.regServerPubKey = signature.ReconstructPublicKey(dsaParams,
-		large.NewIntFromBytes(block.Bytes))
 	instance.topology = circuit.New(nodeIDs)
 	instance.thisNode = instance.topology.GetNodeAtIndex(params.Index)
 
