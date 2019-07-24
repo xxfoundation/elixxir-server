@@ -130,6 +130,10 @@ func init() {
 
 	err = viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
 	handleBindingError(err, "roundBufferTimeout")
+
+	err = viper.BindPFlag("verbose", rootCmd.Flags().Lookup(
+		"verbose"))
+	handleBindingError(err, "verbose")
 }
 
 func handleBindingError(err error, flag string) {
