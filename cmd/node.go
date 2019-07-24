@@ -10,7 +10,6 @@ package cmd
 import (
 	"encoding/json"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -95,41 +94,42 @@ func StartServer(vip *viper.Viper) {
 	PopulateDummyUsers(userDatabase, cmixGrp)
 
 	//Build DSA key
-	var privKey *signature.DSAPrivateKey
+	var privateKey *signature.DSAPrivateKey
 	var pubKey *signature.DSAPublicKey
 
-	rng := csprng.NewSystemRNG()
-	dsaParams := signature.CustomDSAParams(cmixGrp.GetP(), cmixGrp.GetQ(), cmixGrp.GetG())
-
 	if dsaKeyPairPath == "" {
-		privKey = dsaParams.PrivateKeyGen(rng)
-		pubKey = privKey.PublicKeyGen()
+		rng := csprng.NewSystemRNG()
+		dsaParams := signature.CustomDSAParams(cmixGrp.GetP(), cmixGrp.GetQ(), cmixGrp.GetG())
+		privateKey = dsaParams.PrivateKeyGen(rng)
+		pubKey = privateKey.PublicKeyGen()
 	} else {
+		// Get the DSA private key
 		dsaKeyBytes, err := ioutil.ReadFile(dsaKeyPairPath)
-
 		if err != nil {
 			jww.FATAL.Panicf("Could not read dsa keys file: %v", err)
 		}
 
-		dsaKeys := DSAKeysJson{}
-
-		err = json.Unmarshal(dsaKeyBytes, &dsaKeys)
-
+		// Marshall into JSON
+		var data map[string]string
+		err = json.Unmarshal(dsaKeyBytes, &data)
 		if err != nil {
 			jww.FATAL.Panicf("Could not unmarshal dsa keys file: %v", err)
 		}
 
-		dsaPrivInt := large.NewIntFromString(dsaKeys.PrivateKeyHex, 16)
-		dsaPubInt := large.NewIntFromString(dsaKeys.PublicKeyHex, 16)
-
-		pubKey = signature.ReconstructPublicKey(dsaParams, dsaPubInt)
-		privKey = signature.ReconstructPrivateKey(pubKey, dsaPrivInt)
+		// Build the public and private keys
+		privateKey := &signature.DSAPrivateKey{}
+		privateKey, err = privateKey.PemDecode([]byte(data["PrivateKey"]))
+		if err != nil {
+			jww.FATAL.Panicf("Unable to parse permissioning private key: %+v",
+				err)
+		}
+		pubKey = privateKey.PublicKeyGen()
 	}
 
 	//TODO: store DSA key for NDF
 
 	// Create instance
-	instance := server.CreateServerInstance(params, userDatabase, pubKey, privKey)
+	instance := server.CreateServerInstance(params, userDatabase, pubKey, privateKey)
 
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
@@ -153,11 +153,6 @@ func StartServer(vip *viper.Viper) {
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 
-}
-
-type DSAKeysJson struct {
-	PrivateKeyHex string
-	PublicKeyHex  string
 }
 
 // Create dummy users to be manually inserted into the database
