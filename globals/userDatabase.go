@@ -107,20 +107,6 @@ func NewUserRegistry(username, password,
 	}
 }
 
-// Create dummy users to be manually inserted into the database
-func (d *UserDatabase) PopulateDummyUsers(grp *cyclic.Group) {
-	// Deterministically create named users for demo
-	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := d.NewUser(grp)
-		d.UpsertUser(u)
-	}
-	// Named channel bot users
-	for i := 0; i < NUM_DEMO_CHANNELS; i++ {
-		u := d.NewUser(grp)
-		d.UpsertUser(u)
-	}
-}
-
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
 func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) error {
@@ -135,7 +121,7 @@ func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) error {
 	if count, _ := m.db.Model(&s).Count(); count > maxSalts {
 		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
 			" been used for User %d", userId)
-		return ERR_TOOMANYSALTS
+		return errors.New(fmt.Sprintf(errTooManySalts, userId))
 	}
 
 	// Insert salt into the DB

@@ -58,6 +58,7 @@ func (s *KeygenTestStream) Output(index uint32) *mixmessages.Slot {
 	return nil
 }
 
+/*no longer valid test
 // Test that triggers error cases in the keygen cryptop adapter
 func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	// First error: failing type assert for stream
@@ -115,7 +116,7 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	if err == nil {
 		t.Error("Passing a user ID that wasn't in the Database didn't result in an error")
 	}
-}
+}*/
 
 var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte, baseKey, key *cyclic.Int) {
 	// returns the base key XOR'd with the salt
@@ -226,7 +227,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	// Here's the actual data for the test
 
 	g.Run()
-	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()))
+	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()), nil)
 
 	ok := true
 	var chunk services.Chunk

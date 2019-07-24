@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package phase
 
 import (
@@ -184,7 +189,10 @@ func (p *phase) String() string {
 // Send via the graph. This function allows for this graph function
 // to be accessed via the interface
 func (p *phase) Send(chunk services.Chunk) {
-	p.graph.Send(chunk)
+	p.Measure("Sending a slot")
+	chunk.End()
+	p.graph.Send(chunk, nil)
+
 }
 
 // Input updates the graph's stream with the passed data at the passed index

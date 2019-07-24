@@ -7,10 +7,12 @@
 package services
 
 import (
+	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
 	"math"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -59,7 +61,10 @@ func (g *Graph) Build(batchSize uint32) {
 	}
 
 	//Checks graph is properly formatted
-	g.checkGraph()
+	err := g.checkGraph()
+	if err != nil {
+		jww.FATAL.Printf("CheckGraph failed : %+v", err)
+	}
 
 	//Find expanded batch size
 	var integers []uint32
@@ -114,19 +119,99 @@ func (g *Graph) Build(batchSize uint32) {
 	delete(g.modules, g.outputModule.id)
 }
 
-func (g *Graph) checkGraph() {
+// This has to be global to communicate between checkDAG and checkAllNodesUsed
+// It has to be lockable, otherwise multiple threads checking the graph at the
+// same time can overwrite the mods value and break checkAllNodesUsed()
+var visitedModules struct {
+	sync.Mutex
+	mods []uint64
+}
+
+// checkGraph checks that the graph is valid, meaning more than 1 vertex, has a
+// first and last module, is a Directed Acyclic Graph, and all vertexes in the
+// graph are used
+func (g *Graph) checkGraph() error {
 	//Check if graph has modules
 	if len(g.modules) == 0 {
-		jww.FATAL.Panicf("No modules in graph")
+		return fmt.Errorf("no modules in graph")
 	}
 
 	if g.firstModule == nil {
-		jww.FATAL.Panicf("No first module")
+		return fmt.Errorf("no first module")
 	}
 
 	if g.lastModule == nil {
-		jww.FATAL.Panicf("No last module")
+		return fmt.Errorf("no last module")
 	}
+
+	if g.firstModule == g.lastModule || len(g.modules) == 1 {
+		return nil
+	}
+
+	// Make an array of visited modules, containing the first ID
+	visited := make([]uint64, 0)
+	// Clear the visitedModules
+	visitedModules.Lock()
+	visitedModules.mods = make([]uint64, 0)
+	// Start checking based on the firstModule
+	err := g.checkDAG(g.firstModule, visited)
+	if err != nil {
+		return err
+	}
+
+	err = g.checkAllNodesUsed()
+	visitedModules.Unlock()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// checkAllNodesUsed checks that all nodes in a graph are called
+func (g *Graph) checkAllNodesUsed() error {
+	for _, v := range g.modules {
+		seen := false
+		for _, y := range visitedModules.mods {
+			if v.id == y {
+				seen = true
+			}
+		}
+		if seen == false {
+			return fmt.Errorf("graph vertex %d was not used in graph anywhere", v.id)
+		}
+	}
+	return nil
+}
+
+// checkDAG checks that no nodes cause a loopback or are run twice in any path
+// A graph loopback occurs when a node tries to call a node already called back
+// the chain.
+func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
+	// Add node to visitedModules, since it's just being visited
+	visitedModules.mods = append(visitedModules.mods, mod.id)
+
+	// Reached the end of this path, check that the end is the lastModule
+	if len(mod.outputModules) == 0 && mod.id != g.lastModule.id {
+		return fmt.Errorf("graph path ended at vertex ID %d," +
+			" not lastModule ID %d", mod.id, g.lastModule.id)
+	}
+
+	// Check that this node isn't already in the visited path
+	for i, visitedModule := range visited {
+		if mod.id == visitedModule {
+			return fmt.Errorf("vertex %d was visited multiple times", i)
+		}
+	}
+
+	// Recurse for all output modules to this one
+	for i := range mod.outputModules {
+		e := g.checkDAG(mod.outputModules[i], append(visited, mod.id))
+		if e != nil {
+			return e
+		}
+	}
+
+	return nil
 }
 
 func (g *Graph) Run() {
@@ -196,7 +281,9 @@ func (g *Graph) OverrideBatchSize(b uint32) {
 	g.overrideBatchSize = b
 }
 
-func (g *Graph) Send(chunk Chunk) {
+type Measure func(tag string)
+
+func (g *Graph) Send(chunk Chunk, measure Measure) {
 
 	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
 
@@ -239,6 +326,9 @@ func (g *Graph) Send(chunk Chunk) {
 		// Does commenting this fix the double close?
 		// It does not.
 		g.firstModule.closeInput()
+		if measure != nil {
+			measure("Signaling that the last slot has been sent")
+		}
 	}
 }
 

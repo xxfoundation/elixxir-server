@@ -9,7 +9,6 @@
 package io
 
 import (
-	"bytes"
 	"crypto/rand"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -28,24 +27,26 @@ func RequestNonce(instance *server.Instance,
 	privKey := instance.GetPrivKey()
 
 	if !instance.GetSkipReg() {
-		// Verify signed public key using hardcoded RegistrationServer public key
-		valid := instance.GetRegServerPubKey().Verify(hash, signature.DSASignature{
-			R: large.NewIntFromBytes(R),
-			S: large.NewIntFromBytes(S),
-		})
-
 		// Concatenate Client public key byte slices
+		// FIXME: MOVE THE SIGNATURE VERIFICATION TO COMMS
 		data := make([]byte, 0)
 		data = append(data, Y...)
 		data = append(data, P...)
 		data = append(data, Q...)
 		data = append(data, G...)
 
-		// Ensure that the data in the hash is identical to the Client public key
-		if !valid || !bytes.Equal(data, hash) {
+		// Verify signed public key using hardcoded RegistrationServer public key
+		regKey := instance.GetRegServerPubKey()
+		valid := regKey.Verify(data,
+			signature.DSASignature{
+				R: large.NewIntFromBytes(R),
+				S: large.NewIntFromBytes(S),
+			})
+		if !valid {
 			// Invalid signed Client public key, return an error
-			jww.ERROR.Printf("Unable to verify signed public key!")
-			return make([]byte, 0), errors.Errorf("signed public key is invalid")
+			jww.ERROR.Printf("Unable to verify public key signature!")
+			return make([]byte, 0),
+				errors.Errorf("public key signature is invalid")
 		}
 	}
 

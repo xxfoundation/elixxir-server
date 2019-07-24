@@ -103,12 +103,12 @@ func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error
 
 	// Check that the user id is formatted correctly
 	if len(slot.SenderID) != id.UserLen {
-		return globals.ERR_NONEXISTANT_USER
+		return globals.ErrUserIDTooShort
 	}
 
 	// Check that the salt is formatted correctly
 	if len(slot.Salt) != 32 {
-		return globals.ERR_SALTINCORRECTLENGTH
+		return globals.ErrSaltIncorrectLength
 	}
 
 	//copy the user id

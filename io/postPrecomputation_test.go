@@ -128,7 +128,7 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 
 	err := TransmitPrecompResult(comms[numNodes-1], batchSize,
 		rndID, phase.PrecompReveal, getchunk, getMockPostPrecompSlot,
-		topology, nil)
+		topology, nil, nil)
 
 	if err != nil {
 		t.Errorf("TransmitPrecompResult: Unexpected error: %+v", err)

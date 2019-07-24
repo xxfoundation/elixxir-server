@@ -260,7 +260,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	err := stream.Input(batchSize-10, msg)
 
-	if err != globals.ERR_NONEXISTANT_USER {
+	if err != globals.ErrUserIDTooShort {
 		t.Errorf("DecryptStream.Input() did not return an non existant user error when given non-existant user")
 	}
 
@@ -272,8 +272,8 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	err2 := stream.Input(batchSize-10, msg2)
 
-	if err2 == globals.ERR_NONEXISTANT_USER {
-		t.Errorf("DecryptStream.Input() returned an non existant user error when given non-existant user")
+	if err2 == globals.ErrUserIDTooShort {
+		t.Errorf("DecryptStream.Input() returned an existant user error when given non-existant user")
 	}
 
 }
@@ -305,7 +305,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	err := stream.Input(batchSize-10, msg)
 
-	if err != globals.ERR_SALTINCORRECTLENGTH {
+	if err != globals.ErrSaltIncorrectLength {
 		t.Errorf("DecryptStream.Input() did not return a salt incorrect length error when given non-existant user")
 	}
 
@@ -318,7 +318,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	err2 := stream.Input(batchSize-10, msg2)
 
-	if err2 == globals.ERR_SALTINCORRECTLENGTH {
+	if err2 == globals.ErrSaltIncorrectLength {
 		t.Errorf("DecryptStream.Input() returned a salt incorrect length error when given non-existant user")
 	}
 }
@@ -487,7 +487,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	// Here's the actual data for the test
 
 	g.Run()
-	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()))
+	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()), nil)
 
 	ok := true
 	var chunk services.Chunk

@@ -147,19 +147,18 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	if !p.IsQueued() {
 		t.Error("After enqueueing, the phase's state should be Queued")
 	}
-
 	go q.run(instance)
 	time.Sleep(20 * time.Millisecond)
 	// Verify state while the queue is running
 	if !iWasCalled {
 		t.Error("Transmission handler never got called")
 	}
-
+	//log := io.Writer()
+	//log
 	if len(q.phaseQueue) != 0 {
 		t.Error("The phase queue should have been emptied after the queue ran" +
 			" the only phase")
 	}
-
 	q.DenotePhaseCompletion(p)
 	time.Sleep(20 * time.Millisecond)
 }
@@ -194,7 +193,7 @@ func makeTestPhase(instance *Instance, name phase.Type,
 	transmissionHandler := func(network *node.NodeComms, batchSize uint32,
 		roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 		getMessage phase.GetMessage, topology *circuit.Circuit,
-		nodeId *id.Node) error {
+		nodeId *id.Node, measure phase.Measure) error {
 		iWasCalled = true
 		return nil
 	}
@@ -224,12 +223,11 @@ func makeTestGraph(instance *Instance, batchSize uint32) *services.Graph {
 		Name:           "mockModule",
 		NumThreads:     services.AutoNumThreads,
 	}
-	mockModuleCopy := mockModule.DeepCopy()
-	graph.First(mockModuleCopy)
-	graph.Connect(mockModuleCopy, mockModuleCopy)
-	graph.Last(mockModuleCopy)
-	graph.Link(instance.GetGroup())
-	graph.Build(batchSize)
+	firstGraphNode := mockModule.DeepCopy()
+	secondGraphNode := mockModule.DeepCopy()
+	graph.First(firstGraphNode)
+	graph.Connect(firstGraphNode, secondGraphNode)
+	graph.Last(secondGraphNode)
 
 	return graph
 }

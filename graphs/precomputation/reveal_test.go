@@ -269,7 +269,7 @@ func TestReveal_Graph(t *testing.T) {
 	// Send inputs into the graph
 	go func(g *services.Graph) {
 		for i := uint32(0); i < g.GetBatchSize(); i++ {
-			g.Send(services.NewChunk(i, i+1))
+			g.Send(services.NewChunk(i, i+1), nil)
 		}
 	}(g)
 

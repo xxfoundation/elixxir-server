@@ -9,6 +9,7 @@ package globals
 import (
 	"bytes"
 	"crypto/sha256"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -21,13 +22,10 @@ import (
 
 const MaxSalts = 300
 
-// Number of hard-coded users to create
-var NUM_DEMO_USERS = int(256)
-var NUM_DEMO_CHANNELS = int(10)
-
-var ERR_NONEXISTANT_USER = errors.New("user not found in user registry")
-var ERR_TOOMANYSALTS = errors.New("user must rekey, has stored too many salts")
-var ERR_SALTINCORRECTLENGTH = errors.New("salt of incorrect length, must be 256 bits")
+var ErrNonexistantUser = errors.New("user not found in user registry")
+var errTooManySalts = "user %v must rekey, has stored too many salts"
+var ErrSaltIncorrectLength = errors.New("salt of incorrect length, must be 256 bits")
+var ErrUserIDTooShort = errors.New("User id length too short")
 
 // Globally initiated User ID counter
 var idCounter = uint64(1)
@@ -117,7 +115,7 @@ func (m *UserMap) InsertSalt(id *id.User, salt []byte) error {
 
 	userFace, ok := (*sync.Map)(m).Load(*id)
 	if !ok {
-		return ERR_NONEXISTANT_USER
+		return ErrNonexistantUser
 	}
 
 	user := userFace.(*User)
@@ -127,7 +125,7 @@ func (m *UserMap) InsertSalt(id *id.User, salt []byte) error {
 	if len(user.salts) >= MaxSalts {
 		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
 			" been used for User %q", *id)
-		return ERR_TOOMANYSALTS
+		return errors.New(fmt.Sprintf(errTooManySalts, id))
 	}
 
 	// Insert salt into the collection
@@ -148,7 +146,7 @@ func (m *UserMap) GetUser(id *id.User) (*User, error) {
 
 	u, ok := (*sync.Map)(m).Load(*id)
 	if !ok {
-		err = ERR_NONEXISTANT_USER
+		err = ErrNonexistantUser
 	} else {
 		user := u.(*User)
 		user.Lock()
@@ -189,7 +187,7 @@ func (m *UserMap) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
 // UpsertUser inserts given user into userCollection or update the user if it
 // already exists (Upsert operation).
 func (m *UserMap) UpsertUser(user *User) {
-	(*sync.Map)(m).Store(*user.ID, user)
+	(*sync.Map)(m).Store(*(user.ID), user)
 }
 
 // CountUsers returns a count of the users in userCollection.

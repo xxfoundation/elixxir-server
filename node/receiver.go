@@ -36,6 +36,10 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetID(),
 		&instance.LastNode,
 		instance.GetBatchSize())
+
+	if len(phases) != 0 {
+		phases[0].Measure("Receive Create New Round")
+	}
 	//Build the round
 	rnd := round.New(
 		instance.GetGroup(),
@@ -66,12 +70,14 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	rm := instance.GetRoundManager()
 
 	tag := phase.PrecompShare.String() + "Verification"
+
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure(tag)
 
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
@@ -154,6 +160,8 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 			"PostPrecompResult comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure(tag)
+
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
@@ -181,12 +189,16 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
-
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	fmt.Println(p)
+	tag := fmt.Sprintf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy, p.GetType())
+	p.Measure(tag)
+
 	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
@@ -238,6 +250,10 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	tag := fmt.Sprintf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+		roundID, phaseTy, p.GetType())
+	p.Measure(tag)
+
 	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 
@@ -337,12 +353,13 @@ func ReceiveFinishRealtime(instance *server.Instance,
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
-
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
 	}
+	p.Measure(tag)
+
 	p.UpdateFinalStates()
 
 	if !instance.GetKeepBuffers() {

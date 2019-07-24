@@ -179,7 +179,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	realDecrypt := phase.New(phase.Definition{
 		Graph: realtime.InitDecryptGraph(gg),
 		Type:  phase.RealDecrypt,
-		TransmissionHandler: func(network *node.NodeComms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node) error {
+		TransmissionHandler: func(network *node.NodeComms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node, measure phase.Measure) error {
 			return nil
 		},
 		Timeout:        5 * time.Second,

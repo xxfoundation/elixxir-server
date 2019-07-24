@@ -322,11 +322,11 @@ func TestPermuteStream_InGraph(t *testing.T) {
 	go func(g *services.Graph) {
 
 		for i := uint32(0); i < g.GetBatchSize()-1; i++ {
-			g.Send(services.NewChunk(i, i+1))
+			g.Send(services.NewChunk(i, i+1), nil)
 		}
 
 		atomic.AddUint32(done, 1)
-		g.Send(services.NewChunk(g.GetExpandedBatchSize()-1, g.GetExpandedBatchSize()))
+		g.Send(services.NewChunk(g.GetExpandedBatchSize()-1, g.GetExpandedBatchSize()), nil)
 	}(g)
 
 	ok := true
