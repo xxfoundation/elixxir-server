@@ -39,7 +39,6 @@ func GetCompletedBatch(completedRoundQueue chan *server.CompletedRound,
 	timeout time.Duration) (*mixmessages.Batch, error) {
 
 	var roundQueue *server.CompletedRound
-
 	select {
 	case roundQueue = <-completedRoundQueue:
 	case <-time.After(timeout):
