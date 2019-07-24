@@ -58,7 +58,7 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Println("Unable to load params from viper")
 	}
 
-	jww.INFO.Printf("Loaded params: %v", params)
+	jww.INFO.Printf("Loaded params: %+v", params)
 
 	//Check that there is a gateway
 	if len(params.Gateways.Addresses) < 1 {
