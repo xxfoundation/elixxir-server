@@ -192,7 +192,7 @@ func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
 
 	// Reached the end of this path, check that the end is the lastModule
 	if len(mod.outputModules) == 0 && mod.id != g.lastModule.id {
-		return fmt.Errorf("graph path ended at vertex ID %d," +
+		return fmt.Errorf("graph path ended at vertex ID %d,"+
 			" not lastModule ID %d", mod.id, g.lastModule.id)
 	}
 

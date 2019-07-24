@@ -33,8 +33,7 @@ import (
 	//"gitlab.com/elixxir/server/globals"
 	//"gitlab.com/elixxir/server/io"
 	"runtime"
-	//"sync/atomic"
-	"crypto/sha256"
+
 	"gitlab.com/elixxir/crypto/cyclic"
 )
 
@@ -60,7 +59,7 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Println("Unable to load params from viper")
 	}
 
-	jww.INFO.Printf("Parameters loaded: %+v", params)
+	jww.INFO.Printf("Loaded params: %v", params)
 
 	//Check that there is a gateway
 	if len(params.Gateways.Addresses) < 1 {
@@ -91,8 +90,6 @@ func StartServer(vip *viper.Viper) {
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
 	userDatabase.UpsertUser(dummy)
 	_, err = userDatabase.GetUser(dummy.ID)
-
-	jww.INFO.Println("getting user:", err)
 
 	//populate the dummy precanned users
 	PopulateDummyUsers(userDatabase, cmixGrp)
@@ -166,13 +163,8 @@ type DSAKeysJson struct {
 // Create dummy users to be manually inserted into the database
 func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
 	// Deterministically create named users for demo
-	for i := 0; i < numDemoUsers; i++ {
+	for i := 1; i < numDemoUsers; i++ {
 		u := ur.NewUser(grp)
-
-		h := sha256.New()
-		h.Write([]byte(string(20000 + i)))
-		u.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
-
 		ur.UpsertUser(u)
 	}
 }
