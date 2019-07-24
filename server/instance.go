@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"google.golang.org/grpc/credentials"
@@ -35,7 +36,8 @@ type Instance struct {
 	graphGenerator  services.GraphGenerator
 	firstNode
 	LastNode
-	params *conf.Params
+	params       *conf.Params
+	memMetriChan chan measure.MemMetric
 }
 
 func (i *Instance) GetTopology() *circuit.Circuit {
@@ -129,7 +131,7 @@ func (i *Instance) IsLastNode() bool {
 // Create a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
-	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey) *Instance {
+	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey, memMetrics chan measure.MemMetric) *Instance {
 
 	//TODO: build system wide error handling
 	PanicHandler := func(g, m string, err error) {
@@ -145,6 +147,7 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		//FIXME: make this smarter
 		graphGenerator: services.NewGraphGenerator(4, PanicHandler,
 			uint8(runtime.NumCPU()), 4, 0.0),
+		memMetriChan: memMetrics,
 	}
 
 	// Create the topology that will be used for all rounds
@@ -262,4 +265,8 @@ func (i *Instance) String() string {
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
 	return services.NameStringer(addr, myLoc, numNodes)
+}
+
+func (i *Instance) GetMemMetricChan() chan measure.MemMetric {
+	return i.memMetriChan
 }

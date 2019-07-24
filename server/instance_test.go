@@ -131,7 +131,7 @@ func TestInstance_BadNodeID(t *testing.T) {
 		}
 	}()
 
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, nil)
 
 	if instance != nil {
 		t.Errorf("BadeNode ID, so Instance should not have returned!!")
@@ -160,7 +160,7 @@ func mockServerInstance(grp *cyclic.Group) *Instance {
 			CMix: cmix,
 		},
 	}
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, nil)
 
 	return instance
 }

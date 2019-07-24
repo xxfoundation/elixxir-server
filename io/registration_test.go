@@ -50,7 +50,7 @@ func TestMain(m *testing.M) {
 	}
 
 	serverInstance = server.CreateServerInstance(&params, &globals.UserMap{},
-		pubKey, privKey)
+		pubKey, privKey, nil)
 
 	os.Exit(m.Run())
 }

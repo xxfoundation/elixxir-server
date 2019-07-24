@@ -68,7 +68,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	for i := 0; i < numNodes; i++ {
 		instance := server.CreateServerInstance(paramLst[i], registries[i],
-			nil, nil)
+			nil, nil, nil)
 		instances = append(instances, instance)
 	}
 

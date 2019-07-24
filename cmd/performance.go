@@ -9,6 +9,7 @@ package cmd
 import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/server/server/measure"
 	"runtime"
 	"time"
 )
@@ -21,9 +22,12 @@ const MIN_MEMORY_TRIGGER = int64(1024) * int64(1024) * int64(1024)    //1GiB
 // Time between performance checks
 const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
 
+// Maximum size a the memory metric cha
+const MEM_METRIC_BUFF_SIZE = 100
+
 // MonitorMemoryUsage Checks and prints a warning every time thread or memory
-// usage fo the system jumps a designated amount
-func MonitorMemoryUsage() {
+// usage fo the system jumps a designated amount.
+func MonitorMemoryUsage() chan measure.MemMetric {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,6 +38,8 @@ func MonitorMemoryUsage() {
 				" unexpectedly")
 		}
 	}()
+
+	memMetricChan := make(chan measure.MemMetric, MEM_METRIC_BUFF_SIZE)
 
 	var numMemory = int64(0)
 
@@ -51,96 +57,110 @@ func MonitorMemoryUsage() {
 	// Slice to store the threads with the top memory usage
 	highestMemUsage := make([]*runtime.MemProfileRecord, 10)
 
-	for {
-		//Only trigger periodically
-		time.Sleep(PERFORMANCE_CHECK_PERIOD)
+	go func() {
 
-		triggerTime := time.Now()
-		deltaTriggerTime := triggerTime.Sub(lastTrigger)
-		var pr []runtime.MemProfileRecord
+		for {
+			//Only trigger periodically
+			time.Sleep(PERFORMANCE_CHECK_PERIOD)
 
-		//Get the number of executing goroutines
-		currentThreads := runtime.NumGoroutine()
+			triggerTime := time.Now()
+			deltaTriggerTime := triggerTime.Sub(lastTrigger)
+			var pr []runtime.MemProfileRecord
 
-		//Get the memory usage of all threads
-		runtime.MemProfile(pr, true)
+			//Get the number of executing goroutines
+			currentThreads := runtime.NumGoroutine()
 
-		memoryAllocated := int64(0)
+			//Get the memory usage of all threads
+			runtime.MemProfile(pr, true)
 
-		// Make sure that if there are too few records the
-		// system still functions
-		numMaxRecords := 10
-		if len(pr) < numMaxRecords {
-			numMaxRecords = len(pr)
-		}
+			memoryAllocated := int64(0)
 
-		//Clear the memory profile record slice
-		for i := 0; i < numMaxRecords; i++ {
-			highestMemUsage[i] = &minMemoryUse
-		}
+			// Make sure that if there are too few records the
+			// system still functions
+			numMaxRecords := 10
+			if len(pr) < numMaxRecords {
+				numMaxRecords = len(pr)
+			}
 
-		//Find total allocated memory and top memory usage threads
-		for i := 0; i < len(pr); i++ {
-			memoryAllocated += pr[i].InUseBytes()
+			//Clear the memory profile record slice
+			for i := 0; i < numMaxRecords; i++ {
+				highestMemUsage[i] = &minMemoryUse
+			}
 
-			for j := numMaxRecords - 1; j > -1; j-- {
-				if pr[i].InUseBytes() >
-					highestMemUsage[j].InUseBytes() {
-					highestMemUsage[j] = &pr[i]
-					break
+			//Find total allocated memory and top memory usage threads
+			for i := 0; i < len(pr); i++ {
+				memoryAllocated += pr[i].InUseBytes()
+
+				for j := numMaxRecords - 1; j > -1; j-- {
+					if pr[i].InUseBytes() >
+						highestMemUsage[j].InUseBytes() {
+						highestMemUsage[j] = &pr[i]
+						break
+					}
 				}
 			}
-		}
 
-		memoryDelta := memoryAllocated - numMemory
+			memoryDelta := memoryAllocated - numMemory
 
-		//check if the change in memory usage warrants an update
-		if memoryDelta > DELTA_MEMORY_THRESHOLD &&
-			MIN_MEMORY_TRIGGER < memoryAllocated {
-			lastTrigger = triggerTime
-			jww.WARN.Printf("Performance warning "+
-				"triggered after "+
-				"%v seconds",
-				deltaTriggerTime*time.Second)
+			//check if the change in memory usage warrants an update
+			if memoryDelta > DELTA_MEMORY_THRESHOLD &&
+				MIN_MEMORY_TRIGGER < memoryAllocated {
+				lastTrigger = triggerTime
+				jww.WARN.Printf("Performance warning "+
+					"triggered after "+
+					"%v seconds",
+					deltaTriggerTime*time.Second)
 
-			jww.WARN.Printf(
-				"  Allocated Memory %v exceeded "+
-					"threshold of %v"+
-					convertToReadableBytes(memoryAllocated),
-				numMemory)
-
-			jww.WARN.Printf("  Number of threads: %v",
-				currentThreads)
-			jww.WARN.Printf("  Top 10 threads by memory" +
-				" allocation:")
-			// Format the data from the top 10 threads
-			// for printing
-			for _, thr := range highestMemUsage[0:numMaxRecords] {
-				//Get a list of the last 10 executed functions
-				var funcNames string
-				lenLookup := len(thr.Stack0)
-				if lenLookup > 10 {
-					lenLookup = 10
-				}
-				// append the function names of the
-				//last 10 executed functions to be
-				// printed
-				for i := 0; i < lenLookup; i++ {
-					funcNames += truncateFuncName(
-						runtime.FuncForPC(thr.
-							Stack0[i]).Name())
-				}
-
-				//Print thread information
 				jww.WARN.Printf(
-					"    %s %s", convertToReadableBytes(thr.
-						InUseBytes()), funcNames)
+					"  Allocated Memory %v exceeded "+
+						"threshold of %v"+
+						convertToReadableBytes(memoryAllocated),
+					numMemory)
+
+				jww.WARN.Printf("  Number of threads: %v",
+					currentThreads)
+				jww.WARN.Printf("  Top 10 threads by memory" +
+					" allocation:")
+				// Format the data from the top 10 threads
+				// for printing
+
+				funcNames := ""
+				for _, thr := range highestMemUsage[0:numMaxRecords] {
+					//Get a list of the last 10 executed functions
+					lenLookup := len(thr.Stack0)
+					if lenLookup > 10 {
+						lenLookup = 10
+					}
+					// append the function names of the
+					//last 10 executed functions to be
+					// printed
+					for i := 0; i < lenLookup; i++ {
+						funcNames += truncateFuncName(
+							runtime.FuncForPC(thr.
+								Stack0[i]).Name())
+					}
+
+					//Print thread information
+					jww.WARN.Printf(
+						"    %s %s", convertToReadableBytes(thr.
+							InUseBytes()), funcNames)
+				}
+				numMemory = memoryAllocated
+
+				memMetricChan <- measure.MemMetric{
+					Time:                      triggerTime,
+					MemoryAllocated:           convertToReadableBytes(memoryAllocated),
+					MemoryAllocationThreshold: numMemory,
+					NumThreads:                currentThreads,
+					HighestMemThreads:         funcNames,
+				}
 			}
-			numMemory = memoryAllocated
+
 		}
 
-	}
+	}()
 
+	return memMetricChan
 }
 
 func truncateFuncName(name string) string {

@@ -116,7 +116,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		},
 		Index: 0,
 	}
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, nil)
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase

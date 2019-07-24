@@ -396,6 +396,8 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 
 	rm := instance.GetRoundManager()
 
+	memMetrics := instance.GetMemMetricChan()
+
 	// Check that the round exists, grab it
 	r, err := rm.GetRound(roundID)
 	if err != nil {
@@ -409,7 +411,7 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	numNodes := topology.Len()
 	index := topology.GetNodeLocation(nodeId)
 
-	metrics := r.GetMeasurements(nodeId.String(), numNodes, index)
+	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, memMetrics)
 
 	s, err := json.Marshal(metrics)
 
