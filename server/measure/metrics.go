@@ -1,6 +1,7 @@
 package measure
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"os"
 	"sync"
 	"time"
@@ -52,7 +53,8 @@ func (m *Metrics) Measure(tag string) time.Time {
 func AppendToMetricsLog(logPath, measures string) {
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err != nil {
-		// warning
+		jww.WARN.Printf("Unable to open metrics log file")
+		return
 	}
 	defer func() {
 		if f != nil {
@@ -62,6 +64,6 @@ func AppendToMetricsLog(logPath, measures string) {
 
 	_, err = f.WriteString(measures)
 	if err != nil {
-		// warning
+		jww.WARN.Printf("Unable to append to metrics log file")
 	}
 }
