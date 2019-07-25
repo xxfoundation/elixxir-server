@@ -367,9 +367,9 @@ func ReceiveFinishRealtime(instance *server.Instance,
 
 		// TODO: Where does this go?
 		//nodeComms := instance.GetNetwork()
-		//measures = io.TransmitGetMeasure(nodeComms, instance.GetTopology(),roundID)
-		//logFile = instance.GetMetricsLog()
-
+		//measures := io.TransmitGetMeasure(nodeComms, instance.GetTopology(),roundID)
+		//logFile := instance.GetMetricsLog()
+		//
 		//if logFile != "" {
 		//	go measure.AppendToMetricsLog(logFile, measures)
 		//}
