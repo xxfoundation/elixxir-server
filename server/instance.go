@@ -131,7 +131,7 @@ func (i *Instance) IsLastNode() bool {
 // Create a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
-	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey, memMetrics chan measure.ResourceMetric) *Instance {
+	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey, resourceMonitor measure.ResourceMonitor) *Instance {
 
 	//TODO: build system wide error handling
 	PanicHandler := func(g, m string, err error) {
@@ -147,7 +147,7 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		//FIXME: make this smarter
 		graphGenerator: services.NewGraphGenerator(4, PanicHandler,
 			uint8(runtime.NumCPU()), 4, 0.0),
-		lastResourceMonitor: memMetrics,
+		lastResourceMonitor: resourceMonitor,
 	}
 
 	// Create the topology that will be used for all rounds
