@@ -117,7 +117,7 @@ func StartServer(vip *viper.Viper) {
 		}
 
 		// Build the public and private keys
-		privateKey := &signature.DSAPrivateKey{}
+		privateKey = &signature.DSAPrivateKey{}
 		privateKey, err = privateKey.PemDecode([]byte(data["PrivateKey"]))
 		if err != nil {
 			jww.FATAL.Panicf("Unable to parse permissioning private key: %+v",
