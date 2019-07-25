@@ -368,7 +368,7 @@ func ReceiveFinishRealtime(instance *server.Instance,
 
 		// TODO: Where does this go?
 		nodeComms := instance.GetNetwork()
-		measures := io.TransmitGetMeasure(nodeComms, instance.GetTopology(), roundID)
+		measures := io.TransmitGetMeasure(nodeComms, instance.GetTopology(), id.Round(roundID))
 		logFile := instance.GetMetricsLog()
 
 		if logFile != "" {
