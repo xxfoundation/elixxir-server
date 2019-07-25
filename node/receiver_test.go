@@ -30,6 +30,7 @@ import (
 	"io"
 	"reflect"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )
@@ -602,6 +603,26 @@ func buildMockNodeIDs(numNodes int) []string {
 	return nodeIDs
 }
 
+func buildMockNodeAddresses(numNodes int) []string {
+	//generate IDs and addresses
+	var nidLst []string
+	var addrLst []string
+	addrFmt := "localhost:5%03d"
+	portState := 6000
+	for i := 0; i < numNodes; i++ {
+		//generate id
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nidLst = append(nidLst, nodeID.String())
+		//generate address
+		addr := fmt.Sprintf(addrFmt, i+portState)
+		addrLst = append(addrLst, addr)
+	}
+
+	return addrLst
+}
+
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
@@ -927,30 +948,68 @@ func TestPostPrecompResultFunc(t *testing.T) {
 }
 
 func TestReceiveFinishRealtime(t *testing.T) {
-	// Smoke tests the management part of PostPrecompResult
-	grp := initImplGroup()
-	const numNodes = 5
-	grps := initConfGroups(grp)
 
-	// Set instance for first node
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(numNodes),
-		},
-		Index: 0,
-		Metrics: conf.Metrics{
-			Log: "",
-		},
+	const numNodes = 1
+
+	grp := makeMultiInstanceGroup()
+
+	//get parameters
+	paramLst := makeMultiInstanceParams(numNodes, 4, 300, grp)
+
+	//make user for sending messages
+	userID := id.NewUserFromUint(42, t)
+	var baseKeys []*cyclic.Int
+	for i := 0; i < numNodes; i++ {
+		baseKey := grp.NewIntFromUInt(uint64(1000 + 5*i))
+		baseKeys = append(baseKeys, baseKey)
 	}
 
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
-	instance.InitFirstNode()
+	//build the registries for every node
+	var registries []globals.UserRegistry
+
+	for i := 0; i < numNodes; i++ {
+		var registry globals.UserRegistry
+		registry = &globals.UserMap{}
+		user := globals.User{
+			ID:      userID,
+			BaseKey: baseKeys[i],
+		}
+		registry.UpsertUser(&user)
+		registries = append(registries, registry)
+	}
+
+	//build the instances
+	var instances []*server.Instance
+
+	t.Logf("Building instances for %v nodes", numNodes)
+
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
+	for i := 0; i < numNodes; i++ {
+		instance := server.CreateServerInstance(paramLst[i], registries[i],
+			nil, nil, resourceMonitor)
+		instances = append(instances, instance)
+	}
+
+	t.Logf("Initilizing Network for %v nodes", numNodes)
+	//initialize the network for every instance
+	wg := sync.WaitGroup{}
+	for _, instance := range instances {
+		wg.Add(1)
+		localInstance := instance
+		go func() {
+			localInstance.InitNetwork(NewImplementation)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	instance := instances[0]
 	topology := instance.GetTopology()
 
 	// Set up a round first node
-	roundID := id.Round(45)
+	roundID := id.Round(0)
 
 	response := phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  phase.RealPermute,
@@ -1109,4 +1168,59 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		nil, nil, measure.ResourceMonitor{})
 
 	return instance
+}
+
+func makeMultiInstanceGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2), large.NewInt(1283))
+}
+
+func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*conf.Params {
+
+	//generate IDs and addresses
+	var nidLst []string
+	var addrLst []string
+	addrFmt := "localhost:5%03d"
+	for i := 0; i < numNodes; i++ {
+		//generate id
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nidLst = append(nidLst, nodeID.String())
+		//generate address
+		addr := fmt.Sprintf(addrFmt, i+portstart)
+		addrLst = append(addrLst, addr)
+	}
+
+	//generate parameters list
+	var paramsLst []*conf.Params
+
+	for i := 0; i < numNodes; i++ {
+
+		param := conf.Params{
+			Groups: initConfGroups(grp),
+			Node: conf.Node{
+				Ids:       nidLst,
+				Addresses: addrLst,
+			},
+			Batch:       uint32(batchsize),
+			Index:       i,
+			KeepBuffers: true,
+		}
+
+		paramsLst = append(paramsLst, &param)
+	}
+
+	return paramsLst
 }
