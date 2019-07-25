@@ -22,12 +22,9 @@ const MIN_MEMORY_TRIGGER = int64(1024) * int64(1024) * int64(1024)    //1GiB
 // Time between performance checks
 const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
 
-// Maximum size a the memory metric cha
-const MEM_METRIC_BUFF_SIZE = 100
-
 // MonitorMemoryUsage Checks and prints a warning every time thread or memory
 // usage fo the system jumps a designated amount.
-func MonitorMemoryUsage() chan measure.MemMetric {
+func MonitorMemoryUsage() measure.ResourceMonitor {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -39,7 +36,7 @@ func MonitorMemoryUsage() chan measure.MemMetric {
 		}
 	}()
 
-	memMetricChan := make(chan measure.MemMetric, MEM_METRIC_BUFF_SIZE)
+	resourceMonitor := measure.ResourceMonitor{}
 
 	var numMemory = int64(0)
 
@@ -147,20 +144,22 @@ func MonitorMemoryUsage() chan measure.MemMetric {
 				}
 				numMemory = memoryAllocated
 
-				memMetricChan <- measure.MemMetric{
+				resourceMetric := measure.ResourceMetric{
 					Time:                      triggerTime,
 					MemoryAllocated:           convertToReadableBytes(memoryAllocated),
 					MemoryAllocationThreshold: numMemory,
 					NumThreads:                currentThreads,
 					HighestMemThreads:         funcNames,
 				}
+
+				resourceMonitor.Set(&resourceMetric)
 			}
 
 		}
 
 	}()
 
-	return memMetricChan
+	return resourceMonitor
 }
 
 func truncateFuncName(name string) string {

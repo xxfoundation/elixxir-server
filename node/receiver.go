@@ -396,7 +396,7 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 
 	rm := instance.GetRoundManager()
 
-	memMetrics := instance.GetMemMetricChan()
+	memMetrics := instance.GetLastResourceMonitor()
 
 	// Check that the round exists, grab it
 	r, err := rm.GetRound(roundID)

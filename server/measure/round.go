@@ -13,14 +13,14 @@ import (
 
 // Hold metrics for a round, including phase:metric map
 type RoundMetrics struct {
-	NodeId       string
-	Index        int
-	NumNodes     int
-	RoundId      uint32
-	StartTime    time.Time
-	EndTime      time.Time
-	PhaseMetrics map[string]Metrics // Map of phase to metrics
-	MemMetrics   []MemMetric        // List of memory and thread usage metrics
+	NodeId         string
+	Index          int
+	NumNodes       int
+	RoundId        uint32
+	StartTime      time.Time
+	EndTime        time.Time
+	PhaseMetrics   map[string]Metrics // Map of phase to metrics
+	ResourceMetric ResourceMetric     // Memory and thread usage metrics
 }
 
 // Create a RoundMetrics object, taking in node ID, round ID, number of nodes and index
@@ -39,9 +39,9 @@ func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
 	rm.PhaseMetrics[name] = metrics
 }
 
-// AddMemMetric append a memory usage metric to memory metrics list
-func (rm *RoundMetrics) AddMemMetric(metric MemMetric) {
-	rm.MemMetrics = append(rm.MemMetrics, metric)
+// SetResourceMetric sets latest memory usage metric inside round metrics
+func (rm *RoundMetrics) SetResourceMetric(metric ResourceMetric) {
+	rm.ResourceMetric = metric
 }
 
 // MarshallJSON implements marshaller interface so json.Marshall can be called on RoundMetrics

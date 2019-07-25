@@ -1012,13 +1012,13 @@ func TestReceiveGetMeasure(t *testing.T) {
 		Index: 0,
 	}
 
-	memMetrics := make(chan measure.MemMetric, 0)
-	//memMetrics := func() chan measure.MemMetric {
-	//	m := make(chan measure.MemMetric, 100)
+	memMetrics := make(chan measure.ResourceMetric, 0)
+	//memMetrics := func() chan measure.ResourceMetric {
+	//	m := make(chan measure.ResourceMetric, 100)
 	//	go func() {
 	//		time.Sleep(time.Second * 1)
 	//		for {
-	//			m<-measure.MemMetric{
+	//			m<-measure.ResourceMetric{
 	//
 	//			}
 	//		}
