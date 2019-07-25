@@ -27,15 +27,24 @@ type ResourceMonitor struct {
 }
 
 // Get a resource metric using a lock
-func (mh ResourceMonitor) Get() *ResourceMetric {
-	mh.Lock()
-	defer mh.Unlock()
-	return mh.lastMetric
+func (resMon ResourceMonitor) Get() *ResourceMetric {
+	resMon.Lock()
+	defer resMon.Unlock()
+	lastMetric := resMon.lastMetric
+	// copy into new object
+	rm := ResourceMetric{
+		Time:                      lastMetric.Time,
+		MemoryAllocated:           lastMetric.MemoryAllocated,
+		MemoryAllocationThreshold: lastMetric.MemoryAllocationThreshold,
+		NumThreads:                lastMetric.NumThreads,
+		HighestMemThreads:         lastMetric.HighestMemThreads,
+	}
+	return &rm
 }
 
 // Set a resource metric using a lock
-func (mh *ResourceMonitor) Set(rm *ResourceMetric) {
-	mh.Lock()
-	defer mh.Unlock()
-	mh.lastMetric = rm
+func (resMon *ResourceMonitor) Set(rm *ResourceMetric) {
+	resMon.Lock()
+	defer resMon.Unlock()
+	resMon.lastMetric = rm
 }

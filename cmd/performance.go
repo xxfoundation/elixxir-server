@@ -57,8 +57,6 @@ func MonitorMemoryUsage() measure.ResourceMonitor {
 	go func() {
 
 		for {
-			//Only trigger periodically
-			time.Sleep(PERFORMANCE_CHECK_PERIOD)
 
 			triggerTime := time.Now()
 			deltaTriggerTime := triggerTime.Sub(lastTrigger)
@@ -155,6 +153,8 @@ func MonitorMemoryUsage() measure.ResourceMonitor {
 				resourceMonitor.Set(&resourceMetric)
 			}
 
+			//Only trigger periodically
+			time.Sleep(PERFORMANCE_CHECK_PERIOD)
 		}
 
 	}()

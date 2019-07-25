@@ -24,24 +24,20 @@ type RoundMetrics struct {
 }
 
 // Create a RoundMetrics object, taking in node ID, round ID, number of nodes and index
-func NewRoundMetrics(nid string, rid uint32, numNodes, nodeIndex int) RoundMetrics {
+func NewRoundMetrics(nid string, rid uint32, numNodes, nodeIndex int, resMet ResourceMetric) RoundMetrics {
 	return RoundMetrics{
-		NodeId:       nid,
-		Index:        nodeIndex,
-		RoundId:      rid,
-		NumNodes:     numNodes,
-		PhaseMetrics: map[string]Metrics{},
+		NodeId:         nid,
+		Index:          nodeIndex,
+		RoundId:        rid,
+		NumNodes:       numNodes,
+		PhaseMetrics:   map[string]Metrics{},
+		ResourceMetric: resMet,
 	}
 }
 
 // AddPhase adds a phase & its metrics to the RoundMetrics object
 func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
 	rm.PhaseMetrics[name] = metrics
-}
-
-// SetResourceMetric sets latest memory usage metric inside round metrics
-func (rm *RoundMetrics) SetResourceMetric(metric *ResourceMetric) {
-	rm.ResourceMetric = *metric
 }
 
 // MarshallJSON implements marshaller interface so json.Marshall can be called on RoundMetrics

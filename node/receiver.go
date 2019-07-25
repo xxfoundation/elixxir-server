@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 )
@@ -366,13 +367,13 @@ func ReceiveFinishRealtime(instance *server.Instance,
 			" Retrieving and storing metrics", instance, roundID)
 
 		// TODO: Where does this go?
-		//nodeComms := instance.GetNetwork()
-		//measures := io.TransmitGetMeasure(nodeComms, instance.GetTopology(),roundID)
-		//logFile := instance.GetMetricsLog()
-		//
-		//if logFile != "" {
-		//	go measure.AppendToMetricsLog(logFile, measures)
-		//}
+		nodeComms := instance.GetNetwork()
+		measures := io.TransmitGetMeasure(nodeComms, instance.GetTopology(), roundID)
+		logFile := instance.GetMetricsLog()
+
+		if logFile != "" {
+			go measure.AppendToMetricsLog(logFile, measures)
+		}
 
 	}
 
@@ -427,8 +428,9 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	numNodes := topology.Len()
 	index := topology.GetNodeLocation(nodeId)
 	resourceMonitor := instance.GetLastResourceMonitor()
+	resourceMetric := *resourceMonitor.Get()
 
-	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, resourceMonitor)
+	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, resourceMetric)
 
 	s, err := json.Marshal(metrics)
 

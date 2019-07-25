@@ -14,7 +14,7 @@ import (
 
 // Test basic use of RoundMetrics & json conversion
 func TestRoundMetrics(t *testing.T) {
-	mockMetrics := NewRoundMetrics("NODE_TEST_ID", 3, 5, 4)
+	mockMetrics := NewRoundMetrics("NODE_TEST_ID", 3, 5, 4, ResourceMetric{})
 
 	m := new(Metrics)
 	m.Measure("test-tag")
@@ -37,8 +37,6 @@ func TestRoundMetrics(t *testing.T) {
 }
 
 func TestRoundMetrics_AddMemMetric(t *testing.T) {
-	mockMetrics := NewRoundMetrics("NODE_TEST_ID", 3, 5, 4)
-
 	// Create and allocate memory metric channel queue
 	expectedResourceMetric :=
 		ResourceMetric{
@@ -48,12 +46,11 @@ func TestRoundMetrics_AddMemMetric(t *testing.T) {
 			NumThreads:                5,
 			HighestMemThreads:         "someFuncNames",
 		}
+	mockMetrics := NewRoundMetrics("NODE_TEST_ID", 3, 5, 4, expectedResourceMetric)
 
 	m := new(Metrics)
 	m.Measure("test-tag")
 	mockMetrics.AddPhase("test-phase", *m)
-
-	mockMetrics.SetResourceMetric(&expectedResourceMetric)
 
 	if !resourceMetricEq(expectedResourceMetric, mockMetrics.ResourceMetric) {
 		t.Errorf("Resource metric did not match expected value in round metric")
