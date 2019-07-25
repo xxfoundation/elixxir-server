@@ -27,6 +27,7 @@ type Params struct {
 	Database      Database
 	Gateways      Gateways
 	Permissioning Permissioning
+	Metrics       Metrics
 }
 
 // NewParams gets elements of the viper object
@@ -65,6 +66,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
 	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
+
+	params.Metrics.Log = vip.GetString("metrics.log")
 
 	// In the event IDs are not able to be provided,
 	// we can hash the node addresses as a workaround

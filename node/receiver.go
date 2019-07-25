@@ -360,6 +360,22 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	}
 	p.Measure(tag)
 
+	//Send the finished signal on first node
+	if r.GetTopology().IsFirstNode(instance.GetID()) {
+		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
+			" Retrieving and storing metrics", instance, roundID)
+
+		// TODO: Where does this go?
+		//nodeComms := instance.GetNetwork()
+		//measures = io.TransmitGetMeasure(nodeComms, instance.GetTopology(),roundID)
+		//logFile = instance.GetMetricsLog()
+
+		//if logFile != "" {
+		//	go measure.AppendToMetricsLog(logFile, measures)
+		//}
+
+	}
+
 	p.UpdateFinalStates()
 
 	if !instance.GetKeepBuffers() {
@@ -384,7 +400,9 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
 		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
 			" SENDING END ROUND SIGNAL", instance, roundID)
+
 		instance.FinishRound(roundID)
+
 	}
 
 	return nil

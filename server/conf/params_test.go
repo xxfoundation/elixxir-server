@@ -26,6 +26,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		Database:      ExpectedDatabase,
 		Gateways:      ExpectedGateways,
 		Permissioning: ExpectedPermissioning,
+		Metrics:       ExpectedMetrics,
 	}
 
 	vip := viper.New()
@@ -79,5 +80,9 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
 		t.Errorf("Params gateways value does not match expected value")
+	}
+
+	if !reflect.DeepEqual(expectedParams.Metrics, params.Metrics) {
+		t.Errorf("Params metrics value does not match expected value")
 	}
 }

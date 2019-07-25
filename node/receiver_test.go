@@ -939,6 +939,9 @@ func TestReceiveFinishRealtime(t *testing.T) {
 			Ids: buildMockNodeIDs(numNodes),
 		},
 		Index: 0,
+		Metrics: conf.Metrics{
+			Log: "",
+		},
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},

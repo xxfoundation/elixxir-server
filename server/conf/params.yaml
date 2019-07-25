@@ -48,4 +48,6 @@ batch: 20
 verbose: true
 skipReg: true
 keepBuffers: true
+metrics:
+  log:  "~/.elixxir/metrics.log"
 ...

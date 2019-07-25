@@ -108,6 +108,11 @@ func (i *Instance) GetGraphGenerator() services.GraphGenerator {
 	return i.graphGenerator
 }
 
+// GetMetricsLog returns the log path for metrics data
+func (i *Instance) GetMetricsLog() string {
+	return i.params.Metrics.Log
+}
+
 //Initializes the first node components of the instance
 func (i *Instance) InitFirstNode() {
 	i.firstNode.Initialize()
