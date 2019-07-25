@@ -194,7 +194,7 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 }
 
 // Return a RoundMetrics object based on this round & its phases
-func (r *Round) GetMeasurements(nid string, numNodes, index int, memMetrics chan measure.ResourceMetric) measure.RoundMetrics {
+func (r *Round) GetMeasurements(nid string, numNodes, index int, resourceMonitor measure.ResourceMonitor) measure.RoundMetrics {
 	rid := r.GetID()
 	rm := measure.NewRoundMetrics(nid, uint32(rid), numNodes, index)
 
@@ -206,9 +206,7 @@ func (r *Round) GetMeasurements(nid string, numNodes, index int, memMetrics chan
 
 	// Add metrics for memory and thread usage to the RoundMetrics
 	// by reading the memory metrics channel until its empty
-	for len(memMetrics) > 0 {
-		rm.SetResourceMetric(<-memMetrics)
-	}
+	rm.SetResourceMetric(resourceMonitor.Get())
 
 	return rm
 }

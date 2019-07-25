@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"testing"
 	"time"
@@ -50,7 +51,7 @@ func TestMain(m *testing.M) {
 	}
 
 	serverInstance = server.CreateServerInstance(&params, &globals.UserMap{},
-		pubKey, privKey, nil)
+		pubKey, privKey, measure.ResourceMonitor{})
 
 	os.Exit(m.Run())
 }

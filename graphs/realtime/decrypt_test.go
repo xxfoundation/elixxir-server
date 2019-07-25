@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
@@ -570,7 +571,7 @@ func mockServerInstance() *server.Instance {
 			CMix: cmix,
 		},
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, nil)
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
 
 	return instance
 }

@@ -40,8 +40,8 @@ func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
 }
 
 // SetResourceMetric sets latest memory usage metric inside round metrics
-func (rm *RoundMetrics) SetResourceMetric(metric ResourceMetric) {
-	rm.ResourceMetric = metric
+func (rm *RoundMetrics) SetResourceMetric(metric *ResourceMetric) {
+	rm.ResourceMetric = *metric
 }
 
 // MarshallJSON implements marshaller interface so json.Marshall can be called on RoundMetrics

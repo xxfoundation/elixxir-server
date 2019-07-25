@@ -53,7 +53,7 @@ func TestRoundMetrics_AddMemMetric(t *testing.T) {
 	m.Measure("test-tag")
 	mockMetrics.AddPhase("test-phase", *m)
 
-	mockMetrics.SetResourceMetric(expectedResourceMetric)
+	mockMetrics.SetResourceMetric(&expectedResourceMetric)
 
 	if !resourceMetricEq(expectedResourceMetric, mockMetrics.ResourceMetric) {
 		t.Errorf("Resource metric did not match expected value in round metric")

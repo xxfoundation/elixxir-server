@@ -75,7 +75,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 			Ids: buildMockNodeIDs(5),
 		},
 		Index: 0,
-	}, &globals.UserMap{}, nil, nil, nil)
+	}, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -159,7 +159,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 			Ids: buildMockNodeIDs(1),
 		},
 		Index: 0,
-	}, registry, nil, nil, nil)
+	}, registry, nil, nil, measure.ResourceMonitor{})
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -249,7 +249,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		Index: 0,
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -388,7 +388,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 		},
 		Index: 0,
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, nil)
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -616,7 +616,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -685,7 +685,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 	topology := instance.GetTopology()
 
 	batchSize := uint32(3)
@@ -792,7 +792,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
@@ -819,7 +819,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 	topology := instance.GetTopology()
 
 	roundID := id.Round(45)
@@ -870,7 +870,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			Index: i,
 		}
 		instances = append(instances, server.CreateServerInstance(
-			&params, &globals.UserMap{}, nil, nil, nil))
+			&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{}))
 	}
 	instances[0].InitFirstNode()
 	topology := instances[0].GetTopology()
@@ -942,7 +942,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -1012,22 +1012,12 @@ func TestReceiveGetMeasure(t *testing.T) {
 		Index: 0,
 	}
 
-	memMetrics := make(chan measure.ResourceMetric, 0)
-	//memMetrics := func() chan measure.ResourceMetric {
-	//	m := make(chan measure.ResourceMetric, 100)
-	//	go func() {
-	//		time.Sleep(time.Second * 1)
-	//		for {
-	//			m<-measure.ResourceMetric{
-	//
-	//			}
-	//		}
-	//	}()
-	//	return m
-	//}()
+	resourceMonitor := measure.ResourceMonitor{}
+
+	resourceMonitor.Set(&measure.ResourceMetric{})
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, memMetrics)
+		nil, nil, resourceMonitor)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -1079,8 +1069,6 @@ func TestReceiveGetMeasure(t *testing.T) {
 	if err == nil {
 		t.Errorf("This should have thrown an error, instead got: %+v", err)
 	}
-
-	close(memMetrics)
 }
 
 func mockServerInstance(t *testing.T) *server.Instance {
@@ -1115,7 +1103,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 
 	return instance
 }
