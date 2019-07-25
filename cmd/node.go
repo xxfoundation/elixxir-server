@@ -50,7 +50,7 @@ func StartServer(vip *viper.Viper) {
 	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
 
 	//Start the performance monitor
-	memMetrics := MonitorMemoryUsage()
+	resourceMonitor := MonitorMemoryUsage()
 
 	// Load params object from viper conf
 	params, err := conf.NewParams(vip)
@@ -129,7 +129,7 @@ func StartServer(vip *viper.Viper) {
 	//TODO: store DSA key for NDF
 
 	// Create instance
-	instance := server.CreateServerInstance(params, userDatabase, pubKey, privateKey, memMetrics)
+	instance := server.CreateServerInstance(params, userDatabase, pubKey, privateKey, resourceMonitor)
 
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
