@@ -26,16 +26,6 @@ const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
 // usage fo the system jumps a designated amount.
 func MonitorMemoryUsage() measure.ResourceMonitor {
 
-	defer func() {
-		if r := recover(); r != nil {
-			jww.ERROR.Printf("Performance monitoring failed due "+
-				"to errors: %v", r)
-		} else {
-			jww.ERROR.Printf("Performance monitoring failed" +
-				" unexpectedly")
-		}
-	}()
-
 	resourceMonitor := measure.ResourceMonitor{}
 
 	var numMemory = int64(0)
@@ -55,6 +45,16 @@ func MonitorMemoryUsage() measure.ResourceMonitor {
 	highestMemUsage := make([]*runtime.MemProfileRecord, 10)
 
 	go func() {
+		
+		defer func() {
+			if r := recover(); r != nil {
+				jww.ERROR.Printf("Performance monitoring failed due "+
+					"to errors: %v", r)
+			} else {
+				jww.ERROR.Printf("Performance monitoring failed" +
+					" unexpectedly")
+			}
+		}()
 
 		for {
 
