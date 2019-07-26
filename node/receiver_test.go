@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs/realtime"
+	io2 "gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/measure"
@@ -948,6 +949,81 @@ func TestPostPrecompResultFunc(t *testing.T) {
 }
 
 func TestReceiveFinishRealtime(t *testing.T) {
+	// Smoke tests the management part of PostPrecompResult
+	grp := initImplGroup()
+	const numNodes = 5
+	grps := initConfGroups(grp)
+
+	// Set instance for first node
+	params := conf.Params{
+		Groups: grps,
+		Node: conf.Node{
+			Ids: buildMockNodeIDs(numNodes),
+		},
+		Index: 0,
+	}
+
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{},
+		nil, nil, resourceMonitor)
+	instance.InitFirstNode()
+	topology := instance.GetTopology()
+
+	// Set up a round first node
+	roundID := id.Round(45)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
+
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	p := initMockPhase()
+	p.Ptype = phase.RealPermute
+
+	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3)
+
+	instance.GetRoundManager().AddRound(rnd)
+
+	// Initially, there should be zero rounds on the precomp queue
+	if len(instance.GetFinishedRounds(t)) != 0 {
+		t.Error("Expected completed precomps to be empty")
+	}
+
+	var err error
+
+	info := mixmessages.RoundInfo{
+		ID: uint64(roundID),
+	}
+
+	go func() {
+		err = ReceiveFinishRealtime(instance, &info, nil)
+	}()
+
+	var finishedRoundID id.Round
+
+	select {
+	case finishedRoundID = <-instance.GetFinishedRounds(t):
+	case <-time.After(2 * time.Second):
+	}
+
+	if err != nil {
+		t.Errorf("ReceiveFinishRealtime: errored: %+v", err)
+	}
+
+	if finishedRoundID != roundID {
+		t.Errorf("ReceiveFinishRealtime: Expected round %v to finish, "+
+			"recieved %v", roundID, finishedRoundID)
+	}
+}
+
+// Tests receive finish realtime on first node and
+// passes in teh get measure handler
+func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 
 	const numNodes = 1
 
@@ -1039,7 +1115,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 
 	go func() {
-		err = ReceiveFinishRealtime(instance, &info)
+		err = ReceiveFinishRealtime(instance, &info, io2.TransmitGetMeasure)
 	}()
 
 	var finishedRoundID id.Round

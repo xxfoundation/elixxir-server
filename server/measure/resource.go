@@ -30,16 +30,7 @@ type ResourceMonitor struct {
 func (resMon ResourceMonitor) Get() *ResourceMetric {
 	resMon.Lock()
 	defer resMon.Unlock()
-	lastMetric := resMon.lastMetric
-	// copy into new object
-	rm := ResourceMetric{
-		Time:                      lastMetric.Time,
-		MemoryAllocated:           lastMetric.MemoryAllocated,
-		MemoryAllocationThreshold: lastMetric.MemoryAllocationThreshold,
-		NumThreads:                lastMetric.NumThreads,
-		HighestMemThreads:         lastMetric.HighestMemThreads,
-	}
-	return &rm
+	return resMon.lastMetric
 }
 
 // Set a resource metric using a lock

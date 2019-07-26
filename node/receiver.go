@@ -13,6 +13,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
@@ -340,17 +341,20 @@ func ReceivePostNewBatch(instance *server.Instance,
 	return nil
 }
 
+// Type alias for function which invokes gathering measurements
+type gatherMeasureFunc func(comms *node.NodeComms, topology *circuit.Circuit, i id.Round) string
+
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
-func ReceiveFinishRealtime(instance *server.Instance,
-	msg *mixmessages.RoundInfo) error {
-
+func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo, gatherMeasure gatherMeasureFunc) error {
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
 		instance, roundID)
 
 	rm := instance.GetRoundManager()
+	nodeComms := instance.GetNetwork()
+	topology := instance.GetTopology()
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
@@ -361,20 +365,20 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	}
 	p.Measure(tag)
 
-	//Send the finished signal on first node
-	if r.GetTopology().IsFirstNode(instance.GetID()) {
-		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
-			" Retrieving and storing metrics", instance, roundID)
+	// Call gatherMeasure function handler if the callback is set
+	// and append results to metrics log file.
+	if gatherMeasure != nil {
 
-		// TODO: Where does this go?
-		nodeComms := instance.GetNetwork()
-		measures := io.TransmitGetMeasure(nodeComms, instance.GetTopology(), id.Round(roundID))
+		jww.INFO.Printf("Gather Metrics: RID %d FIRST NODE ReceiveFinishRealtime"+
+			" Retrieving and storing metrics", roundID)
+
+		measureResponse := gatherMeasure(nodeComms, topology, roundID)
+
 		logFile := instance.GetMetricsLog()
 
 		if logFile != "" {
-			go measure.AppendToMetricsLog(logFile, measures)
+			measure.AppendToMetricsLog(logFile, measureResponse)
 		}
-
 	}
 
 	p.UpdateFinalStates()
