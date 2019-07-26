@@ -8,6 +8,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"reflect"
 	"testing"
@@ -131,7 +132,7 @@ func TestInstance_BadNodeID(t *testing.T) {
 		}
 	}()
 
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
 
 	if instance != nil {
 		t.Errorf("BadeNode ID, so Instance should not have returned!!")
@@ -160,7 +161,7 @@ func mockServerInstance(grp *cyclic.Group) *Instance {
 			CMix: cmix,
 		},
 	}
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
 
 	return instance
 }

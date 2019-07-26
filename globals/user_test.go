@@ -127,7 +127,7 @@ func TestUserMap_GetUserByNonce(t *testing.T) {
 	users := UserRegistry(&UserMap{})
 
 	user := users.NewUser(grp)
-	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	users.UpsertUser(user)
 
 	_, err := users.GetUserByNonce(user.Nonce)
@@ -143,7 +143,7 @@ func TestUserNonceConversion(t *testing.T) {
 	users := UserRegistry(&UserMap{})
 
 	user := users.NewUser(grp)
-	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	users.UpsertUser(user)
 
 	testUser, _ := users.GetUserByNonce(user.Nonce)

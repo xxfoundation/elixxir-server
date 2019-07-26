@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"google.golang.org/grpc/credentials"
@@ -35,7 +36,8 @@ type Instance struct {
 	graphGenerator  services.GraphGenerator
 	firstNode
 	LastNode
-	params *conf.Params
+	params              *conf.Params
+	lastResourceMonitor measure.ResourceMonitor
 }
 
 func (i *Instance) GetTopology() *circuit.Circuit {
@@ -106,6 +108,11 @@ func (i *Instance) GetGraphGenerator() services.GraphGenerator {
 	return i.graphGenerator
 }
 
+// GetMetricsLog returns the log path for metrics data
+func (i *Instance) GetMetricsLog() string {
+	return i.params.Metrics.Log
+}
+
 //Initializes the first node components of the instance
 func (i *Instance) InitFirstNode() {
 	i.firstNode.Initialize()
@@ -129,7 +136,7 @@ func (i *Instance) IsLastNode() bool {
 // Create a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
-	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey) *Instance {
+	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey, resourceMonitor measure.ResourceMonitor) *Instance {
 
 	//TODO: build system wide error handling
 	PanicHandler := func(g, m string, err error) {
@@ -145,6 +152,7 @@ func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
 		//FIXME: make this smarter
 		graphGenerator: services.NewGraphGenerator(4, PanicHandler,
 			uint8(runtime.NumCPU()), 4, 0.0),
+		lastResourceMonitor: resourceMonitor,
 	}
 
 	// Create the topology that will be used for all rounds
@@ -262,4 +270,8 @@ func (i *Instance) String() string {
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
 	return services.NameStringer(addr, myLoc, numNodes)
+}
+
+func (i *Instance) GetLastResourceMonitor() measure.ResourceMonitor {
+	return i.lastResourceMonitor
 }

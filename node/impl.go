@@ -50,8 +50,15 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
 	}
 
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
-		return ReceiveFinishRealtime(instance, message)
+	// Receive finish realtime should gather metrics if first node
+	if instance.IsFirstNode() {
+		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+			return ReceiveFinishRealtime(instance, message, io.TransmitGetMeasure)
+		}
+	} else {
+		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+			return ReceiveFinishRealtime(instance, message, nil)
+		}
 	}
 
 	impl.Functions.RequestNonce = func(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {

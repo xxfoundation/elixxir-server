@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"sync"
 	"testing"
@@ -66,9 +67,11 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	t.Logf("Building instances for %v nodes", numNodes)
 
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
 	for i := 0; i < numNodes; i++ {
 		instance := server.CreateServerInstance(paramLst[i], registries[i],
-			nil, nil)
+			nil, nil, resourceMonitor)
 		instances = append(instances, instance)
 	}
 

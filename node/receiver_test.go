@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs/realtime"
+	io2 "gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/measure"
@@ -30,6 +31,7 @@ import (
 	"io"
 	"reflect"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )
@@ -75,7 +77,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 			Ids: buildMockNodeIDs(5),
 		},
 		Index: 0,
-	}, &globals.UserMap{}, nil, nil)
+	}, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -159,7 +161,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 			Ids: buildMockNodeIDs(1),
 		},
 		Index: 0,
-	}, registry, nil, nil)
+	}, registry, nil, nil, measure.ResourceMonitor{})
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -249,7 +251,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		Index: 0,
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -388,7 +390,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 		},
 		Index: 0,
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -602,6 +604,26 @@ func buildMockNodeIDs(numNodes int) []string {
 	return nodeIDs
 }
 
+func buildMockNodeAddresses(numNodes int) []string {
+	//generate IDs and addresses
+	var nidLst []string
+	var addrLst []string
+	addrFmt := "localhost:5%03d"
+	portState := 6000
+	for i := 0; i < numNodes; i++ {
+		//generate id
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nidLst = append(nidLst, nodeID.String())
+		//generate address
+		addr := fmt.Sprintf(addrFmt, i+portState)
+		addrLst = append(addrLst, addr)
+	}
+
+	return addrLst
+}
+
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
@@ -616,7 +638,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -685,7 +707,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 	topology := instance.GetTopology()
 
 	batchSize := uint32(3)
@@ -792,7 +814,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
@@ -819,7 +841,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 	topology := instance.GetTopology()
 
 	roundID := id.Round(45)
@@ -870,7 +892,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			Index: i,
 		}
 		instances = append(instances, server.CreateServerInstance(
-			&params, &globals.UserMap{}, nil, nil))
+			&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{}))
 	}
 	instances[0].InitFirstNode()
 	topology := instances[0].GetTopology()
@@ -941,8 +963,10 @@ func TestReceiveFinishRealtime(t *testing.T) {
 		Index: 0,
 	}
 
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, resourceMonitor)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -977,7 +1001,121 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 
 	go func() {
-		err = ReceiveFinishRealtime(instance, &info)
+		err = ReceiveFinishRealtime(instance, &info, nil)
+	}()
+
+	var finishedRoundID id.Round
+
+	select {
+	case finishedRoundID = <-instance.GetFinishedRounds(t):
+	case <-time.After(2 * time.Second):
+	}
+
+	if err != nil {
+		t.Errorf("ReceiveFinishRealtime: errored: %+v", err)
+	}
+
+	if finishedRoundID != roundID {
+		t.Errorf("ReceiveFinishRealtime: Expected round %v to finish, "+
+			"recieved %v", roundID, finishedRoundID)
+	}
+}
+
+// Tests receive finish realtime on first node and
+// passes in teh get measure handler
+func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
+
+	const numNodes = 1
+
+	grp := makeMultiInstanceGroup()
+
+	//get parameters
+	paramLst := makeMultiInstanceParams(numNodes, 4, 300, grp)
+
+	//make user for sending messages
+	userID := id.NewUserFromUint(42, t)
+	var baseKeys []*cyclic.Int
+	for i := 0; i < numNodes; i++ {
+		baseKey := grp.NewIntFromUInt(uint64(1000 + 5*i))
+		baseKeys = append(baseKeys, baseKey)
+	}
+
+	//build the registries for every node
+	var registries []globals.UserRegistry
+
+	for i := 0; i < numNodes; i++ {
+		var registry globals.UserRegistry
+		registry = &globals.UserMap{}
+		user := globals.User{
+			ID:      userID,
+			BaseKey: baseKeys[i],
+		}
+		registry.UpsertUser(&user)
+		registries = append(registries, registry)
+	}
+
+	//build the instances
+	var instances []*server.Instance
+
+	t.Logf("Building instances for %v nodes", numNodes)
+
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
+	for i := 0; i < numNodes; i++ {
+		instance := server.CreateServerInstance(paramLst[i], registries[i],
+			nil, nil, resourceMonitor)
+		instances = append(instances, instance)
+	}
+
+	t.Logf("Initilizing Network for %v nodes", numNodes)
+	//initialize the network for every instance
+	wg := sync.WaitGroup{}
+	for _, instance := range instances {
+		wg.Add(1)
+		localInstance := instance
+		go func() {
+			localInstance.InitNetwork(NewImplementation)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	instance := instances[0]
+	topology := instance.GetTopology()
+
+	// Set up a round first node
+	roundID := id.Round(0)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
+
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	p := initMockPhase()
+	p.Ptype = phase.RealPermute
+
+	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3)
+
+	instance.GetRoundManager().AddRound(rnd)
+
+	// Initially, there should be zero rounds on the precomp queue
+	if len(instance.GetFinishedRounds(t)) != 0 {
+		t.Error("Expected completed precomps to be empty")
+	}
+
+	var err error
+
+	info := mixmessages.RoundInfo{
+		ID: uint64(roundID),
+	}
+
+	go func() {
+		err = ReceiveFinishRealtime(instance, &info, io2.TransmitGetMeasure)
 	}()
 
 	var finishedRoundID id.Round
@@ -1012,8 +1150,12 @@ func TestReceiveGetMeasure(t *testing.T) {
 		Index: 0,
 	}
 
+	resourceMonitor := measure.ResourceMonitor{}
+
+	resourceMonitor.Set(&measure.ResourceMetric{})
+
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, resourceMonitor)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -1099,7 +1241,62 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil)
+		nil, nil, measure.ResourceMonitor{})
 
 	return instance
+}
+
+func makeMultiInstanceGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2), large.NewInt(1283))
+}
+
+func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*conf.Params {
+
+	//generate IDs and addresses
+	var nidLst []string
+	var addrLst []string
+	addrFmt := "localhost:5%03d"
+	for i := 0; i < numNodes; i++ {
+		//generate id
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nidLst = append(nidLst, nodeID.String())
+		//generate address
+		addr := fmt.Sprintf(addrFmt, i+portstart)
+		addrLst = append(addrLst, addr)
+	}
+
+	//generate parameters list
+	var paramsLst []*conf.Params
+
+	for i := 0; i < numNodes; i++ {
+
+		param := conf.Params{
+			Groups: initConfGroups(grp),
+			Node: conf.Node{
+				Ids:       nidLst,
+				Addresses: addrLst,
+			},
+			Batch:       uint32(batchsize),
+			Index:       i,
+			KeepBuffers: true,
+		}
+
+		paramsLst = append(paramsLst, &param)
+	}
+
+	return paramsLst
 }
