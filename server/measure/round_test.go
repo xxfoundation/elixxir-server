@@ -40,11 +40,10 @@ func TestRoundMetrics_AddMemMetric(t *testing.T) {
 	// Create and allocate memory metric channel queue
 	expectedResourceMetric :=
 		ResourceMetric{
-			Time:                      time.Unix(int64(0), int64(1)),
-			MemoryAllocated:           "123",
-			MemoryAllocationThreshold: int64(1000),
-			NumThreads:                5,
-			HighestMemThreads:         "someFuncNames",
+			Time:              time.Unix(int64(0), int64(1)),
+			MemoryAllocated:   "123",
+			NumThreads:        5,
+			HighestMemThreads: "someFuncNames",
 		}
 	mockMetrics := NewRoundMetrics("NODE_TEST_ID", 3, 5, 4, expectedResourceMetric)
 

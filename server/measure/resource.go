@@ -13,11 +13,10 @@ import (
 
 // A metric for memory and thread usage
 type ResourceMetric struct {
-	Time                      time.Time
-	MemoryAllocated           string
-	MemoryAllocationThreshold int64
-	NumThreads                int
-	HighestMemThreads         string
+	Time              time.Time
+	MemoryAllocated   string
+	NumThreads        int
+	HighestMemThreads string
 }
 
 // Contains a mutable resource metric accessed through a mutex

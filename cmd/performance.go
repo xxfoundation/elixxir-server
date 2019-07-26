@@ -143,11 +143,10 @@ func MonitorMemoryUsage() measure.ResourceMonitor {
 				numMemory = memoryAllocated
 
 				resourceMetric := measure.ResourceMetric{
-					Time:                      triggerTime,
-					MemoryAllocated:           convertToReadableBytes(memoryAllocated),
-					MemoryAllocationThreshold: numMemory,
-					NumThreads:                currentThreads,
-					HighestMemThreads:         funcNames,
+					Time:              triggerTime,
+					MemoryAllocated:   convertToReadableBytes(memoryAllocated),
+					NumThreads:        currentThreads,
+					HighestMemThreads: funcNames,
 				}
 
 				resourceMonitor.Set(&resourceMetric)
