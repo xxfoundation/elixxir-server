@@ -45,7 +45,7 @@ func MonitorMemoryUsage() measure.ResourceMonitor {
 	highestMemUsage := make([]*runtime.MemProfileRecord, 10)
 
 	go func() {
-		
+
 		defer func() {
 			if r := recover(); r != nil {
 				jww.ERROR.Printf("Performance monitoring failed due "+
