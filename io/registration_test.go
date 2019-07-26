@@ -120,7 +120,7 @@ func TestRequestNonce_BadSignature(t *testing.T) {
 // Test confirm nonce
 func TestConfirmNonce(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
-	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
 	rng := csprng.NewSystemRNG()
@@ -141,7 +141,7 @@ func TestConfirmNonce(t *testing.T) {
 // Test confirm nonce that doesn't exist
 func TestConfirmNonce_NonExistant(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
-	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	rng := csprng.NewSystemRNG()
 	user.PublicKey = pubKey
@@ -161,7 +161,7 @@ func TestConfirmNonce_NonExistant(t *testing.T) {
 // Test confirm nonce expired
 func TestConfirmNonce_Expired(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
-	user.Nonce = nonce.NewNonce(1)
+	user.Nonce, _ = nonce.NewNonce(1)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
 	rng := csprng.NewSystemRNG()
@@ -188,7 +188,7 @@ func TestConfirmNonce_Expired(t *testing.T) {
 // Test confirm nonce with invalid signature
 func TestConfirmNonce_BadSignature(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
-	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
 	_, _, _, _, _, _, _, err := ConfirmRegistration(serverInstance,

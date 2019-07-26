@@ -62,7 +62,10 @@ func RequestNonce(instance *server.Instance,
 	userId := registration.GenUserID(userPublicKey, salt)
 
 	// Generate a nonce with a timestamp
-	userNonce := nonce.NewNonce(nonce.RegistrationTTL)
+	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
+	if err != nil {
+		return nil, err
+	}
 
 	// Generate user CMIX baseKey
 	b, _ := hash2.NewCMixHash()
