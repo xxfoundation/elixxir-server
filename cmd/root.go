@@ -30,6 +30,7 @@ var validConfig bool
 var showVer bool
 var keepBuffers bool
 var dsaKeyPairPath string
+var disablePermissioning bool
 
 // If true, runs pprof http server
 var profile bool
@@ -107,6 +108,8 @@ func init() {
 		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at 0.0.0.0:8087 for profiling")
+	rootCmd.Flags().BoolVarP(&disablePermissioning, "disablePermissioning", "",
+		false, "Disables interaction with the Permissioning Server")
 	rootCmd.Flags().BoolVarP(&keepBuffers, "keepBuffers", "k", false,
 		"maintains all old round information forever, will eventually "+
 			"run out of memory")

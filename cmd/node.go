@@ -130,8 +130,10 @@ func StartServer(vip *viper.Viper) {
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
 
-	// Blocking call: Begin Node registration
-	permissioning.RegisterNode(def)
+	if !disablePermissioning {
+		// Blocking call: Begin Node registration
+		permissioning.RegisterNode(def)
+	}
 
 	// Create instance
 	instance := server.CreateServerInstance(def)
