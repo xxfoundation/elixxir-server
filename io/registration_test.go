@@ -41,13 +41,14 @@ func TestMain(m *testing.M) {
 	def := server.Definition{
 		CmixGroup: grp,
 		Nodes: []server.Node{
-			server.Node{
+			{
 				ID: nid,
 			},
 		},
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
+		DSA_PrivKey:     privKey,
 	}
 
 	def.Permissioning.DSA_PubKey = pubKey
