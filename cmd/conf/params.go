@@ -200,6 +200,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
+	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
 
 	def.Permissioning.DsaPublicKey = &signature.DSAPublicKey{}
 	def.Permissioning.DsaPublicKey, err = def.Permissioning.DsaPublicKey.
