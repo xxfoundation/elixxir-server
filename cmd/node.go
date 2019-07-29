@@ -117,7 +117,7 @@ func StartServer(vip *viper.Viper) {
 		pubKey = privateKey.PublicKeyGen()
 	}
 
-	def := server.NewDefinition(params, pubKey, privateKey)
+	def := params.ConvertToDefinition(pubKey, privateKey)
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
