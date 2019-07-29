@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -131,8 +130,6 @@ func StartServer(vip *viper.Viper) {
 		}
 		pubKey = privateKey.PublicKeyGen()
 	}
-
-	//TODO: store DSA key for NDF
 
 	def := convertParams(params, pubKey, privateKey)
 	def.UserRegistry = userDatabase
@@ -281,11 +278,12 @@ func convertParams(params *conf.Params, pub *signature.DSAPublicKey,
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = params.Permissioning.Address
 
-	dsaParams := signature.CustomDSAParams(def.CmixGroup.GetP(),
-		def.CmixGroup.GetQ(), def.CmixGroup.GetG())
-
-	def.Permissioning.DsaPublicKey = signature.ReconstructPublicKey(dsaParams,
-		large.NewIntFromString(params.Permissioning.PublicKey, 16))
+	def.Permissioning.DsaPublicKey = &signature.DSAPublicKey{}
+	def.Permissioning.DsaPublicKey, err = def.Permissioning.DsaPublicKey.
+		PemDecode([]byte(params.Permissioning.PublicKey))
+	if err != nil {
+		jww.FATAL.Panicf("Unable to decode permissioning public key: %+v", err)
+	}
 
 	return &def
 }
