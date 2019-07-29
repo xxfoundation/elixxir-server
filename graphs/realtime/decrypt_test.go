@@ -10,12 +10,13 @@ import (
 	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -554,24 +555,18 @@ func mockServerInstance() *server.Instance {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	nid := server.GenerateId()
-	smallprime := fmt.Sprintf("%x", 1283)
-	generator := fmt.Sprintf("%x", 2)
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2), large.NewInt(2))
 
-	cmix := map[string]string{
-		"prime":      primeString,
-		"smallprime": smallprime,
-		"generator":  generator,
+	def := server.Definition{
+		ID:              nid,
+		CmixGroup:       grp,
+		Topology:        circuit.New([]*id.Node{nid}),
+		ResourceMonitor: &measure.ResourceMonitor{},
+		UserRegistry:    &globals.UserMap{},
 	}
 
-	params := conf.Params{
-		Node: conf.Node{
-			Ids: []string{nid.String()},
-		},
-		Groups: conf.Groups{
-			CMix: cmix,
-		},
-	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&def)
 
 	return instance
 }

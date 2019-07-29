@@ -24,7 +24,7 @@ const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
 
 // MonitorMemoryUsage Checks and prints a warning every time thread or memory
 // usage fo the system jumps a designated amount.
-func MonitorMemoryUsage() measure.ResourceMonitor {
+func MonitorMemoryUsage() *measure.ResourceMonitor {
 
 	resourceMonitor := measure.ResourceMonitor{}
 
@@ -158,7 +158,7 @@ func MonitorMemoryUsage() measure.ResourceMonitor {
 
 	}()
 
-	return resourceMonitor
+	return &resourceMonitor
 }
 
 func truncateFuncName(name string) string {

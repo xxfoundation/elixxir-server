@@ -11,7 +11,6 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
@@ -44,6 +43,8 @@ var qString = "F2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F"
 var pPrime = large.NewIntFromString(pString, 16)
 var g = large.NewIntFromString(gString, 16)
 var qPrime = large.NewIntFromString(qString, 16)
+
+var grp = cyclic.NewGroup(pPrime, g, qPrime)
 
 // This MockPhase is only used to test denoting phase completion while the queue
 // runner isn't running
@@ -101,22 +102,14 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	q := initQueue()
 	nid := GenerateId()
 
-	cmix := map[string]string{
-		"prime":      pString,
-		"smallprime": qString,
-		"generator":  gString,
+	def := Definition{
+		ID:              nid,
+		Topology:        circuit.New([]*id.Node{nid}),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 
-	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: cmix,
-		},
-		Node: conf.Node{
-			Ids: []string{nid.String()},
-		},
-		Index: 0,
-	}
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := CreateServerInstance(&def)
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase

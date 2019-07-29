@@ -22,7 +22,6 @@ import (
 	"gitlab.com/elixxir/server/graphs/realtime"
 	io2 "gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
@@ -69,15 +68,14 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// since it's at a boundary between phases.
 	grp := initImplGroup()
 
-	grps := initConfGroups(grp)
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+	}
 
-	instance := server.CreateServerInstance(&conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(5),
-		},
-		Index: 0,
-	}, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&def)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -153,17 +151,20 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 // that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
-	registry := &globals.UserMap{}
-	instance := server.CreateServerInstance(&conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(1),
-		},
-		Index: 0,
-	}, registry, nil, nil, measure.ResourceMonitor{})
+
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(1)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+	}
+
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance := server.CreateServerInstance(&def)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
+	registry := instance.GetUserRegistry()
 
 	// Make and register a user
 	sender := registry.NewUser(grp)
@@ -242,16 +243,18 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(2),
-		},
-		Index: 0,
+
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(2)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance := server.CreateServerInstance(&def)
+
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -381,16 +384,16 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	roundID := id.Round(0)
 
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
 
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(2),
-		},
-		Index: 0,
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(2)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance := server.CreateServerInstance(&def)
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -553,25 +556,6 @@ func initImplGroup() *cyclic.Group {
 	return grp
 }
 
-func initConfGroups(grp *cyclic.Group) conf.Groups {
-
-	primeString := grp.GetP().TextVerbose(16, 0)
-	smallprime := grp.GetQ().TextVerbose(16, 0)
-	generator := grp.GetG().TextVerbose(16, 0)
-
-	cmix := map[string]string{
-		"prime":      primeString,
-		"smallprime": smallprime,
-		"generator":  generator,
-	}
-
-	grps := conf.Groups{
-		CMix: cmix,
-	}
-
-	return grps
-}
-
 // Builds a list of node IDs for testing
 func buildMockTopology(numNodes int) *circuit.Circuit {
 	var nodeIDs []*id.Node
@@ -589,15 +573,15 @@ func buildMockTopology(numNodes int) *circuit.Circuit {
 }
 
 // Builds a list of base64 encoded node IDs for server instance construction
-func buildMockNodeIDs(numNodes int) []string {
-	var nodeIDs []string
+func buildMockNodeIDs(numNodes int) []*id.Node {
+	var nodeIDs []*id.Node
 
 	//Build IDs
 	for i := 0; i < numNodes; i++ {
 		nodIDBytes := make([]byte, id.NodeIdLen)
 		nodIDBytes[0] = byte(i + 1)
 		nodeID := id.NewNodeFromBytes(nodIDBytes)
-		nodeIDs = append(nodeIDs, nodeID.String())
+		nodeIDs = append(nodeIDs, nodeID)
 	}
 
 	//Build the topology
@@ -627,18 +611,16 @@ func buildMockNodeAddresses(numNodes int) []string {
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
 
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(5),
-		},
-		Index: 1,
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
 	}
+	def.ID = def.Topology.GetNodeAtIndex(1)
 
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&def)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -696,18 +678,15 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
-
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(5),
-		},
-		Index: 0,
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
 	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&def)
 	topology := instance.GetTopology()
 
 	batchSize := uint32(3)
@@ -803,19 +782,15 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 		}
 	}()
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
-
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(5),
-		},
-		Index: 0,
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
 	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
-
+	instance := server.CreateServerInstance(&def)
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
 	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
@@ -830,18 +805,17 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
 
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(5),
-		},
-		Index: 0,
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
 	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&def)
+
 	topology := instance.GetTopology()
 
 	roundID := id.Round(45)
@@ -876,7 +850,6 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 func TestPostPrecompResultFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
-	grps := initConfGroups(grp)
 	const numNodes = 5
 	nodeIDs := buildMockNodeIDs(5)
 
@@ -884,15 +857,15 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	var instances []*server.Instance
 	for i := 0; i < numNodes; i++ {
 
-		params := conf.Params{
-			Groups: grps,
-			Node: conf.Node{
-				Ids: nodeIDs,
-			},
-			Index: i,
+		def := server.Definition{
+			CmixGroup:       grp,
+			Topology:        circuit.New(nodeIDs),
+			UserRegistry:    &globals.UserMap{},
+			ResourceMonitor: &measure.ResourceMonitor{},
+			BatchSize:       4,
 		}
-		instances = append(instances, server.CreateServerInstance(
-			&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{}))
+		def.ID = def.Topology.GetNodeAtIndex(i)
+		instances = append(instances, server.CreateServerInstance(&def))
 	}
 	instances[0].InitFirstNode()
 	topology := instances[0].GetTopology()
@@ -952,21 +925,20 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
-	grps := initConfGroups(grp)
-
-	// Set instance for first node
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(numNodes),
-		},
-		Index: 0,
-	}
 
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, resourceMonitor)
+
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(numNodes)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &resourceMonitor,
+	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance := server.CreateServerInstance(&def)
+
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -1028,10 +1000,10 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	const numNodes = 1
 
 	grp := makeMultiInstanceGroup()
-
+	fmt.Println(1)
 	//get parameters
-	paramLst := makeMultiInstanceParams(numNodes, 4, 300, grp)
-
+	defLst := makeMultiInstanceParams(numNodes, 4, 300, grp)
+	fmt.Println(2)
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
 	var baseKeys []*cyclic.Int
@@ -1039,10 +1011,8 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 		baseKey := grp.NewIntFromUInt(uint64(1000 + 5*i))
 		baseKeys = append(baseKeys, baseKey)
 	}
-
-	//build the registries for every node
-	var registries []globals.UserRegistry
-
+	fmt.Println(3)
+	//build the registries and monitors for every node
 	for i := 0; i < numNodes; i++ {
 		var registry globals.UserRegistry
 		registry = &globals.UserMap{}
@@ -1051,22 +1021,22 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 			BaseKey: baseKeys[i],
 		}
 		registry.UpsertUser(&user)
-		registries = append(registries, registry)
-	}
+		defLst[i].UserRegistry = registry
 
+		resourceMonitor := measure.ResourceMonitor{}
+		resourceMonitor.Set(&measure.ResourceMetric{})
+		defLst[i].ResourceMonitor = &resourceMonitor
+	}
+	fmt.Println(4)
 	//build the instances
 	var instances []*server.Instance
 
 	t.Logf("Building instances for %v nodes", numNodes)
-
-	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
 	for i := 0; i < numNodes; i++ {
-		instance := server.CreateServerInstance(paramLst[i], registries[i],
-			nil, nil, resourceMonitor)
+		instance := server.CreateServerInstance(defLst[i])
 		instances = append(instances, instance)
 	}
-
+	fmt.Println(5)
 	t.Logf("Initilizing Network for %v nodes", numNodes)
 	//initialize the network for every instance
 	wg := sync.WaitGroup{}
@@ -1078,12 +1048,13 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 			wg.Done()
 		}()
 	}
-
+	fmt.Println(6)
 	wg.Wait()
 
 	instance := instances[0]
 	topology := instance.GetTopology()
 
+	fmt.Println(7)
 	// Set up a round first node
 	roundID := id.Round(0)
 
@@ -1139,23 +1110,21 @@ func TestReceiveGetMeasure(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
-	grps := initConfGroups(grp)
-
-	// Set instance for first node
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: buildMockNodeIDs(numNodes),
-		},
-		Index: 0,
-	}
 
 	resourceMonitor := measure.ResourceMonitor{}
-
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, resourceMonitor)
+	// Set instance for first node
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(numNodes)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &resourceMonitor,
+	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance := server.CreateServerInstance(&def)
+
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -1223,25 +1192,29 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	var nodeIDs []string
+	var nodeIDs []*id.Node
 
 	for i := uint64(0); i < 3; i++ {
-		nodeIDs = append(nodeIDs, id.NewNodeFromUInt(i, t).String())
+		nodeIDs = append(nodeIDs, id.NewNodeFromUInt(i, t))
 	}
 
-	grps := initConfGroups(grp)
-
-	params := conf.Params{
-		Groups: grps,
-		Batch:  5,
-		Node: conf.Node{
-			Ids: nodeIDs,
-		},
-		Index: 0,
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
+			m, err))
 	}
 
-	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(nodeIDs),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
+			2, 2, 0),
+		BatchSize: 8,
+	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance := server.CreateServerInstance(&def)
 
 	return instance
 }
@@ -1262,41 +1235,45 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		large.NewInt(2), large.NewInt(1283))
 }
 
-func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*conf.Params {
+func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
 
 	//generate IDs and addresses
-	var nidLst []string
-	var addrLst []string
+	var nidLst []*id.Node
+	var nodeLst []server.Node
 	addrFmt := "localhost:5%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
 		nodIDBytes := make([]byte, id.NodeIdLen)
 		nodIDBytes[0] = byte(i + 1)
 		nodeID := id.NewNodeFromBytes(nodIDBytes)
-		nidLst = append(nidLst, nodeID.String())
+		nidLst = append(nidLst, nodeID)
 		//generate address
 		addr := fmt.Sprintf(addrFmt, i+portstart)
-		addrLst = append(addrLst, addr)
+
+		n := server.Node{
+			ID:      nodeID,
+			Address: addr,
+		}
+		nodeLst = append(nodeLst, n)
 	}
 
 	//generate parameters list
-	var paramsLst []*conf.Params
+	var defLst []*server.Definition
 
 	for i := 0; i < numNodes; i++ {
 
-		param := conf.Params{
-			Groups: initConfGroups(grp),
-			Node: conf.Node{
-				Ids:       nidLst,
-				Addresses: addrLst,
+		def := server.Definition{
+			CmixGroup: grp,
+			Topology:  circuit.New(nidLst),
+			Nodes:     nodeLst,
+			ID:        nidLst[i],
+			BatchSize: uint32(batchsize),
+			Flags: server.Flags{
+				KeepBuffers: true,
 			},
-			Batch:       uint32(batchsize),
-			Index:       i,
-			KeepBuffers: true,
 		}
-
-		paramsLst = append(paramsLst, &param)
+		defLst = append(defLst, &def)
 	}
 
-	return paramsLst
+	return defLst
 }

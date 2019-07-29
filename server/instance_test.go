@@ -6,9 +6,6 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/conf"
-	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"reflect"
 	"testing"
@@ -64,12 +61,11 @@ func TestInstance_GetNetwork(t *testing.T) {
 }
 
 func TestInstance_GetID(t *testing.T) {
-	nid := GenerateId()
-	params := conf.Params{}
-	i := &Instance{params: &params,
-		thisNode: nid}
+	def := Definition{}
+	def.ID = GenerateId()
+	i := &Instance{definition: &def}
 
-	if !reflect.DeepEqual(i.GetID(), nid) {
+	if !reflect.DeepEqual(i.GetID(), def.ID) {
 		t.Errorf("Instance.GetID: Returned incorrect " +
 			"ID")
 	}
@@ -87,10 +83,12 @@ func TestInstance_Topology(t *testing.T) {
 	}
 
 	//Build the topology
-	top := circuit.New(nodeIDs)
-	i := &Instance{topology: top, thisNode: nodeIDs[2]}
+	def := Definition{}
+	def.Topology = circuit.New(nodeIDs)
+	def.ID = nodeIDs[2]
+	i := &Instance{definition: &def}
 
-	if !reflect.DeepEqual(i.GetTopology(), top) {
+	if !reflect.DeepEqual(i.GetTopology(), def.Topology) {
 		t.Errorf("Instance.GetTopology: Returned incorrect " +
 			"Topology")
 	}
@@ -103,65 +101,15 @@ func TestInstance_Topology(t *testing.T) {
 	}
 }
 
-func TestInstance_BadNodeID(t *testing.T) {
-	prime := large.NewIntFromString(MODP768, 16)
-	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
-	primeString := grp.GetP().TextVerbose(16, 0)
-
-	smallprime := grp.GetQ().TextVerbose(16, 0)
-	generator := grp.GetG().TextVerbose(16, 0)
-
-	cmix := map[string]string{
-		"prime":      primeString,
-		"smallprime": smallprime,
-		"generator":  generator,
-	}
-
-	params := conf.Params{
-		Node: conf.Node{
-			Ids: []string{"TWFuIGlzIGRpc3Rpbmd1aXNoZWQsIG5vdCBv***="},
-		},
-		Groups: conf.Groups{
-			CMix: cmix,
-		},
-	}
-
-	defer func() {
-		if rec := recover(); rec == nil {
-			t.Logf("Caught expected panic on bad node id")
-		}
-	}()
-
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
-
-	if instance != nil {
-		t.Errorf("BadeNode ID, so Instance should not have returned!!")
-	}
-}
-
 func mockServerInstance(grp *cyclic.Group) *Instance {
-	primeString := grp.GetP().TextVerbose(16, 0)
-
-	smallprime := grp.GetQ().TextVerbose(16, 0)
-	generator := grp.GetG().TextVerbose(16, 0)
-
 	nid := GenerateId()
 
-	cmix := map[string]string{
-		"prime":      primeString,
-		"smallprime": smallprime,
-		"generator":  generator,
+	def := Definition{
+		ID:        nid,
+		CmixGroup: grp,
 	}
 
-	params := conf.Params{
-		Node: conf.Node{
-			Ids: []string{nid.String()},
-		},
-		Groups: conf.Groups{
-			CMix: cmix,
-		},
-	}
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := CreateServerInstance(&def)
 
 	return instance
 }
