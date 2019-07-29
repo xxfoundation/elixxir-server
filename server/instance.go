@@ -37,7 +37,7 @@ type Instance struct {
 	firstNode
 	LastNode
 	params              *conf.Params
-	lastResourceMonitor measure.ResourceMonitor
+	lastResourceMonitor *measure.ResourceMonitor
 }
 
 func (i *Instance) GetTopology() *circuit.Circuit {
@@ -113,6 +113,12 @@ func (i *Instance) GetMetricsLog() string {
 	return i.params.Metrics.Log
 }
 
+// GetLastResourceMonitor gets the container which keeps the last
+// measure of a resoruce metric which is accessed through a mutex
+func (i *Instance) GetLastResourceMonitor() *measure.ResourceMonitor {
+	return i.lastResourceMonitor
+}
+
 //Initializes the first node components of the instance
 func (i *Instance) InitFirstNode() {
 	i.firstNode.Initialize()
@@ -136,7 +142,7 @@ func (i *Instance) IsLastNode() bool {
 // Create a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 func CreateServerInstance(params *conf.Params, db globals.UserRegistry,
-	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey, resourceMonitor measure.ResourceMonitor) *Instance {
+	publicKey *signature.DSAPublicKey, privateKey *signature.DSAPrivateKey, resourceMonitor *measure.ResourceMonitor) *Instance {
 
 	//TODO: build system wide error handling
 	PanicHandler := func(g, m string, err error) {
@@ -270,8 +276,4 @@ func (i *Instance) String() string {
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
 	return services.NameStringer(addr, myLoc, numNodes)
-}
-
-func (i *Instance) GetLastResourceMonitor() measure.ResourceMonitor {
-	return i.lastResourceMonitor
 }

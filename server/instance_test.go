@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 )
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -132,11 +133,43 @@ func TestInstance_BadNodeID(t *testing.T) {
 		}
 	}()
 
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, &measure.ResourceMonitor{})
 
 	if instance != nil {
 		t.Errorf("BadeNode ID, so Instance should not have returned!!")
 	}
+}
+
+func TestInstance_GetResourceMonitor(t *testing.T) {
+	nid := GenerateId()
+	params := conf.Params{}
+	i := &Instance{params: &params,
+		thisNode: nid, lastResourceMonitor: &measure.ResourceMonitor{}}
+
+	rm := i.GetLastResourceMonitor()
+
+	expectedMetric := measure.ResourceMetric{
+		Time:              time.Unix(1, 2),
+		MemoryAllocated:   "1000",
+		NumThreads:        10,
+		HighestMemThreads: "abc",
+	}
+
+	rm.Set(&expectedMetric)
+
+	if !i.GetLastResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect time")
+	}
+	if i.GetLastResourceMonitor().Get().HighestMemThreads != expectedMetric.HighestMemThreads {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect mem threads")
+	}
+	if i.GetLastResourceMonitor().Get().NumThreads != expectedMetric.NumThreads {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect num threads")
+	}
+	if i.GetLastResourceMonitor().Get().MemoryAllocated != expectedMetric.MemoryAllocated {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect mem allcoated")
+	}
+
 }
 
 func mockServerInstance(grp *cyclic.Group) *Instance {
@@ -161,7 +194,15 @@ func mockServerInstance(grp *cyclic.Group) *Instance {
 			CMix: cmix,
 		},
 	}
-	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	resourceMetric := measure.ResourceMetric{
+		Time:              time.Now(),
+		MemoryAllocated:   "",
+		NumThreads:        0,
+		HighestMemThreads: "",
+	}
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&resourceMetric)
+	instance := CreateServerInstance(&params, &globals.UserMap{}, nil, nil, &measure.ResourceMonitor{})
 
 	return instance
 }

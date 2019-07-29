@@ -77,7 +77,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 			Ids: buildMockNodeIDs(5),
 		},
 		Index: 0,
-	}, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	}, &globals.UserMap{}, nil, nil, &measure.ResourceMonitor{})
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -161,7 +161,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 			Ids: buildMockNodeIDs(1),
 		},
 		Index: 0,
-	}, registry, nil, nil, measure.ResourceMonitor{})
+	}, registry, nil, nil, &measure.ResourceMonitor{})
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -251,7 +251,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		Index: 0,
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+		nil, nil, &measure.ResourceMonitor{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -390,7 +390,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 		},
 		Index: 0,
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, &measure.ResourceMonitor{})
 	mockPhase := initMockPhase()
 
 	responseMap := make(phase.ResponseMap)
@@ -638,7 +638,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+		nil, nil, &measure.ResourceMonitor{})
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -707,7 +707,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+		nil, nil, &measure.ResourceMonitor{})
 	topology := instance.GetTopology()
 
 	batchSize := uint32(3)
@@ -814,7 +814,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+		nil, nil, &measure.ResourceMonitor{})
 
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
@@ -841,7 +841,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+		nil, nil, &measure.ResourceMonitor{})
 	topology := instance.GetTopology()
 
 	roundID := id.Round(45)
@@ -892,7 +892,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			Index: i,
 		}
 		instances = append(instances, server.CreateServerInstance(
-			&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{}))
+			&params, &globals.UserMap{}, nil, nil, &measure.ResourceMonitor{}))
 	}
 	instances[0].InitFirstNode()
 	topology := instances[0].GetTopology()
@@ -966,7 +966,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, resourceMonitor)
+		nil, nil, &resourceMonitor)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -1063,7 +1063,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	for i := 0; i < numNodes; i++ {
 		instance := server.CreateServerInstance(paramLst[i], registries[i],
-			nil, nil, resourceMonitor)
+			nil, nil, &resourceMonitor)
 		instances = append(instances, instance)
 	}
 
@@ -1155,7 +1155,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, resourceMonitor)
+		nil, nil, &resourceMonitor)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -1241,7 +1241,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	}
 
 	instance := server.CreateServerInstance(&params, &globals.UserMap{},
-		nil, nil, measure.ResourceMonitor{})
+		nil, nil, &measure.ResourceMonitor{})
 
 	return instance
 }

@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 	}
 
 	serverInstance = server.CreateServerInstance(&params, &globals.UserMap{},
-		pubKey, privKey, measure.ResourceMonitor{})
+		pubKey, privKey, &measure.ResourceMonitor{})
 
 	os.Exit(m.Run())
 }

@@ -129,7 +129,7 @@ func StartServer(vip *viper.Viper) {
 	//TODO: store DSA key for NDF
 
 	// Create instance
-	instance := server.CreateServerInstance(params, userDatabase, pubKey, privateKey, resourceMonitor)
+	instance := server.CreateServerInstance(params, userDatabase, pubKey, privateKey, &resourceMonitor)
 
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()

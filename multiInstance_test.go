@@ -71,7 +71,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	for i := 0; i < numNodes; i++ {
 		instance := server.CreateServerInstance(paramLst[i], registries[i],
-			nil, nil, resourceMonitor)
+			nil, nil, &resourceMonitor)
 		instances = append(instances, instance)
 	}
 

@@ -571,7 +571,7 @@ func mockServerInstance() *server.Instance {
 			CMix: cmix,
 		},
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, &measure.ResourceMonitor{})
 
 	return instance
 }
