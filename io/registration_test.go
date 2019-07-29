@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 		DSA_PrivKey:     privKey,
 	}
 
-	def.Permissioning.DSA_PubKey = pubKey
+	def.Permissioning.DsaPublicKey = pubKey
 
 	serverInstance = server.CreateServerInstance(&def)
 

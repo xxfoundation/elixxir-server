@@ -8,38 +8,23 @@
 package cmd
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"io/ioutil"
-	"time"
-
-	//"encoding/binary"
-	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
-	"gitlab.com/elixxir/server/cmd/conf"
-
-	//"gitlab.com/elixxir/comms/connect"
-	//"gitlab.com/elixxir/comms/node"
-	//"gitlab.com/elixxir/crypto/cyclic"
-	//"gitlab.com/elixxir/primitives/id"
-	//	"gitlab.com/elixxir/server/cryptops/realtime"
-	//"gitlab.com/elixxir/server/globals"
-	//"gitlab.com/elixxir/server/io"
 	"runtime"
-
-	"gitlab.com/elixxir/crypto/cyclic"
+	"time"
 )
 
 // Number of hard-coded users to create
@@ -132,9 +117,7 @@ func StartServer(vip *viper.Viper) {
 		pubKey = privateKey.PublicKeyGen()
 	}
 
-	//TODO: store DSA key for NDF
-
-	def := convertParams(params, pubKey, privateKey)
+	def := params.ConvertToDefinition(pubKey, privateKey)
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
@@ -147,7 +130,7 @@ func StartServer(vip *viper.Viper) {
 		uint8(runtime.NumCPU()), 4, 0.0)
 
 	// Create instance
-	instance := server.CreateServerInstance(nil)
+	instance := server.CreateServerInstance(def)
 
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
@@ -170,7 +153,6 @@ func StartServer(vip *viper.Viper) {
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
-
 }
 
 // Create dummy users to be manually inserted into the database
@@ -180,107 +162,4 @@ func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
 		u := ur.NewUser(grp)
 		ur.UpsertUser(u)
 	}
-}
-
-func convertParams(params *conf.Params, pub *signature.DSAPublicKey,
-	priv *signature.DSAPrivateKey) *server.Definition {
-	def := server.Definition{}
-
-	def.Flags.KeepBuffers = params.KeepBuffers
-	def.Flags.SkipReg = params.SkipReg
-	def.Flags.Verbose = params.Verbose
-
-	var tlsCert, tlsKey []byte
-	var err error
-
-	if params.Node.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(params.Node.Paths.Cert)
-
-		if err != nil {
-			jww.FATAL.Panicf("Could not load TLS Cert: %+v", err)
-		}
-	}
-
-	if params.Node.Paths.Key != "" {
-		tlsKey, err = ioutil.ReadFile(params.Node.Paths.Key)
-
-		if err != nil {
-			jww.FATAL.Panicf("Could not load TLS Key: %+v", err)
-		}
-	}
-
-	var nodes []server.Node
-	var nodeIDs []*id.Node
-	var nodeIDDecodeErrorHappened bool
-	for i := range params.Node.Ids {
-		nodeID, err := base64.StdEncoding.DecodeString(params.Node.Ids[i])
-		if err != nil {
-			// This indicates a server misconfiguration which needs fixing for
-			// the server to function properly
-			err = errors.Wrapf(err, "Node ID at index %v failed to decode", i)
-			jww.ERROR.Print(err)
-			nodeIDDecodeErrorHappened = true
-		}
-		n := server.Node{
-			ID:       id.NewNodeFromBytes(nodeID),
-			TLS_Cert: tlsCert,
-			Address:  params.Node.Addresses[i],
-		}
-		nodes = append(nodes, n)
-		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
-	}
-	if nodeIDDecodeErrorHappened {
-		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
-	}
-
-	def.ID = nodes[params.Index].ID
-	def.Address = nodes[params.Index].Address
-	def.TLS_Cert = tlsCert
-	def.TLS_Key = tlsKey
-
-	def.LogPath = params.Node.Paths.Log
-	def.MetricLogPath = params.Metrics.Log
-
-	def.Gateway.Address = params.Gateways.Addresses[params.Index]
-
-	var GWtlsCert []byte
-
-	if params.Gateways.Paths.Cert != "" {
-		GWtlsCert, err = ioutil.ReadFile(params.Gateways.Paths.Cert)
-
-		if err != nil {
-			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
-		}
-	}
-
-	def.Gateway.TLS_Cert = GWtlsCert
-	def.Gateway.ID = def.ID.NewGateway()
-
-	def.BatchSize = params.Batch
-	def.CmixGroup = params.Groups.GetCMix()
-	def.E2EGroup = params.Groups.GetE2E()
-
-	def.Topology = circuit.New(nodeIDs)
-	def.Nodes = nodes
-
-	var PermTlsCert []byte
-
-	if params.Permissioning.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(params.Permissioning.Paths.Cert)
-
-		if err != nil {
-			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
-		}
-	}
-
-	def.Permissioning.TLS_Cert = PermTlsCert
-	def.Permissioning.Address = params.Permissioning.Address
-
-	dsaParams := signature.CustomDSAParams(def.CmixGroup.GetP(),
-		def.CmixGroup.GetQ(), def.CmixGroup.GetG())
-
-	def.Permissioning.DSA_PubKey = signature.ReconstructPublicKey(dsaParams,
-		large.NewIntFromString(params.Permissioning.PublicKey, 16))
-
-	return &def
 }
