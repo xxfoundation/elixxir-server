@@ -147,7 +147,7 @@ func StartServer(vip *viper.Viper) {
 		uint8(runtime.NumCPU()), 4, 0.0)
 
 	// Create instance
-	instance := server.CreateServerInstance(nil)
+	instance := server.CreateServerInstance(def)
 
 	if instance.IsFirstNode() {
 		instance.InitFirstNode()
@@ -209,11 +209,13 @@ func convertParams(params *conf.Params, pub *signature.DSAPublicKey,
 		}
 	}
 
-	var nodes []server.Node
-	var nodeIDs []*id.Node
+	ids := params.Node.Ids
+	nodes := make([]server.Node, len(ids))
+	nodeIDs := make([]*id.Node, len(ids))
+
 	var nodeIDDecodeErrorHappened bool
-	for i := range params.Node.Ids {
-		nodeID, err := base64.StdEncoding.DecodeString(params.Node.Ids[i])
+	for i := range ids {
+		nodeID, err := base64.StdEncoding.DecodeString(ids[i])
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
@@ -224,7 +226,7 @@ func convertParams(params *conf.Params, pub *signature.DSAPublicKey,
 		n := server.Node{
 			ID:       id.NewNodeFromBytes(nodeID),
 			TLS_Cert: tlsCert,
-			Address:  params.Node.Addresses[i],
+			Address:  ids[i],
 		}
 		nodes = append(nodes, n)
 		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
@@ -235,25 +237,25 @@ func convertParams(params *conf.Params, pub *signature.DSAPublicKey,
 
 	def.ID = nodes[params.Index].ID
 	def.Address = nodes[params.Index].Address
-	def.TLS_Cert = tlsCert
-	def.TLS_Key = tlsKey
+	def.TlsCert = tlsCert
+	def.TlsKey = tlsKey
 
 	def.LogPath = params.Node.Paths.Log
 	def.MetricLogPath = params.Metrics.Log
 
 	def.Gateway.Address = params.Gateways.Addresses[params.Index]
 
-	var GWtlsCert []byte
+	var GwTlsCerts []byte
 
 	if params.Gateways.Paths.Cert != "" {
-		GWtlsCert, err = ioutil.ReadFile(params.Gateways.Paths.Cert)
+		GwTlsCerts, err = ioutil.ReadFile(params.Gateways.Paths.Cert)
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
 	}
 
-	def.Gateway.TLS_Cert = GWtlsCert
+	def.Gateway.TlsCert = GwTlsCerts
 	def.Gateway.ID = def.ID.NewGateway()
 
 	def.BatchSize = params.Batch
@@ -262,6 +264,9 @@ func convertParams(params *conf.Params, pub *signature.DSAPublicKey,
 
 	def.Topology = circuit.New(nodeIDs)
 	def.Nodes = nodes
+
+	def.DsaPrivateKey = priv
+	def.DsaPublicKey = pub
 
 	var PermTlsCert []byte
 
@@ -273,13 +278,13 @@ func convertParams(params *conf.Params, pub *signature.DSAPublicKey,
 		}
 	}
 
-	def.Permissioning.TLS_Cert = PermTlsCert
+	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = params.Permissioning.Address
 
 	dsaParams := signature.CustomDSAParams(def.CmixGroup.GetP(),
 		def.CmixGroup.GetQ(), def.CmixGroup.GetG())
 
-	def.Permissioning.DSA_PubKey = signature.ReconstructPublicKey(dsaParams,
+	def.Permissioning.DsaPublicKey = signature.ReconstructPublicKey(dsaParams,
 		large.NewIntFromString(params.Permissioning.PublicKey, 16))
 
 	return &def

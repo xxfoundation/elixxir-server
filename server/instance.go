@@ -47,7 +47,7 @@ func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
 
 	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
-		i.definition.TLS_Cert, i.definition.TLS_Key)
+		i.definition.TlsCert, i.definition.TlsKey)
 
 	for index, n := range i.definition.Nodes {
 		fmt.Println(n.ID, n.Address, n.TLS_Cert)
@@ -60,7 +60,7 @@ func (i *Instance) InitNetwork(
 
 	if i.definition.Gateway.Address != "" {
 		err := i.network.ConnectToGateway(i.definition.Gateway.ID,
-			i.definition.Gateway.Address, i.definition.Gateway.TLS_Cert)
+			i.definition.Gateway.Address, i.definition.Gateway.TlsCert)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to gateway %s: %+v",
 				i.definition.Gateway.ID, err)
@@ -126,12 +126,12 @@ func (i *Instance) GetID() *id.Node {
 
 //GetPubKey returns the server DSA public key
 func (i *Instance) GetPubKey() *signature.DSAPublicKey {
-	return i.definition.DSA_PubKey
+	return i.definition.DsaPublicKey
 }
 
 //GetPrivKey returns the server DSA private key
 func (i *Instance) GetPrivKey() *signature.DSAPrivateKey {
-	return i.definition.DSA_PrivKey
+	return i.definition.DsaPrivateKey
 }
 
 //GetSkipReg returns the skipReg parameter
@@ -146,7 +146,7 @@ func (i *Instance) GetKeepBuffers() bool {
 
 //GetRegServerPubKey returns the public key of the registration server
 func (i *Instance) GetRegServerPubKey() *signature.DSAPublicKey {
-	return i.definition.Permissioning.DSA_PubKey
+	return i.definition.Permissioning.DsaPublicKey
 }
 
 //GetBatchSize returns the batch size

@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 	def := server.Definition{
 		CmixGroup: grp,
 		Nodes: []server.Node{
-			server.Node{
+			{
 				ID: nid,
 			},
 		},
@@ -50,7 +50,7 @@ func TestMain(m *testing.M) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 
-	def.Permissioning.DSA_PubKey = pubKey
+	def.Permissioning.DsaPublicKey = pubKey
 
 	serverInstance = server.CreateServerInstance(&def)
 

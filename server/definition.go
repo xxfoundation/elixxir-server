@@ -18,13 +18,13 @@ type Definition struct {
 	ID *id.Node
 
 	//DSA Keys defining the node's ownership
-	DSA_PubKey  *signature.DSAPublicKey
-	DSA_PrivKey *signature.DSAPrivateKey
+	DsaPublicKey  *signature.DSAPublicKey
+	DsaPrivateKey *signature.DSAPrivateKey
 
 	//PEM file containing the TLS cert
-	TLS_Cert []byte
+	TlsCert []byte
 	//PEM file containing the TLS Key
-	TLS_Key []byte
+	TlsKey []byte
 	//String containing the local address and port to connect to
 	Address string
 
@@ -81,9 +81,9 @@ type Node struct {
 // Holds information about the permissioning server
 type Perm struct {
 	// PEM file containing the TLS cert
-	TLS_Cert []byte
+	TlsCert []byte
 	// Public key used to sign valid client registrations
-	DSA_PubKey *signature.DSAPublicKey
+	DsaPublicKey *signature.DSAPublicKey
 	// IP address of the permissioning server
 	Address string
 }
@@ -92,7 +92,7 @@ type GW struct {
 	// ID of the gateway
 	ID *id.Gateway
 	// PEM file containing the TLS cert
-	TLS_Cert []byte
+	TlsCert []byte
 	// IP address of the gateway
 	Address string
 }
