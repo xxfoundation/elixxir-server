@@ -50,8 +50,8 @@ func (i *Instance) InitNetwork(
 		i.definition.TlsCert, i.definition.TlsKey)
 
 	for index, n := range i.definition.Nodes {
-		fmt.Println(n.ID, n.Address, n.TLS_Cert)
-		err := i.network.ConnectToNode(n.ID, n.Address, n.TLS_Cert)
+		fmt.Println(n.ID, n.Address, n.TlsCert)
+		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
