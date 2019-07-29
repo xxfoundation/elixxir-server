@@ -165,7 +165,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 			CMix: cmix,
 		},
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, measure.ResourceMonitor{})
+	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil, &measure.ResourceMonitor{})
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
