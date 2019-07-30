@@ -374,11 +374,14 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 		measureResponse := gatherMeasure(nodeComms, topology, roundID)
 
-		logFile := instance.GetMetricsLog()
+		if measureResponse != "" {
+			logFile := instance.GetMetricsLog()
 
-		if logFile != "" {
-			measure.AppendToMetricsLog(logFile, measureResponse)
+			if logFile != "" {
+				measure.AppendToMetricsLog(logFile, measureResponse)
+			}
 		}
+
 	}
 
 	p.UpdateFinalStates()
@@ -432,6 +435,11 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	numNodes := topology.Len()
 	index := topology.GetNodeLocation(nodeId)
 	resourceMonitor := instance.GetLastResourceMonitor()
+
+	if resourceMonitor == nil {
+		return nil, nil
+	}
+
 	resourceMetric := *resourceMonitor.Get()
 
 	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, resourceMetric)

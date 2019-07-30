@@ -46,11 +46,13 @@ func CreateServerInstance(def *Definition) *Instance {
 func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
 
+	fmt.Println("me: ", i.definition.Address, i.definition.TlsCert, i.definition.TlsKey)
+
 	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
 		i.definition.TlsCert, i.definition.TlsKey)
 
 	for index, n := range i.definition.Nodes {
-		fmt.Println(n.ID, n.Address, n.TlsCert)
+		fmt.Println("my friend: ", n.ID, n.Address, n.TlsCert)
 		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
