@@ -60,6 +60,7 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	// Initialize the backend
+	jww.INFO.Printf("Initalizing the backend")
 	dbAddress := params.Database.Addresses[params.Index]
 	cmixGrp := params.Groups.GetCMix()
 
@@ -75,6 +76,7 @@ func StartServer(vip *viper.Viper) {
 	)
 
 	//Add a dummy user for gateway
+	jww.INFO.Printf("Adding dummy users to registry")
 	dummy := userDatabase.NewUser(cmixGrp)
 	dummy.ID = id.MakeDummyUserID()
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
@@ -85,6 +87,7 @@ func StartServer(vip *viper.Viper) {
 	PopulateDummyUsers(userDatabase, cmixGrp)
 
 	//Build DSA key
+	jww.INFO.Printf("Building node identity")
 	var privateKey *signature.DSAPrivateKey
 	var pubKey *signature.DSAPublicKey
 
@@ -117,6 +120,7 @@ func StartServer(vip *viper.Viper) {
 		pubKey = privateKey.PublicKeyGen()
 	}
 
+	jww.INFO.Printf("Converting params to server definition")
 	def := params.ConvertToDefinition(pubKey, privateKey)
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
@@ -129,30 +133,39 @@ func StartServer(vip *viper.Viper) {
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
 
+	jww.INFO.Printf("Creating server instance")
 	// Create instance
 	instance := server.CreateServerInstance(def)
 
 	if instance.IsFirstNode() {
+		jww.INFO.Printf("Initilizing as first node")
 		instance.InitFirstNode()
 	}
 	if instance.IsLastNode() {
+		jww.INFO.Printf("Initilizing as last node")
 		instance.InitLastNode()
 	}
 
+	jww.INFO.Printf("Connecting to network")
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 
+	jww.INFO.Printf("Checking all servers are online")
 	// Check that all other nodes are online
 	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 
+	jww.INFO.Printf("Begining resource queue")
 	//Begin the resource queue
 	instance.Run()
 
 	//Start runners for first node
 	if instance.IsFirstNode() {
+		jww.INFO.Printf("Starting first node network manager")
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
+
+	jww.INFO.Printf("server online")
 }
 
 // Create dummy users to be manually inserted into the database
