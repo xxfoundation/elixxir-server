@@ -1035,9 +1035,17 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 
 	fmt.Println(4)
 	//build the instances
+	var instances []*server.Instance
 
 	t.Logf("Building instances for %v nodes", numNodes)
-	instance := server.CreateServerInstance(&def)
+
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
+	for i := 0; i < numNodes; i++ {
+		instance := server.CreateServerInstance(paramLst[i], registries[i],
+			nil, nil, &resourceMonitor)
+		instances = append(instances, instance)
+	}
 
 	instance.InitNetwork(NewImplementation)
 
