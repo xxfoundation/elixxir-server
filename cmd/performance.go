@@ -26,11 +26,18 @@ const PERFORMANCE_CHECK_PERIOD = time.Duration(2) * time.Minute
 // usage fo the system jumps a designated amount.
 func MonitorMemoryUsage() *measure.ResourceMonitor {
 
-	resourceMonitor := measure.ResourceMonitor{}
-
 	var numMemory = int64(0)
 
 	var lastTrigger = time.Now()
+
+	resourceMetric := measure.ResourceMetric{
+		Time:              lastTrigger,
+		MemoryAllocated:   "",
+		NumThreads:        0,
+		HighestMemThreads: "",
+	}
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&resourceMetric)
 
 	// Null profile record for comparison
 	minMemoryUse := runtime.MemProfileRecord{

@@ -21,6 +21,8 @@ func TestRoundMetrics(t *testing.T) {
 	mockMetrics.AddPhase("test-phase", *m)
 
 	j, err := mockMetrics.MarshallJSON()
+	str_j := string(j)
+	t.Logf("%v", str_j)
 	if err != nil {
 		t.Errorf("RoundMetrics failed to marshall into JSON: %+v", err)
 	}
