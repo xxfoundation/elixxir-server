@@ -8,13 +8,16 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	node2 "gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"strings"
+	"sync"
 )
 
 // Holds long-lived server state
@@ -200,6 +203,65 @@ func GenerateId() *id.Node {
 
 	return nid
 }
+
+/**/
+// CheckNodeTopology checks the signed node certs and verifies that no falsely signed certs are submitted
+func (i *Instance) VerifyTopology() (bool, error){
+	//Load Permissioing cert into a cert object
+	permissioningCert, err := tls.LoadCertificate(string(i.definition.Permissioning.TlsCert))
+	if err != nil {
+		return false, err
+	}
+//question becomes: what are we calling shutdown? I guess each node is running this, so we only need to shutdown if
+// ours is verified
+	signedNodeIndex := make([]int, i.definition.Topology.Len())
+	//Iterate through the topology
+	for j := 0; j < i.definition.Topology.Len(); j++ {
+		//Load the node Cert from topology
+		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
+		if err != nil {
+			return false, err
+		}
+
+		//Check that the node's cert was signed by the permissioning server's cert
+		err = nodeCert.CheckSignatureFrom(permissioningCert)
+		if err != nil {
+			jww.ERROR.Printf("Could not verify that a node's cert was signed by permissioinging: %v", err)
+			return false,err
+		}
+
+		//if permissioningCert.Verify(tmpNode.cert) == true {
+		//		signedNodeIndex = append(signedNodeIndex, j)
+		//}
+	}
+	//Shutdown the network
+	i.network.Shutdown()
+
+	//Reinitialize the network with the newly signed certs
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		i.InitNetwork(node2.NewImplementation)
+		wg.Done()
+	}()
+	wg.Wait()
+	//Question: what does shutdown do as a member of network? Does it shut off all comms, or just that node
+	// ie is the server handling comms or is synonomous with a node?
+	//If so, can we use it to shutdown that node?
+	//If not, we are going to have to implement a node killer :?
+	// Shutdown all verified nodes, modify their configs to have the signed cert
+	/*
+	if(i
+	for j := 0; j < len(signedNodeIndex); j++ {
+		//i.network.Shutdown()
+		//how to pull the new signed cert? is that in params
+		i.
+	}
+
+	 */
+	return true, nil
+}
+/**/
 
 // String adheres to the stringer interface, returns unique identifying
 // information about the node
