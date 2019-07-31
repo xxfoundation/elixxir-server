@@ -206,38 +206,47 @@ func GenerateId() *id.Node {
 
 /**/
 // CheckNodeTopology checks the signed node certs and verifies that no falsely signed certs are submitted
-func (i *Instance) VerifyTopology() (bool, error){
+func (i *Instance) VerifyTopology() error {
 	//Load Permissioing cert into a cert object
 	permissioningCert, err := tls.LoadCertificate(string(i.definition.Permissioning.TlsCert))
 	if err != nil {
-		return false, err
+		jww.ERROR.Printf("Could not load the permissioning server cert: %v", err)
+		return err
 	}
-//question becomes: what are we calling shutdown? I guess each node is running this, so we only need to shutdown if
-// ours is verified
-	signedNodeIndex := make([]int, i.definition.Topology.Len())
+
 	//Iterate through the topology
+	//Question for reviewer: This is defined by the signed certs in registration/cmd/registration.go
+	//so the definition.topology is updated, correct?
+
 	for j := 0; j < i.definition.Topology.Len(); j++ {
 		//Load the node Cert from topology
 		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
 		if err != nil {
-			return false, err
+			jww.ERROR.Printf("Could not load the node certificate cert: %v", err)
+			return err
 		}
 
 		//Check that the node's cert was signed by the permissioning server's cert
 		err = nodeCert.CheckSignatureFrom(permissioningCert)
 		if err != nil {
 			jww.ERROR.Printf("Could not verify that a node's cert was signed by permissioinging: %v", err)
-			return false,err
+			return err
 		}
 
 		//if permissioningCert.Verify(tmpNode.cert) == true {
 		//		signedNodeIndex = append(signedNodeIndex, j)
 		//}
 	}
+
+	//Question is, will this reinit the whole network?
 	//Shutdown the network
 	i.network.Shutdown()
+	//Also this is basically the equivalent of downloading updates on your PC and having to be rebooted, correct?
+	//The new certs are in 	i.definition.Topology, but the instance has been init'd already so we have to restart
 
 	//Reinitialize the network with the newly signed certs
+	//This is how it was done in the test, but there was no comments explaining why it's multithreaded like this
+	//I did so as a precaution (multiinstance_test.go)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -250,15 +259,7 @@ func (i *Instance) VerifyTopology() (bool, error){
 	//If so, can we use it to shutdown that node?
 	//If not, we are going to have to implement a node killer :?
 	// Shutdown all verified nodes, modify their configs to have the signed cert
-	/*
-	if(i
-	for j := 0; j < len(signedNodeIndex); j++ {
-		//i.network.Shutdown()
-		//how to pull the new signed cert? is that in params
-		i.
-	}
 
-	 */
 	return true, nil
 }
 /**/
