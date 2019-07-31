@@ -12,12 +12,10 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	node2 "gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"strings"
-	"sync"
 )
 
 // Holds long-lived server state
@@ -205,7 +203,8 @@ func GenerateId() *id.Node {
 }
 
 /**/
-// CheckNodeTopology checks the signed node certs and verifies that no falsely signed certs are submitted
+// VerifyTopology checks the signed node certs and verifies that no falsely signed certs are submitted
+// it then shuts down the network so that it can be reinitalized with the new topology
 func (i *Instance) VerifyTopology() error {
 	//Load Permissioing cert into a cert object
 	permissioningCert, err := tls.LoadCertificate(string(i.definition.Permissioning.TlsCert))
@@ -232,14 +231,14 @@ func (i *Instance) VerifyTopology() error {
 			jww.ERROR.Printf("Could not verify that a node's cert was signed by permissioinging: %v", err)
 			return err
 		}
-
-		//if permissioningCert.Verify(tmpNode.cert) == true {
-		//		signedNodeIndex = append(signedNodeIndex, j)
-		//}
 	}
 
+	//Question: what does shutdown do as a member of network? Does it shut off all comms, or just that node
+	// ie is the server handling comms or is synonomous with a node?
+	//If so, can we use it to shutdown that node?
+	//If not, we are going to have to implement a node killer :?
 	//Question is, will this reinit the whole network?
-	//Shutdown the network
+	// Shutdown all verified nodes, modify their configs to have the signed cert
 	i.network.Shutdown()
 	//Also this is basically the equivalent of downloading updates on your PC and having to be rebooted, correct?
 	//The new certs are in 	i.definition.Topology, but the instance has been init'd already so we have to restart
@@ -247,21 +246,21 @@ func (i *Instance) VerifyTopology() error {
 	//Reinitialize the network with the newly signed certs
 	//This is how it was done in the test, but there was no comments explaining why it's multithreaded like this
 	//I did so as a precaution (multiinstance_test.go)
-	wg := sync.WaitGroup{}
+	//Restarting doen't necessarily have to be here? you need to restart somewhere, but it could be in what calls verify?
+	/*wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		i.InitNetwork(node2.NewImplementation)
 		wg.Done()
 	}()
 	wg.Wait()
-	//Question: what does shutdown do as a member of network? Does it shut off all comms, or just that node
-	// ie is the server handling comms or is synonomous with a node?
-	//If so, can we use it to shutdown that node?
-	//If not, we are going to have to implement a node killer :?
+	*/
+
 	// Shutdown all verified nodes, modify their configs to have the signed cert
 
 	return nil
 }
+
 /**/
 
 // String adheres to the stringer interface, returns unique identifying
