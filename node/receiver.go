@@ -17,7 +17,6 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 )
@@ -353,8 +352,8 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		instance, roundID)
 
 	rm := instance.GetRoundManager()
-	nodeComms := instance.GetNetwork()
-	topology := instance.GetTopology()
+	//nodeComms := instance.GetNetwork()
+	//topology := instance.GetTopology()
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
@@ -365,25 +364,26 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	}
 	p.Measure(tag)
 
-	// Call gatherMeasure function handler if the callback is set
-	// and append results to metrics log file.
-	if gatherMeasure != nil {
+	/*
+		// Call gatherMeasure function handler if the callback is set
+		// and append results to metrics log file.
+		if gatherMeasure != nil {
 
-		jww.INFO.Printf("Gather Metrics: RID %d FIRST NODE ReceiveFinishRealtime"+
-			" Retrieving and storing metrics", roundID)
+					jww.INFO.Printf("Gather Metrics: RID %d FIRST NODE ReceiveFinishRealtime"+
+				" Retrieving and storing metrics", roundID)
 
-		measureResponse := gatherMeasure(nodeComms, topology, roundID)
+					measureResponse := gatherMeasure(nodeComms, topology, roundID)
 
-		if measureResponse != "" {
-			logFile := instance.GetMetricsLog()
+					if measureResponse != "" {
+				logFile := instance.GetMetricsLog()
 
-			if logFile != "" {
-				measure.AppendToMetricsLog(logFile, measureResponse)
+						if logFile != "" {
+					measure.AppendToMetricsLog(logFile, measureResponse)
+				}
 			}
-		}
 
-	}
-
+				}
+	*/
 	p.UpdateFinalStates()
 
 	if !instance.GetKeepBuffers() {

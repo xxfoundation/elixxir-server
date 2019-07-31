@@ -130,8 +130,8 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	}
 
 	ids := p.Node.Ids
-	nodes := make([]server.Node, len(ids))
-	nodeIDs := make([]*id.Node, len(ids))
+	var nodes []server.Node
+	var nodeIDs []*id.Node
 
 	var nodeIDDecodeErrorHappened bool
 	for i := range ids {
@@ -146,30 +146,28 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 		n := server.Node{
 			ID:      id.NewNodeFromBytes(nodeID),
 			TlsCert: tlsCert,
-			Address: ids[i],
+			Address: p.Node.Addresses[i],
 		}
 		nodes = append(nodes, n)
 		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
 	}
+
 	if nodeIDDecodeErrorHappened {
 		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
 	def.ID = nodes[p.Index].ID
+
 	def.Address = nodes[p.Index].Address
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
-
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
-
 	def.Gateway.Address = p.Gateways.Addresses[p.Index]
-
 	var GwTlsCerts []byte
 
 	if p.Gateways.Paths.Cert != "" {
 		GwTlsCerts, err = ioutil.ReadFile(p.Gateways.Paths.Cert)
-
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
@@ -177,7 +175,6 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 
 	def.Gateway.TlsCert = GwTlsCerts
 	def.Gateway.ID = def.ID.NewGateway()
-
 	def.BatchSize = p.Batch
 	def.CmixGroup = p.Groups.GetCMix()
 	def.E2EGroup = p.Groups.GetE2E()

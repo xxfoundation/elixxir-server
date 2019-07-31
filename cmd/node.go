@@ -132,7 +132,6 @@ func StartServer(vip *viper.Viper) {
 
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
-
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
 	instance := server.CreateServerInstance(def)
