@@ -1,3 +1,11 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
+// Contains interactions with the Node Permissioning Server
+
 package permissioning
 
 import (
@@ -8,6 +16,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
+	"net"
 )
 
 // Stringer object for Permissioning connection ID
@@ -43,12 +52,18 @@ func RegisterNode(def *server.Definition) {
 	}
 
 	// Attempt Node registration
+	_, port, err := net.SplitHostPort(def.Address)
+	if err != nil {
+		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
+			errors.New(err.Error()))
+	}
 	err = network.SendNodeRegistration(permissioningId,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			NodeTLSCert:      string(def.TlsCert),
 			GatewayTLSCert:   string(def.Gateway.TlsCert),
 			RegistrationCode: def.Permissioning.RegistrationCode,
+			Port:             port,
 		})
 	if err != nil {
 		jww.FATAL.Panicf("Unable to send Node registration: %+v",
