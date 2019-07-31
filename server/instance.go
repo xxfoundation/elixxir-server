@@ -260,7 +260,7 @@ func (i *Instance) VerifyTopology() error {
 	//If not, we are going to have to implement a node killer :?
 	// Shutdown all verified nodes, modify their configs to have the signed cert
 
-	return true, nil
+	return nil
 }
 /**/
 
