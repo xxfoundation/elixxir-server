@@ -6,9 +6,11 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 )
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -28,7 +30,8 @@ var instance *Instance
 func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
-	instance = mockServerInstance(grp)
+	def := mockServerDef(grp)
+	instance = CreateServerInstance(def)
 	os.Exit(m.Run())
 }
 
@@ -101,15 +104,54 @@ func TestInstance_Topology(t *testing.T) {
 	}
 }
 
-func mockServerInstance(grp *cyclic.Group) *Instance {
-	nid := GenerateId()
+func TestInstance_GetResourceMonitor(t *testing.T) {
 
-	def := Definition{
-		ID:        nid,
-		CmixGroup: grp,
+	def := mockServerDef(grp)
+	i := CreateServerInstance(def)
+
+	rm := i.GetLastResourceMonitor()
+
+	expectedMetric := measure.ResourceMetric{
+		Time:              time.Unix(1, 2),
+		MemoryAllocated:   "1000",
+		NumThreads:        10,
+		HighestMemThreads: "abc",
 	}
 
-	instance := CreateServerInstance(&def)
+	rm.Set(&expectedMetric)
 
-	return instance
+	if !i.GetLastResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect time")
+	}
+	if i.GetLastResourceMonitor().Get().HighestMemThreads != expectedMetric.HighestMemThreads {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect mem threads")
+	}
+	if i.GetLastResourceMonitor().Get().NumThreads != expectedMetric.NumThreads {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect num threads")
+	}
+	if i.GetLastResourceMonitor().Get().MemoryAllocated != expectedMetric.MemoryAllocated {
+		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect mem allcoated")
+	}
+
+}
+
+func mockServerDef(grp *cyclic.Group) *Definition {
+	nid := GenerateId()
+
+	resourceMetric := measure.ResourceMetric{
+		Time:              time.Now(),
+		MemoryAllocated:   "",
+		NumThreads:        0,
+		HighestMemThreads: "",
+	}
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&resourceMetric)
+
+	def := Definition{
+		ID:              nid,
+		CmixGroup:       grp,
+		ResourceMonitor: &resourceMonitor,
+	}
+
+	return &def
 }
