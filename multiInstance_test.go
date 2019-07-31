@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"sync"
 	"testing"
 	"time"
@@ -326,6 +327,10 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 	//generate parameters list
 	var defLst []*server.Definition
 
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
 	for i := 0; i < numNodes; i++ {
 
 		def := server.Definition{
@@ -337,6 +342,8 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
+			Address:        nodeLst[i].Address,
+			GraphGenerator: services.NewGraphGenerator(1, PanicHandler, 2, 2, 0.0),
 		}
 		defLst = append(defLst, &def)
 	}
