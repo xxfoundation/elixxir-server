@@ -9,31 +9,22 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/csprng"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/services"
 	"io/ioutil"
-	"time"
-
-	//"encoding/binary"
-	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
-	"gitlab.com/elixxir/server/server/conf"
-
-	//"gitlab.com/elixxir/comms/connect"
-	//"gitlab.com/elixxir/comms/node"
-	//"gitlab.com/elixxir/crypto/cyclic"
-	//"gitlab.com/elixxir/primitives/id"
-	//	"gitlab.com/elixxir/server/cryptops/realtime"
-	//"gitlab.com/elixxir/server/globals"
-	//"gitlab.com/elixxir/server/io"
 	"runtime"
-
-	"gitlab.com/elixxir/crypto/cyclic"
+	"time"
 )
 
 // Number of hard-coded users to create
@@ -69,6 +60,7 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	// Initialize the backend
+	jww.INFO.Printf("Initalizing the backend")
 	dbAddress := params.Database.Addresses[params.Index]
 	cmixGrp := params.Groups.GetCMix()
 
@@ -84,6 +76,7 @@ func StartServer(vip *viper.Viper) {
 	)
 
 	//Add a dummy user for gateway
+	jww.INFO.Printf("Adding dummy users to registry")
 	dummy := userDatabase.NewUser(cmixGrp)
 	dummy.ID = id.MakeDummyUserID()
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
@@ -94,6 +87,7 @@ func StartServer(vip *viper.Viper) {
 	PopulateDummyUsers(userDatabase, cmixGrp)
 
 	//Build DSA key
+	jww.INFO.Printf("Building node identity")
 	var privateKey *signature.DSAPrivateKey
 	var pubKey *signature.DSAPublicKey
 
@@ -126,33 +120,51 @@ func StartServer(vip *viper.Viper) {
 		pubKey = privateKey.PublicKeyGen()
 	}
 
-	//TODO: store DSA key for NDF
+	jww.INFO.Printf("Converting params to server definition")
+	def := params.ConvertToDefinition(pubKey, privateKey)
+	def.UserRegistry = userDatabase
+	def.ResourceMonitor = resourceMonitor
 
+	PanicHandler := func(g, m string, err error) {
+		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
+			m, err))
+	}
+
+	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
+		uint8(runtime.NumCPU()), 4, 0.0)
+	jww.INFO.Printf("Creating server instance")
 	// Create instance
-	instance := server.CreateServerInstance(params, userDatabase, pubKey, privateKey, &resourceMonitor)
+	instance := server.CreateServerInstance(def)
 
 	if instance.IsFirstNode() {
+		jww.INFO.Printf("Initilizing as first node")
 		instance.InitFirstNode()
 	}
 	if instance.IsLastNode() {
+		jww.INFO.Printf("Initilizing as last node")
 		instance.InitLastNode()
 	}
 
+	jww.INFO.Printf("Connecting to network")
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 
+	jww.INFO.Printf("Checking all servers are online")
 	// Check that all other nodes are online
 	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 
+	jww.INFO.Printf("Begining resource queue")
 	//Begin the resource queue
 	instance.Run()
 
 	//Start runners for first node
 	if instance.IsFirstNode() {
+		jww.INFO.Printf("Starting first node network manager")
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 
+	jww.INFO.Printf("server online")
 }
 
 // Create dummy users to be manually inserted into the database

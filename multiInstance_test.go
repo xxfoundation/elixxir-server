@@ -8,15 +8,17 @@ import (
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/services"
 	"sync"
 	"testing"
 	"time"
@@ -38,7 +40,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	grp := makeMultiInstanceGroup()
 
 	//get parameters
-	paramLst := makeMultiInstanceParams(numNodes, batchsize, 1000, grp)
+	defsLst := makeMultiInstanceParams(numNodes, batchsize, 1000, grp)
 
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
@@ -49,8 +51,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 
 	//build the registries for every node
-	var registries []globals.UserRegistry
-
 	for i := 0; i < numNodes; i++ {
 		var registry globals.UserRegistry
 		registry = &globals.UserMap{}
@@ -59,7 +59,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 			BaseKey: baseKeys[i],
 		}
 		registry.UpsertUser(&user)
-		registries = append(registries, registry)
+		defsLst[i].UserRegistry = registry
 	}
 
 	//build the instances
@@ -70,8 +70,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	for i := 0; i < numNodes; i++ {
-		instance := server.CreateServerInstance(paramLst[i], registries[i],
-			nil, nil, &resourceMonitor)
+		instance := server.CreateServerInstance(defsLst[i])
 		instances = append(instances, instance)
 	}
 
@@ -303,43 +302,53 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 }
 
-func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*conf.Params {
+func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
 
 	//generate IDs and addresses
-	var nidLst []string
-	var addrLst []string
+	var nidLst []*id.Node
+	var nodeLst []server.Node
 	addrFmt := "localhost:5%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
 		nodIDBytes := make([]byte, id.NodeIdLen)
 		nodIDBytes[0] = byte(i + 1)
 		nodeID := id.NewNodeFromBytes(nodIDBytes)
-		nidLst = append(nidLst, nodeID.String())
+		nidLst = append(nidLst, nodeID)
 		//generate address
 		addr := fmt.Sprintf(addrFmt, i+portstart)
-		addrLst = append(addrLst, addr)
+
+		n := server.Node{
+			ID:      nodeID,
+			Address: addr,
+		}
+		nodeLst = append(nodeLst, n)
 	}
 
 	//generate parameters list
-	var paramsLst []*conf.Params
+	var defLst []*server.Definition
+
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
 
 	for i := 0; i < numNodes; i++ {
 
-		param := conf.Params{
-			Groups: initConfGroups(grp),
-			Node: conf.Node{
-				Ids:       nidLst,
-				Addresses: addrLst,
+		def := server.Definition{
+			CmixGroup: grp,
+			Topology:  circuit.New(nidLst),
+			ID:        nidLst[i],
+			BatchSize: uint32(batchsize),
+			Nodes:     nodeLst,
+			Flags: server.Flags{
+				KeepBuffers: true,
 			},
-			Batch:       uint32(batchsize),
-			Index:       i,
-			KeepBuffers: true,
+			Address:        nodeLst[i].Address,
+			GraphGenerator: services.NewGraphGenerator(1, PanicHandler, 2, 2, 0.0),
 		}
-
-		paramsLst = append(paramsLst, &param)
+		defLst = append(defLst, &def)
 	}
 
-	return paramsLst
+	return defLst
 }
 
 func makeMultiInstanceGroup() *cyclic.Group {

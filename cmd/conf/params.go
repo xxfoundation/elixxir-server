@@ -8,9 +8,15 @@ package conf
 
 import (
 	"encoding/base64"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/primitives/circuit"
+	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
 	"golang.org/x/crypto/blake2b"
+	"io/ioutil"
 )
 
 // This object is used by the server instance.
@@ -92,4 +98,112 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	return &params, nil
+}
+
+// Create a new Definition object from the Params object
+func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
+	priv *signature.DSAPrivateKey) *server.Definition {
+
+	def := &server.Definition{}
+
+	def.Flags.KeepBuffers = p.KeepBuffers
+	def.Flags.SkipReg = p.SkipReg
+	def.Flags.Verbose = p.Verbose
+
+	var tlsCert, tlsKey []byte
+	var err error
+
+	if p.Node.Paths.Cert != "" {
+		tlsCert, err = ioutil.ReadFile(p.Node.Paths.Cert)
+
+		if err != nil {
+			jww.FATAL.Panicf("Could not load TLS Cert: %+v", err)
+		}
+	}
+
+	if p.Node.Paths.Key != "" {
+		tlsKey, err = ioutil.ReadFile(p.Node.Paths.Key)
+
+		if err != nil {
+			jww.FATAL.Panicf("Could not load TLS Key: %+v", err)
+		}
+	}
+
+	ids := p.Node.Ids
+	var nodes []server.Node
+	var nodeIDs []*id.Node
+
+	var nodeIDDecodeErrorHappened bool
+	for i := range ids {
+		nodeID, err := base64.StdEncoding.DecodeString(ids[i])
+		if err != nil {
+			// This indicates a server misconfiguration which needs fixing for
+			// the server to function properly
+			err = errors.Wrapf(err, "Node ID at index %v failed to decode", i)
+			jww.ERROR.Print(err)
+			nodeIDDecodeErrorHappened = true
+		}
+		n := server.Node{
+			ID:      id.NewNodeFromBytes(nodeID),
+			TlsCert: tlsCert,
+			Address: p.Node.Addresses[i],
+		}
+		nodes = append(nodes, n)
+		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
+	}
+
+	if nodeIDDecodeErrorHappened {
+		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
+	}
+
+	def.ID = nodes[p.Index].ID
+
+	def.Address = nodes[p.Index].Address
+	def.TlsCert = tlsCert
+	def.TlsKey = tlsKey
+	def.LogPath = p.Node.Paths.Log
+	def.MetricLogPath = p.Metrics.Log
+	def.Gateway.Address = p.Gateways.Addresses[p.Index]
+	var GwTlsCerts []byte
+
+	if p.Gateways.Paths.Cert != "" {
+		GwTlsCerts, err = ioutil.ReadFile(p.Gateways.Paths.Cert)
+		if err != nil {
+			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
+		}
+	}
+
+	def.Gateway.TlsCert = GwTlsCerts
+	def.Gateway.ID = def.ID.NewGateway()
+	def.BatchSize = p.Batch
+	def.CmixGroup = p.Groups.GetCMix()
+	def.E2EGroup = p.Groups.GetE2E()
+
+	def.Topology = circuit.New(nodeIDs)
+	def.Nodes = nodes
+
+	def.DsaPrivateKey = priv
+	def.DsaPublicKey = pub
+
+	var PermTlsCert []byte
+
+	if p.Permissioning.Paths.Cert != "" {
+		tlsCert, err = ioutil.ReadFile(p.Permissioning.Paths.Cert)
+
+		if err != nil {
+			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
+		}
+	}
+
+	def.Permissioning.TlsCert = PermTlsCert
+	def.Permissioning.Address = p.Permissioning.Address
+
+	def.Permissioning.DsaPublicKey = &signature.DSAPublicKey{}
+	def.Permissioning.DsaPublicKey, err = def.Permissioning.DsaPublicKey.
+		PemDecode([]byte(p.Permissioning.PublicKey))
+	if err != nil {
+		jww.FATAL.Panicf("Unable to decode permissioning public key: %+v", err)
+	}
+
+	return def
 }

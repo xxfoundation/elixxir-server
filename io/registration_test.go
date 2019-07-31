@@ -12,9 +12,9 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/conf"
 	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"testing"
@@ -34,24 +34,27 @@ func TestMain(m *testing.M) {
 	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
 	privKey = dsaParams.PrivateKeyGen(rng)
 	pubKey = privKey.PublicKeyGen()
-	pubKeyStr, _ := pubKey.PemEncode()
 	regPrivKey = privKey
 
 	nid := server.GenerateId()
-	grps := initConfGroups(grp)
 
-	params := conf.Params{
-		Groups: grps,
-		Node: conf.Node{
-			Ids: []string{nid.String()},
+	def := server.Definition{
+		CmixGroup: grp,
+		Nodes: []server.Node{
+			{
+				ID: nid,
+			},
 		},
-		Permissioning: conf.Permissioning{
-			PublicKey: string(pubKeyStr),
-		},
+		ID:              nid,
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+		DsaPrivateKey:   privKey,
+		DsaPublicKey:    pubKey,
 	}
 
-	serverInstance = server.CreateServerInstance(&params, &globals.UserMap{},
-		pubKey, privKey, &measure.ResourceMonitor{})
+	def.Permissioning.DsaPublicKey = pubKey
+
+	serverInstance = server.CreateServerInstance(&def)
 
 	os.Exit(m.Run())
 }
