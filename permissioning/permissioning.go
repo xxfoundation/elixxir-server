@@ -41,7 +41,7 @@ func RegisterNode(def *server.Definition) {
 
 	// Start Node communication server
 	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
-	permissioningId := ConnAddr("permissioning")
+	permissioningId := ConnAddr("Permissioning")
 
 	// Connect to the Permissioning Server
 	err := network.ConnectToRegistration(permissioningId,
@@ -60,7 +60,7 @@ func RegisterNode(def *server.Definition) {
 	err = network.SendNodeRegistration(permissioningId,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
-			NodeTLSCert:      string(def.TlsCert),
+			NodeCsr:          string(def.TlsCert),
 			GatewayTLSCert:   string(def.Gateway.TlsCert),
 			RegistrationCode: def.Permissioning.RegistrationCode,
 			Port:             port,
