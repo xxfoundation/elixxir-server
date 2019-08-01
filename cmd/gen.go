@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-func GenerateGitVersion() string {
+func generateGitVersion() string {
 	cmd := exec.Command("git", "show", "--oneline")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
@@ -36,14 +36,14 @@ func GenerateGitVersion() string {
 	return "UNKNOWNVERSION"
 }
 
-func ReadGlideLock() string {
+func readGlideLock() string {
 	r, _ := ioutil.ReadFile("../glide.lock")
 	return string(r)
 }
 
 func main() {
-	gitversion := GenerateGitVersion()
-	glidedependencies := ReadGlideLock()
+	gitversion := generateGitVersion()
+	glidedependencies := readGlideLock()
 
 	f, err := os.Create("version_vars.go")
 	die(err)

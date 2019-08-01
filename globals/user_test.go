@@ -10,23 +10,21 @@ import (
 	"bytes"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/primitives/id"
-	"sync"
 	"testing"
 )
+
+const numTestDemoUsers = 256
 
 // TestUserRegistry tests the constructors/getters/setters
 // surrounding the User struct and the UserRegistry interface
 // TODO: This test needs split up
 func TestUserRegistry(t *testing.T) {
-	InitCrypto()
+	grp := InitCrypto()
 
-	users := UserRegistry(&UserMap{
-		userCollection: make(map[id.User]*User),
-		collectionLock: &sync.Mutex{},
-	})
+	users := UserRegistry(&UserMap{})
 
-	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := users.NewUser(Group)
+	for i := 0; i < numTestDemoUsers; i++ {
+		u := users.NewUser(grp)
 		users.UpsertUser(u)
 	}
 
@@ -34,16 +32,20 @@ func TestUserRegistry(t *testing.T) {
 
 	numUsers := users.CountUsers()
 
-	if numUsers != NUM_DEMO_USERS {
+	if numUsers != numTestDemoUsers {
 		t.Errorf("Count users is not working correctly. "+
-			"Expected: %v Actual: %v", NUM_DEMO_USERS, numUsers)
+			"Expected: %v Actual: %v", numTestDemoUsers, numUsers)
 	}
 
 	id9 := id.NewUserFromUint(9, t)
-	usr9, _ := users.GetUser(id9)
+	usr9, err := users.GetUser(id9)
+
+	if err != nil {
+		t.Errorf("User fetch returned error: %s", err.Error())
+	}
 
 	if usr9 == nil {
-		t.Errorf("Error fetching user!")
+		t.Fatalf("Error fetching user!")
 	}
 
 	getUser, err := users.GetUser(usr9.ID)
@@ -55,19 +57,15 @@ func TestUserRegistry(t *testing.T) {
 	usr3, _ := users.GetUser(id.NewUserFromUint(3, t))
 	usr5, _ := users.GetUser(id.NewUserFromUint(5, t))
 
-	if usr3.Transmission.BaseKey == nil {
-		t.Errorf("Error Setting the Transmission Base Key")
-	}
-
-	if usr3.Reception.BaseKey == usr5.Reception.BaseKey {
+	if usr3.BaseKey == usr5.BaseKey {
 		t.Errorf("Transmissions keys are the same and they should be different!")
 	}
 
 	users.DeleteUser(usr9.ID)
 
-	if users.CountUsers() != NUM_DEMO_USERS-1 {
+	if users.CountUsers() != numTestDemoUsers-1 {
 		t.Errorf("User has not been deleted correctly. "+
-			"Expected # of users: %v Actual: %v", NUM_DEMO_USERS-1, users.CountUsers())
+			"Expected # of users: %v Actual: %v", numTestDemoUsers-1, users.CountUsers())
 	}
 
 	if _, userExists := users.GetUser(usr9.ID); userExists == nil {
@@ -76,82 +74,60 @@ func TestUserRegistry(t *testing.T) {
 }
 
 // Test happy path
-func TestForwardKey_DeepCopy(t *testing.T) {
-	InitCrypto()
-
-	fk := ForwardKey{
-		BaseKey:      Group.NewInt(10),
-		RecursiveKey: Group.NewInt(15),
-	}
-
-	nk := fk.DeepCopy()
-
-	if fk.RecursiveKey.Cmp(nk.RecursiveKey) != 0 {
-		t.Errorf("FK Deepcopy: Failed to copy recursive key!")
-	}
-	if fk.BaseKey.Cmp(nk.BaseKey) != 0 {
-		t.Errorf("FK Deepcopy: Failed to copy base key!")
-	}
-}
-
-// Test nil path
-func TestForwardKey_DeepCopyNil(t *testing.T) {
-	var fk *ForwardKey = nil
-
-	nk := fk.DeepCopy()
-
-	if nk != nil {
-		t.Errorf("FK Deepcopy: Expected nil copy!")
-	}
-}
-
-// Test happy path
 func TestUser_DeepCopy(t *testing.T) {
-	InitCrypto()
+	grp := InitCrypto()
 
-	users := UserRegistry(&UserMap{
-		userCollection: make(map[id.User]*User),
-		collectionLock: &sync.Mutex{},
-	})
+	users := UserRegistry(&UserMap{})
 
-	user := users.NewUser(Group)
-	user.Transmission.BaseKey = Group.NewInt(66)
+	user := users.NewUser(grp)
+	user.BaseKey = grp.NewInt(66)
 
 	newUser := user.DeepCopy()
-	if user.Transmission.BaseKey.Cmp(newUser.Transmission.BaseKey) != 0 {
+	if user.BaseKey.Cmp(newUser.BaseKey) != 0 {
 		t.Errorf("User Deepcopy: Failed to copy keys!")
+	}
+
+	var uNil *User
+
+	uNilCpy := uNil.DeepCopy()
+
+	if uNilCpy != nil {
+		t.Errorf("User Deepcopy: copy occured on nil user")
 	}
 }
 
 // Test happy path and inserting too many salts
 func TestUserMap_InsertSalt(t *testing.T) {
-	users := UserRegistry(&UserMap{
-		saltCollection: make(map[id.User][][]byte),
-	})
+	grp := InitCrypto()
+
+	users := UserRegistry(&UserMap{})
+	u9 := users.NewUser(grp)
+	u9.ID = id.NewUserFromUint(1, t)
+	users.UpsertUser(u9)
+
 	// Insert like 300 salts, expect success
-	for i := 0; i <= 300; i++ {
-		if !users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
-			t.Errorf("InsertSalt: Expected success!")
+	for i := 0; i < MaxSalts; i++ {
+		err := users.InsertSalt(u9.ID, []byte("test"))
+		if err != nil {
+			t.Errorf("InsertSalt: Expected success! Recieved: %s", err.Error())
 		}
 	}
 	// Now we have exceeded the max number, expect failure
-	if users.InsertSalt(id.NewUserFromUint(1, t), []byte("test")) {
+	err := users.InsertSalt(u9.ID, []byte("test"))
+	if err == nil {
 		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
-			" salts for one user!")
+			" salts for one user, recieved success")
 	}
 }
 
 // Test happy path
 func TestUserMap_GetUserByNonce(t *testing.T) {
-	InitCrypto()
+	grp := InitCrypto()
 
-	users := UserRegistry(&UserMap{
-		userCollection: make(map[id.User]*User),
-		collectionLock: &sync.Mutex{},
-	})
+	users := UserRegistry(&UserMap{})
 
-	user := users.NewUser(Group)
-	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	user := users.NewUser(grp)
+	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	users.UpsertUser(user)
 
 	_, err := users.GetUserByNonce(user.Nonce)
@@ -162,22 +138,19 @@ func TestUserMap_GetUserByNonce(t *testing.T) {
 
 // Make sure the nonce converts correctly to and from storage
 func TestUserNonceConversion(t *testing.T) {
-	InitCrypto()
+	grp := InitCrypto()
 
-	users := UserRegistry(&UserMap{
-		userCollection: make(map[id.User]*User),
-		collectionLock: &sync.Mutex{},
-	})
+	users := UserRegistry(&UserMap{})
 
-	user := users.NewUser(Group)
-	user.Nonce = nonce.NewNonce(nonce.RegistrationTTL)
+	user := users.NewUser(grp)
+	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	users.UpsertUser(user)
 
 	testUser, _ := users.GetUserByNonce(user.Nonce)
 	if bytes.Equal(testUser.Nonce.Bytes(), user.Nonce.Bytes()) {
 		t.Errorf("UserNonceConversion: Expected nonces to match! %v %v",
-			Group.NewIntFromBytes(testUser.Nonce.Bytes()),
-			Group.NewIntFromBytes(user.Nonce.Bytes()))
+			grp.NewIntFromBytes(testUser.Nonce.Bytes()),
+			grp.NewIntFromBytes(user.Nonce.Bytes()))
 	}
 	if !testUser.Nonce.GenTime.Equal(user.Nonce.GenTime) {
 		t.Errorf("UserNonceConversion: Expected GenTime to match! %v %v",

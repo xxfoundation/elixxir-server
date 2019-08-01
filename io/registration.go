@@ -1,83 +1,52 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
+// Copyright © 2019 Privategrity Corporation                                   /
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-// Handles creating callbacks for registration hooks into comms library
+// Package io registration.go handles the endpoints for registration
 
 package io
 
 import (
-	"bytes"
 	"crypto/rand"
-	"crypto/sha256"
-	"errors"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/crypto/cyclic"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server"
 )
 
-// DSA Params
-var dsaParams = signature.GetDefaultDSAParams()
+func RequestNonce(instance *server.Instance,
+	salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 
-// DSA Group
-var dsaGrp = cyclic.NewGroup(dsaParams.GetP(), large.NewInt(2),
-	dsaParams.GetG())
+	grp := instance.GetGroup()
+	privKey := instance.GetPrivKey()
 
-// Hardcoded DSA public key for Server
-var publicKey = signature.ReconstructPublicKey(dsaParams,
-	large.NewIntFromString("5c73ff5a2b9eea19d180334a60fa0299dbd4a4b724506cc0fd15f3ffd7b755c6"+
-		"67cf0ce08a7a366b6bec808a6846d5aa1d047144048fa52522b083c7512dabf5"+
-		"595204f7ca125618c27842b0658c05fe619a1400cc710b109f0f3b9dcf9faa35"+
-		"4407a9c2b914584792cd60f0bc3c9cb6a6cadac80cfe259c4da5b2a56ce685ed"+
-		"e88b2b0f7d54c1a7e230fb91c5d6241f04f3f4db89290fd059695880fa3515a3"+
-		"bf811461820d937e80cd55c6bb30116ebcb774e980367c04dd6c03f71bc99eb1"+
-		"f08cf9d70642c255ca07241c85b5d5a08a216e2ab2c8ccb44c5bde05bd541da5"+
-		"232edb486280ed234140f14c9a8a8a308b08a9fe1e0d540b0f1f202882ea9999", 16))
-
-// Hardcoded DSA private key for Server
-var privateKey = signature.ReconstructPrivateKey(publicKey,
-	large.NewIntFromString("7d169c3b371a2546c272e5ca37549c65c6a27708d87465d1b60261adf440483e", 16))
-
-// Hardcoded DSA public key for RegistrationServer
-var registrationPublicKey = signature.ReconstructPublicKey(dsaParams,
-	large.NewIntFromString("1ae3fd4e9829fb464459e05bca392bec5067152fb43a569ad3c3b68bbcad84f0"+
-		"ff8d31c767da3eabcfc0870d82b39568610b52f2b72b493bbede6e952c9a7fd4"+
-		"4a8161e62a9046828c4a65f401b2f054ebf7376e89dab547d8a3c3d46891e78a"+
-		"cfc4015713cbfb5b0b6cab0f8dfb46b891f3542046ace4cab984d5dfef4f52d4"+
-		"347dc7e52f6a7ea851dda076f0ed1fef86ec6b5c2a4807149906bf8e0bf70b30"+
-		"1147fea88fd95009edfbe0de8ffc1a864e4b3a24265b61a1c47a4e9307e7c84f"+
-		"9b5591765b530f5859fa97b22ce9b51385d3d13088795b2f9fd0cb59357fe938"+
-		"346117df2acf2bab22d942de1a70e8d5d62fc0e99d8742a0f16df94ce3a0abbb", 16))
-
-// Handle nonce request from Client
-func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
-
-	if !globals.SkipRegServer {
-		// Verify signed public key using hardcoded RegistrationServer public key
-		valid := registrationPublicKey.Verify(hash, signature.DSASignature{
-			R: large.NewIntFromBytes(R),
-			S: large.NewIntFromBytes(S),
-		})
-
+	if !instance.GetSkipReg() {
 		// Concatenate Client public key byte slices
+		// FIXME: MOVE THE SIGNATURE VERIFICATION TO COMMS
 		data := make([]byte, 0)
 		data = append(data, Y...)
 		data = append(data, P...)
 		data = append(data, Q...)
 		data = append(data, G...)
 
-		// Ensure that the data in the hash is identical to the Client public key
-		if !valid || !bytes.Equal(data, hash) {
+		// Verify signed public key using hardcoded RegistrationServer public key
+		regKey := instance.GetRegServerPubKey()
+		valid := regKey.Verify(data,
+			signature.DSASignature{
+				R: large.NewIntFromBytes(R),
+				S: large.NewIntFromBytes(S),
+			})
+		if !valid {
 			// Invalid signed Client public key, return an error
-			jww.ERROR.Printf("Unable to verify signed public key!")
-			return make([]byte, 0), errors.New("signed public key is invalid")
+			jww.ERROR.Printf("Unable to verify public key signature!")
+			return make([]byte, 0),
+				errors.Errorf("public key signature is invalid")
 		}
 	}
 
@@ -93,41 +62,42 @@ func RequestNonce(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
 	userId := registration.GenUserID(userPublicKey, salt)
 
 	// Generate a nonce with a timestamp
-	userNonce := nonce.NewNonce(nonce.RegistrationTTL)
+	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
+	if err != nil {
+		return nil, err
+	}
 
-	// Generate user CMIX keys
+	// Generate user CMIX baseKey
 	b, _ := hash2.NewCMixHash()
-	baseTKey := registration.GenerateBaseKey(dsaGrp, userPublicKey, privateKey, b)
-	baseRKey := registration.GenerateBaseKey(dsaGrp, userPublicKey, privateKey, sha256.New())
+	baseKey := registration.GenerateBaseKey(grp, userPublicKey, privKey, b)
 
 	// Store user information in the database
-	newUser := globals.Users.NewUser(dsaGrp)
+	newUser := instance.GetUserRegistry().NewUser(grp)
 	newUser.Nonce = userNonce
 	newUser.ID = userId
 	newUser.PublicKey = userPublicKey
-	newUser.Transmission.BaseKey = baseTKey
-	newUser.Reception.BaseKey = baseRKey
-	globals.Users.UpsertUser(newUser)
+	newUser.BaseKey = baseKey
+	instance.GetUserRegistry().UpsertUser(newUser)
 
 	// Return nonce to Client with empty error field
 	return userNonce.Bytes(), nil
 }
 
-// Handle confirmation of nonce from Client
-func ConfirmNonce(hash, R, S []byte) ([]byte,
-	[]byte, []byte, []byte, []byte, []byte, []byte, error) {
+func ConfirmRegistration(instance *server.Instance,
+	hash, R, S []byte) ([]byte, []byte, []byte, []byte, []byte,
+	[]byte, []byte, error) {
 
 	// Obtain the user from the database
 	n := nonce.Nonce{}
 	copy(n.Value[:], hash)
-	user, err := globals.Users.GetUserByNonce(n)
+	user, err := instance.GetUserRegistry().GetUserByNonce(n)
 
 	if err != nil {
 		// Invalid nonce, return an error
 		jww.ERROR.Printf("Unable to find nonce: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			errors.New("nonce does not exist")
+			errors.Errorf("nonce does not exist")
 	}
 
 	// Verify nonce has not expired
@@ -135,7 +105,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte,
 		jww.ERROR.Printf("Nonce is expired: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			errors.New("nonce is expired")
+			errors.Errorf("nonce is expired")
 	}
 
 	// Verify signed nonce using Client public key
@@ -149,7 +119,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte,
 		jww.ERROR.Printf("Unable to verify nonce: %x", n.Bytes())
 		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
 			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			errors.New("signed nonce is invalid")
+			errors.Errorf("signed nonce is invalid")
 	}
 
 	// Concatenate Client public key byte slices
@@ -161,7 +131,7 @@ func ConfirmNonce(hash, R, S []byte) ([]byte,
 	data = append(data, params.GetG().Bytes()...)
 
 	// Use hardcoded Server private key to sign Client public key
-	sig, err := privateKey.Sign(data, rand.Reader)
+	sig, err := instance.GetPrivKey().Sign(data, rand.Reader)
 	if err != nil {
 		// Unable to sign public key, return an error
 		jww.ERROR.Printf("Error signing client public key: %s", err)
@@ -170,8 +140,8 @@ func ConfirmNonce(hash, R, S []byte) ([]byte,
 			errors.New("unable to sign client public key")
 	}
 
-	// Return signed Client public key to Client with empty error field
-	return data, sig.R.Bytes(), sig.S.Bytes(), publicKey.GetKey().Bytes(),
-		dsaParams.GetP().Bytes(), dsaParams.GetQ().Bytes(),
-		dsaParams.GetG().Bytes(), nil
+	grp := instance.GetGroup()
+	// Return the signed Client public key to Client with empty error field
+	return data, sig.R.Bytes(), sig.S.Bytes(), instance.GetPubKey().GetKey().Bytes(),
+		grp.GetPBytes(), grp.GetQ().Bytes(), grp.GetG().Bytes(), nil
 }

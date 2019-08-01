@@ -1,0 +1,53 @@
+---
+# Example yaml params file used for testing
+# the params object and its dependencies
+node:
+  id: "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
+  ids:
+    - "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
+    - "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
+    - "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
+  paths:
+    cert: "~/.elixxir/cert.crt"
+    key:  "~/.elixxir/key.pem"
+    log:  "~/.elixxir/server.log"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+database:
+  name: "name"
+  username: "username"
+  password: "password"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+gateways:
+  paths:
+    cert: "~/.elixxir/gateway.crt"
+  addresses:
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+    - "127.0.0.1:80"
+permissioning:
+  paths:
+    cert: "~/.elixxir/permissioning.crt"
+  address: "127.0.0.1:80"
+  registrationCode: "pneumonoultramicroscopicsilicovolcanoconios="
+groups:
+  cmix:
+    prime: "0x11"
+    smallprime: "0x0B"
+    generator: "0x04"
+  e2e:
+    prime: "0x11"
+    smallprime: "0x0B"
+    generator: "0x04"
+batch: 20
+verbose: true
+skipReg: true
+keepBuffers: true
+metrics:
+  log:  "~/.elixxir/metrics.log"
+...

@@ -11,21 +11,19 @@ import (
 	"fmt"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
-	"sync"
 	"time"
 )
 
 // Structure implementing the UserRegistry Interface with an underlying DB.
 type UserDatabase struct {
-	db           *pg.DB                           // Stored database connection
-	userChannels map[id.User]chan *pb.CmixMessage // Map of UserId to chan
+	db *pg.DB
 }
 
 // Structure representing a User in the database.
@@ -37,10 +35,7 @@ type UserDB struct {
 	Id string
 
 	// Keys
-	TransmissionBaseKey      []byte
-	TransmissionRecursiveKey []byte
-	ReceptionBaseKey         []byte
-	ReceptionRecursiveKey    []byte
+	BaseKey []byte
 
 	// DSA Public Key
 	PubKeyY []byte
@@ -73,8 +68,9 @@ func decodeUser(userIdDB string) *id.User {
 	// This should only happen if you intentionally put invalid user ID
 	// information in the database, which should never happen
 	if err != nil {
-		jww.ERROR.Print("decodeUser: Got error decoding user ID. " +
-			"Returning zero ID instead")
+		err = errors.New(err.Error())
+		jww.ERROR.Printf("decodeUser: Got error decoding user ID: %+v,"+
+			" Returning zero ID instead", err)
 		return id.ZeroID
 	}
 
@@ -102,43 +98,18 @@ func NewUserRegistry(username, password,
 		// Return the map-backed UserRegistry interface
 		// in the event there is a database error
 		jww.INFO.Println("Using map backend for UserRegistry!")
-
-		uc := make(map[id.User]*User)
-		salts := make(map[id.User][][]byte)
-
-		return UserRegistry(&UserMap{
-			userCollection: uc,
-			saltCollection: salts,
-			collectionLock: &sync.Mutex{},
-		})
+		return UserRegistry(&UserMap{})
 	} else {
 		// Return the database-backed UserRegistry interface
 		// in the event there are no database errors
 		jww.INFO.Println("Using database backend for UserRegistry!")
-		return UserRegistry(&UserDatabase{
-			db:           db,
-			userChannels: make(map[id.User]chan *pb.CmixMessage),
-		})
-	}
-}
-
-// Create dummy users to be manually inserted into the database
-func PopulateDummyUsers(grp *cyclic.Group) {
-	// Deterministically create named users for demo
-	for i := 0; i < NUM_DEMO_USERS; i++ {
-		u := Users.NewUser(grp)
-		Users.UpsertUser(u)
-	}
-	// Named channel bot users
-	for i := 0; i < NUM_DEMO_CHANNELS; i++ {
-		u := Users.NewUser(grp)
-		Users.UpsertUser(u)
+		return UserRegistry(&UserDatabase{db: db})
 	}
 }
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) bool {
+func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) error {
 	// Convert id.User to string for database lookup
 	userIdDB := encodeUser(userId)
 	// Create a salt object with the given User
@@ -150,7 +121,7 @@ func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) bool {
 	if count, _ := m.db.Model(&s).Count(); count > maxSalts {
 		jww.ERROR.Printf("Unable to insert salt: Too many salts have already"+
 			" been used for User %d", userId)
-		return false
+		return errors.New(fmt.Sprintf(errTooManySalts, userId))
 	}
 
 	// Insert salt into the DB
@@ -159,11 +130,11 @@ func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) bool {
 
 	// Verify there were no errors
 	if err != nil {
+		err = errors.New(err.Error())
 		jww.ERROR.Printf("Unable to insert salt: %v", err)
-		return false
 	}
 
-	return true
+	return err
 }
 
 // NewUser creates a new User object with default fields and given address.
@@ -182,7 +153,8 @@ func (m *UserDatabase) DeleteUser(userId *id.User) {
 
 	if err != nil {
 		// Non-fatal error, user probably doesn't exist in the database
-		jww.WARN.Printf("Unable to delete user %q! %v", userId, err)
+		err = errors.New(err.Error())
+		jww.WARN.Printf("Unable to delete user %q! %+v", userId, err)
 	}
 }
 
@@ -195,7 +167,8 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 
 	if err != nil {
 		// If there was an error, no user for the given ID was found
-		return nil, err
+		jww.ERROR.Printf("Unable to find user %v", id)
+		return nil, errors.New(err.Error())
 	}
 	// If we found a user for the given ID, return it
 	return m.convertDbToUser(&u), nil
@@ -210,7 +183,7 @@ func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error)
 
 	if err != nil {
 		// If there was an error, no user for the given nonce was found
-		return nil, err
+		return nil, errors.New(err.Error())
 	}
 	// If we found a user for the given ID, return it
 	return m.convertDbToUser(&u), nil
@@ -225,10 +198,7 @@ func (m *UserDatabase) UpsertUser(user *User) {
 	_, err := m.db.Model(dbUser).
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
-		Set("transmission_base_key = EXCLUDED.transmission_base_key," +
-			"transmission_recursive_key = EXCLUDED.transmission_recursive_key," +
-			"reception_base_key = EXCLUDED.reception_base_key," +
-			"reception_recursive_key = EXCLUDED.reception_recursive_key," +
+		Set("base_key = EXCLUDED.base_key," +
 			"pub_keyy = EXCLUDED.pub_keyy," +
 			"pub_keyp = EXCLUDED.pub_keyp," +
 			"pub_keyq = EXCLUDED.pub_keyq," +
@@ -238,7 +208,8 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
-		jww.ERROR.Printf("Unable to upsert user %q! %s", user.ID, err.Error())
+		err = errors.New(err.Error())
+		jww.ERROR.Printf("Unable to upsert user %q! %+v", user.ID, err)
 	}
 }
 
@@ -246,7 +217,8 @@ func (m *UserDatabase) UpsertUser(user *User) {
 func (m *UserDatabase) CountUsers() int {
 	count, err := m.db.Model(&UserDB{}).Count()
 	if err != nil {
-		jww.ERROR.Printf("Unable to count users! %s", err.Error())
+		err = errors.New(err.Error())
+		jww.ERROR.Printf("Unable to count users! %+v", err)
 		return 0
 	}
 	return count
@@ -269,7 +241,8 @@ func createSchema(db *pg.DB) error {
 		})
 		if err != nil {
 			// Return the error if one comes up
-			jww.WARN.Printf("Unable to create database schema! %v", err)
+			err = errors.New(err.Error())
+			jww.WARN.Printf("Unable to create database schema! %+v", err)
 			return err
 		}
 	}
@@ -305,10 +278,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	newUser = new(UserDB)
 	params := user.PublicKey.GetParams()
 	newUser.Id = encodeUser(user.ID)
-	newUser.TransmissionBaseKey = user.Transmission.BaseKey.Bytes()
-	newUser.TransmissionRecursiveKey = user.Transmission.RecursiveKey.Bytes()
-	newUser.ReceptionBaseKey = user.Reception.BaseKey.Bytes()
-	newUser.ReceptionRecursiveKey = user.Reception.RecursiveKey.Bytes()
+	newUser.BaseKey = user.BaseKey.Bytes()
 	newUser.PubKeyY = user.PublicKey.GetKey().Bytes()
 	newUser.PubKeyP = params.GetP().Bytes()
 	newUser.PubKeyQ = params.GetQ().Bytes()
@@ -325,16 +295,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	}
 	newUser = new(User)
 	newUser.ID = decodeUser(user.Id)
-
-	newUser.Transmission = ForwardKey{
-		BaseKey:      grp.NewIntFromBytes(user.TransmissionBaseKey),
-		RecursiveKey: grp.NewIntFromBytes(user.TransmissionRecursiveKey),
-	}
-
-	newUser.Reception = ForwardKey{
-		BaseKey:      grp.NewIntFromBytes(user.ReceptionBaseKey),
-		RecursiveKey: grp.NewIntFromBytes(user.ReceptionRecursiveKey),
-	}
+	newUser.BaseKey = grp.NewIntFromBytes(user.BaseKey)
 
 	newUser.PublicKey = signature.ReconstructPublicKey(
 		signature.CustomDSAParams(

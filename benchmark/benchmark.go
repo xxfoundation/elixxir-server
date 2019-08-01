@@ -8,16 +8,15 @@
 package benchmark
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
+	//jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/server/cryptops/precomputation"
-	"gitlab.com/elixxir/server/cryptops/realtime"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/services"
-
-	"fmt"
-	"gitlab.com/elixxir/primitives/id"
+	//"gitlab.com/elixxir/crypto/large"
+	//	"gitlab.com/elixxir/server/cryptops/precomputation"
+	//	"gitlab.com/elixxir/server/cryptops/realtime"
+	//"gitlab.com/elixxir/server/globals"
+	//"gitlab.com/elixxir/server/services"
+	//"fmt"
+	//"gitlab.com/elixxir/primitives/id"
 )
 
 var group *cyclic.Group
@@ -68,6 +67,7 @@ var MAXGENERATION = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"93B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199" +
 	"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 
+/*
 // Convert the round object into a string we can print
 func RoundText(g *cyclic.Group, n *globals.Round) string {
 	outStr := fmt.Sprintf("\tPrime: 107, Generator: %s, CypherPublicKey: %s, "+
@@ -219,7 +219,7 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 		// extraction of RID from associated data
 		// HOWEVER, this will significantly change the main test using this
 		// benchmark function, as was commented in: TestEndToEndCryptops
-		rID := id.NewUserFromBytes(esTmp.AssociatedData.
+		rID := new(id.User).SetBytes(esTmp.AssociatedData.
 			LeftpadBytes(id.UserLen))
 
 		inputMsgPostID := services.Slot(&realtime.Slot{
@@ -577,45 +577,48 @@ func GenerateIOMessages(nodeCount int, batchSize uint64,
 
 	return inputMsgs, outputMsgs
 }
+*/
 
 // Template function for running precomputation
 func PrecompIterations(nodeCount int, batchSize uint64, iterations int) {
-	prime := large.NewInt(0)
-	prime.SetString(PRIME, 16)
+	/*	prime := large.NewInt(0)
+		prime.SetString(PRIME, 16)
 
-	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
-	rounds := GenerateRounds(nodeCount, batchSize, grp)
+		grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
+		rounds := GenerateRounds(nodeCount, batchSize, grp)
 
-	for i := 0; i < iterations; i++ {
-		MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
-	}
+		for i := 0; i < iterations; i++ {
+			MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
+		}
+	*/
 }
 
 // Run realtime simulation for given number of of iterations
 func RealtimeIterations(nodeCount int, batchSize uint64, iterations int) {
-	prime := large.NewInt(0)
-	prime.SetString(PRIME, 16)
+	/*	prime := large.NewInt(0)
+		prime.SetString(PRIME, 16)
 
-	grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
+		grp := cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(4))
 
-	rounds := GenerateRounds(nodeCount, batchSize, grp)
+		rounds := GenerateRounds(nodeCount, batchSize, grp)
 
-	// Rewrite permutation pattern
-	for i := 0; i < nodeCount; i++ {
-		for j := uint64(0); j < batchSize; j++ {
-			// Shift by 1
-			newj := (j + 1) % batchSize
-			rounds[i].Permutations[j] = newj
+		// Rewrite permutation pattern
+		for i := 0; i < nodeCount; i++ {
+			for j := uint64(0); j < batchSize; j++ {
+				// Shift by 1
+				newj := (j + 1) % batchSize
+				rounds[i].Permutations[j] = newj
+			}
 		}
-	}
 
-	MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
+		MultiNodePrecomp(nodeCount, batchSize, grp, rounds)
 
-	for i := 0; i < iterations; i++ {
-		tmpRounds := CopyRounds(nodeCount, rounds, grp)
-		inputMsgs, outputMsgs := GenerateIOMessages(nodeCount, batchSize, tmpRounds)
+		for i := 0; i < iterations; i++ {
+			tmpRounds := CopyRounds(nodeCount, rounds, grp)
+			inputMsgs, outputMsgs := GenerateIOMessages(nodeCount, batchSize, tmpRounds)
 
-		MultiNodeRealtime(nodeCount, batchSize, grp, tmpRounds, inputMsgs,
-			outputMsgs)
-	}
+			MultiNodeRealtime(nodeCount, batchSize, grp, tmpRounds, inputMsgs,
+				outputMsgs)
+		}
+	*/
 }
