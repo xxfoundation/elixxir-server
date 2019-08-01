@@ -47,11 +47,12 @@ func CreateServerInstance(def *Definition) *Instance {
 func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
 
+	//Start local node
 	fmt.Println("me: ", i.definition.Address, i.definition.TlsCert, i.definition.TlsKey)
-
 	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
 		i.definition.TlsCert, i.definition.TlsKey)
 
+	//Attempt to connect to all other nodes
 	for index, n := range i.definition.Nodes {
 		fmt.Println("my friend: ", n.ID, n.Address, n.TlsCert)
 		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert)
@@ -61,6 +62,13 @@ func (i *Instance) InitNetwork(
 		}
 	}
 
+	//Verify that all nodes have need signed by the permissioning server
+	err := i.VerifyTopology()
+	if err != nil {
+		jww.FATAL.Printf("Could not verify all nodes were signed by the permissioning server")
+	}
+
+	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
 		err := i.network.ConnectToGateway(i.definition.Gateway.ID,
 			i.definition.Gateway.Address, i.definition.Gateway.TlsCert)
@@ -214,32 +222,22 @@ func (i *Instance) VerifyTopology() error {
 		return err
 	}
 
-	//Question for reviewer: This is defined by the signed certs in registration/cmd/registration.go
-	//so the definition.topology is updated, correct?
-
 	//Iterate through the topology
 	for j := 0; j < i.definition.Topology.Len(); j++ {
 		//Load the node Cert from topology
 		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
 		if err != nil {
-			jww.ERROR.Printf("Could not load the node certificate cert: %v", err)
+			jww.ERROR.Printf("Could not load the node %v's certificate cert: %v", j, err)
 			return err
 		}
 
 		//Check that the node's cert was signed by the permissioning server's cert
 		err = nodeCert.CheckSignatureFrom(permissioningCert)
 		if err != nil {
-			jww.ERROR.Printf("Could not verify that a node's cert was signed by permissioinging: %v", err)
+			jww.ERROR.Printf("Could not verify that a node %v's cert was signed by permissioinging: %v", j, err)
 			return err
 		}
 	}
-
-	// Shutdown the internal comms server so we may modify their configs to have the signed cert
-	i.network.Shutdown()
-
-	//Reinitialize the network with the newly signed certs
-	//Restarting doen't necessarily have to be here? you need to restart somewhere, but it could be in what calls
-	// Shutdown all verified nodes, modify their configs to have the signed cert
 
 	return nil
 }
