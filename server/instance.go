@@ -246,7 +246,8 @@ func (i *Instance) VerifyTopology() error {
 	//Reinitialize the network with the newly signed certs
 	//This is how it was done in the test, but there was no comments explaining why it's multithreaded like this
 	//I did so as a precaution (multiinstance_test.go)
-	//Restarting doen't necessarily have to be here? you need to restart somewhere, but it could be in what calls verify?
+	//Restarting doen't necessarily have to be here? you need to restart somewhere, but it could be in what calls
+	// verify? Asking cause it's causing cycles
 	/*wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
