@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"math/rand"
+	"strings"
 	"testing"
 )
 
@@ -57,6 +58,7 @@ func (i *Implementation) RegisterNode(ID []byte,
 
 // --------------------------------------------------------------------
 
+// Full-stack happy path test for the node registration logic
 func TestRegisterNode(t *testing.T) {
 	// Initialize permissioning server
 	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
@@ -99,15 +101,16 @@ func TestRegisterNode(t *testing.T) {
 
 	n := def.Nodes
 	if len(n) < 1 {
-
+		t.Errorf("Received empty network topology!")
 	}
 	if bytes.Compare(n[0].ID.Bytes(), nodeId.Bytes()) != 0 {
-
+		t.Errorf("Received network topology with incorrect node ID!")
 	}
-	if n[0].Address != addr {
-
+	if n[0].Address != addr && strings.Replace(n[0].Address, "127.0.0.1",
+		"0.0.0.0", -1) != addr {
+		t.Errorf("Received network topology with incorrect node address!")
 	}
 	if n[0].TlsCert == nil {
-
+		t.Errorf("Received network topology with incorrect node TLS cert!")
 	}
 }
