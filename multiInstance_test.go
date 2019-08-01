@@ -67,8 +67,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	t.Logf("Building instances for %v nodes", numNodes)
 
-	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
 	for i := 0; i < numNodes; i++ {
 		instance := server.CreateServerInstance(defsLst[i])
 		instances = append(instances, instance)
@@ -333,6 +331,9 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 	for i := 0; i < numNodes; i++ {
 
+		resourceMonitor := measure.ResourceMonitor{}
+		resourceMonitor.Set(&measure.ResourceMetric{})
+
 		def := server.Definition{
 			CmixGroup: grp,
 			Topology:  circuit.New(nidLst),
@@ -342,8 +343,9 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
-			Address:        nodeLst[i].Address,
-			GraphGenerator: services.NewGraphGenerator(1, PanicHandler, 2, 2, 0.0),
+			Address:         nodeLst[i].Address,
+			GraphGenerator:  services.NewGraphGenerator(4, PanicHandler, 2, 2, 0.0),
+			ResourceMonitor: &resourceMonitor,
 		}
 		defLst = append(defLst, &def)
 	}

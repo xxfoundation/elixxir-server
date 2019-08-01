@@ -204,7 +204,6 @@ func GenerateId() *id.Node {
 	return nid
 }
 
-/**/
 // VerifyTopology checks the signed node certs and verifies that no falsely signed certs are submitted
 // it then shuts down the network so that it can be reinitalized with the new topology
 func (i *Instance) VerifyTopology() error {
@@ -215,10 +214,10 @@ func (i *Instance) VerifyTopology() error {
 		return err
 	}
 
-	//Iterate through the topology
 	//Question for reviewer: This is defined by the signed certs in registration/cmd/registration.go
 	//so the definition.topology is updated, correct?
 
+	//Iterate through the topology
 	for j := 0; j < i.definition.Topology.Len(); j++ {
 		//Load the node Cert from topology
 		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
@@ -235,36 +234,15 @@ func (i *Instance) VerifyTopology() error {
 		}
 	}
 
-	//Question: what does shutdown do as a member of network? Does it shut off all comms, or just that node
-	// ie is the server handling comms or is synonomous with a node?
-	//If so, can we use it to shutdown that node?
-	//If not, we are going to have to implement a node killer :?
-	//Question is, will this reinit the whole network?
-	// Shutdown all verified nodes, modify their configs to have the signed cert
+	// Shutdown the internal comms server so we may modify their configs to have the signed cert
 	i.network.Shutdown()
-	//Also this is basically the equivalent of downloading updates on your PC and having to be rebooted, correct?
-	//The new certs are in 	i.definition.Topology, but the instance has been init'd already so we have to restart
 
 	//Reinitialize the network with the newly signed certs
-	//This is how it was done in the test, but there was no comments explaining why it's multithreaded like this
-	//I did so as a precaution (multiinstance_test.go)
 	//Restarting doen't necessarily have to be here? you need to restart somewhere, but it could be in what calls
-	// verify? Asking cause it's causing cycles
-	/*wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		i.InitNetwork(node2.NewImplementation)
-		wg.Done()
-	}()
-	wg.Wait()
-	*/
-
 	// Shutdown all verified nodes, modify their configs to have the signed cert
 
 	return nil
 }
-
-/**/
 
 // String adheres to the stringer interface, returns unique identifying
 // information about the node
