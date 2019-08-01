@@ -286,7 +286,7 @@ func RootingTestTriple(grp *cyclic.Group, t *testing.T) {
 // createDummyUserList creates a user list with a user of id 123,
 // a base key of 1, and some random dsa params.
 func createDummyUserList(grp *cyclic.Group,
-	rng csprng.Source) *globals.UserMap {
+	rng csprng.Source, t *testing.T) *globals.UserMap {
 	// Create a user -- FIXME: Why are we doing this here? Graphs shouldn't
 	// need to be aware of users...it should be done and applied separately
 	// as a list of keys to apply. This approach leads to getting part way
@@ -295,7 +295,7 @@ func createDummyUserList(grp *cyclic.Group,
 	registry := &globals.UserMap{}
 	var userList []*globals.User
 	u := new(globals.User)
-	u.ID = id.NewUserFromUint(uint64(123), nil)
+	u.ID = id.NewUserFromUint(uint64(123), t)
 	baseKeyBytes := []byte{1}
 	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
 	// FIXME: This should really not be necessary and this API is wonky
@@ -374,7 +374,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	rngConstructor := NewPsudoRNG // FIXME: Why?
 	batchSize := uint32(1)
 
-	registry := createDummyUserList(grp, rngConstructor())
+	registry := createDummyUserList(grp, rngConstructor(), t)
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 
 	//make the round buffer and manually set the round keys
@@ -567,7 +567,7 @@ func TestBatchSize3(t *testing.T) {
 	rngConstructor := NewPsudoRNG // FIXME: Why?
 	batchSize := uint32(4)
 
-	registry := createDummyUserList(grp, rngConstructor())
+	registry := createDummyUserList(grp, rngConstructor(), t)
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 
 	//make the round buffer and manually set the round keys
@@ -1235,7 +1235,7 @@ func Test3NodeE2E(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4), large.NewInt(5))
 	rngConstructor := NewPsudoRNG // FIXME: Why?
-	registry := createDummyUserList(grp, rngConstructor())
+	registry := createDummyUserList(grp, rngConstructor(), t)
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 
 	//make the round buffer and manually set the round keys
