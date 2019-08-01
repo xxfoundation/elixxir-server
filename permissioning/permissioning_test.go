@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"math/rand"
-	"strings"
 	"testing"
 )
 
@@ -31,19 +30,28 @@ func (i *Implementation) RegisterUser(registrationCode string, Y, P, Q,
 }
 func (i *Implementation) RegisterNode(ID []byte,
 	NodeTLSCert, GatewayTLSCert, RegistrationCode, Addr string) error {
-	Addr = strings.Replace(Addr, "127.0.0.1", "0.0.0.0", -1)
-	_ = permComms.ConnectToNode(nodeId, Addr, nil)
-	nodeTop := make([]*pb.NodeInfo, 0)
-	nodeTop = append(nodeTop, &pb.NodeInfo{
-		Id:        nodeId.Bytes(),
-		Index:     0,
-		IpAddress: Addr,
-		TlsCert:   "",
-	})
-	nwTop := &pb.NodeTopology{
-		Topology: nodeTop,
-	}
-	_ = permComms.SendNodeTopology(nodeId, nwTop)
+
+	go func() {
+		err := permComms.ConnectToNode(nodeId, Addr, nil)
+		if err != nil {
+			panic(err)
+		}
+		nodeTop := make([]*pb.NodeInfo, 0)
+		nodeTop = append(nodeTop, &pb.NodeInfo{
+			Id:        nodeId.Bytes(),
+			Index:     0,
+			IpAddress: Addr,
+			TlsCert:   "",
+		})
+		nwTop := &pb.NodeTopology{
+			Topology: nodeTop,
+		}
+		err = permComms.SendNodeTopology(nodeId, nwTop)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	return nil
 }
 
@@ -63,7 +71,7 @@ func TestRegisterNode(t *testing.T) {
 		ID:            nodeId,
 		DsaPublicKey:  nil,
 		DsaPrivateKey: nil,
-		TlsCert:       make([]byte, 0),
+		TlsCert:       nil,
 		TlsKey:        nil,
 		Address:       addr,
 		LogPath:       "",
