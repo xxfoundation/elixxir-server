@@ -5,18 +5,20 @@
 ////////////////////////////////////////////////////////////////////////////////
 package graphs
 
-
-/*
+/**/
 import (
 	"fmt"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
 	"math/rand"
 	"testing"
@@ -50,29 +52,24 @@ func TestClientServer(t *testing.T) {
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
 
-	smallprime := fmt.Sprintf("%x", 1283)
-	generator := fmt.Sprintf("%x", 2)
 	mod := Keygen.DeepCopy()
 	mod.Cryptop = cryptops.Keygen
 	//guessing i dont need, reconfig for something in client
-	cmixSetting := map[string]string{
-		"prime":      primeString,
-		"smallprime": smallprime,
-		"generator":  generator,
-	}
-	nid := server.GenerateId()
 
-	params := conf.Params{
-		Groups: conf.Groups{
-			CMix: cmixSetting,
-		},
-		Node: conf.Node{
-			Ids: []string{nid.String()},
-		},
+	nid := server.GenerateId()
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2), large.NewInt(2))
+
+	def := server.Definition{
+		ID:              nid,
+		CmixGroup:       grp,
+		Topology:        circuit.New([]*id.Node{nid}),
+		ResourceMonitor: &measure.ResourceMonitor{},
+		UserRegistry:    &globals.UserMap{},
 	}
-	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
+
+	instance := server.CreateServerInstance(&def)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
@@ -88,62 +85,62 @@ func TestClientServer(t *testing.T) {
 	//stream.Link(grp,10, instance)
 
 	/* stream doesn't play nice (the below only exist with keygenteststream
-	// Necessary to avoid crashing
-	stream.users[0] = id.ZeroID
-	// Not necessary to avoid crashing
-	stream.salts[0] = []byte{}
+		// Necessary to avoid crashing
+		stream.users[0] = id.ZeroID
+		// Not necessary to avoid crashing
+		stream.salts[0] = []byte{}
 
-	grp.SetUint64(stream.KeysA.Get(uint32(0)), uint64(0))
-	grp.SetUint64(stream.KeysB.Get(uint32(0)), uint64(1000+0))
-	stream.salts[0] = testSalt
-	stream.users[0] = usr.ID
+		grp.SetUint64(stream.KeysA.Get(uint32(0)), uint64(0))
+		grp.SetUint64(stream.KeysB.Get(uint32(0)), uint64(1000+0))
+		stream.salts[0] = testSalt
+		stream.users[0] = usr.ID
 
-	baseKeys := make([]*cyclic.Int, registry.CountUsers())
-	for i := 0; i < registry.CountUsers(); i++ {
-		baseKeys[i] = usr.BaseKey
-	}
-	err := mod.Adapt(stream, mod.Cryptop, chunk)
-	if err != nil {
-		t.Error(err.Error())
-	}
-	msg := makeMsg()
-	encMsg := cmix.ClientEncrypt(grp, msg, testSalt, baseKeys)
-	fmt.Println(encMsg)
-	/*
-		//here you would pull basekeys from mutliple users, but we shall shorthand it
-		baseKeys := make([]*cyclic.Int, 10)
-		baseKeys[0] = usr.BaseKey
-		message := makeMsg()
-
-		encMsg := cmix.ClientEncrypt(grp, message, testSalt, baseKeys)
-		mod.Adapt(stream,mod.Cryptop,chunk)
-		keyA := cmix.ClientKeyGen(grp, testSalt, baseKeys)
-		hash, err := blake2b.New256(nil)
+		baseKeys := make([]*cyclic.Int, registry.CountUsers())
+		for i := 0; i < registry.CountUsers(); i++ {
+			baseKeys[i] = usr.BaseKey
+		}
+		err := mod.Adapt(stream, mod.Cryptop, chunk)
 		if err != nil {
-			t.Error("E2E Client Encrypt could not get blake2b Hash")
+			t.Error(err.Error())
 		}
-		hash.Reset()
-		hash.Write(testSalt)
-		keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), baseKeys)
+		msg := makeMsg()
+		encMsg := cmix.ClientEncrypt(grp, msg, testSalt, baseKeys)
+		fmt.Println(encMsg)
+		/*
+			//here you would pull basekeys from mutliple users, but we shall shorthand it
+			baseKeys := make([]*cyclic.Int, 10)
+			baseKeys[0] = usr.BaseKey
+			message := makeMsg()
 
-		keyAInv := grp.Inverse(keyA, grp.NewInt(1))
-		keyBInv := grp.Inverse(keyB, grp.NewInt(1))
-		DecPayloadA := grp.Mul(keyAInv, grp.NewIntFromBytes(encMsg.GetPayloadA()), grp.NewInt(1))
-		DecPayloadB := grp.Mul(keyBInv, grp.NewIntFromBytes(encMsg.GetPayloadB()), grp.NewInt(1))
-
-		decMsg := format.NewMessage()
-		decMsg.SetPayloadA(DecPayloadA.Bytes())
-		decMsg.SetDecryptedPayloadB(DecPayloadB.LeftpadBytes(format.PayloadLen))
-
-		ok := true
-		for ok {
-			chunk, ok = g.GetOutput()
-			for i := chunk.Begin(); i < chunk.End(); i++ {
-				resultA := stream.KeysA.Get(uint32(i))
-				resultB := stream.KeysB.Get(uint32(i))
-				resultABytes := resultA.Bytes()
-				resultBBytes := resultB.Bytes()
+			encMsg := cmix.ClientEncrypt(grp, message, testSalt, baseKeys)
+			mod.Adapt(stream,mod.Cryptop,chunk)
+			keyA := cmix.ClientKeyGen(grp, testSalt, baseKeys)
+			hash, err := blake2b.New256(nil)
+			if err != nil {
+				t.Error("E2E Client Encrypt could not get blake2b Hash")
 			}
-		}
-*/
-//}
+			hash.Reset()
+			hash.Write(testSalt)
+			keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), baseKeys)
+
+			keyAInv := grp.Inverse(keyA, grp.NewInt(1))
+			keyBInv := grp.Inverse(keyB, grp.NewInt(1))
+			DecPayloadA := grp.Mul(keyAInv, grp.NewIntFromBytes(encMsg.GetPayloadA()), grp.NewInt(1))
+			DecPayloadB := grp.Mul(keyBInv, grp.NewIntFromBytes(encMsg.GetPayloadB()), grp.NewInt(1))
+
+			decMsg := format.NewMessage()
+			decMsg.SetPayloadA(DecPayloadA.Bytes())
+			decMsg.SetDecryptedPayloadB(DecPayloadB.LeftpadBytes(format.PayloadLen))
+
+			ok := true
+			for ok {
+				chunk, ok = g.GetOutput()
+				for i := chunk.Begin(); i < chunk.End(); i++ {
+					resultA := stream.KeysA.Get(uint32(i))
+					resultB := stream.KeysB.Get(uint32(i))
+					resultABytes := resultA.Bytes()
+					resultBBytes := resultB.Bytes()
+				}
+			}
+	/**/
+}
