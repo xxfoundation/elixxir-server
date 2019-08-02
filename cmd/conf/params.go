@@ -196,7 +196,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var PermTlsCert []byte
 
 	if p.Permissioning.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Permissioning.Paths.Cert))
+		PermTlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Permissioning.Paths.Cert))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
