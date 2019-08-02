@@ -73,7 +73,6 @@ func TestClientServer(t *testing.T) {
 	registry.UpsertUser(usr)
 	fmt.Println(usr.BaseKey.Bytes())
 
-
 	//Generate the user's key
 	var chunk services.Chunk
 	var stream KeygenTestStream
@@ -81,7 +80,7 @@ func TestClientServer(t *testing.T) {
 	testSalt := []byte("sodium chloride")
 	// pad to length of the base key
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
-	testSalts := make([][]byte,0)
+	testSalts := make([][]byte, 0)
 	testSalts = append(testSalts, testSalt)
 	//Generate an array of users for linking
 	usrs := make([]*id.User, 0)
@@ -89,16 +88,14 @@ func TestClientServer(t *testing.T) {
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, usr.BaseKey)
 	stream.LinkStream(grp, registry, testSalts, usrs, keys, keys)
-	err := Keygen.Adapt(&stream,cryptops.Keygen,chunk)
+	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(usr.BaseKey.Bytes())
 	//Create an array of basekeys to prepare for encryption
 	userBaseKeys := make([]*cyclic.Int, 0)
+	//FIXME: This is probably worng
 	userBaseKeys = append(userBaseKeys, usr.BaseKey)
-
-
 
 	//Generate a mock message
 	inputMsg := makeMsg()
