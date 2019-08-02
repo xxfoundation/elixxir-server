@@ -8,6 +8,7 @@ package conf
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -18,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"golang.org/x/crypto/blake2b"
 	"io/ioutil"
+	"net"
 )
 
 // This object is used by the server instance.
@@ -159,7 +161,12 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 
 	def.ID = nodes[p.Index].ID
 
-	def.Address = nodes[p.Index].Address
+	_, port, err := net.SplitHostPort(nodes[p.Index].Address)
+	if err != nil {
+		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
+			errors.New(err.Error()))
+	}
+	def.Address = fmt.Sprintf("0.0.0.0:%s", port)
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
