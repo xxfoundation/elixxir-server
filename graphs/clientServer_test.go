@@ -7,7 +7,6 @@ package graphs
 
 /**/
 import (
-	"fmt"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -71,7 +70,6 @@ func TestClientServer(t *testing.T) {
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
-	fmt.Println(usr.BaseKey.Bytes())
 
 	//Generate the user's key
 	var chunk services.Chunk
@@ -114,29 +112,30 @@ func TestClientServer(t *testing.T) {
 
 	keyA := cmix.ClientKeyGen(grp, testSalt, userBaseKeys)
 	keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), userBaseKeys)
-	payloadA := grp.NewIntFromBytes(inputMsg.GetPayloadA())
-	payloadB := grp.NewIntFromBytes(inputMsg.GetPayloadBForEncryption())
+	keyA_Inv := grp.Inverse(keyA, grp.NewInt(1))
+	keyB_Inv := grp.Inverse(keyB, grp.NewInt(1))
+
 	multPayloadA := grp.NewInt(1)
 	multPayloadB := grp.NewInt(1)
 
-	grp.Mul(keyA, payloadA, multPayloadA)
-	grp.Mul(keyB, payloadB, multPayloadB)
+	grp.Mul(keyA_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadA()), multPayloadA)
+	grp.Mul(keyB_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadB()), multPayloadB)
 
 	testMsg := format.NewMessage()
 
 	testMsg.SetPayloadA(multPayloadA.Bytes())
-	testMsg.SetPayloadB(multPayloadB.Bytes())
+	testMsg.SetDecryptedPayloadB(multPayloadB.LeftpadBytes(format.PayloadLen))
 
 	//Compare the payloads of the 2 messages
-	if !reflect.DeepEqual(testMsg.GetPayloadA(), encryptedMsg.GetPayloadA()) {
+	if !reflect.DeepEqual(testMsg.GetPayloadA(), inputMsg.GetPayloadA()) {
 		t.Errorf("EncryptDecrypt("+
 			") did not produce the correct payload\n\treceived: %d\n"+
 			"\texpected: %d", encryptedMsg.GetPayloadA(), testMsg.GetPayloadA())
 	}
 
-	if !reflect.DeepEqual(testMsg.GetPayloadB(), encryptedMsg.GetPayloadB()) {
+	if !reflect.DeepEqual(testMsg.GetPayloadB(), inputMsg.GetPayloadB()) {
 		t.Errorf("EncryptDecrypt("+
 			") did not produce the correct associated data\n\treceived: %d\n"+
-			"\texpected: %d", encryptedMsg.GetPayloadB(), testMsg.GetPayloadB())
+			"\texpected: %d", inputMsg.GetPayloadB(), testMsg.GetPayloadB())
 	}
 }
