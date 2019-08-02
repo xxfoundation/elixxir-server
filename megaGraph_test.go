@@ -295,7 +295,8 @@ func createDummyUserList(grp *cyclic.Group,
 	registry := &globals.UserMap{}
 	var userList []*globals.User
 	u := new(globals.User)
-	u.ID = id.NewUserFromUint(uint64(123), nil)
+	t := testing.T{}
+	u.ID = id.NewUserFromUint(uint64(123), &t)
 	baseKeyBytes := []byte{1}
 	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
 	// FIXME: This should really not be necessary and this API is wonky
