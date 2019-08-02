@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
@@ -27,9 +26,10 @@ import (
 //TODO: make makeMsg it NOT random
 
 // Fill part of message with random payload and associated data
+// Fill part of message with random payload and associated data
 func makeMsg() *format.Message {
 	rng := rand.New(rand.NewSource(21))
-	payloadA := make([]byte, f)
+	payloadA := make([]byte, format.PayloadLen)
 	payloadB := make([]byte, format.PayloadLen)
 	rng.Read(payloadA)
 	rng.Read(payloadB)
@@ -56,7 +56,7 @@ func TestClientServer(t *testing.T) {
 	mod := Keygen.DeepCopy()
 	mod.Cryptop = cryptops.Keygen
 	//guessing i dont need, reconfig for something in client
-
+	fmt.Println("blah")
 	nid := server.GenerateId()
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(2))
@@ -68,12 +68,13 @@ func TestClientServer(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 	}
-
+	fmt.Println("blah blah")
 	instance := server.CreateServerInstance(&def)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
 	// make a salt for testing
+	fmt.Println("bla blah blah ")
 	testSalt := []byte("sodium chloride")
 	// pad to length of the base key
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
@@ -81,6 +82,34 @@ func TestClientServer(t *testing.T) {
 	//TODO: figure out what tf to do with these two...
 	var chunk services.Chunk
 	var stream KeygenTestStream
+
+
+
+	err := Keygen.Adapt(&stream,mod.Cryptop,chunk)
+	if err != nil {
+		t.Error(err)
+	}
+
+	inputMsg := makeMsg()
+
+	userBaseKeys := make([]*cyclic.Int, 0)
+	userBaseKeys = append(userBaseKeys, usr.BaseKey)
+	fmt.Println("user base")
+	fmt.Println(usr.BaseKey.Bytes())
+	fmt.Println("msg")
+	fmt.Println(inputMsg)
+	encryptedMsg := cmix.ClientEncrypt(grp, inputMsg, testSalt, userBaseKeys)
+	fmt.Println("enc msg")
+	fmt.Println(encryptedMsg)
+	decryptedMsg := cmix.ClientEncrypt(grp, encryptedMsg, testSalt, userBaseKeys)
+	fmt.Println("dec mesg")
+	fmt.Println(decryptedMsg)
+	//use client encdec code in crypto
+	//pass into adapter
+	//create user & associated keys
+	//clientencdec
+	//get
+
 	//var s *KeygenSubStream
 	//stream.Link(grp,10, instance)
 
