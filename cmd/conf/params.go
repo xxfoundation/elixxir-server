@@ -8,15 +8,18 @@ package conf
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/utils"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 	"golang.org/x/crypto/blake2b"
 	"io/ioutil"
+	"net"
 )
 
 // This object is used by the server instance.
@@ -114,7 +117,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var err error
 
 	if p.Node.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(p.Node.Paths.Cert)
+		tlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Cert))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load TLS Cert: %+v", err)
@@ -122,7 +125,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	}
 
 	if p.Node.Paths.Key != "" {
-		tlsKey, err = ioutil.ReadFile(p.Node.Paths.Key)
+		tlsKey, err = ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Key))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load TLS Key: %+v", err)
@@ -158,7 +161,12 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 
 	def.ID = nodes[p.Index].ID
 
-	def.Address = nodes[p.Index].Address
+	_, port, err := net.SplitHostPort(nodes[p.Index].Address)
+	if err != nil {
+		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
+			errors.New(err.Error()))
+	}
+	def.Address = fmt.Sprintf("0.0.0.0:%s", port)
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
@@ -167,7 +175,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var GwTlsCerts []byte
 
 	if p.Gateways.Paths.Cert != "" {
-		GwTlsCerts, err = ioutil.ReadFile(p.Gateways.Paths.Cert)
+		GwTlsCerts, err = ioutil.ReadFile(utils.GetFullPath(p.Gateways.Paths.Cert))
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
@@ -188,7 +196,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var PermTlsCert []byte
 
 	if p.Permissioning.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(p.Permissioning.Paths.Cert)
+		tlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Permissioning.Paths.Cert))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
@@ -197,6 +205,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
+	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
 
 	def.Permissioning.DsaPublicKey = &signature.DSAPublicKey{}
 	def.Permissioning.DsaPublicKey, err = def.Permissioning.DsaPublicKey.

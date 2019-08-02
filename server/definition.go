@@ -86,6 +86,8 @@ type Perm struct {
 	DsaPublicKey *signature.DSAPublicKey
 	// IP address of the permissioning server
 	Address string
+	// Node Registration Code
+	RegistrationCode string
 }
 
 type GW struct {
