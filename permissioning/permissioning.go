@@ -34,8 +34,7 @@ func RegisterNode(def *server.Definition) {
 
 	// Assemble the Comms callback interface
 	impl := node.NewImplementation()
-	impl.Functions.DownloadTopology = func(info *node.MessageInfo,
-		topology *pb.NodeTopology) {
+	impl.Functions.DownloadTopology = func(info *node.MessageInfo, topology *pb.NodeTopology) {
 		// Signal completion of Node registration
 		ch <- topology
 	}
