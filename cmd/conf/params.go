@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/utils"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -114,7 +115,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var err error
 
 	if p.Node.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(p.Node.Paths.Cert)
+		tlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Cert))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load TLS Cert: %+v", err)
@@ -122,7 +123,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	}
 
 	if p.Node.Paths.Key != "" {
-		tlsKey, err = ioutil.ReadFile(p.Node.Paths.Key)
+		tlsKey, err = ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Key))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load TLS Key: %+v", err)
@@ -167,7 +168,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var GwTlsCerts []byte
 
 	if p.Gateways.Paths.Cert != "" {
-		GwTlsCerts, err = ioutil.ReadFile(p.Gateways.Paths.Cert)
+		GwTlsCerts, err = ioutil.ReadFile(utils.GetFullPath(p.Gateways.Paths.Cert))
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
@@ -188,7 +189,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var PermTlsCert []byte
 
 	if p.Permissioning.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(p.Permissioning.Paths.Cert)
+		tlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Permissioning.Paths.Cert))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
