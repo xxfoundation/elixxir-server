@@ -19,7 +19,9 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
+	"golang.org/x/crypto/blake2b"
 	"math/rand"
+	"reflect"
 	"testing"
 )
 
@@ -41,6 +43,7 @@ func makeMsg() *format.Message {
 }
 
 func TestClientServer(t *testing.T) {
+	//Generate a group
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -52,15 +55,11 @@ func TestClientServer(t *testing.T) {
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-
-	mod := Keygen.DeepCopy()
-	mod.Cryptop = cryptops.Keygen
-	//guessing i dont need, reconfig for something in client
-	fmt.Println("blah")
-	nid := server.GenerateId()
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(2))
 
+	//Generate everything needed to make a user
+	nid := server.GenerateId()
 	def := server.Definition{
 		ID:              nid,
 		CmixGroup:       grp,
@@ -68,108 +67,79 @@ func TestClientServer(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 	}
-	fmt.Println("blah blah")
 	instance := server.CreateServerInstance(&def)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
+	fmt.Println(usr.BaseKey.Bytes())
+
+
+	//Generate the user's key
+	var chunk services.Chunk
+	var stream KeygenTestStream
 	// make a salt for testing
-	fmt.Println("bla blah blah ")
 	testSalt := []byte("sodium chloride")
 	// pad to length of the base key
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
-
-	//TODO: figure out what tf to do with these two...
-	var chunk services.Chunk
-	var stream KeygenTestStream
-
-
-
-	err := Keygen.Adapt(&stream,mod.Cryptop,chunk)
+	testSalts := make([][]byte,0)
+	testSalts = append(testSalts, testSalt)
+	//Generate an array of users for linking
+	usrs := make([]*id.User, 0)
+	usrs = append(usrs, usr.ID)
+	//generate an array of keys for linking
+	keys := grp.NewIntBuffer(1, usr.BaseKey)
+	stream.LinkStream(grp, registry, testSalts, usrs, keys, keys)
+	err := Keygen.Adapt(&stream,cryptops.Keygen,chunk)
 	if err != nil {
 		t.Error(err)
 	}
-
-	inputMsg := makeMsg()
-
+	fmt.Println(usr.BaseKey.Bytes())
+	//Create an array of basekeys to prepare for encryption
 	userBaseKeys := make([]*cyclic.Int, 0)
 	userBaseKeys = append(userBaseKeys, usr.BaseKey)
-	fmt.Println("user base")
-	fmt.Println(usr.BaseKey.Bytes())
-	fmt.Println("msg")
-	fmt.Println(inputMsg)
+
+
+
+	//Generate a mock message
+	inputMsg := makeMsg()
+
+	//Encrypt the input message
 	encryptedMsg := cmix.ClientEncrypt(grp, inputMsg, testSalt, userBaseKeys)
-	fmt.Println("enc msg")
-	fmt.Println(encryptedMsg)
-	decryptedMsg := cmix.ClientEncrypt(grp, encryptedMsg, testSalt, userBaseKeys)
-	fmt.Println("dec mesg")
-	fmt.Println(decryptedMsg)
-	//use client encdec code in crypto
-	//pass into adapter
-	//create user & associated keys
-	//clientencdec
-	//get
 
-	//var s *KeygenSubStream
-	//stream.Link(grp,10, instance)
+	//Generate an encrypted message using the keys manually, test output agains encryptedMsg above
+	hash, err := blake2b.New256(nil)
+	if err != nil {
+		t.Error("E2E Client Encrypt could not get blake2b Hash")
+	}
 
-	/* stream doesn't play nice (the below only exist with keygenteststream
-		// Necessary to avoid crashing
-		stream.users[0] = id.ZeroID
-		// Not necessary to avoid crashing
-		stream.salts[0] = []byte{}
+	hash.Reset()
+	hash.Write(testSalt)
 
-		grp.SetUint64(stream.KeysA.Get(uint32(0)), uint64(0))
-		grp.SetUint64(stream.KeysB.Get(uint32(0)), uint64(1000+0))
-		stream.salts[0] = testSalt
-		stream.users[0] = usr.ID
+	keyA := cmix.ClientKeyGen(grp, testSalt, userBaseKeys)
+	keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), userBaseKeys)
+	payloadA := grp.NewIntFromBytes(inputMsg.GetPayloadA())
+	payloadB := grp.NewIntFromBytes(inputMsg.GetPayloadBForEncryption())
+	multPayloadA := grp.NewInt(1)
+	multPayloadB := grp.NewInt(1)
 
-		baseKeys := make([]*cyclic.Int, registry.CountUsers())
-		for i := 0; i < registry.CountUsers(); i++ {
-			baseKeys[i] = usr.BaseKey
-		}
-		err := mod.Adapt(stream, mod.Cryptop, chunk)
-		if err != nil {
-			t.Error(err.Error())
-		}
-		msg := makeMsg()
-		encMsg := cmix.ClientEncrypt(grp, msg, testSalt, baseKeys)
-		fmt.Println(encMsg)
-		/*
-			//here you would pull basekeys from mutliple users, but we shall shorthand it
-			baseKeys := make([]*cyclic.Int, 10)
-			baseKeys[0] = usr.BaseKey
-			message := makeMsg()
+	grp.Mul(keyA, payloadA, multPayloadA)
+	grp.Mul(keyB, payloadB, multPayloadB)
 
-			encMsg := cmix.ClientEncrypt(grp, message, testSalt, baseKeys)
-			mod.Adapt(stream,mod.Cryptop,chunk)
-			keyA := cmix.ClientKeyGen(grp, testSalt, baseKeys)
-			hash, err := blake2b.New256(nil)
-			if err != nil {
-				t.Error("E2E Client Encrypt could not get blake2b Hash")
-			}
-			hash.Reset()
-			hash.Write(testSalt)
-			keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), baseKeys)
+	testMsg := format.NewMessage()
 
-			keyAInv := grp.Inverse(keyA, grp.NewInt(1))
-			keyBInv := grp.Inverse(keyB, grp.NewInt(1))
-			DecPayloadA := grp.Mul(keyAInv, grp.NewIntFromBytes(encMsg.GetPayloadA()), grp.NewInt(1))
-			DecPayloadB := grp.Mul(keyBInv, grp.NewIntFromBytes(encMsg.GetPayloadB()), grp.NewInt(1))
+	testMsg.SetPayloadA(multPayloadA.Bytes())
+	testMsg.SetPayloadB(multPayloadB.Bytes())
 
-			decMsg := format.NewMessage()
-			decMsg.SetPayloadA(DecPayloadA.Bytes())
-			decMsg.SetDecryptedPayloadB(DecPayloadB.LeftpadBytes(format.PayloadLen))
+	//Compare the payloads of the 2 messages
+	if !reflect.DeepEqual(testMsg.GetPayloadA(), encryptedMsg.GetPayloadA()) {
+		t.Errorf("EncryptDecrypt("+
+			") did not produce the correct payload\n\treceived: %d\n"+
+			"\texpected: %d", encryptedMsg.GetPayloadA(), testMsg.GetPayloadA())
+	}
 
-			ok := true
-			for ok {
-				chunk, ok = g.GetOutput()
-				for i := chunk.Begin(); i < chunk.End(); i++ {
-					resultA := stream.KeysA.Get(uint32(i))
-					resultB := stream.KeysB.Get(uint32(i))
-					resultABytes := resultA.Bytes()
-					resultBBytes := resultB.Bytes()
-				}
-			}
-	/**/
+	if !reflect.DeepEqual(testMsg.GetPayloadB(), encryptedMsg.GetPayloadB()) {
+		t.Errorf("EncryptDecrypt("+
+			") did not produce the correct associated data\n\treceived: %d\n"+
+			"\texpected: %d", encryptedMsg.GetPayloadB(), testMsg.GetPayloadB())
+	}
 }
