@@ -168,7 +168,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var GwTlsCerts []byte
 
 	if p.Gateways.Paths.Cert != "" {
-		GwTlsCerts, err = ioutil.ReadFile(p.Gateways.Paths.Cert)
+		GwTlsCerts, err = ioutil.ReadFile(utils.GetFullPath(p.Gateways.Paths.Cert))
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
@@ -189,7 +189,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var PermTlsCert []byte
 
 	if p.Permissioning.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(p.Permissioning.Paths.Cert)
+		tlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Permissioning.Paths.Cert))
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
