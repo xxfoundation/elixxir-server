@@ -343,7 +343,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 				KeepBuffers: true,
 			},
 			Address:        nodeLst[i].Address,
-			GraphGenerator: services.NewGraphGenerator(1, PanicHandler, 2, 2, 0.0),
+			GraphGenerator: services.NewGraphGenerator(2, PanicHandler, 2, 4, 0.0),
 		}
 		defLst = append(defLst, &def)
 	}
