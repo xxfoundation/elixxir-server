@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"io/ioutil"
@@ -132,6 +133,12 @@ func StartServer(vip *viper.Viper) {
 
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
+
+	if !disablePermissioning {
+		// Blocking call: Begin Node registration
+		permissioning.RegisterNode(def)
+	}
+
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
 	instance := server.CreateServerInstance(def)
