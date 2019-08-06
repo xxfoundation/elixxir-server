@@ -9,6 +9,7 @@ package permissioning
 import (
 	"bytes"
 	"fmt"
+	"gitlab.com/elixxir/comms/gateway"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/registration"
 	"gitlab.com/elixxir/primitives/id"
@@ -17,19 +18,21 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+	"time"
 )
 
 var nodeId *id.Node
 var permComms *registration.RegistrationComms
+var gwComms *gateway.GatewayComms
 
-// Dummy implementation of permissioning server -----------------------
-type Implementation struct{}
+// Dummy implementation of permissioning server --------------------------------
+type mockPermission struct{}
 
-func (i *Implementation) RegisterUser(registrationCode string, Y, P, Q,
+func (i *mockPermission) RegisterUser(registrationCode string, Y, P, Q,
 	G []byte) (hash, R, S []byte, err error) {
 	return nil, nil, nil, nil
 }
-func (i *Implementation) RegisterNode(ID []byte,
+func (i *mockPermission) RegisterNode(ID []byte,
 	NodeTLSCert, GatewayTLSCert, RegistrationCode, Addr string) error {
 
 	go func() {
@@ -39,10 +42,11 @@ func (i *Implementation) RegisterNode(ID []byte,
 		}
 		nodeTop := make([]*pb.NodeInfo, 0)
 		nodeTop = append(nodeTop, &pb.NodeInfo{
-			Id:        nodeId.Bytes(),
-			Index:     0,
-			IpAddress: Addr,
-			TlsCert:   "",
+			Id:             nodeId.Bytes(),
+			Index:          0,
+			IpAddress:      Addr,
+			ServerTlsCert:  "a",
+			GatewayTlsCert: "b",
 		})
 		nwTop := &pb.NodeTopology{
 			Topology: nodeTop,
@@ -56,18 +60,60 @@ func (i *Implementation) RegisterNode(ID []byte,
 	return nil
 }
 
-// --------------------------------------------------------------------
+// Dummy implementation of gateway server --------------------------------------
+type mockGateway struct{}
+
+func (*mockGateway) CheckMessages(userID *id.User, messageID string) ([]string, bool) {
+	return nil, false
+}
+
+func (*mockGateway) GetMessage(userID *id.User, msgID string) (*pb.Slot, bool) {
+	return nil, false
+}
+
+func (*mockGateway) PutMessage(message *pb.Slot) bool {
+	return false
+}
+
+func (*mockGateway) RequestNonce(message *pb.NonceRequest) (*pb.Nonce, error) {
+	return nil, nil
+}
+
+func (*mockGateway) ConfirmNonce(message *pb.DSASignature) (*pb.
+	RegistrationConfirmation, error) {
+	return nil, nil
+}
+
+// -----------------------------------------------------------------------------
 
 // Full-stack happy path test for the node registration logic
 func TestRegisterNode(t *testing.T) {
-	// Initialize permissioning server
-	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
-	handler := registration.Handler(&Implementation{})
-	permComms = registration.StartRegistrationServer(pAddr, handler, nil, nil)
 
-	// Initialize definition
+	gwConnected := make(chan struct{})
+	permDone := make(chan struct{})
+
 	nodeId = id.NewNodeFromUInt(uint64(0), t)
 	addr := fmt.Sprintf("0.0.0.0:%d", 6000+rand.Intn(1000))
+
+	// Initialize permissioning server
+	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
+	pHandler := registration.Handler(&mockPermission{})
+	permComms = registration.StartRegistrationServer(pAddr, pHandler, nil, nil)
+
+	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
+	gHandler := gateway.Handler(&mockGateway{})
+	gwComms = gateway.StartGateway(gAddr, gHandler, nil, nil)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		err := gwComms.ConnectToNode(nodeId, addr, nil)
+		if err != nil {
+			t.Fatalf("Gateway could not connect to node")
+		}
+		gwConnected <- struct{}{}
+	}()
+
+	// Initialize definition
 	def := &server.Definition{
 		Flags:         server.Flags{},
 		ID:            nodeId,
@@ -79,6 +125,7 @@ func TestRegisterNode(t *testing.T) {
 		LogPath:       "",
 		MetricLogPath: "",
 		Gateway: server.GW{
+			Address: gAddr,
 			TlsCert: nil,
 		},
 		UserRegistry:    nil,
@@ -96,8 +143,37 @@ func TestRegisterNode(t *testing.T) {
 		},
 	}
 
-	// Register the node
-	RegisterNode(def)
+	// Register the node in a separate thread and notify when finished
+	go func() {
+		nodes, serverCert, gwCert := RegisterNode(def)
+		def.Nodes = nodes
+		def.TlsCert = []byte(serverCert)
+		def.Gateway.TlsCert = []byte(gwCert)
+		permDone <- struct{}{}
+	}()
+
+	// wait for gateway to connect
+	<-gwConnected
+
+	//poll server from gateway
+	numPolls := 0
+	for {
+		if numPolls == 10 {
+			t.Fatalf("Gateway could get cert from server")
+		}
+		numPolls++
+		msg, err := gwComms.PollSignedCerts(nodeId, &pb.Ping{})
+		if err != nil {
+			t.Errorf("Error on polling signed certs")
+		}
+
+		if msg.ServerCertPEM != "" && msg.GatewayCertPEM != "" {
+			break
+		}
+	}
+
+	//wait for server to finish
+	<-permDone
 
 	n := def.Nodes
 	if len(n) < 1 {
