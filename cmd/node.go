@@ -136,7 +136,10 @@ func StartServer(vip *viper.Viper) {
 
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration
-		permissioning.RegisterNode(def)
+		nodes, serverCert, gwCert := permissioning.RegisterNode(def)
+		def.Nodes = nodes
+		def.TlsCert = []byte(serverCert)
+		def.Gateway.TlsCert = []byte(gwCert)
 	}
 
 	jww.INFO.Printf("Creating server instance")
