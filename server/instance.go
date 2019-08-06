@@ -65,7 +65,7 @@ func (i *Instance) InitNetwork(
 	//Verify that all nodes have need signed by the permissioning server
 	err := i.VerifyTopology()
 	if err != nil {
-		jww.FATAL.Printf("Could not verify all nodes were signed by the permissioning server")
+		jww.FATAL.Printf("Could not verify all nodes were signed by the permissioning server: %+v", err)
 	}
 
 	//Attempt to connect Gateway
@@ -227,15 +227,15 @@ func (i *Instance) VerifyTopology() error {
 		//Load the node Cert from topology
 		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
 		if err != nil {
-			jww.ERROR.Printf("Could not load the node %v's certificate cert: %v", j, err)
-			return err
+			errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
+			return errors.New(errorMsg)
 		}
 
 		//Check that the node's cert was signed by the permissioning server's cert
 		err = nodeCert.CheckSignatureFrom(permissioningCert)
 		if err != nil {
-			jww.ERROR.Printf("Could not verify that a node %v's cert was signed by permissioinging: %v", j, err)
-			return err
+			errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioinging: %v", j, err)
+			return errors.New(errorMsg)
 		}
 	}
 
