@@ -28,7 +28,7 @@ func (a ConnAddr) String() string {
 }
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition) {
+func RegisterNode(def *server.Definition) ([]server.Node, string, string) {
 
 	// Channel for signaling completion of Node registration
 	toplogyCh := make(chan *pb.NodeTopology)
@@ -71,7 +71,7 @@ func RegisterNode(def *server.Definition) {
 	err = network.ConnectToGateway(def.ID.NewGateway(),
 		def.Gateway.Address, def.Gateway.TlsCert)
 	if err != nil {
-		jww.FATAL.Panicf("Unable to initiate Node registration: %+v",
+		jww.FATAL.Panicf("Unable to initiate connect to gateway: %+v",
 			errors.New(err.Error()))
 	}
 
@@ -116,22 +116,18 @@ func RegisterNode(def *server.Definition) {
 	network.Shutdown()
 
 	// Integrate the topology with the Definition
-	def.Nodes = make([]server.Node, len(topology.Topology))
+	nodes := make([]server.Node, len(topology.Topology))
 	for _, n := range topology.Topology {
 
 		// Build Node information
-		def.Nodes[n.Index] = server.Node{
+		nodes[n.Index] = server.Node{
 			ID:      id.NewNodeFromBytes(n.Id),
 			TlsCert: []byte(n.ServerTlsCert),
 			Address: n.IpAddress,
 		}
-
-		// Update Cert for this Node
-		if bytes.Compare(n.Id, def.ID.Bytes()) == 0 {
-			def.TlsCert = []byte(n.ServerTlsCert)
-			def.Gateway.TlsCert = []byte(n.GatewayTlsCert)
-		}
-
 	}
+
+	return nodes, topology.Topology[index].ServerTlsCert,
+		topology.Topology[index].GatewayTlsCert
 
 }

@@ -145,7 +145,10 @@ func TestRegisterNode(t *testing.T) {
 
 	// Register the node in a separate thread and notify when finished
 	go func() {
-		RegisterNode(def)
+		nodes, serverCert, gwCert := RegisterNode(def)
+		def.Nodes = nodes
+		def.TlsCert = []byte(serverCert)
+		def.Gateway.TlsCert = []byte(gwCert)
 		permDone <- struct{}{}
 	}()
 
