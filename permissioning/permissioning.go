@@ -84,8 +84,8 @@ func RegisterNode(def *server.Definition) ([]server.Node, string, string) {
 	err = network.SendNodeRegistration(permissioningId,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
-			NodeCsr:          string(def.TlsCert),
-			GatewayCsr:       string(def.Gateway.TlsCert),
+			ServerTlsCert:    string(def.TlsCert),
+			GatewayTlsCert:   string(def.Gateway.TlsCert),
 			RegistrationCode: def.Permissioning.RegistrationCode,
 			Port:             port,
 		})
