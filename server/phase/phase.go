@@ -208,11 +208,13 @@ func getMeasureInfo(p *phase, tag string) string {
 
 	// Calculate the difference between this event and the last one, if there is
 	// a last one.
+	p.Metrics.Lock()
 	if len(p.Metrics.Events) > 1 {
 		prevTimestamp := p.Metrics.Events[len(p.Metrics.Events)-2].Timestamp
 		currTimestamp := p.Metrics.Events[len(p.Metrics.Events)-1].Timestamp
 		delta = currTimestamp.Sub(prevTimestamp)
 	}
+	p.Metrics.Unlock()
 
 	// Format string to return
 	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %d\n\t"+

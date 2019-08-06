@@ -8,6 +8,7 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -46,11 +47,12 @@ func CreateServerInstance(def *Definition) *Instance {
 func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
 
+	//Start local node
 	fmt.Println("me: ", i.definition.Address, i.definition.TlsCert, i.definition.TlsKey)
-
 	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
 		i.definition.TlsCert, i.definition.TlsKey)
 
+	//Attempt to connect to all other nodes
 	for index, n := range i.definition.Nodes {
 		fmt.Println("my friend: ", n.ID, n.Address, n.TlsCert)
 		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert)
@@ -60,6 +62,13 @@ func (i *Instance) InitNetwork(
 		}
 	}
 
+	//Verify that all nodes have need signed by the permissioning server
+	err := i.VerifyTopology()
+	if err != nil {
+		jww.FATAL.Printf("Could not verify all nodes were signed by the permissioning server: %+v", err)
+	}
+
+	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
 		err := i.network.ConnectToGateway(i.definition.Gateway.ID,
 			i.definition.Gateway.Address, i.definition.Gateway.TlsCert)
@@ -201,6 +210,36 @@ func GenerateId() *id.Node {
 	nid := id.NewNodeFromBytes(nodeIdBytes)
 
 	return nid
+}
+
+// VerifyTopology checks the signed node certs and verifies that no falsely signed certs are submitted
+// it then shuts down the network so that it can be reinitalized with the new topology
+func (i *Instance) VerifyTopology() error {
+	//Load Permissioing cert into a cert object
+	permissioningCert, err := tls.LoadCertificate(string(i.definition.Permissioning.TlsCert))
+	if err != nil {
+		jww.ERROR.Printf("Could not load the permissioning server cert: %v", err)
+		return err
+	}
+
+	//Iterate through the topology
+	for j := 0; j < i.definition.Topology.Len(); j++ {
+		//Load the node Cert from topology
+		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
+		if err != nil {
+			errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
+			return errors.New(errorMsg)
+		}
+
+		//Check that the node's cert was signed by the permissioning server's cert
+		err = nodeCert.CheckSignatureFrom(permissioningCert)
+		if err != nil {
+			errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioinging: %v", j, err)
+			return errors.New(errorMsg)
+		}
+	}
+
+	return nil
 }
 
 // String adheres to the stringer interface, returns unique identifying
