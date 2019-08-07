@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/x509"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -213,6 +214,11 @@ func (i *Instance) VerifyTopology() error {
 		jww.ERROR.Printf("Could not load the permissioning server cert: %v", err)
 		return err
 	}
+
+	// FIXME: Force the permissioning cert to act as a CA
+	permissioningCert.BasicConstraintsValid = true
+	permissioningCert.IsCA = true
+	permissioningCert.KeyUsage = x509.KeyUsageCertSign
 
 	//Iterate through the topology
 	for j := 0; j < i.definition.Topology.Len(); j++ {
