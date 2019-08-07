@@ -136,7 +136,10 @@ func StartServer(vip *viper.Viper) {
 
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration
-		permissioning.RegisterNode(def)
+		nodes, serverCert, gwCert := permissioning.RegisterNode(def)
+		def.Nodes = nodes
+		def.TlsCert = []byte(serverCert)
+		def.Gateway.TlsCert = []byte(gwCert)
 	}
 
 	jww.INFO.Printf("Creating server instance")
@@ -153,6 +156,16 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	jww.INFO.Printf("Connecting to network")
+
+	//if permssioning check that the certs are valid
+	if !disablePermissioning {
+		err = instance.VerifyTopology()
+		if err != nil {
+			jww.FATAL.Panicf("Could not verify all nodes were signed by the"+
+				" permissioning server: %+v", err)
+		}
+	}
+
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 
