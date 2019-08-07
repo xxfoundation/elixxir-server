@@ -156,6 +156,16 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	jww.INFO.Printf("Connecting to network")
+
+	//if permssioning check that the certs are valid
+	if !disablePermissioning {
+		err = instance.VerifyTopology()
+		if err != nil {
+			jww.FATAL.Panicf("Could not verify all nodes were signed by the"+
+				" permissioning server: %+v", err)
+		}
+	}
+
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 

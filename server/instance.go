@@ -60,13 +60,6 @@ func (i *Instance) InitNetwork(
 		}
 	}
 
-	//Verify that all nodes have need signed by the permissioning server
-	err := i.VerifyTopology()
-	if err != nil {
-		jww.FATAL.Panicf("Could not verify all nodes were signed by the"+
-			" permissioning server: %+v", err)
-	}
-
 	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
 		err := i.network.ConnectToGateway(i.definition.Gateway.ID,

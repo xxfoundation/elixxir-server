@@ -66,14 +66,6 @@ func RegisterNode(def *server.Definition) ([]server.Node, string, string) {
 			errors.New(err.Error()))
 	}
 
-	// Connect to the Gateway
-	err = network.ConnectToGateway(def.ID.NewGateway(),
-		def.Gateway.Address, def.Gateway.TlsCert)
-	if err != nil {
-		jww.FATAL.Panicf("Unable to initiate connect to gateway: %+v",
-			errors.New(err.Error()))
-	}
-
 	// Attempt Node registration
 	_, port, err := net.SplitHostPort(def.Address)
 	if err != nil {
