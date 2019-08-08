@@ -80,7 +80,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	// In the event IDs are not able to be provided,
 	// we can hash the node addresses as a workaround
-	if len(params.Node.Ids) == 0 {
+	if len(params.Node.Ids) == 0 && len(params.Node.Id) == 0 {
 		hash, err := blake2b.New256(nil)
 		if err != nil {
 			jww.FATAL.Panicf("Unable to create ID hash %v", err)
