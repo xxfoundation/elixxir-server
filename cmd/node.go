@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
@@ -136,7 +137,11 @@ func StartServer(vip *viper.Viper) {
 
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration
-		permissioning.RegisterNode(def)
+		nodes, nodeIds, serverCert, gwCert := permissioning.RegisterNode(def)
+		def.Nodes = nodes
+		def.TlsCert = []byte(serverCert)
+		def.Gateway.TlsCert = []byte(gwCert)
+		def.Topology = circuit.New(nodeIds)
 	}
 
 	jww.INFO.Printf("Creating server instance")
@@ -153,6 +158,16 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	jww.INFO.Printf("Connecting to network")
+
+	// if permissioning check that the certs are valid
+	if !disablePermissioning {
+		err = instance.VerifyTopology()
+		if err != nil {
+			jww.FATAL.Panicf("Could not verify all nodes were signed by the"+
+				" permissioning server: %+v", err)
+		}
+	}
+
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
 
