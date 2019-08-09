@@ -94,7 +94,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 			hash.Write([]byte(addr))
 			fakeId := base64.StdEncoding.EncodeToString(hash.Sum(nil))
 			params.Node.Ids = append(params.Node.Ids, fakeId)
-			if params.Index == i {
+			if params.Index == i && len(params.Node.Id) == 0 {
 				params.Node.Id = fakeId
 			}
 		}
@@ -138,9 +138,6 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 
 	var nodeIDDecodeErrorHappened bool
 	for i, currId := range ids {
-		if currId == p.Node.Id {
-			p.Index = i
-		}
 		nodeID, err := base64.StdEncoding.DecodeString(currId)
 		jww.ERROR.Printf("%+v", nodeID)
 		if err != nil {
@@ -163,9 +160,17 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
-	def.ID = nodes[p.Index].ID
+	nodeID, err := base64.StdEncoding.DecodeString(p.Node.Id)
+	if err != nil {
+		// This indicates a server misconfiguration which needs fixing for
+		// the server to function properly
+		err = errors.Wrapf(err, "Node ID failed to decode")
+		jww.ERROR.Print(err)
+		nodeIDDecodeErrorHappened = true
+	}
+	def.ID = id.NewNodeFromBytes(nodeID)
 
-	_, port, err := net.SplitHostPort(nodes[p.Index].Address)
+	_, port, err := net.SplitHostPort(p.Node.Addresses[p.Index])
 	if err != nil {
 		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
 			errors.New(err.Error()))

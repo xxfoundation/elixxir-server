@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/gateway"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/registration"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
@@ -145,10 +146,11 @@ func TestRegisterNode(t *testing.T) {
 
 	// Register the node in a separate thread and notify when finished
 	go func() {
-		nodes, serverCert, gwCert := RegisterNode(def)
+		nodes, nodeIds, serverCert, gwCert := RegisterNode(def)
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
+		def.Topology = circuit.New(nodeIds)
 		permDone <- struct{}{}
 	}()
 
