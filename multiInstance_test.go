@@ -126,12 +126,12 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		msg.SetPayloadB(payloadB)
 
 		//encrypt the message
-		ecrPA := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
+		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
 
 		//make the slot
 		ecrslot := &mixmessages.Slot{}
-		ecrslot.PayloadA = ecrPA.GetPayloadA()
-		ecrslot.PayloadB = ecrPA.GetPayloadB()
+		ecrslot.PayloadA = ecrMsg.GetPayloadA()
+		ecrslot.PayloadB = ecrMsg.GetPayloadB()
 		ecrslot.SenderID = userID.Bytes()
 		ecrslot.Salt = salt
 		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)

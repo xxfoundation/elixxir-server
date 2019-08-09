@@ -55,7 +55,7 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 
 func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	batchSize uint32, roundBuf *round.Buffer,
-	cypherMsg, cypherAD *cyclic.IntBuffer) {
+	cypherPayloadA, keysPayloadB *cyclic.IntBuffer) {
 
 	ss.Grp = grp
 
@@ -67,8 +67,8 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	ss.EncryptedPayloadAPrecomputation = roundBuf.PermutedPayloadAKeys
 	ss.EncryptedPayloadBPrecomputation = roundBuf.PermutedPayloadBKeys
 
-	ss.CypherPayloadA = cypherMsg
-	ss.CypherPayloadB = cypherAD
+	ss.CypherPayloadA = cypherPayloadA
+	ss.CypherPayloadB = keysPayloadB
 
 	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, ss.CypherPayloadA,
 		ss.CypherPayloadB)

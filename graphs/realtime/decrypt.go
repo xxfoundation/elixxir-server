@@ -63,17 +63,17 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 
 //Connects the internal buffers in the stream to the passed
 func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, ecrPA, ecrPayloadB, keysPA, keysAD *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
+	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
 
 	ds.Grp = grp
 
 	ds.R = round.R.GetSubBuffer(0, batchSize)
 	ds.U = round.U.GetSubBuffer(0, batchSize)
 
-	ds.EcrPayloadA = ecrPA
+	ds.EcrPayloadA = ecrPayloadA
 	ds.EcrPayloadB = ecrPayloadB
-	ds.KeysPayloadA = keysPA
-	ds.KeysPayloadB = keysAD
+	ds.KeysPayloadA = keysPayloadA
+	ds.KeysPayloadB = keysPayloadB
 	ds.Users = users
 	ds.Salts = salts
 

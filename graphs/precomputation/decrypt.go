@@ -56,7 +56,7 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 }
 
 func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
-	keysPA, cypherPA, keysAD, cypherAD *cyclic.IntBuffer) {
+	keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer) {
 
 	ds.Grp = grp
 	ds.PublicCypherKey = roundBuffer.CypherPublicKey
@@ -66,10 +66,10 @@ func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize u
 	ds.Y_R = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
 	ds.Y_U = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
 
-	ds.KeysPayloadA = keysPA
-	ds.CypherPayloadA = cypherPA
-	ds.KeysPayloadB = keysAD
-	ds.CypherPayloadB = cypherAD
+	ds.KeysPayloadA = keysPayloadA
+	ds.CypherPayloadA = cypherPayloadA
+	ds.KeysPayloadB = keysPayloadB
+	ds.CypherPayloadB = cypherPayloadB
 
 }
 

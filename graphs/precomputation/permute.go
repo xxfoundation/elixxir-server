@@ -63,8 +63,8 @@ func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 
 // Link binds stream to state objects in round
 func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
-	keysPA, cypherPA, keysAD, cypherAD *cyclic.IntBuffer,
-	keysPayloadAPermuted, cypherPAPermuted, keysPayloadBPermuted, cypherPayloadBPermuted []*cyclic.Int) {
+	keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer,
+	keysPayloadAPermuted, cypherPayloadAPermuted, keysPayloadBPermuted, cypherPayloadBPermuted []*cyclic.Int) {
 
 	ps.Grp = grp
 	ps.PublicCypherKey = roundBuffer.CypherPublicKey
@@ -74,13 +74,13 @@ func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize u
 	ps.Y_S = roundBuffer.Y_S.GetSubBuffer(0, batchSize)
 	ps.Y_V = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 
-	ps.KeysPayloadA = keysPA
-	ps.CypherPayloadA = cypherPA
-	ps.KeysPayloadB = keysAD
-	ps.CypherPayloadB = cypherAD
+	ps.KeysPayloadA = keysPayloadA
+	ps.CypherPayloadA = cypherPayloadA
+	ps.KeysPayloadB = keysPayloadB
+	ps.CypherPayloadB = cypherPayloadB
 
 	ps.CypherPayloadBPermuted = cypherPayloadBPermuted
-	ps.CypherPayloadAPermuted = cypherPAPermuted
+	ps.CypherPayloadAPermuted = cypherPayloadAPermuted
 
 	// these are connected to the round buffer on last node so they are stored
 	// during the reveal phase for use in strip
