@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -98,8 +99,8 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// If it's not on the precomp queue,
 	// that would let us test the error being returned.
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{precompReveal, realDecrypt},
-		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
 	instance.GetRoundManager().AddRound(r)
 
 	// Build a fake batch for the reception handler
@@ -198,7 +199,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	// We need this round to be on the precomp queue
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
-		topology.GetNodeAtIndex(0), batchSize)
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
 	instance.GetRoundManager().AddRound(r)
 	instance.GetCompletedPrecomps().Push(r)
 
@@ -263,7 +264,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	topology := instance.GetTopology()
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
+		instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -402,7 +404,8 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	topology := instance.GetTopology()
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
+		instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -637,9 +640,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	// Skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{mockPhase}, responseMap,
-		instance.GetTopology(), instance.GetTopology().GetNodeAtIndex(1),
-		batchSize)
+		[]phase.Phase{mockPhase}, responseMap, instance.GetTopology(),
+		instance.GetTopology().GetNodeAtIndex(1), batchSize,
+		instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -716,8 +719,8 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	// Don't skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap,
-		topology, topology.GetNodeAtIndex(0), batchSize)
+		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -830,9 +833,9 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	p := initMockPhase()
 	p.Ptype = phase.PrecompReveal
 	instance.GetRoundManager().AddRound(round.New(grp,
-		instance.GetUserRegistry(), roundID,
-		[]phase.Phase{p}, responseMap,
-		topology, topology.GetNodeAtIndex(0), 3))
+		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
+		topology, topology.GetNodeAtIndex(0), 3,
+		instance.GetRngStreamGen()))
 	// This should give an error because we give it fewer slots than are in the
 	// batch
 	err := ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{})
@@ -883,7 +886,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		p.Ptype = phase.PrecompReveal
 		instances[i].GetRoundManager().AddRound(round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
-			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3))
+			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
+			3, instances[i].GetRngStreamGen()))
 	}
 
 	// Initially, there should be zero rounds on the precomp queue
@@ -955,7 +959,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3)
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1142,7 +1146,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3)
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1209,7 +1213,8 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
 			2, 2, 0),
-		BatchSize: 8,
+		BatchSize:    8,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())),
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 

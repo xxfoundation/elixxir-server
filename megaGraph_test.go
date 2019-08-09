@@ -7,6 +7,7 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/id"
@@ -311,7 +312,7 @@ func createDummyUserList(grp *cyclic.Group,
 
 func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	roundBuf *round.Buffer, registry *globals.UserMap,
-	rngConstructor func() csprng.Source, streams map[string]*DebugStream,
+	rngStreamGen fastRNG.StreamGenerator, streams map[string]*DebugStream,
 	t *testing.T) *services.Graph {
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
@@ -325,14 +326,14 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	dGrph := InitDbgGraph(gc, streams, t)
 	dGrph.Build(batchSize)
 
-	dGrph.Link(grp, roundBuf, registry, rngConstructor)
+	dGrph.Link(grp, roundBuf, registry, &rngStreamGen)
 	dGrph.Run()
 	return dGrph
 }
 
 func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
 	roundBuf *round.Buffer, registry *globals.UserMap,
-	rngConstructor func() csprng.Source, streams map[string]*DebugStream,
+	rngStreamGen *fastRNG.StreamGenerator, streams map[string]*DebugStream,
 	t *testing.T) *services.Graph {
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
@@ -344,10 +345,10 @@ func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
 	gc := services.NewGraphGenerator(1, PanicHandler,
 		1, 1, 0)
 	dGrph := InitDbgGraph3(gc, streams, grp, batchSize, roundBuf, registry,
-		rngConstructor, t)
+		rngStreamGen, t)
 	dGrph.Build(batchSize)
 
-	dGrph.Link(grp, roundBuf, registry, rngConstructor)
+	dGrph.Link(grp, roundBuf, registry, rngStreamGen)
 	dGrph.Run()
 	return dGrph
 }
@@ -374,6 +375,7 @@ func TestEndToEndCryptops(t *testing.T) {
 		large.NewInt(4), large.NewInt(5))
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
+	rngStreamGen := fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()))
 	batchSize := uint32(1)
 
 	registry := createDummyUserList(grp, rngConstructor())
@@ -396,7 +398,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	streams := make(map[string]*DebugStream)
 
 	dGrph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
-		rngConstructor, streams, t)
+		*rngStreamGen, streams, t)
 	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 
@@ -567,6 +569,7 @@ func TestBatchSize3(t *testing.T) {
 		large.NewInt(4), large.NewInt(5))
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
+	rngStreamGen := fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()))
 	batchSize := uint32(4)
 
 	registry := createDummyUserList(grp, rngConstructor())
@@ -591,7 +594,7 @@ func TestBatchSize3(t *testing.T) {
 	streams := make(map[string]*DebugStream)
 
 	dGrph := buildAndStartGraph(batchSize, grp, roundBuf, registry,
-		rngConstructor, streams, t)
+		*rngStreamGen, streams, t)
 	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 
@@ -745,7 +748,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	source ...interface{}) {
 	roundBuf := source[0].(*round.Buffer)
 	userRegistry := source[1].(*globals.UserMap)
-	rngConstructor := source[2].(func() csprng.Source)
+	rngStreamGen := source[2].(*fastRNG.StreamGenerator)
 
 	//Generate passthroughs for precomputation
 	keysMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
@@ -764,7 +767,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	roundBuf.PermutedADKeys = keysADPermuted
 
 	//Link precomputation
-	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngConstructor)
+	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngStreamGen)
 	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysMsg,
 		cypherMsg, keysAD, cypherAD)
 	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysMsg,
@@ -946,13 +949,12 @@ func wrapAdapt(batchSize uint32, outIdx int, name string, dStrms []*DebugStream,
 
 func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
 	grp *cyclic.Group, batchSize uint32, roundBuf *round.Buffer,
-	registry *globals.UserMap, rngConstructor func() csprng.Source,
+	registry *globals.UserMap, rngStreamGen *fastRNG.StreamGenerator,
 	t *testing.T) *services.Graph {
 	dStrms := make([]*DebugStream, 3)
 	for i := 1; i < 3; i++ {
 		dStrms[i] = &DebugStream{}
-		dStrms[i].Link(grp, batchSize, roundBuf, registry,
-			rngConstructor)
+		dStrms[i].Link(grp, batchSize, roundBuf, registry, rngStreamGen)
 	}
 	dStrms[0] = &DebugStream{}
 	g := gc.NewGraph("DbgGraph", dStrms[0])
@@ -1107,7 +1109,7 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 	grp.SetBytes(roundBuf.Z, zBytes)
 	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)
 
-	dGrph.Link(grp, roundBuf, registry, rngConstructor)
+	dGrph.Link(grp, roundBuf, registry, fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
 
 	stream := dGrph.GetStream()
 
@@ -1183,7 +1185,7 @@ func Test_DebugStream(t *testing.T) {
 	roundBuf := round.NewBuffer(grp, batchSize,
 		dGrph.GetExpandedBatchSize())
 
-	dGrph.Link(grp, roundBuf, &globals.UserMap{}, csprng.NewSystemRNG)
+	dGrph.Link(grp, roundBuf, &globals.UserMap{}, fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
 
 	stream := dGrph.GetStream()
 
@@ -1237,6 +1239,7 @@ func Test3NodeE2E(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4), large.NewInt(5))
 	rngConstructor := NewPsudoRNG // FIXME: Why?
+	rngStreamGen := fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()))
 	registry := createDummyUserList(grp, rngConstructor())
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 
@@ -1264,7 +1267,7 @@ func Test3NodeE2E(t *testing.T) {
 	streams := make(map[string]*DebugStream)
 
 	dGrph := buildAndStartGraph3(batchSize, grp, roundBuf, registry,
-		rngConstructor, streams, t)
+		rngStreamGen, streams, t)
 	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 

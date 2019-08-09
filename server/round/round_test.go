@@ -5,12 +5,14 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -64,7 +66,7 @@ func TestNew(t *testing.T) {
 	topology := circuit.New([]*id.Node{&id.Node{}})
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
-		&id.Node{}, 5)
+		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
 
 	if round.GetID() != roundId {
 		t.Error("Round ID wasn't set correctly")

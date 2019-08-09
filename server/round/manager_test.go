@@ -7,12 +7,14 @@
 package round
 
 import (
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -27,7 +29,8 @@ func TestMain(m *testing.M) {
 func TestManager(t *testing.T) {
 	roundID := id.Round(58)
 	round := New(grp, &globals.UserMap{}, roundID, nil, nil,
-		circuit.New([]*id.Node{{}}), &id.Node{}, 1)
+		circuit.New([]*id.Node{{}}), &id.Node{}, 1,
+		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
 	// Getting a round that's not been added should return nil
 	result, err := mgr.GetRound(roundID)
 	if result != nil || err == nil {
@@ -53,7 +56,8 @@ func TestManager_GetPhase(t *testing.T) {
 
 	// Test round w/ nil phases
 	round := New(grp, &globals.UserMap{}, roundID, nil, nil,
-		circuit.New([]*id.Node{{}}), &id.Node{}, 1)
+		circuit.New([]*id.Node{{}}), &id.Node{}, 1,
+		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
 	mgr.AddRound(round)
 	p, err := mgr.GetPhase(roundID, 1)
 	if err == nil {
@@ -82,7 +86,8 @@ func TestManager_GetPhase(t *testing.T) {
 		phases[i] = phase.New(definition)
 	}
 	round = New(grp, &globals.UserMap{}, roundID, phases, nil,
-		circuit.New([]*id.Node{{}}), &id.Node{}, 1)
+		circuit.New([]*id.Node{{}}), &id.Node{}, 1,
+		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
 	mgr.AddRound(round)
 
 	p, err = mgr.GetPhase(roundID, 0)
