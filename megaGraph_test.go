@@ -37,9 +37,9 @@ const TinyStrongPrime = "6B" // 107
 
 // ComputeSingleNodePrecomputation is a helper func to compute what
 // the precomputation should be without any sharing computations for a
-// single node system. In other words, it multiplies the R, S, T
-// keys together for the message precomputation, and it does the same for
-// the U, V keys to make the associated data precomputation.
+// single node system. In other words, it multiplies the R, S
+// keys together for payload A's precomputation, and it does the same for
+// the U, V keys to make payload B's precomputation.
 func ComputeSingleNodePrecomputation(grp *cyclic.Group, round *round.Buffer) (
 	*cyclic.Int, *cyclic.Int) {
 	PayloadA := grp.NewInt(1)
@@ -373,7 +373,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4), large.NewInt(5))
 
-	rngConstructor := NewPsudoRNG // FIXME: Why?
+	rngConstructor := NewPseudoRNG // FIXME: Why?
 	batchSize := uint32(1)
 
 	registry := createDummyUserList(grp, rngConstructor())
@@ -566,7 +566,7 @@ func TestBatchSize3(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4), large.NewInt(5))
 
-	rngConstructor := NewPsudoRNG // FIXME: Why?
+	rngConstructor := NewPseudoRNG // FIXME: Why?
 	batchSize := uint32(4)
 
 	registry := createDummyUserList(grp, rngConstructor())
@@ -1203,28 +1203,28 @@ func Test_DebugStream(t *testing.T) {
 
 }
 
-func NewPsudoRNG() csprng.Source {
-	return &PsudoRNG{
+func NewPseudoRNG() csprng.Source {
+	return &PseudoRNG{
 		r: rand.New(rand.NewSource(42)),
 	}
 }
 
-type PsudoRNG struct {
+type PseudoRNG struct {
 	r *rand.Rand
 }
 
 // Read calls the crypto/rand Read function and returns the values
-func (p *PsudoRNG) Read(b []byte) (int, error) {
+func (p *PseudoRNG) Read(b []byte) (int, error) {
 	return p.r.Read(b)
 }
 
 // SetSeed has not effect on the system reader
-func (p *PsudoRNG) SetSeed(seed []byte) error {
+func (p *PseudoRNG) SetSeed(seed []byte) error {
 	return nil
 }
 
 func Test_DbgGraph(t *testing.T) {
-	RunDbgGraph(3, NewPsudoRNG, t)
+	RunDbgGraph(3, NewPseudoRNG, t)
 }
 
 /**/
@@ -1236,7 +1236,7 @@ func Test3NodeE2E(t *testing.T) {
 	batchSize := uint32(1)
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4), large.NewInt(5))
-	rngConstructor := NewPsudoRNG // FIXME: Why?
+	rngConstructor := NewPseudoRNG // FIXME: Why?
 	registry := createDummyUserList(grp, rngConstructor())
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 

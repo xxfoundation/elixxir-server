@@ -19,10 +19,10 @@ type Buffer struct {
 	Z               *cyclic.Int // This node's private Cypher Key
 
 	//Realtime Keys
-	R *cyclic.IntBuffer // First unpermuted internode message key
-	S *cyclic.IntBuffer // Permuted internode message key
-	U *cyclic.IntBuffer // Permuted *cyclic.Internode recipient key
-	V *cyclic.IntBuffer // Unpermuted internode associated data key
+	R *cyclic.IntBuffer // First unpermuted internode payloadA key
+	S *cyclic.IntBuffer // Permuted internode payloadA key
+	U *cyclic.IntBuffer // Permuted internode payloadB key
+	V *cyclic.IntBuffer // Unpermuted internode payloadB key
 
 	// Private keys for the above
 	Y_R *cyclic.IntBuffer

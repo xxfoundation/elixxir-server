@@ -321,13 +321,13 @@ func TestDecryptGraph(t *testing.T) {
 				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadA Keys not equal on slot %v", i))
 			}
 			if CypherPayloadAExpected.Get(i).Cmp(s.CypherPayloadA.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: Message Keys Cypher not equal on slot %v", i))
+				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadA Keys Cypher not equal on slot %v", i))
 			}
 			if KeysPayloadBExpected.Get(i).Cmp(s.KeysPayloadB.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: AD Keys not equal on slot %v", i))
+				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadB Keys not equal on slot %v", i))
 			}
 			if CypherPayloadBExpected.Get(i).Cmp(s.CypherPayloadB.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: AD Keys Cypher not equal on slot %v", i))
+				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadB Keys Cypher not equal on slot %v", i))
 			}
 		}
 	}

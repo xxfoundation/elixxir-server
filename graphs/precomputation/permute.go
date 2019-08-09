@@ -16,8 +16,8 @@ import (
 )
 
 // This file implements the Graph for the Precomputation Permute phase
-// Permute phase permutes the message keys, the associated data keys, and their cypher
-// text, while multiplying in its own keys.
+// Permute phase permutes the keys for both payloads with their cypher
+// texts, while multiplying in its own keys.
 
 // PermuteStream holds data containing keys and inputs used by Permute
 type PermuteStream struct {
@@ -166,7 +166,7 @@ var PermuteElgamal = services.Module{
 		ps := pssi.GetPrecompPermuteSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Execute elgamal on the keys for the Message
+			// Execute elgamal on the keys for the message
 
 			// Eq 11.1: Encrypt the Permuted Internode PayloadA Key under Homomorphic Encryption.
 			// Eq 13.17: Then multiply the Permuted Internode PayloadA Key under Homomorphic

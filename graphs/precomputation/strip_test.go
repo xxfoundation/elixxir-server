@@ -295,7 +295,7 @@ func TestStrip_Graph(t *testing.T) {
 		chunk, ok = g.GetOutput()
 		tmp := s.Grp.NewInt(1)
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Compute root coprime for msg & associated data
+			// Compute expected root coprime for both payloads
 			cryptops.RootCoprime(s.Grp, CypherPayloadAExpected.Get(i), s.Z, tmp)
 			s.Grp.Set(CypherPayloadAExpected.Get(i), tmp)
 
@@ -310,14 +310,14 @@ func TestStrip_Graph(t *testing.T) {
 			cryptops.Mul2(s.Grp, s.CypherPayloadA.Get(i), PayloadAPrecomputationExpected.Get(i))
 			cryptops.Mul2(s.Grp, s.CypherPayloadB.Get(i), PayloadBPrecomputationExpected.Get(i))
 
-			// Verify message and associated data match the expected values
+			// Verify payloads match the expected values
 			if CypherPayloadAExpected.Get(i).Cmp(s.CypherPayloadA.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: PayloadA Keys Cypher not equal on slot %v expected %v received %v",
 					i, CypherPayloadAExpected.Get(i).Text(16), s.CypherPayloadA.Get(i).Text(16)))
 			}
 
 			if CypherPayloadBExpected.Get(i).Cmp(s.CypherPayloadB.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
+				t.Error(fmt.Sprintf("PrecompStrip: PayloadB Keys Cypher not equal on slot %v expected %v received %v",
 					i, CypherPayloadBExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
 			}
 
@@ -327,7 +327,7 @@ func TestStrip_Graph(t *testing.T) {
 			}
 
 			if PayloadBPrecomputationExpected.Get(i).Cmp(s.PayloadBPrecomputation.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
+				t.Error(fmt.Sprintf("PrecompStrip: PayloadB Keys Cypher not equal on slot %v expected %v received %v",
 					i, PayloadBPrecomputationExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
 			}
 		}

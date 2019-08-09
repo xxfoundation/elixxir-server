@@ -129,10 +129,10 @@ var StripInverse = services.Module{
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
-			// Eq 16.1: Invert the round message private key
+			// Eq 16.1: Invert the round payload A private key
 			inverse(ss.Grp, ss.EncryptedPayloadAPrecomputation[i], ss.PayloadAPrecomputation.Get(i))
 
-			// Eq 16.2: Invert the round associated data private key
+			// Eq 16.2: Invert the round payload B private key
 			inverse(ss.Grp, ss.EncryptedPayloadBPrecomputation[i], ss.PayloadBPrecomputation.Get(i))
 
 		}
@@ -159,14 +159,14 @@ var StripMul2 = services.Module{
 		ss := sssi.GetStripSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Eq 16.1: Use the first inverted round private key
+			// Eq 16.1: Use the first payload's inverted round private key
 			//          to remove the homomorphic encryption from
 			//          first payload's encrypted key and reveal the
 			//          first payload's precomputation
 
 			mul2(ss.Grp, ss.CypherPayloadA.Get(i), ss.PayloadAPrecomputation.Get(i))
 
-			// Eq 16.2: Use the inverted round associated data
+			// Eq 16.2: Use the second payload's inverted round
 			//          private key to remove the homomorphic
 			//          encryption from the second payload's encrypted
 			//          key and reveal the second payload's precomputation

@@ -15,8 +15,8 @@ import (
 )
 
 // This file implements the Graph for the Precomputation Reveal phase.
-// The reveal phase removes cypher keys from the message and
-// associated data cypher text, revealing the private keys for the round.
+// The reveal phase removes cypher keys from both payload's cypher texts,
+// revealing the private keys for the round.
 
 // RevealStream holds data containing private key from encrypt and inputs used by strip
 type RevealStream struct {

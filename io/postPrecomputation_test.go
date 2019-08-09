@@ -53,17 +53,17 @@ func TestPostPrecompResult(t *testing.T) {
 	// Then, the slots in the round buffer should be set to those integers
 	for precompValue := start; precompValue < bs+start; precompValue++ {
 		index := uint32(precompValue - start)
-		messagePrecomp := r.PayloadAPrecomputation.Get(index)
-		if messagePrecomp.Cmp(grp.NewInt(int64(precompValue))) != 0 {
-			t.Errorf("Message precomp didn't match at index %v;"+
+		payloadAPrecomp := r.PayloadAPrecomputation.Get(index)
+		if payloadAPrecomp.Cmp(grp.NewInt(int64(precompValue))) != 0 {
+			t.Errorf("payload A precomp didn't match at index %v;"+
 				"Expected: %v, Recieved: %v", index, precompValue,
-				messagePrecomp.Text(16))
+				payloadAPrecomp.Text(16))
 		}
-		adPrecomp := r.PayloadBPrecomputation.Get(index)
-		if adPrecomp.Cmp(grp.NewInt(int64(precompValue+bs))) != 0 {
-			t.Errorf("Associated data precomp didn't match at index %v;"+
+		payloadBPrecomp := r.PayloadBPrecomputation.Get(index)
+		if payloadBPrecomp.Cmp(grp.NewInt(int64(precompValue+bs))) != 0 {
+			t.Errorf("payload B precomp didn't match at index %v;"+
 				"Expected: %v, Recieved: %v", index, precompValue+bs,
-				adPrecomp.Text(16))
+				payloadBPrecomp.Text(16))
 		}
 	}
 }

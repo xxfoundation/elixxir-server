@@ -298,7 +298,7 @@ func TestReveal_Graph(t *testing.T) {
 			}
 
 			if CypherPayloadBExpected.Get(i).Cmp(s.CypherPayloadB.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompReveal: AD Keys Cypher not equal on slot %v expected %v received %v",
+				t.Error(fmt.Sprintf("PrecompReveal: PayloadB Keys Cypher not equal on slot %v expected %v received %v",
 					i, CypherPayloadBExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
 			}
 		}
