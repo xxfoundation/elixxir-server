@@ -2,6 +2,7 @@ package server
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -56,6 +57,9 @@ type Definition struct {
 	Nodes []Node
 	//Holds information about the permissioning server
 	Permissioning Perm
+
+	// Generates random numbers
+	RngStreamGen *fastRNG.StreamGenerator
 }
 
 // Holds all input flags to the system.

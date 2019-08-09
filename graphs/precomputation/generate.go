@@ -10,8 +10,8 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -25,7 +25,7 @@ type GenerateStream struct {
 	Grp *cyclic.Group
 
 	// RNG
-	rngConstructor csprng.SourceConstructor
+	RngStreamGen fastRNG.StreamGenerator
 
 	// Phase Keys
 	R *cyclic.IntBuffer
@@ -48,18 +48,16 @@ func (gs *GenerateStream) GetName() string {
 // Link maps the round data to the Generate Stream data structure (the input)
 func (gs *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
-	rngConstructor := source[2].(func() csprng.Source)
+	rngStreamGen := source[2].(*fastRNG.StreamGenerator)
 
-	gs.LinkGenerateStream(grp, batchSize, roundBuffer, rngConstructor)
+	gs.LinkGenerateStream(grp, batchSize, roundBuffer, rngStreamGen)
 }
 
 // Link maps the round data to the Generate Stream data structure (the input)
-func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
-	rngConstructor csprng.SourceConstructor) {
+func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32,
+	roundBuffer *round.Buffer, rngStreamGen *fastRNG.StreamGenerator) {
 
 	gs.Grp = grp
-
-	gs.rngConstructor = rngConstructor
 
 	// Phase keys
 	gs.R = roundBuffer.R.GetSubBuffer(0, batchSize)
@@ -74,6 +72,7 @@ func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32
 	gs.YV = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 }
 
+// substream
 type GenerateSubstreamInterface interface {
 	GetGenerateSubStream() *GenerateStream
 }
@@ -110,14 +109,14 @@ var Generate = services.Module{
 
 		gs := gssi.GetGenerateSubStream()
 
-		rng := gs.rngConstructor()
+		stream := gs.RngStreamGen.GetStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			errors := []error{
-				generate(gs.Grp, gs.R.Get(i), gs.YR.Get(i), rng),
-				generate(gs.Grp, gs.S.Get(i), gs.YS.Get(i), rng),
-				generate(gs.Grp, gs.U.Get(i), gs.YU.Get(i), rng),
-				generate(gs.Grp, gs.V.Get(i), gs.YV.Get(i), rng),
+				generate(gs.Grp, gs.R.Get(i), gs.YR.Get(i), stream),
+				generate(gs.Grp, gs.S.Get(i), gs.YS.Get(i), stream),
+				generate(gs.Grp, gs.U.Get(i), gs.YU.Get(i), stream),
+				generate(gs.Grp, gs.V.Get(i), gs.YV.Get(i), stream),
 			}
 			for _, err := range errors {
 				if err != nil {
@@ -125,6 +124,8 @@ var Generate = services.Module{
 				}
 			}
 		}
+		gs.RngStreamGen.Close(stream)
+
 		return nil
 	},
 	Cryptop:    cryptops.Generate,
