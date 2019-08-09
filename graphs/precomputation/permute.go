@@ -168,12 +168,12 @@ var PermuteElgamal = services.Module{
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Execute elgamal on the keys for the Message
 
-			// Eq 11.1: Encrypt the Permuted Internode Message Key under Homomorphic Encryption.
-			// Eq 13.17: Then multiply the Permuted Internode Message Key under Homomorphic
-			// Encryption into the Partial Encrypted Message Precomputation
-			// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode Message Key
+			// Eq 11.1: Encrypt the Permuted Internode PayloadA Key under Homomorphic Encryption.
+			// Eq 13.17: Then multiply the Permuted Internode PayloadA Key under Homomorphic
+			// Encryption into the Partial Encrypted PayloadA Precomputation
+			// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode PayloadA Key
 			// Eq 13.21: Multiplies the Partial Cypher Text for the Permuted Internode
-			// Message Key into the Round Message Partial Cypher Text
+			// PayloadA Key into the Round PayloadA Partial Cypher Text
 
 			elgamal(ps.Grp, ps.S.Get(i), ps.Y_S.Get(i), ps.PublicCypherKey, ps.KeysPayloadA.Get(i), ps.CypherPayloadA.Get(i))
 

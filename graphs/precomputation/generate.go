@@ -96,9 +96,9 @@ func (gs *GenerateStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{}
 }
 
-// Generate does precomputation for implementing cryptops.Generate
+// Generate implements cryptops.Generate for precomputation
 var Generate = services.Module{
-	// Multiplies in own Encrypted Keys and Partial Cypher Texts
+	// Generates key pairs R, S, U, and V
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
 		gssi, ok := streamInput.(GenerateSubstreamInterface)

@@ -129,10 +129,10 @@ var DecryptElgamal = services.Module{
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
-			// Execute elgamal on the keys for the Message
+			// Execute elgamal on the keys for the first payload
 			elgamal(ds.Grp, ds.R.Get(i), ds.Y_R.Get(i), ds.PublicCypherKey, ds.KeysPayloadA.Get(i), ds.CypherPayloadA.Get(i))
 
-			// Execute elgamal on the keys for the Associated Data
+			// Execute elgamal on the keys for the second payload
 			elgamal(ds.Grp, ds.U.Get(i), ds.Y_U.Get(i), ds.PublicCypherKey, ds.KeysPayloadB.Get(i), ds.CypherPayloadB.Get(i))
 		}
 		return nil

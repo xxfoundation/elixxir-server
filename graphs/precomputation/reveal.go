@@ -91,7 +91,7 @@ func (s *RevealStream) getSubStream() *RevealStream {
 
 // RevealRootCoprime is a module in precomputation reveeal implementing cryptops.RootCoprimePrototype
 var RevealRootCoprime = services.Module{
-	// Runs root coprime for cypher message and cypher associated data
+	// Runs root coprime for cypher texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
 		s, ok := streamInput.(revealSubstreamInterface)
 		rootCoprime, ok2 := cryptop.(cryptops.RootCoprimePrototype)
@@ -104,16 +104,16 @@ var RevealRootCoprime = services.Module{
 		tmp := rs.Grp.NewMaxInt()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Execute rootCoprime on the keys for the Message
+			// Execute rootCoprime on the keys for the first payload
 			// Eq 15.11 Root by cypher key to remove one layer of homomorphic
-			// encryption from partially encrypted message cypher text.
+			// encryption from partially encrypted payload A cypher text.
 
 			rootCoprime(rs.Grp, rs.CypherPayloadA.Get(i), rs.Z, tmp)
 			rs.Grp.Set(rs.CypherPayloadA.Get(i), tmp)
 
-			// Execute rootCoprime on the keys for the associated data
+			// Execute rootCoprime on the keys for the second payload
 			// Eq 15.13 Root by cypher key to remove one layer of homomorphic
-			// encryption from partially encrypted associated data cypher text.
+			// encryption from partially encrypted payload B cypher text.
 			rootCoprime(rs.Grp, rs.CypherPayloadB.Get(i), rs.Z, tmp)
 			rs.Grp.Set(rs.CypherPayloadB.Get(i), tmp)
 		}

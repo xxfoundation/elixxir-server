@@ -146,9 +146,9 @@ var DecryptMul3 = services.Module{
 		ds := dssi.GetRealtimeDecryptSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			//Do mul3 ecrMessage=messageKey*R*ecrMessage%p
+			//Do mul3 ecrPayloadA=payloadAKey*R*ecrPayloadA%p
 			mul3(ds.Grp, ds.KeysPayloadA.Get(i), ds.R.Get(i), ds.EcrPayloadA.Get(i))
-			//Do mul3 ecrPayloadB=ecrPayloadB*U*ecrMessage%p
+			//Do mul3 ecrPayloadB=payloadBKey*U*ecrPayloadB%p
 			mul3(ds.Grp, ds.KeysPayloadB.Get(i), ds.U.Get(i), ds.EcrPayloadB.Get(i))
 		}
 		return nil

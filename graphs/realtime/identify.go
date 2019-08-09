@@ -117,9 +117,9 @@ var IdentifyMul2 = services.Module{
 		is := isi.getIdentifyStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Multiply the encrypted message by the precomputation to decrypt it
+			// Multiply encrypted payload A by its precomputation to decrypt it
 			mul2(is.Grp, is.PayloadAPrecomputation.Get(i), is.EcrPayloadAPermuted[i])
-			// Multiply the encrypted associated data by the precomputation to decrypt it
+			// Multiply encrypted payload B by its precomputation to decrypt it
 			mul2(is.Grp, is.PayloadBPrecomputation.Get(i), is.EcrPayloadBPermuted[i])
 		}
 		return nil
