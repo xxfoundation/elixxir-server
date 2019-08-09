@@ -28,7 +28,8 @@ func (a ConnAddr) String() string {
 }
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition) ([]server.Node, string, string) {
+func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
+	string) {
 
 	// Channel for signaling completion of Node registration
 	toplogyCh := make(chan *pb.NodeTopology)
@@ -108,17 +109,19 @@ func RegisterNode(def *server.Definition) ([]server.Node, string, string) {
 
 	// Integrate the topology with the Definition
 	nodes := make([]server.Node, len(topology.Topology))
+	nodeIds := make([]*id.Node, len(topology.Topology))
 	for _, n := range topology.Topology {
-
 		// Build Node information
+		jww.INFO.Printf("Assembling node topology: %+v", n)
 		nodes[n.Index] = server.Node{
 			ID:      id.NewNodeFromBytes(n.Id),
 			TlsCert: []byte(n.ServerTlsCert),
 			Address: n.IpAddress,
 		}
+		nodeIds[n.Index] = id.NewNodeFromBytes(n.Id)
 	}
 
-	return nodes, topology.Topology[index].ServerTlsCert,
+	return nodes, nodeIds, topology.Topology[index].ServerTlsCert,
 		topology.Topology[index].GatewayTlsCert
 
 }
