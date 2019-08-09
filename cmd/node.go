@@ -8,9 +8,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
@@ -22,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
+	"io/ioutil"
 	"runtime"
 	"time"
 )
