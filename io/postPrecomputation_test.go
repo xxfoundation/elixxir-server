@@ -38,9 +38,9 @@ func TestPostPrecompResult(t *testing.T) {
 	const start = 2
 	for precompValue := start; precompValue < bs+start; precompValue++ {
 		slots = append(slots, &mixmessages.Slot{
-			EncryptedMessageKeys: grp.NewInt(int64(precompValue)).
+			EncryptedPayloadAKeys: grp.NewInt(int64(precompValue)).
 				Bytes(),
-			EncryptedAssociatedDataKeys: grp.NewInt(int64(precompValue + bs)).
+			EncryptedPayloadBKeys: grp.NewInt(int64(precompValue + bs)).
 				Bytes(),
 		})
 	}
@@ -53,13 +53,13 @@ func TestPostPrecompResult(t *testing.T) {
 	// Then, the slots in the round buffer should be set to those integers
 	for precompValue := start; precompValue < bs+start; precompValue++ {
 		index := uint32(precompValue - start)
-		messagePrecomp := r.MessagePrecomputation.Get(index)
+		messagePrecomp := r.PayloadAPrecomputation.Get(index)
 		if messagePrecomp.Cmp(grp.NewInt(int64(precompValue))) != 0 {
 			t.Errorf("Message precomp didn't match at index %v;"+
 				"Expected: %v, Recieved: %v", index, precompValue,
 				messagePrecomp.Text(16))
 		}
-		adPrecomp := r.ADPrecomputation.Get(index)
+		adPrecomp := r.PayloadBPrecomputation.Get(index)
 		if adPrecomp.Cmp(grp.NewInt(int64(precompValue+bs))) != 0 {
 			t.Errorf("Associated data precomp didn't match at index %v;"+
 				"Expected: %v, Recieved: %v", index, precompValue+bs,
@@ -83,8 +83,8 @@ func MockPostPrecompResultImplementation(
 
 func getMockPostPrecompSlot(i uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
-		PartialMessageCypherText:        []byte{byte(i)},
-		PartialAssociatedDataCypherText: []byte{byte(i)},
+		PartialPayloadACypherText:        []byte{byte(i)},
+		PartialPayloadBCypherText: []byte{byte(i)},
 	}
 }
 

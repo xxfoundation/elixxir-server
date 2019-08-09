@@ -29,7 +29,7 @@ func TestPostPhase(t *testing.T) {
 	for i := 0; i < numSlots; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
-				MessagePayload: []byte{byte(i)},
+				PayloadA: []byte{byte(i)},
 			})
 	}
 
@@ -87,15 +87,15 @@ func TestTransmitPhase(t *testing.T) {
 		return services.NewChunk(0, 0), false
 	}
 
-	getMsg := func(index uint32) *mixmessages.Slot {
-		return &mixmessages.Slot{MessagePayload: []byte{0}}
+	getPA := func(index uint32) *mixmessages.Slot {
+		return &mixmessages.Slot{PayloadA: []byte{0}}
 	}
 
 	m := func(tag string) {}
 
 	//call the transmitter
 	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
-		getMsg, topology, topology.GetNodeAtIndex(0), m)
+		getPA, topology, topology.GetNodeAtIndex(0), m)
 
 	if err != nil {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)

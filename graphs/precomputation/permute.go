@@ -26,19 +26,19 @@ type PermuteStream struct {
 
 	// Link to round object
 	S   *cyclic.IntBuffer // Encrypted Inverse Permuted Internode Message Key
-	V   *cyclic.IntBuffer // Encrypted Inverse Permuted Internode AssociatedData Key
+	V   *cyclic.IntBuffer // Encrypted Inverse Permuted Internode PayloadB Key
 	Y_S *cyclic.IntBuffer // Permuted Internode Message Partial Cypher Text
-	Y_V *cyclic.IntBuffer // Permuted Internode AssociatedData Partial Cypher Text
+	Y_V *cyclic.IntBuffer // Permuted Internode PayloadB Partial Cypher Text
 
 	// Unique to stream
-	KeysMsg           *cyclic.IntBuffer
-	KeysMsgPermuted   []*cyclic.Int
-	CypherMsg         *cyclic.IntBuffer
-	CypherMsgPermuted []*cyclic.Int
-	KeysAD            *cyclic.IntBuffer
-	KeysADPermuted    []*cyclic.Int
-	CypherAD          *cyclic.IntBuffer
-	CypherADPermuted  []*cyclic.Int
+	KeysPayloadA           *cyclic.IntBuffer
+	KeysPayloadAPermuted   []*cyclic.Int
+	CypherPayloadA         *cyclic.IntBuffer
+	CypherPayloadAPermuted []*cyclic.Int
+	KeysPayloadB           *cyclic.IntBuffer
+	KeysPayloadBPermuted   []*cyclic.Int
+	CypherPayloadB         *cyclic.IntBuffer
+	CypherPayloadBPermuted []*cyclic.Int
 }
 
 // GetName returns stream name
@@ -63,8 +63,8 @@ func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 
 // Link binds stream to state objects in round
 func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
-	keysMsg, cypherMsg, keysAD, cypherAD *cyclic.IntBuffer,
-	keysMsgPermuted, cypherMsgPermuted, keysADPermuted, cypherADPermuted []*cyclic.Int) {
+	keysPA, cypherPA, keysAD, cypherAD *cyclic.IntBuffer,
+	keysPayloadAPermuted, cypherPAPermuted, keysPayloadBPermuted, cypherPayloadBPermuted []*cyclic.Int) {
 
 	ps.Grp = grp
 	ps.PublicCypherKey = roundBuffer.CypherPublicKey
@@ -74,41 +74,41 @@ func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize u
 	ps.Y_S = roundBuffer.Y_S.GetSubBuffer(0, batchSize)
 	ps.Y_V = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 
-	ps.KeysMsg = keysMsg
-	ps.CypherMsg = cypherMsg
-	ps.KeysAD = keysAD
-	ps.CypherAD = cypherAD
+	ps.KeysPayloadA = keysPA
+	ps.CypherPayloadA = cypherPA
+	ps.KeysPayloadB = keysAD
+	ps.CypherPayloadB = cypherAD
 
-	ps.CypherADPermuted = cypherADPermuted
-	ps.CypherMsgPermuted = cypherMsgPermuted
+	ps.CypherPayloadBPermuted = cypherPayloadBPermuted
+	ps.CypherPayloadAPermuted = cypherPAPermuted
 
 	// these are connected to the round buffer on last node so they are stored
 	// during the reveal phase for use in strip
-	if len(roundBuffer.PermutedMessageKeys) != 0 {
-		ps.KeysMsgPermuted = roundBuffer.PermutedMessageKeys
+	if len(roundBuffer.PermutedPayloadAKeys) != 0 {
+		ps.KeysPayloadAPermuted = roundBuffer.PermutedPayloadAKeys
 	} else {
-		ps.KeysMsgPermuted = keysMsgPermuted
+		ps.KeysPayloadAPermuted = keysPayloadAPermuted
 	}
 
-	if len(roundBuffer.PermutedADKeys) != 0 {
-		ps.KeysADPermuted = roundBuffer.PermutedADKeys
+	if len(roundBuffer.PermutedPayloadBKeys) != 0 {
+		ps.KeysPayloadBPermuted = roundBuffer.PermutedPayloadBKeys
 	} else {
-		ps.KeysADPermuted = keysADPermuted
+		ps.KeysPayloadBPermuted = keysPayloadBPermuted
 	}
 
 	graphs.PrecanPermute(roundBuffer.Permutations,
 		graphs.PermuteIO{
-			Input:  ps.CypherMsg,
-			Output: ps.CypherMsgPermuted,
+			Input:  ps.CypherPayloadA,
+			Output: ps.CypherPayloadAPermuted,
 		}, graphs.PermuteIO{
-			Input:  ps.CypherAD,
-			Output: ps.CypherADPermuted,
+			Input:  ps.CypherPayloadB,
+			Output: ps.CypherPayloadBPermuted,
 		}, graphs.PermuteIO{
-			Input:  ps.KeysAD,
-			Output: ps.KeysADPermuted,
+			Input:  ps.KeysPayloadB,
+			Output: ps.KeysPayloadBPermuted,
 		}, graphs.PermuteIO{
-			Input:  ps.KeysMsg,
-			Output: ps.KeysMsgPermuted,
+			Input:  ps.KeysPayloadA,
+			Output: ps.KeysPayloadAPermuted,
 		},
 	)
 }
@@ -125,19 +125,19 @@ func (ps *PermuteStream) GetPrecompPermuteSubStream() *PermuteStream {
 // Input initializes stream inputs from slot
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if index >= uint32(ps.KeysMsg.Len()) {
+	if index >= uint32(ps.KeysPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !ps.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
-		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
+	if !ps.Grp.BytesInside(slot.EncryptedPayloadAKeys, slot.PartialPayloadACypherText,
+		slot.EncryptedPayloadBKeys, slot.PartialPayloadBCypherText) {
 		return services.ErrOutsideOfGroup
 	}
 
-	ps.Grp.SetBytes(ps.KeysMsg.Get(index), slot.EncryptedMessageKeys)
-	ps.Grp.SetBytes(ps.KeysAD.Get(index), slot.EncryptedAssociatedDataKeys)
-	ps.Grp.SetBytes(ps.CypherMsg.Get(index), slot.PartialMessageCypherText)
-	ps.Grp.SetBytes(ps.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+	ps.Grp.SetBytes(ps.KeysPayloadA.Get(index), slot.EncryptedPayloadAKeys)
+	ps.Grp.SetBytes(ps.KeysPayloadB.Get(index), slot.EncryptedPayloadBKeys)
+	ps.Grp.SetBytes(ps.CypherPayloadA.Get(index), slot.PartialPayloadACypherText)
+	ps.Grp.SetBytes(ps.CypherPayloadB.Get(index), slot.PartialPayloadBCypherText)
 	return nil
 }
 
@@ -145,10 +145,10 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index:                           index,
-		EncryptedMessageKeys:            ps.KeysMsgPermuted[index].Bytes(),
-		EncryptedAssociatedDataKeys:     ps.KeysADPermuted[index].Bytes(),
-		PartialMessageCypherText:        ps.CypherMsgPermuted[index].Bytes(),
-		PartialAssociatedDataCypherText: ps.CypherADPermuted[index].Bytes(),
+		EncryptedPayloadAKeys:            ps.KeysPayloadAPermuted[index].Bytes(),
+		EncryptedPayloadBKeys:     ps.KeysPayloadBPermuted[index].Bytes(),
+		PartialPayloadACypherText:        ps.CypherPayloadAPermuted[index].Bytes(),
+		PartialPayloadBCypherText: ps.CypherPayloadBPermuted[index].Bytes(),
 	}
 }
 
@@ -175,17 +175,17 @@ var PermuteElgamal = services.Module{
 			// Eq 13.21: Multiplies the Partial Cypher Text for the Permuted Internode
 			// Message Key into the Round Message Partial Cypher Text
 
-			elgamal(ps.Grp, ps.S.Get(i), ps.Y_S.Get(i), ps.PublicCypherKey, ps.KeysMsg.Get(i), ps.CypherMsg.Get(i))
+			elgamal(ps.Grp, ps.S.Get(i), ps.Y_S.Get(i), ps.PublicCypherKey, ps.KeysPayloadA.Get(i), ps.CypherPayloadA.Get(i))
 
 			// Execute elgamal on the keys for the Associated Data
-			// Eq 11.1: Encrypt the Permuted Internode AssociatedData Key under Homomorphic Encryption
-			// Eq 13.19: Multiplies the Permuted Internode AssociatedData Key under
-			// Homomorphic Encryption into the Partial Encrypted AssociatedData Precomputation
-			// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode AssociatedData Key
+			// Eq 11.1: Encrypt the Permuted Internode PayloadB Key under Homomorphic Encryption
+			// Eq 13.19: Multiplies the Permuted Internode PayloadB Key under
+			// Homomorphic Encryption into the Partial Encrypted PayloadB Precomputation
+			// Eq 11.2: Makes the Partial Cypher Text for the Permuted Internode PayloadB Key
 			// Eq 13.23 Multiplies the Partial Cypher Text for the Permuted Internode
-			// AssociatedData Key into the Round AssociatedData Partial Cypher Text
+			// PayloadB Key into the Round PayloadB Partial Cypher Text
 
-			elgamal(ps.Grp, ps.V.Get(i), ps.Y_V.Get(i), ps.PublicCypherKey, ps.KeysAD.Get(i), ps.CypherAD.Get(i))
+			elgamal(ps.Grp, ps.V.Get(i), ps.Y_V.Get(i), ps.PublicCypherKey, ps.KeysPayloadB.Get(i), ps.CypherPayloadB.Get(i))
 		}
 		return nil
 	},

@@ -40,7 +40,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	}
 
 	// Create the message structure to send the messages
-	roundPubKeyMsg := &mixmessages.RoundPublicKey{
+	roundPubKeyPA := &mixmessages.RoundPublicKey{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
@@ -58,7 +58,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 		go func() {
 			recipient := topology.GetNodeAtIndex(localIndex)
 
-			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyPA)
 
 			if err != nil {
 				errChan <- err
@@ -95,7 +95,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	// to the first node which is this node
 	thisNode := topology.GetNodeAtIndex(0)
 
-	ack, err := network.SendPostRoundPublicKey(thisNode, roundPubKeyMsg)
+	ack, err := network.SendPostRoundPublicKey(thisNode, roundPubKeyPA)
 
 	// Make sure the comm doesn't return an Ack with an
 	// error message

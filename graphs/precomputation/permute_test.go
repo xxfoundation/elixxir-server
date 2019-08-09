@@ -50,10 +50,10 @@ func TestPermuteStream_Link(t *testing.T) {
 	checkStreamIntBuffer(grp, stream.Y_S, roundBuffer.Y_S, "Y_S", t)
 	checkStreamIntBuffer(grp, stream.Y_V, roundBuffer.Y_V, "Y_V", t)
 
-	checkIntBuffer(stream.KeysMsg, batchSize, "KeysMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.KeysAD, batchSize, "KeysAD", grp.NewInt(1), t)
-	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysPayloadA, batchSize, "KeysPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadA, batchSize, "CypherPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysPayloadB, batchSize, "KeysPayloadB", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadB, batchSize, "CypherPayloadB", grp.NewInt(1), t)
 }
 
 // Tests Input's happy path
@@ -78,10 +78,10 @@ func TestPermuteStream_Input(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			EncryptedMessageKeys:            expected[0],
-			EncryptedAssociatedDataKeys:     expected[1],
-			PartialMessageCypherText:        expected[2],
-			PartialAssociatedDataCypherText: expected[3],
+			EncryptedPayloadAKeys:            expected[0],
+			EncryptedPayloadBKeys:     expected[1],
+			PartialPayloadACypherText:        expected[2],
+			PartialPayloadBCypherText: expected[3],
 		}
 
 		err := stream.Input(b, msg)
@@ -89,24 +89,24 @@ func TestPermuteStream_Input(t *testing.T) {
 			t.Errorf("PermuteStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(stream.KeysMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("PermuteStream.Input() incorrect stored KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], stream.KeysMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.KeysPayloadA.Get(b).Bytes(), expected[0]) {
+			t.Errorf("PermuteStream.Input() incorrect stored KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.KeysPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.KeysAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("PermuteStream.Input() incorrect stored KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], stream.KeysAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.KeysPayloadB.Get(b).Bytes(), expected[1]) {
+			t.Errorf("PermuteStream.Input() incorrect stored KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[2]) {
-			t.Errorf("PermuteStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[2]) {
+			t.Errorf("PermuteStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[3]) {
-			t.Errorf("PermuteStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[3]) {
+			t.Errorf("PermuteStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -128,10 +128,10 @@ func TestPermuteStream_Input_OutOfBatch(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		EncryptedMessageKeys:            []byte{0},
-		EncryptedAssociatedDataKeys:     []byte{0},
-		PartialMessageCypherText:        []byte{0},
-		PartialAssociatedDataCypherText: []byte{0},
+		EncryptedPayloadAKeys:            []byte{0},
+		EncryptedPayloadBKeys:     []byte{0},
+		PartialPayloadACypherText:        []byte{0},
+		PartialPayloadBCypherText: []byte{0},
 	}
 
 	err := stream.Input(batchSize, msg)
@@ -160,10 +160,10 @@ func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		EncryptedMessageKeys:            []byte{0},
-		EncryptedAssociatedDataKeys:     []byte{0},
-		PartialMessageCypherText:        []byte{0},
-		PartialAssociatedDataCypherText: []byte{0},
+		EncryptedPayloadAKeys:            []byte{0},
+		EncryptedPayloadBKeys:     []byte{0},
+		PartialPayloadACypherText:        []byte{0},
+		PartialPayloadBCypherText: []byte{0},
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -194,31 +194,31 @@ func TestPermuteStream_Output(t *testing.T) {
 			{byte(b + 1), 4},
 		}
 
-		stream.KeysMsgPermuted[b] = grp.NewIntFromBytes(expected[0])
-		stream.KeysADPermuted[b] = grp.NewIntFromBytes(expected[1])
-		stream.CypherMsgPermuted[b] = grp.NewIntFromBytes(expected[2])
-		stream.CypherADPermuted[b] = grp.NewIntFromBytes(expected[3])
+		stream.KeysPayloadAPermuted[b] = grp.NewIntFromBytes(expected[0])
+		stream.KeysPayloadBPermuted[b] = grp.NewIntFromBytes(expected[1])
+		stream.CypherPayloadAPermuted[b] = grp.NewIntFromBytes(expected[2])
+		stream.CypherPayloadBPermuted[b] = grp.NewIntFromBytes(expected[3])
 
 		output := stream.Output(uint32(b))
 
-		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], output.EncryptedMessageKeys)
+		if !reflect.DeepEqual(output.EncryptedPayloadAKeys, expected[0]) {
+			t.Errorf("PermuteStream.Output() incorrect recieved KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], output.EncryptedPayloadAKeys)
 		}
 
-		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], stream.KeysAD.Get(b).Bytes())
+		if !reflect.DeepEqual(output.EncryptedPayloadBKeys, expected[1]) {
+			t.Errorf("PermuteStream.Output() incorrect recieved KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[2]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(output.PartialPayloadACypherText, expected[2]) {
+			t.Errorf("PermuteStream.Output() incorrect recieved CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[3]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(output.PartialPayloadBCypherText, expected[3]) {
+			t.Errorf("PermuteStream.Output() incorrect recieved CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -297,31 +297,31 @@ func TestPermuteGraph(t *testing.T) {
 	}
 
 	// Build i/o used for testing
-	KeysMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	KeysADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	KeysPayloadAExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadAExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	KeysPayloadBExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadBExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.SetUint64(stream.KeysMsg.Get(i), uint64(i+1))
-		grp.SetUint64(stream.CypherMsg.Get(i), uint64(i+11))
-		grp.SetUint64(stream.KeysAD.Get(i), uint64(i+111))
-		grp.SetUint64(stream.CypherAD.Get(i), uint64(i+1111))
+		grp.SetUint64(stream.KeysPayloadA.Get(i), uint64(i+1))
+		grp.SetUint64(stream.CypherPayloadA.Get(i), uint64(i+11))
+		grp.SetUint64(stream.KeysPayloadB.Get(i), uint64(i+111))
+		grp.SetUint64(stream.CypherPayloadB.Get(i), uint64(i+1111))
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
 
-		grp.Set(KeysMsgExpected.Get(i), stream.KeysMsg.Get(i))
-		grp.Set(CypherMsgExpected.Get(i), stream.CypherMsg.Get(i))
-		grp.Set(KeysADExpected.Get(i), stream.KeysAD.Get(i))
-		grp.Set(CypherADExpected.Get(i), stream.CypherAD.Get(i))
+		grp.Set(KeysPayloadAExpected.Get(i), stream.KeysPayloadA.Get(i))
+		grp.Set(CypherPayloadAExpected.Get(i), stream.CypherPayloadA.Get(i))
+		grp.Set(KeysPayloadBExpected.Get(i), stream.KeysPayloadB.Get(i))
+		grp.Set(CypherPayloadBExpected.Get(i), stream.CypherPayloadB.Get(i))
 
 		s := stream
 
 		// Compute expected result for this slot
-		cryptops.ElGamal(grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, KeysMsgExpected.Get(i), CypherMsgExpected.Get(i))
+		cryptops.ElGamal(grp, s.S.Get(i), s.Y_S.Get(i), s.PublicCypherKey, KeysPayloadAExpected.Get(i), CypherPayloadAExpected.Get(i))
 		// Execute elgamal on the keys for the Associated Data
-		cryptops.ElGamal(s.Grp, s.V.Get(i), s.Y_V.Get(i), s.PublicCypherKey, KeysADExpected.Get(i), CypherADExpected.Get(i))
+		cryptops.ElGamal(s.Grp, s.V.Get(i), s.Y_V.Get(i), s.PublicCypherKey, KeysPayloadBExpected.Get(i), CypherPayloadBExpected.Get(i))
 
 	}
 
@@ -349,20 +349,20 @@ func TestPermuteGraph(t *testing.T) {
 				t.Error("Permute: should not be outputting until all inputs are inputted")
 			}
 
-			if stream.KeysMsgPermuted[i].Cmp(KeysMsgExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: KeysMsg slot %v out1 not permuted correctly", i))
+			if stream.KeysPayloadAPermuted[i].Cmp(KeysPayloadAExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: KeysPayloadA slot %v out1 not permuted correctly", i))
 			}
 
-			if stream.CypherMsgPermuted[i].Cmp(CypherMsgExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: CypherMsg slot %v out1 not permuted correctly", i))
+			if stream.CypherPayloadAPermuted[i].Cmp(CypherPayloadAExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: CypherPayloadA slot %v out1 not permuted correctly", i))
 			}
 
-			if stream.KeysADPermuted[i].Cmp(KeysADExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: KeysAD slot %v out2 not permuted correctly", i))
+			if stream.KeysPayloadBPermuted[i].Cmp(KeysPayloadBExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: KeysPayloadB slot %v out2 not permuted correctly", i))
 			}
 
-			if stream.CypherADPermuted[i].Cmp(CypherADExpected.Get(permuteInverse[i])) != 0 {
-				t.Error(fmt.Sprintf("Permute: CypherAD slot %v out2 not permuted correctly", i))
+			if stream.CypherPayloadBPermuted[i].Cmp(CypherPayloadBExpected.Get(permuteInverse[i])) != 0 {
+				t.Error(fmt.Sprintf("Permute: CypherPayloadB slot %v out2 not permuted correctly", i))
 			}
 
 		}

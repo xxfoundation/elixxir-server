@@ -113,8 +113,8 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 			{
 				// Do the fields need to be populated?
 				SenderID:       nil,
-				MessagePayload: nil,
-				AssociatedData: nil,
+				PayloadA: nil,
+				PayloadB: nil,
 				Salt:           nil,
 				KMACs:          nil,
 			},
@@ -214,8 +214,8 @@ func TestReceivePostNewBatch(t *testing.T) {
 				// Do the fields need to be populated?
 				// Yes, but only to check if the batch made it to the phase
 				SenderID:       sender.ID.Bytes(),
-				MessagePayload: []byte{2},
-				AssociatedData: []byte{3},
+				PayloadA: []byte{2},
+				PayloadB: []byte{3},
 				// Because the salt is just one byte,
 				// this should fail in the Realtime Decrypt graph.
 				Salt:  make([]byte, 32),
@@ -276,7 +276,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	for i := uint32(0); i < batchSize; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
-				MessagePayload: []byte{byte(i)},
+				PayloadA: []byte{byte(i)},
 			})
 	}
 
@@ -416,7 +416,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
 				Index:          i,
-				MessagePayload: []byte{byte(i)},
+				PayloadA: []byte{byte(i)},
 			})
 	}
 
@@ -896,14 +896,14 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		err := ReceivePostPrecompResult(instances[i], uint64(roundID),
 			[]*mixmessages.Slot{{
-				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
-				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+				PartialPayloadACypherText:        grp.NewInt(3).Bytes(),
+				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
 			}, {
-				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
-				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+				PartialPayloadACypherText:        grp.NewInt(3).Bytes(),
+				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
 			}, {
-				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
-				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+				PartialPayloadACypherText:        grp.NewInt(3).Bytes(),
+				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
 			}})
 
 		if err != nil {

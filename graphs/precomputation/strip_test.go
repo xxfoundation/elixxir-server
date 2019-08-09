@@ -49,11 +49,11 @@ func TestStripStream_Link(t *testing.T) {
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
-	checkStreamIntBuffer(grp, stream.MessagePrecomputation, roundBuffer.MessagePrecomputation, "MessagePrecomputation", t)
-	checkStreamIntBuffer(grp, stream.ADPrecomputation, roundBuffer.ADPrecomputation, "ADPrecomputation", t)
+	checkStreamIntBuffer(grp, stream.PayloadAPrecomputation, roundBuffer.PayloadAPrecomputation, "PayloadAPrecomputation", t)
+	checkStreamIntBuffer(grp, stream.PayloadBPrecomputation, roundBuffer.PayloadBPrecomputation, "PayloadBPrecomputation", t)
 
-	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadA, batchSize, "CypherPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadB, batchSize, "CypherPayloadB", grp.NewInt(1), t)
 
 	// Edit round to show that Z value in stream changes
 	expected := grp.Random(roundBuffer.Z)
@@ -85,8 +85,8 @@ func TestStripStream_Input(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			PartialMessageCypherText:        expected[0],
-			PartialAssociatedDataCypherText: expected[1],
+			PartialPayloadACypherText:        expected[0],
+			PartialPayloadBCypherText: expected[1],
 		}
 
 		err := stream.Input(b, msg)
@@ -94,14 +94,14 @@ func TestStripStream_Input(t *testing.T) {
 			t.Errorf("StripStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("StripStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[0]) {
+			t.Errorf("StripStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("StripStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[1]) {
+			t.Errorf("StripStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -120,8 +120,8 @@ func TestStripStream_Input_OutOfBatch(t *testing.T) {
 
 	stream.Link(grp, batchSize, roundBuffer)
 	msg := &mixmessages.Slot{
-		PartialMessageCypherText:        []byte{0},
-		PartialAssociatedDataCypherText: []byte{0},
+		PartialPayloadACypherText:        []byte{0},
+		PartialPayloadBCypherText: []byte{0},
 	}
 
 	err := stream.Input(batchSize, msg)
@@ -150,8 +150,8 @@ func TestStripStream_Input_OutOfGroup(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		PartialMessageCypherText:        large.NewInt(89).Bytes(),
-		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
+		PartialPayloadACypherText:        large.NewInt(89).Bytes(),
+		PartialPayloadBCypherText: large.NewInt(13).Bytes(),
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -180,21 +180,21 @@ func TestStripStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		grp.SetBytes(stream.MessagePrecomputation.Get(b), expected[0])
-		grp.SetBytes(stream.ADPrecomputation.Get(b), expected[1])
+		grp.SetBytes(stream.PayloadAPrecomputation.Get(b), expected[0])
+		grp.SetBytes(stream.PayloadBPrecomputation.Get(b), expected[1])
 
 		output := stream.Output(b)
 
-		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
+		if !reflect.DeepEqual(output.EncryptedPayloadAKeys, expected[0]) {
 			t.Errorf("StripStream.Output() incorrect recieved "+
-				"CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], output.EncryptedMessageKeys)
+				"CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], output.EncryptedPayloadAKeys)
 		}
 
-		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
-			t.Errorf("StripStream.Output() incorrect recieved CypherAD"+
+		if !reflect.DeepEqual(output.EncryptedPayloadBKeys, expected[1]) {
+			t.Errorf("StripStream.Output() incorrect recieved CypherPayloadB"+
 				" data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], output.EncryptedAssociatedDataKeys)
+				b, expected[1], output.EncryptedPayloadBKeys)
 		}
 
 	}
@@ -240,14 +240,14 @@ func TestStrip_Graph(t *testing.T) {
 	roundBuffer.InitLastNode()
 
 	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
-		roundBuffer.PermutedMessageKeys[i] = grp.NewInt(1)
-		roundBuffer.PermutedADKeys[i] = grp.NewInt(1)
+		roundBuffer.PermutedPayloadAKeys[i] = grp.NewInt(1)
+		roundBuffer.PermutedPayloadBKeys[i] = grp.NewInt(1)
 	}
 
 	// Fill the fields of the round object for testing
 	for i := uint32(0); i < g.GetBatchSize(); i++ {
-		grp.Set(roundBuffer.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
-		grp.Set(roundBuffer.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.PayloadBPrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.PayloadAPrecomputation.Get(i), grp.NewInt(int64(1)))
 	}
 
 	grp.FindSmallCoprimeInverse(roundBuffer.Z, 256)
@@ -257,23 +257,23 @@ func TestStrip_Graph(t *testing.T) {
 
 	stream := g.GetStream().(*StripStream)
 
-	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadAExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadBExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
 	// Fill the fields of the stream object for testing
 	for i := uint32(0); i < g.GetBatchSize(); i++ {
-		grp.RandomCoprime(stream.CypherMsg.Get(i))
-		grp.RandomCoprime(stream.CypherAD.Get(i))
+		grp.RandomCoprime(stream.CypherPayloadA.Get(i))
+		grp.RandomCoprime(stream.CypherPayloadB.Get(i))
 
 		//These two lines copy the generated values
-		grp.Set(CypherMsgExpected.Get(i), stream.CypherMsg.Get(i))
-		grp.Set(CypherADExpected.Get(i), stream.CypherAD.Get(i))
+		grp.Set(CypherPayloadAExpected.Get(i), stream.CypherPayloadA.Get(i))
+		grp.Set(CypherPayloadBExpected.Get(i), stream.CypherPayloadB.Get(i))
 
 	}
 
 	// Build i/o used for testing
-	MessagePrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	ADPrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	PayloadAPrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	PayloadBPrecomputationExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
 	// Run the graph
 	g.Run()
@@ -296,39 +296,39 @@ func TestStrip_Graph(t *testing.T) {
 		tmp := s.Grp.NewInt(1)
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Compute root coprime for msg & associated data
-			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, tmp)
-			s.Grp.Set(CypherMsgExpected.Get(i), tmp)
+			cryptops.RootCoprime(s.Grp, CypherPayloadAExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherPayloadAExpected.Get(i), tmp)
 
-			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, tmp)
-			s.Grp.Set(CypherADExpected.Get(i), tmp)
+			cryptops.RootCoprime(s.Grp, CypherPayloadBExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherPayloadBExpected.Get(i), tmp)
 
 			// Compute inverse
-			cryptops.Inverse(s.Grp, MessagePrecomputationExpected.Get(i), MessagePrecomputationExpected.Get(i))
-			cryptops.Inverse(s.Grp, ADPrecomputationExpected.Get(i), ADPrecomputationExpected.Get(i))
+			cryptops.Inverse(s.Grp, PayloadAPrecomputationExpected.Get(i), PayloadAPrecomputationExpected.Get(i))
+			cryptops.Inverse(s.Grp, PayloadBPrecomputationExpected.Get(i), PayloadBPrecomputationExpected.Get(i))
 
 			// Compute mul2
-			cryptops.Mul2(s.Grp, s.CypherMsg.Get(i), MessagePrecomputationExpected.Get(i))
-			cryptops.Mul2(s.Grp, s.CypherAD.Get(i), ADPrecomputationExpected.Get(i))
+			cryptops.Mul2(s.Grp, s.CypherPayloadA.Get(i), PayloadAPrecomputationExpected.Get(i))
+			cryptops.Mul2(s.Grp, s.CypherPayloadB.Get(i), PayloadBPrecomputationExpected.Get(i))
 
 			// Verify message and associated data match the expected values
-			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherMsgExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
+			if CypherPayloadAExpected.Get(i).Cmp(s.CypherPayloadA.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompStrip: PayloadA Keys Cypher not equal on slot %v expected %v received %v",
+					i, CypherPayloadAExpected.Get(i).Text(16), s.CypherPayloadA.Get(i).Text(16)))
 			}
 
-			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
+			if CypherPayloadBExpected.Get(i).Cmp(s.CypherPayloadB.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherADExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
+					i, CypherPayloadBExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
 			}
 
-			if MessagePrecomputationExpected.Get(i).Cmp(s.MessagePrecomputation.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompStrip: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, MessagePrecomputationExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
+			if PayloadAPrecomputationExpected.Get(i).Cmp(s.PayloadAPrecomputation.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompStrip: PayloadA Keys Cypher not equal on slot %v expected %v received %v",
+					i, PayloadAPrecomputationExpected.Get(i).Text(16), s.CypherPayloadA.Get(i).Text(16)))
 			}
 
-			if ADPrecomputationExpected.Get(i).Cmp(s.ADPrecomputation.Get(i)) != 0 {
+			if PayloadBPrecomputationExpected.Get(i).Cmp(s.PayloadBPrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, ADPrecomputationExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
+					i, PayloadBPrecomputationExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
 			}
 		}
 	}

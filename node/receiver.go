@@ -112,10 +112,10 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 		for i := uint32(0); i < batchSize; i++ {
 			blankBatch.Slots[i] = &mixmessages.Slot{
-				EncryptedMessageKeys:            []byte{1},
-				EncryptedAssociatedDataKeys:     []byte{1},
-				PartialMessageCypherText:        []byte{1},
-				PartialAssociatedDataCypherText: []byte{1},
+				EncryptedPayloadAKeys:            []byte{1},
+				EncryptedPayloadBKeys:     []byte{1},
+				PartialPayloadACypherText:        []byte{1},
+				PartialPayloadBCypherText: []byte{1},
 			}
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)

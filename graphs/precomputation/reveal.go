@@ -26,8 +26,8 @@ type RevealStream struct {
 	Z *cyclic.Int
 
 	// Unique to stream
-	CypherMsg *cyclic.IntBuffer
-	CypherAD  *cyclic.IntBuffer
+	CypherPayloadA *cyclic.IntBuffer
+	CypherPayloadB *cyclic.IntBuffer
 }
 
 // GetName returns stream name
@@ -45,28 +45,28 @@ func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...inter
 }
 
 // LinkStream is called by Link other stream objects from round
-func (s *RevealStream) LinkStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, CypherMsg, CypherAD *cyclic.IntBuffer) {
+func (s *RevealStream) LinkStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, CypherPayloadA, CypherPayloadB *cyclic.IntBuffer) {
 	s.Grp = grp
 
 	s.Z = roundBuffer.Z
 
-	s.CypherMsg = CypherMsg
-	s.CypherAD = CypherAD
+	s.CypherPayloadA = CypherPayloadA
+	s.CypherPayloadB = CypherPayloadB
 }
 
 // Input initializes stream inputs from slot
 func (s *RevealStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if index >= uint32(s.CypherMsg.Len()) {
+	if index >= uint32(s.CypherPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !s.Grp.BytesInside(slot.PartialMessageCypherText, slot.PartialAssociatedDataCypherText) {
+	if !s.Grp.BytesInside(slot.PartialPayloadACypherText, slot.PartialPayloadBCypherText) {
 		return services.ErrOutsideOfGroup
 	}
 
-	s.Grp.SetBytes(s.CypherMsg.Get(index), slot.PartialMessageCypherText)
-	s.Grp.SetBytes(s.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+	s.Grp.SetBytes(s.CypherPayloadA.Get(index), slot.PartialPayloadACypherText)
+	s.Grp.SetBytes(s.CypherPayloadB.Get(index), slot.PartialPayloadBCypherText)
 	return nil
 }
 
@@ -75,8 +75,8 @@ func (s *RevealStream) Output(index uint32) *mixmessages.Slot {
 
 	return &mixmessages.Slot{
 		Index:                           index,
-		PartialMessageCypherText:        s.CypherMsg.Get(index).Bytes(),
-		PartialAssociatedDataCypherText: s.CypherAD.Get(index).Bytes(),
+		PartialPayloadACypherText:        s.CypherPayloadA.Get(index).Bytes(),
+		PartialPayloadBCypherText: s.CypherPayloadB.Get(index).Bytes(),
 	}
 }
 
@@ -108,14 +108,14 @@ var RevealRootCoprime = services.Module{
 			// Eq 15.11 Root by cypher key to remove one layer of homomorphic
 			// encryption from partially encrypted message cypher text.
 
-			rootCoprime(rs.Grp, rs.CypherMsg.Get(i), rs.Z, tmp)
-			rs.Grp.Set(rs.CypherMsg.Get(i), tmp)
+			rootCoprime(rs.Grp, rs.CypherPayloadA.Get(i), rs.Z, tmp)
+			rs.Grp.Set(rs.CypherPayloadA.Get(i), tmp)
 
 			// Execute rootCoprime on the keys for the associated data
 			// Eq 15.13 Root by cypher key to remove one layer of homomorphic
 			// encryption from partially encrypted associated data cypher text.
-			rootCoprime(rs.Grp, rs.CypherAD.Get(i), rs.Z, tmp)
-			rs.Grp.Set(rs.CypherAD.Get(i), tmp)
+			rootCoprime(rs.Grp, rs.CypherPayloadB.Get(i), rs.Z, tmp)
+			rs.Grp.Set(rs.CypherPayloadB.Get(i), tmp)
 		}
 		return nil
 	},

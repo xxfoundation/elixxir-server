@@ -35,13 +35,13 @@ type Buffer struct {
 	Permutations []uint32
 
 	// Results of Precomputation
-	MessagePrecomputation *cyclic.IntBuffer
-	ADPrecomputation      *cyclic.IntBuffer
+	PayloadAPrecomputation *cyclic.IntBuffer
+	PayloadBPrecomputation      *cyclic.IntBuffer
 
 	// Stores the result of the precomputation permuted phase for the last node
 	// To reuse in the Identify phase because the Reveal phase does not use the data
-	PermutedMessageKeys []*cyclic.Int
-	PermutedADKeys      []*cyclic.Int
+	PermutedPayloadAKeys []*cyclic.Int
+	PermutedPayloadBKeys      []*cyclic.Int
 }
 
 // Function to initialize a new round
@@ -72,14 +72,14 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 		batchSize:         batchSize,
 		expandedBatchSize: expandedBatchSize,
 
-		MessagePrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
-		ADPrecomputation:      g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
+		PayloadAPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
+		PayloadBPrecomputation:      g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 	}
 }
 
 func (r *Buffer) InitLastNode() {
-	r.PermutedMessageKeys = make([]*cyclic.Int, r.expandedBatchSize)
-	r.PermutedADKeys = make([]*cyclic.Int, r.expandedBatchSize)
+	r.PermutedPayloadAKeys = make([]*cyclic.Int, r.expandedBatchSize)
+	r.PermutedPayloadBKeys = make([]*cyclic.Int, r.expandedBatchSize)
 }
 
 func (r *Buffer) GetBatchSize() uint32 {
@@ -113,9 +113,9 @@ func (r *Buffer) Erase() {
 
 	r.Permutations = nil
 
-	r.MessagePrecomputation.Erase()
-	r.ADPrecomputation.Erase()
+	r.PayloadAPrecomputation.Erase()
+	r.PayloadBPrecomputation.Erase()
 
-	r.PermutedMessageKeys = nil
-	r.PermutedADKeys = nil
+	r.PermutedPayloadAKeys = nil
+	r.PermutedPayloadBKeys = nil
 }
