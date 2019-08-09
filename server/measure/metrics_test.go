@@ -10,8 +10,10 @@ func TestMeasure(t *testing.T) {
 	metrics := new(Metrics)
 
 	before := time.Now()
+	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
 	metrics.Measure("test1")
 	metrics.Measure("test2")
+	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
 	after := time.Now()
 
 	if len(metrics.Events) != 2 {
@@ -66,8 +68,10 @@ func TestGetEvents(t *testing.T) {
 	metrics := new(Metrics)
 
 	before := time.Now()
+	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
 	metrics.Measure("test1")
 	metrics.Measure("test2")
+	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
 	after := time.Now()
 
 	events := metrics.GetEvents()

@@ -1,7 +1,6 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -99,7 +98,4 @@ func TestTransmitCreateNewRound_Error(t *testing.T) {
 	if err == nil {
 		t.Error("SendFinishRealtime: error did not occur when provoked")
 	}
-
-	fmt.Println(err.Error())
-
 }

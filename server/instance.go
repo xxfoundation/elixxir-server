@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/x509"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -58,13 +59,6 @@ func (i *Instance) InitNetwork(
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
 		}
-	}
-
-	//Verify that all nodes have need signed by the permissioning server
-	err := i.VerifyTopology()
-	if err != nil {
-		jww.FATAL.Panicf("Could not verify all nodes were signed by the"+
-			" permissioning server: %+v", err)
 	}
 
 	//Attempt to connect Gateway
@@ -220,6 +214,11 @@ func (i *Instance) VerifyTopology() error {
 		jww.ERROR.Printf("Could not load the permissioning server cert: %v", err)
 		return err
 	}
+
+	// FIXME: Force the permissioning cert to act as a CA
+	permissioningCert.BasicConstraintsValid = true
+	permissioningCert.IsCA = true
+	permissioningCert.KeyUsage = x509.KeyUsageCertSign
 
 	//Iterate through the topology
 	for j := 0; j < i.definition.Topology.Len(); j++ {
