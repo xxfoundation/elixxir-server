@@ -97,7 +97,7 @@ func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
 	byteLen := uint64(len(is.Grp.GetPBytes()))
 	return &mixmessages.Slot{
-		Index:          index,
+		Index:    index,
 		PayloadA: is.EcrPayloadAPermuted[index].LeftpadBytes(byteLen),
 		PayloadB: is.EcrPayloadBPermuted[index].LeftpadBytes(byteLen),
 	}

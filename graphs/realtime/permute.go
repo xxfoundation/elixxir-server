@@ -95,7 +95,7 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 // Output returns a message with the stream data.
 func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
-		Index:          index,
+		Index:    index,
 		PayloadA: ps.PayloadAPermuted[index].Bytes(),
 		PayloadB: ps.PayloadBPermuted[index].Bytes(),
 	}

@@ -36,12 +36,12 @@ type Buffer struct {
 
 	// Results of Precomputation
 	PayloadAPrecomputation *cyclic.IntBuffer
-	PayloadBPrecomputation      *cyclic.IntBuffer
+	PayloadBPrecomputation *cyclic.IntBuffer
 
 	// Stores the result of the precomputation permuted phase for the last node
 	// To reuse in the Identify phase because the Reveal phase does not use the data
 	PermutedPayloadAKeys []*cyclic.Int
-	PermutedPayloadBKeys      []*cyclic.Int
+	PermutedPayloadBKeys []*cyclic.Int
 }
 
 // Function to initialize a new round
@@ -73,7 +73,7 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 		expandedBatchSize: expandedBatchSize,
 
 		PayloadAPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
-		PayloadBPrecomputation:      g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
+		PayloadBPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 	}
 }
 

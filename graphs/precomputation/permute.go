@@ -144,10 +144,10 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 // Output returns a cmix slot message
 func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
-		Index:                           index,
-		EncryptedPayloadAKeys:            ps.KeysPayloadAPermuted[index].Bytes(),
+		Index:                     index,
+		EncryptedPayloadAKeys:     ps.KeysPayloadAPermuted[index].Bytes(),
 		EncryptedPayloadBKeys:     ps.KeysPayloadBPermuted[index].Bytes(),
-		PartialPayloadACypherText:        ps.CypherPayloadAPermuted[index].Bytes(),
+		PartialPayloadACypherText: ps.CypherPayloadAPermuted[index].Bytes(),
 		PartialPayloadBCypherText: ps.CypherPayloadBPermuted[index].Bytes(),
 	}
 }

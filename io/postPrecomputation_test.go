@@ -83,7 +83,7 @@ func MockPostPrecompResultImplementation(
 
 func getMockPostPrecompSlot(i uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
-		PartialPayloadACypherText:        []byte{byte(i)},
+		PartialPayloadACypherText: []byte{byte(i)},
 		PartialPayloadBCypherText: []byte{byte(i)},
 	}
 }

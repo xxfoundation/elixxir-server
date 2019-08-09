@@ -76,9 +76,9 @@ func TestDecryptStream_Input(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			EncryptedPayloadAKeys:            expected[0],
+			EncryptedPayloadAKeys:     expected[0],
 			EncryptedPayloadBKeys:     expected[1],
-			PartialPayloadACypherText:        expected[2],
+			PartialPayloadACypherText: expected[2],
 			PartialPayloadBCypherText: expected[3],
 		}
 
@@ -124,9 +124,9 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		EncryptedPayloadAKeys:            []byte{0},
+		EncryptedPayloadAKeys:     []byte{0},
 		EncryptedPayloadBKeys:     []byte{0},
-		PartialPayloadACypherText:        []byte{0},
+		PartialPayloadACypherText: []byte{0},
 		PartialPayloadBCypherText: []byte{0},
 	}
 
@@ -156,9 +156,9 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		EncryptedPayloadAKeys:            []byte{0},
+		EncryptedPayloadAKeys:     []byte{0},
 		EncryptedPayloadBKeys:     []byte{0},
-		PartialPayloadACypherText:        []byte{0},
+		PartialPayloadACypherText: []byte{0},
 		PartialPayloadBCypherText: []byte{0},
 	}
 
@@ -191,9 +191,9 @@ func TestDecryptStream_Output(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			EncryptedPayloadAKeys:            expected[0],
+			EncryptedPayloadAKeys:     expected[0],
 			EncryptedPayloadBKeys:     expected[1],
-			PartialPayloadACypherText:        expected[2],
+			PartialPayloadACypherText: expected[2],
 			PartialPayloadBCypherText: expected[3],
 		}
 

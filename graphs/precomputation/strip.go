@@ -16,8 +16,8 @@ import (
 
 // This file implements the Graph for the Precomputation Strip phase.
 // Strip phase inverts the Round Private Keys and removes the
-// homomorphic encryption from the encrypted message keys and
-// encrypted associated data keys, revealing completed precomputation
+// homomorphic encryption from the encrypted keys, revealing completed
+// precomputation
 
 // StripStream holds data containing private key from encrypt and
 // inputs used by strip
@@ -26,13 +26,13 @@ type StripStream struct {
 
 	// Link to round object
 	PayloadAPrecomputation          *cyclic.IntBuffer
-	PayloadBPrecomputation               *cyclic.IntBuffer
+	PayloadBPrecomputation          *cyclic.IntBuffer
 	EncryptedPayloadAPrecomputation []*cyclic.Int
-	EncryptedPayloadBPrecomputation      []*cyclic.Int
+	EncryptedPayloadBPrecomputation []*cyclic.Int
 
 	// Unique to stream
 	CypherPayloadA *cyclic.IntBuffer
-	CypherPayloadB  *cyclic.IntBuffer
+	CypherPayloadB *cyclic.IntBuffer
 
 	RevealStream
 }
@@ -115,7 +115,7 @@ func (ss *StripStream) Output(index uint32) *mixmessages.Slot {
 // StripInverse is a module in precomputation strip implementing
 // cryptops.Inverse
 var StripInverse = services.Module{
-	// Runs root coprime for cypher message and cypher associated data
+	// Runs root coprime for cypher texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
 		sssi, ok := streamInput.(stripSubstreamInterface)
@@ -146,7 +146,7 @@ var StripInverse = services.Module{
 
 // StripMul2 is a module in precomputation strip implementing cryptops.mul2
 var StripMul2 = services.Module{
-	// Runs mul2 for cypher message and cypher associated data
+	// Runs mul2 for cypher texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
 		sssi, ok := streamInput.(stripSubstreamInterface)
@@ -159,18 +159,17 @@ var StripMul2 = services.Module{
 		ss := sssi.GetStripSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Eq 16.1: Use the inverted round message private key
+			// Eq 16.1: Use the first inverted round private key
 			//          to remove the homomorphic encryption from
-			//          encrypted message key and reveal the message
-			//          precomputation
+			//          first payload's encrypted key and reveal the
+			//          first payload's precomputation
 
 			mul2(ss.Grp, ss.CypherPayloadA.Get(i), ss.PayloadAPrecomputation.Get(i))
 
 			// Eq 16.2: Use the inverted round associated data
 			//          private key to remove the homomorphic
-			//          encryption from encrypted associated data
-			//          key and reveal the associated data
-			//          precomputation
+			//          encryption from the second payload's encrypted
+			//          key and reveal the second payload's precomputation
 			mul2(ss.Grp, ss.CypherPayloadB.Get(i), ss.PayloadBPrecomputation.Get(i))
 		}
 		return nil

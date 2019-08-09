@@ -85,7 +85,7 @@ func TestStripStream_Input(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			PartialPayloadACypherText:        expected[0],
+			PartialPayloadACypherText: expected[0],
 			PartialPayloadBCypherText: expected[1],
 		}
 
@@ -120,7 +120,7 @@ func TestStripStream_Input_OutOfBatch(t *testing.T) {
 
 	stream.Link(grp, batchSize, roundBuffer)
 	msg := &mixmessages.Slot{
-		PartialPayloadACypherText:        []byte{0},
+		PartialPayloadACypherText: []byte{0},
 		PartialPayloadBCypherText: []byte{0},
 	}
 
@@ -150,7 +150,7 @@ func TestStripStream_Input_OutOfGroup(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		PartialPayloadACypherText:        large.NewInt(89).Bytes(),
+		PartialPayloadACypherText: large.NewInt(89).Bytes(),
 		PartialPayloadBCypherText: large.NewInt(13).Bytes(),
 	}
 

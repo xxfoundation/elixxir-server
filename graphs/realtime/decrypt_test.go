@@ -114,8 +114,8 @@ func TestDecryptStream_Input(t *testing.T) {
 		msg := &mixmessages.Slot{
 			PayloadA: expected[0],
 			PayloadB: expected[1],
-			SenderID:       expected[2],
-			Salt:           expected[3],
+			SenderID: expected[2],
+			Salt:     expected[3],
 		}
 
 		err := stream.Input(b, msg)
@@ -255,7 +255,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
-		SenderID:       []byte{1, 2},
+		SenderID: []byte{1, 2},
 		PayloadA: large.NewInt(3).Bytes(),
 		PayloadB: large.NewInt(4).Bytes(),
 	}
@@ -267,7 +267,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 	}
 
 	msg2 := &mixmessages.Slot{
-		SenderID:       id.NewUserFromUint(0, t).Bytes(),
+		SenderID: id.NewUserFromUint(0, t).Bytes(),
 		PayloadA: large.NewInt(3).Bytes(),
 		PayloadB: large.NewInt(4).Bytes(),
 	}
@@ -299,8 +299,8 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
-		SenderID:       id.NewUserFromUint(0, t).Bytes(),
-		Salt:           []byte{1, 2, 3},
+		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		Salt:     []byte{1, 2, 3},
 		PayloadA: large.NewInt(3).Bytes(),
 		PayloadB: large.NewInt(4).Bytes(),
 	}
@@ -312,8 +312,8 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	}
 
 	msg2 := &mixmessages.Slot{
-		SenderID:       id.NewUserFromUint(0, t).Bytes(),
-		Salt:           make([]byte, 32),
+		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		Salt:     make([]byte, 32),
 		PayloadA: large.NewInt(3).Bytes(),
 		PayloadB: large.NewInt(4).Bytes(),
 	}
@@ -356,8 +356,8 @@ func TestDecryptStream_Output(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			SenderID:       expected[0],
-			Salt:           expected[1],
+			SenderID: expected[0],
+			Salt:     expected[1],
 			PayloadA: expected[2],
 			PayloadB: expected[3],
 		}

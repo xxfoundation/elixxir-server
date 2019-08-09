@@ -359,11 +359,11 @@ func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
 // is not set in associated data.
 // Trying to do this would lead to many changes:
 // Firstly because the recipientID is place on bytes 2:33 of 256,
-// meaning the Associated Data representation in the group
+// meaning the second payload's representation in the group
 // would be much bigger than the hardcoded P value of 107
-// Secondly, the first byte of the Associated Data is randomly generated,
+// Secondly, the first byte of the second payload is randomly generated,
 // so the expected values throughout the pipeline would need to be calculated
-// Not having proper Associated Data is not an issue in this particular test,
+// Not having a proper second payload is not an issue in this particular test,
 // because here only cryptops are chained
 // The actual extraction of recipientID from associated data only occurs in
 // handlers from the io package

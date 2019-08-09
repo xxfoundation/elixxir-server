@@ -112,9 +112,9 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 		for i := uint32(0); i < batchSize; i++ {
 			blankBatch.Slots[i] = &mixmessages.Slot{
-				EncryptedPayloadAKeys:            []byte{1},
+				EncryptedPayloadAKeys:     []byte{1},
 				EncryptedPayloadBKeys:     []byte{1},
-				PartialPayloadACypherText:        []byte{1},
+				PartialPayloadACypherText: []byte{1},
 				PartialPayloadBCypherText: []byte{1},
 			}
 		}

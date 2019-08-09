@@ -106,10 +106,10 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 
 	return &mixmessages.Slot{
-		Index:                           index,
-		EncryptedPayloadAKeys:            ds.KeysPayloadA.Get(index).Bytes(),
+		Index:                     index,
+		EncryptedPayloadAKeys:     ds.KeysPayloadA.Get(index).Bytes(),
 		EncryptedPayloadBKeys:     ds.KeysPayloadB.Get(index).Bytes(),
-		PartialPayloadACypherText:        ds.CypherPayloadA.Get(index).Bytes(),
+		PartialPayloadACypherText: ds.CypherPayloadA.Get(index).Bytes(),
 		PartialPayloadBCypherText: ds.CypherPayloadB.Get(index).Bytes(),
 	}
 }

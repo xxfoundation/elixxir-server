@@ -87,7 +87,7 @@ func TestTransmitPhase(t *testing.T) {
 		return services.NewChunk(0, 0), false
 	}
 
-	getPA := func(index uint32) *mixmessages.Slot {
+	getMsg := func(index uint32) *mixmessages.Slot {
 		return &mixmessages.Slot{PayloadA: []byte{0}}
 	}
 
@@ -95,7 +95,7 @@ func TestTransmitPhase(t *testing.T) {
 
 	//call the transmitter
 	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
-		getPA, topology, topology.GetNodeAtIndex(0), m)
+		getMsg, topology, topology.GetNodeAtIndex(0), m)
 
 	if err != nil {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)
