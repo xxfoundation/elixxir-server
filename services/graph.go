@@ -14,7 +14,6 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 const (
@@ -225,10 +224,7 @@ func (g *Graph) Run() {
 
 	for _, m := range g.modules {
 
-		m.state.numTh = uint8(m.NumThreads)
-		m.state.Init()
-
-		for i := uint8(0); i < m.state.numTh; i++ {
+		for i := uint8(0); i < m.NumThreads; i++ {
 			go dispatch(g, m, uint8(i))
 		}
 	}
@@ -360,15 +356,6 @@ func (g *Graph) GetBatchSize() uint32 {
 
 func (g *Graph) GetName() string {
 	return g.name
-}
-
-// This doesn't quite seem robust
-func (g *Graph) Kill() bool {
-	success := true
-	for _, m := range g.modules {
-		success = success && m.state.Kill(time.Millisecond*10)
-	}
-	return success
 }
 
 //Returns all modules with the passed name. used for testing.

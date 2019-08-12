@@ -39,8 +39,6 @@ type Module struct {
 	NumThreads uint8
 
 	/*Private*/
-	//Keeps track and controls all threads executing in the cryptop
-	state moduleState
 	//Contains and controls the input channel
 	moduleInput
 	//Internal id of module used for tracking
