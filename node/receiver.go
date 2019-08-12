@@ -48,7 +48,8 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		roundID, phases, phaseResponses,
 		instance.GetTopology(),
 		instance.GetID(),
-		instance.GetBatchSize())
+		instance.GetBatchSize(),
+		instance.GetRngStreamGen())
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 

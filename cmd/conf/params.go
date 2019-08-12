@@ -25,12 +25,13 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
-	Index       int // TODO: Do we need this field and how do we populate it?
-	Batch       uint32
-	SkipReg     bool `yaml:"skipReg"`
-	Verbose     bool
-	KeepBuffers bool
-	Groups      Groups
+	Index            int // TODO: Do we need this field and how do we populate it?
+	Batch            uint32
+	SkipReg          bool `yaml:"skipReg"`
+	Verbose          bool
+	KeepBuffers      bool
+	Groups           Groups
+	RngScalingFactor uint `yaml:"rngScalingFactor"`
 
 	Node          Node
 	Database      Database
@@ -72,6 +73,12 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.SkipReg = vip.GetBool("skipReg")
 	params.Verbose = vip.GetBool("verbose")
 	params.KeepBuffers = vip.GetBool("keepBuffers")
+	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
+
+	// If RngScalingFactor is not set, then set default value
+	if params.RngScalingFactor == 0 {
+		params.RngScalingFactor = 10000
+	}
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
 	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
@@ -94,7 +101,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 			hash.Write([]byte(addr))
 			fakeId := base64.StdEncoding.EncodeToString(hash.Sum(nil))
 			params.Node.Ids = append(params.Node.Ids, fakeId)
-			if params.Index == i {
+			if params.Index == i && len(params.Node.Id) == 0 {
 				params.Node.Id = fakeId
 			}
 		}
@@ -138,11 +145,8 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 
 	var nodeIDDecodeErrorHappened bool
 	for i, currId := range ids {
-		if currId == p.Node.Id {
-			p.Index = i
-		}
 		nodeID, err := base64.StdEncoding.DecodeString(currId)
-		jww.ERROR.Printf("%+v", nodeID)
+		jww.INFO.Printf("Creating Def for Node ID: %s", nodeID)
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
@@ -163,9 +167,17 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
 	}
 
-	def.ID = nodes[p.Index].ID
+	nodeID, err := base64.StdEncoding.DecodeString(p.Node.Id)
+	if err != nil {
+		// This indicates a server misconfiguration which needs fixing for
+		// the server to function properly
+		err = errors.Wrapf(err, "Node ID failed to decode")
+		jww.ERROR.Print(err)
+		nodeIDDecodeErrorHappened = true
+	}
+	def.ID = id.NewNodeFromBytes(nodeID)
 
-	_, port, err := net.SplitHostPort(nodes[p.Index].Address)
+	_, port, err := net.SplitHostPort(p.Node.Addresses[p.Index])
 	if err != nil {
 		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
 			errors.New(err.Error()))

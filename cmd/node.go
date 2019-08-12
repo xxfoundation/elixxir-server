@@ -14,7 +14,9 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
@@ -134,12 +136,16 @@ func StartServer(vip *viper.Viper) {
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
 
+	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG)
+
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration
-		nodes, serverCert, gwCert := permissioning.RegisterNode(def)
+		nodes, nodeIds, serverCert, gwCert := permissioning.RegisterNode(def)
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
+		def.Topology = circuit.New(nodeIds)
 	}
 
 	jww.INFO.Printf("Creating server instance")
@@ -157,7 +163,7 @@ func StartServer(vip *viper.Viper) {
 
 	jww.INFO.Printf("Connecting to network")
 
-	//if permssioning check that the certs are valid
+	// if permissioning check that the certs are valid
 	if !disablePermissioning {
 		err = instance.VerifyTopology()
 		if err != nil {

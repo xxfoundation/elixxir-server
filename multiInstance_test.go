@@ -6,7 +6,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
@@ -19,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -345,6 +348,8 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			},
 			Address:        nodeLst[i].Address,
 			GraphGenerator: services.NewGraphGenerator(2, PanicHandler, 2, 4, 0.0),
+			RngStreamGen: fastRNG.NewStreamGenerator(10000,
+				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
 		defLst = append(defLst, &def)
 	}
