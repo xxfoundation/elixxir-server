@@ -375,7 +375,8 @@ func TestEndToEndCryptops(t *testing.T) {
 		large.NewInt(4), large.NewInt(5))
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
-	rngStreamGen := fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()))
+	rngStreamGen := fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 	batchSize := uint32(1)
 
 	registry := createDummyUserList(grp, rngConstructor())
@@ -569,7 +570,8 @@ func TestBatchSize3(t *testing.T) {
 		large.NewInt(4), large.NewInt(5))
 
 	rngConstructor := NewPsudoRNG // FIXME: Why?
-	rngStreamGen := fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()))
+	rngStreamGen := fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 	batchSize := uint32(4)
 
 	registry := createDummyUserList(grp, rngConstructor())
@@ -1109,7 +1111,9 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 	grp.SetBytes(roundBuf.Z, zBytes)
 	grp.ExpG(roundBuf.Z, roundBuf.CypherPublicKey)
 
-	dGrph.Link(grp, roundBuf, registry, fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
+	dGrph.Link(grp, roundBuf, registry,
+		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
+			csprng.NewSystemRNG))
 
 	stream := dGrph.GetStream()
 
@@ -1185,7 +1189,9 @@ func Test_DebugStream(t *testing.T) {
 	roundBuf := round.NewBuffer(grp, batchSize,
 		dGrph.GetExpandedBatchSize())
 
-	dGrph.Link(grp, roundBuf, &globals.UserMap{}, fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())))
+	dGrph.Link(grp, roundBuf, &globals.UserMap{},
+		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
+			csprng.NewSystemRNG))
 
 	stream := dGrph.GetStream()
 
@@ -1239,7 +1245,8 @@ func Test3NodeE2E(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4), large.NewInt(5))
 	rngConstructor := NewPsudoRNG // FIXME: Why?
-	rngStreamGen := fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()))
+	rngStreamGen := fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 	registry := createDummyUserList(grp, rngConstructor())
 	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
 

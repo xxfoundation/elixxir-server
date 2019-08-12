@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
@@ -1213,8 +1214,9 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
 			2, 2, 0),
-		BatchSize:    8,
-		RngStreamGen: fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU())),
+		BatchSize: 8,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 

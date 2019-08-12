@@ -136,7 +136,8 @@ func StartServer(vip *viper.Viper) {
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
 
-	def.RngStreamGen = fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()))
+	def.RngStreamGen = fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration

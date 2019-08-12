@@ -25,7 +25,7 @@ type GenerateStream struct {
 	Grp *cyclic.Group
 
 	// RNG
-	RngStreamGen fastRNG.StreamGenerator
+	RngStreamGen *fastRNG.StreamGenerator
 
 	// Phase Keys
 	R *cyclic.IntBuffer
@@ -58,6 +58,8 @@ func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32
 	roundBuffer *round.Buffer, rngStreamGen *fastRNG.StreamGenerator) {
 
 	gs.Grp = grp
+
+	gs.RngStreamGen = rngStreamGen
 
 	// Phase keys
 	gs.R = roundBuffer.R.GetSubBuffer(0, batchSize)
