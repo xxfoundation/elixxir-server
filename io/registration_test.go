@@ -48,8 +48,8 @@ func TestMain(m *testing.M) {
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
-		DsaPrivateKey:   privKey,
-		DsaPublicKey:    pubKey,
+		PrivateKey:      privKey,
+		PublicKey:       pubKey,
 	}
 
 	def.Permissioning.DsaPublicKey = pubKey

@@ -29,7 +29,6 @@ var batchSize uint64
 var validConfig bool
 var showVer bool
 var keepBuffers bool
-var dsaKeyPairPath string
 var disablePermissioning bool
 
 // If true, runs pprof http server
@@ -116,8 +115,6 @@ func init() {
 	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
 		time.Second, "Determines the amount of time the  GetRoundBufferInfo"+
 			" RPC will wait before returning an error")
-	rootCmd.Flags().StringVar(&dsaKeyPairPath, "keyPairOverride", "",
-		"Defined a DSA keypair to use instead of generating a new one")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")

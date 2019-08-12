@@ -1,11 +1,11 @@
 package: gitlab.com/elixxir/server
 import:
 - package: gitlab.com/elixxir/crypto
-  version: master
+  version: RSARegistration
   repo: git@gitlab.com:elixxir/crypto
   vcs: git
 - package: gitlab.com/elixxir/comms
-  version: master
+  version: RSARegistration
   repo: git@gitlab.com:elixxir/comms
   vcs: git
 - package: gitlab.com/elixxir/primitives

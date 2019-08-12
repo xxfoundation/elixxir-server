@@ -118,8 +118,8 @@ func TestRegisterNode(t *testing.T) {
 	def := &server.Definition{
 		Flags:         server.Flags{},
 		ID:            nodeId,
-		DsaPublicKey:  nil,
-		DsaPrivateKey: nil,
+		PublicKey:     nil,
+		PrivateKey:    nil,
 		TlsCert:       nil,
 		TlsKey:        nil,
 		Address:       addr,
