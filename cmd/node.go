@@ -136,7 +136,7 @@ func StartServer(vip *viper.Viper) {
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
 
-	def.RngStreamGen = fastRNG.NewStreamGenerator(10000,
+	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	if !disablePermissioning {
