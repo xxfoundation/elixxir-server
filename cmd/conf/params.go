@@ -139,7 +139,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var nodeIDDecodeErrorHappened bool
 	for i, currId := range ids {
 		nodeID, err := base64.StdEncoding.DecodeString(currId)
-		jww.INFO.Printf("Creating Def for Node ID: %s", nodeID)
+		jww.INFO.Printf("Creating Def for Node ID: %v", nodeID)
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
