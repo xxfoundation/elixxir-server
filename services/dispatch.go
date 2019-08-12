@@ -66,10 +66,4 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 			}
 		}
 	}
-	//check to ensure all output channels are closed.  Only has an effect on errors/failures.
-	if !m.state.AnyRunning() {
-		for _, om := range m.outputModules {
-			om.closeInput()
-		}
-	}
 }
