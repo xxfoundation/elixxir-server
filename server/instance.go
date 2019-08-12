@@ -8,6 +8,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/circuit"
@@ -166,6 +167,11 @@ func (i *Instance) GetGraphGenerator() services.GraphGenerator {
 // GetMetricsLog returns the log path for metrics data
 func (i *Instance) GetMetricsLog() string {
 	return i.definition.MetricLogPath
+}
+
+// GetRngStreamGen returns the fastRNG StreamGenerator in definition.
+func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
+	return i.definition.RngStreamGen
 }
 
 // IsFirstNode returns if the node is first node

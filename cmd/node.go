@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -134,6 +135,9 @@ func StartServer(vip *viper.Viper) {
 
 	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
 		uint8(runtime.NumCPU()), 4, 0.0)
+
+	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration
