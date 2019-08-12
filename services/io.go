@@ -7,7 +7,6 @@
 package services
 
 import (
-	"sync"
 	"sync/atomic"
 )
 
@@ -16,16 +15,13 @@ type IO_Notify chan Chunk
 type moduleInput struct {
 	input  IO_Notify
 	isOpen *uint32
-	sync.Mutex
 }
 
 func (mi *moduleInput) closeInput() {
-	mi.Lock()
 	iClose := atomic.CompareAndSwapUint32(mi.isOpen, 1, 0)
 	if iClose {
 		close(mi.input)
 	}
-	mi.Unlock()
 }
 
 func (mi *moduleInput) open(size uint32) {
