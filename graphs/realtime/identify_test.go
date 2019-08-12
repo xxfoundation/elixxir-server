@@ -56,13 +56,13 @@ func TestIdentifyStream_Link(t *testing.T) {
 
 	is.Link(grp, batchSize, r)
 
-	checkIntBuffer(is.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
-	checkIntBuffer(is.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
+	checkIntBuffer(is.EcrPayloadA, batchSize, "EcrPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(is.EcrPayloadB, batchSize, "EcrPayloadB", grp.NewInt(1), t)
 
-	checkStreamIntBuffer(grp, is.MsgPrecomputation, r.MessagePrecomputation,
-		"MessagePrecomputation", t)
-	checkStreamIntBuffer(grp, is.ADPrecomputation, r.ADPrecomputation,
-		"ADPrecomputation", t)
+	checkStreamIntBuffer(grp, is.PayloadAPrecomputation, r.PayloadAPrecomputation,
+		"PayloadAPrecomputation", t)
+	checkStreamIntBuffer(grp, is.PayloadBPrecomputation, r.PayloadBPrecomputation,
+		"PayloadBPrecomputation", t)
 }
 
 // Tests Input's happy path.
@@ -97,8 +97,8 @@ func TestIdentifyStream_Input(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			MessagePayload: expected[0],
-			AssociatedData: expected[1],
+			PayloadA: expected[0],
+			PayloadB: expected[1],
 		}
 
 		err := is.Input(b, msg)
@@ -106,14 +106,14 @@ func TestIdentifyStream_Input(t *testing.T) {
 			t.Errorf("IdentifyStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(is.EcrMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("IdentifyStream.Input() incorrect stored EcrMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], is.EcrMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(is.EcrPayloadA.Get(b).Bytes(), expected[0]) {
+			t.Errorf("IdentifyStream.Input() incorrect stored EcrPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], is.EcrPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(is.EcrAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("IdentifyStream.Input() incorrect stored EcrAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], is.EcrAD.Get(b).Bytes())
+		if !reflect.DeepEqual(is.EcrPayloadB.Get(b).Bytes(), expected[1]) {
+			t.Errorf("IdentifyStream.Input() incorrect stored EcrPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], is.EcrPayloadB.Get(b).Bytes())
 		}
 	}
 }
@@ -143,8 +143,8 @@ func TestIdentifyStream_Input_OutOfBatch(t *testing.T) {
 	is.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		MessagePayload: []byte{0},
-		AssociatedData: []byte{0},
+		PayloadA: []byte{0},
+		PayloadB: []byte{0},
 	}
 
 	err := is.Input(batchSize, msg)
@@ -185,8 +185,8 @@ func TestIdentifyStream_Input_OutOfGroup(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		MessagePayload: []byte{0},
-		AssociatedData: []byte{0},
+		PayloadA: []byte{0},
+		PayloadB: []byte{0},
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -227,19 +227,19 @@ func TestIdentifyStream_Output(t *testing.T) {
 			{byte(b + 1), 1},
 		}
 
-		is.EcrMsgPermuted[b] = grp.NewIntFromBytes(expected[0])
-		is.EcrADPermuted[b] = grp.NewIntFromBytes(expected[1])
+		is.EcrPayloadAPermuted[b] = grp.NewIntFromBytes(expected[0])
+		is.EcrPayloadBPermuted[b] = grp.NewIntFromBytes(expected[1])
 
 		output := is.Output(b)
 
-		if !reflect.DeepEqual(output.MessagePayload, grp.NewIntFromBytes(expected[0]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
-			t.Errorf("IdentifyStream.Output() incorrect recieved MessagePayload data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], output.MessagePayload)
+		if !reflect.DeepEqual(output.PayloadA, grp.NewIntFromBytes(expected[0]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
+			t.Errorf("IdentifyStream.Output() incorrect recieved PayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], output.PayloadA)
 		}
 
-		if !reflect.DeepEqual(output.AssociatedData, grp.NewIntFromBytes(expected[1]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
-			t.Errorf("IdentifyStream.Output() incorrect recieved AssociatedData data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], output.AssociatedData)
+		if !reflect.DeepEqual(output.PayloadB, grp.NewIntFromBytes(expected[1]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
+			t.Errorf("IdentifyStream.Output() incorrect recieved PayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], output.PayloadB)
 		}
 	}
 }
@@ -301,20 +301,20 @@ func TestIdentifyStream_InGraph(t *testing.T) {
 
 	is := g.GetStream().(*IdentifyStream)
 
-	expectedMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
-	expectedAD := grp.NewIntBuffer(batchSize, grp.NewInt(1))
+	expectedPayloadA := grp.NewIntBuffer(batchSize, grp.NewInt(1))
+	expectedPayloadB := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.SetUint64(is.EcrMsg.Get(i), uint64(i+1))
-		grp.SetUint64(is.EcrAD.Get(i), uint64(i+1001))
+		grp.SetUint64(is.EcrPayloadA.Get(i), uint64(i+1))
+		grp.SetUint64(is.EcrPayloadB.Get(i), uint64(i+1001))
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.Set(expectedMsg.Get(i), is.EcrMsg.Get(i))
-		grp.Set(expectedAD.Get(i), is.EcrAD.Get(i))
+		grp.Set(expectedPayloadA.Get(i), is.EcrPayloadA.Get(i))
+		grp.Set(expectedPayloadB.Get(i), is.EcrPayloadB.Get(i))
 
-		cryptops.Mul2(grp, is.S.Get(i), expectedMsg.Get(i))
-		cryptops.Mul2(grp, is.V.Get(i), expectedAD.Get(i))
+		cryptops.Mul2(grp, is.S.Get(i), expectedPayloadA.Get(i))
+		cryptops.Mul2(grp, is.V.Get(i), expectedPayloadB.Get(i))
 	}
 
 	g.Run()
@@ -343,11 +343,11 @@ func TestIdentifyStream_InGraph(t *testing.T) {
 			}
 
 			// Compute expected result for this slot
-			if is.MsgPermuted[i].Cmp(expectedMsg.Get(permuteInverse[i])) != 0 {
+			if is.PayloadAPermuted[i].Cmp(expectedPayloadA.Get(permuteInverse[i])) != 0 {
 				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
 			}
 
-			if is.ADPermuted[i].Cmp(expectedAD.Get(permuteInverse[i])) != 0 {
+			if is.PayloadBPermuted[i].Cmp(expectedPayloadB.Get(permuteInverse[i])) != 0 {
 				t.Error(fmt.Sprintf("Permute: Slot %v out2 not permuted correctly", i))
 			}
 		}

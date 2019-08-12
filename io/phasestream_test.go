@@ -77,8 +77,8 @@ func TestStreamPostPhase(t *testing.T) {
 	for i := 0; i < batchSize; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
-				Index:          uint32(i),
-				MessagePayload: []byte{byte(i)},
+				Index:    uint32(i),
+				PayloadA: []byte{byte(i)},
 			})
 	}
 
@@ -129,8 +129,8 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 	getMsg := func(index uint32) *mixmessages.Slot {
 		return &mixmessages.Slot{
-			Index:          index,
-			MessagePayload: []byte{0},
+			Index:    index,
+			PayloadA: []byte{0},
 		}
 	}
 

@@ -26,8 +26,8 @@ import (
 
 //TODO: make makeMsg it NOT random
 
-// Fill part of message with random payload and associated data
-// Fill part of message with random payload and associated data
+// Fill part of message with random payloads
+// Fill part of message with random payloads
 func makeMsg() *format.Message {
 	rng := rand.New(rand.NewSource(21))
 	payloadA := make([]byte, format.PayloadLen)
@@ -92,7 +92,7 @@ func TestClientServer(t *testing.T) {
 	}
 	//Create an array of basekeys to prepare for encryption
 	userBaseKeys := make([]*cyclic.Int, 0)
-	//FIXME: This is probably worng
+	//FIXME: This is probably wrong
 	userBaseKeys = append(userBaseKeys, usr.BaseKey)
 
 	//Generate a mock message
@@ -129,13 +129,13 @@ func TestClientServer(t *testing.T) {
 	//Compare the payloads of the 2 messages
 	if !reflect.DeepEqual(testMsg.GetPayloadA(), inputMsg.GetPayloadA()) {
 		t.Errorf("EncryptDecrypt("+
-			") did not produce the correct payload\n\treceived: %d\n"+
+			") did not produce the correct payloadA\n\treceived: %d\n"+
 			"\texpected: %d", encryptedMsg.GetPayloadA(), testMsg.GetPayloadA())
 	}
 
 	if !reflect.DeepEqual(testMsg.GetPayloadB(), inputMsg.GetPayloadB()) {
 		t.Errorf("EncryptDecrypt("+
-			") did not produce the correct associated data\n\treceived: %d\n"+
+			") did not produce the correct payloadB\n\treceived: %d\n"+
 			"\texpected: %d", inputMsg.GetPayloadB(), testMsg.GetPayloadB())
 	}
 }

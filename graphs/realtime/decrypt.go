@@ -26,14 +26,14 @@ type KeygenDecryptStream struct {
 	U *cyclic.IntBuffer
 
 	// Unique to stream
-	EcrMsg *cyclic.IntBuffer
-	EcrAD  *cyclic.IntBuffer
+	EcrPayloadA *cyclic.IntBuffer
+	EcrPayloadB *cyclic.IntBuffer
 
 	// Components for key generation
-	Users   []*id.User
-	Salts   [][]byte
-	KeysMsg *cyclic.IntBuffer
-	KeysAD  *cyclic.IntBuffer
+	Users        []*id.User
+	Salts        [][]byte
+	KeysPayloadA *cyclic.IntBuffer
+	KeysPayloadB *cyclic.IntBuffer
 
 	graphs.KeygenSubStream
 }
@@ -63,21 +63,21 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 
 //Connects the internal buffers in the stream to the passed
 func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, ecrMsg, ecrAD, keysMsg, keysAD *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
+	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
 
 	ds.Grp = grp
 
 	ds.R = round.R.GetSubBuffer(0, batchSize)
 	ds.U = round.U.GetSubBuffer(0, batchSize)
 
-	ds.EcrMsg = ecrMsg
-	ds.EcrAD = ecrAD
-	ds.KeysMsg = keysMsg
-	ds.KeysAD = keysAD
+	ds.EcrPayloadA = ecrPayloadA
+	ds.EcrPayloadB = ecrPayloadB
+	ds.KeysPayloadA = keysPayloadA
+	ds.KeysPayloadB = keysPayloadB
 	ds.Users = users
 	ds.Salts = salts
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.Users, ds.KeysMsg, ds.KeysAD)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.Users, ds.KeysPayloadA, ds.KeysPayloadB)
 }
 
 // PermuteStream conforms to this interface.
@@ -93,11 +93,11 @@ func (ds *KeygenDecryptStream) GetRealtimeDecryptSubStream() *KeygenDecryptStrea
 
 func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if index >= uint32(ds.EcrMsg.Len()) {
+	if index >= uint32(ds.EcrPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !ds.Grp.BytesInside(slot.MessagePayload, slot.AssociatedData) {
+	if !ds.Grp.BytesInside(slot.PayloadA, slot.PayloadB) {
 		return services.ErrOutsideOfGroup
 	}
 
@@ -117,18 +117,18 @@ func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error
 	//link to the salt
 	ds.Salts[index] = slot.Salt
 
-	ds.Grp.SetBytes(ds.EcrMsg.Get(index), slot.MessagePayload)
-	ds.Grp.SetBytes(ds.EcrAD.Get(index), slot.AssociatedData)
+	ds.Grp.SetBytes(ds.EcrPayloadA.Get(index), slot.PayloadA)
+	ds.Grp.SetBytes(ds.EcrPayloadB.Get(index), slot.PayloadB)
 	return nil
 }
 
 func (ds *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
-		Index:          index,
-		SenderID:       (*ds.Users[index])[:],
-		Salt:           ds.Salts[index],
-		MessagePayload: ds.EcrMsg.Get(index).Bytes(),
-		AssociatedData: ds.EcrAD.Get(index).Bytes(),
+		Index:    index,
+		SenderID: (*ds.Users[index])[:],
+		Salt:     ds.Salts[index],
+		PayloadA: ds.EcrPayloadA.Get(index).Bytes(),
+		PayloadB: ds.EcrPayloadB.Get(index).Bytes(),
 	}
 }
 
@@ -146,10 +146,10 @@ var DecryptMul3 = services.Module{
 		ds := dssi.GetRealtimeDecryptSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			//Do mul3 ecrMessage=messageKey*R*ecrMessage%p
-			mul3(ds.Grp, ds.KeysMsg.Get(i), ds.R.Get(i), ds.EcrMsg.Get(i))
-			//Do mul3 ecrAD=ecrAD*U*ecrMessage%p
-			mul3(ds.Grp, ds.KeysAD.Get(i), ds.U.Get(i), ds.EcrAD.Get(i))
+			//Do mul3 ecrPayloadA=payloadAKey*R*ecrPayloadA%p
+			mul3(ds.Grp, ds.KeysPayloadA.Get(i), ds.R.Get(i), ds.EcrPayloadA.Get(i))
+			//Do mul3 ecrPayloadB=payloadBKey*U*ecrPayloadB%p
+			mul3(ds.Grp, ds.KeysPayloadB.Get(i), ds.U.Get(i), ds.EcrPayloadB.Get(i))
 		}
 		return nil
 	},

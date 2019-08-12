@@ -49,8 +49,8 @@ func TestRevealStream_Link(t *testing.T) {
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
-	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadA, batchSize, "CypherPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadB, batchSize, "CypherPayloadB", grp.NewInt(1), t)
 
 	// Edit roundBuffer to show that Z value in stream changes
 	expected := grp.Random(roundBuffer.Z)
@@ -82,8 +82,8 @@ func TestRevealtStream_Input(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			PartialMessageCypherText:        expected[0],
-			PartialAssociatedDataCypherText: expected[1],
+			PartialPayloadACypherText: expected[0],
+			PartialPayloadBCypherText: expected[1],
 		}
 
 		err := stream.Input(b, msg)
@@ -91,14 +91,14 @@ func TestRevealtStream_Input(t *testing.T) {
 			t.Errorf("RevealStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("RevealStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[0]) {
+			t.Errorf("RevealStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("RevealStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[1]) {
+			t.Errorf("RevealStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -118,8 +118,8 @@ func TestRevealStream_Input_OutOfBatch(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		PartialMessageCypherText:        []byte{0},
-		PartialAssociatedDataCypherText: []byte{0},
+		PartialPayloadACypherText: []byte{0},
+		PartialPayloadBCypherText: []byte{0},
 	}
 
 	err := stream.Input(batchSize, msg)
@@ -148,8 +148,8 @@ func TestRevealStream_Input_OutOfGroup(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		PartialMessageCypherText:        large.NewInt(89).Bytes(),
-		PartialAssociatedDataCypherText: large.NewInt(13).Bytes(),
+		PartialPayloadACypherText: large.NewInt(89).Bytes(),
+		PartialPayloadBCypherText: large.NewInt(13).Bytes(),
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -179,8 +179,8 @@ func TestRevealStream_Output(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			PartialMessageCypherText:        expected[0],
-			PartialAssociatedDataCypherText: expected[1],
+			PartialPayloadACypherText: expected[0],
+			PartialPayloadBCypherText: expected[1],
 		}
 
 		err := stream.Input(b, msg)
@@ -190,14 +190,14 @@ func TestRevealStream_Output(t *testing.T) {
 
 		output := stream.Output(b)
 
-		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[0]) {
-			t.Errorf("RevealStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(output.PartialPayloadACypherText, expected[0]) {
+			t.Errorf("RevealStream.Output() incorrect recieved CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[1]) {
-			t.Errorf("RevealStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(output.PartialPayloadBCypherText, expected[1]) {
+			t.Errorf("RevealStream.Output() incorrect recieved CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -250,16 +250,16 @@ func TestReveal_Graph(t *testing.T) {
 	stream := g.GetStream().(*RevealStream)
 
 	// Build i/o used for testing
-	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadAExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadBExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
 	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
-		grp.RandomCoprime(stream.CypherMsg.Get(i))
-		grp.RandomCoprime(stream.CypherAD.Get(i))
+		grp.RandomCoprime(stream.CypherPayloadA.Get(i))
+		grp.RandomCoprime(stream.CypherPayloadB.Get(i))
 
 		//These two lines copy the generated values
-		grp.Set(CypherMsgExpected.Get(i), stream.CypherMsg.Get(i))
-		grp.Set(CypherADExpected.Get(i), stream.CypherAD.Get(i))
+		grp.Set(CypherPayloadAExpected.Get(i), stream.CypherPayloadA.Get(i))
+		grp.Set(CypherPayloadBExpected.Get(i), stream.CypherPayloadB.Get(i))
 
 	}
 
@@ -285,21 +285,21 @@ func TestReveal_Graph(t *testing.T) {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
 			// Compute expected result for this slot
-			cryptops.RootCoprime(s.Grp, CypherMsgExpected.Get(i), s.Z, tmp)
-			s.Grp.Set(CypherMsgExpected.Get(i), tmp)
+			cryptops.RootCoprime(s.Grp, CypherPayloadAExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherPayloadAExpected.Get(i), tmp)
 
 			// Execute root coprime on the keys for the Associated Data
-			cryptops.RootCoprime(s.Grp, CypherADExpected.Get(i), s.Z, tmp)
-			s.Grp.Set(CypherADExpected.Get(i), tmp)
+			cryptops.RootCoprime(s.Grp, CypherPayloadBExpected.Get(i), s.Z, tmp)
+			s.Grp.Set(CypherPayloadBExpected.Get(i), tmp)
 
-			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompReveal: Message Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherMsgExpected.Get(i).Text(16), s.CypherMsg.Get(i).Text(16)))
+			if CypherPayloadAExpected.Get(i).Cmp(s.CypherPayloadA.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompReveal: PayloadA Keys Cypher not equal on slot %v expected %v received %v",
+					i, CypherPayloadAExpected.Get(i).Text(16), s.CypherPayloadA.Get(i).Text(16)))
 			}
 
-			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompReveal: AD Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherADExpected.Get(i).Text(16), s.CypherAD.Get(i).Text(16)))
+			if CypherPayloadBExpected.Get(i).Cmp(s.CypherPayloadB.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompReveal: PayloadB Keys Cypher not equal on slot %v expected %v received %v",
+					i, CypherPayloadBExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
 			}
 		}
 	}

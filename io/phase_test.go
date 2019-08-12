@@ -29,7 +29,7 @@ func TestPostPhase(t *testing.T) {
 	for i := 0; i < numSlots; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
-				MessagePayload: []byte{byte(i)},
+				PayloadA: []byte{byte(i)},
 			})
 	}
 
@@ -88,7 +88,7 @@ func TestTransmitPhase(t *testing.T) {
 	}
 
 	getMsg := func(index uint32) *mixmessages.Slot {
-		return &mixmessages.Slot{MessagePayload: []byte{0}}
+		return &mixmessages.Slot{PayloadA: []byte{0}}
 	}
 
 	m := func(tag string) {}

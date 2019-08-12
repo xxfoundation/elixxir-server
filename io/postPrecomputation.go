@@ -98,9 +98,9 @@ func PostPrecompResult(r *round.Buffer, grp *cyclic.Group,
 
 func overwritePrecomps(buf *round.Buffer, grp *cyclic.Group, slots []*mixmessages.Slot) {
 	for i := uint32(0); i < uint32(len(slots)); i++ {
-		MessagePrecomputation := buf.MessagePrecomputation.Get(i)
-		ADPrecomputation := buf.ADPrecomputation.Get(i)
-		grp.SetBytes(MessagePrecomputation, slots[i].EncryptedMessageKeys)
-		grp.SetBytes(ADPrecomputation, slots[i].EncryptedAssociatedDataKeys)
+		PayloadAPrecomputation := buf.PayloadAPrecomputation.Get(i)
+		PayloadBPrecomputation := buf.PayloadBPrecomputation.Get(i)
+		grp.SetBytes(PayloadAPrecomputation, slots[i].EncryptedPayloadAKeys)
+		grp.SetBytes(PayloadBPrecomputation, slots[i].EncryptedPayloadBKeys)
 	}
 }
