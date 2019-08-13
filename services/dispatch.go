@@ -13,13 +13,10 @@ import (
 var InvalidTypeAssert = errors.New("type assert failed")
 
 func dispatch(g *Graph, m *Module, threadID uint8) {
+
 	s := g.stream
 
-	done := false
-	var chunk Chunk
-
-	for !done {
-		chunk, done = <-m.input
+	for chunk, cont := <-m.input; cont; chunk, cont = <-m.input {
 
 		err := m.Adapt(s, m.Cryptop, chunk)
 
@@ -35,8 +32,8 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 			}
 
 			for _, r := range chunkList {
-				//fmt.Printf( "%s sending (%v - %v) to %s \n",
-				//	m.Name, r.begin, r.end, om.Name)
+				/*fmt.Printf( "%s sending (%v - %v) to %s \n",
+				m.Name, r.begin, r.end, om.Name)*/
 				om.input <- r
 			}
 
@@ -47,7 +44,6 @@ func dispatch(g *Graph, m *Module, threadID uint8) {
 				return
 			}
 			if fin {
-
 				om.closeInput()
 			}
 		}

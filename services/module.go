@@ -84,6 +84,12 @@ func (m *Module) buildAssignments(batchsize uint32) {
 		m.InputSize = batchsize
 	}
 
+	if batchsize%m.InputSize != 0 {
+		jww.FATAL.Panicf("%v expanded batch size incorrect: "+
+			"module input size is not factor; BatchSize: %v, Module Input: %v ",
+			m.Name, batchsize, m.InputSize)
+	}
+
 	numJobs := uint32(batchsize / m.InputSize)
 
 	numInputModules := uint32(len(m.inputModules))
