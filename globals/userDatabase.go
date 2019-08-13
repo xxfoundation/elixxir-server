@@ -14,9 +14,8 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
@@ -34,14 +33,12 @@ type UserDB struct {
 	// Convert between id.User and string using base64 StdEncoding
 	Id string
 
-	// Keys
+	// Base Key for message encryption
 	BaseKey []byte
-
-	// DSA Public Key
-	PubKeyY []byte
-	PubKeyP []byte
-	PubKeyQ []byte
-	PubKeyG []byte
+	// RSA Public Key for Client Registration
+	RsaPublicKey []byte
+	// Diffie-Hellman Public Key
+	PublicKey []byte
 
 	// Nonce
 	Nonce          []byte
@@ -199,10 +196,8 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
 		Set("base_key = EXCLUDED.base_key," +
-			"pub_keyy = EXCLUDED.pub_keyy," +
-			"pub_keyp = EXCLUDED.pub_keyp," +
-			"pub_keyq = EXCLUDED.pub_keyq," +
-			"pub_keyg = EXCLUDED.pub_keyg," +
+			"public_key = EXCLUDED.public_key," +
+			"rsa_public_key = EXCLUDED.rsa_public_key," +
 			"nonce = EXCLUDED.nonce," +
 			"nonce_timestamp = EXCLUDED.nonce_timestamp").
 		// Otherwise, insert the new user
@@ -276,13 +271,10 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
-	params := user.PublicKey.GetParams()
 	newUser.Id = encodeUser(user.ID)
 	newUser.BaseKey = user.BaseKey.Bytes()
-	newUser.PubKeyY = user.PublicKey.GetKey().Bytes()
-	newUser.PubKeyP = params.GetP().Bytes()
-	newUser.PubKeyQ = params.GetQ().Bytes()
-	newUser.PubKeyG = params.GetG().Bytes()
+	newUser.PublicKey = user.PublicKey.Bytes()
+	newUser.RsaPublicKey = rsa.CreatePublicKeyPem(user.RsaPublicKey)
 	newUser.Nonce = user.Nonce.Bytes()
 	newUser.NonceTimestamp = user.Nonce.GenTime
 	return
@@ -296,15 +288,14 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser = new(User)
 	newUser.ID = decodeUser(user.Id)
 	newUser.BaseKey = grp.NewIntFromBytes(user.BaseKey)
+	newUser.PublicKey = grp.NewIntFromBytes(user.PublicKey)
 
-	newUser.PublicKey = signature.ReconstructPublicKey(
-		signature.CustomDSAParams(
-			large.NewIntFromBytes(user.PubKeyP),
-			large.NewIntFromBytes(user.PubKeyQ),
-			large.NewIntFromBytes(user.PubKeyG),
-		),
-		large.NewIntFromBytes(user.PubKeyY),
-	)
+	rsaPublicKey, err := rsa.LoadPublicKeyFromPem(user.RsaPublicKey)
+	if err != nil {
+		jww.ERROR.Printf("Unable to convert PEM to public key: %+v",
+			errors.New(err.Error()))
+	}
+	newUser.RsaPublicKey = rsaPublicKey
 
 	newUser.Nonce = nonce.Nonce{
 		GenTime:    user.NonceTimestamp,
