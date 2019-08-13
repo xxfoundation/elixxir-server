@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync/atomic"
+	"time"
 )
 
 type Round struct {
@@ -28,6 +29,9 @@ type Round struct {
 
 	//holds responses to coms, how to check and process incoming comms
 	responses phase.ResponseMap
+
+	//timestampos
+	start time.Time
 }
 
 // Creates and initializes a new round, including all phases, topology,
@@ -126,12 +130,18 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		jww.FATAL.Println("phase state initialization failed")
 	}
 
+	round.start = time.Now()
+
 	return &round
 }
 
 //GetID return the ID
 func (r *Round) GetID() id.Round {
 	return r.id
+}
+
+func (r *Round) GetTimeStart() time.Time {
+	return r.start
 }
 
 func (r *Round) GetBuffer() *Buffer {

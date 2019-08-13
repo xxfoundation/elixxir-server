@@ -25,7 +25,7 @@ import (
 )
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	MultiInstanceTest(3, 4, t)
+	MultiInstanceTest(3, 32, t)
 }
 
 func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
@@ -103,7 +103,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	//Initialize the first node
 
 	firstNode.InitFirstNode()
-	firstNode.RunFirstNode(firstNode, 10*time.Second,
+	firstNode.RunFirstNode(firstNode, 50*time.Second,
 		io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
 
 	lastNode.InitLastNode()
@@ -344,7 +344,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 				KeepBuffers: true,
 			},
 			Address:        nodeLst[i].Address,
-			GraphGenerator: services.NewGraphGenerator(2, PanicHandler, 2, 4, 0.0),
+			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
 		}
 		defLst = append(defLst, &def)
 	}
