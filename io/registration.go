@@ -9,54 +9,65 @@
 package io
 
 import (
-	"crypto/rand"
+	"crypto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	hash2 "gitlab.com/elixxir/crypto/hash"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 )
 
-func RequestNonce(instance *server.Instance,
-	salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
+func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
+	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte) ([]byte, []byte, error) {
 
 	grp := instance.GetGroup()
-	privKey := instance.GetPrivKey()
 
-	if !instance.GetSkipReg() {
-		// Concatenate Client public key byte slices
-		// FIXME: MOVE THE SIGNATURE VERIFICATION TO COMMS
-		data := make([]byte, 0)
-		data = append(data, Y...)
-		data = append(data, P...)
-		data = append(data, Q...)
-		data = append(data, G...)
+	sha := crypto.SHA256
 
-		// Verify signed public key using hardcoded RegistrationServer public key
-		regKey := instance.GetRegServerPubKey()
-		valid := regKey.Verify(data,
-			signature.DSASignature{
-				R: large.NewIntFromBytes(R),
-				S: large.NewIntFromBytes(S),
-			})
-		if !valid {
+	if !instance.IsRegistrationAuthenticated() {
+		regPubKey := instance.GetRegServerPubKey()
+		h := sha.New()
+		h.Write([]byte(RSAPubKey))
+		data := h.Sum(nil)
+		/*
+			fmt.Println("real data",data)
+			fmt.Println("real key",regPubKey.N.Bytes())*/
+
+		err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
+		if err != nil {
 			// Invalid signed Client public key, return an error
-			jww.ERROR.Printf("Unable to verify public key signature!")
-			return make([]byte, 0),
-				errors.Errorf("public key signature is invalid")
+			jww.ERROR.Printf("verification of public key signature "+
+				"from registration failed: %+v", err)
+			return []byte{}, []byte{},
+				errors.Errorf("verification of public key signature "+
+					"from registration failed: %+v", err)
 		}
 	}
 
 	// Assemble Client public key
-	userPublicKey := signature.ReconstructPublicKey(
-		signature.CustomDSAParams(
-			large.NewIntFromBytes(P),
-			large.NewIntFromBytes(Q),
-			large.NewIntFromBytes(G)),
-		large.NewIntFromBytes(Y))
+	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(RSAPubKey))
+
+	if err != nil {
+		jww.ERROR.Printf("Unable to decode client RSA Pub Key: %+v", err)
+		return []byte{}, []byte{},
+			errors.Errorf("Unable to decode client RSA Pub Key: %+v", err)
+	}
+
+	//Check that the Client DH public key is signed correctly
+	h := sha.New()
+	h.Write(DHPubKey)
+	data := h.Sum(nil)
+
+	err = rsa.Verify(userPublicKey, sha, data, DHSignedByClientRSA, nil)
+
+	if err != nil {
+		jww.ERROR.Printf("Client signature on DH key incorrect: %+v", err)
+		return []byte{}, []byte{},
+			errors.Errorf("Client signature on DH key could not be verified: %+v", err)
+	}
 
 	// Generate UserID
 	userId := registration.GenUserID(userPublicKey, salt)
@@ -64,84 +75,84 @@ func RequestNonce(instance *server.Instance,
 	// Generate a nonce with a timestamp
 	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
 	if err != nil {
-		return nil, err
+		return []byte{}, []byte{}, err
 	}
+
+	//Generate an ephemeral DH key pair
+	DHPriv := grp.RandomCoprime(grp.NewInt(1))
+	DHPub := grp.ExpG(DHPriv, grp.NewInt(1))
+
+	clientDHPub := grp.NewIntFromBytes(DHPubKey)
 
 	// Generate user CMIX baseKey
 	b, _ := hash2.NewCMixHash()
-	baseKey := registration.GenerateBaseKey(grp, userPublicKey, privKey, b)
+	baseKey := registration.GenerateBaseKey(grp, clientDHPub, DHPriv, b)
 
 	// Store user information in the database
 	newUser := instance.GetUserRegistry().NewUser(grp)
 	newUser.Nonce = userNonce
 	newUser.ID = userId
-	newUser.PublicKey = userPublicKey
+	newUser.RsaPublicKey = userPublicKey
 	newUser.BaseKey = baseKey
+	newUser.IsRegistered = false
 	instance.GetUserRegistry().UpsertUser(newUser)
 
 	// Return nonce to Client with empty error field
-	return userNonce.Bytes(), nil
+	return userNonce.Bytes(), DHPub.Bytes(), nil
 }
 
-func ConfirmRegistration(instance *server.Instance,
-	hash, R, S []byte) ([]byte, []byte, []byte, []byte, []byte,
-	[]byte, []byte, error) {
+func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte) ([]byte, error) {
 
 	// Obtain the user from the database
-	n := nonce.Nonce{}
-	copy(n.Value[:], hash)
-	user, err := instance.GetUserRegistry().GetUserByNonce(n)
+	user, err := instance.GetUserRegistry().GetUser(id.NewUserFromBytes(UserID))
 
 	if err != nil {
 		// Invalid nonce, return an error
-		jww.ERROR.Printf("Unable to find nonce: %x", n.Bytes())
-		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			errors.Errorf("nonce does not exist")
+		jww.ERROR.Printf("Unable to find user: %v", UserID)
+		return make([]byte, 0),
+			errors.Errorf("Unable to confirm registration, could not "+
+				"find a user: %+v", err)
 	}
 
 	// Verify nonce has not expired
 	if !user.Nonce.IsValid() {
-		jww.ERROR.Printf("Nonce is expired: %x", n.Bytes())
-		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			errors.Errorf("nonce is expired")
+		jww.ERROR.Printf("Unable to confirm registration, Nonce is expired: %+v", user.Nonce)
+		return make([]byte, 0),
+			errors.Errorf("Unable to confirm registration, Nonce is expired")
 	}
 
 	// Verify signed nonce using Client public key
-	valid := user.PublicKey.Verify(hash, signature.DSASignature{
-		R: large.NewIntFromBytes(R),
-		S: large.NewIntFromBytes(S),
-	})
+	sha := crypto.SHA256
 
-	if !valid {
-		// Invalid signed nonce, return an error
-		jww.ERROR.Printf("Unable to verify nonce: %x", n.Bytes())
-		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			errors.Errorf("signed nonce is invalid")
+	h := sha.New()
+	h.Write(user.Nonce.Bytes())
+	data := h.Sum(nil)
+
+	err = rsa.Verify(user.RsaPublicKey, sha, data, Signature, nil)
+
+	if err != nil {
+		jww.ERROR.Printf("Unable to confirm registration, signature invalid: %+v", err)
+		return make([]byte, 0),
+			errors.Errorf("Unable to confirm registration, signature invalid")
 	}
 
-	// Concatenate Client public key byte slices
-	data := make([]byte, 0)
-	params := user.PublicKey.GetParams()
-	data = append(data, user.PublicKey.GetKey().Bytes()...)
-	data = append(data, params.GetP().Bytes()...)
-	data = append(data, params.GetQ().Bytes()...)
-	data = append(data, params.GetG().Bytes()...)
+	//todo: re-enable this and use it to simplify registration
 
-	// Use hardcoded Server private key to sign Client public key
-	sig, err := instance.GetPrivKey().Sign(data, rand.Reader)
+	/*// Use  Server private key to sign Client public key
+	userPubKeyPEM := rsa.CreatePublicKeyPem(user.RsaPublicKey)
+	h.Reset()
+	h.Write(userPubKeyPEM)
+	data = h.Sum(nil)
+	sig, err := rsa.Sign(csprng.NewSystemRNG(), instance.GetPrivKey(), sha, data, nil)
 	if err != nil {
 		// Unable to sign public key, return an error
 		jww.ERROR.Printf("Error signing client public key: %s", err)
-		return make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			make([]byte, 0), make([]byte, 0), make([]byte, 0), make([]byte, 0),
-			errors.New("unable to sign client public key")
-	}
+		return make([]byte, 0),	errors.New("unable to sign client public key")
+	}*/
 
-	grp := instance.GetGroup()
-	// Return the signed Client public key to Client with empty error field
-	return data, sig.R.Bytes(), sig.S.Bytes(), instance.GetPubKey().GetKey().Bytes(),
-		grp.GetPBytes(), grp.GetQ().Bytes(), grp.GetG().Bytes(), nil
+	//update the user's state to registered
+	user.IsRegistered = true
+	instance.GetUserRegistry().UpsertUser(user)
+
+	return make([]byte, 0), nil
 }

@@ -7,36 +7,76 @@
 package io
 
 import (
+	"crypto"
+	"fmt"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/server/cmd/conf"
+	"gitlab.com/elixxir/crypto/registration"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"testing"
-	"time"
 )
 
 var serverInstance *server.Instance
-var dsaParams = signature.GetDefaultDSAParams()
-var pubKey *signature.DSAPublicKey
-var privKey *signature.DSAPrivateKey
-var regPrivKey *signature.DSAPrivateKey
+var serverRSAPub *rsa.PublicKey
+var serverRSAPriv *rsa.PrivateKey
+var clientRSAPub *rsa.PublicKey
+var clientRSAPriv *rsa.PrivateKey
+var clientDHPub *cyclic.Int
+var clintDHPriv *cyclic.Int
+var regPrivKey *rsa.PrivateKey
 
 func TestMain(m *testing.M) {
-	grp := cyclic.NewGroup(dsaParams.GetP(), dsaParams.GetG(), dsaParams.GetQ())
 
-	rng := csprng.NewSystemRNG()
-	dsaParams := signature.CustomDSAParams(grp.GetP(), grp.GetQ(), grp.GetG())
-	privKey = dsaParams.PrivateKeyGen(rng)
-	pubKey = privKey.PublicKeyGen()
-	regPrivKey = privKey
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	nid := server.GenerateId()
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2), large.NewInt(2))
+
+	var err error
+
+	//make client rsa key pair
+	clientRSAPriv, err = rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
+	}
+
+	clientRSAPub = clientRSAPriv.GetPublic()
+
+	//make client DH key
+	clintDHPriv = grp.RandomCoprime(grp.NewInt(1))
+	clientDHPub = grp.ExpG(clintDHPriv, grp.NewInt(1))
+
+	//make registration rsa key pair
+	regPrivKey, err = rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate registration private key: %+v", err))
+	}
+
+	//make server rsa key pair
+	serverRSAPriv, err = rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
+	}
+
+	serverRSAPub = serverRSAPriv.GetPublic()
 
 	def := server.Definition{
 		CmixGroup: grp,
@@ -48,11 +88,11 @@ func TestMain(m *testing.M) {
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
-		PrivateKey:      privKey,
-		PublicKey:       pubKey,
+		PrivateKey:      serverRSAPriv,
+		PublicKey:       serverRSAPub,
 	}
 
-	def.Permissioning.DsaPublicKey = pubKey
+	def.Permissioning.PublicKey = regPrivKey.GetPublic()
 
 	serverInstance = server.CreateServerInstance(&def)
 
@@ -67,89 +107,156 @@ func TestRequestNonce(t *testing.T) {
 	rng := csprng.NewSystemRNG()
 	salt := cmix.NewSalt(rng, 32)
 
-	hash := append(pubKey.GetKey().Bytes(), dsaParams.GetP().Bytes()...)
-	hash = append(hash, dsaParams.GetQ().Bytes()...)
-	hash = append(hash, dsaParams.GetG().Bytes()...)
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(clientRSAPub)
 
-	sign, err := regPrivKey.Sign(hash, rng)
-	if sign == nil || err != nil {
-		t.Errorf("Error signing data: %v", err.Error())
+	//sign the client's RSA key by registration
+	sha := crypto.SHA256
+	h := sha.New()
+	h.Write(clientRSAPubKeyPEM)
+	data := h.Sum(nil)
+
+	sigReg, err := rsa.Sign(csprng.NewSystemRNG(), regPrivKey, sha, data, nil)
+
+	if err != nil {
+		t.Errorf("Could not sign client's RSA key with registration's "+
+			"key: %+v", err)
 	}
 
-	result, err2 := RequestNonce(serverInstance,
-		salt,
-		pubKey.GetKey().Bytes(),
-		dsaParams.GetP().Bytes(),
-		dsaParams.GetQ().Bytes(),
-		dsaParams.GetG().Bytes(),
-		hash,
-		sign.R.Bytes(),
-		sign.S.Bytes())
+	//sign the client's DH key with client's RSA key pair
+	h.Reset()
+	h.Write(clientDHPub.Bytes())
+	data = h.Sum(nil)
+
+	sigClient, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
+
+	if err != nil {
+		t.Errorf("COuld not sign client's DH key with client RSA "+
+			"key: %+v", err)
+	}
+
+	result, _, err2 := RequestNonce(serverInstance,
+		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient)
 
 	if result == nil || err2 != nil {
-		t.Errorf("Error in RequestNonce")
+		t.Errorf("Error in RequestNonce: %+v", err2)
 	}
 }
 
-// Test request nonce with invalid signature
-func TestRequestNonce_BadSignature(t *testing.T) {
+// Test request nonce with invalid signature from registration
+func TestRequestNonce_BadRegSignature(t *testing.T) {
 	rng := csprng.NewSystemRNG()
 	salt := cmix.NewSalt(rng, 32)
 
-	hash := append(pubKey.GetKey().Bytes(), dsaParams.GetP().Bytes()...)
-	hash = append(hash, dsaParams.GetQ().Bytes()...)
-	hash = append(hash, dsaParams.GetQ().Bytes()...)
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(clientRSAPub)
 
-	sign, err := regPrivKey.Sign(hash, rng)
-	if sign == nil || err != nil {
-		t.Errorf("Error signing data")
+	//dont sign the client's RSA key by registration
+	sha := crypto.SHA256
+	h := sha.New()
+
+	sigReg := make([]byte, 69)
+
+	//sign the client's DH key with client's RSA key pair
+	h.Reset()
+	h.Write(clientDHPub.Bytes())
+	data := h.Sum(nil)
+
+	sigClient, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
+
+	if err != nil {
+		t.Errorf("COuld not sign client's DH key with client RSA "+
+			"key: %+v", err)
 	}
 
-	_, err2 := RequestNonce(serverInstance,
-		salt,
-		pubKey.GetKey().Bytes(),
-		dsaParams.GetP().Bytes(),
-		dsaParams.GetQ().Bytes(),
-		dsaParams.GetG().Bytes(),
-		hash,
-		sign.R.Bytes(),
-		sign.S.Bytes())
+	_, _, err2 := RequestNonce(serverInstance,
+		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient)
 
 	if err2 == nil {
-		t.Errorf("Expected error in RequestNonce")
+		t.Errorf("Error in RequestNonce, did not fail with bad "+
+			"registartion signature: %+v", err2)
+	}
+}
+
+// Test request nonce with invalid signature from client
+func TestRequestNonce_BadClientSignature(t *testing.T) {
+	rng := csprng.NewSystemRNG()
+	salt := cmix.NewSalt(rng, 32)
+
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(clientRSAPub)
+
+	//sign the client's RSA key by registration
+	sha := crypto.SHA256
+	h := sha.New()
+	h.Write(clientRSAPubKeyPEM)
+	data := h.Sum(nil)
+
+	sigReg, err := rsa.Sign(csprng.NewSystemRNG(), regPrivKey, sha, data, nil)
+
+	if err != nil {
+		t.Errorf("Could not sign client's RSA key with registration's "+
+			"key: %+v", err)
+	}
+
+	//dont sign the client's DH key with client's RSA key pair
+	sigClient := make([]byte, 42)
+
+	_, _, err2 := RequestNonce(serverInstance,
+		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient)
+
+	if err2 == nil {
+		t.Errorf("Error in RequestNonce, did not fail with bad "+
+			"registartion signature: %+v", err2)
 	}
 }
 
 // Test confirm nonce
 func TestConfirmNonce(t *testing.T) {
+	//make new user
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
+	user.IsRegistered = false
+	user.RsaPublicKey = clientRSAPub
+	user.ID = registration.GenUserID(clientRSAPub, []byte{69})
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
-	rng := csprng.NewSystemRNG()
-	user.PublicKey = pubKey
+	//hash and sign nonce
+	sha := crypto.SHA256
 
-	sign, err := privKey.Sign(user.Nonce.Bytes(), rng)
+	h := sha.New()
+	h.Write(user.Nonce.Bytes())
+	data := h.Sum(nil)
+
+	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
 	if sign == nil || err != nil {
 		t.Errorf("Error signing data")
 	}
 
-	_, _, _, _, _, _, _, err2 := ConfirmRegistration(serverInstance,
-		user.Nonce.Bytes(), sign.R.Bytes(), sign.S.Bytes())
+	//call confirm
+	_, err2 := ConfirmRegistration(serverInstance, user.ID.Bytes(), sign)
 	if err2 != nil {
-		t.Errorf("Error in ConfirmNonce")
+		t.Errorf("Error in ConfirmNonce: %+v", err2)
+	}
+
+	regUser, err := serverInstance.GetUserRegistry().GetUser(user.ID)
+
+	if err != nil {
+		t.Errorf("User could not be found: %+v", err)
+	}
+
+	if !regUser.IsRegistered {
+		t.Errorf("User's registation was not sucesfully confirmed: %+v", regUser)
 	}
 }
 
+/*
 // Test confirm nonce that doesn't exist
 func TestConfirmNonce_NonExistant(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	rng := csprng.NewSystemRNG()
-	user.PublicKey = pubKey
+	user.PublicKey = clientRSAPub
 
-	sign, err := privKey.Sign(user.Nonce.Bytes(), rng)
+	sign, err := clientRSAPriv.Sign(user.Nonce.Bytes(), rng)
 	if sign == nil || err != nil {
 		t.Errorf("Error signing data")
 	}
@@ -168,9 +275,9 @@ func TestConfirmNonce_Expired(t *testing.T) {
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
 	rng := csprng.NewSystemRNG()
-	user.PublicKey = pubKey
+	user.PublicKey = clientRSAPub
 
-	sign, err := privKey.Sign(user.Nonce.Bytes(), rng)
+	sign, err := clientRSAPriv.Sign(user.Nonce.Bytes(), rng)
 	if sign == nil || err != nil {
 		t.Errorf("Error signing data")
 	}
@@ -219,4 +326,4 @@ func initConfGroups(grp *cyclic.Group) conf.Groups {
 	}
 
 	return grps
-}
+}*/

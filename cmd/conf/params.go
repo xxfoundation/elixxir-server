@@ -251,13 +251,15 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.Permissioning.Address = p.Permissioning.Address
 	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
 
-	permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
-	if err != nil {
-		jww.FATAL.Panicf("Could not decode permissioning tls cert file "+
-			"into a tls cert: %v", err)
-	}
+	if len(def.Permissioning.TlsCert) < 0 {
+		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
+		if err != nil {
+			jww.FATAL.Panicf("Could not decode permissioning tls cert file "+
+				"into a tls cert: %v", err)
+		}
 
-	publicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
+		def.Permissioning.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
+	}
 
 	return def
 }

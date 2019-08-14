@@ -61,13 +61,14 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		}
 	}
 
-	impl.Functions.RequestNonce = func(salt, Y, P, Q, G, hash, R, S []byte) ([]byte, error) {
-		return io.RequestNonce(instance, salt, Y, P, Q, G, hash, R, S)
+	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
+		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte) ([]byte, []byte, error) {
+		return io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
+			RSASignedByRegistration, DHSignedByClientRSA)
 	}
 
-	impl.Functions.ConfirmRegistration = func(hash, R, S []byte) ([]byte, []byte, []byte,
-		[]byte, []byte, []byte, []byte, error) {
-		return io.ConfirmRegistration(instance, hash, R, S)
+	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte) ([]byte, error) {
+		return io.ConfirmRegistration(instance, UserID, Signature)
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error {
 		return ReceivePostPrecompResult(instance, roundID, slots)

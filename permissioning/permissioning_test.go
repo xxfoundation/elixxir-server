@@ -80,7 +80,7 @@ func (*mockGateway) RequestNonce(message *pb.NonceRequest) (*pb.Nonce, error) {
 	return nil, nil
 }
 
-func (*mockGateway) ConfirmNonce(message *pb.DSASignature) (*pb.
+func (*mockGateway) ConfirmNonce(message *pb.RequestRegistrationConfirmation) (*pb.
 	RegistrationConfirmation, error) {
 	return nil, nil
 }

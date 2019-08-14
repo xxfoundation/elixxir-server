@@ -37,12 +37,13 @@ type UserDB struct {
 	BaseKey []byte
 	// RSA Public Key for Client Registration
 	RsaPublicKey []byte
-	// Diffie-Hellman Public Key
-	PublicKey []byte
 
 	// Nonce
 	Nonce          []byte
 	NonceTimestamp time.Time
+
+	//Registration flag
+	IsRegistered bool
 }
 
 // Structure representing a Salt in the database.
@@ -171,21 +172,6 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 	return m.convertDbToUser(&u), nil
 }
 
-// GetUser returns a user with a matching nonce from user database
-func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
-	// Perform the select for the given nonce
-	u := UserDB{}
-	_, err = m.db.QueryOne(&u, `SELECT * FROM USERS WHERE nonce = ?`,
-		nonce.Bytes())
-
-	if err != nil {
-		// If there was an error, no user for the given nonce was found
-		return nil, errors.New(err.Error())
-	}
-	// If we found a user for the given ID, return it
-	return m.convertDbToUser(&u), nil
-}
-
 // UpsertUser inserts given user into the database or update the user if it
 // already exists (Upsert operation).
 func (m *UserDatabase) UpsertUser(user *User) {
@@ -196,10 +182,10 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
 		Set("base_key = EXCLUDED.base_key," +
-			"public_key = EXCLUDED.public_key," +
 			"rsa_public_key = EXCLUDED.rsa_public_key," +
 			"nonce = EXCLUDED.nonce," +
-			"nonce_timestamp = EXCLUDED.nonce_timestamp").
+			"nonce_timestamp = EXCLUDED.nonce_timestamp," +
+			"is_registered = EXCLUDED.is_registered").
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
@@ -273,10 +259,10 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	newUser = new(UserDB)
 	newUser.Id = encodeUser(user.ID)
 	newUser.BaseKey = user.BaseKey.Bytes()
-	newUser.PublicKey = user.PublicKey.Bytes()
 	newUser.RsaPublicKey = rsa.CreatePublicKeyPem(user.RsaPublicKey)
 	newUser.Nonce = user.Nonce.Bytes()
 	newUser.NonceTimestamp = user.Nonce.GenTime
+	newUser.IsRegistered = user.IsRegistered
 	return
 }
 
@@ -288,7 +274,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser = new(User)
 	newUser.ID = decodeUser(user.Id)
 	newUser.BaseKey = grp.NewIntFromBytes(user.BaseKey)
-	newUser.PublicKey = grp.NewIntFromBytes(user.PublicKey)
+	newUser.IsRegistered = user.IsRegistered
 
 	rsaPublicKey, err := rsa.LoadPublicKeyFromPem(user.RsaPublicKey)
 	if err != nil {
