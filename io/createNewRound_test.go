@@ -35,7 +35,7 @@ func TestTransmitCreateNewRound(t *testing.T) {
 			MockCreateNewRoundImplementation(),
 			MockCreateNewRoundImplementation(),
 			MockCreateNewRoundImplementation(),
-			MockCreateNewRoundImplementation()}, 2000)
+			MockCreateNewRoundImplementation()}, 8000)
 	defer Shutdown(comms)
 
 	rndID := id.Round(42)
