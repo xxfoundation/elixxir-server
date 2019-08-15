@@ -30,6 +30,7 @@ var validConfig bool
 var showVer bool
 var keepBuffers bool
 var disablePermissioning bool
+var noTLS bool
 
 // If true, runs pprof http server
 var profile bool
@@ -115,6 +116,8 @@ func init() {
 	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
 		time.Second, "Determines the amount of time the  GetRoundBufferInfo"+
 			" RPC will wait before returning an error")
+	rootCmd.Flags().BoolVarP(&noTLS, "noTLS", "", false,
+		"Set to ignore TLS")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")
