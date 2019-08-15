@@ -58,6 +58,7 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	// Initialize the backend
+	jww.INFO.Println(noTLS)
 	jww.INFO.Printf("Initalizing the backend")
 	dbAddress := params.Database.Addresses[params.Index]
 	cmixGrp := params.Groups.GetCMix()
@@ -108,6 +109,17 @@ func StartServer(vip *viper.Viper) {
 
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
+	if noTLS {
+		def.TlsKey = nil
+		def.TlsCert = nil
+		def.Gateway.TlsCert = nil
+		for i := 1; i < def.Topology.Len(); i++ {
+			def.Nodes[i].TlsCert = nil
+		}
+	}
+	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
+	fmt.Println(def)
+	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	instance := server.CreateServerInstance(def)
 
 	if instance.IsFirstNode() {

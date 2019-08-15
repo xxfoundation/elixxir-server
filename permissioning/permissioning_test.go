@@ -29,10 +29,10 @@ var gwComms *gateway.GatewayComms
 // Dummy implementation of permissioning server --------------------------------
 type mockPermission struct{}
 
-func (i *mockPermission) RegisterUser(registrationCode string, Y, P, Q,
-	G []byte) (hash, R, S []byte, err error) {
-	return nil, nil, nil, nil
+func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byte, err error) {
+	return nil, nil
 }
+
 func (i *mockPermission) RegisterNode(ID []byte,
 	NodeTLSCert, GatewayTLSCert, RegistrationCode, Addr string) error {
 
