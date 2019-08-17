@@ -64,12 +64,14 @@ func (u *User) DeepCopy() *User {
 	newUser.ID = u.ID
 	newUser.BaseKey = u.BaseKey.DeepCopy()
 
-	if u.RsaPublicKey != nil {
+	if u.RsaPublicKey != nil && u.RsaPublicKey.PublicKey.N != nil {
+
 		rsaPublicKey, err := rsa.LoadPublicKeyFromPem(rsa.
 			CreatePublicKeyPem(u.RsaPublicKey))
 		if err != nil {
-			jww.ERROR.Printf("Unable to convert PEM to public key: %+v",
-				errors.New(err.Error()))
+			jww.ERROR.Printf("Unable to convert PEM to public key: %+v"+
+				"\n  PEM: %v",
+				errors.New(err.Error()), u.RsaPublicKey)
 		}
 		newUser.RsaPublicKey = rsaPublicKey
 	}

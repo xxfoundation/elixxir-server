@@ -8,6 +8,7 @@
 package cmd
 
 import (
+	"fmt"
 	//"gitlab.com/elixxir/server/globals"
 	"os"
 	"time"
@@ -206,8 +207,8 @@ func initLog() {
 		logPath := viper.GetString("node.paths.log")
 		logFile, err := os.Create(logPath)
 		if err != nil {
-			jww.WARN.Println("Invalid or missing log path, " +
-				"default path used.")
+			fmt.Printf("Invalid or missing log path %s, "+
+				"default path used.\n", logPath)
 		} else {
 			jww.SetLogOutput(logFile)
 		}
