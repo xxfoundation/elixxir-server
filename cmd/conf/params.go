@@ -139,7 +139,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	var nodeIDDecodeErrorHappened bool
 	for i, currId := range ids {
 		nodeID, err := base64.StdEncoding.DecodeString(currId)
-		jww.INFO.Printf("Creating Def for Node ID: %s", nodeID)
+		jww.INFO.Printf("Creating Def for Node ID: %s", currId)
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
@@ -217,7 +217,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		jww.FATAL.Panicf("Could not generate RSA key: %+v", err)
 	} else {
 		// Get the node's TLS cert
-		tlsCertPEM, err := ioutil.ReadFile(p.Node.Paths.Cert)
+		tlsCertPEM, err := ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Cert))
 		if err != nil {
 			jww.FATAL.Panicf("Could not read tls cert file: %v", err)
 		}
@@ -232,7 +232,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		publicKey = &rsa.PublicKey{PublicKey: *tlsCert.PublicKey.(*gorsa.PublicKey)}
 
 		// Get the node's TLS Key
-		tlsKeyPEM, err := ioutil.ReadFile(p.Node.Paths.Key)
+		tlsKeyPEM, err := ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Key))
 		if err != nil {
 			jww.FATAL.Panicf("Could not read tls key file: %v", err)
 		}
