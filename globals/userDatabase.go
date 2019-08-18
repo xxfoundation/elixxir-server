@@ -279,8 +279,8 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	if user.RsaPublicKey != nil && len(user.RsaPublicKey) != 0 {
 		rsaPublicKey, err := rsa.LoadPublicKeyFromPem(user.RsaPublicKey)
 		if err != nil {
-			jww.ERROR.Printf("Unable to convert PEM to public key: %+v",
-				errors.New(err.Error()))
+			jww.ERROR.Printf("Unable to convert PEM to public key: %+v\n%+v",
+				user.RsaPublicKey, errors.New(err.Error()))
 		}
 		newUser.RsaPublicKey = rsaPublicKey
 	}
