@@ -276,12 +276,14 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser.BaseKey = grp.NewIntFromBytes(user.BaseKey)
 	newUser.IsRegistered = user.IsRegistered
 
-	rsaPublicKey, err := rsa.LoadPublicKeyFromPem(user.RsaPublicKey)
-	if err != nil {
-		jww.ERROR.Printf("Unable to convert PEM to public key: %+v",
-			errors.New(err.Error()))
+	if user.RsaPublicKey != nil && len(user.RsaPublicKey) != 0 {
+		rsaPublicKey, err := rsa.LoadPublicKeyFromPem(user.RsaPublicKey)
+		if err != nil {
+			jww.ERROR.Printf("Unable to convert PEM to public key: %+v",
+				errors.New(err.Error()))
+		}
+		newUser.RsaPublicKey = rsaPublicKey
 	}
-	newUser.RsaPublicKey = rsaPublicKey
 
 	newUser.Nonce = nonce.Nonce{
 		GenTime:    user.NonceTimestamp,

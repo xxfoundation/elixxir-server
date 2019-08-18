@@ -66,6 +66,19 @@ communications.`,
 					"0.0.0.0:8087", nil))
 			}()
 		}
+
+		if verbose {
+			err := os.Setenv("GRPC_GO_LOG_SEVERITY_LEVEL", "info")
+			if err != nil {
+				jww.ERROR.Printf("Could not set GRPC_GO_LOG_SEVERITY_LEVEL: %+v", err)
+			}
+
+			err = os.Setenv("GRPC_GO_LOG_VERBOSITY_LEVEL", "2")
+			if err != nil {
+				jww.ERROR.Printf("Could not set GRPC_GO_LOG_VERBOSITY_LEVEL: %+v", err)
+			}
+		}
+
 		StartServer(viper.GetViper())
 
 		// Prevent node from exiting

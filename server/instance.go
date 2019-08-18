@@ -54,7 +54,6 @@ func (i *Instance) InitNetwork(
 
 	//Attempt to connect to all other nodes
 	for index, n := range i.definition.Nodes {
-		jww.INFO.Println(n.TlsCert)
 		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
