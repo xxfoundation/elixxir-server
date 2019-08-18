@@ -110,15 +110,16 @@ func StartServer(vip *viper.Viper) {
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
 	if noTLS {
+		jww.INFO.Println("Blanking TLS certs for non use")
 		def.TlsKey = nil
 		def.TlsCert = nil
 		def.Gateway.TlsCert = nil
-		for i := 1; i < def.Topology.Len(); i++ {
+		for i := 0; i < def.Topology.Len(); i++ {
 			def.Nodes[i].TlsCert = nil
 		}
 	}
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	fmt.Println(def)
+	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	instance := server.CreateServerInstance(def)
 

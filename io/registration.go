@@ -32,9 +32,6 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 		h := sha.New()
 		h.Write([]byte(RSAPubKey))
 		data := h.Sum(nil)
-		/*
-			fmt.Println("real data",data)
-			fmt.Println("real key",regPubKey.N.Bytes())*/
 
 		err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
 		if err != nil {
