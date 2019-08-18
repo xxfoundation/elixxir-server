@@ -48,13 +48,14 @@ func CreateServerInstance(def *Definition) *Instance {
 func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
 
+	//jww.INFO.Printf("My cert: %+v", i.definition.TlsCert)
 	//Start local node
 	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
 		i.definition.TlsCert, i.definition.TlsKey)
 
 	//Attempt to connect to all other nodes
 	for index, n := range i.definition.Nodes {
-		jww.INFO.Println(n.TlsCert)
+		//jww.INFO.Printf("node %v's cert: %+v", index, i.definition.TlsCert)
 		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
