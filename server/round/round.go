@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -34,7 +34,8 @@ type Round struct {
 // and batchsize
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
-	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32) *Round {
+	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32,
+	rngStreamGen *fastRNG.StreamGenerator) *Round {
 
 	round := Round{}
 	round.id = id
@@ -110,7 +111,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	}
 
 	for index, p := range phases {
-		p.GetGraph().Link(grp, round.GetBuffer(), userDB, csprng.NewSystemRNG)
+		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen)
 		round.phaseMap[p.GetType()] = index
 	}
 

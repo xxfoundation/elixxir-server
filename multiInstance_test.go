@@ -6,7 +6,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
@@ -19,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -130,15 +133,15 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 		//make the slot
 		ecrslot := &mixmessages.Slot{}
-		ecrslot.MessagePayload = ecrMsg.GetPayloadA()
-		ecrslot.AssociatedData = ecrMsg.GetPayloadB()
+		ecrslot.PayloadA = ecrMsg.GetPayloadA()
+		ecrslot.PayloadB = ecrMsg.GetPayloadB()
 		ecrslot.SenderID = userID.Bytes()
 		ecrslot.Salt = salt
 		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)
 
 		slot := &mixmessages.Slot{}
-		slot.MessagePayload = msg.GetPayloadA()
-		slot.AssociatedData = msg.GetPayloadB()
+		slot.PayloadA = msg.GetPayloadA()
+		slot.PayloadB = msg.GetPayloadB()
 		slot.SenderID = userID.Bytes()
 		slot.Salt = salt
 		expectedbatch.Slots = append(expectedbatch.Slots, slot)
@@ -200,19 +203,19 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 		success := true
 
-		if grp.NewIntFromBytes(inputSlot.MessagePayload).Cmp(grp.NewIntFromBytes(outputSlot.MessagePayload)) != 0 {
+		if grp.NewIntFromBytes(inputSlot.PayloadA).Cmp(grp.NewIntFromBytes(outputSlot.PayloadA)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload A did "+
 				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
-				grp.NewIntFromBytes(inputSlot.MessagePayload).Text(16),
-				grp.NewIntFromBytes(outputSlot.MessagePayload).Text(16))
+				grp.NewIntFromBytes(inputSlot.PayloadA).Text(16),
+				grp.NewIntFromBytes(outputSlot.PayloadA).Text(16))
 			success = false
 		}
 
-		if grp.NewIntFromBytes(inputSlot.AssociatedData).Cmp(grp.NewIntFromBytes(outputSlot.AssociatedData)) != 0 {
+		if grp.NewIntFromBytes(inputSlot.PayloadB).Cmp(grp.NewIntFromBytes(outputSlot.PayloadB)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload B did "+
 				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
-				grp.NewIntFromBytes(inputSlot.AssociatedData).Text(16),
-				grp.NewIntFromBytes(outputSlot.AssociatedData).Text(16))
+				grp.NewIntFromBytes(inputSlot.PayloadB).Text(16),
+				grp.NewIntFromBytes(outputSlot.PayloadB).Text(16))
 			success = false
 		}
 
@@ -288,13 +291,13 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 
 	for i := 0; i < batchsize; i++ {
-		resultPayloadA := roundBufs[len(roundBufs)-1].MessagePrecomputation.Get(permutationMapping[i])
+		resultPayloadA := roundBufs[len(roundBufs)-1].PayloadAPrecomputation.Get(permutationMapping[i])
 		if payloadAPrecomps[i].Cmp(resultPayloadA) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadA slot %v "+
 				"incorrect; Expected: %s, Recieved: %s", i,
 				payloadAPrecomps[i].Text(16), resultPayloadA.Text(16))
 		}
-		resultPayloadB := roundBufs[len(roundBufs)-1].ADPrecomputation.Get(permutationMapping[i])
+		resultPayloadB := roundBufs[len(roundBufs)-1].PayloadBPrecomputation.Get(permutationMapping[i])
 		if payloadBPrecomps[i].Cmp(resultPayloadB) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadB slot %v "+
 				"incorrect; Expected: %s, Recieved: %s", i,
@@ -345,6 +348,8 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			},
 			Address:        nodeLst[i].Address,
 			GraphGenerator: services.NewGraphGenerator(2, PanicHandler, 2, 4, 0.0),
+			RngStreamGen: fastRNG.NewStreamGenerator(10000,
+				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
 		defLst = append(defLst, &def)
 	}

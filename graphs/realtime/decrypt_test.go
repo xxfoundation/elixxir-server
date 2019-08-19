@@ -55,10 +55,10 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	stream.Link(grp, batchSize, roundBuffer, registry)
 
-	checkIntBuffer(stream.EcrMsg, batchSize, "EcrMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.EcrAD, batchSize, "EcrAD", grp.NewInt(1), t)
-	checkIntBuffer(stream.KeysMsg, batchSize, "KeysMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.KeysAD, batchSize, "KeysAD", grp.NewInt(1), t)
+	checkIntBuffer(stream.EcrPayloadA, batchSize, "EcrPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.EcrPayloadB, batchSize, "EcrPayloadB", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysPayloadA, batchSize, "KeysPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysPayloadB, batchSize, "KeysPayloadB", grp.NewInt(1), t)
 
 	checkStreamIntBuffer(stream.Grp, stream.R, roundBuffer.R, "roundBuffer.R", t)
 	checkStreamIntBuffer(stream.Grp, stream.U, roundBuffer.U, "roundBuffer.U", t)
@@ -112,10 +112,10 @@ func TestDecryptStream_Input(t *testing.T) {
 		expected[3][1] = byte(3)
 
 		msg := &mixmessages.Slot{
-			MessagePayload: expected[0],
-			AssociatedData: expected[1],
-			SenderID:       expected[2],
-			Salt:           expected[3],
+			PayloadA: expected[0],
+			PayloadB: expected[1],
+			SenderID: expected[2],
+			Salt:     expected[3],
 		}
 
 		err := stream.Input(b, msg)
@@ -123,14 +123,14 @@ func TestDecryptStream_Input(t *testing.T) {
 			t.Errorf("DecryptStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(stream.EcrMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("DecryptStream.Input() incorrect stored EcrMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], stream.EcrMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.EcrPayloadA.Get(b).Bytes(), expected[0]) {
+			t.Errorf("DecryptStream.Input() incorrect stored EcrPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.EcrPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.EcrAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("DecryptStream.Input() incorrect stored EcrAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], stream.EcrAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.EcrPayloadB.Get(b).Bytes(), expected[1]) {
+			t.Errorf("DecryptStream.Input() incorrect stored EcrPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.EcrPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -156,8 +156,8 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
-		MessagePayload: []byte{0},
-		AssociatedData: []byte{0},
+		PayloadA: []byte{0},
+		PayloadB: []byte{0},
 	}
 
 	err := stream.Input(batchSize, msg)
@@ -225,8 +225,8 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	val := large.NewIntFromString(primeString, 16)
 	val = val.Mul(val, val)
 	msg := &mixmessages.Slot{
-		MessagePayload: val.Bytes(),
-		AssociatedData: val.Bytes(),
+		PayloadA: val.Bytes(),
+		PayloadB: val.Bytes(),
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -255,9 +255,9 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
-		SenderID:       []byte{1, 2},
-		MessagePayload: large.NewInt(3).Bytes(),
-		AssociatedData: large.NewInt(4).Bytes(),
+		SenderID: []byte{1, 2},
+		PayloadA: large.NewInt(3).Bytes(),
+		PayloadB: large.NewInt(4).Bytes(),
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -267,9 +267,9 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 	}
 
 	msg2 := &mixmessages.Slot{
-		SenderID:       id.NewUserFromUint(0, t).Bytes(),
-		MessagePayload: large.NewInt(3).Bytes(),
-		AssociatedData: large.NewInt(4).Bytes(),
+		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		PayloadA: large.NewInt(3).Bytes(),
+		PayloadB: large.NewInt(4).Bytes(),
 	}
 
 	err2 := stream.Input(batchSize-10, msg2)
@@ -299,10 +299,10 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
-		SenderID:       id.NewUserFromUint(0, t).Bytes(),
-		Salt:           []byte{1, 2, 3},
-		MessagePayload: large.NewInt(3).Bytes(),
-		AssociatedData: large.NewInt(4).Bytes(),
+		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		Salt:     []byte{1, 2, 3},
+		PayloadA: large.NewInt(3).Bytes(),
+		PayloadB: large.NewInt(4).Bytes(),
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -312,10 +312,10 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	}
 
 	msg2 := &mixmessages.Slot{
-		SenderID:       id.NewUserFromUint(0, t).Bytes(),
-		Salt:           make([]byte, 32),
-		MessagePayload: large.NewInt(3).Bytes(),
-		AssociatedData: large.NewInt(4).Bytes(),
+		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		Salt:     make([]byte, 32),
+		PayloadA: large.NewInt(3).Bytes(),
+		PayloadB: large.NewInt(4).Bytes(),
 	}
 
 	err2 := stream.Input(batchSize-10, msg2)
@@ -356,10 +356,10 @@ func TestDecryptStream_Output(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			SenderID:       expected[0],
-			Salt:           expected[1],
-			MessagePayload: expected[2],
-			AssociatedData: expected[3],
+			SenderID: expected[0],
+			Salt:     expected[1],
+			PayloadA: expected[2],
+			PayloadB: expected[3],
 		}
 
 		err := stream.Input(b, msg)
@@ -379,14 +379,14 @@ func TestDecryptStream_Output(t *testing.T) {
 				b, expected[1], output.Salt)
 		}
 
-		if !reflect.DeepEqual(output.MessagePayload, expected[2]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved MessagePayload data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], output.MessagePayload)
+		if !reflect.DeepEqual(output.PayloadA, expected[2]) {
+			t.Errorf("DecryptStream.Output() incorrect recieved PayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], output.PayloadA)
 		}
 
-		if !reflect.DeepEqual(output.AssociatedData, expected[3]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved AssociatedData data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], output.AssociatedData)
+		if !reflect.DeepEqual(output.PayloadB, expected[3]) {
+			t.Errorf("DecryptStream.Output() incorrect recieved PayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], output.PayloadB)
 		}
 
 	}
@@ -457,8 +457,8 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 		grp.Set(roundBuffer.R.Get(i), grp.NewInt(int64(2*i+1)))
 		grp.Set(roundBuffer.S.Get(i), grp.NewInt(int64(3*i+1)))
-		grp.Set(roundBuffer.ADPrecomputation.Get(i), grp.NewInt(int64(1)))
-		grp.Set(roundBuffer.MessagePrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.PayloadBPrecomputation.Get(i), grp.NewInt(int64(1)))
+		grp.Set(roundBuffer.PayloadAPrecomputation.Get(i), grp.NewInt(int64(1)))
 
 	}
 
@@ -466,8 +466,8 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 
-	expectedMsg := grp.NewIntBuffer(batchSize, grp.NewInt(1))
-	expectedAD := grp.NewIntBuffer(batchSize, grp.NewInt(1))
+	expectedPayloadA := grp.NewIntBuffer(batchSize, grp.NewInt(1))
+	expectedPayloadB := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
@@ -477,11 +477,11 @@ func TestDecryptStreamInGraph(t *testing.T) {
 		// Not necessary to avoid crashing
 		stream.Salts[i] = []byte{}
 
-		grp.SetUint64(stream.EcrMsg.Get(uint32(i)), uint64(i+1))
-		grp.SetUint64(stream.EcrAD.Get(uint32(i)), uint64(1000+i))
+		grp.SetUint64(stream.EcrPayloadA.Get(uint32(i)), uint64(i+1))
+		grp.SetUint64(stream.EcrPayloadB.Get(uint32(i)), uint64(1000+i))
 
-		grp.SetUint64(expectedMsg.Get(uint32(i)), uint64(i+1))
-		grp.SetUint64(expectedAD.Get(uint32(i)), uint64(1000+i))
+		grp.SetUint64(expectedPayloadA.Get(uint32(i)), uint64(i+1))
+		grp.SetUint64(expectedPayloadB.Get(uint32(i)), uint64(1000+i))
 
 		stream.Salts[i] = testSalt
 		stream.Users[i] = u.ID
@@ -511,31 +511,31 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 			cryptops.Keygen(grp, hash.Sum(nil), user.BaseKey, keyB)
 
-			// Verify expected KeyA matches actual KeyMsg
-			if stream.KeysMsg.Get(i).Cmp(keyA) != 0 {
-				t.Error(fmt.Sprintf("RealtimeDecrypt: Message Keys not equal on slot %v expected %v received %v",
-					i, keyA.Text(16), stream.KeysMsg.Get(i).Text(16)))
+			// Verify expected KeyA matches actual KeyPayloadA
+			if stream.KeysPayloadA.Get(i).Cmp(keyA) != 0 {
+				t.Error(fmt.Sprintf("RealtimeDecrypt: Payload A Keys not equal on slot %v expected %v received %v",
+					i, keyA.Text(16), stream.KeysPayloadA.Get(i).Text(16)))
 			}
 
-			// Verify expected KeyB matches actual KeyAD
-			if stream.KeysAD.Get(i).Cmp(keyB) != 0 {
-				t.Error(fmt.Sprintf("RealtimeDecrypt: Message AD not equal on slot %v expected %v received %v",
-					i, keyB.Text(16), stream.KeysAD.Get(i).Text(16)))
+			// Verify expected KeyB matches actual KeyPayloadB
+			if stream.KeysPayloadB.Get(i).Cmp(keyB) != 0 {
+				t.Error(fmt.Sprintf("RealtimeDecrypt: Payload B Keys not equal on slot %v expected %v received %v",
+					i, keyB.Text(16), stream.KeysPayloadB.Get(i).Text(16)))
 			}
 
-			cryptops.Mul3(grp, keyA, stream.R.Get(i), expectedMsg.Get(i))
-			cryptops.Mul3(grp, keyB, stream.U.Get(i), expectedAD.Get(i))
+			cryptops.Mul3(grp, keyA, stream.R.Get(i), expectedPayloadA.Get(i))
+			cryptops.Mul3(grp, keyB, stream.U.Get(i), expectedPayloadB.Get(i))
 
-			// test that expectedMsg.Get(i) == stream.EcrMsg.Get(i)
-			if stream.EcrMsg.Get(i).Cmp(expectedMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("RealtimeDecrypt: Ecr message not equal on slot %v expected %v received %v",
-					i, expectedMsg.Get(i).Text(16), stream.EcrMsg.Get(i).Text(16)))
+			// test that expectedPayloadA.Get(i) == stream.EcrPayloadA.Get(i)
+			if stream.EcrPayloadA.Get(i).Cmp(expectedPayloadA.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("RealtimeDecrypt: Ecr PayloadA not equal on slot %v expected %v received %v",
+					i, expectedPayloadA.Get(i).Text(16), stream.EcrPayloadA.Get(i).Text(16)))
 			}
 
-			// test that expectedAD.Get(i) == stream.EcrAD.Get(i)
-			if stream.EcrAD.Get(i).Cmp(expectedAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("RealtimeDecrypt: Ecr AD not equal on slot %v expected %v received %v",
-					i, expectedAD.Get(i).Text(16), stream.EcrAD.Get(i).Text(16)))
+			// test that expectedPayloadB.Get(i) == stream.EcrPayloadB.Get(i)
+			if stream.EcrPayloadB.Get(i).Cmp(expectedPayloadB.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("RealtimeDecrypt: Ecr PayloadB not equal on slot %v expected %v received %v",
+					i, expectedPayloadB.Get(i).Text(16), stream.EcrPayloadB.Get(i).Text(16)))
 			}
 		}
 	}

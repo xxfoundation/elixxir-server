@@ -32,10 +32,10 @@ type DecryptStream struct {
 	Y_U *cyclic.IntBuffer
 
 	// Unique to stream
-	KeysMsg   *cyclic.IntBuffer
-	CypherMsg *cyclic.IntBuffer
-	KeysAD    *cyclic.IntBuffer
-	CypherAD  *cyclic.IntBuffer
+	KeysPayloadA   *cyclic.IntBuffer
+	CypherPayloadA *cyclic.IntBuffer
+	KeysPayloadB   *cyclic.IntBuffer
+	CypherPayloadB *cyclic.IntBuffer
 }
 
 // GetName returns stream name
@@ -56,7 +56,7 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 }
 
 func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
-	keysMsg, cypherMsg, keysAD, cypherAD *cyclic.IntBuffer) {
+	keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer) {
 
 	ds.Grp = grp
 	ds.PublicCypherKey = roundBuffer.CypherPublicKey
@@ -66,10 +66,10 @@ func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize u
 	ds.Y_R = roundBuffer.Y_R.GetSubBuffer(0, batchSize)
 	ds.Y_U = roundBuffer.Y_U.GetSubBuffer(0, batchSize)
 
-	ds.KeysMsg = keysMsg
-	ds.CypherMsg = cypherMsg
-	ds.KeysAD = keysAD
-	ds.CypherAD = cypherAD
+	ds.KeysPayloadA = keysPayloadA
+	ds.CypherPayloadA = cypherPayloadA
+	ds.KeysPayloadB = keysPayloadB
+	ds.CypherPayloadB = cypherPayloadB
 
 }
 
@@ -85,19 +85,19 @@ func (ds *DecryptStream) GetPrecompDecryptSubStream() *DecryptStream {
 // Input initializes stream inputs from slot
 func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if index >= uint32(ds.KeysMsg.Len()) {
+	if index >= uint32(ds.KeysPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !ds.Grp.BytesInside(slot.EncryptedMessageKeys, slot.PartialMessageCypherText,
-		slot.EncryptedAssociatedDataKeys, slot.PartialAssociatedDataCypherText) {
+	if !ds.Grp.BytesInside(slot.EncryptedPayloadAKeys, slot.PartialPayloadACypherText,
+		slot.EncryptedPayloadBKeys, slot.PartialPayloadBCypherText) {
 		return services.ErrOutsideOfGroup
 	}
 
-	ds.Grp.SetBytes(ds.KeysMsg.Get(index), slot.EncryptedMessageKeys)
-	ds.Grp.SetBytes(ds.KeysAD.Get(index), slot.EncryptedAssociatedDataKeys)
-	ds.Grp.SetBytes(ds.CypherMsg.Get(index), slot.PartialMessageCypherText)
-	ds.Grp.SetBytes(ds.CypherAD.Get(index), slot.PartialAssociatedDataCypherText)
+	ds.Grp.SetBytes(ds.KeysPayloadA.Get(index), slot.EncryptedPayloadAKeys)
+	ds.Grp.SetBytes(ds.KeysPayloadB.Get(index), slot.EncryptedPayloadBKeys)
+	ds.Grp.SetBytes(ds.CypherPayloadA.Get(index), slot.PartialPayloadACypherText)
+	ds.Grp.SetBytes(ds.CypherPayloadB.Get(index), slot.PartialPayloadBCypherText)
 
 	return nil
 }
@@ -106,11 +106,11 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 
 	return &mixmessages.Slot{
-		Index:                           index,
-		EncryptedMessageKeys:            ds.KeysMsg.Get(index).Bytes(),
-		EncryptedAssociatedDataKeys:     ds.KeysAD.Get(index).Bytes(),
-		PartialMessageCypherText:        ds.CypherMsg.Get(index).Bytes(),
-		PartialAssociatedDataCypherText: ds.CypherAD.Get(index).Bytes(),
+		Index:                     index,
+		EncryptedPayloadAKeys:     ds.KeysPayloadA.Get(index).Bytes(),
+		EncryptedPayloadBKeys:     ds.KeysPayloadB.Get(index).Bytes(),
+		PartialPayloadACypherText: ds.CypherPayloadA.Get(index).Bytes(),
+		PartialPayloadBCypherText: ds.CypherPayloadB.Get(index).Bytes(),
 	}
 }
 
@@ -129,11 +129,11 @@ var DecryptElgamal = services.Module{
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
-			// Execute elgamal on the keys for the Message
-			elgamal(ds.Grp, ds.R.Get(i), ds.Y_R.Get(i), ds.PublicCypherKey, ds.KeysMsg.Get(i), ds.CypherMsg.Get(i))
+			// Execute elgamal on the keys for the first payload
+			elgamal(ds.Grp, ds.R.Get(i), ds.Y_R.Get(i), ds.PublicCypherKey, ds.KeysPayloadA.Get(i), ds.CypherPayloadA.Get(i))
 
-			// Execute elgamal on the keys for the Associated Data
-			elgamal(ds.Grp, ds.U.Get(i), ds.Y_U.Get(i), ds.PublicCypherKey, ds.KeysAD.Get(i), ds.CypherAD.Get(i))
+			// Execute elgamal on the keys for the second payload
+			elgamal(ds.Grp, ds.U.Get(i), ds.Y_U.Get(i), ds.PublicCypherKey, ds.KeysPayloadB.Get(i), ds.CypherPayloadB.Get(i))
 		}
 		return nil
 	},

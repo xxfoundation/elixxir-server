@@ -75,8 +75,8 @@ func TestNewRound(t *testing.T) {
 		checkIntBuffer(r.Y_U, expandedBatchSize, "round.U", defaultInt, t)
 		checkIntBuffer(r.Y_V, expandedBatchSize, "round.V", defaultInt, t)
 
-		checkIntBuffer(r.MessagePrecomputation, expandedBatchSize, "round.MessagePrecomputation", defaultInt, t)
-		checkIntBuffer(r.ADPrecomputation, expandedBatchSize, "round.ADPrecomputation", defaultInt, t)
+		checkIntBuffer(r.PayloadAPrecomputation, expandedBatchSize, "round.PayloadAPrecomputation", defaultInt, t)
+		checkIntBuffer(r.PayloadBPrecomputation, expandedBatchSize, "round.PayloadBPrecomputation", defaultInt, t)
 
 		if r.CypherPublicKey.Cmp(grp.NewMaxInt()) != 0 {
 			t.Errorf("New RoundBuffer: Cypher Public Key not initlized correctly")
@@ -93,22 +93,22 @@ func TestNewRound(t *testing.T) {
 			}
 		}
 
-		if r.PermutedMessageKeys != nil {
-			t.Errorf("New RoundBuffer: PermutedMessageKeys populated when they should not be")
+		if r.PermutedPayloadAKeys != nil {
+			t.Errorf("New RoundBuffer: PermutedPayloadAKeys populated when they should not be")
 		}
 
-		if r.PermutedADKeys != nil {
-			t.Errorf("New RoundBuffer: PermutedADKeys populated when they should not be")
+		if r.PermutedPayloadBKeys != nil {
+			t.Errorf("New RoundBuffer: PermutedPayloadBKeys populated when they should not be")
 		}
 
 		r.InitLastNode()
 
-		if len(r.PermutedMessageKeys) != int(r.expandedBatchSize) {
-			t.Errorf("New RoundBuffer: PermutedMessageKeys not populated correctly after intilization")
+		if len(r.PermutedPayloadAKeys) != int(r.expandedBatchSize) {
+			t.Errorf("New RoundBuffer: PermutedPayloadAKeys not populated correctly after intilization")
 		}
 
-		if len(r.PermutedADKeys) != int(r.expandedBatchSize) {
-			t.Errorf("New RoundBuffer: PermutedADKeys not populated correctly after intilization")
+		if len(r.PermutedPayloadBKeys) != int(r.expandedBatchSize) {
+			t.Errorf("New RoundBuffer: PermutedPayloadBKeys not populated correctly after intilization")
 		}
 
 	}
@@ -364,49 +364,49 @@ func TestBuffer_Erase(t *testing.T) {
 			r.Permutations, nil)
 	}
 
-	// MessagePrecomputation
+	// PayloadAPrecomputation
 	go func() {
 		defer func() {
 			if rec := recover(); rec == nil {
-				t.Errorf("Erase() did not properly set the buffer's MessagePrecomputation values to nil")
+				t.Errorf("Erase() did not properly set the buffer's PayloadAPrecomputation values to nil")
 			}
 		}()
-		r.MessagePrecomputation.Get(5)
+		r.PayloadAPrecomputation.Get(5)
 	}()
 
-	if r.MessagePrecomputation.GetFingerprint() != 0 {
-		t.Errorf("Erase() did not properly delete the buffer's MessagePrecomputation fingerprint"+
+	if r.PayloadAPrecomputation.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's PayloadAPrecomputation fingerprint"+
 			"\n\treceived: %d\n\texpected: %d",
-			r.MessagePrecomputation.GetFingerprint(), 0)
+			r.PayloadAPrecomputation.GetFingerprint(), 0)
 	}
 
-	// ADPrecomputation
+	// PayloadBPrecomputation
 	go func() {
 		defer func() {
 			if rec := recover(); rec == nil {
-				t.Errorf("Erase() did not properly set the buffer's ADPrecomputation values to nil")
+				t.Errorf("Erase() did not properly set the buffer's PayloadBPrecomputation values to nil")
 			}
 		}()
-		r.ADPrecomputation.Get(5)
+		r.PayloadBPrecomputation.Get(5)
 	}()
 
-	if r.ADPrecomputation.GetFingerprint() != 0 {
-		t.Errorf("Erase() did not properly delete the buffer's ADPrecomputation fingerprint"+
+	if r.PayloadBPrecomputation.GetFingerprint() != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's PayloadBPrecomputation fingerprint"+
 			"\n\treceived: %d\n\texpected: %d",
-			r.ADPrecomputation.GetFingerprint(), 0)
+			r.PayloadBPrecomputation.GetFingerprint(), 0)
 	}
 
-	// PermutedMessageKeys
-	if r.PermutedMessageKeys != nil {
-		t.Errorf("Erase() did not properly delete the buffer's PermutedMessageKeys"+
+	// PermutedPayloadAKeys
+	if r.PermutedPayloadAKeys != nil {
+		t.Errorf("Erase() did not properly delete the buffer's PermutedPayloadAKeys"+
 			"\n\treceived: %v\n\texpected: %v",
-			r.PermutedMessageKeys, nil)
+			r.PermutedPayloadAKeys, nil)
 	}
 
-	// PermutedADKeys
-	if r.PermutedADKeys != nil {
-		t.Errorf("Erase() did not properly delete the buffer's PermutedADKeys"+
+	// PermutedPayloadBKeys
+	if r.PermutedPayloadBKeys != nil {
+		t.Errorf("Erase() did not properly delete the buffer's PermutedPayloadBKeys"+
 			"\n\treceived: %v\n\texpected: %v",
-			r.PermutedADKeys, nil)
+			r.PermutedPayloadBKeys, nil)
 	}
 }

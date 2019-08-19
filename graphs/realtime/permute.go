@@ -21,11 +21,11 @@ type PermuteStream struct {
 	S *cyclic.IntBuffer
 	V *cyclic.IntBuffer
 
-	EcrMsg *cyclic.IntBuffer
-	EcrAD  *cyclic.IntBuffer
+	EcrPayloadA *cyclic.IntBuffer
+	EcrPayloadB *cyclic.IntBuffer
 
-	MsgPermuted []*cyclic.Int
-	ADPermuted  []*cyclic.Int
+	PayloadAPermuted []*cyclic.Int
+	PayloadBPermuted []*cyclic.Int
 }
 
 // GetName returns the name of the stream for debugging purposes.
@@ -53,15 +53,15 @@ func (ps *PermuteStream) LinkRealtimePermuteStreams(grp *cyclic.Group,
 	ps.S = roundBuffer.S.GetSubBuffer(0, batchSize)
 	ps.V = roundBuffer.V.GetSubBuffer(0, batchSize)
 
-	ps.EcrMsg = msg
-	ps.EcrAD = ad
+	ps.EcrPayloadA = msg
+	ps.EcrPayloadB = ad
 
-	ps.MsgPermuted = msgPerm
-	ps.ADPermuted = adPerm
+	ps.PayloadAPermuted = msgPerm
+	ps.PayloadBPermuted = adPerm
 
 	graphs.PrecanPermute(roundBuffer.Permutations,
-		graphs.PermuteIO{Input: ps.EcrMsg, Output: ps.MsgPermuted},
-		graphs.PermuteIO{Input: ps.EcrAD, Output: ps.ADPermuted})
+		graphs.PermuteIO{Input: ps.EcrPayloadA, Output: ps.PayloadAPermuted},
+		graphs.PermuteIO{Input: ps.EcrPayloadB, Output: ps.PayloadBPermuted})
 
 }
 
@@ -78,16 +78,16 @@ func (ps *PermuteStream) getPermuteSubStream() *PermuteStream {
 
 // Input initializes stream inputs from slot.
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
-	if index >= uint32(ps.EcrMsg.Len()) {
+	if index >= uint32(ps.EcrPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !ps.Grp.BytesInside(slot.MessagePayload, slot.AssociatedData) {
+	if !ps.Grp.BytesInside(slot.PayloadA, slot.PayloadB) {
 		return services.ErrOutsideOfGroup
 	}
 
-	ps.Grp.SetBytes(ps.EcrMsg.Get(index), slot.MessagePayload)
-	ps.Grp.SetBytes(ps.EcrAD.Get(index), slot.AssociatedData)
+	ps.Grp.SetBytes(ps.EcrPayloadA.Get(index), slot.PayloadA)
+	ps.Grp.SetBytes(ps.EcrPayloadB.Get(index), slot.PayloadB)
 
 	return nil
 }
@@ -95,9 +95,9 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 // Output returns a message with the stream data.
 func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
-		Index:          index,
-		MessagePayload: ps.MsgPermuted[index].Bytes(),
-		AssociatedData: ps.ADPermuted[index].Bytes(),
+		Index:    index,
+		PayloadA: ps.PayloadAPermuted[index].Bytes(),
+		PayloadB: ps.PayloadBPermuted[index].Bytes(),
 	}
 }
 
@@ -115,9 +115,9 @@ var PermuteMul2 = services.Module{
 		ps := psi.getPermuteSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			mul2(ps.Grp, ps.S.Get(i), ps.EcrMsg.Get(i))
+			mul2(ps.Grp, ps.S.Get(i), ps.EcrPayloadA.Get(i))
 
-			mul2(ps.Grp, ps.V.Get(i), ps.EcrAD.Get(i))
+			mul2(ps.Grp, ps.V.Get(i), ps.EcrPayloadB.Get(i))
 		}
 
 		return nil

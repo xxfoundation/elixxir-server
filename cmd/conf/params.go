@@ -27,12 +27,13 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
-	Index       int // TODO: Do we need this field and how do we populate it?
-	Batch       uint32
-	SkipReg     bool `yaml:"skipReg"`
-	Verbose     bool
-	KeepBuffers bool
-	Groups      Groups
+	Index            int // TODO: Do we need this field and how do we populate it?
+	Batch            uint32
+	SkipReg          bool `yaml:"skipReg"`
+	Verbose          bool
+	KeepBuffers      bool
+	Groups           Groups
+	RngScalingFactor uint `yaml:"rngScalingFactor"`
 
 	Node          Node
 	Database      Database
@@ -73,6 +74,12 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.SkipReg = vip.GetBool("skipReg")
 	params.Verbose = vip.GetBool("verbose")
 	params.KeepBuffers = vip.GetBool("keepBuffers")
+	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
+
+	// If RngScalingFactor is not set, then set default value
+	if params.RngScalingFactor == 0 {
+		params.RngScalingFactor = 10000
+	}
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
 	params.Groups.E2E = vip.GetStringMapString("groups.e2e")

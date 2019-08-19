@@ -14,7 +14,9 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -98,8 +100,8 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// If it's not on the precomp queue,
 	// that would let us test the error being returned.
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{precompReveal, realDecrypt},
-		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
 	instance.GetRoundManager().AddRound(r)
 
 	// Build a fake batch for the reception handler
@@ -112,11 +114,11 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Slots: []*mixmessages.Slot{
 			{
 				// Do the fields need to be populated?
-				SenderID:       nil,
-				MessagePayload: nil,
-				AssociatedData: nil,
-				Salt:           nil,
-				KMACs:          nil,
+				SenderID: nil,
+				PayloadA: nil,
+				PayloadB: nil,
+				Salt:     nil,
+				KMACs:    nil,
 			},
 		},
 	}
@@ -198,7 +200,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	// We need this round to be on the precomp queue
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
-		topology.GetNodeAtIndex(0), batchSize)
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
 	instance.GetRoundManager().AddRound(r)
 	instance.GetCompletedPrecomps().Push(r)
 
@@ -213,9 +215,9 @@ func TestReceivePostNewBatch(t *testing.T) {
 			{
 				// Do the fields need to be populated?
 				// Yes, but only to check if the batch made it to the phase
-				SenderID:       sender.ID.Bytes(),
-				MessagePayload: []byte{2},
-				AssociatedData: []byte{3},
+				SenderID: sender.ID.Bytes(),
+				PayloadA: []byte{2},
+				PayloadB: []byte{3},
 				// Because the salt is just one byte,
 				// this should fail in the Realtime Decrypt graph.
 				Salt:  make([]byte, 32),
@@ -263,7 +265,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	topology := instance.GetTopology()
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
+		instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -276,7 +279,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	for i := uint32(0); i < batchSize; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
-				MessagePayload: []byte{byte(i)},
+				PayloadA: []byte{byte(i)},
 			})
 	}
 
@@ -402,7 +405,8 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	topology := instance.GetTopology()
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), batchSize)
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
+		instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -415,8 +419,8 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	for i := uint32(0); i < batchSize; i++ {
 		mockBatch.Slots = append(mockBatch.Slots,
 			&mixmessages.Slot{
-				Index:          i,
-				MessagePayload: []byte{byte(i)},
+				Index:    i,
+				PayloadA: []byte{byte(i)},
 			})
 	}
 
@@ -637,9 +641,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	// Skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{mockPhase}, responseMap,
-		instance.GetTopology(), instance.GetTopology().GetNodeAtIndex(1),
-		batchSize)
+		[]phase.Phase{mockPhase}, responseMap, instance.GetTopology(),
+		instance.GetTopology().GetNodeAtIndex(1), batchSize,
+		instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -716,8 +720,8 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	// Don't skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap,
-		topology, topology.GetNodeAtIndex(0), batchSize)
+		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -830,9 +834,9 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	p := initMockPhase()
 	p.Ptype = phase.PrecompReveal
 	instance.GetRoundManager().AddRound(round.New(grp,
-		instance.GetUserRegistry(), roundID,
-		[]phase.Phase{p}, responseMap,
-		topology, topology.GetNodeAtIndex(0), 3))
+		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
+		topology, topology.GetNodeAtIndex(0), 3,
+		instance.GetRngStreamGen()))
 	// This should give an error because we give it fewer slots than are in the
 	// batch
 	err := ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{})
@@ -883,7 +887,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		p.Ptype = phase.PrecompReveal
 		instances[i].GetRoundManager().AddRound(round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
-			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3))
+			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
+			3, instances[i].GetRngStreamGen()))
 	}
 
 	// Initially, there should be zero rounds on the precomp queue
@@ -896,14 +901,14 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		err := ReceivePostPrecompResult(instances[i], uint64(roundID),
 			[]*mixmessages.Slot{{
-				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
-				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
+				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
 			}, {
-				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
-				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
+				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
 			}, {
-				PartialMessageCypherText:        grp.NewInt(3).Bytes(),
-				PartialAssociatedDataCypherText: grp.NewInt(4).Bytes(),
+				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
+				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
 			}})
 
 		if err != nil {
@@ -955,7 +960,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3)
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1142,7 +1147,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3)
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen())
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1210,6 +1215,8 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
 			2, 2, 0),
 		BatchSize: 8,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 

@@ -15,12 +15,13 @@ import (
 func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	expectedParams := Params{
-		Index:       5,
-		Batch:       uint32(20),
-		SkipReg:     true,
-		Verbose:     true,
-		KeepBuffers: true,
-		Groups:      ExpectedGroups,
+		Index:            5,
+		Batch:            uint32(20),
+		SkipReg:          true,
+		Verbose:          true,
+		KeepBuffers:      true,
+		Groups:           ExpectedGroups,
+		RngScalingFactor: 10000,
 
 		Node:          ExpectedNode,
 		Database:      ExpectedDatabase,
@@ -84,5 +85,11 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	if !reflect.DeepEqual(expectedParams.Metrics, params.Metrics) {
 		t.Errorf("Params metrics value does not match expected value")
+	}
+
+	if expectedParams.RngScalingFactor != params.RngScalingFactor {
+		t.Errorf("RngScalingFactor value does not match expected value"+
+			"\n\treceived:\t%v\n\texpected:\t%v",
+			params.RngScalingFactor, expectedParams.RngScalingFactor)
 	}
 }

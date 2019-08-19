@@ -48,10 +48,10 @@ func TestDecryptStream_Link(t *testing.T) {
 	checkStreamIntBuffer(grp, stream.Y_R, roundBuffer.Y_R, "Y_R", t)
 	checkStreamIntBuffer(grp, stream.Y_U, roundBuffer.Y_U, "Y_U", t)
 
-	checkIntBuffer(stream.KeysMsg, batchSize, "KeysMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.CypherMsg, batchSize, "CypherMsg", grp.NewInt(1), t)
-	checkIntBuffer(stream.KeysAD, batchSize, "KeysAD", grp.NewInt(1), t)
-	checkIntBuffer(stream.CypherAD, batchSize, "CypherAD", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysPayloadA, batchSize, "KeysPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadA, batchSize, "CypherPayloadA", grp.NewInt(1), t)
+	checkIntBuffer(stream.KeysPayloadB, batchSize, "KeysPayloadB", grp.NewInt(1), t)
+	checkIntBuffer(stream.CypherPayloadB, batchSize, "CypherPayloadB", grp.NewInt(1), t)
 }
 
 // Test Input's happy path
@@ -76,10 +76,10 @@ func TestDecryptStream_Input(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			EncryptedMessageKeys:            expected[0],
-			EncryptedAssociatedDataKeys:     expected[1],
-			PartialMessageCypherText:        expected[2],
-			PartialAssociatedDataCypherText: expected[3],
+			EncryptedPayloadAKeys:     expected[0],
+			EncryptedPayloadBKeys:     expected[1],
+			PartialPayloadACypherText: expected[2],
+			PartialPayloadBCypherText: expected[3],
 		}
 
 		err := stream.Input(b, msg)
@@ -87,24 +87,24 @@ func TestDecryptStream_Input(t *testing.T) {
 			t.Errorf("DecryptStream.Input() errored on slot %v: %s", b, err.Error())
 		}
 
-		if !reflect.DeepEqual(stream.KeysMsg.Get(b).Bytes(), expected[0]) {
-			t.Errorf("DecryptStream.Input() incorrect stored KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], stream.KeysMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.KeysPayloadA.Get(b).Bytes(), expected[0]) {
+			t.Errorf("DecryptStream.Input() incorrect stored KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.KeysPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.KeysAD.Get(b).Bytes(), expected[1]) {
-			t.Errorf("DecryptStream.Input() incorrect stored KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], stream.KeysAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.KeysPayloadB.Get(b).Bytes(), expected[1]) {
+			t.Errorf("DecryptStream.Input() incorrect stored KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.CypherMsg.Get(b).Bytes(), expected[2]) {
-			t.Errorf("DecryptStream.Input() incorrect stored CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[2]) {
+			t.Errorf("DecryptStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(stream.CypherAD.Get(b).Bytes(), expected[3]) {
-			t.Errorf("DecryptStream.Input() incorrect stored CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[3]) {
+			t.Errorf("DecryptStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -124,10 +124,10 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		EncryptedMessageKeys:            []byte{0},
-		EncryptedAssociatedDataKeys:     []byte{0},
-		PartialMessageCypherText:        []byte{0},
-		PartialAssociatedDataCypherText: []byte{0},
+		EncryptedPayloadAKeys:     []byte{0},
+		EncryptedPayloadBKeys:     []byte{0},
+		PartialPayloadACypherText: []byte{0},
+		PartialPayloadBCypherText: []byte{0},
 	}
 
 	err := stream.Input(batchSize, msg)
@@ -156,10 +156,10 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer)
 
 	msg := &mixmessages.Slot{
-		EncryptedMessageKeys:            []byte{0},
-		EncryptedAssociatedDataKeys:     []byte{0},
-		PartialMessageCypherText:        []byte{0},
-		PartialAssociatedDataCypherText: []byte{0},
+		EncryptedPayloadAKeys:     []byte{0},
+		EncryptedPayloadBKeys:     []byte{0},
+		PartialPayloadACypherText: []byte{0},
+		PartialPayloadBCypherText: []byte{0},
 	}
 
 	err := stream.Input(batchSize-10, msg)
@@ -191,10 +191,10 @@ func TestDecryptStream_Output(t *testing.T) {
 		}
 
 		msg := &mixmessages.Slot{
-			EncryptedMessageKeys:            expected[0],
-			EncryptedAssociatedDataKeys:     expected[1],
-			PartialMessageCypherText:        expected[2],
-			PartialAssociatedDataCypherText: expected[3],
+			EncryptedPayloadAKeys:     expected[0],
+			EncryptedPayloadBKeys:     expected[1],
+			PartialPayloadACypherText: expected[2],
+			PartialPayloadBCypherText: expected[3],
 		}
 
 		err := stream.Input(b, msg)
@@ -204,24 +204,24 @@ func TestDecryptStream_Output(t *testing.T) {
 
 		output := stream.Output(b)
 
-		if !reflect.DeepEqual(output.EncryptedMessageKeys, expected[0]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved KeysMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[0], stream.KeysMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(output.EncryptedPayloadAKeys, expected[0]) {
+			t.Errorf("DecryptStream.Output() incorrect recieved KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[0], stream.KeysPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(output.EncryptedAssociatedDataKeys, expected[1]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved KeysAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[1], stream.KeysAD.Get(b).Bytes())
+		if !reflect.DeepEqual(output.EncryptedPayloadBKeys, expected[1]) {
+			t.Errorf("DecryptStream.Output() incorrect recieved KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(output.PartialMessageCypherText, expected[2]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved CypherMsg data at %v: Expected: %v, Recieved: %v",
-				b, expected[2], stream.CypherMsg.Get(b).Bytes())
+		if !reflect.DeepEqual(output.PartialPayloadACypherText, expected[2]) {
+			t.Errorf("DecryptStream.Output() incorrect recieved CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
-		if !reflect.DeepEqual(output.PartialAssociatedDataCypherText, expected[3]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved CypherAD data at %v: Expected: %v, Recieved: %v",
-				b, expected[3], stream.CypherAD.Get(b).Bytes())
+		if !reflect.DeepEqual(output.PartialPayloadBCypherText, expected[3]) {
+			t.Errorf("DecryptStream.Output() incorrect recieved CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
 	}
@@ -288,10 +288,10 @@ func TestDecryptGraph(t *testing.T) {
 	}
 
 	//Build i/o used for testing
-	KeysMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherMsgExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	KeysADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
-	CypherADExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	KeysPayloadAExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadAExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	KeysPayloadBExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
+	CypherPayloadBExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
 	//Run the graph
 	g.Run()
@@ -313,21 +313,21 @@ func TestDecryptGraph(t *testing.T) {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Compute expected result for this slot
-			cryptops.ElGamal(s.Grp, s.R.Get(i), s.Y_R.Get(i), s.PublicCypherKey, KeysMsgExpected.Get(i), CypherMsgExpected.Get(i))
+			cryptops.ElGamal(s.Grp, s.R.Get(i), s.Y_R.Get(i), s.PublicCypherKey, KeysPayloadAExpected.Get(i), CypherPayloadAExpected.Get(i))
 			//Execute elgamal on the keys for the Associated Data
-			cryptops.ElGamal(s.Grp, s.U.Get(i), s.Y_U.Get(i), s.PublicCypherKey, KeysADExpected.Get(i), CypherADExpected.Get(i))
+			cryptops.ElGamal(s.Grp, s.U.Get(i), s.Y_U.Get(i), s.PublicCypherKey, KeysPayloadBExpected.Get(i), CypherPayloadBExpected.Get(i))
 
-			if KeysMsgExpected.Get(i).Cmp(s.KeysMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: Message Keys not equal on slot %v", i))
+			if KeysPayloadAExpected.Get(i).Cmp(s.KeysPayloadA.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadA Keys not equal on slot %v", i))
 			}
-			if CypherMsgExpected.Get(i).Cmp(s.CypherMsg.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: Message Keys Cypher not equal on slot %v", i))
+			if CypherPayloadAExpected.Get(i).Cmp(s.CypherPayloadA.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadA Keys Cypher not equal on slot %v", i))
 			}
-			if KeysADExpected.Get(i).Cmp(s.KeysAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: AD Keys not equal on slot %v", i))
+			if KeysPayloadBExpected.Get(i).Cmp(s.KeysPayloadB.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadB Keys not equal on slot %v", i))
 			}
-			if CypherADExpected.Get(i).Cmp(s.CypherAD.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompDecrypt: AD Keys Cypher not equal on slot %v", i))
+			if CypherPayloadBExpected.Get(i).Cmp(s.CypherPayloadB.Get(i)) != 0 {
+				t.Error(fmt.Sprintf("PrecompDecrypt: PayloadB Keys Cypher not equal on slot %v", i))
 			}
 		}
 	}
