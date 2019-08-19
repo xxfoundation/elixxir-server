@@ -175,6 +175,7 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 // UpsertUser inserts given user into the database or update the user if it
 // already exists (Upsert operation).
 func (m *UserDatabase) UpsertUser(user *User) {
+
 	// Convert given user to database-friendly structure
 	dbUser := convertUserToDb(user)
 	// Perform the upsert
@@ -259,7 +260,14 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 	newUser = new(UserDB)
 	newUser.Id = encodeUser(user.ID)
 	newUser.BaseKey = user.BaseKey.Bytes()
-	newUser.RsaPublicKey = rsa.CreatePublicKeyPem(user.RsaPublicKey)
+
+	pubKeyBytes := make([]byte, 0)
+
+	if user.RsaPublicKey != nil {
+		pubKeyBytes = rsa.CreatePublicKeyPem(user.RsaPublicKey)
+	}
+
+	newUser.RsaPublicKey = pubKeyBytes
 	newUser.Nonce = user.Nonce.Bytes()
 	newUser.NonceTimestamp = user.Nonce.GenTime
 	newUser.IsRegistered = user.IsRegistered
@@ -279,8 +287,8 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	if user.RsaPublicKey != nil && len(user.RsaPublicKey) != 0 {
 		rsaPublicKey, err := rsa.LoadPublicKeyFromPem(user.RsaPublicKey)
 		if err != nil {
-			jww.ERROR.Printf("Unable to convert PEM to public key: %+v",
-				errors.New(err.Error()))
+			jww.ERROR.Printf("Unable to convert PEM to public key: %+v\n%+v",
+				user.RsaPublicKey, errors.New(err.Error()))
 		}
 		newUser.RsaPublicKey = rsaPublicKey
 	}
@@ -290,6 +298,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 		ExpiryTime: user.NonceTimestamp.Add(nonce.RegistrationTTL * time.Second),
 		TTL:        nonce.RegistrationTTL * time.Second,
 	}
-	copy(user.Nonce, newUser.Nonce.Bytes())
+	copy(newUser.Nonce.Value[:], user.Nonce)
+
 	return
 }

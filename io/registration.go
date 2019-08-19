@@ -71,6 +71,7 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 
 	// Generate a nonce with a timestamp
 	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
+
 	if err != nil {
 		return []byte{}, []byte{}, err
 	}
