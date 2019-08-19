@@ -39,8 +39,6 @@ type Module struct {
 	NumThreads uint8
 
 	/*Private*/
-	//Keeps track and controls all threads executing in the cryptop
-	state moduleState
 	//Contains and controls the input channel
 	moduleInput
 	//Internal id of module used for tracking
@@ -84,6 +82,12 @@ func (m *Module) buildAssignments(batchsize uint32) {
 
 	if m.InputSize == InputIsBatchSize {
 		m.InputSize = batchsize
+	}
+
+	if batchsize%m.InputSize != 0 {
+		jww.FATAL.Panicf("%v expanded batch size incorrect: "+
+			"module input size is not factor; BatchSize: %v, Module Input: %v ",
+			m.Name, batchsize, m.InputSize)
 	}
 
 	numJobs := uint32(batchsize / m.InputSize)
