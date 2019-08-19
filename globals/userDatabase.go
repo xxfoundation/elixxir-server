@@ -298,6 +298,7 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 		ExpiryTime: user.NonceTimestamp.Add(nonce.RegistrationTTL * time.Second),
 		TTL:        nonce.RegistrationTTL * time.Second,
 	}
-	copy(user.Nonce, newUser.Nonce.Bytes())
+	copy(newUser.Nonce.Value[:], user.Nonce)
+
 	return
 }
