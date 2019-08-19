@@ -8,7 +8,8 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -129,17 +130,17 @@ func (i *Instance) GetID() *id.Node {
 }
 
 //GetPubKey returns the server DSA public key
-func (i *Instance) GetPubKey() *signature.DSAPublicKey {
-	return i.definition.DsaPublicKey
+func (i *Instance) GetPubKey() *rsa.PublicKey {
+	return i.definition.PublicKey
 }
 
 //GetPrivKey returns the server DSA private key
-func (i *Instance) GetPrivKey() *signature.DSAPrivateKey {
-	return i.definition.DsaPrivateKey
+func (i *Instance) GetPrivKey() *rsa.PrivateKey {
+	return i.definition.PrivateKey
 }
 
-//GetSkipReg returns the skipReg parameter
-func (i *Instance) GetSkipReg() bool {
+//IsRegistrationAuthenticated returns the skipReg parameter
+func (i *Instance) IsRegistrationAuthenticated() bool {
 	return i.definition.Flags.SkipReg
 }
 
@@ -149,8 +150,8 @@ func (i *Instance) GetKeepBuffers() bool {
 }
 
 //GetRegServerPubKey returns the public key of the registration server
-func (i *Instance) GetRegServerPubKey() *signature.DSAPublicKey {
-	return i.definition.Permissioning.DsaPublicKey
+func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
+	return i.definition.Permissioning.PublicKey
 }
 
 //GetBatchSize returns the batch size
@@ -166,6 +167,11 @@ func (i *Instance) GetGraphGenerator() services.GraphGenerator {
 // GetMetricsLog returns the log path for metrics data
 func (i *Instance) GetMetricsLog() string {
 	return i.definition.MetricLogPath
+}
+
+// GetRngStreamGen returns the fastRNG StreamGenerator in definition.
+func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
+	return i.definition.RngStreamGen
 }
 
 // IsFirstNode returns if the node is first node

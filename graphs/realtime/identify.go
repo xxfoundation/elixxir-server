@@ -17,15 +17,15 @@ import (
 type IdentifyStream struct {
 	Grp *cyclic.Group
 
-	EcrMsg *cyclic.IntBuffer
-	EcrAD  *cyclic.IntBuffer
+	EcrPayloadA *cyclic.IntBuffer
+	EcrPayloadB *cyclic.IntBuffer
 
 	// inputs to the phase
-	EcrMsgPermuted []*cyclic.Int
-	EcrADPermuted  []*cyclic.Int
+	EcrPayloadAPermuted []*cyclic.Int
+	EcrPayloadBPermuted []*cyclic.Int
 
-	MsgPrecomputation *cyclic.IntBuffer
-	ADPrecomputation  *cyclic.IntBuffer
+	PayloadAPrecomputation *cyclic.IntBuffer
+	PayloadBPrecomputation *cyclic.IntBuffer
 
 	PermuteStream
 }
@@ -48,24 +48,24 @@ func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source ...in
 
 // LinkRealtimePermuteStreams binds stream data.
 func (is *IdentifyStream) LinkIdentifyStreams(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	ecrMsg, ecrAD *cyclic.IntBuffer, permMsg, permAD []*cyclic.Int) {
+	ecrPayloadA, ecrPayloadB *cyclic.IntBuffer, permPayloadA, permPayloadB []*cyclic.Int) {
 
 	is.Grp = grp
 
-	is.EcrMsg = ecrMsg
-	is.EcrAD = ecrAD
+	is.EcrPayloadA = ecrPayloadA
+	is.EcrPayloadB = ecrPayloadB
 
-	is.MsgPrecomputation = round.MessagePrecomputation.GetSubBuffer(0, batchSize)
-	is.ADPrecomputation = round.ADPrecomputation.GetSubBuffer(0, batchSize)
+	is.PayloadAPrecomputation = round.PayloadAPrecomputation.GetSubBuffer(0, batchSize)
+	is.PayloadBPrecomputation = round.PayloadBPrecomputation.GetSubBuffer(0, batchSize)
 
-	is.EcrMsgPermuted = permMsg
-	is.EcrADPermuted = permAD
+	is.EcrPayloadAPermuted = permPayloadA
+	is.EcrPayloadBPermuted = permPayloadB
 
 	is.LinkRealtimePermuteStreams(grp, batchSize, round,
-		is.EcrMsg,
-		is.EcrAD,
-		is.EcrMsgPermuted,
-		is.EcrADPermuted)
+		is.EcrPayloadA,
+		is.EcrPayloadB,
+		is.EcrPayloadAPermuted,
+		is.EcrPayloadBPermuted)
 
 }
 
@@ -79,16 +79,16 @@ func (is *IdentifyStream) getIdentifyStream() *IdentifyStream {
 
 // Input initializes stream inputs from slot.
 func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
-	if index >= uint32(is.EcrMsg.Len()) {
+	if index >= uint32(is.EcrPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !is.Grp.BytesInside(slot.MessagePayload, slot.AssociatedData) {
+	if !is.Grp.BytesInside(slot.PayloadA, slot.PayloadB) {
 		return services.ErrOutsideOfGroup
 	}
 
-	is.Grp.SetBytes(is.EcrMsg.Get(index), slot.MessagePayload)
-	is.Grp.SetBytes(is.EcrAD.Get(index), slot.AssociatedData)
+	is.Grp.SetBytes(is.EcrPayloadA.Get(index), slot.PayloadA)
+	is.Grp.SetBytes(is.EcrPayloadB.Get(index), slot.PayloadB)
 
 	return nil
 }
@@ -97,9 +97,9 @@ func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
 	byteLen := uint64(len(is.Grp.GetPBytes()))
 	return &mixmessages.Slot{
-		Index:          index,
-		MessagePayload: is.EcrMsgPermuted[index].LeftpadBytes(byteLen),
-		AssociatedData: is.EcrADPermuted[index].LeftpadBytes(byteLen),
+		Index:    index,
+		PayloadA: is.EcrPayloadAPermuted[index].LeftpadBytes(byteLen),
+		PayloadB: is.EcrPayloadBPermuted[index].LeftpadBytes(byteLen),
 	}
 }
 
@@ -117,10 +117,10 @@ var IdentifyMul2 = services.Module{
 		is := isi.getIdentifyStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Multiply the encrypted message by the precomputation to decrypt it
-			mul2(is.Grp, is.MsgPrecomputation.Get(i), is.EcrMsgPermuted[i])
-			// Multiply the encrypted associated data by the precomputation to decrypt it
-			mul2(is.Grp, is.ADPrecomputation.Get(i), is.EcrADPermuted[i])
+			// Multiply encrypted payload A by its precomputation to decrypt it
+			mul2(is.Grp, is.PayloadAPrecomputation.Get(i), is.EcrPayloadAPermuted[i])
+			// Multiply encrypted payload B by its precomputation to decrypt it
+			mul2(is.Grp, is.PayloadBPrecomputation.Get(i), is.EcrPayloadBPermuted[i])
 		}
 		return nil
 	},

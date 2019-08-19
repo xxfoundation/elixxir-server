@@ -2,7 +2,8 @@ package server
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -18,8 +19,8 @@ type Definition struct {
 	ID *id.Node
 
 	//DSA Keys defining the node's ownership
-	DsaPublicKey  *signature.DSAPublicKey
-	DsaPrivateKey *signature.DSAPrivateKey
+	PublicKey  *rsa.PublicKey
+	PrivateKey *rsa.PrivateKey
 
 	//PEM file containing the TLS cert
 	TlsCert []byte
@@ -56,6 +57,9 @@ type Definition struct {
 	Nodes []Node
 	//Holds information about the permissioning server
 	Permissioning Perm
+
+	// Generates random numbers
+	RngStreamGen *fastRNG.StreamGenerator
 }
 
 // Holds all input flags to the system.
@@ -83,7 +87,7 @@ type Perm struct {
 	// PEM file containing the TLS cert
 	TlsCert []byte
 	// Public key used to sign valid client registrations
-	DsaPublicKey *signature.DSAPublicKey
+	PublicKey *rsa.PublicKey
 	// IP address of the permissioning server
 	Address string
 	// Node Registration Code

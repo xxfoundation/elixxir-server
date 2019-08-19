@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"time"
 )
 
 // ReceiveCreateNewRound receives the create new round signal and
@@ -48,7 +49,8 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		roundID, phases, phaseResponses,
 		instance.GetTopology(),
 		instance.GetID(),
-		instance.GetBatchSize())
+		instance.GetBatchSize(),
+		instance.GetRngStreamGen())
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -112,10 +114,10 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 		for i := uint32(0); i < batchSize; i++ {
 			blankBatch.Slots[i] = &mixmessages.Slot{
-				EncryptedMessageKeys:            []byte{1},
-				EncryptedAssociatedDataKeys:     []byte{1},
-				PartialMessageCypherText:        []byte{1},
-				PartialAssociatedDataCypherText: []byte{1},
+				EncryptedPayloadAKeys:     []byte{1},
+				EncryptedPayloadBKeys:     []byte{1},
+				PartialPayloadACypherText: []byte{1},
+				PartialPayloadBCypherText: []byte{1},
 			}
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
@@ -403,6 +405,9 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime END", instance,
 		roundID)
+
+	jww.INFO.Printf("[%s]: RID %d Round took %v seconds",
+		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
 	//Send the finished signal on first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {

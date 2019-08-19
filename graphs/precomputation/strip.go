@@ -16,8 +16,8 @@ import (
 
 // This file implements the Graph for the Precomputation Strip phase.
 // Strip phase inverts the Round Private Keys and removes the
-// homomorphic encryption from the encrypted message keys and
-// encrypted associated data keys, revealing completed precomputation
+// homomorphic encryption from the encrypted keys, revealing completed
+// precomputation
 
 // StripStream holds data containing private key from encrypt and
 // inputs used by strip
@@ -25,14 +25,14 @@ type StripStream struct {
 	Grp *cyclic.Group
 
 	// Link to round object
-	MessagePrecomputation          *cyclic.IntBuffer
-	ADPrecomputation               *cyclic.IntBuffer
-	EncryptedMessagePrecomputation []*cyclic.Int
-	EncryptedADPrecomputation      []*cyclic.Int
+	PayloadAPrecomputation          *cyclic.IntBuffer
+	PayloadBPrecomputation          *cyclic.IntBuffer
+	EncryptedPayloadAPrecomputation []*cyclic.Int
+	EncryptedPayloadBPrecomputation []*cyclic.Int
 
 	// Unique to stream
-	CypherMsg *cyclic.IntBuffer
-	CypherAD  *cyclic.IntBuffer
+	CypherPayloadA *cyclic.IntBuffer
+	CypherPayloadB *cyclic.IntBuffer
 
 	RevealStream
 }
@@ -55,23 +55,23 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 
 func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	batchSize uint32, roundBuf *round.Buffer,
-	cypherMsg, cypherAD *cyclic.IntBuffer) {
+	cypherPayloadA, keysPayloadB *cyclic.IntBuffer) {
 
 	ss.Grp = grp
 
-	ss.MessagePrecomputation = roundBuf.MessagePrecomputation.GetSubBuffer(
+	ss.PayloadAPrecomputation = roundBuf.PayloadAPrecomputation.GetSubBuffer(
 		0, batchSize)
-	ss.ADPrecomputation = roundBuf.ADPrecomputation.GetSubBuffer(
+	ss.PayloadBPrecomputation = roundBuf.PayloadBPrecomputation.GetSubBuffer(
 		0, batchSize)
 
-	ss.EncryptedMessagePrecomputation = roundBuf.PermutedMessageKeys
-	ss.EncryptedADPrecomputation = roundBuf.PermutedADKeys
+	ss.EncryptedPayloadAPrecomputation = roundBuf.PermutedPayloadAKeys
+	ss.EncryptedPayloadBPrecomputation = roundBuf.PermutedPayloadBKeys
 
-	ss.CypherMsg = cypherMsg
-	ss.CypherAD = cypherAD
+	ss.CypherPayloadA = cypherPayloadA
+	ss.CypherPayloadB = keysPayloadB
 
-	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, ss.CypherMsg,
-		ss.CypherAD)
+	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, ss.CypherPayloadA,
+		ss.CypherPayloadB)
 }
 
 type stripSubstreamInterface interface {
@@ -86,18 +86,18 @@ func (ss *StripStream) GetStripSubStream() *StripStream {
 // Input initializes stream inputs from slot
 func (ss *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 
-	if index >= uint32(ss.CypherMsg.Len()) {
+	if index >= uint32(ss.CypherPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
 	}
 
-	if !ss.Grp.BytesInside(slot.PartialMessageCypherText,
-		slot.PartialAssociatedDataCypherText) {
+	if !ss.Grp.BytesInside(slot.PartialPayloadACypherText,
+		slot.PartialPayloadBCypherText) {
 		return services.ErrOutsideOfGroup
 	}
 
-	ss.Grp.SetBytes(ss.CypherMsg.Get(index), slot.PartialMessageCypherText)
-	ss.Grp.SetBytes(ss.CypherAD.Get(index),
-		slot.PartialAssociatedDataCypherText)
+	ss.Grp.SetBytes(ss.CypherPayloadA.Get(index), slot.PartialPayloadACypherText)
+	ss.Grp.SetBytes(ss.CypherPayloadB.Get(index),
+		slot.PartialPayloadBCypherText)
 
 	return nil
 }
@@ -106,16 +106,16 @@ func (ss *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 func (ss *StripStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index: index,
-		EncryptedMessageKeys: ss.MessagePrecomputation.Get(
+		EncryptedPayloadAKeys: ss.PayloadAPrecomputation.Get(
 			index).Bytes(),
-		EncryptedAssociatedDataKeys: ss.ADPrecomputation.Get(index).Bytes(),
+		EncryptedPayloadBKeys: ss.PayloadBPrecomputation.Get(index).Bytes(),
 	}
 }
 
 // StripInverse is a module in precomputation strip implementing
 // cryptops.Inverse
 var StripInverse = services.Module{
-	// Runs root coprime for cypher message and cypher associated data
+	// Runs root coprime for cypher texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
 		sssi, ok := streamInput.(stripSubstreamInterface)
@@ -129,11 +129,11 @@ var StripInverse = services.Module{
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
-			// Eq 16.1: Invert the round message private key
-			inverse(ss.Grp, ss.EncryptedMessagePrecomputation[i], ss.MessagePrecomputation.Get(i))
+			// Eq 16.1: Invert the round payload A private key
+			inverse(ss.Grp, ss.EncryptedPayloadAPrecomputation[i], ss.PayloadAPrecomputation.Get(i))
 
-			// Eq 16.2: Invert the round associated data private key
-			inverse(ss.Grp, ss.EncryptedADPrecomputation[i], ss.ADPrecomputation.Get(i))
+			// Eq 16.2: Invert the round payload B private key
+			inverse(ss.Grp, ss.EncryptedPayloadBPrecomputation[i], ss.PayloadBPrecomputation.Get(i))
 
 		}
 		return nil
@@ -146,7 +146,7 @@ var StripInverse = services.Module{
 
 // StripMul2 is a module in precomputation strip implementing cryptops.mul2
 var StripMul2 = services.Module{
-	// Runs mul2 for cypher message and cypher associated data
+	// Runs mul2 for cypher texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
 		sssi, ok := streamInput.(stripSubstreamInterface)
@@ -159,19 +159,18 @@ var StripMul2 = services.Module{
 		ss := sssi.GetStripSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			// Eq 16.1: Use the inverted round message private key
+			// Eq 16.1: Use the first payload's inverted round private key
 			//          to remove the homomorphic encryption from
-			//          encrypted message key and reveal the message
-			//          precomputation
+			//          first payload's encrypted key and reveal the
+			//          first payload's precomputation
 
-			mul2(ss.Grp, ss.CypherMsg.Get(i), ss.MessagePrecomputation.Get(i))
+			mul2(ss.Grp, ss.CypherPayloadA.Get(i), ss.PayloadAPrecomputation.Get(i))
 
-			// Eq 16.2: Use the inverted round associated data
+			// Eq 16.2: Use the second payload's inverted round
 			//          private key to remove the homomorphic
-			//          encryption from encrypted associated data
-			//          key and reveal the associated data
-			//          precomputation
-			mul2(ss.Grp, ss.CypherAD.Get(i), ss.ADPrecomputation.Get(i))
+			//          encryption from the second payload's encrypted
+			//          key and reveal the second payload's precomputation
+			mul2(ss.Grp, ss.CypherPayloadB.Get(i), ss.PayloadBPrecomputation.Get(i))
 		}
 		return nil
 	},

@@ -29,10 +29,10 @@ var gwComms *gateway.GatewayComms
 // Dummy implementation of permissioning server --------------------------------
 type mockPermission struct{}
 
-func (i *mockPermission) RegisterUser(registrationCode string, Y, P, Q,
-	G []byte) (hash, R, S []byte, err error) {
-	return nil, nil, nil, nil
+func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byte, err error) {
+	return nil, nil
 }
+
 func (i *mockPermission) RegisterNode(ID []byte,
 	NodeTLSCert, GatewayTLSCert, RegistrationCode, Addr string) error {
 
@@ -80,7 +80,7 @@ func (*mockGateway) RequestNonce(message *pb.NonceRequest) (*pb.Nonce, error) {
 	return nil, nil
 }
 
-func (*mockGateway) ConfirmNonce(message *pb.DSASignature) (*pb.
+func (*mockGateway) ConfirmNonce(message *pb.RequestRegistrationConfirmation) (*pb.
 	RegistrationConfirmation, error) {
 	return nil, nil
 }
@@ -118,8 +118,8 @@ func TestRegisterNode(t *testing.T) {
 	def := &server.Definition{
 		Flags:         server.Flags{},
 		ID:            nodeId,
-		DsaPublicKey:  nil,
-		DsaPrivateKey: nil,
+		PublicKey:     nil,
+		PrivateKey:    nil,
 		TlsCert:       nil,
 		TlsKey:        nil,
 		Address:       addr,

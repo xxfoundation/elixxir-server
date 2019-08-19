@@ -10,5 +10,4 @@ type Permissioning struct {
 	Paths            Paths
 	Address          string
 	RegistrationCode string `yaml:"registrationCode"`
-	PublicKey        string
 }

@@ -76,6 +76,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		//Build the chunk accessor which will also increment the queue when appropriate
 		var getChunk phase.GetChunk
 		getChunk = func() (services.Chunk, bool) {
+
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 			//fmt.Println(runningPhase.GetType(), "chunk:", chunk, "ok:", ok)
 			runningPhase.Measure("Recieved for the first time")
@@ -88,6 +89,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 				tag := "Signaled node that the round has been completed"
 				runningPhase.Measure(tag)
 			}
+
 			return chunk, ok
 		}
 
@@ -137,8 +139,9 @@ func (rq *ResourceQueue) run(server *Instance) {
 			jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s has timed out",
 				server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
+			jww.ERROR.Panicf("A round has failed killing node")
 			//FIXME: also killChan the transmission handler
-			kill := rq.activePhase.GetGraph().Kill()
+			/*kill := rq.activePhase.GetGraph().Kill()
 			if kill {
 				jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s killed"+
 					" due to timeout",
@@ -150,7 +153,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 					" be killed after timeout",
 					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 					rq.activePhase.GetType().String())
-			}
+			}*/
 		}
 
 		//check that the correct phase is ending

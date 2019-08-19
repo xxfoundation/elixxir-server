@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync/atomic"
+	"time"
 )
 
 type Round struct {
@@ -28,13 +29,17 @@ type Round struct {
 
 	//holds responses to coms, how to check and process incoming comms
 	responses phase.ResponseMap
+
+	//timestampos
+	start time.Time
 }
 
 // Creates and initializes a new round, including all phases, topology,
 // and batchsize
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
-	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32) *Round {
+	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32,
+	rngStreamGen *fastRNG.StreamGenerator) *Round {
 
 	round := Round{}
 	round.id = id
@@ -110,7 +115,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	}
 
 	for index, p := range phases {
-		p.GetGraph().Link(grp, round.GetBuffer(), userDB, csprng.NewSystemRNG)
+		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen)
 		round.phaseMap[p.GetType()] = index
 	}
 
@@ -126,12 +131,18 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		jww.FATAL.Println("phase state initialization failed")
 	}
 
+	round.start = time.Now()
+
 	return &round
 }
 
 //GetID return the ID
 func (r *Round) GetID() id.Round {
 	return r.id
+}
+
+func (r *Round) GetTimeStart() time.Time {
+	return r.start
 }
 
 func (r *Round) GetBuffer() *Buffer {
