@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"time"
 )
 
 // ReceiveCreateNewRound receives the create new round signal and
@@ -404,6 +405,9 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime END", instance,
 		roundID)
+
+	jww.INFO.Printf("[%s]: RID %d Round took %v seconds",
+		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
 	//Send the finished signal on first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {

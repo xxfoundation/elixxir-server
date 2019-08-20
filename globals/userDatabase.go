@@ -14,9 +14,8 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
@@ -34,18 +33,17 @@ type UserDB struct {
 	// Convert between id.User and string using base64 StdEncoding
 	Id string
 
-	// Keys
+	// Base Key for message encryption
 	BaseKey []byte
-
-	// DSA Public Key
-	PubKeyY []byte
-	PubKeyP []byte
-	PubKeyQ []byte
-	PubKeyG []byte
+	// RSA Public Key for Client Registration
+	RsaPublicKey []byte
 
 	// Nonce
 	Nonce          []byte
 	NonceTimestamp time.Time
+
+	//Registration flag
+	IsRegistered bool
 }
 
 // Structure representing a Salt in the database.
@@ -174,24 +172,10 @@ func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
 	return m.convertDbToUser(&u), nil
 }
 
-// GetUser returns a user with a matching nonce from user database
-func (m *UserDatabase) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
-	// Perform the select for the given nonce
-	u := UserDB{}
-	_, err = m.db.QueryOne(&u, `SELECT * FROM USERS WHERE nonce = ?`,
-		nonce.Bytes())
-
-	if err != nil {
-		// If there was an error, no user for the given nonce was found
-		return nil, errors.New(err.Error())
-	}
-	// If we found a user for the given ID, return it
-	return m.convertDbToUser(&u), nil
-}
-
 // UpsertUser inserts given user into the database or update the user if it
 // already exists (Upsert operation).
 func (m *UserDatabase) UpsertUser(user *User) {
+
 	// Convert given user to database-friendly structure
 	dbUser := convertUserToDb(user)
 	// Perform the upsert
@@ -199,12 +183,10 @@ func (m *UserDatabase) UpsertUser(user *User) {
 		// On conflict, update the user's fields
 		OnConflict("(id) DO UPDATE").
 		Set("base_key = EXCLUDED.base_key," +
-			"pub_keyy = EXCLUDED.pub_keyy," +
-			"pub_keyp = EXCLUDED.pub_keyp," +
-			"pub_keyq = EXCLUDED.pub_keyq," +
-			"pub_keyg = EXCLUDED.pub_keyg," +
+			"rsa_public_key = EXCLUDED.rsa_public_key," +
 			"nonce = EXCLUDED.nonce," +
-			"nonce_timestamp = EXCLUDED.nonce_timestamp").
+			"nonce_timestamp = EXCLUDED.nonce_timestamp," +
+			"is_registered = EXCLUDED.is_registered").
 		// Otherwise, insert the new user
 		Insert()
 	if err != nil {
@@ -276,15 +258,19 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 		return nil
 	}
 	newUser = new(UserDB)
-	params := user.PublicKey.GetParams()
 	newUser.Id = encodeUser(user.ID)
 	newUser.BaseKey = user.BaseKey.Bytes()
-	newUser.PubKeyY = user.PublicKey.GetKey().Bytes()
-	newUser.PubKeyP = params.GetP().Bytes()
-	newUser.PubKeyQ = params.GetQ().Bytes()
-	newUser.PubKeyG = params.GetG().Bytes()
+
+	pubKeyBytes := make([]byte, 0)
+
+	if user.RsaPublicKey != nil {
+		pubKeyBytes = rsa.CreatePublicKeyPem(user.RsaPublicKey)
+	}
+
+	newUser.RsaPublicKey = pubKeyBytes
 	newUser.Nonce = user.Nonce.Bytes()
 	newUser.NonceTimestamp = user.Nonce.GenTime
+	newUser.IsRegistered = user.IsRegistered
 	return
 }
 
@@ -296,21 +282,23 @@ func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
 	newUser = new(User)
 	newUser.ID = decodeUser(user.Id)
 	newUser.BaseKey = grp.NewIntFromBytes(user.BaseKey)
+	newUser.IsRegistered = user.IsRegistered
 
-	newUser.PublicKey = signature.ReconstructPublicKey(
-		signature.CustomDSAParams(
-			large.NewIntFromBytes(user.PubKeyP),
-			large.NewIntFromBytes(user.PubKeyQ),
-			large.NewIntFromBytes(user.PubKeyG),
-		),
-		large.NewIntFromBytes(user.PubKeyY),
-	)
+	if user.RsaPublicKey != nil && len(user.RsaPublicKey) != 0 {
+		rsaPublicKey, err := rsa.LoadPublicKeyFromPem(user.RsaPublicKey)
+		if err != nil {
+			jww.ERROR.Printf("Unable to convert PEM to public key: %+v\n%+v",
+				user.RsaPublicKey, errors.New(err.Error()))
+		}
+		newUser.RsaPublicKey = rsaPublicKey
+	}
 
 	newUser.Nonce = nonce.Nonce{
 		GenTime:    user.NonceTimestamp,
 		ExpiryTime: user.NonceTimestamp.Add(nonce.RegistrationTTL * time.Second),
 		TTL:        nonce.RegistrationTTL * time.Second,
 	}
-	copy(user.Nonce, newUser.Nonce.Bytes())
+	copy(newUser.Nonce.Value[:], user.Nonce)
+
 	return
 }

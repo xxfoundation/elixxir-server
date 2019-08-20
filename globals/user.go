@@ -7,15 +7,13 @@
 package globals
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
 )
@@ -35,7 +33,6 @@ type UserRegistry interface {
 	NewUser(grp *cyclic.Group) *User
 	DeleteUser(id *id.User)
 	GetUser(id *id.User) (user *User, err error)
-	GetUserByNonce(nonce nonce.Nonce) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
 	InsertSalt(user *id.User, salt []byte) error
@@ -46,11 +43,13 @@ type UserMap sync.Map
 
 // Structure representing a User in the system
 type User struct {
-	ID        *id.User
-	HUID      []byte
-	BaseKey   *cyclic.Int
-	PublicKey *signature.DSAPublicKey
-	Nonce     nonce.Nonce
+	ID           *id.User
+	HUID         []byte
+	BaseKey      *cyclic.Int
+	RsaPublicKey *rsa.PublicKey
+	Nonce        nonce.Nonce
+
+	IsRegistered bool
 
 	salts [][]byte
 	sync.Mutex
@@ -65,18 +64,26 @@ func (u *User) DeepCopy() *User {
 	newUser.ID = u.ID
 	newUser.BaseKey = u.BaseKey.DeepCopy()
 
-	if u.PublicKey != nil {
-		params := u.PublicKey.GetParams()
-		newUser.PublicKey = signature.ReconstructPublicKey(signature.
-			CustomDSAParams(params.GetP(), params.GetQ(),
-				params.GetG()), u.PublicKey.GetKey())
+	if u.RsaPublicKey != nil && u.RsaPublicKey.PublicKey.N != nil {
+
+		rsaPublicKey, err := rsa.LoadPublicKeyFromPem(rsa.
+			CreatePublicKeyPem(u.RsaPublicKey))
+		if err != nil {
+			jww.ERROR.Printf("Unable to convert PEM to public key: %+v"+
+				"\n  PEM: %v",
+				errors.New(err.Error()), u.RsaPublicKey)
+		}
+		newUser.RsaPublicKey = rsaPublicKey
 	}
 
 	newUser.Nonce = nonce.Nonce{
+		Value:      u.Nonce.Value,
 		GenTime:    u.Nonce.GenTime,
 		ExpiryTime: u.Nonce.ExpiryTime,
 		TTL:        u.Nonce.TTL,
 	}
+
+	newUser.IsRegistered = u.IsRegistered
 	copy(u.Nonce.Bytes(), newUser.Nonce.Bytes())
 	return newUser
 }
@@ -94,13 +101,7 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	h.Reset()
 	h.Write([]byte(string(40000 + i)))
 	usr.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
-
-	usr.PublicKey = signature.ReconstructPublicKey(
-		signature.CustomDSAParams(
-			large.NewInt(0), large.NewInt(0), large.NewInt(0),
-		),
-		large.NewInt(0),
-	)
+	usr.RsaPublicKey = nil
 
 	usr.Nonce = *new(nonce.Nonce)
 
@@ -154,34 +155,6 @@ func (m *UserMap) GetUser(id *id.User) (*User, error) {
 		user.Unlock()
 	}
 	return userCopy, err
-}
-
-// GetUser returns a user with a matching nonce from userCollection
-func (m *UserMap) GetUserByNonce(nonce nonce.Nonce) (user *User, err error) {
-	var u *User
-	ok := false
-
-	// Iterate over the map to find user with matching nonce
-
-	(*sync.Map)(m).Range(
-		func(key, value interface{}) bool {
-			uRtn := value.(*User)
-			uRtn.Lock()
-			if bytes.Equal(uRtn.Nonce.Bytes(), nonce.Bytes()) {
-				ok = true
-				u = uRtn
-			}
-			uRtn.Unlock()
-			return !ok
-		},
-	)
-
-	if !ok {
-		err = errors.New("unable to lookup user by nonce in ram user registry")
-	} else {
-		user = u.DeepCopy()
-	}
-	return
 }
 
 // UpsertUser inserts given user into userCollection or update the user if it

@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
@@ -28,7 +27,7 @@ import (
 )
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	MultiInstanceTest(3, 4, t)
+	MultiInstanceTest(3, 32, t)
 }
 
 func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
@@ -347,7 +346,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 				KeepBuffers: true,
 			},
 			Address:        nodeLst[i].Address,
-			GraphGenerator: services.NewGraphGenerator(2, PanicHandler, 2, 4, 0.0),
+			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
@@ -371,23 +370,4 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2), large.NewInt(1283))
-}
-
-func initConfGroups(grp *cyclic.Group) conf.Groups {
-
-	primeString := grp.GetP().TextVerbose(16, 0)
-	smallprime := grp.GetQ().TextVerbose(16, 0)
-	generator := grp.GetG().TextVerbose(16, 0)
-
-	cmixMap := map[string]string{
-		"prime":      primeString,
-		"smallprime": smallprime,
-		"generator":  generator,
-	}
-
-	grps := conf.Groups{
-		CMix: cmixMap,
-	}
-
-	return grps
 }

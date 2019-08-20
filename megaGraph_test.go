@@ -9,7 +9,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
@@ -302,9 +302,11 @@ func createDummyUserList(grp *cyclic.Group,
 	baseKeyBytes := []byte{1}
 	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
 	// FIXME: This should really not be necessary and this API is wonky
-	dsaParams := signature.GetDefaultDSAParams()
-	dsaPrivateKey := dsaParams.PrivateKeyGen(rng)
-	u.PublicKey = dsaPrivateKey.PublicKeyGen()
+	rsaPrivateKey, err := rsa.GenerateKey(csprng.NewSystemRNG(), 728)
+	if err != nil {
+		t.Errorf("Error getting RSA PK")
+	}
+	u.RsaPublicKey = rsaPrivateKey.GetPublic()
 	registry.UpsertUser(u)
 	userList = append(userList, u)
 	return registry

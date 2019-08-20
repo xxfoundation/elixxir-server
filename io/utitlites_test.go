@@ -61,7 +61,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 	portStart int) ([]*node.NodeComms, *circuit.Circuit) {
 	var nodeIDs []*id.Node
 	var addrLst []string
-	addrFmt := "localhost:5%03d"
+	addrFmt := "localhost:3%03d"
 
 	//Build IDs and addresses
 	for i := 0; i < len(impls); i++ {

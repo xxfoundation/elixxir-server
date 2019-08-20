@@ -8,14 +8,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
@@ -25,7 +23,6 @@ import (
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
-	"io/ioutil"
 	"runtime"
 	"time"
 )
@@ -89,42 +86,8 @@ func StartServer(vip *viper.Viper) {
 	//populate the dummy precanned users
 	PopulateDummyUsers(userDatabase, cmixGrp)
 
-	//Build DSA key
-	jww.INFO.Printf("Building node identity")
-	var privateKey *signature.DSAPrivateKey
-	var pubKey *signature.DSAPublicKey
-
-	if dsaKeyPairPath == "" {
-		rng := csprng.NewSystemRNG()
-		dsaParams := signature.CustomDSAParams(cmixGrp.GetP(), cmixGrp.GetQ(), cmixGrp.GetG())
-		privateKey = dsaParams.PrivateKeyGen(rng)
-		pubKey = privateKey.PublicKeyGen()
-	} else {
-		// Get the DSA private key
-		dsaKeyBytes, err := ioutil.ReadFile(dsaKeyPairPath)
-		if err != nil {
-			jww.FATAL.Panicf("Could not read dsa keys file: %v", err)
-		}
-
-		// Marshall into JSON
-		var data map[string]string
-		err = json.Unmarshal(dsaKeyBytes, &data)
-		if err != nil {
-			jww.FATAL.Panicf("Could not unmarshal dsa keys file: %v", err)
-		}
-
-		// Build the public and private keys
-		privateKey = &signature.DSAPrivateKey{}
-		privateKey, err = privateKey.PemDecode([]byte(data["PrivateKey"]))
-		if err != nil {
-			jww.FATAL.Panicf("Unable to parse permissioning private key: %+v",
-				err)
-		}
-		pubKey = privateKey.PublicKeyGen()
-	}
-
 	jww.INFO.Printf("Converting params to server definition")
-	def := params.ConvertToDefinition(pubKey, privateKey)
+	def := params.ConvertToDefinition()
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
@@ -150,6 +113,18 @@ func StartServer(vip *viper.Viper) {
 
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
+	if noTLS {
+		jww.INFO.Println("Blanking TLS certs for non use")
+		def.TlsKey = nil
+		def.TlsCert = nil
+		def.Gateway.TlsCert = nil
+		for i := 0; i < def.Topology.Len(); i++ {
+			def.Nodes[i].TlsCert = nil
+		}
+	}
+	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
+	fmt.Printf("Server Definition: \n%#v", def)
+	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	instance := server.CreateServerInstance(def)
 
 	if instance.IsFirstNode() {

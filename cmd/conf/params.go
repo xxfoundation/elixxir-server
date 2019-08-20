@@ -7,13 +7,15 @@
 package conf
 
 import (
+	gorsa "crypto/rsa"
 	"encoding/base64"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/utils"
-	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
@@ -67,7 +69,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
 	params.Permissioning.Address = vip.GetString("permissioning.address")
 	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
-	params.Permissioning.PublicKey = vip.GetString("permissioning.publicKey")
 
 	params.Batch = vip.GetUint32("batch")
 	params.SkipReg = vip.GetBool("skipReg")
@@ -111,8 +112,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 }
 
 // Create a new Definition object from the Params object
-func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
-	priv *signature.DSAPrivateKey) *server.Definition {
+func (p *Params) ConvertToDefinition() *server.Definition {
 
 	def := &server.Definition{}
 
@@ -146,7 +146,7 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	var nodeIDDecodeErrorHappened bool
 	for i, currId := range ids {
 		nodeID, err := base64.StdEncoding.DecodeString(currId)
-		jww.INFO.Printf("Creating Def for Node ID: %s", nodeID)
+		jww.INFO.Printf("Creating Def for Node ID: %s", currId)
 		if err != nil {
 			// This indicates a server misconfiguration which needs fixing for
 			// the server to function properly
@@ -206,9 +206,6 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 	def.Topology = circuit.New(nodeIDs)
 	def.Nodes = nodes
 
-	def.DsaPrivateKey = priv
-	def.DsaPublicKey = pub
-
 	var PermTlsCert []byte
 
 	if p.Permissioning.Paths.Cert != "" {
@@ -219,15 +216,56 @@ func (p *Params) ConvertToDefinition(pub *signature.DSAPublicKey,
 		}
 	}
 
+	//Set the node's private/public key
+	var privateKey *rsa.PrivateKey
+	var publicKey *rsa.PublicKey
+
+	if p.Node.Paths.Cert == "" || p.Node.Paths.Key == "" {
+		jww.FATAL.Panicf("Could not generate RSA key: %+v", err)
+	} else {
+		// Get the node's TLS cert
+		tlsCertPEM, err := ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Cert))
+		if err != nil {
+			jww.FATAL.Panicf("Could not read tls cert file: %v", err)
+		}
+
+		//Get the RSA key out of the TLS cert
+		tlsCert, err := tls.LoadCertificate(string(tlsCertPEM))
+		if err != nil {
+			jww.FATAL.Panicf("Could not decode tls cert file into a"+
+				" tls cert: %v", err)
+		}
+
+		publicKey = &rsa.PublicKey{PublicKey: *tlsCert.PublicKey.(*gorsa.PublicKey)}
+
+		// Get the node's TLS Key
+		tlsKeyPEM, err := ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Key))
+		if err != nil {
+			jww.FATAL.Panicf("Could not read tls key file: %v", err)
+		}
+
+		privateKey, err = rsa.LoadPrivateKeyFromPem(tlsKeyPEM)
+		if err != nil {
+			jww.FATAL.Panicf("Could not decode tls key from file: %+v",
+				err)
+		}
+	}
+
+	def.PublicKey = publicKey
+	def.PrivateKey = privateKey
+
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
 	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
 
-	def.Permissioning.DsaPublicKey = &signature.DSAPublicKey{}
-	def.Permissioning.DsaPublicKey, err = def.Permissioning.DsaPublicKey.
-		PemDecode([]byte(p.Permissioning.PublicKey))
-	if err != nil {
-		jww.FATAL.Panicf("Unable to decode permissioning public key: %+v", err)
+	if len(def.Permissioning.TlsCert) > 0 {
+		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
+		if err != nil {
+			jww.FATAL.Panicf("Could not decode permissioning tls cert file "+
+				"into a tls cert: %v", err)
+		}
+
+		def.Permissioning.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
 	}
 
 	return def

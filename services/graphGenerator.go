@@ -22,10 +22,6 @@ type GraphGenerator struct {
 }
 
 func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8, outputSize uint32, outputThreshold float32) GraphGenerator {
-	if defaultNumTh > MAX_THREADS {
-		jww.FATAL.Panicf("Max threads per module is 64, "+
-			"cannot default to %v threads", defaultNumTh)
-	}
 	if defaultNumTh == 0 {
 		jww.FATAL.Panicf("Cannot default to zero threads")
 	}

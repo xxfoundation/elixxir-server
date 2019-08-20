@@ -8,6 +8,7 @@
 package cmd
 
 import (
+	"fmt"
 	//"gitlab.com/elixxir/server/globals"
 	"os"
 	"time"
@@ -29,8 +30,8 @@ var batchSize uint64
 var validConfig bool
 var showVer bool
 var keepBuffers bool
-var dsaKeyPairPath string
 var disablePermissioning bool
+var noTLS bool
 
 // If true, runs pprof http server
 var profile bool
@@ -65,6 +66,19 @@ communications.`,
 					"0.0.0.0:8087", nil))
 			}()
 		}
+
+		if verbose {
+			err := os.Setenv("GRPC_GO_LOG_SEVERITY_LEVEL", "info")
+			if err != nil {
+				jww.ERROR.Printf("Could not set GRPC_GO_LOG_SEVERITY_LEVEL: %+v", err)
+			}
+
+			err = os.Setenv("GRPC_GO_LOG_VERBOSITY_LEVEL", "2")
+			if err != nil {
+				jww.ERROR.Printf("Could not set GRPC_GO_LOG_VERBOSITY_LEVEL: %+v", err)
+			}
+		}
+
 		StartServer(viper.GetViper())
 
 		// Prevent node from exiting
@@ -116,8 +130,8 @@ func init() {
 	rootCmd.Flags().DurationVar(&roundBufferTimeout, "roundBufferTimeout",
 		time.Second, "Determines the amount of time the  GetRoundBufferInfo"+
 			" RPC will wait before returning an error")
-	rootCmd.Flags().StringVar(&dsaKeyPairPath, "keyPairOverride", "",
-		"Defined a DSA keypair to use instead of generating a new one")
+	rootCmd.Flags().BoolVarP(&noTLS, "noTLS", "", false,
+		"Set to ignore TLS")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")
@@ -206,8 +220,8 @@ func initLog() {
 		logPath := viper.GetString("node.paths.log")
 		logFile, err := os.Create(logPath)
 		if err != nil {
-			jww.WARN.Println("Invalid or missing log path, " +
-				"default path used.")
+			fmt.Printf("Invalid or missing log path %s, "+
+				"default path used.\n", logPath)
 		} else {
 			jww.SetLogOutput(logFile)
 		}
