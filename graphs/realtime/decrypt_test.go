@@ -337,6 +337,7 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
+	u.IsRegistered = true
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
@@ -415,6 +416,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	grp := instance.GetGroup()
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
+	u.IsRegistered = true
 	registry.UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,

@@ -57,8 +57,9 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		var registry globals.UserRegistry
 		registry = &globals.UserMap{}
 		user := globals.User{
-			ID:      userID,
-			BaseKey: baseKeys[i],
+			ID:           userID,
+			BaseKey:      baseKeys[i],
+			IsRegistered: true,
 		}
 		registry.UpsertUser(&user)
 		defsLst[i].UserRegistry = registry
