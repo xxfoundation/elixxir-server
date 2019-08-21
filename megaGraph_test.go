@@ -795,7 +795,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 		userRegistry, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize,
 			grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
-		make([][]byte, batchSize))
+		make([][]byte, batchSize), make([][][]byte, batchSize))
 
 	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)

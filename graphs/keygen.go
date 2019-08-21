@@ -2,8 +2,10 @@ package graphs
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/services"
@@ -19,6 +21,7 @@ type KeygenSubStream struct {
 	// Inputs: user IDs and salts (required for key generation)
 	users []*id.User
 	salts [][]byte
+	kmacs [][][]byte
 
 	// Output: keys
 	KeysA *cyclic.IntBuffer
@@ -31,12 +34,13 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
-	userReg globals.UserRegistry, inSalts [][]byte, inUsers []*id.User,
+	userReg globals.UserRegistry, inSalts [][]byte, imKMACS [][][]byte, inUsers []*id.User,
 	outKeysA, outKeysB *cyclic.IntBuffer) {
 	k.Grp = grp
 	k.userReg = userReg
 	k.salts = inSalts
 	k.users = inUsers
+	k.kmacs = imKMACS
 	k.KeysA = outKeysA
 	k.KeysB = outKeysB
 }
@@ -64,10 +68,16 @@ var Keygen = services.Module{
 
 		kss := streamInterface.GetKeygenSubStream()
 
-		hash, err := blake2b.New256(nil)
+		salthash, err := blake2b.New256(nil)
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not get blake2b hash: %s", err.Error())
+		}
+
+		kmacHash, err := hash.NewCMixHash()
+
+		if err != nil {
+			jww.FATAL.Panicf("Could not get CMIX hash: %s", err.Error())
 		}
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
@@ -86,19 +96,29 @@ var Keygen = services.Module{
 			//fixme: figure out why this only works when using a temp variable
 			tmp := kss.Grp.NewInt(1)
 
-			if user.IsRegistered {
-				keygen(kss.Grp, kss.salts[i], user.BaseKey, tmp)
-				kss.Grp.Set(kss.KeysA.Get(i), tmp)
+			success := false
 
-				hash.Reset()
-				hash.Write(kss.salts[i])
+			if user.IsRegistered && len(kss.kmacs[i]) != 0 {
+				//check the KMAC
+				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], user.BaseKey, kmacHash) {
+					keygen(kss.Grp, kss.salts[i], user.BaseKey, tmp)
+					kss.Grp.Set(kss.KeysA.Get(i), tmp)
 
-				keygen(kss.Grp, hash.Sum(nil), user.BaseKey, tmp)
-				kss.Grp.Set(kss.KeysB.Get(i), tmp)
-			} else {
+					salthash.Reset()
+					salthash.Write(kss.salts[i])
+
+					keygen(kss.Grp, salthash.Sum(nil), user.BaseKey, tmp)
+					kss.Grp.Set(kss.KeysB.Get(i), tmp)
+					success = true
+				}
+				//pop the used KMAC
+				kss.kmacs[i] = kss.kmacs[i][1:]
+			}
+
+			if !success {
 				kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 				kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
-				jww.INFO.Printf("User %v on slot %v is not registerd",
+				jww.INFO.Printf("User %v on slot %v could not be validated",
 					user.ID, i)
 			}
 
