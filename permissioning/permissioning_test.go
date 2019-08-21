@@ -37,7 +37,7 @@ func (i *mockPermission) RegisterNode(ID []byte,
 	NodeTLSCert, GatewayTLSCert, RegistrationCode, Addr string) error {
 
 	go func() {
-		err := permComms.ConnectToNode(nodeId, Addr, nil)
+		err := permComms.ConnectToNode(nodeId, Addr, nil, true)
 		if err != nil {
 			panic(err)
 		}
@@ -107,7 +107,7 @@ func TestRegisterNode(t *testing.T) {
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		err := gwComms.ConnectToNode(nodeId, addr, nil)
+		err := gwComms.ConnectToNode(nodeId, addr, nil, true)
 		if err != nil {
 			t.Fatalf("Gateway could not connect to node")
 		}
