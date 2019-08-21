@@ -222,6 +222,10 @@ func TestKeygenStreamInGraph(t *testing.T) {
 				resultBBytes[j] = resultBBytes[j] ^ testHashedSalt[j]
 			}
 
+			fmt.Println(stream.KeysA.Get(uint32(i)).Bytes())
+			fmt.Println(resultABytes)
+			fmt.Println(u.BaseKey.Bytes())
+
 			// Check result and base key. They should be equal
 			if !bytes.Equal(resultABytes, u.BaseKey.Bytes()) {
 				t.Error("Keygen: Base key and result key A weren't equal")
@@ -229,6 +233,102 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 			if !bytes.Equal(resultBBytes, u.BaseKey.Bytes()) {
 				t.Error("Keygen: Base key and result key B weren't equal")
+			}
+		}
+	}
+}
+
+// High-level test of the reception keygen adapter when the user is not registerd
+// Also demonstrates how it can be part of a graph that could potentially also
+// do other things
+func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
+	instance := mockServerInstance()
+	registry := instance.GetUserRegistry()
+	grp := instance.GetGroup()
+	u := registry.NewUser(grp)
+	u.IsRegistered = false
+	registry.UpsertUser(u)
+
+	// Reception base key should be around 256 bits long,
+	// depending on generation, to feed the 256-bit hash
+	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+		t.Errorf("Base key has wrong number of bits. "+
+			"Had %v bits in reception base key",
+			u.BaseKey.BitLen())
+	}
+
+	var stream KeygenTestStream
+	batchSize := uint32(1)
+
+	// make a salt for testing
+	testSalt := []byte("sodium chloride")
+	// pad to length of the base key
+	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
+
+	hash, err := blake2b.New256(nil)
+
+	if err != nil {
+		t.Fatalf("Keygen: Test could not get blake2b hash: %s", err.Error())
+	}
+
+	hash.Write(testSalt)
+
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+
+	// run the module in a graph
+	g := gc.NewGraph("test", &stream)
+	mod := Keygen.DeepCopy()
+	mod.Cryptop = MockKeygenOp
+	g.First(mod)
+	g.Last(mod)
+	//Keygen.NumThreads = 1
+	g.Build(batchSize)
+	//rb := round.NewBuffer(grp, batchSize, batchSize)
+	g.Link(grp, instance)
+	// So, it's necessary to fill in the parts in the expanded batch with dummy
+	// data to avoid crashing, or we need to exclude those parts in the cryptop
+	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
+		// Necessary to avoid crashing
+		stream.users[i] = id.ZeroID
+		// Not necessary to avoid crashing
+		stream.salts[i] = []byte{}
+
+		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
+		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
+		stream.salts[i] = testSalt
+		stream.users[i] = u.ID
+	}
+	// Here's the actual data for the test
+
+	g.Run()
+	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()), nil)
+
+	ok := true
+	var chunk services.Chunk
+
+	one := stream.Grp.NewInt(1)
+
+	for ok {
+		chunk, ok = g.GetOutput()
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			// inspect stream output: XORing the salt with the output should
+			// return the original base key
+			resultA := stream.KeysA.Get(uint32(i))
+			resultB := stream.KeysB.Get(uint32(i))
+
+			// Check result and base key. They should be equal
+			if resultA.Cmp(one) != 0 {
+				t.Error("Keygen: Result key A not blanked when user is " +
+					"unregistered")
+			}
+
+			if resultB.Cmp(one) != 0 {
+				t.Error("Keygen: Result key B not blanked when user is " +
+					"unregistered")
 			}
 		}
 	}
