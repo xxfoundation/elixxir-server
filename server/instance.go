@@ -55,7 +55,7 @@ func (i *Instance) InitNetwork(
 
 	//Attempt to connect to all other nodes
 	for index, n := range i.definition.Nodes {
-		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert, true)
+		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
@@ -65,7 +65,7 @@ func (i *Instance) InitNetwork(
 	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
 		err := i.network.ConnectToGateway(i.definition.Gateway.ID,
-			i.definition.Gateway.Address, i.definition.Gateway.TlsCert, true)
+			i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to gateway %s: %+v",
 				i.definition.Gateway.ID, err)
