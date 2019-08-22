@@ -328,6 +328,8 @@ func ReceivePostNewBatch(instance *server.Instance,
 	// Queue the phase if it hasn't been done yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
+	jww.INFO.Printf("new Batch: %#v", newBatch.Slots[2])
+
 	err = io.PostPhase(p, newBatch)
 
 	if err != nil {

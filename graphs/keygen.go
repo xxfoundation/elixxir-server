@@ -110,6 +110,8 @@ var Keygen = services.Module{
 					keygen(kss.Grp, salthash.Sum(nil), user.BaseKey, tmp)
 					kss.Grp.Set(kss.KeysB.Get(i), tmp)
 					success = true
+				} else {
+					jww.INFO.Printf("KMAC ERR: %v not the same as %v", kss.kmacs[i][0], cmix.GenerateKMAC(kss.salts[i], user.BaseKey, kmacHash))
 				}
 				//pop the used KMAC
 				kss.kmacs[i] = kss.kmacs[i][1:]
@@ -118,6 +120,8 @@ var Keygen = services.Module{
 			if !success {
 				kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 				kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
+				jww.INFO.Printf("User: %#v", user)
+				jww.INFO.Printf("KMACS: %#v", kss.kmacs[i])
 				jww.INFO.Printf("User %v on slot %v could not be validated",
 					user.ID, i)
 			}
