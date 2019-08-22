@@ -85,22 +85,14 @@ var Keygen = services.Module{
 			}
 			//fixme: figure out why this only works when using a temp variable
 			tmp := kss.Grp.NewInt(1)
+			keygen(kss.Grp, kss.salts[i], user.BaseKey, tmp)
+			kss.Grp.Set(kss.KeysA.Get(i), tmp)
 
-			if user.IsRegistered {
-				keygen(kss.Grp, kss.salts[i], user.BaseKey, tmp)
-				kss.Grp.Set(kss.KeysA.Get(i), tmp)
+			hash.Reset()
+			hash.Write(kss.salts[i])
 
-				hash.Reset()
-				hash.Write(kss.salts[i])
-
-				keygen(kss.Grp, hash.Sum(nil), user.BaseKey, tmp)
-				kss.Grp.Set(kss.KeysB.Get(i), tmp)
-			} else {
-				kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
-				kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
-				jww.INFO.Printf("User %v on slot %v is not registerd",
-					user.ID, i)
-			}
+			keygen(kss.Grp, hash.Sum(nil), user.BaseKey, tmp)
+			kss.Grp.Set(kss.KeysB.Get(i), tmp)
 
 		}
 
