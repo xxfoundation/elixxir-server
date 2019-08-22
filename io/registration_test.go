@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"testing"
+	"time"
 )
 
 var serverInstance *server.Instance
@@ -209,7 +210,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 }
 
 // Test confirm nonce
-func TestConfirmNonce(t *testing.T) {
+func TestConfirmRegistration(t *testing.T) {
 	//make new user
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
@@ -233,7 +234,7 @@ func TestConfirmNonce(t *testing.T) {
 	//call confirm
 	_, err2 := ConfirmRegistration(serverInstance, user.ID.Bytes(), sign)
 	if err2 != nil {
-		t.Errorf("Error in ConfirmNonce: %+v", err2)
+		t.Errorf("Error in ConfirmRegistration: %+v", err2)
 	}
 
 	regUser, err := serverInstance.GetUserRegistry().GetUser(user.ID)
@@ -247,37 +248,49 @@ func TestConfirmNonce(t *testing.T) {
 	}
 }
 
-/*
+
 // Test confirm nonce that doesn't exist
-func TestConfirmNonce_NonExistant(t *testing.T) {
+func TestConfirmRegistration_NonExistant(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
-	rng := csprng.NewSystemRNG()
-	user.PublicKey = clientRSAPub
+	user.RsaPublicKey = clientRSAPub
 
-	sign, err := clientRSAPriv.Sign(user.Nonce.Bytes(), rng)
+	//hash and sign nonce
+	sha := crypto.SHA256
+
+	h := sha.New()
+	h.Write(user.Nonce.Bytes())
+	data := h.Sum(nil)
+
+	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
 	if sign == nil || err != nil {
 		t.Errorf("Error signing data")
 	}
 
-	_, _, _, _, _, _, _, err2 := ConfirmRegistration(serverInstance,
-		user.Nonce.Bytes(), sign.R.Bytes(), sign.S.Bytes())
+	_, err2 := ConfirmRegistration(serverInstance,
+		user.ID.Bytes(), sign)
 	if err2 == nil {
-		t.Errorf("ConfirmNonce: Expected unexistant nonce")
+		t.Errorf("ConfirmRegistration: Expected unexistant nonce")
 	}
 }
 
 // Test confirm nonce expired
-func TestConfirmNonce_Expired(t *testing.T) {
+func TestConfirmRegistration_Expired(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
 	user.Nonce, _ = nonce.NewNonce(1)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
-	rng := csprng.NewSystemRNG()
-	user.PublicKey = clientRSAPub
+	user.RsaPublicKey = clientRSAPub
 
-	sign, err := clientRSAPriv.Sign(user.Nonce.Bytes(), rng)
+	//hash and sign nonce
+	sha := crypto.SHA256
+
+	h := sha.New()
+	h.Write(user.Nonce.Bytes())
+	data := h.Sum(nil)
+
+	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
 	if sign == nil || err != nil {
 		t.Errorf("Error signing data")
 	}
@@ -288,42 +301,24 @@ func TestConfirmNonce_Expired(t *testing.T) {
 	case <-wait:
 	}
 
-	_, _, _, _, _, _, _, err2 := ConfirmRegistration(serverInstance,
-		user.Nonce.Bytes(), sign.R.Bytes(), sign.S.Bytes())
+	_, err2 := ConfirmRegistration(serverInstance,
+		user.ID.Bytes(), sign)
 	if err2 == nil {
-		t.Errorf("ConfirmNonce: Expected expired nonce")
+		t.Errorf("ConfirmRegistration: Expected expired nonce")
 	}
 }
 
 // Test confirm nonce with invalid signature
-func TestConfirmNonce_BadSignature(t *testing.T) {
+func TestConfirmRegistration_BadSignature(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	serverInstance.GetUserRegistry().UpsertUser(user)
+	user.RsaPublicKey = clientRSAPub
 
-	_, _, _, _, _, _, _, err := ConfirmRegistration(serverInstance,
-		user.Nonce.Bytes(), make([]byte, 0),
-		make([]byte, 0))
+	_, err := ConfirmRegistration(serverInstance,
+		user.ID.Bytes(), []byte("test"))
 	if err == nil {
-		t.Errorf("ConfirmNonce: Expected bad signature!")
+		t.Errorf("ConfirmRegistration: Expected bad signature!")
 	}
 }
 
-func initConfGroups(grp *cyclic.Group) conf.Groups {
-
-	primeString := grp.GetP().TextVerbose(16, 0)
-	smallprime := grp.GetQ().TextVerbose(16, 0)
-	generator := grp.GetG().TextVerbose(16, 0)
-
-	cmixMap := map[string]string{
-		"prime":      primeString,
-		"smallprime": smallprime,
-		"generator":  generator,
-	}
-
-	grps := conf.Groups{
-		CMix: cmixMap,
-	}
-
-	return grps
-}*/
