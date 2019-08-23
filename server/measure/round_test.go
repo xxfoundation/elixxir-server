@@ -7,54 +7,140 @@
 package measure
 
 import (
-	"encoding/json"
+	"gitlab.com/elixxir/primitives/id"
+	"reflect"
 	"testing"
 	"time"
 )
 
-// Test basic use of RoundMetrics & json conversion
-func TestRoundMetrics(t *testing.T) {
-	mockMetrics := NewRoundMetrics("NODE_TEST_ID", 3, 5, 4, ResourceMetric{})
+// Tests that NewRoundMetrics() correctly initialises RoundID, StartTime, and
+// PhaseMetrics.
+func TestNewRoundMetrics(t *testing.T) {
+	roundID := id.Round(42)
+	rm := NewRoundMetrics(roundID, 25)
 
-	m := new(Metrics)
-	m.Measure("test-tag")
-	mockMetrics.AddPhase("test-phase", *m)
-
-	j, err := mockMetrics.MarshallJSON()
-	str_j := string(j)
-	t.Logf("%v", str_j)
-	if err != nil {
-		t.Errorf("RoundMetrics failed to marshall into JSON: %+v", err)
+	if rm.RoundID != roundID {
+		t.Errorf("NewRoundMetrics() incorrectly setRoundId"+
+			"\n\texpected: %v\n\treceived: %v",
+			roundID, rm.RoundID)
 	}
 
-	remadeMetrics := new(RoundMetrics)
-	err = json.Unmarshal(j, remadeMetrics)
-	if err != nil {
-		t.Errorf("Returned JSON string failed to re-marshall into RoundMetrics")
+	if rm.StartTime.After(time.Now()) {
+		t.Errorf("NewRoundMetrics() incorrectly StartTime"+
+			"\n\texpected: %v\n\treceived: %v",
+			time.Now(), rm.StartTime)
 	}
 
-	if len(remadeMetrics.PhaseMetrics) == 0 {
-		t.Error("Lost phase metrics during transformation")
+	if !reflect.DeepEqual(rm.PhaseMetrics, PhaseMetrics{}) {
+		t.Errorf("NewRoundMetrics() incorrectly PhaseMetrics"+
+			"\n\texpected: %v\n\treceived: %v",
+			PhaseMetrics{}, rm.PhaseMetrics)
 	}
 }
 
-func TestRoundMetrics_AddMemMetric(t *testing.T) {
-	// Create and allocate memory metric channel queue
-	expectedResourceMetric :=
-		ResourceMetric{
-			Time:              time.Unix(int64(0), int64(1)),
-			MemoryAllocated:   "123",
-			NumThreads:        5,
-			HighestMemThreads: "someFuncNames",
-		}
-	mockMetrics := NewRoundMetrics("NODE_TEST_ID", 3, 5, 4, expectedResourceMetric)
+// Tests AddPhase() by adding a bunch of phases and then comparing the
+// PhaseMetrics to the expected array.
+func TestRoundMetrics_AddPhase(t *testing.T) {
+	// Build PhaseMetrics objects and put into array
+	metricA := Metric{"matching_tag", time.Unix(1, 2)}
+	metricB := Metric{"matching_tag", time.Unix(1, 3)}
+	metricC := Metric{"another_tag2", time.Unix(1, 2)}
+	metricD := Metric{}
 
-	m := new(Metrics)
-	m.Measure("test-tag")
-	mockMetrics.AddPhase("test-phase", *m)
+	metricsA := Metrics{Events: []Metric{metricA, metricB, metricC, metricD}}
+	metricsB := Metrics{Events: []Metric{metricA, metricB, metricD, metricC}}
 
-	if !resourceMetricEq(expectedResourceMetric, mockMetrics.ResourceMetric) {
-		t.Errorf("Resource metric did not match expected value in round metric")
+	phaseMetricA := phaseMetric{"PhaseName1", metricsA}
+	phaseMetricB := phaseMetric{"PhaseName1", metricsB}
+	phaseMetricC := phaseMetric{"PhaseName2", metricsA}
+	phaseMetricD := phaseMetric{}
+
+	pmArr := PhaseMetrics{phaseMetricA, phaseMetricB, phaseMetricC, phaseMetricD}
+
+	// Create new RoundMetrics
+	rm := NewRoundMetrics(42, 55)
+
+	// Add all phases to the RoundMetrics PhaseMetrics
+	for _, pm := range pmArr {
+		rm.AddPhase(pm.PhaseName, pm.Metrics)
 	}
 
+	// Check if the PhaseMetrics matches the expected array
+	if !reflect.DeepEqual(rm.PhaseMetrics, pmArr) {
+		t.Errorf("AddPhase() incorrectly appended to PhaseMetrics"+
+			"\n\texpected: %v\n\treceived: %v",
+			pmArr, rm.PhaseMetrics)
+	}
+}
+
+// Tests SetNodeID() by setting the Node ID and checking its value.
+func TestRoundMetrics_SetNodeID(t *testing.T) {
+	// Create new RoundMetrics
+	rm := NewRoundMetrics(42, 34)
+
+	// Set the Node ID
+	nodeID := "test"
+	rm.SetNodeID(nodeID)
+
+	// Check if the Node ID was set correctly
+	if rm.NodeID != nodeID {
+		t.Errorf("SetNodeID() incorrectly set NodeID"+
+			"\n\texpected: %v\n\treceived: %v",
+			nodeID, rm.NodeID)
+	}
+}
+
+// Tests SetNumNodes() by setting NumNodes and checking its value.
+func TestRoundMetrics_SetNumNodes(t *testing.T) {
+	// Create new RoundMetrics
+	rm := NewRoundMetrics(42, 12)
+
+	// Set the Node ID
+	numNodes := 42
+	rm.SetNumNodes(numNodes)
+
+	// Check if the Node ID was set correctly
+	if rm.NumNodes != numNodes {
+		t.Errorf("SetNumNodes() incorrectly set NumNodes"+
+			"\n\texpected: %v\n\treceived: %v",
+			numNodes, rm.NumNodes)
+	}
+}
+
+// Tests SetIndex() by setting Index and checking its value.
+func TestRoundMetrics_SetIndex(t *testing.T) {
+	// Create new RoundMetrics
+	rm := NewRoundMetrics(42, 89)
+
+	// Set the Node ID
+	index := 42
+	rm.SetIndex(index)
+
+	// Check if the Node ID was set correctly
+	if rm.Index != index {
+		t.Errorf("SetIndex() incorrectly set Index"+
+			"\n\texpected: %v\n\treceived: %v",
+			index, rm.Index)
+	}
+}
+
+// Tests SetResourceMetrics() by setting Index and checking its value.
+func TestRoundMetrics_SetResourceMetrics(t *testing.T) {
+	// Create new RoundMetrics
+	rm := NewRoundMetrics(42, 34)
+
+	// Set the Node ID
+	resourceMetric := ResourceMetric{
+		Time:          time.Unix(1, 2),
+		MemAllocBytes: 1,
+		NumThreads:    3,
+	}
+	rm.SetResourceMetrics(resourceMetric)
+
+	// Check if the Node ID was set correctly
+	if !reflect.DeepEqual(rm.ResourceMetric, resourceMetric) {
+		t.Errorf("SetResourceMetrics() incorrectly set ResourceMetric"+
+			"\n\texpected: %v\n\treceived: %v",
+			resourceMetric, rm.ResourceMetric)
+	}
 }

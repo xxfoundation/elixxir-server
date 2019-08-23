@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"strings"
@@ -26,7 +27,7 @@ import (
 func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type,
 	getChunk phase.GetChunk, getMessage phase.GetMessage,
-	topology *circuit.Circuit, nodeID *id.Node, measure phase.Measure) error {
+	topology *circuit.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
 
 	recipient := topology.GetNextNode(nodeID)
 
@@ -53,9 +54,7 @@ func TransmitPhase(network *node.NodeComms, batchSize uint32,
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nodeID, port)
 	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
-	tag := fmt.Sprintf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
-		name, roundID, phaseTy)
-	measure(tag)
+	measureFunc(measure.TagTransmitLastSlot)
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, phaseTy)
 

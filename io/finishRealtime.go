@@ -10,13 +10,13 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"sync"
@@ -29,7 +29,7 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
 	nodeID *id.Node, lastNode *server.LastNode,
-	chunkChan chan services.Chunk, measure phase.Measure) error {
+	chunkChan chan services.Chunk, measureFunc phase.Measure) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len())
@@ -46,16 +46,17 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		chunkChan <- chunk
 	}
+
 	close(chunkChan)
+
+	if measureFunc != nil {
+		measureFunc(measure.TagTransmitLastSlot)
+	}
 
 	//signal to all nodes that the round has been completed
 	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)
-		if measure != nil {
-			tag := fmt.Sprintf("Signaling node %d", index)
-			measure(tag)
-		}
 		go func() {
 			recipient := topology.GetNodeAtIndex(localIndex)
 
