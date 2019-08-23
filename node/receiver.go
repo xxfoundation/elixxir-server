@@ -13,10 +13,10 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"time"
@@ -39,9 +39,6 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		&instance.LastNode,
 		instance.GetBatchSize())
 
-	if len(phases) != 0 {
-		phases[0].Measure("Receive Create New Round")
-	}
 	//Build the round
 	rnd := round.New(
 		instance.GetGroup(),
@@ -50,7 +47,9 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetTopology(),
 		instance.GetID(),
 		instance.GetBatchSize(),
-		instance.GetRngStreamGen())
+		instance.GetRngStreamGen(),
+		instance.GetIP())
+
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -80,7 +79,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	p.Measure(tag)
+	p.Measure(measure.TagVerification)
 
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
@@ -163,7 +162,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 			"PostPrecompResult comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	p.Measure(tag)
+	p.Measure(measure.TagVerification)
 
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
 	if err != nil {
@@ -198,9 +197,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 			instance, err)
 	}
 	fmt.Println(p)
-	tag := fmt.Sprintf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
-		roundID, phaseTy, p.GetType())
-	p.Measure(tag)
+	p.Measure(measure.TagReceiveOnReception)
 
 	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
@@ -253,9 +250,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	tag := fmt.Sprintf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
-		roundID, phaseTy, p.GetType())
-	p.Measure(tag)
+	p.Measure(measure.TagReceiveOnReception)
 
 	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
@@ -325,6 +320,8 @@ func ReceivePostNewBatch(instance *server.Instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
 	}
 
+	p.Measure(measure.TagReceiveOnReception)
+
 	// Queue the phase if it hasn't been done yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
@@ -342,20 +339,15 @@ func ReceivePostNewBatch(instance *server.Instance,
 	return nil
 }
 
-// Type alias for function which invokes gathering measurements
-type gatherMeasureFunc func(comms *node.NodeComms, topology *circuit.Circuit, i id.Round) string
-
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
-func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo, gatherMeasure gatherMeasureFunc) error {
+func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo) error {
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
 		instance, roundID)
 
 	rm := instance.GetRoundManager()
-	//nodeComms := instance.GetNetwork()
-	//topology := instance.GetTopology()
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
@@ -364,44 +356,31 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	p.Measure(tag)
+	p.Measure(measure.TagVerification)
 
-	/*
-		// Call gatherMeasure function handler if the callback is set
-		// and append results to metrics log file.
-		if gatherMeasure != nil {
+	go func() {
 
-					jww.INFO.Printf("Gather Metrics: RID %d FIRST NODE ReceiveFinishRealtime"+
-				" Retrieving and storing metrics", roundID)
+		p.UpdateFinalStates()
 
-					measureResponse := gatherMeasure(nodeComms, topology, roundID)
+		if !instance.GetKeepBuffers() {
 
-					if measureResponse != "" {
-				logFile := instance.GetMetricsLog()
+			//Delete the round and its data from the manager
+			//Delay so it can be used by post round hanlders
+			go func() {
+				jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime CLEARING "+
+					"CMIX BUFFERS", instance, roundID)
 
-						if logFile != "" {
-					measure.AppendToMetricsLog(logFile, measureResponse)
-				}
-			}
+				time.Sleep(time.Duration(60) * time.Second)
+				r.GetBuffer().Erase()
+				rm.DeleteRound(roundID)
+			}()
 
-				}
-	*/
-	p.UpdateFinalStates()
-
-	if !instance.GetKeepBuffers() {
-		jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime CLEARING "+
-			"CMIX BUFFERS", instance, roundID)
-
-		//release the round's data
-		r.GetBuffer().Erase()
-
-		//delete the round from the manager
-		rm.DeleteRound(roundID)
-	} else {
-		jww.WARN.Printf("[%s]: RID %d ReceiveFinishRealtime MEMORY "+
-			"LEAK - Round buffers not purged ", instance,
-			roundID)
-	}
+		} else {
+			jww.WARN.Printf("[%s]: RID %d ReceiveFinishRealtime MEMORY "+
+				"LEAK - Round buffers not purged ", instance,
+				roundID)
+		}
+	}()
 
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime END", instance,
 		roundID)
@@ -430,28 +409,25 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	// Check that the round exists, grab it
 	r, err := rm.GetRound(roundID)
 	if err != nil {
-		jww.ERROR.Printf("ERR NO ROUND FOUND WITH ID %s", msg.String())
 		return nil, err
 	}
 
-	// Get information on node & topology for the metrics object
+	// Get data for metrics object
 	nodeId := instance.GetID()
 	topology := instance.GetTopology()
-	numNodes := topology.Len()
 	index := topology.GetNodeLocation(nodeId)
-	resourceMonitor := instance.GetLastResourceMonitor()
+	numNodes := topology.Len()
+	resourceMonitor := instance.GetResourceMonitor()
 
-	if resourceMonitor == nil {
-		return nil, nil
+	resourceMetric := measure.ResourceMetric{}
+
+	if resourceMonitor != nil {
+		resourceMetric = *resourceMonitor.Get()
 	}
-
-	resourceMetric := *resourceMonitor.Get()
 
 	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, resourceMetric)
 
 	s, err := json.Marshal(metrics)
-
-	jww.INFO.Print(s)
 
 	ret := mixmessages.RoundMetrics{
 		RoundMetricJSON: string(s),

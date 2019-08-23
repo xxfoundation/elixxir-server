@@ -30,8 +30,8 @@ type Round struct {
 	//holds responses to coms, how to check and process incoming comms
 	responses phase.ResponseMap
 
-	//timestampos
-	start time.Time
+	//holds round metrics data
+	roundMetrics measure.RoundMetrics
 }
 
 // Creates and initializes a new round, including all phases, topology,
@@ -39,10 +39,11 @@ type Round struct {
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32,
-	rngStreamGen *fastRNG.StreamGenerator) *Round {
+	rngStreamGen *fastRNG.StreamGenerator, localIP string) *Round {
 
-	round := Round{}
-	round.id = id
+	roundMetrics := measure.NewRoundMetrics(id, batchSize)
+	roundMetrics.IP = localIP
+	round := Round{id: id, roundMetrics: roundMetrics}
 
 	maxBatchSize := uint32(0)
 
@@ -131,8 +132,6 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		jww.FATAL.Println("phase state initialization failed")
 	}
 
-	round.start = time.Now()
-
 	return &round
 }
 
@@ -142,7 +141,7 @@ func (r *Round) GetID() id.Round {
 }
 
 func (r *Round) GetTimeStart() time.Time {
-	return r.start
+	return r.roundMetrics.StartTime
 }
 
 func (r *Round) GetBuffer() *Buffer {
@@ -204,16 +203,26 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 	}
 }
 
-// Return a RoundMetrics object based on this round & its phases
-func (r *Round) GetMeasurements(nid string, numNodes, index int, resourceMetric measure.ResourceMetric) measure.RoundMetrics {
-	rid := r.GetID()
-	rm := measure.NewRoundMetrics(nid, uint32(rid), numNodes, index, resourceMetric)
+// Return a RoundMetrics objects for this round
+// TODO: Consider refactoring this as it may belong inside RoundMetrics
+func (r *Round) GetMeasurements(nid string, numNodes, index int,
+	resourceMetric measure.ResourceMetric) measure.RoundMetrics {
+
+	rm := r.roundMetrics
+	rm.SetNodeID(nid)
+	rm.SetNumNodes(numNodes)
+	rm.SetIndex(index)
+	rm.SetResourceMetrics(resourceMetric)
 
 	// Add metrics for each phase in this round to the RoundMetrics
-	for k, v := range r.phaseMap {
-		pm := r.phases[v].GetMeasure()
-		rm.AddPhase(k.String(), pm)
+	for _, ph := range r.phases {
+		phaseName := ph.GetType().String()
+		phaseMeasure := ph.GetMeasure()
+		rm.AddPhase(phaseName, phaseMeasure)
 	}
+
+	// Set end time
+	rm.EndTime = time.Now()
 
 	return rm
 }

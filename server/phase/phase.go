@@ -56,7 +56,9 @@ type phase struct {
 	//External check at Computed
 	verification bool
 
-	Metrics measure.Metrics
+	metrics measure.Metrics
+
+	numSentChunks *uint32
 }
 
 // New makes a new phase with the given the phase definition structure
@@ -65,6 +67,7 @@ type phase struct {
 func New(def Definition) Phase {
 	connected := uint32(0)
 	queued := uint32(0)
+	numSentChunks := uint32(0)
 	return &phase{
 		graph:               def.Graph,
 		tYpe:                def.Type,
@@ -73,6 +76,7 @@ func New(def Definition) Phase {
 		verification:        def.DoVerification,
 		connected:           &connected,
 		queued:              &queued,
+		numSentChunks:       &numSentChunks,
 	}
 }
 
@@ -114,7 +118,7 @@ func (p *phase) GetState() State {
 }
 
 func (p *phase) GetMeasure() measure.Metrics {
-	return p.Metrics
+	return p.metrics
 }
 
 // AttemptToQueue attempts to set the internal phase state to queued.
@@ -189,10 +193,12 @@ func (p *phase) String() string {
 // Send via the graph. This function allows for this graph function
 // to be accessed via the interface
 func (p *phase) Send(chunk services.Chunk) {
-	p.Measure("Sending a slot")
-	chunk.End()
 	p.graph.Send(chunk, nil)
 
+	numChunksSent := atomic.AddUint32(p.numSentChunks, 1)
+	if numChunksSent == 1 {
+		p.Measure(measure.TagReceiveFirstSlot)
+	}
 }
 
 // Input updates the graph's stream with the passed data at the passed index
@@ -203,18 +209,18 @@ func (p *phase) Input(index uint32, slot *mixmessages.Slot) error {
 // Measure logs the output of the measure function
 func getMeasureInfo(p *phase, tag string) string {
 	// Generate our metric and get the timestamp from it, plus a temp delta var
-	timestamp := p.Metrics.Measure(tag)
+	timestamp := p.metrics.Measure(tag)
 	delta := time.Duration(0)
 
 	// Calculate the difference between this event and the last one, if there is
 	// a last one.
-	p.Metrics.Lock()
-	if len(p.Metrics.Events) > 1 {
-		prevTimestamp := p.Metrics.Events[len(p.Metrics.Events)-2].Timestamp
-		currTimestamp := p.Metrics.Events[len(p.Metrics.Events)-1].Timestamp
+	p.metrics.Lock()
+	if len(p.metrics.Events) > 1 {
+		prevTimestamp := p.metrics.Events[len(p.metrics.Events)-2].Timestamp
+		currTimestamp := p.metrics.Events[len(p.metrics.Events)-1].Timestamp
 		delta = currTimestamp.Sub(prevTimestamp)
 	}
-	p.Metrics.Unlock()
+	p.metrics.Unlock()
 
 	// Format string to return
 	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %d\n\t"+

@@ -125,7 +125,8 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	myGrp := cyclic.NewGroup(pPrime, g, qPrime)
 
 	r := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
-		responseMap, instance.GetTopology(), instance.GetID(), 1, instance.GetRngStreamGen())
+		responseMap, instance.GetTopology(), instance.GetID(), 1,
+		instance.GetRngStreamGen(), "0.0.0.0")
 	instance.GetRoundManager().AddRound(r)
 
 	if p.GetState() != phase.Active {

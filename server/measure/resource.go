@@ -11,30 +11,35 @@ import (
 	"time"
 )
 
-// A metric for memory and thread usage
+// ResourceMetric structure stores memory and thread usage metrics.
 type ResourceMetric struct {
-	Time              time.Time
-	MemoryAllocated   string
-	NumThreads        int
-	HighestMemThreads string
+	SystemStartTime time.Time
+	Time            time.Time
+	MemAllocBytes   uint64
+	MemAvailable    uint64
+	NumThreads      int
+	CPUPercentage   float64
 }
 
-// Contains a mutable resource metric accessed through a mutex
+// ResourceMonitor structure contains a mutable resource metric.
 type ResourceMonitor struct {
 	lastMetric *ResourceMetric
-	sync.Mutex
+	sync.RWMutex
 }
 
-// Get a resource metric using a lock
-func (resMon ResourceMonitor) Get() *ResourceMetric {
-	resMon.Lock()
-	defer resMon.Unlock()
-	return resMon.lastMetric
+// Get returns the last ResourceMetric.
+func (rm ResourceMonitor) Get() *ResourceMetric {
+	rm.RLock()
+	lastResourceMetric := rm.lastMetric
+	rm.RUnlock()
+
+	return lastResourceMetric
 }
 
-// Set a resource metric using a lock
-func (resMon *ResourceMonitor) Set(rm *ResourceMetric) {
-	resMon.Lock()
-	defer resMon.Unlock()
-	resMon.lastMetric = rm
+// Set sets the lastMetric of the ResourceMonitor to the specified
+// ResourceMetric.
+func (rm *ResourceMonitor) Set(b *ResourceMetric) {
+	rm.Lock()
+	rm.lastMetric = b
+	rm.Unlock()
 }

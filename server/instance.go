@@ -184,8 +184,17 @@ func (i *Instance) IsLastNode() bool {
 	return i.definition.Topology.IsLastNode(i.definition.ID)
 }
 
-// GetLastResourceMonitor returns the resource monitoring object
-func (i *Instance) GetLastResourceMonitor() *measure.ResourceMonitor {
+// GetIP returns the IP of the node from the instance
+func (i *Instance) GetIP() string {
+	fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
+	fmt.Printf("i.GetTopology(): %+v\n", i.GetTopology())
+	fmt.Printf("i.GetID(): %+v\n", i.GetID())
+	addrWithPort := i.definition.Nodes[i.GetTopology().GetNodeLocation(i.GetID())].Address
+	return strings.Split(addrWithPort, ":")[0]
+}
+
+// GetResourceMonitor returns the resource monitoring object
+func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
 }
 

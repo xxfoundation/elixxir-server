@@ -55,7 +55,9 @@ func TestFirstNode_roundCreationRunner(t *testing.T) {
 	}()
 
 	//Build the topology
-	def := Definition{}
+	def := Definition{
+		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
+	}
 	i := &Instance{definition: &def}
 
 	i.firstNode.Initialize()
@@ -86,7 +88,9 @@ func TestFirstNode_roundCreationRunner_wait(t *testing.T) {
 	}
 
 	//Build the topology
-	def := Definition{}
+	def := Definition{
+		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
+	}
 	def.Topology = circuit.New(nodeIDs)
 	def.ID = nodeIDs[2]
 	i := &Instance{definition: &def}
@@ -127,9 +131,12 @@ func TestFirstNode_roundCreationRunner_Timeout(t *testing.T) {
 
 	//fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(CreateServerInstance(&Definition{}), 2*time.Millisecond,
-		mockTransmitter, func(*Instance, id.Round) error { return nil })
+	def := Definition{
+		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
+	}
 
+	fn.roundCreationRunner(CreateServerInstance(&def), 2*time.Millisecond,
+		mockTransmitter, func(*Instance, id.Round) error { return nil })
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
 }
 
@@ -152,7 +159,11 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 
 	fn.finishedRound <- fn.currentRoundID
 
-	fn.roundCreationRunner(CreateServerInstance(&Definition{}), 2*time.Millisecond,
+	def := Definition{
+		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
+	}
+
+	fn.roundCreationRunner(CreateServerInstance(&def), 2*time.Millisecond,
 		mockTransmitter_Error, func(*Instance, id.Round) error { return nil })
 
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
