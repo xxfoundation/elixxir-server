@@ -173,6 +173,7 @@ func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
 		u := ur.NewUser(grp)
+		u.IsRegistered = true
 		ur.UpsertUser(u)
 	}
 }
