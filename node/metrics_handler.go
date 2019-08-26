@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/utils"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
@@ -25,16 +26,19 @@ const (
 // GatherMetrics retrieves the roundMetrics for each node, converts it to JSON,
 // and writes them to a log file.
 func GatherMetrics(instance *server.Instance, roundID id.Round) error {
+	jww.INFO.Printf("Gathering metrics data.")
 	roundMetrics, err := io.TransmitGetMeasure(instance.GetNetwork(),
 		instance.GetTopology(), roundID)
 
 	// Convert the roundMetrics array to JSON
+	jww.INFO.Printf("Building metrics JSON.")
 	jsonData, err := buildMetricJSON(roundMetrics)
 	if err != nil {
 		return err
 	}
 
 	// Save JSON to log file
+	jww.INFO.Printf("Saving metrics JSON.")
 	err = saveMetricJSON(jsonData, instance.GetMetricsLog(), roundID)
 
 	return err
