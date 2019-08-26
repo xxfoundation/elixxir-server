@@ -33,11 +33,11 @@ func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byt
 	return nil, nil
 }
 
-func (i *mockPermission) RegisterNode(ID []byte,
-	NodeTLSCert, GatewayTLSCert, RegistrationCode, Addr string) error {
+func (i *mockPermission) RegisterNode(ID []byte, ServerAddr, ServerTlsCert,
+	GatewayAddr, GatewayTlsCert, RegistrationCode string) error {
 
 	go func() {
-		err := permComms.ConnectToRemote(nodeId, Addr, nil, false)
+		err := permComms.ConnectToRemote(nodeId, ServerAddr, nil, false)
 		if err != nil {
 			panic(err)
 		}
@@ -45,9 +45,10 @@ func (i *mockPermission) RegisterNode(ID []byte,
 		nodeTop = append(nodeTop, &pb.NodeInfo{
 			Id:             nodeId.Bytes(),
 			Index:          0,
-			IpAddress:      Addr,
+			ServerAddress:  ServerAddr,
 			ServerTlsCert:  "a",
 			GatewayTlsCert: "b",
+			GatewayAddress: GatewayAddr,
 		})
 		nwTop := &pb.NodeTopology{
 			Topology: nodeTop,
