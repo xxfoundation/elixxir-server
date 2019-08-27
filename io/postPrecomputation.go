@@ -7,6 +7,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"sync"
@@ -18,7 +19,7 @@ import (
 func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
-	nodeID *id.Node, measure phase.Measure) error {
+	nodeID *id.Node, measureFunc phase.Measure) error {
 	var wg sync.WaitGroup
 
 	errChan := make(chan error, topology.Len()-1)
@@ -34,6 +35,10 @@ func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
 			msg := getMessage(i)
 			slots[i] = msg
 		}
+	}
+
+	if measureFunc != nil {
+		measureFunc(measure.TagTransmitLastSlot)
 	}
 
 	// Send to all nodes but the first (including this one, which is the last node)
