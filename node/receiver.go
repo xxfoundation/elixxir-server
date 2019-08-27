@@ -281,6 +281,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch) error {
+	fmt.Printf("batch: %+v", newBatch)
 	// This shouldn't block,
 	// and should return an error if there's no round available
 	// You'd want to return this error in the Ack that's available for the
