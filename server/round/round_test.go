@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -58,17 +59,16 @@ func TestNew(t *testing.T) {
 		return nil
 	}
 
-	phases = append(phases, phase.New(phase.Definition{initMockGraph(services.
+	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
 		NewGraphGenerator(1, nil, 1,
 			1, 1)),
-		phase.RealPermute, handler, time.Minute,
-		false}))
+		Type: phase.RealPermute, TransmissionHandler: handler, Timeout: time.Minute}))
 
 	topology := circuit.New([]*id.Node{&id.Node{}})
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG))
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
 
 	if round.GetID() != roundId {
 		t.Error("Round ID wasn't set correctly")
@@ -108,5 +108,67 @@ func TestNew(t *testing.T) {
 	if round.GetCurrentPhase().GetState() != phase.Active {
 		t.Errorf("phase's state is %v, should have been Available",
 			round.GetCurrentPhase().GetState())
+	}
+}
+
+func TestRound_GetMeasurements(t *testing.T) {
+	// After calling New() on a round, the round should be fully initialized and
+	// ready for use
+	roundId := id.Round(58)
+	var phases []phase.Phase
+
+	handler := func(network *node.NodeComms, batchSize uint32, roundId id.Round,
+		phaseTy phase.Type, getSlot phase.GetChunk, getMessage phase.GetMessage,
+		nodes *circuit.Circuit, nid *id.Node, measure phase.Measure) error {
+		return nil
+	}
+
+	newGraph := services.NewGraphGenerator(1, nil, 1, 1, 1)
+
+	newPhaseDef := phase.Definition{
+		Graph:               initMockGraph(newGraph),
+		Type:                phase.RealPermute,
+		TransmissionHandler: handler,
+		Timeout:             time.Minute,
+	}
+
+	phases = append(phases, phase.New(newPhaseDef))
+
+	nidStr := "123"
+	nid := id.NewNodeFromUInt(uint64(123), t)
+	topology := circuit.New([]*id.Node{nid})
+
+	round := New(grp, &globals.UserMap{}, roundId, phases, nil,
+		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+
+	timeNow := time.Now()
+	resourceMetric := measure.ResourceMetric{
+		Time:          timeNow,
+		MemAllocBytes: 10,
+		NumThreads:    100,
+	}
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&resourceMetric)
+	numNodes := 1
+	index := 0
+	roundMetrics := round.GetMeasurements(nidStr, numNodes, index,
+		*resourceMonitor.Get())
+
+	if roundMetrics.NodeID != nidStr {
+		t.Errorf("Round metrics has incorrect node id expected %v got %v",
+			nidStr, roundMetrics.NodeID)
+	}
+	if roundMetrics.Index != index {
+		t.Errorf("Round metrics has incorrect index expected %v got %v",
+			index, roundMetrics.Index)
+	}
+	if roundMetrics.RoundID != 58 {
+		t.Errorf("Round metrics has incorrect round id expected %v got %v",
+			58, roundMetrics.RoundID)
+	}
+	if !reflect.DeepEqual(resourceMetric, roundMetrics.ResourceMetric) {
+		t.Errorf("Round metrics has mismatching resource metricsexpected %v got %v",
+			resourceMetric, roundMetrics.ResourceMetric)
 	}
 }

@@ -80,16 +80,14 @@ func NewUserRegistry(username, password,
 	database, address string) UserRegistry {
 	// Create the database connection
 	db := pg.Connect(&pg.Options{
-		User:        username,
-		Password:    password,
-		Database:    database,
-		Addr:        address,
-		PoolSize:    1,
-		MaxRetries:  10,
-		PoolTimeout: time.Duration(2) * time.Minute,
-		IdleTimeout: time.Duration(10) * time.Minute,
-		MaxConnAge:  time.Duration(1) * time.Hour,
+		User:         username,
+		Password:     password,
+		Database:     database,
+		Addr:         address,
+		MaxRetries:   10,
+		MinIdleConns: 1,
 	})
+
 	// Attempt to connect to the database and initialize the schema
 	err := createSchema(db)
 	if err != nil {

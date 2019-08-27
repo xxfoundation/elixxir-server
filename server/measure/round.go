@@ -7,44 +7,61 @@
 package measure
 
 import (
-	"encoding/json"
+	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
 
-// Hold metrics for a round, including phase:metric map
+// RoundMetrics structure holds metrics for the life-cycle of a round. It
+// includes the events within a phase and resource metrics.
 type RoundMetrics struct {
-	NodeId         string
-	Index          int
+	NodeID         string
 	NumNodes       int
-	RoundId        uint32
-	StartTime      time.Time
-	EndTime        time.Time
-	PhaseMetrics   map[string]Metrics // Map of phase to metrics
-	ResourceMetric ResourceMetric     // Memory and thread usage metrics
+	Index          int
+	IP             string
+	RoundID        id.Round
+	BatchSize      uint32
+	PhaseMetrics   PhaseMetrics
+	ResourceMetric ResourceMetric // Memory and thread usage metrics
+
+	// Special recorded events
+	StartTime time.Time
+	EndTime   time.Time
 }
 
-// Create a RoundMetrics object, taking in node ID, round ID, number of nodes and index
-func NewRoundMetrics(nid string, rid uint32, numNodes, nodeIndex int, resMet ResourceMetric) RoundMetrics {
+// NewRoundMetrics initializes a new RoundMetrics object with the specified
+// round ID.
+func NewRoundMetrics(roundId id.Round, batchSize uint32) RoundMetrics {
 	return RoundMetrics{
-		NodeId:         nid,
-		Index:          nodeIndex,
-		RoundId:        rid,
-		NumNodes:       numNodes,
-		PhaseMetrics:   map[string]Metrics{},
-		ResourceMetric: resMet,
+		RoundID:      roundId,
+		BatchSize:    batchSize,
+		StartTime:    time.Now().Round(0),
+		PhaseMetrics: PhaseMetrics{},
 	}
 }
 
-// AddPhase adds a phase & its metrics to the RoundMetrics object
+// AddPhase adds a phase and its metrics to the RoundMetrics object.
 func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
-	rm.PhaseMetrics[name] = metrics
+	newPhaseMetric := phaseMetric{name, metrics}
+
+	rm.PhaseMetrics = append(rm.PhaseMetrics, newPhaseMetric)
 }
 
-// MarshallJSON implements marshaller interface so json.Marshall can be called on RoundMetrics
-func (rm *RoundMetrics) MarshallJSON() ([]byte, error) {
-	b, err := json.Marshal(rm)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+// SetNodeID sets the node ID for the round metrics.
+func (rm *RoundMetrics) SetNodeID(nodeID string) {
+	rm.NodeID = nodeID
+}
+
+// SetNumNodes sets the number of nodes for the round metrics.
+func (rm *RoundMetrics) SetNumNodes(numNodes int) {
+	rm.NumNodes = numNodes
+}
+
+// SetIndex sets the node index for the round metrics.
+func (rm *RoundMetrics) SetIndex(index int) {
+	rm.Index = index
+}
+
+// SetResourceMetrics sets the ResourceMetric for the round metrics
+func (rm *RoundMetrics) SetResourceMetrics(resourceMetric ResourceMetric) {
+	rm.ResourceMetric = resourceMetric
 }

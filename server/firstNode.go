@@ -76,6 +76,14 @@ func (fn *firstNode) roundCreationRunner(instance *Instance, fullRoundTimeout ti
 			jww.FATAL.Panicf("Incorrect Round finished; Expected: "+
 				"%v, Recieved: %v", fn.currentRoundID, finishedRound)
 		}
+
+		go func() {
+			errMetric := instance.definition.MetricsHandler(instance, finishedRound)
+			if errMetric != nil {
+				jww.ERROR.Printf("Failure in posting metrics for round %d: %v",
+					finishedRound, err)
+			}
+		}()
 	case <-time.After(fullRoundTimeout):
 		//TODO: proper error handling
 		jww.FATAL.Panicf("Round did not finish within timeout of %v",

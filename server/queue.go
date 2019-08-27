@@ -8,8 +8,10 @@ package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -63,7 +65,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		//get the next phase to execute
 		select {
 		case rq.activePhase = <-rq.phaseQueue:
-			rq.activePhase.Measure("Phase was selected, has been given resources to execute.")
+			rq.activePhase.Measure(measure.TagActive)
 		case <-rq.killChan:
 			return
 		}
@@ -73,21 +75,25 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		runningPhase := rq.activePhase
 
+		numChunks := uint32(0)
+
 		//Build the chunk accessor which will also increment the queue when appropriate
 		var getChunk phase.GetChunk
 		getChunk = func() (services.Chunk, bool) {
 
+			nc := atomic.AddUint32(&numChunks, 1)
+			if nc == 1 {
+				runningPhase.Measure(measure.TagFinishFirstSlot)
+			}
+
 			chunk, ok := runningPhase.GetGraph().GetOutput()
-			//fmt.Println(runningPhase.GetType(), "chunk:", chunk, "ok:", ok)
-			runningPhase.Measure("Recieved for the first time")
 
 			//Fixme: add a method to killChan this directly
 			if !ok {
 				//send the phase into the channel to denote it is complete
 				runningPhase.UpdateFinalStates()
 				rq.DenotePhaseCompletion(runningPhase)
-				tag := "Signaled node that the round has been completed"
-				runningPhase.Measure(tag)
+				runningPhase.Measure(measure.TagFinishLastSlot)
 			}
 
 			return chunk, ok
@@ -103,8 +109,8 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//start the phase's transmission handler
 		handler := rq.activePhase.GetTransmissionHandler
-		rq.activePhase.Measure("Start transmitter")
 		go func() {
+			rq.activePhase.Measure(measure.TagTransmitter)
 
 			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
 				runningPhase.GetRoundID(),

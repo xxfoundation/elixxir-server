@@ -43,6 +43,8 @@ type Definition struct {
 	GraphGenerator services.GraphGenerator
 	//Holds the ResourceMonitor object
 	ResourceMonitor *measure.ResourceMonitor
+	// Function to handle the wrapping-up of metrics for the first node
+	MetricsHandler MetricsHandler
 
 	//Size of the batch for the network
 	BatchSize uint32
@@ -102,3 +104,5 @@ type GW struct {
 	// IP address of the gateway
 	Address string
 }
+
+type MetricsHandler func(i *Instance, roundID id.Round) error

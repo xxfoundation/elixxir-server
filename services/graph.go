@@ -11,6 +11,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server/measure"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -279,7 +280,7 @@ func (g *Graph) OverrideBatchSize(b uint32) {
 
 type Measure func(tag string)
 
-func (g *Graph) Send(chunk Chunk, measure Measure) {
+func (g *Graph) Send(chunk Chunk, measureObj Measure) {
 
 	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
 
@@ -322,8 +323,8 @@ func (g *Graph) Send(chunk Chunk, measure Measure) {
 		// Does commenting this fix the double close?
 		// It does not.
 		g.firstModule.closeInput()
-		if measure != nil {
-			measure("Signaling that the last slot has been sent")
+		if measureObj != nil {
+			measureObj(measure.TagReceiveLastSlot)
 		}
 	}
 }

@@ -60,8 +60,8 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 	permissioningId := ConnAddr("Permissioning")
 
 	// Connect to the Permissioning Server
-	err := network.ConnectToRegistration(permissioningId,
-		def.Permissioning.Address, def.Permissioning.TlsCert)
+	err := network.ConnectToRemote(permissioningId,
+		def.Permissioning.Address, def.Permissioning.TlsCert, true)
 	if err != nil {
 		jww.FATAL.Panicf("Unable to initiate Node registration: %+v",
 			errors.New(err.Error()))
@@ -78,6 +78,7 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
+			GatewayAddress:   def.Gateway.Address,
 			RegistrationCode: def.Permissioning.RegistrationCode,
 			Port:             port,
 		})
@@ -116,7 +117,7 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 		nodes[n.Index] = server.Node{
 			ID:      id.NewNodeFromBytes(n.Id),
 			TlsCert: []byte(n.ServerTlsCert),
-			Address: n.IpAddress,
+			Address: n.ServerAddress,
 		}
 		nodeIds[n.Index] = id.NewNodeFromBytes(n.Id)
 	}
