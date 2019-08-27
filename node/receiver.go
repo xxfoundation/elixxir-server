@@ -131,6 +131,8 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		queued :=
 			decrypt.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
+		decrypt.Measure(measure.TagReceiveOnReception)
+
 		if !queued {
 			jww.FATAL.Panicf("Error on first node PostRoundPublicKey " +
 				"comm, should be able to queue decrypt phase")

@@ -54,6 +54,7 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	var wg sync.WaitGroup
 
 	measureFunc(measure.TagTransmitLastSlot)
+
 	for index := 1; index < topology.Len(); index++ {
 
 		localIndex := index
