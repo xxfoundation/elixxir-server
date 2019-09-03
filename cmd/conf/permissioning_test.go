@@ -7,8 +7,8 @@
 package conf
 
 import (
+	"gitlab.com/elixxir/primitives/utils"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"reflect"
 	"testing"
 )
@@ -27,7 +27,7 @@ var ExpectedPermissioning = Permissioning{
 // has the expected Permissioning object.
 func TestPermissioning_UnmarshallingFileEqualsExpected(t *testing.T) {
 
-	buf, _ := ioutil.ReadFile("./params.yaml")
+	buf, _ := utils.ReadFile("./params.yaml")
 
 	actual := Params{}
 

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strconv"
@@ -85,7 +85,7 @@ func Test_saveMetricJSON(t *testing.T) {
 	}
 
 	// Check if the data written to the file is correct
-	if fileData, _ := ioutil.ReadFile(filePath2); !bytes.Equal(fileData, data) {
+	if fileData, _ := utils.ReadFile(filePath2); !bytes.Equal(fileData, data) {
 		t.Errorf("Data written by saveMetricJSON() incorrect"+
 			"\n\texpected: %s\n\treceived: %s", string(data), string(fileData))
 	}

@@ -7,8 +7,8 @@
 package conf
 
 import (
+	"gitlab.com/elixxir/primitives/utils"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"reflect"
 	"testing"
 )
@@ -30,7 +30,7 @@ var ExpectedNode = Node{
 // has the expected Node object.
 func TestNode_UnmarshallingFileEqualsExpected(t *testing.T) {
 
-	buf, _ := ioutil.ReadFile("./params.yaml")
+	buf, _ := utils.ReadFile("./params.yaml")
 
 	actual := Params{}
 
