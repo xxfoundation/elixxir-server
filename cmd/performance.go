@@ -80,7 +80,7 @@ func monitorMemoryUsage(perfCheck time.Duration, deltaMem,
 			if err != nil {
 				jww.WARN.Printf("Could not get CPU usage info: %v", err)
 			} else {
-				jww.INFO.Printf("Got CPU usage: %f", cpuPercentage)
+				jww.DEBUG.Printf("Got CPU usage: %f", cpuPercentage)
 			}
 
 			// Save metric information
