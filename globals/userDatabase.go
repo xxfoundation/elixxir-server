@@ -93,7 +93,8 @@ func NewUserRegistry(username, password,
 	if err != nil {
 		// Return the map-backed UserRegistry interface
 		// in the event there is a database error
-		jww.ERROR.Printf("Unable to initalize database backend: %+v", errors.New(err))
+		jww.ERROR.Printf("Unable to initalize database backend: %+v", 
+		    errors.New(err.Error())
 		jww.INFO.Println("Using map backend for UserRegistry!")
 		return UserRegistry(&UserMap{})
 	} else {
