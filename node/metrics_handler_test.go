@@ -97,7 +97,7 @@ func Test_saveMetricJSON(t *testing.T) {
 // Tests that saveMetricJSON() errors on invalid path.
 func Test_saveMetricJSON_ErrorPath(t *testing.T) {
 	data := []byte("test")
-	filePathPre := ":/test-"
+	filePathPre := "~a/test-"
 	filePathPost := ".log"
 	roundID := id.Round(50)
 	filePath1 := filePathPre + "*" + filePathPost
