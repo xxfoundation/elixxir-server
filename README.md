@@ -29,6 +29,7 @@ Many of these flags override the values set in the config file:
 |--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
 |--version|-V|Print generated version information. To generate, run `$ go generate cmd/version.go`.|--version|
 |--help|-h|Print a help message|--help|
+|--metricsWhitespace|-w|Set to print indented metrics JSON files|-w|
 
 Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go benchmark`.
 

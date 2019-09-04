@@ -14,7 +14,9 @@ import (
 )
 
 // This will error when the type does not match the function
-var _ server.MetricsHandler = GatherMetrics
+var _ server.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+	return GatherMetrics(instance, roundID, false)
+}
 
 // Tests  that buildMetricJSON marshals data correctly by unmarshalling the JSON
 // it outputs and comparing it to the original structure.
@@ -27,7 +29,7 @@ func Test_buildMetricJSON(t *testing.T) {
 
 	var rmTest []measure.RoundMetrics
 
-	data, err := buildMetricJSON(roundMetrics)
+	data, err := buildMetricJSON(roundMetrics, false)
 
 	if err != nil {
 		t.Errorf("buildMetricJSON() unexpectedly returned an error: %v", err)

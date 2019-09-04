@@ -32,6 +32,7 @@ var showVer bool
 var keepBuffers bool
 var disablePermissioning bool
 var noTLS bool
+var metricsWhitespace bool
 
 // If true, runs pprof http server
 var profile bool
@@ -132,6 +133,8 @@ func init() {
 			" RPC will wait before returning an error")
 	rootCmd.Flags().BoolVarP(&noTLS, "noTLS", "", false,
 		"Set to ignore TLS")
+	rootCmd.Flags().BoolVarP(&metricsWhitespace, "metricsWhitespace", "w", false,
+		"Set to print indented metrics JSON files")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")
