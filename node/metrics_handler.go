@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/utils"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
-	"io/ioutil"
 	"strconv"
 	"strings"
 )
@@ -18,9 +17,6 @@ const (
 	// Symbol placeholder that specifies where to put a unique identifier in the
 	// log file name
 	logFilePlaceholder = "*"
-
-	// Log file permissions in octal; user: read/write, group: read, other: read
-	logFilePermissions = 0644
 )
 
 // GatherMetrics retrieves the roundMetrics for each node, converts it to JSON,
@@ -62,11 +58,8 @@ func saveMetricJSON(jsonData []byte, logFileName string, roundID id.Round) error
 	path := strings.ReplaceAll(logFileName, logFilePlaceholder,
 		strconv.FormatUint(uint64(roundID), 10))
 
-	// Get the full file path by resolving the "~" character
-	path = utils.GetFullPath(path)
-
 	// Write the JSON data to the specified file
-	err := ioutil.WriteFile(path, jsonData, logFilePermissions)
+	err := utils.WriteFile(path, jsonData, utils.FilePerms, utils.DirPerms)
 
 	if err != nil {
 		return fmt.Errorf("failed to write metrics log file %s: %v", path, err)

@@ -13,14 +13,13 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/comms/utils"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"golang.org/x/crypto/blake2b"
-	"io/ioutil"
 	"net"
 )
 
@@ -124,7 +123,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	var err error
 
 	if p.Node.Paths.Cert != "" {
-		tlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Cert))
+		tlsCert, err = utils.ReadFile(p.Node.Paths.Cert)
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load TLS Cert: %+v", err)
@@ -132,7 +131,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	}
 
 	if p.Node.Paths.Key != "" {
-		tlsKey, err = ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Key))
+		tlsKey, err = utils.ReadFile(p.Node.Paths.Key)
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load TLS Key: %+v", err)
@@ -191,7 +190,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	var GwTlsCerts []byte
 
 	if p.Gateways.Paths.Cert != "" {
-		GwTlsCerts, err = ioutil.ReadFile(utils.GetFullPath(p.Gateways.Paths.Cert))
+		GwTlsCerts, err = utils.ReadFile(p.Gateways.Paths.Cert)
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
@@ -209,7 +208,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	var PermTlsCert []byte
 
 	if p.Permissioning.Paths.Cert != "" {
-		PermTlsCert, err = ioutil.ReadFile(utils.GetFullPath(p.Permissioning.Paths.Cert))
+		PermTlsCert, err = utils.ReadFile(p.Permissioning.Paths.Cert)
 
 		if err != nil {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
@@ -224,7 +223,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		jww.FATAL.Panicf("Could not generate RSA key: %+v", err)
 	} else {
 		// Get the node's TLS cert
-		tlsCertPEM, err := ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Cert))
+		tlsCertPEM, err := utils.ReadFile(p.Node.Paths.Cert)
 		if err != nil {
 			jww.FATAL.Panicf("Could not read tls cert file: %v", err)
 		}
@@ -239,7 +238,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		publicKey = &rsa.PublicKey{PublicKey: *tlsCert.PublicKey.(*gorsa.PublicKey)}
 
 		// Get the node's TLS Key
-		tlsKeyPEM, err := ioutil.ReadFile(utils.GetFullPath(p.Node.Paths.Key))
+		tlsKeyPEM, err := utils.ReadFile(p.Node.Paths.Key)
 		if err != nil {
 			jww.FATAL.Panicf("Could not read tls key file: %v", err)
 		}

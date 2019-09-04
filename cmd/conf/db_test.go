@@ -7,8 +7,8 @@
 package conf
 
 import (
+	"gitlab.com/elixxir/primitives/utils"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"reflect"
 	"testing"
 )
@@ -28,7 +28,7 @@ var ExpectedDatabase = Database{
 // has the expected Database object.
 func TestDB_UnmarshallingFileEqualsExpected(t *testing.T) {
 
-	buf, _ := ioutil.ReadFile("./params.yaml")
+	buf, _ := utils.ReadFile("./params.yaml")
 
 	actual := Params{}
 
