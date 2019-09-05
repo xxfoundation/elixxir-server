@@ -38,7 +38,7 @@ func StartServer(vip *viper.Viper) {
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
-	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
+	runtime.GOMAXPROCS(maxProcsOverride)
 
 	//Start the performance monitor
 	resourceMonitor := monitorMemoryUsage(performanceCheckPeriod,
