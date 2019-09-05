@@ -9,7 +9,7 @@ package cmd
 
 import (
 	"fmt"
-	//"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/primitives/utils"
 	"os"
 	"time"
 
@@ -21,7 +21,6 @@ import (
 	// to automatically initialize its http handlers
 	"net/http"
 	_ "net/http/pprof"
-	"path/filepath"
 )
 
 var cfgFile string
@@ -227,7 +226,7 @@ func initLog() {
 		fmt.Printf("Invalid or missing log path %s, "+
 			"default path used.\n", logPath)
 	}
-	fullLogPath, _ := filepath.Abs(logPath)
+	fullLogPath, _ := utils.ExpandPath(logPath)
 	logFile, err := os.OpenFile(fullLogPath,
 		os.O_CREATE|os.O_WRONLY|os.O_APPEND,
 		0644)
