@@ -62,6 +62,10 @@ func (i *mockPermission) RegisterNode(ID []byte, ServerAddr, ServerTlsCert,
 	return nil
 }
 
+func (i *mockPermission) GetCurrentClientVersion() (string, error) {
+	return "0.0.0", nil
+}
+
 // Dummy implementation of gateway server --------------------------------------
 type mockGateway struct{}
 
