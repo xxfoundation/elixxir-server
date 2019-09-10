@@ -7,9 +7,12 @@ import (
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -114,4 +117,50 @@ func Test_saveMetricJSON_ErrorPath(t *testing.T) {
 
 	// Remove the created log file
 	_ = os.Remove(filePath2)
+}
+
+// Tests that ClearMetricsLogs() correctly deletes all the files matching the
+// test file.
+func TestClearMetricsLogs(t *testing.T) {
+	testFile := "test/temp-*.txt"
+
+	// Create test files to delete.
+	err := createTempFiles(testFile, 3)
+	if err != nil {
+		t.Errorf("Unexpected error creating temporary files: %v", err)
+	}
+
+	// Delete the files
+	err = ClearMetricsLogs(testFile)
+	if err != nil {
+		t.Errorf("Unexpected error when running ClearMetricsLogs(): %v", err)
+	}
+
+	fileList, err := ioutil.ReadDir(filepath.Dir(testFile))
+	if err != nil {
+		t.Errorf("Unexpected error getting list of files in directory: %v", err)
+	}
+
+	if len(fileList) > 0 {
+		t.Errorf("Not all metric log files were deleted:\n\t%v", fileList)
+	}
+}
+
+// Creates a specified number of files at the specified path for testing.
+func createTempFiles(path string, num int) error {
+	for i := 0; i < num; i++ {
+		// Convert the index to a string
+		indexString := strconv.FormatUint(uint64(i), 10)
+
+		// Replace the symbol placeholder with the index
+		file := strings.ReplaceAll(path, logFilePlaceholder, indexString)
+
+		// Write the file
+		err := utils.WriteFile(file, []byte("test"), utils.FilePerms, utils.DirPerms)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

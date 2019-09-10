@@ -2,12 +2,16 @@ package node
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -22,6 +26,9 @@ const (
 
 	// Character(s) to be printed as the indent for each indented JSON line
 	jsonIndent = "\t"
+
+	// Separator for multiple error messages
+	errorDelimiter = "; "
 )
 
 // GatherMetrics retrieves the roundMetrics for each node, converts it to JSON,
@@ -81,4 +88,45 @@ func saveMetricJSON(jsonData []byte, logFileName string, roundID id.Round) error
 	}
 
 	return err
+}
+
+// ClearMetricsLogs deletes all metric logs matching the specified path.
+func ClearMetricsLogs(path string) error {
+	var errs []string
+
+	// Expand and clean the path
+	path, err := utils.ExpandPath(path)
+	if err != nil {
+		return err
+	}
+
+	// Get a list of all the files in the directory
+	fileList, err := ioutil.ReadDir(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+
+	for i := range fileList {
+		// Convert the index to a string
+		indexString := strconv.FormatUint(uint64(i), 10)
+
+		// Replace the symbol placeholder with the index
+		logFile := strings.ReplaceAll(path, logFilePlaceholder, indexString)
+
+		// Remove the log file
+		err = os.Remove(logFile)
+
+		if err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
+
+	// If errors occurred above, then concatenate them into a new error to be
+	// returned
+	var errReturn error
+	if len(errs) > 0 {
+		errReturn = errors.New(strings.Join(errs, errorDelimiter))
+	}
+
+	return errReturn
 }
