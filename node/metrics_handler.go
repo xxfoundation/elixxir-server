@@ -9,7 +9,6 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -90,7 +89,14 @@ func saveMetricJSON(jsonData []byte, logFileName string, roundID id.Round) error
 	return err
 }
 
-// ClearMetricsLogs deletes all metric logs matching the specified path.
+// ClearMetricsLogs deletes all metric logs matching the specified path. If one
+// or more errors occur when deleting files, then the error message are
+// concatenated and returned as a single error. For matching the correct files,
+// the logFilePlaceholder must be an asterisk character (*).
+//
+// This function is intended to be run at server startup to clear out the metric
+// log files from the previous server instance. It is assumed that the metrics
+// log path is unchanged from the previous server run.
 func ClearMetricsLogs(path string) error {
 	var errs []string
 
@@ -100,29 +106,26 @@ func ClearMetricsLogs(path string) error {
 		return err
 	}
 
-	// Get a list of all the files in the directory
-	fileList, err := ioutil.ReadDir(filepath.Dir(path))
+	// Get a list of all files matching the specified path
+	fileList, err := filepath.Glob(path)
 	if err != nil {
 		return err
 	}
 
-	for i := range fileList {
-		// Convert the index to a string
-		indexString := strconv.FormatUint(uint64(i), 10)
-
-		// Replace the symbol placeholder with the index
-		logFile := strings.ReplaceAll(path, logFilePlaceholder, indexString)
-
+	// Loop through all the matching files
+	for _, file := range fileList {
 		// Remove the log file
-		err = os.Remove(logFile)
+		err = os.Remove(file)
 
+		// If an error occurs when deleting the file, then append the error
+		// message to the list of errors
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
 
-	// If errors occurred above, then concatenate them into a new error to be
-	// returned
+	// If any errors occurred above, then concatenate them into a new error to
+	// be returned
 	var errReturn error
 	if len(errs) > 0 {
 		errReturn = errors.New(strings.Join(errs, errorDelimiter))

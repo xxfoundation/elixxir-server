@@ -7,7 +7,6 @@ import (
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -136,14 +135,19 @@ func TestClearMetricsLogs(t *testing.T) {
 		t.Errorf("Unexpected error when running ClearMetricsLogs(): %v", err)
 	}
 
-	fileList, err := ioutil.ReadDir(filepath.Dir(testFile))
+	// Get list of any files left that match the test file
+	fileList, err := filepath.Glob(testFile)
 	if err != nil {
 		t.Errorf("Unexpected error getting list of files in directory: %v", err)
 	}
 
+	// Check if any files are left that match the test file
 	if len(fileList) > 0 {
 		t.Errorf("Not all metric log files were deleted:\n\t%v", fileList)
 	}
+
+	// Remove non-matching files
+	_ = os.RemoveAll(filepath.Dir(testFile))
 }
 
 // Creates a specified number of files at the specified path for testing.
@@ -160,6 +164,19 @@ func createTempFiles(path string, num int) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Write some more files that do not conform to the path pattern
+	err := utils.WriteFile(filepath.Join(filepath.Dir(path), "testA.txt"),
+		[]byte("test"), utils.FilePerms, utils.DirPerms)
+	if err != nil {
+		return err
+	}
+
+	err = utils.WriteFile(filepath.Join(filepath.Dir(path), "testB.txt"),
+		[]byte("test"), utils.FilePerms, utils.DirPerms)
+	if err != nil {
+		return err
 	}
 
 	return nil
