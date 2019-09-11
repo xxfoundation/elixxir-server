@@ -94,7 +94,7 @@ func StartServer(vip *viper.Viper) {
 
 	err = node.ClearMetricsLogs(def.MetricLogPath)
 	if err != nil {
-		jww.DEBUG.Printf("Error deleting old metric log files: %v", err)
+		jww.ERROR.Printf("Error deleting old metric log files: %v", err)
 	}
 
 	def.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {

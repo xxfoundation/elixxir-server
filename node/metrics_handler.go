@@ -2,7 +2,6 @@ package node
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
@@ -25,9 +24,6 @@ const (
 
 	// Character(s) to be printed as the indent for each indented JSON line
 	jsonIndent = "\t"
-
-	// Separator for multiple error messages
-	errorDelimiter = "; "
 )
 
 // GatherMetrics retrieves the roundMetrics for each node, converts it to JSON,
@@ -89,17 +85,14 @@ func saveMetricJSON(jsonData []byte, logFileName string, roundID id.Round) error
 	return err
 }
 
-// ClearMetricsLogs deletes all metric logs matching the specified path. If one
-// or more errors occur when deleting files, then the error message are
-// concatenated and returned as a single error. For matching the correct files,
-// the logFilePlaceholder must be an asterisk character (*).
+// ClearMetricsLogs deletes all metric logs matching the specified path. For
+// matching the correct files, the logFilePlaceholder must be an asterisk
+// character (*).
 //
 // This function is intended to be run at server startup to clear out the metric
 // log files from the previous server instance. It is assumed that the metrics
 // log path is unchanged from the previous server run.
 func ClearMetricsLogs(path string) error {
-	var errs []string
-
 	// Expand and clean the path
 	path, err := utils.ExpandPath(path)
 	if err != nil {
@@ -117,19 +110,10 @@ func ClearMetricsLogs(path string) error {
 		// Remove the log file
 		err = os.Remove(file)
 
-		// If an error occurs when deleting the file, then append the error
-		// message to the list of errors
 		if err != nil {
-			errs = append(errs, err.Error())
+			return err
 		}
 	}
 
-	// If any errors occurred above, then concatenate them into a new error to
-	// be returned
-	var errReturn error
-	if len(errs) > 0 {
-		errReturn = errors.New(strings.Join(errs, errorDelimiter))
-	}
-
-	return errReturn
+	return nil
 }
