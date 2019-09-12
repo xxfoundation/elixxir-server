@@ -32,7 +32,7 @@ func TestManager(t *testing.T) {
 	round := New(grp, &globals.UserMap{}, roundID, nil, nil,
 		circuit.New([]*id.Node{{}}), &id.Node{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG))
+			csprng.NewSystemRNG), "0.0.0.0")
 	// Getting a round that's not been added should return nil
 	result, err := mgr.GetRound(roundID)
 	if result != nil || err == nil {
@@ -60,7 +60,7 @@ func TestManager_GetPhase(t *testing.T) {
 	round := New(grp, &globals.UserMap{}, roundID, nil, nil,
 		circuit.New([]*id.Node{{}}), &id.Node{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG))
+			csprng.NewSystemRNG), "0.0.0.0")
 	mgr.AddRound(round)
 	p, err := mgr.GetPhase(roundID, 1)
 	if err == nil {
@@ -91,7 +91,7 @@ func TestManager_GetPhase(t *testing.T) {
 	round = New(grp, &globals.UserMap{}, roundID, phases, nil,
 		circuit.New([]*id.Node{{}}), &id.Node{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG))
+			csprng.NewSystemRNG), "0.0.0.0")
 	mgr.AddRound(round)
 
 	p, err = mgr.GetPhase(roundID, 0)

@@ -6,6 +6,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 )
 
@@ -37,6 +38,8 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 
 		//queue the phase to be operated on if it is not queued yet
 		p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
+
+		p.Measure(measure.TagReceiveOnReception)
 
 		//send the data to the phase
 		err = io.PostPhase(p, newBatch)

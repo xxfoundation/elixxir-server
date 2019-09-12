@@ -9,8 +9,8 @@ package conf
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/utils"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"reflect"
 	"testing"
 )
@@ -39,7 +39,7 @@ var ExpectedGroups = Groups{
 func TestGroups_UnmarshallingFileEqualsExpected(t *testing.T) {
 
 	actual := Params{}
-	buf, _ := ioutil.ReadFile("./params.yaml")
+	buf, _ := utils.ReadFile("./params.yaml")
 
 	err := yaml.Unmarshal(buf, &actual)
 	if err != nil {
@@ -56,7 +56,7 @@ func TestGroups_UnmarshallingFileEqualsExpected(t *testing.T) {
 // matches the actualy cyclic group object
 func TestGroup_GetCMixValidFingerprint(t *testing.T) {
 	actual := Params{}
-	buf, _ := ioutil.ReadFile("./params.yaml")
+	buf, _ := utils.ReadFile("./params.yaml")
 
 	err := yaml.Unmarshal(buf, &actual)
 	if err != nil {
@@ -73,7 +73,7 @@ func TestGroup_GetCMixValidFingerprint(t *testing.T) {
 // matches the actualy cyclic group object
 func TestGroup_GetE2EValidFingerprint(t *testing.T) {
 	actual := Params{}
-	buf, _ := ioutil.ReadFile("./params.yaml")
+	buf, _ := utils.ReadFile("./params.yaml")
 
 	err := yaml.Unmarshal(buf, &actual)
 	if err != nil {

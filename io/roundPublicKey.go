@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -24,7 +25,7 @@ import (
 func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
-	nodeID *id.Node, measure phase.Measure) error {
+	nodeID *id.Node, measureFunc phase.Measure) error {
 
 	var roundPublicKeys [][]byte
 
@@ -51,6 +52,9 @@ func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
 	errChan := make(chan error, topology.Len()-1)
 
 	var wg sync.WaitGroup
+
+	measureFunc(measure.TagTransmitLastSlot)
+
 	for index := 1; index < topology.Len(); index++ {
 
 		localIndex := index

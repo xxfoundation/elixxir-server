@@ -109,28 +109,24 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 	def := mockServerDef(grp)
 	i := CreateServerInstance(def)
 
-	rm := i.GetLastResourceMonitor()
+	rm := i.GetResourceMonitor()
 
 	expectedMetric := measure.ResourceMetric{
-		Time:              time.Unix(1, 2),
-		MemoryAllocated:   "1000",
-		NumThreads:        10,
-		HighestMemThreads: "abc",
+		Time:          time.Unix(1, 2),
+		MemAllocBytes: 1000,
+		NumThreads:    10,
 	}
 
 	rm.Set(&expectedMetric)
 
-	if !i.GetLastResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
-		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect time")
+	if !i.GetResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
+		t.Errorf("Instance.GetResourceMonitor: Returned incorrect time")
 	}
-	if i.GetLastResourceMonitor().Get().HighestMemThreads != expectedMetric.HighestMemThreads {
-		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect mem threads")
+	if i.GetResourceMonitor().Get().NumThreads != expectedMetric.NumThreads {
+		t.Errorf("Instance.GetResourceMonitor: Returned incorrect num threads")
 	}
-	if i.GetLastResourceMonitor().Get().NumThreads != expectedMetric.NumThreads {
-		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect num threads")
-	}
-	if i.GetLastResourceMonitor().Get().MemoryAllocated != expectedMetric.MemoryAllocated {
-		t.Errorf("Instance.GetLastResourceMonitor: Returned incorrect mem allcoated")
+	if i.GetResourceMonitor().Get().MemAllocBytes != expectedMetric.MemAllocBytes {
+		t.Errorf("Instance.GetResourceMonitor: Returned incorrect mem allcoated")
 	}
 
 }
@@ -139,10 +135,9 @@ func mockServerDef(grp *cyclic.Group) *Definition {
 	nid := GenerateId()
 
 	resourceMetric := measure.ResourceMetric{
-		Time:              time.Now(),
-		MemoryAllocated:   "",
-		NumThreads:        0,
-		HighestMemThreads: "",
+		Time:          time.Now(),
+		MemAllocBytes: 0,
+		NumThreads:    0,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&resourceMetric)

@@ -1,69 +1,53 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package measure
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
-	"os"
 	"sync"
 	"time"
 )
 
-// Metrics struct holds list of different metrics for the phase. RWMutex allows
-// to be read in multiple threads at once, but only allows one writen in
-// one at a time
+// Metrics structure holds the list of different metrics for the phase. The
+// RWMutex prevents two threads from writing to the list at the same time.
 type Metrics struct {
 	Events []Metric
 	sync.RWMutex
 }
 
-// Metric struct holds a measurement, containing a phase tag and a timestamp
+// Metric structure holds a single measurement, which contains a phase tag and a
+// timestamp from when the measurement was taken.
 type Metric struct {
 	Tag       string
 	Timestamp time.Time
 }
 
-// GetEvents returns a copy of the Events array, containing all Metric events
-func (m Metrics) GetEvents() []Metric {
-	metricsArray := make([]Metric, len(m.Events))
-
-	for i := 0; i <= len(m.Events)-1; i++ {
-		metricsArray[i] = Metric(m.Events[i])
-	}
-
-	return metricsArray
-}
-
-// Measure creates a new Metric and add it to the Metrics variable of the phase
-func (m *Metrics) Measure(tag string) time.Time {
-	// Create new Metric instance
-	measure := Metric{
+// Measure creates a new Metric object and appends it to the Metrics's event
+// list. The Metric object is created from the specified tag and a timestamp
+// created at the time of function call. The timestamp is returned.
+func (ms *Metrics) Measure(tag string) time.Time {
+	// Create new Metric object from the tag and new timestamp
+	metric := Metric{
 		Tag:       tag,
 		Timestamp: time.Now(),
 	}
 
-	// Lock Events so other goroutines can't write and mangle data, then append
-	m.Lock()
-	m.Events = append(m.Events, measure)
-	m.Unlock()
+	// Append the metric to the even list
+	ms.Lock()
+	ms.Events = append(ms.Events, metric)
+	ms.Unlock()
 
-	return measure.Timestamp
+	return metric.Timestamp
 }
 
-// AppendToMetricsLog appends a measures to
-// a log file which is located in logPath
-func AppendToMetricsLog(logPath, measures string) {
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
-	if err != nil {
-		jww.WARN.Printf("Unable to open metrics log file")
-		return
-	}
-	defer func() {
-		if f != nil {
-			_ = f.Close()
-		}
-	}()
+// GetEvents returns a copy of the Events array.
+func (ms Metrics) GetEvents() []Metric {
+	metricsEvents := make([]Metric, len(ms.Events))
 
-	_, err = f.WriteString(measures)
-	if err != nil {
-		jww.WARN.Printf("Unable to append to metrics log file")
-	}
+	copy(metricsEvents, ms.Events)
+
+	return metricsEvents
 }

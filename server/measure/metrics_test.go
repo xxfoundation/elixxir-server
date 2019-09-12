@@ -1,92 +1,155 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package measure
 
 import (
+	"math/rand"
+	"reflect"
 	"testing"
 	"time"
 )
 
-// Tests that the measure function writes sane values for each metric
-func TestMeasure(t *testing.T) {
+// Tests that the Measure() records all the tags with correct timestamps. A list
+// of random string are added as events and then the Metrics event list is
+// checked to have all the correct tags and timestamps.
+func TestMetrics_Measure(t *testing.T) {
 	metrics := new(Metrics)
 
-	before := time.Now()
-	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
-	metrics.Measure("test1")
-	metrics.Measure("test2")
-	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
-	after := time.Now()
-
-	if len(metrics.Events) != 2 {
-		t.Error("2 metrics were not recorded")
+	// Make array of random strings
+	testTags := make([]string, rand.Intn(100))
+	for i := range testTags {
+		testTags[i] = randomString(rand.Intn(100))
 	}
 
-	if (metrics.Events[0].Tag != "test1") && (metrics.Events[1].Tag != "test2") {
-		t.Error("Metric tags were not recorded correctly")
+	// Record all the random strings as metric events and save their timestamps
+	testTimestamps := make([]time.Time, len(testTags))
+	for i, value := range testTags {
+		testTimestamps[i] = metrics.Measure(value)
 	}
 
-	if metrics.Events[0].Timestamp.After(before) != true || metrics.Events[0].Timestamp.Before(after) != true {
-		t.Errorf("Metric recorded invalid timestamp for event 0.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
-			before.String(), metrics.Events[0].Timestamp.String(), after.String())
+	// Check the length of the Metrics Events
+	if len(metrics.Events) != len(testTags) {
+		t.Errorf("Measure() did not properly record the correct number of "+
+			"Metric events\n\texpected: %d\n\treceived: %d",
+			len(testTags), len(metrics.Events))
 	}
 
-	if metrics.Events[1].Timestamp.After(before) != true || metrics.Events[1].Timestamp.Before(after) != true {
-		t.Errorf("Metric recorded invalid timestamp for event 1.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
-			before.String(), metrics.Events[1].Timestamp.String(), after.String())
+	// Check that all Metric events have the expected tags and timestamps
+	for i, metric := range metrics.Events {
+		if metric.Tag != testTags[i] {
+			t.Errorf("Measure() did not properly record the Metric "+
+				"tag on index %d\n\texpected: %s\n\treceived: %s",
+				i, testTags[i], metric.Tag)
+		}
+
+		if !metric.Timestamp.Equal(testTimestamps[i]) {
+			t.Errorf("Measure() did not properly record the Metric "+
+				"timestamp on index %d\n\texpected: %s\n\treceived: %s",
+				i, metric.Timestamp.String(), testTimestamps[i].String())
+		}
+	}
+
+	// Check that newer Metric events have a newer timestamp
+	for i := 0; i < len(metrics.Events)-1; i++ {
+		if metrics.Events[i].Timestamp.After(metrics.Events[i+1].Timestamp) {
+			t.Errorf("Measure() did not properly record the Metric "+
+				"timestamp. The timestamp of Metric[%d] occured after Metric[%d]"+
+				"\n\ttimestamp A: %s\n\ttimestamp B: %s",
+				i, i+1, metrics.Events[i].Timestamp.String(),
+				metrics.Events[i+1].Timestamp.String())
+		}
+	}
+
+	// Check that older Metric events have an older timestamp
+	for i := 1; i < len(metrics.Events); i++ {
+		if metrics.Events[i].Timestamp.Before(metrics.Events[i-1].Timestamp) {
+			t.Errorf("Measure() did not properly record the Metric "+
+				"timestamp. The timestamp of Metric[%d] occured before Metric[%d]"+
+				"\n\ttimestamp A: %s\n\ttimestamp B: %s",
+				i, i-1, metrics.Events[i].Timestamp.String(),
+				metrics.Events[i-1].Timestamp.String())
+		}
 	}
 }
 
-// Test mutex lock properly locks to make sure function is thread safe
-func TestMeasureLock(t *testing.T) {
+// Test that Measure() is thread safe by checking if it correctly locks Metrics
+// when writing to Events.
+func TestMetrics_Measure_Lock(t *testing.T) {
 	// Make and lock metric
 	metrics := new(Metrics)
 	metrics.Lock()
 
-	// Create a new channeled bool to allow another goroutine to write to it.
-	// This way a test goroutine can communicate back to us.
+	// Create a new channeled bool to allow another goroutine to write to it to
+	// allow a test goroutine to communicate
 	result := make(chan bool)
 
-	// Run measure in a new goroutine and hope it crashes, if it doesn't the
-	// result becomes true. This is bad because we want the function to crash,
-	// we previously write locked the metrics struct (and therefore it's Events
-	// array) so other goroutines can't write to it.
+	// Run Measure() with the expectation that it crashes; if it does not, then
+	// the result becomes true
 	go func() {
 		metrics.Measure("test1")
 		result <- true
 	}()
 
-	// We wait a second to see if the function does write true to the result var.
-	// If it does, it did not panic (because the mutex lock didn't work), which is bad.
+	// Wait to see if the function does not crash. If it does not, then an error
+	// will be printed
 	select {
 	case <-result:
-		t.Error("Measure() does not correctly lock thread")
+		t.Error("Measure() did not correctly lock the thread when expected")
 	case <-time.After(1 * time.Second):
 		return
 	}
 }
 
-func TestGetEvents(t *testing.T) {
+// Tests that the array returned by GetEvents() matches Metrics.Events.
+func TestMetrics_GetEvents(t *testing.T) {
+	// Create new Metrics and fill Events
 	metrics := new(Metrics)
+	for i := 0; i < rand.Intn(100); i++ {
+		metrics.Measure(randomString(rand.Intn(100)))
+	}
 
-	before := time.Now()
-	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
+	// Get a copy of the events array
+	events := metrics.GetEvents()
+
+	// Check to make sure that the returned events match Metrics.Events
+	if !reflect.DeepEqual(events, metrics.Events) {
+		t.Errorf("GetEvents() did not return a copy of Metrics.Events"+
+			"\n\texpected: %v\n\treceived: %v", metrics.Events, events)
+	}
+}
+
+// Tests that the array returned by GetEvents() is a copy of Metrics.Events.
+func TestMetrics_GetEvents_Copy(t *testing.T) {
+	// Create new Metrics and add items to Events
+	metrics := new(Metrics)
 	metrics.Measure("test1")
 	metrics.Measure("test2")
-	time.Sleep(time.Millisecond) // Needed for Windows due to low time resolution
-	after := time.Now()
 
+	// Get a copy of the events array
 	events := metrics.GetEvents()
-	if len(events) != 2 {
-		t.Errorf("GetEvents returned with an incorrect number of events.\n\tGot:      %d\n\tExpected: %d", len(events), 2)
+
+	// Make change to original array
+	metrics.Events[0].Tag = "something else"
+
+	// Check to make sure the change was not reflected in the copy
+	if reflect.DeepEqual(events, metrics.Events) {
+		t.Errorf("GetEvents() returned the array instead of a copy"+
+			"\n\texpected: %v\n\treceived: %v", metrics.Events, events)
 	}
-	if (events[0].Tag != "test1") && (events[1].Tag != "test2") {
-		t.Error("GetEvents returned tags that were not recorded correctly")
+}
+
+// Generates a random string.
+func randomString(n int) string {
+	var letter = []rune(
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
 	}
-	if events[0].Timestamp.After(before) != true || events[0].Timestamp.Before(after) != true {
-		t.Errorf("GetEvents returned invalid timestamp for event 0.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
-			before.String(), metrics.Events[0].Timestamp.String(), after.String())
-	}
-	if events[1].Timestamp.After(before) != true || events[1].Timestamp.Before(after) != true {
-		t.Errorf("GetEvents returned invalid timestamp for event 1.\r\nExpected timestamp to be between the before and after timestamps.\n\tBefore: %s\n\tGot:    %s\n\tAfter:  %s",
-			before.String(), metrics.Events[1].Timestamp.String(), after.String())
-	}
+	return string(b)
 }

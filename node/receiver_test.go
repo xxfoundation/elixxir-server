@@ -101,7 +101,8 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// that would let us test the error being returned.
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
-		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
+		"0.0.0.0")
 	instance.GetRoundManager().AddRound(r)
 
 	// Build a fake batch for the reception handler
@@ -200,7 +201,8 @@ func TestReceivePostNewBatch(t *testing.T) {
 	// We need this round to be on the precomp queue
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
-		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
+		"0.0.0.0")
 	instance.GetRoundManager().AddRound(r)
 	instance.GetCompletedPrecomps().Push(r)
 
@@ -266,7 +268,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen())
+		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -406,7 +408,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen())
+		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -643,7 +645,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhase}, responseMap, instance.GetTopology(),
 		instance.GetTopology().GetNodeAtIndex(1), batchSize,
-		instance.GetRngStreamGen())
+		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -721,7 +723,8 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	// Don't skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap, topology,
-		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen())
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
+		"0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -836,7 +839,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	instance.GetRoundManager().AddRound(round.New(grp,
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen()))
+		instance.GetRngStreamGen(), "0.0.0.0"))
 	// This should give an error because we give it fewer slots than are in the
 	// batch
 	err := ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{})
@@ -888,7 +891,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		instances[i].GetRoundManager().AddRound(round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
-			3, instances[i].GetRngStreamGen()))
+			3, instances[i].GetRngStreamGen(), "0.0.0.0"))
 	}
 
 	// Initially, there should be zero rounds on the precomp queue
@@ -960,7 +963,8 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen())
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -976,7 +980,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 
 	go func() {
-		err = ReceiveFinishRealtime(instance, &info, nil)
+		err = ReceiveFinishRealtime(instance, &info)
 	}()
 
 	var finishedRoundID id.Round
@@ -996,11 +1000,8 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 }
 
-/*
-// Tests receive finish realtime on first node and
-// passes in teh get measure handler
 func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
-
+	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
 
@@ -1015,50 +1016,13 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	//make user for sending messages
-	userID := id.NewUserFromUint(42, t)
-	var baseKeys []*cyclic.Int
-	for i := 0; i < numNodes; i++ {
-		baseKey := grp.NewIntFromUInt(uint64(1000 + 5*i))
-		baseKeys = append(baseKeys, baseKey)
-	}
+	instance := server.CreateServerInstance(&def)
 
-	fmt.Println(3)
-	//build the registries and monitors for every node
-	var registry globals.UserRegistry
-	registry = &globals.UserMap{}
-	user := globals.User{
-		ID:      userID,
-		BaseKey: baseKeys[0],
-	}
-	registry.UpsertUser(&user)
-	def.UserRegistry = registry
-
-	resourceMonitor = measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
-	def.ResourceMonitor = &resourceMonitor
-
-	fmt.Println(4)
-	//build the instances
-	var instances []*server.Instance
-
-	t.Logf("Building instances for %v nodes", numNodes)
-
-	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
-	for i := 0; i < numNodes; i++ {
-		instance := server.CreateServerInstance(paramLst[i], registries[i],
-			nil, nil, &resourceMonitor)
-		instances = append(instances, instance)
-	}
-
-	instance.InitNetwork(NewImplementation)
-
+	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
-	fmt.Println(7)
 	// Set up a round first node
-	roundID := id.Round(0)
+	roundID := id.Round(45)
 
 	response := phase.NewResponse(phase.ResponseDefinition{
 		PhaseAtSource:  phase.RealPermute,
@@ -1072,7 +1036,8 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3)
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1088,7 +1053,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 
 	go func() {
-		err = ReceiveFinishRealtime(instance, &info, io2.TransmitGetMeasure)
+		err = ReceiveFinishRealtime(instance, &info)
 	}()
 
 	var finishedRoundID id.Round
@@ -1107,8 +1072,6 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 			"recieved %v", roundID, finishedRoundID)
 	}
 }
-
-*/
 
 func TestReceiveGetMeasure(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
@@ -1147,7 +1110,8 @@ func TestReceiveGetMeasure(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen())
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1207,6 +1171,24 @@ func mockServerInstance(t *testing.T) *server.Instance {
 			m, err))
 	}
 
+	// Generate IDs and addresses
+	var nodeLst []server.Node
+	for i := 0; i < len(nodeIDs); i++ {
+		// Generate id
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+
+		// Generate address
+		addr := fmt.Sprintf("localhost:5%03d", i)
+
+		n := server.Node{
+			ID:      nodeID,
+			Address: addr,
+		}
+		nodeLst = append(nodeLst, n)
+	}
+
 	def := server.Definition{
 		CmixGroup:       grp,
 		Topology:        circuit.New(nodeIDs),
@@ -1215,6 +1197,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
 			2, 2, 0),
 		BatchSize: 8,
+		Nodes:     nodeLst,
 		RngStreamGen: fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
@@ -1225,61 +1208,33 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	return instance
 }
 
-func makeMultiInstanceGroup() *cyclic.Group {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
-}
-
-func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
-
-	//generate IDs and addresses
-	var nidLst []*id.Node
-	var nodeLst []server.Node
-	addrFmt := "localhost:5%03d"
-	for i := 0; i < numNodes; i++ {
-		//generate id
-		nodIDBytes := make([]byte, id.NodeIdLen)
-		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
-		nidLst = append(nidLst, nodeID)
-		//generate address
-		addr := fmt.Sprintf(addrFmt, i+portstart)
-
-		n := server.Node{
-			ID:      nodeID,
-			Address: addr,
-		}
-		nodeLst = append(nodeLst, n)
+func mockTransmitGetMeasure(node *node.NodeComms, topology *circuit.Circuit, roundID id.Round) (string, error) {
+	serverRoundMetrics := map[string]measure.RoundMetrics{}
+	mockResourceMetrics := measure.ResourceMetric{
+		Time:          time.Unix(int64(0), int64(1)),
+		MemAllocBytes: 123,
+		NumThreads:    5,
 	}
 
-	//generate parameters list
-	var defLst []*server.Definition
+	// Contact all visible servers and get metrics
+	for i := 0; i < topology.Len(); i++ {
+		s := topology.GetNodeAtIndex(i)
 
-	for i := 0; i < numNodes; i++ {
-
-		def := server.Definition{
-			CmixGroup: grp,
-			Topology:  circuit.New(nidLst),
-			Nodes:     nodeLst,
-			ID:        nidLst[i],
-			BatchSize: uint32(batchsize),
-			Flags: server.Flags{
-				KeepBuffers: true,
-			},
+		serverRoundMetrics[s.String()] = measure.RoundMetrics{
+			NodeID:         "NODE_TEST_ID",
+			RoundID:        3,
+			NumNodes:       5,
+			StartTime:      time.Now(),
+			EndTime:        time.Now(),
+			PhaseMetrics:   measure.PhaseMetrics{},
+			ResourceMetric: mockResourceMetrics,
 		}
-		defLst = append(defLst, &def)
 	}
 
-	return defLst
+	ret, err := json.Marshal(serverRoundMetrics)
+
+	if err != nil {
+		return "", err
+	}
+	return string(ret), nil
 }

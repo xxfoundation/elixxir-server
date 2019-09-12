@@ -64,9 +64,11 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 		return &mixmessages.Slot{PartialRoundPublicCypherKey: roundPubKey.Bytes()}
 	}
 
+	m := func(tag string) {}
+
 	//call the transmitter
 	err := TransmitRoundPublicKey(comms[0], 1, roundID, phaseTy,
-		getChunk, getMsg, topology, topology.GetNodeAtIndex(0), nil)
+		getChunk, getMsg, topology, topology.GetNodeAtIndex(0), m)
 
 	if err != nil {
 		t.Errorf("TransmitRoundPublicKey: Unexpected error: %+v", err)

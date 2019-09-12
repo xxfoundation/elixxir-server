@@ -41,7 +41,8 @@ func StartServer(vip *viper.Viper) {
 	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
 
 	//Start the performance monitor
-	resourceMonitor := MonitorMemoryUsage()
+	resourceMonitor := monitorMemoryUsage(performanceCheckPeriod,
+		deltaMemoryThreshold, minMemoryTrigger)
 
 	// Load params object from viper conf
 	params, err := conf.NewParams(vip)
@@ -90,6 +91,15 @@ func StartServer(vip *viper.Viper) {
 	def := params.ConvertToDefinition()
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
+
+	err = node.ClearMetricsLogs(def.MetricLogPath)
+	if err != nil {
+		jww.ERROR.Printf("Error deleting old metric log files: %v", err)
+	}
+
+	def.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+		return node.GatherMetrics(instance, roundID, metricsWhitespace)
+	}
 
 	PanicHandler := func(g, m string, err error) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,

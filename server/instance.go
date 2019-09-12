@@ -55,7 +55,7 @@ func (i *Instance) InitNetwork(
 
 	//Attempt to connect to all other nodes
 	for index, n := range i.definition.Nodes {
-		err := i.network.ConnectToNode(n.ID, n.Address, n.TlsCert)
+		err := i.network.ConnectToRemote(n.ID, n.Address, n.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
@@ -64,8 +64,8 @@ func (i *Instance) InitNetwork(
 
 	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
-		err := i.network.ConnectToGateway(i.definition.Gateway.ID,
-			i.definition.Gateway.Address, i.definition.Gateway.TlsCert)
+		err := i.network.ConnectToRemote(i.definition.Gateway.ID,
+			i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to gateway %s: %+v",
 				i.definition.Gateway.ID, err)
@@ -184,8 +184,17 @@ func (i *Instance) IsLastNode() bool {
 	return i.definition.Topology.IsLastNode(i.definition.ID)
 }
 
-// GetLastResourceMonitor returns the resource monitoring object
-func (i *Instance) GetLastResourceMonitor() *measure.ResourceMonitor {
+// GetIP returns the IP of the node from the instance
+func (i *Instance) GetIP() string {
+	fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
+	fmt.Printf("i.GetTopology(): %+v\n", i.GetTopology())
+	fmt.Printf("i.GetID(): %+v\n", i.GetID())
+	addrWithPort := i.definition.Nodes[i.GetTopology().GetNodeLocation(i.GetID())].Address
+	return strings.Split(addrWithPort, ":")[0]
+}
+
+// GetResourceMonitor returns the resource monitoring object
+func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
 }
 
