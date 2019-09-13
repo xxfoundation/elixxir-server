@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strconv"
@@ -14,7 +14,9 @@ import (
 )
 
 // This will error when the type does not match the function
-var _ server.MetricsHandler = GatherMetrics
+var _ server.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+	return GatherMetrics(instance, roundID, false)
+}
 
 // Tests  that buildMetricJSON marshals data correctly by unmarshalling the JSON
 // it outputs and comparing it to the original structure.
@@ -27,7 +29,7 @@ func Test_buildMetricJSON(t *testing.T) {
 
 	var rmTest []measure.RoundMetrics
 
-	data, err := buildMetricJSON(roundMetrics)
+	data, err := buildMetricJSON(roundMetrics, false)
 
 	if err != nil {
 		t.Errorf("buildMetricJSON() unexpectedly returned an error: %v", err)
@@ -85,7 +87,7 @@ func Test_saveMetricJSON(t *testing.T) {
 	}
 
 	// Check if the data written to the file is correct
-	if fileData, _ := ioutil.ReadFile(filePath2); !bytes.Equal(fileData, data) {
+	if fileData, _ := utils.ReadFile(filePath2); !bytes.Equal(fileData, data) {
 		t.Errorf("Data written by saveMetricJSON() incorrect"+
 			"\n\texpected: %s\n\treceived: %s", string(data), string(fileData))
 	}
@@ -97,7 +99,7 @@ func Test_saveMetricJSON(t *testing.T) {
 // Tests that saveMetricJSON() errors on invalid path.
 func Test_saveMetricJSON_ErrorPath(t *testing.T) {
 	data := []byte("test")
-	filePathPre := ":/test-"
+	filePathPre := "~a/test-"
 	filePathPost := ".log"
 	roundID := id.Round(50)
 	filePath1 := filePathPre + "*" + filePathPost

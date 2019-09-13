@@ -9,7 +9,7 @@ package cmd
 
 import (
 	"fmt"
-	//"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/primitives/utils"
 	"os"
 	"time"
 
@@ -32,6 +32,8 @@ var showVer bool
 var keepBuffers bool
 var disablePermissioning bool
 var noTLS bool
+var metricsWhitespace bool
+var logPath = "cmix-server.log"
 
 // If true, runs pprof http server
 var profile bool
@@ -132,6 +134,8 @@ func init() {
 			" RPC will wait before returning an error")
 	rootCmd.Flags().BoolVarP(&noTLS, "noTLS", "", false,
 		"Set to ignore TLS")
+	rootCmd.Flags().BoolVarP(&metricsWhitespace, "metricsWhitespace", "w", false,
+		"Set to print indented metrics JSON files")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")
@@ -207,23 +211,28 @@ func initConfig() {
 
 // initLog initializes logging thresholds and the log path.
 func initLog() {
+	// If verbose flag set then log more info for debugging
+	if viper.GetBool("verbose") {
+		jww.SetLogThreshold(jww.LevelDebug)
+		jww.SetStdoutThreshold(jww.LevelDebug)
+	} else {
+		jww.SetLogThreshold(jww.LevelInfo)
+		jww.SetStdoutThreshold(jww.LevelInfo)
+	}
 	if viper.Get("node.paths.log") != nil {
-		// If verbose flag set then log more info for debugging
-		if viper.GetBool("verbose") {
-			jww.SetLogThreshold(jww.LevelDebug)
-			jww.SetStdoutThreshold(jww.LevelDebug)
-		} else {
-			jww.SetLogThreshold(jww.LevelInfo)
-			jww.SetStdoutThreshold(jww.LevelInfo)
-		}
 		// Create log file, overwrites if existing
-		logPath := viper.GetString("node.paths.log")
-		logFile, err := os.Create(logPath)
-		if err != nil {
-			fmt.Printf("Invalid or missing log path %s, "+
-				"default path used.\n", logPath)
-		} else {
-			jww.SetLogOutput(logFile)
-		}
+		logPath = viper.GetString("node.paths.log")
+	} else {
+		fmt.Printf("Invalid or missing log path %s, "+
+			"default path used.\n", logPath)
+	}
+	fullLogPath, _ := utils.ExpandPath(logPath)
+	logFile, err := os.OpenFile(fullLogPath,
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND,
+		0644)
+	if err != nil {
+		fmt.Printf("Could not open log file %s!\n", logPath)
+	} else {
+		jww.SetLogOutput(logFile)
 	}
 }
