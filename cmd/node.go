@@ -91,7 +91,9 @@ func StartServer(vip *viper.Viper) {
 	def := params.ConvertToDefinition()
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
-	def.MetricsHandler = node.GatherMetrics
+	def.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+		return node.GatherMetrics(instance, roundID, metricsWhitespace)
+	}
 
 	PanicHandler := func(g, m string, err error) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
