@@ -34,13 +34,13 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
-	userReg globals.UserRegistry, inSalts [][]byte, imKMACS [][][]byte, inUsers []*id.User,
+	userReg globals.UserRegistry, inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.User,
 	outKeysA, outKeysB *cyclic.IntBuffer) {
 	k.Grp = grp
 	k.userReg = userReg
 	k.salts = inSalts
 	k.users = inUsers
-	k.kmacs = imKMACS
+	k.kmacs = inKMACS
 	k.KeysA = outKeysA
 	k.KeysB = outKeysB
 }
@@ -120,9 +120,9 @@ var Keygen = services.Module{
 			if !success {
 				kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 				kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
-				jww.INFO.Printf("User: %#v", user)
-				jww.INFO.Printf("KMACS: %#v", kss.kmacs[i])
-				jww.INFO.Printf("User %v on slot %v could not be validated",
+				jww.DEBUG.Printf("User: %#v", user)
+				jww.DEBUG.Printf("KMACS: %#v", kss.kmacs[i])
+				jww.DEBUG.Printf("User %v on slot %v could not be validated",
 					user.ID, i)
 			}
 

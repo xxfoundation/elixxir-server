@@ -278,7 +278,6 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch) error {
-	fmt.Printf("batch: %+v", newBatch)
 	// This shouldn't block,
 	// and should return an error if there's no round available
 	// You'd want to return this error in the Ack that's available for the
@@ -327,9 +326,9 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 	// Queue the phase if it hasn't been done yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
-	jww.INFO.Printf("new Batch: %#v", newBatch.Slots[2])
-
+	for i := range newBatch.Slots {
+		jww.DEBUG.Printf("new Batch: %#v", newBatch.Slots[i])
+	}
 	err = io.PostPhase(p, newBatch)
 
 	if err != nil {
