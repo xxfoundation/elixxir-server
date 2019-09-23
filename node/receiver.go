@@ -437,3 +437,31 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 
 	return &ret, nil
 }
+
+func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripPing) error {
+	roundID := msg.Round.ID
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(id.Round(roundID))
+	if err != nil {
+		err = errors.Errorf("ReceiveRoundTripPing could not get round: %+v", err)
+		return err
+	}
+
+	topology := r.GetTopology()
+	myID := instance.GetID()
+
+	if topology.IsFirstNode(myID) {
+		r.StopRoundTrip()
+		jww.INFO.Printf("First node received round trip ping, recording stop time")
+		return nil
+	}
+
+	nextNode := topology.GetNextNode(myID)
+	_, err = instance.GetNetwork().RoundTripPing(nextNode, roundID)
+	if err != nil {
+		err = errors.Errorf("ReceiveRoundTripPing failed to send ping to next node: %+v", err)
+		return err
+	}
+
+	return nil
+}

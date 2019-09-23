@@ -26,6 +26,10 @@ type RoundMetrics struct {
 	// Special recorded events
 	StartTime time.Time
 	EndTime   time.Time
+
+	// Round trip data
+	RTStartTime time.Time
+	RTEndTime 	time.Time
 }
 
 // NewRoundMetrics initializes a new RoundMetrics object with the specified

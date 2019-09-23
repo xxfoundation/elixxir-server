@@ -233,3 +233,13 @@ func (r *Round) String() string {
 	currentPhase := r.GetCurrentPhase()
 	return fmt.Sprintf("%d (%d - %s)", r.id, r.state, currentPhase)
 }
+
+func (r *Round) StartRoundTrip() {
+	t := time.Now().Round(0)
+	r.roundMetrics.RTStartTime = t
+}
+
+func (r *Round) StopRoundTrip() {
+	t := time.Now().Round(0)
+	r.roundMetrics.RTEndTime = t
+}

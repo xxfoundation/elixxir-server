@@ -77,6 +77,10 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceivePostNewBatch(instance, newBatch)
 	}
 
+	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing) error {
+		return ReceiveRoundTripPing(instance, ping)
+	}
+
 	// NOTE: AskOnline is notably absent here, despite having a transmitter.
 	//       Until server start up is complicated enough to have state we
 	//       need to check before it can process messages, we leave
