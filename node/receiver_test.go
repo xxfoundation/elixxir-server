@@ -10,10 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
@@ -27,6 +27,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"reflect"
@@ -83,9 +84,9 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	const roundID = 2
 
 	// Does the mockPhase move through states?
-	precompReveal := initMockPhase()
+	precompReveal := testUtil.InitMockPhase()
 	precompReveal.Ptype = phase.PrecompReveal
-	realDecrypt := initMockPhase()
+	realDecrypt := testUtil.InitMockPhase()
 	realDecrypt.Ptype = phase.RealDecrypt
 
 	tagKey := realDecrypt.Ptype.String()
@@ -257,7 +258,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	instance := server.CreateServerInstance(&def)
 
-	mockPhase := initMockPhase()
+	mockPhase := testUtil.InitMockPhase()
 
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
@@ -293,14 +294,14 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
-		if mockPhase.chunks[index].Begin() != uint32(index) {
+		if mockPhase.GetChunks()[index].Begin() != uint32(index) {
 			t.Errorf("PostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+				"Expected: %v, Recieved: %v", index, mockPhase.GetChunks()[index].Begin())
 		}
 
-		if mockPhase.indices[index] != uint32(index) {
+		if mockPhase.GetIndices()[index] != uint32(index) {
 			t.Errorf("PostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+				"Expected: %v, Recieved: %v", index, mockPhase.GetIndices()[index])
 		}
 	}
 
@@ -397,7 +398,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
 	instance := server.CreateServerInstance(&def)
-	mockPhase := initMockPhase()
+	mockPhase := testUtil.InitMockPhase()
 
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
@@ -443,14 +444,14 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
-		if mockPhase.chunks[index].Begin() != uint32(index) {
+		if mockPhase.GetChunks()[index].Begin() != uint32(index) {
 			t.Errorf("StreamPostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+				"Expected: %v, Recieved: %v", index, mockPhase.GetChunks()[index].Begin())
 		}
 
-		if mockPhase.indices[index] != uint32(index) {
+		if mockPhase.GetIndices()[index] != uint32(index) {
 			t.Errorf("StreamPostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+				"Expected: %v, Recieved: %v", index, mockPhase.GetIndices()[index])
 		}
 	}
 
@@ -466,82 +467,6 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	if !queued {
 		t.Errorf("StreamPostPhase: The phase was not queued properly")
 	}
-}
-
-/* Mock Graph */
-type mockCryptop struct{}
-
-func (*mockCryptop) GetName() string      { return "mockCryptop" }
-func (*mockCryptop) GetInputSize() uint32 { return 1 }
-
-type mockStream struct{}
-
-func (*mockStream) Input(uint32, *mixmessages.Slot) error { return nil }
-func (*mockStream) Output(uint32) *mixmessages.Slot       { return nil }
-func (*mockStream) GetName() string {
-	return "mockStream"
-}
-func (*mockStream) Link(*cyclic.Group, uint32, ...interface{}) {}
-
-/*Mock Phase*/
-type MockPhase struct {
-	graph        *services.Graph
-	chunks       []services.Chunk
-	indices      []uint32
-	stateChecker phase.GetState
-	Ptype        phase.Type
-}
-
-func (mp *MockPhase) Send(chunk services.Chunk) {
-	mp.chunks = append(mp.chunks, chunk)
-}
-
-func (mp *MockPhase) Input(index uint32, slot *mixmessages.Slot) error {
-	if len(slot.Salt) != 0 {
-		return errors.New("error to test edge case")
-	}
-	mp.indices = append(mp.indices, index)
-	return nil
-}
-
-func (mp *MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
-	getState phase.GetState) {
-	mp.stateChecker = getState
-	return
-}
-
-func (mp *MockPhase) GetState() phase.State     { return mp.stateChecker() }
-func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
-
-func (*MockPhase) EnableVerification()    { return }
-func (*MockPhase) GetRoundID() id.Round   { return 0 }
-func (mp *MockPhase) GetType() phase.Type { return mp.Ptype }
-func (mp *MockPhase) AttemptToQueue(queue chan<- phase.Phase) bool {
-	queue <- mp
-	return true
-}
-func (mp *MockPhase) IsQueued() bool                      { return true }
-func (*MockPhase) UpdateFinalStates()                     { return }
-func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
-func (*MockPhase) GetTimeout() time.Duration              { return 0 }
-func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
-func (*MockPhase) String() string                         { return "" }
-func (*MockPhase) Measure(string)                         { return }
-func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
-
-func initMockPhase() *MockPhase {
-	gc := services.NewGraphGenerator(1, nil, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
-	g := gc.NewGraph("MockGraph", &mockStream{})
-	var mockModule services.Module
-	mockModule.Adapt = func(stream services.Stream,
-		cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		return nil
-	}
-	mockModule.Cryptop = &mockCryptop{}
-	mockModuleCopy := mockModule.DeepCopy()
-	g.First(mockModuleCopy)
-	g.Last(mockModuleCopy)
-	return &MockPhase{graph: g}
 }
 
 func initImplGroup() *cyclic.Group {
@@ -629,7 +554,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	mockPhase := initMockPhase()
+	mockPhase := testUtil.InitMockPhase()
 	mockPhase.Ptype = phase.PrecompShare
 
 	tagKey := mockPhase.GetType().String() + "Verification"
@@ -698,7 +623,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	responseMap := make(phase.ResponseMap)
 
-	mockPhaseShare := initMockPhase()
+	mockPhaseShare := testUtil.InitMockPhase()
 	mockPhaseShare.Ptype = phase.PrecompShare
 
 	tagKey := mockPhaseShare.GetType().String() + "Verification"
@@ -709,7 +634,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 			PhaseToExecute: mockPhaseShare.GetType()},
 	)
 
-	mockPhaseDecrypt := initMockPhase()
+	mockPhaseDecrypt := testUtil.InitMockPhase()
 	mockPhaseDecrypt.Ptype = phase.PrecompDecrypt
 
 	tagKey = mockPhaseDecrypt.GetType().String()
@@ -741,7 +666,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	// Verify that a PostPhase is called by ensuring callback
 	// does set the actual by comparing it to the expected batch
-	if uint32(len(mockPhaseDecrypt.indices)) != batchSize {
+	if uint32(len(mockPhaseDecrypt.GetIndices())) != batchSize {
 		t.Errorf("first node did not recieve the correct number of " +
 			"elements")
 	}
@@ -834,7 +759,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompReveal.String()+"Verification"] = response
 	// This is quite a bit of setup...
-	p := initMockPhase()
+	p := testUtil.InitMockPhase()
 	p.Ptype = phase.PrecompReveal
 	instance.GetRoundManager().AddRound(round.New(grp,
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
@@ -886,7 +811,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		responseMap := make(phase.ResponseMap)
 		responseMap[phase.PrecompReveal.String()+"Verification"] = response
 		// This is quite a bit of setup...
-		p := initMockPhase()
+		p := testUtil.InitMockPhase()
 		p.Ptype = phase.PrecompReveal
 		instances[i].GetRoundManager().AddRound(round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
@@ -959,7 +884,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	p := initMockPhase()
+	p := testUtil.InitMockPhase()
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
@@ -1032,7 +957,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	p := initMockPhase()
+	p := testUtil.InitMockPhase()
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
@@ -1106,7 +1031,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	p := initMockPhase()
+	p := testUtil.InitMockPhase()
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
@@ -1143,6 +1068,71 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("This should have thrown an error, instead got: %+v", err)
+	}
+}
+
+func TestReceiveRoundTripPing(t *testing.T) {
+	grp := initImplGroup()
+	const numNodes = 5
+
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
+
+	// Set instance for first node
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        circuit.New(buildMockNodeIDs(numNodes)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &resourceMonitor,
+	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance := mockServerInstance(t)
+	topology := instance.GetTopology()
+
+	instance.InitFirstNode()
+
+	// Set up a round first node
+	roundID := id.Round(45)
+
+	mockPhase := testUtil.InitMockPhase()
+	mockPhase.Ptype = phase.PrecompShare
+
+	tagKey := mockPhase.GetType().String() + "Verification"
+	responseMap := make(phase.ResponseMap)
+	responseMap[tagKey] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active},
+			PhaseToExecute: mockPhase.GetType()},
+	)
+
+	batchSize := uint32(11)
+
+	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
+		instance.GetRngStreamGen(), "0.0.0.0")
+
+	before := r.GetRTEnd().String()
+
+	instance.GetRoundManager().AddRound(r)
+
+	any, _ := ptypes.MarshalAny(&mixmessages.Ack{})
+
+	msg := &mixmessages.RoundTripPing{
+		Payload: any,
+		Round: &mixmessages.RoundInfo{
+			ID: 45,
+		},
+	}
+
+	err := ReceiveRoundTripPing(instance, msg)
+	if err != nil {
+		t.Errorf("ReceiveRoundTripPing returned an error: %+v", err)
+	}
+
+	if before == r.GetRTEnd().String() {
+		t.Error("ReceiveRoundTripPing didn't update end time")
 	}
 }
 

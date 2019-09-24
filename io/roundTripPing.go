@@ -8,13 +8,14 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 )
 
+// TransmitRoundTripPing sends a round trip ping and starts
 func TransmitRoundTripPing(network *node.NodeComms, id *id.Node, r *round.Round) error {
 	roundID := r.GetID()
 
 	r.StartRoundTrip()
 
 	_, err := network.RoundTripPing(id, uint64(roundID))
-	if err != nil{
+	if err != nil {
 		err = errors.New(fmt.Sprintf("TransmitRoundTripPing received an error: %+v", err))
 		return err
 	}

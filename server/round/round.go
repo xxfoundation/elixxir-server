@@ -234,12 +234,24 @@ func (r *Round) String() string {
 	return fmt.Sprintf("%d (%d - %s)", r.id, r.state, currentPhase)
 }
 
+// StartRoundTrip sets start time for rt ping
 func (r *Round) StartRoundTrip() {
 	t := time.Now().Round(0)
 	r.roundMetrics.RTStartTime = t
 }
 
+// GetRTStart gets start time of rt ping
+func (r *Round) GetRTStart() time.Time {
+	return r.roundMetrics.RTStartTime
+}
+
+// StopRoundTrip sets end time of rt ping
 func (r *Round) StopRoundTrip() {
 	t := time.Now().Round(0)
 	r.roundMetrics.RTEndTime = t
+}
+
+// GetRTEnd gets end time of rt ping
+func (r *Round) GetRTEnd() time.Time {
+	return r.roundMetrics.RTEndTime
 }

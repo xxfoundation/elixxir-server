@@ -438,6 +438,7 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	return &ret, nil
 }
 
+// ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
 func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripPing) error {
 	roundID := msg.Round.ID
 	rm := instance.GetRoundManager()
