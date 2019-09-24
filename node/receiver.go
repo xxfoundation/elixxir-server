@@ -9,6 +9,7 @@ package node
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -458,7 +459,13 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	}
 
 	nextNode := topology.GetNextNode(myID)
-	_, err = instance.GetNetwork().RoundTripPing(nextNode, roundID)
+
+	any, err := ptypes.MarshalAny(&mixmessages.Ack{})
+	if err != nil {
+		err = errors.Errorf("ReceiveRoundTripPing: failed attempting to marshall any type: %+v", err)
+	}
+
+	_, err = instance.GetNetwork().RoundTripPing(nextNode, roundID, any)
 	if err != nil {
 		err = errors.Errorf("ReceiveRoundTripPing failed to send ping to next node: %+v", err)
 		return err
