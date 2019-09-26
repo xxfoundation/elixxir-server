@@ -23,6 +23,8 @@ type firstNode struct {
 	finishedRound chan id.Round
 
 	currentRoundID id.Round
+
+	lastRoundTrip int
 }
 
 // RoundCreationTransmitter is a function type which is used to notify all nodes
@@ -67,6 +69,16 @@ func (fn *firstNode) roundCreationRunner(instance *Instance, fullRoundTimeout ti
 	err = starter(instance, fn.currentRoundID)
 	if err != nil {
 		jww.FATAL.Panicf("Round failed to start round locally: %+v", err)
+	}
+
+	if fn.lastRoundTrip == 100 {
+		err = instance.definition.PingHandler(instance, fn.currentRoundID)
+		if err != nil {
+			jww.ERROR.Printf("Failed to send round trip ping: %+v", err)
+		}
+		fn.lastRoundTrip = 0
+	} else {
+		fn.lastRoundTrip++
 	}
 
 	select {

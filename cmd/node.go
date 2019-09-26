@@ -101,6 +101,19 @@ func StartServer(vip *viper.Viper) {
 		return node.GatherMetrics(instance, roundID, metricsWhitespace)
 	}
 
+	def.PingHandler = func(instance *server.Instance, roundID id.Round) error {
+		myID := instance.GetID()
+		round, err := instance.GetRoundManager().GetRound(roundID)
+		if err != nil {
+			jww.ERROR.Printf("uh-oh: %+v", err)
+		}
+
+		topology := round.GetTopology()
+		nextNode := topology.GetNextNode(myID)
+
+		return io.TransmitRoundTripPing(instance.GetNetwork(), nextNode, round, true)
+	}
+
 	PanicHandler := func(g, m string, err error) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))

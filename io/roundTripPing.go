@@ -3,6 +3,7 @@ package io
 import (
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -11,15 +12,25 @@ import (
 )
 
 // TransmitRoundTripPing sends a round trip ping and starts
-func TransmitRoundTripPing(network *node.NodeComms, id *id.Node, r *round.Round) error {
+func TransmitRoundTripPing(network *node.NodeComms, id *id.Node, r *round.Round, fullBatch bool) error {
 	roundID := r.GetID()
 
-	r.StartRoundTrip()
+	var anyPayload proto.Message
+	var payloadInfo string
 
-	any, err := ptypes.MarshalAny(&mixmessages.Ack{})
+	if fullBatch {
+		anyPayload = &mixmessages.Batch{}
+		payloadInfo = "FULL/BATCH"
+	} else {
+		anyPayload = &mixmessages.Ack{}
+		payloadInfo = "EMPTY/ACK"
+	}
+
+	any, err := ptypes.MarshalAny(anyPayload)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed attempting to marshall any type: %+v", err))
 	}
+	r.StartRoundTrip(payloadInfo)
 
 	_, err = network.RoundTripPing(id, uint64(roundID), any)
 	if err != nil {

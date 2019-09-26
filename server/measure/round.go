@@ -30,6 +30,7 @@ type RoundMetrics struct {
 	// Round trip data
 	RTStartTime time.Time
 	RTEndTime 	time.Time
+	RTPayload   string
 }
 
 // NewRoundMetrics initializes a new RoundMetrics object with the specified

@@ -38,7 +38,7 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 		myID := instance.GetID()
 		if topology.IsFirstNode(myID) {
 			nextNode := topology.GetNextNode(myID)
-			err = io.TransmitRoundTripPing(instance.GetNetwork(), nextNode, r)
+			err = io.TransmitRoundTripPing(instance.GetNetwork(), nextNode, r, false)
 			if err != nil {
 				jww.WARN.Printf("Failed to transmit round trip ping: %+v", err)
 			}

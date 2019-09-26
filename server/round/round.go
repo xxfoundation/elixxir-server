@@ -235,9 +235,10 @@ func (r *Round) String() string {
 }
 
 // StartRoundTrip sets start time for rt ping
-func (r *Round) StartRoundTrip() {
+func (r *Round) StartRoundTrip(payload string) {
 	t := time.Now().Round(0)
 	r.roundMetrics.RTStartTime = t
+	r.roundMetrics.RTPayload = payload
 }
 
 // GetRTStart gets start time of rt ping
@@ -254,4 +255,8 @@ func (r *Round) StopRoundTrip() {
 // GetRTEnd gets end time of rt ping
 func (r *Round) GetRTEnd() time.Time {
 	return r.roundMetrics.RTEndTime
+}
+
+func (r *Round) GetRTPayload() string {
+	return r.roundMetrics.RTPayload
 }
