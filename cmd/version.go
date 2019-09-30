@@ -19,8 +19,14 @@ func init() {
 }
 
 func printVersion() {
-	fmt.Printf("Elixxir Server v%s -- %s\n\n", SEMVER, GITVERSION)
-	fmt.Printf("Dependencies:\n\n%s\n", GLIDEDEPS)
+	fmt.Printf(getVersionInfo())
+}
+
+func getVersionInfo() string {
+	version := fmt.Sprintf("Elixxir Server v%s -- %s\n\n", SEMVER,
+		GITVERSION)
+	version = fmt.Sprintf("%sDependencies:\n\n%s\n", version, GLIDEDEPS)
+	return version
 }
 
 var versionCmd = &cobra.Command{
