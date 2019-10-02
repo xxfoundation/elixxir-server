@@ -28,9 +28,8 @@ type RoundMetrics struct {
 	EndTime   time.Time
 
 	// Round trip data
-	RTStartTime time.Time
-	RTEndTime 	time.Time
-	RTPayload   string
+	RTDurationMilli float64
+	RTPayload   	string
 }
 
 // NewRoundMetrics initializes a new RoundMetrics object with the specified

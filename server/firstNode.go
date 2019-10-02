@@ -71,15 +71,16 @@ func (fn *firstNode) roundCreationRunner(instance *Instance, fullRoundTimeout ti
 		jww.FATAL.Panicf("Round failed to start round locally: %+v", err)
 	}
 
-	if fn.lastRoundTrip == 100 {
+	// round trip ping every 50 rounds
+	jww.INFO.Printf("lastRoundTrip: %d", fn.lastRoundTrip)
+	if fn.lastRoundTrip == 50 {
 		err = instance.definition.PingHandler(instance, fn.currentRoundID)
 		if err != nil {
 			jww.ERROR.Printf("Failed to send round trip ping: %+v", err)
 		}
-		fn.lastRoundTrip = 0
-	} else {
-		fn.lastRoundTrip++
+		fn.lastRoundTrip = 1
 	}
+	fn.lastRoundTrip++
 
 	select {
 	case finishedRound := <-fn.finishedRound:

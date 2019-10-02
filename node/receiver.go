@@ -452,18 +452,16 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	myID := instance.GetID()
 
 	if topology.IsFirstNode(myID) {
-		r.StopRoundTrip()
-		jww.INFO.Printf("First node received round trip ping, recording stop time")
+		err = r.StopRoundTrip()
+		if err != nil {
+			err = errors.Errorf("ReceiveRoundTrip failed to stop round trip: %+v", err)
+			jww.ERROR.Println(err.Error())
+			return err
+		}
 		return nil
 	}
 
 	nextNode := topology.GetNextNode(myID)
-
-	/*
-	any, err := ptypes.MarshalAny(&mixmessages.Ack{})
-	if err != nil {
-		err = errors.Errorf("ReceiveRoundTripPing: failed attempting to marshall any type: %+v", err)
-	}*/
 
 	_, err = instance.GetNetwork().RoundTripPing(nextNode, roundID, msg.Payload)
 	if err != nil {

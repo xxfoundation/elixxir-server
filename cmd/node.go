@@ -101,6 +101,7 @@ func StartServer(vip *viper.Viper) {
 		return node.GatherMetrics(instance, roundID, metricsWhitespace)
 	}
 
+	// Add handler for sending off round trip ping
 	def.PingHandler = func(instance *server.Instance, roundID id.Round) error {
 		myID := instance.GetID()
 		round, err := instance.GetRoundManager().GetRound(roundID)

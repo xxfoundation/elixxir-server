@@ -30,6 +30,7 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"google.golang.org/grpc/metadata"
 	"io"
+	"math/rand"
 	"reflect"
 	"runtime"
 	"testing"
@@ -1112,12 +1113,35 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
+	r.StartRoundTrip("test")
 
 	before := r.GetRTEnd().String()
 
 	instance.GetRoundManager().AddRound(r)
-
-	any, _ := ptypes.MarshalAny(&mixmessages.Ack{})
+	A := make([]byte, 150)
+	B := make([]byte, 150)
+	_, err := rand.Read(A)
+	if err != nil {
+		t.Errorf("TransmitRoundTripPing: failed to generate random bytes A: %+v", err)
+	}
+	_, err = rand.Read(B)
+	if err != nil {
+		t.Errorf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err)
+	}
+	anyPayload := &mixmessages.Batch{
+		Slots: []*mixmessages.Slot{
+			{
+				SenderID: instance.GetID().Bytes(),
+				PayloadA: A,
+				PayloadB: B,
+				// Because the salt is just one byte,
+				// this should fail in the Realtime Decrypt graph.
+				Salt:  make([]byte, 32),
+				KMACs: [][]byte{{5}},
+			},
+		},
+	}
+	any, _ := ptypes.MarshalAny(anyPayload)
 
 	msg := &mixmessages.RoundTripPing{
 		Payload: any,
@@ -1126,7 +1150,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 		},
 	}
 
-	err := ReceiveRoundTripPing(instance, msg)
+	err = ReceiveRoundTripPing(instance, msg)
 	if err != nil {
 		t.Errorf("ReceiveRoundTripPing returned an error: %+v", err)
 	}

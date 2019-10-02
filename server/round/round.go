@@ -32,6 +32,10 @@ type Round struct {
 
 	//holds round metrics data
 	roundMetrics measure.RoundMetrics
+
+	rtStarted   bool
+	rtStartTime time.Time
+	rtEndTime 	time.Time
 }
 
 // Creates and initializes a new round, including all phases, topology,
@@ -237,26 +241,36 @@ func (r *Round) String() string {
 // StartRoundTrip sets start time for rt ping
 func (r *Round) StartRoundTrip(payload string) {
 	t := time.Now().Round(0)
-	r.roundMetrics.RTStartTime = t
+	r.rtStartTime = t
 	r.roundMetrics.RTPayload = payload
+	r.rtStarted = true
 }
 
 // GetRTStart gets start time of rt ping
 func (r *Round) GetRTStart() time.Time {
-	return r.roundMetrics.RTStartTime
+	return r.rtStartTime
 }
 
 // StopRoundTrip sets end time of rt ping
-func (r *Round) StopRoundTrip() {
+func (r *Round) StopRoundTrip() error {
+	if !r.rtStarted {
+		return errors.Errorf("StopRoundTrip: failed to stop round trip: round trip was never started")
+	}
 	t := time.Now().Round(0)
-	r.roundMetrics.RTEndTime = t
+	r.rtEndTime = t
+	start := r.rtStartTime
+	duration := float64(t.Nanosecond() - start.Nanosecond())/1000000
+	jww.INFO.Printf("Round trip duration for round %d: %+v", uint32(r.id), duration)
+	r.roundMetrics.RTDurationMilli = duration
+	return nil
 }
 
 // GetRTEnd gets end time of rt ping
 func (r *Round) GetRTEnd() time.Time {
-	return r.roundMetrics.RTEndTime
+	return r.rtEndTime
 }
 
+// GetRTPayload gets the payload info for the rt ping
 func (r *Round) GetRTPayload() string {
 	return r.roundMetrics.RTPayload
 }
