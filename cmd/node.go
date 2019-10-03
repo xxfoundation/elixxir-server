@@ -8,9 +8,12 @@
 package cmd
 
 import (
+	"crypto/rand"
+	"errors"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
@@ -112,7 +115,39 @@ func StartServer(vip *viper.Viper) {
 		topology := round.GetTopology()
 		nextNode := topology.GetNextNode(myID)
 
-		return io.TransmitRoundTripPing(instance.GetNetwork(), nextNode, round, true)
+		A := make([]byte, 256)
+		B := make([]byte, 256)
+		salt := make([]byte, 32)
+		_, err = rand.Read(A)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes A: %+v", err))
+			return err
+		}
+		_, err = rand.Read(B)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err))
+			return err
+		}
+		_ , err = rand.Read(salt)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err))
+			return err
+		}
+		payload := &mixmessages.Batch{
+			Slots: []*mixmessages.Slot{
+				{
+					SenderID: nextNode.Bytes(),
+					PayloadA: A,
+					PayloadB: B,
+					// Because the salt is just one byte,
+					// this should fail in the Realtime Decrypt graph.
+					Salt:  salt,
+				},
+			},
+		}
+
+		return io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
+			round, payload, "FULL/BATCH")
 	}
 
 	PanicHandler := func(g, m string, err error) {
