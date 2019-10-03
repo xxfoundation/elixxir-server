@@ -21,7 +21,8 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 
 	generalExpectedStates := []phase.State{phase.Active}
 
-	defaultTimeout := 5000 * time.Millisecond
+	// TODO: Expose this timeout on the command line
+	defaultTimeout := 2 * time.Minute
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 

@@ -8,6 +8,8 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -81,4 +83,37 @@ func saveMetricJSON(jsonData []byte, logFileName string, roundID id.Round) error
 	}
 
 	return err
+}
+
+// ClearMetricsLogs deletes all metric logs matching the specified path. For
+// matching the correct files, the logFilePlaceholder must be an asterisk
+// character (*).
+//
+// This function is intended to be run at server startup to clear out the metric
+// log files from the previous server instance. It is assumed that the metrics
+// log path is unchanged from the previous server run.
+func ClearMetricsLogs(path string) error {
+	// Expand and clean the path
+	path, err := utils.ExpandPath(path)
+	if err != nil {
+		return err
+	}
+
+	// Get a list of all files matching the specified path
+	fileList, err := filepath.Glob(path)
+	if err != nil {
+		return err
+	}
+
+	// Loop through all the matching files
+	for _, file := range fileList {
+		// Remove the log file
+		err = os.Remove(file)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -8,8 +8,10 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -114,4 +116,68 @@ func Test_saveMetricJSON_ErrorPath(t *testing.T) {
 
 	// Remove the created log file
 	_ = os.Remove(filePath2)
+}
+
+// Tests that ClearMetricsLogs() correctly deletes all the files matching the
+// test file.
+func TestClearMetricsLogs(t *testing.T) {
+	testFile := "test/temp-*.txt"
+
+	// Create test files to delete.
+	err := createTempFiles(testFile, 3)
+	if err != nil {
+		t.Errorf("Unexpected error creating temporary files: %v", err)
+	}
+
+	// Delete the files
+	err = ClearMetricsLogs(testFile)
+	if err != nil {
+		t.Errorf("Unexpected error when running ClearMetricsLogs(): %v", err)
+	}
+
+	// Get list of any files left that match the test file
+	fileList, err := filepath.Glob(testFile)
+	if err != nil {
+		t.Errorf("Unexpected error getting list of files in directory: %v", err)
+	}
+
+	// Check if any files are left that match the test file
+	if len(fileList) > 0 {
+		t.Errorf("Not all metric log files were deleted:\n\t%v", fileList)
+	}
+
+	// Remove non-matching files
+	_ = os.RemoveAll(filepath.Dir(testFile))
+}
+
+// Creates a specified number of files at the specified path for testing.
+func createTempFiles(path string, num int) error {
+	for i := 0; i < num; i++ {
+		// Convert the index to a string
+		indexString := strconv.FormatUint(uint64(i), 10)
+
+		// Replace the symbol placeholder with the index
+		file := strings.ReplaceAll(path, logFilePlaceholder, indexString)
+
+		// Write the file
+		err := utils.WriteFile(file, []byte("test"), utils.FilePerms, utils.DirPerms)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Write some more files that do not conform to the path pattern
+	err := utils.WriteFile(filepath.Join(filepath.Dir(path), "testA.txt"),
+		[]byte("test"), utils.FilePerms, utils.DirPerms)
+	if err != nil {
+		return err
+	}
+
+	err = utils.WriteFile(filepath.Join(filepath.Dir(path), "testB.txt"),
+		[]byte("test"), utils.FilePerms, utils.DirPerms)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
