@@ -80,7 +80,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 
 	roundID := id.Round(0)
 
-	mockPhase := testUtil.InitMockPhase()
+	mockPhase := testUtil.InitMockPhase(t)
 	mockPhase.Ptype = phase.PrecompShare
 
 	tagKey := mockPhase.GetType().String() + "Verification"

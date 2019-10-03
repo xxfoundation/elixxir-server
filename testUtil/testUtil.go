@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"runtime"
+	"testing"
 	"time"
 )
 
@@ -82,7 +83,10 @@ func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
 
-func InitMockPhase() *MockPhase {
+func InitMockPhase(t *testing.T) *MockPhase {
+	if t == nil {
+		panic(errors.New("ERROR: must pass in testing.T object"))
+	}
 	gc := services.NewGraphGenerator(1, nil, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
 	g := gc.NewGraph("MockGraph", &MockStream{})
 	var mockModule services.Module

@@ -20,14 +20,20 @@ func TransmitRoundTripPing(network *node.NodeComms, id *id.Node, r *round.Round,
 	var anyPayload proto.Message
 	var payloadInfo string
 	if fullBatch {
-		A := make([]byte, 150)
-		B := make([]byte, 150)
+		A := make([]byte, 256)
+		B := make([]byte, 256)
+		salt := make([]byte, 32)
 		_, err := rand.Read(A)
 		if err != nil {
 			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes A: %+v", err))
 			return err
 		}
 		_, err = rand.Read(B)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err))
+			return err
+		}
+		_ , err = rand.Read(salt)
 		if err != nil {
 			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err))
 			return err
@@ -40,8 +46,7 @@ func TransmitRoundTripPing(network *node.NodeComms, id *id.Node, r *round.Round,
 					PayloadB: B,
 					// Because the salt is just one byte,
 					// this should fail in the Realtime Decrypt graph.
-					Salt:  make([]byte, 32),
-					KMACs: [][]byte{{5}},
+					Salt:  salt,
 				},
 			},
 		}

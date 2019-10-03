@@ -85,9 +85,9 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	const roundID = 2
 
 	// Does the mockPhase move through states?
-	precompReveal := testUtil.InitMockPhase()
+	precompReveal := testUtil.InitMockPhase(t)
 	precompReveal.Ptype = phase.PrecompReveal
-	realDecrypt := testUtil.InitMockPhase()
+	realDecrypt := testUtil.InitMockPhase(t)
 	realDecrypt.Ptype = phase.RealDecrypt
 
 	tagKey := realDecrypt.Ptype.String()
@@ -259,7 +259,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	instance := server.CreateServerInstance(&def)
 
-	mockPhase := testUtil.InitMockPhase()
+	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
@@ -399,7 +399,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
 	instance := server.CreateServerInstance(&def)
-	mockPhase := testUtil.InitMockPhase()
+	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
@@ -555,7 +555,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	mockPhase := testUtil.InitMockPhase()
+	mockPhase := testUtil.InitMockPhase(t)
 	mockPhase.Ptype = phase.PrecompShare
 
 	tagKey := mockPhase.GetType().String() + "Verification"
@@ -624,7 +624,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	responseMap := make(phase.ResponseMap)
 
-	mockPhaseShare := testUtil.InitMockPhase()
+	mockPhaseShare := testUtil.InitMockPhase(t)
 	mockPhaseShare.Ptype = phase.PrecompShare
 
 	tagKey := mockPhaseShare.GetType().String() + "Verification"
@@ -635,7 +635,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 			PhaseToExecute: mockPhaseShare.GetType()},
 	)
 
-	mockPhaseDecrypt := testUtil.InitMockPhase()
+	mockPhaseDecrypt := testUtil.InitMockPhase(t)
 	mockPhaseDecrypt.Ptype = phase.PrecompDecrypt
 
 	tagKey = mockPhaseDecrypt.GetType().String()
@@ -760,7 +760,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompReveal.String()+"Verification"] = response
 	// This is quite a bit of setup...
-	p := testUtil.InitMockPhase()
+	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.PrecompReveal
 	instance.GetRoundManager().AddRound(round.New(grp,
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
@@ -812,7 +812,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		responseMap := make(phase.ResponseMap)
 		responseMap[phase.PrecompReveal.String()+"Verification"] = response
 		// This is quite a bit of setup...
-		p := testUtil.InitMockPhase()
+		p := testUtil.InitMockPhase(t)
 		p.Ptype = phase.PrecompReveal
 		instances[i].GetRoundManager().AddRound(round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
@@ -885,7 +885,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	p := testUtil.InitMockPhase()
+	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
@@ -958,7 +958,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	p := testUtil.InitMockPhase()
+	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
@@ -1032,7 +1032,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	p := testUtil.InitMockPhase()
+	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
@@ -1096,7 +1096,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	// Set up a round first node
 	roundID := id.Round(45)
 
-	mockPhase := testUtil.InitMockPhase()
+	mockPhase := testUtil.InitMockPhase(t)
 	mockPhase.Ptype = phase.PrecompShare
 
 	tagKey := mockPhase.GetType().String() + "Verification"
