@@ -9,6 +9,7 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
@@ -57,8 +58,9 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		var registry globals.UserRegistry
 		registry = &globals.UserMap{}
 		user := globals.User{
-			ID:      userID,
-			BaseKey: baseKeys[i],
+			ID:           userID,
+			BaseKey:      baseKeys[i],
+			IsRegistered: true,
 		}
 		registry.UpsertUser(&user)
 		defsLst[i].UserRegistry = registry
@@ -113,6 +115,12 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	//build a batch to send to first node
 	expectedbatch := mixmessages.Batch{}
 	ecrbatch := mixmessages.Batch{}
+
+	kmacHash, err2 := hash.NewCMixHash()
+	if err2 != nil {
+		t.Errorf("Could not get KMAC hash: %+v", err2)
+	}
+
 	for i := 0; i < batchsize; i++ {
 		//make the salt
 		salt := make([]byte, 32)
@@ -129,6 +137,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 		//encrypt the message
 		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
+		kmacs := cmix.GenerateKMACs(salt, baseKeys, kmacHash)
 
 		//make the slot
 		ecrslot := &mixmessages.Slot{}
@@ -136,6 +145,8 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		ecrslot.PayloadB = ecrMsg.GetPayloadB()
 		ecrslot.SenderID = userID.Bytes()
 		ecrslot.Salt = salt
+		ecrslot.KMACs = kmacs
+
 		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)
 
 		slot := &mixmessages.Slot{}

@@ -7,6 +7,7 @@
 package realtime
 
 import (
+	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -34,6 +35,7 @@ type KeygenDecryptStream struct {
 	Salts        [][]byte
 	KeysPayloadA *cyclic.IntBuffer
 	KeysPayloadB *cyclic.IntBuffer
+	KMACS        [][][]byte
 
 	graphs.KeygenSubStream
 }
@@ -58,12 +60,13 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		users, make([][]byte, batchSize))
+		users, make([][]byte, batchSize),
+		make([][][]byte, batchSize))
 }
 
 //Connects the internal buffers in the stream to the passed
 func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.User, salts [][]byte) {
+	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.User, salts [][]byte, kmacs [][][]byte) {
 
 	ds.Grp = grp
 
@@ -76,8 +79,9 @@ func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batc
 	ds.KeysPayloadB = keysPayloadB
 	ds.Users = users
 	ds.Salts = salts
+	ds.KMACS = kmacs
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.Users, ds.KeysPayloadA, ds.KeysPayloadB)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS, ds.Users, ds.KeysPayloadA, ds.KeysPayloadB)
 }
 
 // PermuteStream conforms to this interface.
@@ -117,6 +121,10 @@ func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error
 	//link to the salt
 	ds.Salts[index] = slot.Salt
 
+	//link to the KMACS
+	jwalterweatherman.DEBUG.Printf("in input: kmacs recieved: %v", slot.KMACs)
+	ds.KMACS[index] = slot.KMACs
+
 	ds.Grp.SetBytes(ds.EcrPayloadA.Get(index), slot.PayloadA)
 	ds.Grp.SetBytes(ds.EcrPayloadB.Get(index), slot.PayloadB)
 	return nil
@@ -129,6 +137,7 @@ func (ds *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
 		Salt:     ds.Salts[index],
 		PayloadA: ds.EcrPayloadA.Get(index).Bytes(),
 		PayloadB: ds.EcrPayloadB.Get(index).Bytes(),
+		KMACs:    ds.KMACS[index],
 	}
 }
 

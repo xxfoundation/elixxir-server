@@ -79,16 +79,16 @@ func StartServer(vip *viper.Viper) {
 		dbAddress,
 	)
 
-	//Add a dummy user for gateway
+	//populate the dummy precanned users
 	jww.INFO.Printf("Adding dummy users to registry")
+	PopulateDummyUsers(userDatabase, cmixGrp)
+
+	//Add a dummy user for gateway
 	dummy := userDatabase.NewUser(cmixGrp)
 	dummy.ID = id.MakeDummyUserID()
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
+	dummy.IsRegistered = true
 	userDatabase.UpsertUser(dummy)
-	_, err = userDatabase.GetUser(dummy.ID)
-
-	//populate the dummy precanned users
-	PopulateDummyUsers(userDatabase, cmixGrp)
 
 	jww.INFO.Printf("Converting params to server definition")
 	def := params.ConvertToDefinition()
@@ -232,6 +232,7 @@ func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
 		u := ur.NewUser(grp)
+		u.IsRegistered = true
 		ur.UpsertUser(u)
 	}
 }

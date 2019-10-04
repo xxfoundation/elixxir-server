@@ -85,7 +85,8 @@ func TestClientServer(t *testing.T) {
 	usrs = append(usrs, usr.ID)
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, usr.BaseKey)
-	stream.LinkStream(grp, registry, testSalts, usrs, keys, keys)
+	kmacs := make([][][]byte, 1)
+	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)
