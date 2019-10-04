@@ -33,6 +33,18 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 				"round (%v) right after round init", rid)
 		}
 
+		// Do a round trip ping if we are the first node
+		topology := r.GetTopology()
+		myID := instance.GetID()
+		if topology.IsFirstNode(myID) {
+			nextNode := topology.GetNextNode(myID)
+			err = io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
+				r, &mixmessages.Ack{}, "EMPTY/ACK")
+			if err != nil {
+				jww.WARN.Printf("Failed to transmit round trip ping: %+v", err)
+			}
+		}
+
 		//get the phase
 		p := r.GetCurrentPhase()
 
