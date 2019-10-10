@@ -46,7 +46,7 @@ func TestIdentifyStream_Link(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	is := IdentifyStream{}
 
@@ -79,7 +79,7 @@ func TestIdentifyStream_Input(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -132,7 +132,7 @@ func TestIdentifyStream_Input_OutOfBatch(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -174,7 +174,7 @@ func TestIdentifyStream_Input_OutOfGroup(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -210,7 +210,7 @@ func TestIdentifyStream_Output(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -268,7 +268,7 @@ func TestIdentifyStream_InGraph(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(10)
 

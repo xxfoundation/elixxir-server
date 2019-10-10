@@ -374,7 +374,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
-		large.NewInt(4), large.NewInt(5))
+		large.NewInt(4))
 
 	rngConstructor := NewPseudoRNG // FIXME: Why?
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
@@ -569,7 +569,7 @@ func TestBatchSize3(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
-		large.NewInt(4), large.NewInt(5))
+			large.NewInt(4))
 
 	rngConstructor := NewPseudoRNG // FIXME: Why?
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
@@ -1027,7 +1027,7 @@ func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
 func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 	t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	//nid := server.GenerateId()
 
@@ -1171,7 +1171,7 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 
 func Test_DebugStream(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(MODP768, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(1000)
 
@@ -1245,7 +1245,7 @@ func Test3NodeE2E(t *testing.T) {
 	//nodeCount := 3
 	batchSize := uint32(1)
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
-		large.NewInt(4), large.NewInt(5))
+		large.NewInt(4))
 	rngConstructor := NewPseudoRNG // FIXME: Why?
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)

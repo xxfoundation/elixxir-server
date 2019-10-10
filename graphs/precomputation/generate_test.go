@@ -39,7 +39,7 @@ var batchSize uint32
 
 func TestMain(m *testing.M) {
 	prime = large.NewIntFromString(MODP768, 16)
-	grp = cyclic.NewGroup(prime, large.NewInt(5), large.NewInt(53))
+	grp = cyclic.NewGroup(prime, large.NewInt(5))
 	batchSize = uint32(100)
 	os.Exit(m.Run())
 }

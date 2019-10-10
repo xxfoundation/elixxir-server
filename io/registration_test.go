@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 
 	nid := server.GenerateId()
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	var err error
 

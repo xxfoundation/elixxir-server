@@ -565,7 +565,7 @@ func mockServerInstance() *server.Instance {
 
 	nid := server.GenerateId()
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	def := server.Definition{
 		ID:              nid,
