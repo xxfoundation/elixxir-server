@@ -16,10 +16,9 @@ import (
 )
 
 var prime = large.NewInt(int64(17))
-var smallPrime = large.NewInt(int64(11))
 var generator = large.NewInt(int64(4))
 
-var ExpectedGroup = cyclic.NewGroup(prime, generator, smallPrime)
+var ExpectedGroup = cyclic.NewGroup(prime, generator)
 
 var ExpectedGroups = Groups{
 	CMix: map[string]string{

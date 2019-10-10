@@ -482,7 +482,7 @@ func initImplGroup() *cyclic.Group {
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2))
 	return grp
 }
 
@@ -1172,7 +1172,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2))
 
 	var nodeIDs []*id.Node
 

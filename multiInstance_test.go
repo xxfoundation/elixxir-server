@@ -381,5 +381,5 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 }

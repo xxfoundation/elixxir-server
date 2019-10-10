@@ -32,20 +32,18 @@ func (g Groups) GetE2E() *cyclic.Group {
 // and returns a a cyclic group object.
 func toGroup(grp map[string]string) *cyclic.Group {
 	pStr, pOk := grp["prime"]
-	qStr, qOk := grp["smallprime"]
 	gStr, gOk := grp["generator"]
 
-	if !gOk || !qOk || !pOk {
+	if !gOk || !pOk {
 		jww.FATAL.Panicf("Invalid Group Config "+
-			"(prime: %v, smallPrime: %v, generator: %v",
-			pOk, qOk, gOk)
+			"(prime: %v, generator: %v",
+			pOk, gOk)
 	}
 
 	p := toLargeInt(removeNonAlphaNumeric(pStr))
-	q := toLargeInt(removeNonAlphaNumeric(qStr))
 	g := toLargeInt(removeNonAlphaNumeric(gStr))
 
-	return cyclic.NewGroup(p, g, q)
+	return cyclic.NewGroup(p, g)
 }
 
 // removeNonAlphaNumeric removes all non alpha-numeric

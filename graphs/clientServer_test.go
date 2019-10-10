@@ -55,7 +55,7 @@ func TestClientServer(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	//Generate everything needed to make a user
 	nid := server.GenerateId()

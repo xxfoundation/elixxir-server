@@ -29,7 +29,7 @@ var instance *Instance
 
 func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
-	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(prime, large.NewInt(2))
 	def := mockServerDef(grp)
 	instance = CreateServerInstance(def)
 	os.Exit(m.Run())
@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 
 func TestInstance_GetGroup(t *testing.T) {
 	prime := large.NewIntFromString(MODP768, 16)
-	grp := cyclic.NewGroup(prime, large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(prime, large.NewInt(2))
 	if instance.GetGroup().GetFingerprint() != grp.GetFingerprint() {
 		t.Errorf("Instance.GetGroup: Returned incorrect group")
 	}

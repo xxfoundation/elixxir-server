@@ -44,7 +44,7 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 
 	// Build the mock functions called by the transmitter
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 	roundPubKey := grp.NewIntFromUInt(42)
 
 	roundID := id.Round(5)
@@ -91,7 +91,7 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 func TestPostRoundPublicKey_SetsRoundBuff(t *testing.T) {
 
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	// Initialize round buffer
 	batchSize := uint32(100)
@@ -118,7 +118,7 @@ func TestPostRoundPublicKey_SetsRoundBuff(t *testing.T) {
 
 func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(97))
+		large.NewInt(2))
 
 	// Initialize round buffer
 	batchSize := uint32(100)
@@ -139,7 +139,7 @@ func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 
 	// Call PostRoundPublic Key with public key value outside of group
 	grp2 := cyclic.NewGroup(large.NewInt(97),
-		large.NewInt(3), large.NewInt(43))
+		large.NewInt(3))
 	key = grp.NewMaxInt()
 	pk = mixmessages.RoundPublicKey{Key: key.Bytes()}
 
