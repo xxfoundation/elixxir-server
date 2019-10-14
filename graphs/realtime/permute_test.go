@@ -46,7 +46,7 @@ func TestPermuteStream_Link(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	stream := PermuteStream{}
 
@@ -77,7 +77,7 @@ func TestPermuteStream_Input(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -130,7 +130,7 @@ func TestPermuteStream_Input_OutOfBatch(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -172,7 +172,7 @@ func TestPermuteStream_Input_OutOfGroup(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -208,7 +208,7 @@ func TestPermuteStream_Output(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(100)
 
@@ -267,7 +267,7 @@ func TestPermuteStream_InGraph(t *testing.T) {
 			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(1283))
+		large.NewInt(2))
 
 	batchSize := uint32(10)
 

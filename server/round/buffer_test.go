@@ -36,9 +36,8 @@ var qString = "F2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F"
 
 var p = large.NewIntFromString(pString, 16)
 var g = large.NewIntFromString(gString, 16)
-var q = large.NewIntFromString(qString, 16)
 
-var grp = cyclic.NewGroup(p, g, q)
+var grp = cyclic.NewGroup(p, g)
 
 func TestNewRound(t *testing.T) {
 

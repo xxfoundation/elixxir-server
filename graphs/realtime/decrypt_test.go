@@ -9,8 +9,10 @@ package realtime
 import (
 	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -415,6 +417,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	grp := instance.GetGroup()
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
+	u.IsRegistered = true
 	registry.UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,
@@ -469,6 +472,11 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	expectedPayloadA := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 	expectedPayloadB := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 
+	kmacHash, err := hash2.NewCMixHash()
+	if err != nil {
+		t.Errorf("Could not get hash for KMACing")
+	}
+
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
@@ -485,6 +493,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 		stream.Salts[i] = testSalt
 		stream.Users[i] = u.ID
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey, kmacHash)}
 	}
 	// Here's the actual data for the test
 
@@ -556,7 +565,7 @@ func mockServerInstance() *server.Instance {
 
 	nid := server.GenerateId()
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	def := server.Definition{
 		ID:              nid,

@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 
 	nid := server.GenerateId()
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	var err error
 
@@ -248,7 +248,6 @@ func TestConfirmRegistration(t *testing.T) {
 	}
 }
 
-
 // Test confirm nonce that doesn't exist
 func TestConfirmRegistration_NonExistant(t *testing.T) {
 	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
@@ -321,4 +320,3 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 		t.Errorf("ConfirmRegistration: Expected bad signature!")
 	}
 }
-

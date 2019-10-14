@@ -32,7 +32,9 @@ const mockRoundMetricJSON = `{
 		"CPUPercentage": 0
 	},
 	"StartTime": "0001-01-01T00:00:00Z",
-	"EndTime": "0001-02-03T00:00:00Z"
+	"EndTime": "0001-02-03T00:00:00Z",
+	"RTDurationMilli": 0,
+	"RTPayload": ""
 }`
 
 // Mock an implementation with a GetMeasure function.

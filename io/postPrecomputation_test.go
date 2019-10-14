@@ -16,7 +16,7 @@ import (
 
 func TestPostPrecompResult_Errors(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(97))
+		large.NewInt(2))
 	r := round.NewBuffer(grp, 5, 5)
 
 	// If the number of slots doesn't match the batch, there should be an error
@@ -29,7 +29,7 @@ func TestPostPrecompResult_Errors(t *testing.T) {
 func TestPostPrecompResult(t *testing.T) {
 	// This test actually overwrites the precomputations for a round
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(97))
+		large.NewInt(2))
 	const bs = 5
 	r := round.NewBuffer(grp, bs, bs)
 
