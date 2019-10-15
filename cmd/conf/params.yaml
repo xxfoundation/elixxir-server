@@ -50,4 +50,9 @@ skipReg: true
 keepBuffers: true
 metrics:
   log:  "~/.elixxir/metrics.log"
+graphgen:
+  defaultNumTh: 2
+  mininputsize: 4
+  outputsize: 4
+  outputthreshold: 0.0
 ...

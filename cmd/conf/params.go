@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"net"
 )
@@ -39,6 +40,7 @@ type Params struct {
 	Gateways      Gateways
 	Permissioning Permissioning
 	Metrics       Metrics
+	GraphGen      GraphGen
 }
 
 // NewParams gets elements of the viper object
@@ -68,6 +70,11 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
 	params.Permissioning.Address = vip.GetString("permissioning.address")
 	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
+
+	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
+	params.GraphGen.minInputSize = vip.GetUint32("graphgen.mininputsize")
+	params.GraphGen.outputSize = vip.GetUint32("graphgen.outputsize")
+	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
 	params.Batch = vip.GetUint32("batch")
 	params.SkipReg = vip.GetBool("skipReg")
@@ -266,6 +273,14 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 
 		def.Permissioning.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
 	}
+
+	PanicHandler := func(g, m string, err error) {
+		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
+			m, err))
+	}
+
+	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
+		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
 	return def
 }
