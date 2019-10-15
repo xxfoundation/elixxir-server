@@ -22,6 +22,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"net"
+	"runtime"
 )
 
 // This object is used by the server instance.
@@ -72,8 +73,18 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
 
 	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
+	if params.GraphGen.defaultNumTh == 0 {
+		params.GraphGen.defaultNumTh = uint8(runtime.NumCPU())
+	}
 	params.GraphGen.minInputSize = vip.GetUint32("graphgen.mininputsize")
+	if params.GraphGen.minInputSize == 0 {
+		params.GraphGen.minInputSize = 4
+	}
 	params.GraphGen.outputSize = vip.GetUint32("graphgen.outputsize")
+	if params.GraphGen.outputSize == 0 {
+		params.GraphGen.outputSize = 4
+	}
+	// This (outputThreshold) already defaulted to 0.0
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
 	params.Batch = vip.GetUint32("batch")
