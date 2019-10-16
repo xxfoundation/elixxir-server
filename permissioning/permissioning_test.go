@@ -66,6 +66,10 @@ func (i *mockPermission) GetCurrentClientVersion() (string, error) {
 	return "0.0.0", nil
 }
 
+func (i *mockPermission) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
+	return nil, nil
+}
+
 // Dummy implementation of gateway server --------------------------------------
 type mockGateway struct{}
 
