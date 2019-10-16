@@ -60,6 +60,10 @@ func (gc GraphGenerator) GetErrorHandler() ErrorCallback {
 	return gc.errorHandler
 }
 
+func (gc GraphGenerator) SetErrorHandler(ec ErrorCallback) {
+	gc.errorHandler = ec
+}
+
 func (gc GraphGenerator) GetOutputSize() uint32 {
 	return gc.outputSize
 }

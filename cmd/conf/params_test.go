@@ -28,6 +28,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		Gateways:      ExpectedGateways,
 		Permissioning: ExpectedPermissioning,
 		Metrics:       ExpectedMetrics,
+		GraphGen:      ExpectedGraphGen,
 	}
 
 	vip := viper.New()
@@ -91,5 +92,9 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("RngScalingFactor value does not match expected value"+
 			"\n\treceived:\t%v\n\texpected:\t%v",
 			params.RngScalingFactor, expectedParams.RngScalingFactor)
+	}
+
+	if !reflect.DeepEqual(expectedParams.GraphGen, params.GraphGen) {
+		t.Errorf("Graph generator values do not match expected values")
 	}
 }
