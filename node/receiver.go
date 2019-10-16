@@ -450,6 +450,8 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 		return err
 	}
 
+	jww.INFO.Printf("Recieved RoundTripPing, payload size: %v", len(msg.Payload.Value))
+
 	topology := r.GetTopology()
 	myID := instance.GetID()
 

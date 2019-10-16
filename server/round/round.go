@@ -35,7 +35,7 @@ type Round struct {
 
 	rtStarted   bool
 	rtStartTime time.Time
-	rtEndTime 	time.Time
+	rtEndTime   time.Time
 }
 
 // Creates and initializes a new round, including all phases, topology,
@@ -240,7 +240,7 @@ func (r *Round) String() string {
 
 // StartRoundTrip sets start time for rt ping
 func (r *Round) StartRoundTrip(payload string) {
-	t := time.Now().Round(0)
+	t := time.Now()
 	r.rtStartTime = t
 	r.roundMetrics.RTPayload = payload
 	r.rtStarted = true
@@ -256,12 +256,12 @@ func (r *Round) StopRoundTrip() error {
 	if !r.rtStarted {
 		return errors.Errorf("StopRoundTrip: failed to stop round trip: round trip was never started")
 	}
-	t := time.Now().Round(0)
-	r.rtEndTime = t
-	start := r.rtStartTime
-	duration := float64(t.Nanosecond() - start.Nanosecond())/1000000
-	jww.INFO.Printf("Round trip duration for round %d: %+v", uint32(r.id), duration)
-	r.roundMetrics.RTDurationMilli = duration
+
+	r.rtEndTime = time.Now()
+	duration := r.rtEndTime.Sub(r.rtStartTime)
+	jww.INFO.Printf("Round trip duration for round %d: %v ms",
+		uint32(r.id), duration)
+	r.roundMetrics.RTDurationMilli = float64(duration) / float64(1000000)
 	return nil
 }
 

@@ -1,6 +1,9 @@
 package node
 
 import (
+	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
@@ -8,6 +11,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	insecureRand "math/rand"
 )
 
 func MakeStarter(batchSize uint32) server.RoundStarter {
@@ -37,9 +41,27 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 		topology := r.GetTopology()
 		myID := instance.GetID()
 		if topology.IsFirstNode(myID) {
+
+			payloadInfo := "EMPTY/ACK"
+			var payload proto.Message
+			payload = &mixmessages.Ack{}
+
+			if rid%3 == 0 {
+				p, err := buildBatchRTPingPayload(batchSize)
+
+				if err != nil {
+					jww.WARN.Printf("Could not build batch payload to "+
+						"transmit on 50th round for round trip ping, "+
+						"transmitting blank instead: %+v", err)
+				}
+
+				payload = p
+				payloadInfo = "FULL/BATCH"
+			}
+
 			nextNode := topology.GetNextNode(myID)
 			err = io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
-				r, &mixmessages.Ack{}, "EMPTY/ACK")
+				r, payload, payloadInfo)
 			if err != nil {
 				jww.WARN.Printf("Failed to transmit round trip ping: %+v", err)
 			}
@@ -62,4 +84,48 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 		}
 		return nil
 	}
+}
+
+func buildBatchRTPingPayload(batchsize uint32) (proto.Message, error) {
+
+	payload := &mixmessages.Batch{}
+	payload.Slots = make([]*mixmessages.Slot, batchsize)
+
+	for i := uint32(0); i < batchsize; i++ {
+		A := make([]byte, 256)
+		B := make([]byte, 256)
+		salt := make([]byte, 32)
+		sid := make([]byte, 32)
+
+		_, err := insecureRand.Read(A)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes A: %+v", err))
+			return nil, err
+		}
+		_, err = insecureRand.Read(B)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err))
+			return nil, err
+		}
+		_, err = insecureRand.Read(salt)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err))
+			return nil, err
+		}
+		_, err = insecureRand.Read(sid)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed to generate random bytes for id: %+v", err))
+			return nil, err
+		}
+
+		slot := mixmessages.Slot{
+			SenderID: sid,
+			PayloadA: A,
+			PayloadB: B,
+			Salt:     salt,
+		}
+		payload.Slots[i] = &slot
+	}
+
+	return payload, nil
 }
