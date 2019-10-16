@@ -259,8 +259,9 @@ func (r *Round) StopRoundTrip() error {
 
 	r.rtEndTime = time.Now()
 	duration := r.rtEndTime.Sub(r.rtStartTime)
+	durationMs := duration / time.Millisecond
 	jww.INFO.Printf("Round trip duration for round %d: %v ms",
-		uint32(r.id), duration)
+		uint32(r.id), durationMs)
 	r.roundMetrics.RTDurationMilli = float64(duration) / float64(1000000)
 	return nil
 }

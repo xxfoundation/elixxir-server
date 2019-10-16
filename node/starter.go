@@ -14,6 +14,9 @@ import (
 	insecureRand "math/rand"
 )
 
+//todo: bring this in optionally via the config file
+const FullTestFrequency = 50
+
 func MakeStarter(batchSize uint32) server.RoundStarter {
 	localBatchSize := batchSize
 	return func(instance *server.Instance, rid id.Round) error {
@@ -46,7 +49,7 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 			var payload proto.Message
 			payload = &mixmessages.Ack{}
 
-			if rid%3 == 0 {
+			if rid%FullTestFrequency == 0 {
 				p, err := buildBatchRTPingPayload(batchSize)
 
 				if err != nil {
@@ -86,6 +89,8 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 	}
 }
 
+//buildBatchRTPingPayload builds a fake batch to use for testing of full
+//communications
 func buildBatchRTPingPayload(batchsize uint32) (proto.Message, error) {
 
 	payload := &mixmessages.Batch{}
