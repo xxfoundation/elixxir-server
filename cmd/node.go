@@ -149,6 +149,12 @@ func StartServer(vip *viper.Viper) {
 			round, payload, "FULL/BATCH")
 	}
 
+	PanicHandler := func(g, m string, err error) {
+		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
+			m, err))
+	}
+	def.GraphGenerator.SetErrorHandler(PanicHandler)
+
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
