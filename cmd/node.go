@@ -22,7 +22,6 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/services"
 	"runtime"
 	"time"
 )
@@ -105,9 +104,7 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))
 	}
-
-	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
-		uint8(runtime.NumCPU()), 4, 0.0)
+	def.GraphGenerator.SetErrorHandler(PanicHandler)
 
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
