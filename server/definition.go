@@ -45,8 +45,6 @@ type Definition struct {
 	ResourceMonitor *measure.ResourceMonitor
 	// Function to handle the wrapping-up of metrics for the first node
 	MetricsHandler MetricsHandler
-	// Function to handle sending pings every so often from the first node
-	PingHandler PingHandler
 
 	//Size of the batch for the network
 	BatchSize uint32
@@ -108,5 +106,3 @@ type GW struct {
 }
 
 type MetricsHandler func(i *Instance, roundID id.Round) error
-
-type PingHandler func (i *Instance, roundID id.Round) error

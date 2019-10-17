@@ -198,7 +198,6 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	fmt.Println(p)
 	p.Measure(measure.TagReceiveOnReception)
 
 	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
@@ -259,14 +258,6 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
-	//HACK HACK HACK
-	//The share phase needs a batchsize of 1, when it recieves
-	// from generation on the first node this will do the
-	// conversion on the batch
-	if p.GetType() == phase.PrecompShare && batchInfo.BatchSize != 1 {
-		batchInfo.BatchSize = 1
-	}
 
 	strmErr := io.StreamPostPhase(p, batchInfo.BatchSize, streamServer)
 
@@ -449,6 +440,8 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 		err = errors.Errorf("ReceiveRoundTripPing could not get round: %+v", err)
 		return err
 	}
+
+	//jww.INFO.Printf("Recieved RoundTripPing, payload size: %v", len(msg.Payload.Value))
 
 	topology := r.GetTopology()
 	myID := instance.GetID()
