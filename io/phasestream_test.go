@@ -136,7 +136,7 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 	// call the transmitter
 	err := StreamTransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
-		getMsg, topology, topology.GetNodeAtIndex(0))
+		getMsg, topology, topology.GetNodeAtIndex(0), nil)
 
 	if err != nil {
 		t.Errorf("StreamTransmitPhase failed %v", err)

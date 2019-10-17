@@ -14,9 +14,6 @@ import (
 	insecureRand "math/rand"
 )
 
-//todo: bring this in optionally via the config file
-const FullTestFrequency = 50
-
 func MakeStarter(batchSize uint32) server.RoundStarter {
 	localBatchSize := batchSize
 	return func(instance *server.Instance, rid id.Round) error {
@@ -38,6 +35,7 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 		if err != nil {
 			jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
 				"round (%v) right after round init", rid)
+
 		}
 
 		// Do a round trip ping if we are the first node
@@ -48,19 +46,20 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 			payloadInfo := "EMPTY/ACK"
 			var payload proto.Message
 			payload = &mixmessages.Ack{}
+			//does not work properly because it doesnt use streaming comms
+			/*
+				if rid%FullTestFrequency == 0 {
+					p, err := buildBatchRTPingPayload(batchSize)
 
-			if rid%FullTestFrequency == 0 {
-				p, err := buildBatchRTPingPayload(batchSize)
+					if err != nil {
+						jww.WARN.Printf("Could not build batch payload to "+
+							"transmit on 50th round for round trip ping, "+
+							"transmitting blank instead: %+v", err)
+					}
 
-				if err != nil {
-					jww.WARN.Printf("Could not build batch payload to "+
-						"transmit on 50th round for round trip ping, "+
-						"transmitting blank instead: %+v", err)
-				}
-
-				payload = p
-				payloadInfo = "FULL/BATCH"
-			}
+					payload = p
+					payloadInfo = "FULL/BATCH"
+				}*/
 
 			nextNode := topology.GetNextNode(myID)
 			err = io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
@@ -90,7 +89,7 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 }
 
 //buildBatchRTPingPayload builds a fake batch to use for testing of full
-//communications
+//communications. unused for now
 func buildBatchRTPingPayload(batchsize uint32) (proto.Message, error) {
 
 	payload := &mixmessages.Batch{}
