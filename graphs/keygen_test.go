@@ -463,7 +463,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	}
 }
 
-func mockServerInstance(t *testing.T) *server.Instance {
+func mockServerInstance(i interface{}) *server.Instance {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -476,7 +476,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId(t)
+	nid := server.GenerateId(i)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 

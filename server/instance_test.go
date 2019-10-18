@@ -30,7 +30,7 @@ var instance *Instance
 func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp := cyclic.NewGroup(prime, large.NewInt(2))
-	def := mockServerDef(grp)
+	def := mockServerDef(m, grp)
 	instance = CreateServerInstance(def)
 	os.Exit(m.Run())
 }
@@ -65,7 +65,7 @@ func TestInstance_GetNetwork(t *testing.T) {
 
 func TestInstance_GetID(t *testing.T) {
 	def := Definition{}
-	def.ID = GenerateId(true)
+	def.ID = GenerateId(t)
 	i := &Instance{definition: &def}
 
 	if !reflect.DeepEqual(i.GetID(), def.ID) {
@@ -106,7 +106,7 @@ func TestInstance_Topology(t *testing.T) {
 
 func TestInstance_GetResourceMonitor(t *testing.T) {
 
-	def := mockServerDef(grp)
+	def := mockServerDef(t, grp)
 	i := CreateServerInstance(def)
 
 	rm := i.GetResourceMonitor()
@@ -131,8 +131,8 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 
 }
 
-func mockServerDef(grp *cyclic.Group) *Definition {
-	nid := GenerateId(true)
+func mockServerDef(i interface{}, grp *cyclic.Group) *Definition {
+	nid := GenerateId(i)
 
 	resourceMetric := measure.ResourceMetric{
 		Time:          time.Now(),
