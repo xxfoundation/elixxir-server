@@ -65,7 +65,7 @@ func TestInstance_GetNetwork(t *testing.T) {
 
 func TestInstance_GetID(t *testing.T) {
 	def := Definition{}
-	def.ID = GenerateId()
+	def.ID = GenerateId(true)
 	i := &Instance{definition: &def}
 
 	if !reflect.DeepEqual(i.GetID(), def.ID) {
@@ -132,7 +132,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 }
 
 func mockServerDef(grp *cyclic.Group) *Definition {
-	nid := GenerateId()
+	nid := GenerateId(true)
 
 	resourceMetric := measure.ResourceMetric{
 		Time:          time.Now(),

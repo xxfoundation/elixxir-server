@@ -58,7 +58,7 @@ func TestClientServer(t *testing.T) {
 		large.NewInt(2))
 
 	//Generate everything needed to make a user
-	nid := server.GenerateId()
+	nid := server.GenerateId(true)
 	def := server.Definition{
 		ID:              nid,
 		CmixGroup:       grp,

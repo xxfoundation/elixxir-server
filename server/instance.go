@@ -200,7 +200,11 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 // GenerateId generates a random ID and returns it
 // FIXME: This function needs to be replaced
-func GenerateId() *id.Node {
+func GenerateId(isTest bool) *id.Node {
+	if (isTest == false) {
+		jww.ERROR.Printf("GenerateId is restricted to testing only")
+		return nil
+	}
 
 	jww.WARN.Printf("GenerateId needs to be replaced")
 
