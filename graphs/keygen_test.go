@@ -138,7 +138,7 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraph(t *testing.T) {
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	registry := instance.GetUserRegistry()
 	grp := instance.GetGroup()
 	u := registry.NewUser(grp)
@@ -251,7 +251,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	registry := instance.GetUserRegistry()
 	grp := instance.GetGroup()
 	u := registry.NewUser(grp)
@@ -356,7 +356,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	registry := instance.GetUserRegistry()
 	grp := instance.GetGroup()
 	u := registry.NewUser(grp)
@@ -463,7 +463,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	}
 }
 
-func mockServerInstance() *server.Instance {
+func mockServerInstance(t *testing.T) *server.Instance {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -476,7 +476,7 @@ func mockServerInstance() *server.Instance {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId(true)
+	nid := server.GenerateId(t)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 

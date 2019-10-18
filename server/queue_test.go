@@ -97,7 +97,7 @@ func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 func TestResourceQueue_RunOne(t *testing.T) {
 	// In this case, we actually need to set up and run the queue runner
 	q := initQueue()
-	nid := GenerateId(true)
+	nid := GenerateId(t)
 
 	def := Definition{
 		ID:              nid,

@@ -42,7 +42,7 @@ func TestDecryptStream_GetName(t *testing.T) {
 // Test that DecryptStream.Link() Links correctly
 func TestDecryptStream_Link(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	stream := KeygenDecryptStream{}
@@ -85,7 +85,7 @@ func TestDecryptStream_Link(t *testing.T) {
 // Tests Input's happy path
 func TestDecryptStream_Input(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 	batchSize := uint32(100)
 
@@ -142,7 +142,7 @@ func TestDecryptStream_Input(t *testing.T) {
 // Tests that the input errors correctly when the index is outside of the batch
 func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -209,7 +209,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -241,7 +241,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 //  Tests that Input errors correct when the user id is invalid
 func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -285,7 +285,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 //  Tests that Input errors correct when the salt is invalid
 func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -330,7 +330,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 // Tests that the output function returns a valid cmixMessage
 func TestDecryptStream_Output(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -413,7 +413,7 @@ func TestDecryptStream_CommsInterface(t *testing.T) {
 // do other things
 func TestDecryptStreamInGraph(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
@@ -550,7 +550,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	}
 }
 
-func mockServerInstance() *server.Instance {
+func mockServerInstance(t *testing.T) *server.Instance {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -563,7 +563,7 @@ func mockServerInstance() *server.Instance {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId(true)
+	nid := server.GenerateId(t)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
