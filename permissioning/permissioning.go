@@ -108,6 +108,11 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 	// Shut down the Comms server
 	network.Shutdown()
 
+	// Technically the servers can fail to bind for up to
+	// a couple minutes (depending on operating system), but
+	// in practice 10 seconds works
+	time.Sleep(10 * time.Second)
+
 	// Integrate the topology with the Definition
 	nodes := make([]server.Node, len(topology.Topology))
 	nodeIds := make([]*id.Node, len(topology.Topology))
