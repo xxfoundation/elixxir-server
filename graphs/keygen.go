@@ -93,22 +93,20 @@ var Keygen = services.Module{
 				}
 				return err
 			}
-			//fixme: figure out why this only works when using a temp variable
-			tmp := kss.Grp.NewInt(1)
 
 			success := false
 			jww.DEBUG.Printf("kss: %v", kss.users)
 			if user.IsRegistered && len(kss.kmacs[i]) != 0 {
 				//check the KMAC
 				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], user.BaseKey, kmacHash) {
-					keygen(kss.Grp, kss.salts[i], user.BaseKey, tmp)
-					kss.Grp.Set(kss.KeysA.Get(i), tmp)
+					keygen(kss.Grp, kss.salts[i],
+						user.BaseKey, kss.KeysA.Get(i))
 
 					salthash.Reset()
 					salthash.Write(kss.salts[i])
 
-					keygen(kss.Grp, salthash.Sum(nil), user.BaseKey, tmp)
-					kss.Grp.Set(kss.KeysB.Get(i), tmp)
+					keygen(kss.Grp, salthash.Sum(nil),
+						user.BaseKey, kss.KeysB.Get(i))
 					success = true
 				} else {
 					jww.INFO.Printf("KMAC ERR: %v not the same as %v", kss.kmacs[i][0], cmix.GenerateKMAC(kss.salts[i], user.BaseKey, kmacHash))
