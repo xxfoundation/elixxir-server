@@ -208,7 +208,7 @@ func GenerateId(i interface{}) *id.Node {
 	case *testing.M:
 		break
 	default:
-		jww.ERROR.Printf("GenerateId is restricted to testing only. Got %T", i)
+		jww.FATAL.Panicf("GenerateId is restricted to testing only. Got %T", i)
 		return nil
 	}
 
