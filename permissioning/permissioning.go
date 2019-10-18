@@ -108,6 +108,8 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 	// Shut down the Comms server
 	network.Shutdown()
 
+    // HACK HACK HACK
+    // FIXME: we should not be coupling connections and server objects
 	// Technically the servers can fail to bind for up to
 	// a couple minutes (depending on operating system), but
 	// in practice 10 seconds works
