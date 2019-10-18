@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId()
+	nid := server.GenerateId(m)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
