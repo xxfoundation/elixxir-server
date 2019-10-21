@@ -93,7 +93,7 @@ func TestShareStream_Input(t *testing.T) {
 
 // Tests that Input errors correct when the passed value is out of the group
 func TestShareStream_Input_OutOfGroup(t *testing.T) {
-	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4), large.NewInt(5))
+	grp := cyclic.NewGroup(large.NewInt(11), large.NewInt(4))
 
 	stream := ShareStream{}
 
@@ -231,7 +231,7 @@ func initShareGroup() *cyclic.Group {
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2), large.NewInt(1283))
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2))
 	return grp
 }
 

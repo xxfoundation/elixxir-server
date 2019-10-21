@@ -22,7 +22,6 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/services"
 	"runtime"
 	"time"
 )
@@ -76,16 +75,16 @@ func StartServer(vip *viper.Viper) {
 		dbAddress,
 	)
 
-	//Add a dummy user for gateway
+	//populate the dummy precanned users
 	jww.INFO.Printf("Adding dummy users to registry")
+	PopulateDummyUsers(userDatabase, cmixGrp)
+
+	//Add a dummy user for gateway
 	dummy := userDatabase.NewUser(cmixGrp)
 	dummy.ID = id.MakeDummyUserID()
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
+	dummy.IsRegistered = true
 	userDatabase.UpsertUser(dummy)
-	_, err = userDatabase.GetUser(dummy.ID)
-
-	//populate the dummy precanned users
-	PopulateDummyUsers(userDatabase, cmixGrp)
 
 	jww.INFO.Printf("Converting params to server definition")
 	def := params.ConvertToDefinition()
@@ -105,9 +104,7 @@ func StartServer(vip *viper.Viper) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))
 	}
-
-	def.GraphGenerator = services.NewGraphGenerator(4, PanicHandler,
-		uint8(runtime.NumCPU()), 4, 0.0)
+	def.GraphGenerator.SetErrorHandler(PanicHandler)
 
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
@@ -183,6 +180,7 @@ func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
 		u := ur.NewUser(grp)
+		u.IsRegistered = true
 		ur.UpsertUser(u)
 	}
 }

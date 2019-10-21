@@ -55,10 +55,10 @@ func TestClientServer(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	//Generate everything needed to make a user
-	nid := server.GenerateId()
+	nid := server.GenerateId(t)
 	def := server.Definition{
 		ID:              nid,
 		CmixGroup:       grp,
@@ -85,7 +85,8 @@ func TestClientServer(t *testing.T) {
 	usrs = append(usrs, usr.ID)
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, usr.BaseKey)
-	stream.LinkStream(grp, registry, testSalts, usrs, keys, keys)
+	kmacs := make([][][]byte, 1)
+	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)

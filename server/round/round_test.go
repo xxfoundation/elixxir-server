@@ -172,3 +172,63 @@ func TestRound_GetMeasurements(t *testing.T) {
 			resourceMetric, roundMetrics.ResourceMetric)
 	}
 }
+
+func TestRound_StartRoundTrip(t *testing.T) {
+	var phases []phase.Phase
+	roundId := id.Round(58)
+	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
+		NewGraphGenerator(1, nil, 1,
+			1, 1)),
+		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
+
+	topology := circuit.New([]*id.Node{&id.Node{}})
+
+	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+	payload := "NULL/ACK"
+	unsetStart := round.rtStartTime
+	round.StartRoundTrip(payload)
+
+	if payload != round.GetRTPayload() {
+		t.Errorf("StartRoundTrip did not set rtPayload\n\texpected: %s\n\tfound: %s", payload, round.GetRTPayload())
+	} else if !round.rtStarted {
+		t.Error("StartRoundTrip did not set rtStarted")
+	} else if round.rtStartTime == unsetStart {
+		t.Error("StartRoundTrip did not set start time")
+	} else if round.GetRTPayload() != payload {
+		t.Error("StartRoundTrip did not set payload")
+	}
+}
+
+func TestRound_StopRoundTrip(t *testing.T) {
+	var phases []phase.Phase
+	roundId := id.Round(58)
+	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
+		NewGraphGenerator(1, nil, 1,
+			1, 1)),
+		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
+
+	topology := circuit.New([]*id.Node{&id.Node{}})
+
+	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+	unsetStop := round.rtEndTime
+
+	err := round.StopRoundTrip()
+	if err == nil {
+		t.Errorf("StopRoundTrip should error if rtStarted not set: %+v", err)
+	}
+
+	round.rtStarted = true
+	err = round.StopRoundTrip()
+	if err != nil {
+		t.Errorf("StopRoundTrip should not error if rtStarted is set: %+v", err)
+	}
+	if round.GetRTEnd() == unsetStop {
+		t.Error("StopRoundTrip did not set stop time")
+	} else if round.roundMetrics.RTDurationMilli == 0 {
+		t.Error("StopRoundTrip did not set duration")
+	}
+}

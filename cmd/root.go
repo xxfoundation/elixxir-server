@@ -52,6 +52,7 @@ communications.`,
 			printVersion()
 			return
 		}
+		jww.INFO.Printf(getVersionInfo())
 		if !validConfig {
 			jww.FATAL.Panic("Invalid Config File")
 		}

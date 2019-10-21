@@ -9,8 +9,10 @@ package realtime
 import (
 	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -40,7 +42,7 @@ func TestDecryptStream_GetName(t *testing.T) {
 // Test that DecryptStream.Link() Links correctly
 func TestDecryptStream_Link(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	stream := KeygenDecryptStream{}
@@ -83,7 +85,7 @@ func TestDecryptStream_Link(t *testing.T) {
 // Tests Input's happy path
 func TestDecryptStream_Input(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 	batchSize := uint32(100)
 
@@ -140,7 +142,7 @@ func TestDecryptStream_Input(t *testing.T) {
 // Tests that the input errors correctly when the index is outside of the batch
 func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -207,7 +209,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -239,7 +241,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 //  Tests that Input errors correct when the user id is invalid
 func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -283,7 +285,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 //  Tests that Input errors correct when the salt is invalid
 func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -328,7 +330,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 // Tests that the output function returns a valid cmixMessage
 func TestDecryptStream_Output(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 
 	batchSize := uint32(100)
@@ -411,10 +413,11 @@ func TestDecryptStream_CommsInterface(t *testing.T) {
 // do other things
 func TestDecryptStreamInGraph(t *testing.T) {
 
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	grp := instance.GetGroup()
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
+	u.IsRegistered = true
 	registry.UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,
@@ -469,6 +472,11 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	expectedPayloadA := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 	expectedPayloadB := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 
+	kmacHash, err := hash2.NewCMixHash()
+	if err != nil {
+		t.Errorf("Could not get hash for KMACing")
+	}
+
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
@@ -485,6 +493,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 		stream.Salts[i] = testSalt
 		stream.Users[i] = u.ID
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey, kmacHash)}
 	}
 	// Here's the actual data for the test
 
@@ -541,7 +550,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	}
 }
 
-func mockServerInstance() *server.Instance {
+func mockServerInstance(i interface{}) *server.Instance {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -554,9 +563,9 @@ func mockServerInstance() *server.Instance {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId()
+	nid := server.GenerateId(i)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	def := server.Definition{
 		ID:              nid,

@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"io"
@@ -24,7 +25,7 @@ import (
 func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type,
 	getChunk phase.GetChunk, getMessage phase.GetMessage,
-	topology *circuit.Circuit, nodeID *id.Node) error {
+	topology *circuit.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
 
 	recipient := topology.GetNextNode(nodeID)
 
@@ -33,6 +34,7 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 			ID: uint64(roundID),
 		},
 		FromPhase: int32(phaseTy),
+		BatchSize: batchSize,
 	}
 
 	// This gets the streaming client which used to send slots
@@ -47,7 +49,6 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			fmt.Println("sending external: ", i)
 			msg := getMessage(i)
 
 			err := streamClient.Send(msg)
@@ -58,6 +59,7 @@ func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
 	}
 
 	// Receive ack and cancel client streaming context
+	measureFunc(measure.TagTransmitLastSlot)
 	ack, err := streamClient.CloseAndRecv()
 	localServer := network.String()
 	port := strings.Split(localServer, ":")[1]

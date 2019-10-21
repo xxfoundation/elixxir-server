@@ -198,7 +198,6 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
-	fmt.Println(p)
 	p.Measure(measure.TagReceiveOnReception)
 
 	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
@@ -260,14 +259,6 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
-	//HACK HACK HACK
-	//The share phase needs a batchsize of 1, when it recieves
-	// from generation on the first node this will do the
-	// conversion on the batch
-	if p.GetType() == phase.PrecompShare && batchInfo.BatchSize != 1 {
-		batchInfo.BatchSize = 1
-	}
-
 	strmErr := io.StreamPostPhase(p, batchInfo.BatchSize, streamServer)
 
 	return strmErr
@@ -326,7 +317,9 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 	// Queue the phase if it hasn't been done yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
+	for i := range newBatch.Slots {
+		jww.DEBUG.Printf("new Batch: %#v", newBatch.Slots[i])
+	}
 	err = io.PostPhase(p, newBatch)
 
 	if err != nil {
@@ -436,4 +429,40 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	}
 
 	return &ret, nil
+}
+
+// ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
+func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripPing) error {
+	roundID := msg.Round.ID
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(id.Round(roundID))
+	if err != nil {
+		err = errors.Errorf("ReceiveRoundTripPing could not get round: %+v", err)
+		return err
+	}
+
+	//jww.INFO.Printf("Recieved RoundTripPing, payload size: %v", len(msg.Payload.Value))
+
+	topology := r.GetTopology()
+	myID := instance.GetID()
+
+	if topology.IsFirstNode(myID) {
+		err = r.StopRoundTrip()
+		if err != nil {
+			err = errors.Errorf("ReceiveRoundTrip failed to stop round trip: %+v", err)
+			jww.ERROR.Println(err.Error())
+			return err
+		}
+		return nil
+	}
+
+	nextNode := topology.GetNextNode(myID)
+
+	_, err = instance.GetNetwork().RoundTripPing(nextNode, roundID, msg.Payload)
+	if err != nil {
+		err = errors.Errorf("ReceiveRoundTripPing failed to send ping to next node: %+v", err)
+		return err
+	}
+
+	return nil
 }

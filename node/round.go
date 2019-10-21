@@ -21,7 +21,8 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 
 	generalExpectedStates := []phase.State{phase.Active}
 
-	defaultTimeout := 5000 * time.Millisecond
+	// TODO: Expose this timeout on the command line
+	defaultTimeout := 2 * time.Minute
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -107,7 +108,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompDecryptDefinition := phase.Definition{
 		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
-		TransmissionHandler: io.TransmitPhase,
+		TransmissionHandler: io.StreamTransmitPhase,
 		Timeout:             defaultTimeout,
 	}
 
@@ -137,7 +138,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompPermuteDefinition := phase.Definition{
 		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
-		TransmissionHandler: io.TransmitPhase,
+		TransmissionHandler: io.StreamTransmitPhase,
 		Timeout:             defaultTimeout,
 	}
 
@@ -166,7 +167,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	precompRevealDefinition := phase.Definition{
 		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
-		TransmissionHandler: io.TransmitPhase,
+		TransmissionHandler: io.StreamTransmitPhase,
 		Timeout:             defaultTimeout,
 		DoVerification:      true,
 	}
@@ -209,7 +210,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	realtimeDecryptDefinition := phase.Definition{
 		Graph:               realtime.InitDecryptGraph(gc),
 		Type:                phase.RealDecrypt,
-		TransmissionHandler: io.TransmitPhase,
+		TransmissionHandler: io.StreamTransmitPhase,
 		Timeout:             defaultTimeout,
 	}
 
@@ -235,7 +236,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 	realtimePermuteDefinition := phase.Definition{
 		Graph:               realtime.InitPermuteGraph(gc),
 		Type:                phase.RealPermute,
-		TransmissionHandler: io.TransmitPhase,
+		TransmissionHandler: io.StreamTransmitPhase,
 		Timeout:             defaultTimeout,
 		DoVerification:      true,
 	}

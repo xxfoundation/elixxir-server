@@ -10,8 +10,10 @@ import (
 	"bytes"
 	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
@@ -45,9 +47,11 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	s.KeygenSubStream.LinkStream(grp,
 		instance.GetUserRegistry(),
 		make([][]byte, batchSize),
+		make([][][]byte, batchSize),
 		make([]*id.User, batchSize),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+	)
 }
 
 func (s *KeygenTestStream) Input(index uint32,
@@ -134,10 +138,11 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraph(t *testing.T) {
-	instance := mockServerInstance()
+	instance := mockServerInstance(t)
 	registry := instance.GetUserRegistry()
 	grp := instance.GetGroup()
 	u := registry.NewUser(grp)
+	u.IsRegistered = true
 	registry.UpsertUser(u)
 
 	// Reception base key should be around 256 bits long,
@@ -149,26 +154,34 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	}
 
 	var stream KeygenTestStream
-	batchSize := uint32(1)
+	batchSize := uint32(2)
 
 	// make a salt for testing
 	testSalt := []byte("sodium chloride")
 	// pad to length of the base key
 	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
 
-	hash, err := blake2b.New256(nil)
+	salthash, err := blake2b.New256(nil)
 
 	if err != nil {
 		t.Fatalf("Keygen: Test could not get blake2b hash: %s", err.Error())
 	}
 
-	hash.Write(testSalt)
+	salthash.Write(testSalt)
 
-	testHashedSalt := hash.Sum(nil)
+	testHashedSalt := salthash.Sum(nil)
 
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
+
+	cmixHash, err := hash.NewCMixHash()
+
+	if err != nil {
+		t.Errorf("Could not get a hash for kmacs: %+v", err)
+	}
+
+	kmac := cmix.GenerateKMAC(testSalt, u.BaseKey, cmixHash)
 
 	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
 
@@ -194,6 +207,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
 		stream.salts[i] = testSalt
 		stream.users[i] = u.ID
+		stream.kmacs[i] = [][]byte{kmac}
 	}
 	// Here's the actual data for the test
 
@@ -233,7 +247,223 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	}
 }
 
-func mockServerInstance() *server.Instance {
+// High-level test of the reception keygen adapter when the user is not registerd
+// Also demonstrates how it can be part of a graph that could potentially also
+// do other things
+func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
+	instance := mockServerInstance(t)
+	registry := instance.GetUserRegistry()
+	grp := instance.GetGroup()
+	u := registry.NewUser(grp)
+	u.IsRegistered = false
+	registry.UpsertUser(u)
+
+	// Reception base key should be around 256 bits long,
+	// depending on generation, to feed the 256-bit hash
+	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+		t.Errorf("Base key has wrong number of bits. "+
+			"Had %v bits in reception base key",
+			u.BaseKey.BitLen())
+	}
+
+	var stream KeygenTestStream
+	batchSize := uint32(1)
+
+	// make a salt for testing
+	testSalt := []byte("sodium chloride")
+	// pad to length of the base key
+	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
+
+	salthash, err := blake2b.New256(nil)
+
+	if err != nil {
+		t.Fatalf("Keygen: Test could not get blake2b hash: %s", err.Error())
+	}
+
+	salthash.Write(testSalt)
+
+	cmixHash, err := hash.NewCMixHash()
+
+	if err != nil {
+		t.Errorf("Could not get a hash for kmacs: %+v", err)
+	}
+
+	kmac := cmix.GenerateKMAC(testSalt, u.BaseKey, cmixHash)
+
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+
+	// run the module in a graph
+	g := gc.NewGraph("test", &stream)
+	mod := Keygen.DeepCopy()
+	mod.Cryptop = MockKeygenOp
+	g.First(mod)
+	g.Last(mod)
+	//Keygen.NumThreads = 1
+	g.Build(batchSize)
+	//rb := round.NewBuffer(grp, batchSize, batchSize)
+	g.Link(grp, instance)
+	// So, it's necessary to fill in the parts in the expanded batch with dummy
+	// data to avoid crashing, or we need to exclude those parts in the cryptop
+	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
+		// Necessary to avoid crashing
+		stream.users[i] = id.ZeroID
+		// Not necessary to avoid crashing
+		stream.salts[i] = []byte{}
+
+		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
+		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
+		stream.salts[i] = testSalt
+		stream.users[i] = u.ID
+		stream.kmacs[i] = [][]byte{kmac}
+	}
+	// Here's the actual data for the test
+
+	g.Run()
+	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()), nil)
+
+	ok := true
+	var chunk services.Chunk
+
+	one := stream.Grp.NewInt(1)
+
+	for ok {
+		chunk, ok = g.GetOutput()
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			// inspect stream output: XORing the salt with the output should
+			// return the original base key
+			resultA := stream.KeysA.Get(uint32(i))
+			resultB := stream.KeysB.Get(uint32(i))
+
+			// Check result and base key. They should be equal
+			if resultA.Cmp(one) != 0 {
+				t.Error("Keygen: Result key A not blanked when user is " +
+					"unregistered")
+			}
+
+			if resultB.Cmp(one) != 0 {
+				t.Error("Keygen: Result key B not blanked when user is " +
+					"unregistered")
+			}
+		}
+	}
+}
+
+// High-level test of the reception keygen adapter when the KMAC is invalid
+// Also demonstrates how it can be part of a graph that could potentially also
+// do other things
+func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
+	instance := mockServerInstance(t)
+	registry := instance.GetUserRegistry()
+	grp := instance.GetGroup()
+	u := registry.NewUser(grp)
+	u.IsRegistered = true
+	registry.UpsertUser(u)
+
+	// Reception base key should be around 256 bits long,
+	// depending on generation, to feed the 256-bit hash
+	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+		t.Errorf("Base key has wrong number of bits. "+
+			"Had %v bits in reception base key",
+			u.BaseKey.BitLen())
+	}
+
+	var stream KeygenTestStream
+	batchSize := uint32(2)
+
+	// make a salt for testing
+	testSalt := []byte("sodium chloride")
+	// pad to length of the base key
+	testSalt = append(testSalt, make([]byte, 256/8-len(testSalt))...)
+
+	salthash, err := blake2b.New256(nil)
+
+	if err != nil {
+		t.Fatalf("Keygen: Test could not get blake2b hash: %s", err.Error())
+	}
+
+	salthash.Write(testSalt)
+
+	testHashedSalt := salthash.Sum(nil)
+
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
+	kmac := make([]byte, 32)
+
+	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+
+	// run the module in a graph
+	g := gc.NewGraph("test", &stream)
+	mod := Keygen.DeepCopy()
+	mod.Cryptop = MockKeygenOp
+	g.First(mod)
+	g.Last(mod)
+	//Keygen.NumThreads = 1
+	g.Build(batchSize)
+	//rb := round.NewBuffer(grp, batchSize, batchSize)
+	g.Link(grp, instance)
+	// So, it's necessary to fill in the parts in the expanded batch with dummy
+	// data to avoid crashing, or we need to exclude those parts in the cryptop
+	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
+		// Necessary to avoid crashing
+		stream.users[i] = id.ZeroID
+		// Not necessary to avoid crashing
+		stream.salts[i] = []byte{}
+
+		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
+		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
+		stream.salts[i] = testSalt
+		stream.users[i] = u.ID
+		stream.kmacs[i] = [][]byte{kmac}
+	}
+	// Here's the actual data for the test
+
+	g.Run()
+	go g.Send(services.NewChunk(0, g.GetExpandedBatchSize()), nil)
+
+	ok := true
+	var chunk services.Chunk
+
+	one := stream.Grp.NewInt(1)
+
+	for ok {
+		chunk, ok = g.GetOutput()
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			// inspect stream output: XORing the salt with the output should
+			// return the original base key
+			resultA := stream.KeysA.Get(uint32(i))
+			resultB := stream.KeysB.Get(uint32(i))
+			resultABytes := resultA.Bytes()
+			resultBBytes := resultB.Bytes()
+			// So, why is ResultBytes 256 bytes long,
+			// while testSalt is 32 bytes long?
+			// retrieve the original base key to prove that both data were passed to
+			// the cryptop
+			for j := range resultABytes {
+				resultABytes[j] = resultABytes[j] ^ testSalt[j]
+				resultBBytes[j] = resultBBytes[j] ^ testHashedSalt[j]
+			}
+
+			// Check result and base key. They should be equal
+			if resultA.Cmp(one) != 0 {
+				t.Error("Keygen: Result key A not blanked when kmacs " +
+					"dont match")
+			}
+
+			if resultB.Cmp(one) != 0 {
+				t.Error("Keygen: Result key B not blanked when kmacs " +
+					"dont match")
+			}
+		}
+	}
+}
+
+func mockServerInstance(i interface{}) *server.Instance {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -246,9 +476,9 @@ func mockServerInstance() *server.Instance {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId()
+	nid := server.GenerateId(i)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2), large.NewInt(2))
+		large.NewInt(2))
 
 	def := server.Definition{
 		ID:              nid,
