@@ -57,6 +57,12 @@ func (i *Instance) InitNetwork(
 	(*i.network) = network
 
 	//Attempt to connect to all other nodes
+	// FIXME: This construction creates a race condition. In the older
+	//        server, connection information is carried with the ID,
+	//        and a connection is made as it is needed. State of the
+	//        connections in the system was not important, only availability
+	//        which is checked later. Now there is a race condition if
+	//        a server starts sending commands BEFORE this code completes!
 	for index, n := range i.definition.Nodes {
 		err := i.network.ConnectToRemote(n.ID, n.Address, n.TlsCert, false)
 		if err != nil {
