@@ -22,6 +22,7 @@ import (
 
 // Holds long-lived server state
 type Instance struct {
+	Online        bool
 	definition    *Definition
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
@@ -34,6 +35,7 @@ type Instance struct {
 // call RunFirstNode() on the resulting ServerInstance.
 func CreateServerInstance(def *Definition) *Instance {
 	instance := Instance{
+		Online:        false,
 		definition:    def,
 		roundManager:  round.NewManager(),
 		resourceQueue: initQueue(),
@@ -50,8 +52,9 @@ func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
 
 	//Start local node
-	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
+	network := *node.StartNode(i.definition.Address, makeImplementation(i),
 		i.definition.TlsCert, i.definition.TlsKey)
+	(*i.network) = network
 
 	//Attempt to connect to all other nodes
 	for index, n := range i.definition.Nodes {
@@ -60,6 +63,7 @@ func (i *Instance) InitNetwork(
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
 		}
+		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
 
 	//Attempt to connect Gateway
