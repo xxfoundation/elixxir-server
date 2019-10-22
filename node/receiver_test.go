@@ -1048,6 +1048,8 @@ func TestReceiveGetMeasure(t *testing.T) {
 		ID: uint64(roundID),
 	}
 
+	rnd.GetMeasurementsReadyChan() <- struct{}{}
+
 	resp, err = ReceiveGetMeasure(instance, &info)
 
 	if err != nil {
