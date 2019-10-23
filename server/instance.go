@@ -23,6 +23,7 @@ import (
 
 // Holds long-lived server state
 type Instance struct {
+	Online        bool
 	definition    *Definition
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
@@ -35,6 +36,7 @@ type Instance struct {
 // call RunFirstNode() on the resulting ServerInstance.
 func CreateServerInstance(def *Definition) *Instance {
 	instance := Instance{
+		Online:        false,
 		definition:    def,
 		roundManager:  round.NewManager(),
 		resourceQueue: initQueue(),
@@ -55,12 +57,19 @@ func (i *Instance) InitNetwork(
 		i.definition.TlsCert, i.definition.TlsKey)
 
 	//Attempt to connect to all other nodes
+	// FIXME: This construction creates a race condition. In the older
+	//        server, connection information is carried with the ID,
+	//        and a connection is made as it is needed. State of the
+	//        connections in the system was not important, only availability
+	//        which is checked later. Now there is a race condition if
+	//        a server starts sending commands BEFORE this code completes!
 	for index, n := range i.definition.Nodes {
 		err := i.network.ConnectToRemote(n.ID, n.Address, n.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
 		}
+		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
 
 	//Attempt to connect Gateway
