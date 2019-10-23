@@ -90,6 +90,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		localInstance := instance
 		go func() {
 			localInstance.InitNetwork(node.NewImplementation)
+			localInstance.Online = true
 			wg.Done()
 		}()
 	}
