@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"strings"
+	"testing"
 )
 
 // Holds long-lived server state
@@ -210,7 +211,16 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 // GenerateId generates a random ID and returns it
 // FIXME: This function needs to be replaced
-func GenerateId() *id.Node {
+func GenerateId(i interface{}) *id.Node {
+	switch i.(type) {
+	case *testing.T:
+		break
+	case *testing.M:
+		break
+	default:
+		jww.FATAL.Panicf("GenerateId is restricted to testing only. Got %T", i)
+		return nil
+	}
 
 	jww.WARN.Printf("GenerateId needs to be replaced")
 
