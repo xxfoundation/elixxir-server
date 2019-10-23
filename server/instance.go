@@ -53,9 +53,8 @@ func (i *Instance) InitNetwork(
 	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
 
 	//Start local node
-	network := *node.StartNode(i.definition.Address, makeImplementation(i),
+	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
 		i.definition.TlsCert, i.definition.TlsKey)
-	(*i.network) = network
 
 	//Attempt to connect to all other nodes
 	// FIXME: This construction creates a race condition. In the older
