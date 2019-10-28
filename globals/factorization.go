@@ -8,7 +8,7 @@ package globals
 
 // Do we have to pull in another dependency just for LCM?
 import (
-	"github.com/cznic/mathutil.git"
+	"github.com/cznic/mathutil"
 	"math"
 	"sync"
 )
