@@ -343,6 +343,10 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		instance, roundID)
 
 	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Failed to get round with round ID: %+v", roundID)
+	}
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
@@ -391,6 +395,10 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		instance.FinishRound(roundID)
 
 	}
+	select {
+	case r.GetMeasurementsReadyChan() <- struct{}{}:
+	default:
+	}
 
 	return nil
 }
@@ -405,6 +413,14 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	r, err := rm.GetRound(roundID)
 	if err != nil {
 		return nil, err
+	}
+
+	t := time.NewTimer(500 * time.Millisecond)
+	c := r.GetMeasurementsReadyChan()
+	select {
+	case <-c:
+	case <-t.C:
+		panic("Timer expired")
 	}
 
 	// Get data for metrics object
