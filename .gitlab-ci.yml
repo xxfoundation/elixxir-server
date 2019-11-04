@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
-  DOCKER_IMAGE: bmastc/golang-glide:latest
+  DOCKER_IMAGE: golang:1.13.4-stretch
   MIN_CODE_COVERAGE: "85.0"
 
 before_script:
