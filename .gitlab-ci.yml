@@ -42,6 +42,7 @@ setup:
     - go mod vendor -v
     - go build ./...
     - go mod tidy
+    - go get -u github.com/haya14busa/goverage
   artifacts:
     paths:
      - vendor/
