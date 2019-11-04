@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
-  DOCKER_IMAGE: golang:1.13.4-stretch
+  DOCKER_IMAGE: golang:1.13.4-buster
   MIN_CODE_COVERAGE: "85.0"
 
 before_script:
@@ -26,7 +26,6 @@ before_script:
   - chmod 700 ~/.ssh
   - ssh-keyscan -t rsa gitlab.com > ~/.ssh/known_hosts
   - git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
-  - go get -u github.com/haya14busa/goverage
   - export GOFLAGS=-mod=vendor
 
 stages:
@@ -51,6 +50,8 @@ test:
   stage: test
   image: $DOCKER_IMAGE
   script:
+    - GO111MODULE=off go get -u github.com/haya14busa/goverage
+    
     - mkdir -p testdata
 
     # Test coverage
