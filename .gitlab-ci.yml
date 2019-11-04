@@ -51,6 +51,7 @@ test:
   image: $DOCKER_IMAGE
   script:
     - GO111MODULE=off go get -u github.com/haya14busa/goverage
+    - apt install bc
     
     - mkdir -p testdata
 
