@@ -53,7 +53,7 @@ func TestNew(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []phase.Phase
 
-	handler := func(network *node.NodeComms, batchSize uint32,
+	handler := func(network *node.Comms, batchSize uint32,
 		roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
 		getMessage phase.GetMessage, nodes *circuit.Circuit, nid *id.Node, measure phase.Measure) error {
 		return nil
@@ -117,7 +117,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []phase.Phase
 
-	handler := func(network *node.NodeComms, batchSize uint32, roundId id.Round,
+	handler := func(network *node.Comms, batchSize uint32, roundId id.Round,
 		phaseTy phase.Type, getSlot phase.GetChunk, getMessage phase.GetMessage,
 		nodes *circuit.Circuit, nid *id.Node, measure phase.Measure) error {
 		return nil

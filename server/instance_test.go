@@ -54,7 +54,7 @@ func TestInstance_GetResourceQueue(t *testing.T) {
 }
 
 func TestInstance_GetNetwork(t *testing.T) {
-	n := &node.NodeComms{}
+	n := &node.Comms{}
 	i := &Instance{network: n}
 
 	if !reflect.DeepEqual(i.GetNetwork(), n) {

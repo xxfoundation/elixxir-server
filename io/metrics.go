@@ -25,7 +25,7 @@ const errorDelimiter = "; "
 
 // Get metrics for all nodes in the topology, returning a JSON map of server
 // address to metrics.
-func TransmitGetMeasure(node *node.NodeComms, topology *circuit.Circuit,
+func TransmitGetMeasure(node *node.Comms, topology *circuit.Circuit,
 	roundID id.Round) ([]measure.RoundMetrics, error) {
 
 	// Stores errors for each SendGetMeasure() call to be concatenated on return

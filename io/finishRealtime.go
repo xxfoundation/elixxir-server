@@ -25,7 +25,7 @@ import (
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
+func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
 	nodeID *id.Node, lastNode *server.LastNode,

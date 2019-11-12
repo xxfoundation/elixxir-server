@@ -12,7 +12,7 @@ import (
 // TransmitCreateNewRound is run on first node to tell other nodes to create the
 // round.  It does not follow the transmitter interface because it is run
 // custom through the first node runner.
-func TransmitCreateNewRound(network *node.NodeComms,
+func TransmitCreateNewRound(network *node.Comms,
 	topology *circuit.Circuit, roundID id.Round) error {
 
 	//Every node receives the same roundInfo

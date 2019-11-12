@@ -24,7 +24,7 @@ import (
 )
 
 // TransmitPhase sends a cMix Batch of messages to the provided Node.
-func TransmitPhase(network *node.NodeComms, batchSize uint32,
+func TransmitPhase(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type,
 	getChunk phase.GetChunk, getMessage phase.GetMessage,
 	topology *circuit.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {

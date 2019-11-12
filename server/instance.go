@@ -27,7 +27,7 @@ type Instance struct {
 	definition    *Definition
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
-	network       *node.NodeComms
+	network       *node.Comms
 	firstNode
 	LastNode
 }
@@ -50,7 +50,7 @@ func CreateServerInstance(def *Definition) *Instance {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func (i *Instance) InitNetwork(
-	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
+	makeImplementation func(*Instance) *node.Implementation) *node.Comms {
 
 	//Start local node
 	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
@@ -130,7 +130,7 @@ func (i *Instance) GetResourceQueue() *ResourceQueue {
 }
 
 // GetNetwork returns the network object
-func (i *Instance) GetNetwork() *node.NodeComms {
+func (i *Instance) GetNetwork() *node.Comms {
 	return i.network
 }
 

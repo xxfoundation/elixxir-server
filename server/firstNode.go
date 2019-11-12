@@ -27,7 +27,7 @@ type firstNode struct {
 
 // RoundCreationTransmitter is a function type which is used to notify all nodes
 // to create the round
-type RoundCreationTransmitter func(*node.NodeComms, *circuit.Circuit, id.Round) error
+type RoundCreationTransmitter func(*node.Comms, *circuit.Circuit, id.Round) error
 
 // RoundStarter is a function type which is used to start a round locally
 type RoundStarter func(instance *Instance, roundID id.Round) error

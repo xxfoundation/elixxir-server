@@ -22,7 +22,7 @@ import (
 
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
-func TransmitRoundPublicKey(network *node.NodeComms, batchSize uint32,
+func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *circuit.Circuit,
 	nodeID *id.Node, measureFunc phase.Measure) error {

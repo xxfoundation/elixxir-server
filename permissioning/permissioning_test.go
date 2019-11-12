@@ -23,8 +23,8 @@ import (
 )
 
 var nodeId *id.Node
-var permComms *registration.RegistrationComms
-var gwComms *gateway.GatewayComms
+var permComms *registration.Comms
+var gwComms *gateway.Comms
 
 // Dummy implementation of permissioning server --------------------------------
 type mockPermission struct{}

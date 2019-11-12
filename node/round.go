@@ -261,7 +261,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 			// finish realtime needs access to lastNode to send out the results,
 			// an anonymous function is used to wrap the function, passing
 			// access while maintaining the transmit signature
-			func(network *node.NodeComms, batchSize uint32,
+			func(network *node.Comms, batchSize uint32,
 				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 				getMessage phase.GetMessage, topology *circuit.Circuit,
 				nodeID *id.Node, measure phase.Measure) error {

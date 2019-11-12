@@ -11,7 +11,7 @@ import (
 )
 
 // TransmitRoundTripPing sends a round trip ping and starts
-func TransmitRoundTripPing(network *node.NodeComms, id *id.Node, r *round.Round, payload proto.Message, payloadInfo string) error {
+func TransmitRoundTripPing(network *node.Comms, id *id.Node, r *round.Round, payload proto.Message, payloadInfo string) error {
 	any, err := ptypes.MarshalAny(payload)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("TransmitRoundTripPing: failed attempting to marshall any type: %+v", err))

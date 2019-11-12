@@ -34,12 +34,12 @@ func TestFirstNode_GetCompletedPrecompQueue(t *testing.T) {
 
 var receivedRoundID id.Round
 
-func mockTransmitter(n *node.NodeComms, c *circuit.Circuit, rID id.Round) error {
+func mockTransmitter(n *node.Comms, c *circuit.Circuit, rID id.Round) error {
 	receivedRoundID = rID
 	return nil
 }
 
-func mockTransmitter_Error(n *node.NodeComms, c *circuit.Circuit, rID id.Round) error {
+func mockTransmitter_Error(n *node.Comms, c *circuit.Circuit, rID id.Round) error {
 	receivedRoundID = rID
 	return errors.New("test error")
 }

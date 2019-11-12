@@ -58,7 +58,7 @@ func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
 
 func buildTestNetworkComponents(impls []*node.Implementation,
-	portStart int) ([]*node.NodeComms, *circuit.Circuit) {
+	portStart int) ([]*node.Comms, *circuit.Circuit) {
 	var nodeIDs []*id.Node
 	var addrLst []string
 	addrFmt := "localhost:3%03d"
@@ -76,7 +76,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 	topology := circuit.New(nodeIDs)
 
 	//build the comms
-	var comms []*node.NodeComms
+	var comms []*node.Comms
 
 	for index, impl := range impls {
 		comms = append(comms,
@@ -96,7 +96,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 	return comms, topology
 }
 
-func Shutdown(comms []*node.NodeComms) {
+func Shutdown(comms []*node.Comms) {
 	for _, comm := range comms {
 		comm.Shutdown()
 	}

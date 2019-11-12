@@ -14,7 +14,7 @@ import (
 )
 
 // VerifyServersOnline Blocks until all given servers respond
-func VerifyServersOnline(comms *node.NodeComms, servers *circuit.Circuit) {
+func VerifyServersOnline(comms *node.Comms, servers *circuit.Circuit) {
 	for i := 0; i < servers.Len(); {
 		server := servers.GetNodeAtIndex(i)
 		_, err := comms.SendAskOnline(server, &pb.Ping{})
