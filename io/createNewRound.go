@@ -1,6 +1,7 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -28,8 +29,16 @@ func TransmitCreateNewRound(network *node.Comms,
 	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		go func() {
-			recipient := topology.GetNodeAtIndex(localIndex)
-
+			// Pull the particular server host object from the commManager
+			recipientID := topology.GetNodeAtIndex(localIndex).String()
+			recipient, ok := network.Manager.GetHost(recipientID)
+			if !ok {
+				// If server not found, send through error channel
+				errMsg := fmt.Sprintf("Could not find cMix server %s (%d/%d) in comm manager",
+					recipientID, localIndex+1, topology.Len())
+				errChan <- errors.New(errMsg)
+			}
+			// Send new round to that particular node
 			ack, err := network.SendNewRound(recipient, roundInfo)
 
 			if ack != nil && ack.Error != "" {

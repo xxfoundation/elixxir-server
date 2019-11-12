@@ -29,7 +29,16 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 	getChunk phase.GetChunk, getMessage phase.GetMessage,
 	topology *circuit.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
 
-	recipient := topology.GetNextNode(nodeID)
+	// Pull the particular server host object from the commManager
+	recipientID := topology.GetNextNode(nodeID).String()
+	recipient, ok := network.Manager.GetHost(recipientID)
+	if !ok {
+		//REVIEWER: return err here, append to the other one? What would be best??
+		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager",
+			recipientID)
+		err := errors.New(errMsg)
+		return err
+	}
 
 	// Create the message structure to send the messages
 	batch := &mixmessages.Batch{
@@ -65,8 +74,6 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 	}
 	return err
 }
-
-//here below??
 
 // PostPhase implements the server gRPC handler for posting a
 // phase from another node

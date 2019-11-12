@@ -18,8 +18,14 @@ func TransmitRoundTripPing(network *node.Comms, id *id.Node, r *round.Round, pay
 		return err
 	}
 	r.StartRoundTrip(payloadInfo)
-
-	_, err = network.RoundTripPing(id, uint64(r.GetID()), any)
+	// Pull the particular server host object from the commManager
+	recipient, ok := network.Manager.GetHost(id.String())
+	if !ok {
+		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", id)
+		return errors.New(errMsg)
+	}
+	// Send the round trip ping
+	_, err = network.RoundTripPing(recipient, uint64(r.GetID()), any)
 	if err != nil {
 		err = errors.New(fmt.Sprintf("TransmitRoundTripPing received an error: %+v", err))
 		return err

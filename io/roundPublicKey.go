@@ -7,6 +7,7 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -60,8 +61,14 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 		localIndex := index
 		wg.Add(1)
 		go func() {
-			recipient := topology.GetNodeAtIndex(localIndex)
-
+			// Pull the particular server host object from the commManager
+			recipientID := topology.GetNodeAtIndex(localIndex).String()
+			recipient, ok := network.Manager.GetHost(recipientID)
+			if !ok {
+				errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", recipientID)
+				errChan <- errors.New(errMsg)
+			}
+			//Send the message to that node
 			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 
 			if err != nil {
@@ -97,15 +104,22 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 
 	// When all responses are receivedFinishRealtime we 'send'
 	// to the first node which is this node
-	thisNode := topology.GetNodeAtIndex(0)
+	recipientID := topology.GetNodeAtIndex(0).String()
+	// Pull the particular server host object from the commManager
+	recipient, ok := network.GetHost(recipientID)
+	if !ok {
+		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", recipientID)
+		return errors.New(errMsg)
+	}
 
-	ack, err := network.SendPostRoundPublicKey(thisNode, roundPubKeyMsg)
+	//Send message to first node
+	ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 
 	// Make sure the comm doesn't return an Ack with an
 	// error message
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s, %s",
-			thisNode, ack.Error)
+			recipientID, ack.Error)
 		return err
 	}
 

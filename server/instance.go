@@ -56,7 +56,7 @@ func (i *Instance) InitNetwork(
 	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
 		i.definition.TlsCert, i.definition.TlsKey)
 
-	//Attempt to connect to all other nodes
+	//Add all hosts to manager for future connections
 	// FIXME: This construction creates a race condition. In the older
 	//        server, connection information is carried with the ID,
 	//        and a connection is made as it is needed. State of the
@@ -64,9 +64,9 @@ func (i *Instance) InitNetwork(
 	//        which is checked later. Now there is a race condition if
 	//        a server starts sending commands BEFORE this code completes!
 	for index, n := range i.definition.Nodes {
-		err := i.network.ConnectToRemote(n.ID, n.Address, n.TlsCert, false)
+		_, err := i.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false)
 		if err != nil {
-			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
+			jww.FATAL.Panicf("Could not add node %s (%v/%v) as a host: %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
 		}
 		jww.INFO.Printf("Connected to node %s", n.ID)
@@ -74,12 +74,13 @@ func (i *Instance) InitNetwork(
 
 	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
-		err := i.network.ConnectToRemote(i.definition.Gateway.ID,
+		_, err := i.network.AddHost(i.definition.Gateway.ID.String(),
 			i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
 		if err != nil {
-			jww.FATAL.Panicf("Count not connect to gateway %s: %+v",
+			jww.FATAL.Panicf("Count not add gateway %s as host: %+v",
 				i.definition.Gateway.ID, err)
 		}
+
 	} else {
 		jww.WARN.Printf("No Gateway avalible, starting without gateway")
 	}
