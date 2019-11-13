@@ -476,7 +476,7 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	nextNodeID := topology.GetNextNode(myID).String()
 	nextNode, ok := instance.GetNetwork().Manager.GetHost(nextNodeID)
 	if !ok {
-		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", id)
+		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", nextNodeID)
 		return errors.New(errMsg)
 	}
 	//Send the round trip ping to the next node
