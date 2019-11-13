@@ -8,6 +8,7 @@ package io
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/circuit"
@@ -86,9 +87,8 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 	//Connect the comms
 	for connectFrom := 0; connectFrom < len(impls); connectFrom++ {
 		for connectTo := 0; connectTo < len(impls); connectTo++ {
-			comms[connectFrom].ConnectToRemote(
-				topology.GetNodeAtIndex(connectTo),
-				addrLst[connectTo], nil, false)
+			tmpHost, _ := connect.NewHost(addrLst[connectTo], nil, false)
+			comms[connectFrom].AddHost(topology.GetNodeAtIndex(connectTo).String(), tmpHost)
 		}
 	}
 

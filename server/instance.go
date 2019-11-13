@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -64,22 +65,25 @@ func (i *Instance) InitNetwork(
 	//        which is checked later. Now there is a race condition if
 	//        a server starts sending commands BEFORE this code completes!
 	for index, n := range i.definition.Nodes {
-		_, err := i.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false)
+		nodeHost, err := connect.NewHost(n.Address, n.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Could not add node %s (%v/%v) as a host: %+v",
 				n.ID, index+1, len(i.definition.Nodes), err)
 		}
+
+		i.network.Manager.AddHost(n.ID.String(), nodeHost)
+
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
 
 	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
-		_, err := i.network.AddHost(i.definition.Gateway.ID.String(),
-			i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
+		gwHost, err := connect.NewHost(i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Count not add gateway %s as host: %+v",
 				i.definition.Gateway.ID, err)
 		}
+		i.network.AddHost(i.definition.Gateway.ID.String(), gwHost)
 
 	} else {
 		jww.WARN.Printf("No Gateway avalible, starting without gateway")

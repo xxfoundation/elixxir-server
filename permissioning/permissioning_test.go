@@ -9,6 +9,7 @@ package permissioning
 import (
 	"bytes"
 	"fmt"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/gateway"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/registration"
@@ -113,7 +114,11 @@ func TestRegisterNode(t *testing.T) {
 	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	pHandler := registration.Handler(&mockPermission{})
 	permComms = registration.StartRegistrationServer(pAddr, pHandler, cert, key)
-	_, _ = permComms.AddHost(nodeId.String(), addr, cert, false)
+	nodeHost, err := connect.NewHost(addr, cert, false)
+	permComms.AddHost(nodeId.String(), nodeHost)
+	if err != nil {
+		t.Fatalf("Permissioning could not connect to node")
+	}
 
 	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	gHandler := gateway.Handler(&mockGateway{})
@@ -121,7 +126,8 @@ func TestRegisterNode(t *testing.T) {
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		_, err := gwComms.AddHost(nodeId.String(), addr, cert, false)
+		nodeHost, err := connect.NewHost(addr, cert, false)
+		gwComms.AddHost(nodeId.String(), nodeHost)
 		if err != nil {
 			t.Fatalf("Gateway could not connect to node")
 		}
