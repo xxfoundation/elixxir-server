@@ -11,7 +11,6 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
@@ -59,7 +58,7 @@ func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
 
 func buildTestNetworkComponents(impls []*node.Implementation,
-	portStart int) ([]*node.Comms, *circuit.Circuit) {
+	portStart int) ([]*node.Comms, *connect.Circuit) {
 	var nodeIDs []*id.Node
 	var addrLst []string
 	addrFmt := "localhost:3%03d"
@@ -74,7 +73,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 	}
 
 	//Build the topology
-	topology := circuit.New(nodeIDs)
+	topology := connect.NewCircuit(nodeIDs)
 
 	//build the comms
 	var comms []*node.Comms

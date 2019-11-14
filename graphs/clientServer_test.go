@@ -7,11 +7,11 @@ package graphs
 
 /**/
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -62,7 +62,7 @@ func TestClientServer(t *testing.T) {
 	def := server.Definition{
 		ID:              nid,
 		CmixGroup:       grp,
-		Topology:        circuit.New([]*id.Node{nid}),
+		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 	}

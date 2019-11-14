@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -19,7 +19,7 @@ type Round struct {
 	id     id.Round
 	buffer *Buffer
 
-	topology *circuit.Circuit
+	topology *connect.Circuit
 	state    *uint32
 
 	//on first node and last node the phases vary
@@ -45,7 +45,7 @@ type Round struct {
 // and batchsize
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
-	circuit *circuit.Circuit, nodeID *id.Node, batchSize uint32,
+	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, localIP string) *Round {
 
 	roundMetrics := measure.NewRoundMetrics(id, batchSize)
@@ -186,7 +186,7 @@ func (r *Round) GetCurrentPhase() phase.Phase {
 	return r.phases[r.GetCurrentPhaseType()]
 }
 
-func (r *Round) GetTopology() *circuit.Circuit {
+func (r *Round) GetTopology() *connect.Circuit {
 	return r.topology
 }
 

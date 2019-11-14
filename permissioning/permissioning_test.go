@@ -14,7 +14,6 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/registration"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
@@ -170,7 +169,7 @@ func TestRegisterNode(t *testing.T) {
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
-		def.Topology = circuit.New(nodeIds)
+		def.Topology = connect.NewCircuit(nodeIds)
 		permDone <- struct{}{}
 	}()
 

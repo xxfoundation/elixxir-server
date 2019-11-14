@@ -13,9 +13,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"strings"
@@ -25,7 +25,7 @@ const errorDelimiter = "; "
 
 // Get metrics for all nodes in the topology, returning a JSON map of server
 // address to metrics.
-func TransmitGetMeasure(network *node.Comms, topology *circuit.Circuit, roundID id.Round) ([]measure.RoundMetrics, error) {
+func TransmitGetMeasure(network *node.Comms, topology *connect.Circuit, roundID id.Round) ([]measure.RoundMetrics, error) {
 
 	// Stores errors for each SendGetMeasure() call to be concatenated on return
 	var errs []string

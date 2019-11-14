@@ -1,10 +1,10 @@
 package server
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"os"
@@ -87,7 +87,7 @@ func TestInstance_Topology(t *testing.T) {
 
 	//Build the topology
 	def := Definition{}
-	def.Topology = circuit.New(nodeIDs)
+	def.Topology = connect.NewCircuit(nodeIDs)
 	def.ID = nodeIDs[2]
 	i := &Instance{definition: &def}
 

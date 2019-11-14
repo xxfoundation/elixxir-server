@@ -1,10 +1,10 @@
 package server
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -54,7 +54,7 @@ type Definition struct {
 	E2EGroup *cyclic.Group
 
 	//Topology of the network as a whole
-	Topology *circuit.Circuit
+	Topology *connect.Circuit
 	//Holds information about all other nodes in the network
 	Nodes []Node
 	//Holds information about the permissioning server

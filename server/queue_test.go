@@ -3,12 +3,12 @@ package server
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -101,7 +101,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	def := Definition{
 		ID:              nid,
-		Topology:        circuit.New([]*id.Node{nid}),
+		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
@@ -183,7 +183,7 @@ func makeTestPhase(instance *Instance, name phase.Type,
 	//  header.
 	transmissionHandler := func(network *node.Comms, batchSize uint32,
 		roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-		getMessage phase.GetMessage, topology *circuit.Circuit,
+		getMessage phase.GetMessage, topology *connect.Circuit,
 		nodeId *id.Node, measure phase.Measure) error {
 		iWasCalled = true
 		return nil

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -11,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -350,7 +350,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 		def := server.Definition{
 			CmixGroup: grp,
-			Topology:  circuit.New(nidLst),
+			Topology:  connect.NewCircuit(nidLst),
 			ID:        nidLst[i],
 			BatchSize: uint32(batchsize),
 			Nodes:     nodeLst,

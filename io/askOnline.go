@@ -7,14 +7,14 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"time"
 )
 
 // VerifyServersOnline Blocks until all given servers respond
-func VerifyServersOnline(network *node.Comms, servers *circuit.Circuit) {
+func VerifyServersOnline(network *node.Comms, servers *connect.Circuit) {
 	for i := 0; i < servers.Len(); {
 		// Pull server's host from the connection manager
 		serverID := servers.GetNodeAtIndex(i).String()

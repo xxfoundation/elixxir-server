@@ -7,8 +7,8 @@ package phase
 
 import (
 	"fmt"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"strings"
@@ -51,7 +51,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 	pass := false
 	handler := func(network *node.Comms, batchSize uint32,
 		roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nodes *circuit.Circuit, nid *id.Node, measure Measure) error {
+		getMessage GetMessage, nodes *connect.Circuit, nid *id.Node, measure Measure) error {
 		pass = true
 		return nil
 	}
@@ -206,7 +206,7 @@ func TestNew(t *testing.T) {
 
 	transmit := func(network *node.Comms, batchSize uint32,
 		roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nodes *circuit.Circuit, nid *id.Node, measure Measure) error {
+		getMessage GetMessage, nodes *connect.Circuit, nid *id.Node, measure Measure) error {
 		pass = true
 		return nil
 	}

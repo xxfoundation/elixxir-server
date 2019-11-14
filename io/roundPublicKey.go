@@ -9,10 +9,10 @@ package io
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
@@ -25,7 +25,7 @@ import (
 // in the round
 func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *circuit.Circuit,
+	getMessage phase.GetMessage, topology *connect.Circuit,
 	nodeID *id.Node, measureFunc phase.Measure) error {
 
 	var roundPublicKeys [][]byte

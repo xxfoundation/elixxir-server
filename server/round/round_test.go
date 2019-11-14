@@ -1,13 +1,13 @@
 package round
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -55,7 +55,7 @@ func TestNew(t *testing.T) {
 
 	handler := func(network *node.Comms, batchSize uint32,
 		roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
-		getMessage phase.GetMessage, nodes *circuit.Circuit, nid *id.Node, measure phase.Measure) error {
+		getMessage phase.GetMessage, nodes *connect.Circuit, nid *id.Node, measure phase.Measure) error {
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func TestNew(t *testing.T) {
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: handler, Timeout: time.Minute}))
 
-	topology := circuit.New([]*id.Node{&id.Node{}})
+	topology := connect.New([]*id.Node{&id.Node{}})
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
@@ -119,7 +119,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 
 	handler := func(network *node.Comms, batchSize uint32, roundId id.Round,
 		phaseTy phase.Type, getSlot phase.GetChunk, getMessage phase.GetMessage,
-		nodes *circuit.Circuit, nid *id.Node, measure phase.Measure) error {
+		nodes *connect.Circuit, nid *id.Node, measure phase.Measure) error {
 		return nil
 	}
 
@@ -136,7 +136,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 
 	nidStr := "123"
 	nid := id.NewNodeFromUInt(uint64(123), t)
-	topology := circuit.New([]*id.Node{nid})
+	topology := connect.NewCircuit([]*id.Node{nid})
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
@@ -181,7 +181,7 @@ func TestRound_StartRoundTrip(t *testing.T) {
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
 
-	topology := circuit.New([]*id.Node{&id.Node{}})
+	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
@@ -209,7 +209,7 @@ func TestRound_StopRoundTrip(t *testing.T) {
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
 
-	topology := circuit.New([]*id.Node{&id.Node{}})
+	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,

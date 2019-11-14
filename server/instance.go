@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -72,10 +71,9 @@ func (i *Instance) InitNetwork(
 		}
 
 		i.network.Manager.AddHost(n.ID.String(), nodeHost)
-
+		//i.definition.Topology.AddHost(nodeHost)
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
-
 	//Attempt to connect Gateway
 	if i.definition.Gateway.Address != "" {
 		gwHost, err := connect.NewHost(i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
@@ -110,7 +108,7 @@ func (i *Instance) InitLastNode() {
 }
 
 // GetTopology returns the circuit object
-func (i *Instance) GetTopology() *circuit.Circuit {
+func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
 }
 
