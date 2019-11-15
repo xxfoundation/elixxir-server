@@ -1,7 +1,6 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -80,15 +79,9 @@ func TransmitPrecompResult(network *node.Comms, batchSize uint32,
 		return errs
 	}
 
-	// If we got here, there weren't errors, so let's send to the first node
-	// so the round can go on the finished precomps queue on that node
-	recipientID := topology.GetNodeAtIndex(0).String()
 	// Pull the particular server host object from the commManager
-	recipient, ok := network.Manager.GetHost(recipientID)
-	if !ok {
-		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", recipientID)
-		return errors.New(errMsg)
-	}
+	recipient := topology.GetHostAtIndex(0)
+
 	//Send the message to that node
 	ack, err := network.SendPostPrecompResult(recipient, uint64(roundID), slots)
 	if err != nil {

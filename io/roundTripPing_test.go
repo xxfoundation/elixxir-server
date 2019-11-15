@@ -2,6 +2,7 @@ package io
 
 import (
 	"fmt"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -74,8 +75,11 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		PrivateKey:      mockRSAPriv,
 		PublicKey:       mockRSAPub,
 	}
+	nodeIDs := make([]*id.Node, 0)
+	nodeIDs = append(nodeIDs, nid)
+	def.Topology = connect.NewCircuit(nodeIDs)
 
-	mockServerInstance := server.CreateServerInstance(&def)
+	mockServerInstance := server.CreateServerInstance(&def, NewImplementation)
 	mockServerInstance.GetNetwork()
 
 	roundID := id.Round(0)
@@ -109,4 +113,13 @@ func TestTransmitRoundTripPing(t *testing.T) {
 	if before == r.GetRTStart().String() {
 		t.Error("RT Start time did not change")
 	}
+}
+
+// NewImplementation creates a new implementation of the server.
+// When a function is added to comms, you'll need to point to it here.
+func NewImplementation(instance *server.Instance) *node.Implementation {
+
+	impl := node.NewImplementation()
+
+	return impl
 }

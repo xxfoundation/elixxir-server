@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -575,7 +576,16 @@ func mockServerInstance(i interface{}) *server.Instance {
 		UserRegistry:    &globals.UserMap{},
 	}
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	return instance
+}
+
+// NewImplementation creates a new implementation of the server.
+// When a function is added to comms, you'll need to point to it here.
+func NewImplementation(instance *server.Instance) *node.Implementation {
+
+	impl := node.NewImplementation()
+
+	return impl
 }

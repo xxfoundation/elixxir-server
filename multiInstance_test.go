@@ -75,7 +75,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
-		instance := server.CreateServerInstance(defsLst[i])
+		instance := server.CreateServerInstance(defsLst[i], node.NewImplementation)
 		instances = append(instances, instance)
 	}
 
@@ -89,7 +89,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		wg.Add(1)
 		localInstance := instance
 		go func() {
-			localInstance.InitNetwork(node.NewImplementation)
 			localInstance.Online = true
 			wg.Done()
 		}()

@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp := cyclic.NewGroup(prime, large.NewInt(2))
 	def := mockServerDef(m, grp)
-	instance = CreateServerInstance(def)
+	instance = CreateServerInstance(def, NewImplementation)
 	os.Exit(m.Run())
 }
 
@@ -107,7 +107,7 @@ func TestInstance_Topology(t *testing.T) {
 func TestInstance_GetResourceMonitor(t *testing.T) {
 
 	def := mockServerDef(t, grp)
-	i := CreateServerInstance(def)
+	i := CreateServerInstance(def, NewImplementation)
 
 	rm := i.GetResourceMonitor()
 

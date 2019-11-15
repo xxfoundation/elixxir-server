@@ -34,63 +34,54 @@ type Instance struct {
 
 // Create a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
-func CreateServerInstance(def *Definition) *Instance {
-	instance := Instance{
+// After the network object is created, you still need to use it to connect
+// to other servers in the network
+// Additionally, to clean up the network object (especially in tests), call
+// Shutdown() on the network object.
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation) *Instance {
+	instance := &Instance{
 		Online:        false,
 		definition:    def,
 		roundManager:  round.NewManager(),
 		resourceQueue: initQueue(),
 	}
-	return &instance
-}
 
-// Initializes the network on this server instance
-// After the network object is created, you still need to use it to connect
-// to other servers in the network using ConnectToNode or ConnectToGateway.
-// Additionally, to clean up the network object (especially in tests), call
-// Shutdown() on the network object.
-func (i *Instance) InitNetwork(
-	makeImplementation func(*Instance) *node.Implementation) *node.Comms {
+	// Initializes the network on this server instance
 
 	//Start local node
-	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
-		i.definition.TlsCert, i.definition.TlsKey)
+	instance.network = node.StartNode(instance.definition.Address, makeImplementation(instance),
+		instance.definition.TlsCert, instance.definition.TlsKey)
 
 	//Add all hosts to manager for future connections
-	// FIXME: This construction creates a race condition. In the older
-	//        server, connection information is carried with the ID,
-	//        and a connection is made as it is needed. State of the
-	//        connections in the system was not important, only availability
-	//        which is checked later. Now there is a race condition if
-	//        a server starts sending commands BEFORE this code completes!
-	for index, n := range i.definition.Nodes {
+	for index, n := range instance.definition.Nodes {
 		nodeHost, err := connect.NewHost(n.Address, n.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Could not add node %s (%v/%v) as a host: %+v",
-				n.ID, index+1, len(i.definition.Nodes), err)
+				n.ID, index+1, len(instance.definition.Nodes), err)
 		}
 
-		i.network.Manager.AddHost(n.ID.String(), nodeHost)
-		i.definition.Topology.AddHost(nodeHost)
+		instance.network.Manager.AddHost(n.ID.String(), nodeHost)
+		fmt.Println("topology: ", instance.definition.Topology)
+		instance.definition.Topology.AddHost(nodeHost)
 		//i.definition.Topology.AddHost(nodeHost)
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
 	//Attempt to connect Gateway
-	if i.definition.Gateway.Address != "" {
-		gwHost, err := connect.NewHost(i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
+	if instance.definition.Gateway.Address != "" {
+		gwHost, err := connect.NewHost(
+			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false)
 		if err != nil {
 			jww.FATAL.Panicf("Count not add gateway %s as host: %+v",
-				i.definition.Gateway.ID, err)
+				instance.definition.Gateway.ID, err)
 		}
-		i.network.AddHost(i.definition.Gateway.ID.String(), gwHost)
+		instance.network.AddHost(instance.definition.Gateway.ID.String(), gwHost)
 
 	} else {
 		jww.WARN.Printf("No Gateway avalible, starting without gateway")
 	}
-
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
-	return i.network
+	return instance
 }
 
 // Run starts the resource queue

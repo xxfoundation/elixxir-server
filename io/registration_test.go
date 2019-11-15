@@ -9,6 +9,7 @@ package io
 import (
 	"crypto"
 	"fmt"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -16,6 +17,7 @@ import (
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
@@ -94,8 +96,11 @@ func TestMain(m *testing.M) {
 	}
 
 	def.Permissioning.PublicKey = regPrivKey.GetPublic()
+	nodeIDs := make([]*id.Node, 0)
+	nodeIDs = append(nodeIDs, nid)
+	def.Topology = connect.NewCircuit(nodeIDs)
 
-	serverInstance = server.CreateServerInstance(&def)
+	serverInstance = server.CreateServerInstance(&def, NewImplementation)
 
 	os.Exit(m.Run())
 }

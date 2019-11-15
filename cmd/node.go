@@ -132,7 +132,7 @@ func StartServer(vip *viper.Viper) {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	instance := server.CreateServerInstance(def)
+	instance := server.CreateServerInstance(def, node.NewImplementation)
 
 	if instance.IsFirstNode() {
 		jww.INFO.Printf("Initilizing as first node")
@@ -153,9 +153,6 @@ func StartServer(vip *viper.Viper) {
 				" permissioning server: %+v", err)
 		}
 	}
-
-	// initialize the network
-	instance.InitNetwork(node.NewImplementation)
 
 	jww.INFO.Printf("server online")
 	instance.Online = true

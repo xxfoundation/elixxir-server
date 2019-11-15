@@ -76,8 +76,8 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-
-	instance := server.CreateServerInstance(&def)
+	def.ID = def.Topology.GetNodeAtIndex(0)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -164,7 +164,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 	registry := instance.GetUserRegistry()
@@ -257,7 +257,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	mockPhase := testUtil.InitMockPhase(t)
 
@@ -398,7 +398,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)
@@ -550,7 +550,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(1)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -616,7 +616,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 	topology := instance.GetTopology()
 
 	batchSize := uint32(3)
@@ -721,7 +721,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
 	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
@@ -745,7 +745,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	topology := instance.GetTopology()
 
@@ -796,7 +796,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			BatchSize:       4,
 		}
 		def.ID = def.Topology.GetNodeAtIndex(i)
-		instances = append(instances, server.CreateServerInstance(&def))
+		instances = append(instances, server.CreateServerInstance(&def, NewImplementation))
 	}
 	instances[0].InitFirstNode()
 	topology := instances[0].GetTopology()
@@ -869,7 +869,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -942,7 +942,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -1016,7 +1016,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -1219,7 +1219,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance := server.CreateServerInstance(&def, NewImplementation)
 
 	return instance
 }
