@@ -30,6 +30,5 @@ func TransmitRoundTripPing(network *node.Comms, id *id.Node, r *round.Round, pay
 		err = errors.New(fmt.Sprintf("TransmitRoundTripPing received an error: %+v", err))
 		return err
 	}
-
 	return nil
 }

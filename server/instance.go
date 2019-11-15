@@ -71,6 +71,7 @@ func (i *Instance) InitNetwork(
 		}
 
 		i.network.Manager.AddHost(n.ID.String(), nodeHost)
+		i.definition.Topology.AddHost(nodeHost)
 		//i.definition.Topology.AddHost(nodeHost)
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
