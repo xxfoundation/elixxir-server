@@ -62,12 +62,8 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 		wg.Add(1)
 		go func() {
 			// Pull the particular server host object from the commManager
-			recipientID := topology.GetNodeAtIndex(localIndex).String()
-			recipient, ok := network.Manager.GetHost(recipientID)
-			if !ok {
-				errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", recipientID)
-				errChan <- errors.New(errMsg)
-			}
+			recipient := topology.GetHostAtIndex(localIndex)
+
 			//Send the message to that node
 			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 

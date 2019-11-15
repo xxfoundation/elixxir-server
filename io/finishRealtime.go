@@ -10,7 +10,6 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -62,14 +61,7 @@ func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 		wg.Add(1)
 		go func() {
 			// Pull the particular server host object from the commManager
-			recipientID := topology.GetNodeAtIndex(localIndex).String()
-			recipient, ok := network.Manager.GetHost(recipientID)
-			if !ok {
-				// If server not found, send through error channel
-				errMsg := fmt.Sprintf("Could not find cMix server %s (%d/%d) in comm manager",
-					recipientID, localIndex+1, topology.Len())
-				errChan <- errors.New(errMsg)
-			}
+			recipient := topology.GetHostAtIndex(localIndex)
 			// Send the message to that particular node
 			ack, err := network.SendFinishRealtime(recipient,
 				&mixmessages.RoundInfo{

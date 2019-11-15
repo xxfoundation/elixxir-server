@@ -17,11 +17,8 @@ import (
 func VerifyServersOnline(network *node.Comms, servers *connect.Circuit) {
 	for i := 0; i < servers.Len(); {
 		// Pull server's host from the connection manager
-		serverID := servers.GetNodeAtIndex(i).String()
-		server, ok := network.Manager.GetHost(serverID)
-		if !ok {
-			jww.INFO.Printf("Could not find cMix server %s (%d/%d) in comm manager", serverID, i+1, servers.Len())
-		}
+		serverID := servers.GetNodeAtIndex(i)
+		server := servers.GetHostAtIndex(i)
 		// Send comm to the other server
 		_, err := network.SendAskOnline(server, &pb.Ping{})
 		jww.INFO.Printf("Waiting for cMix server %s (%d/%d)...",

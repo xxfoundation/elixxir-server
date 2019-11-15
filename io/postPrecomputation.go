@@ -49,12 +49,8 @@ func TransmitPrecompResult(network *node.Comms, batchSize uint32,
 		go func(index int) {
 			var err error
 			// Pull the particular server host object from the commManager
-			recipientID := topology.GetNodeAtIndex(index).String()
-			recipient, ok := network.Manager.GetHost(recipientID)
-			if !ok {
-				errMsg := fmt.Sprintf("Could not find cMix server %s...", recipientID)
-				errChan <- errors.Wrapf(err, errMsg)
-			}
+			recipient := topology.GetHostAtIndex(index)
+
 			ack, err := network.SendPostPrecompResult(recipient, uint64(roundID), slots)
 			if err != nil {
 				errChan <- errors.Wrapf(err, "")

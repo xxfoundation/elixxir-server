@@ -185,7 +185,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	realDecrypt := phase.New(phase.Definition{
 		Graph: realtime.InitDecryptGraph(gg),
 		Type:  phase.RealDecrypt,
-		TransmissionHandler: func(network *node.Comms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node, measure phase.Measure) error {
+		TransmissionHandler: func(network *node.Comms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *connect.Circuit, nodeId *id.Node, measure phase.Measure) error {
 			return nil
 		},
 		Timeout:        5 * time.Second,
@@ -487,7 +487,7 @@ func initImplGroup() *cyclic.Group {
 }
 
 // Builds a list of node IDs for testing
-func buildMockTopology(numNodes int) *circuit.Circuit {
+func buildMockTopology(numNodes int) *connect.Circuit {
 	var nodeIDs []*id.Node
 
 	//Build IDs
@@ -1224,7 +1224,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	return instance
 }
 
-func mockTransmitGetMeasure(node *node.Comms, topology *circuit.Circuit, roundID id.Round) (string, error) {
+func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID id.Round) (string, error) {
 	serverRoundMetrics := map[string]measure.RoundMetrics{}
 	mockResourceMetrics := measure.ResourceMetric{
 		Time:          time.Unix(int64(0), int64(1)),

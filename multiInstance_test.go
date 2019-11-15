@@ -322,6 +322,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 	//generate IDs and addresses
 	var nidLst []*id.Node
 	var nodeLst []server.Node
+	var hosts []*connect.Host
 	addrFmt := "localhost:5%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
@@ -337,6 +338,9 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Address: addr,
 		}
 		nodeLst = append(nodeLst, n)
+
+		hosts = append(hosts, &connect.Host{})
+
 	}
 
 	//generate parameters list
@@ -363,6 +367,8 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
+
+		def.Topology.AddHost(hosts[i])
 		defLst = append(defLst, &def)
 	}
 

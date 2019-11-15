@@ -64,7 +64,7 @@ func TestNew(t *testing.T) {
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: handler, Timeout: time.Minute}))
 
-	topology := connect.New([]*id.Node{&id.Node{}})
+	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,

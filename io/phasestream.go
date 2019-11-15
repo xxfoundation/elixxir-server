@@ -28,12 +28,9 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 	topology *connect.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
 
 	// Pull the particular server host object from the commManager
-	recipientID := topology.GetNextNode(nodeID).String()
-	recipient, ok := network.GetHost(recipientID)
-	if !ok {
-		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", recipientID)
-		jww.ERROR.Printf(errMsg)
-	}
+	recipientID := topology.GetNextNode(nodeID)
+	recipientIndex := topology.GetNodeLocation(recipientID)
+	recipient := topology.GetHostAtIndex(recipientIndex)
 
 	header := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{

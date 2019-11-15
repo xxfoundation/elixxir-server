@@ -37,15 +37,10 @@ func TransmitGetMeasure(network *node.Comms, topology *connect.Circuit, roundID 
 	for i := 0; i < topology.Len(); i++ {
 		// Pull the particular server host object from the commManager
 		currentNodeID := topology.GetNodeAtIndex(i).String()
-		cuurentNode, ok := network.Manager.GetHost(currentNodeID)
-		if !ok {
-			errMsg := fmt.Sprintf("Could not find cMix server %s (%d/%d)  in comm manager",
-				currentNodeID, i+1, topology.Len())
-			errs = append(errs, errMsg)
-		}
+		currentNode := topology.GetHostAtIndex(i)
 		roundMetric := measure.RoundMetrics{}
 
-		metric, err := network.SendGetMeasure(cuurentNode, &pb.RoundInfo{
+		metric, err := network.SendGetMeasure(currentNode, &pb.RoundInfo{
 			ID: uint64(roundID),
 		})
 

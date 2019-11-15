@@ -30,15 +30,9 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 	topology *connect.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
 
 	// Pull the particular server host object from the commManager
-	recipientID := topology.GetNextNode(nodeID).String()
-	recipient, ok := network.Manager.GetHost(recipientID)
-	if !ok {
-		//REVIEWER: return err here, append to the other one? What would be best??
-		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager",
-			recipientID)
-		err := errors.New(errMsg)
-		return err
-	}
+	recipientID := topology.GetNextNode(nodeID)
+	nextNodeIndex := topology.GetNodeLocation(recipientID)
+	recipient := topology.GetHostAtIndex(nextNodeIndex)
 
 	// Create the message structure to send the messages
 	batch := &mixmessages.Batch{

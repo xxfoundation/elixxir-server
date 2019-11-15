@@ -88,6 +88,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 		for connectTo := 0; connectTo < len(impls); connectTo++ {
 			tmpHost, _ := connect.NewHost(addrLst[connectTo], nil, false)
 			comms[connectFrom].AddHost(topology.GetNodeAtIndex(connectTo).String(), tmpHost)
+			topology.AddHost(tmpHost)
 		}
 	}
 
