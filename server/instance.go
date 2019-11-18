@@ -38,7 +38,7 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation) *Instance {
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation) (*Instance, error) {
 	instance := &Instance{
 		Online:        false,
 		definition:    def,
@@ -56,14 +56,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	for index, n := range instance.definition.Nodes {
 		nodeHost, err := connect.NewHost(n.Address, n.TlsCert, false)
 		if err != nil {
-			jww.FATAL.Panicf("Could not add node %s (%v/%v) as a host: %+v",
+			errMsg := fmt.Sprintf("Could not add node %s (%v/%v) as a host: %+v",
 				n.ID, index+1, len(instance.definition.Nodes), err)
+			return nil, errors.New(errMsg)
 		}
 
 		instance.network.Manager.AddHost(n.ID.String(), nodeHost)
-		fmt.Println("topology: ", instance.definition.Topology)
 		instance.definition.Topology.AddHost(nodeHost)
-		//i.definition.Topology.AddHost(nodeHost)
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
 	//Attempt to connect Gateway
@@ -71,8 +70,10 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gwHost, err := connect.NewHost(
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false)
 		if err != nil {
-			jww.FATAL.Panicf("Count not add gateway %s as host: %+v",
+			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
 				instance.definition.Gateway.ID, err)
+			return nil, errors.New(errMsg)
+
 		}
 		instance.network.AddHost(instance.definition.Gateway.ID.String(), gwHost)
 
@@ -81,7 +82,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
-	return instance
+	return instance, nil
 }
 
 // Run starts the resource queue
