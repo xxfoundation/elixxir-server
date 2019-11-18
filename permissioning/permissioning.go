@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -58,12 +57,11 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 	// Start Node communication server
 	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
 	// Connect to the Permissioning Server
-	permHost, err := connect.NewHost(def.Permissioning.Address, def.Permissioning.TlsCert, true)
+
+	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
 	if err != nil {
 		jww.FATAL.Panicf("Unable to connect to registration server: %+v", errors.New(err.Error()))
 	}
-
-	network.AddHost(id.PERMISSIONING, permHost)
 
 	// Attempt Node registration
 	_, port, err := net.SplitHostPort(def.Address)

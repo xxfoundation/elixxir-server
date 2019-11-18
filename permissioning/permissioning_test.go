@@ -113,8 +113,7 @@ func TestRegisterNode(t *testing.T) {
 	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	pHandler := registration.Handler(&mockPermission{})
 	permComms = registration.StartRegistrationServer(pAddr, pHandler, cert, key)
-	nodeHost, err := connect.NewHost(addr, cert, false)
-	permComms.AddHost(nodeId.String(), nodeHost)
+	_, err := permComms.AddHost(nodeId.String(), addr, cert, false)
 	if err != nil {
 		t.Fatalf("Permissioning could not connect to node")
 	}
@@ -125,8 +124,7 @@ func TestRegisterNode(t *testing.T) {
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		nodeHost, err := connect.NewHost(addr, cert, false)
-		gwComms.AddHost(nodeId.String(), nodeHost)
+		gwComms.AddHost(nodeId.String(), addr, cert, false)
 		if err != nil {
 			t.Fatalf("Gateway could not connect to node")
 		}

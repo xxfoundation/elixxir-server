@@ -54,20 +54,19 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	//Add all hosts to manager for future connections
 	for index, n := range instance.definition.Nodes {
-		nodeHost, err := connect.NewHost(n.Address, n.TlsCert, false)
+		nodeHost, err := instance.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false)
 		if err != nil {
 			errMsg := fmt.Sprintf("Could not add node %s (%v/%v) as a host: %+v",
 				n.ID, index+1, len(instance.definition.Nodes), err)
 			return nil, errors.New(errMsg)
 		}
-
-		instance.network.Manager.AddHost(n.ID.String(), nodeHost)
 		instance.definition.Topology.AddHost(nodeHost)
+
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
 	//Attempt to connect Gateway
 	if instance.definition.Gateway.Address != "" {
-		gwHost, err := connect.NewHost(
+		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false)
 		if err != nil {
 			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
@@ -75,8 +74,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			return nil, errors.New(errMsg)
 
 		}
-		instance.network.AddHost(instance.definition.Gateway.ID.String(), gwHost)
-
 	} else {
 		jww.WARN.Printf("No Gateway avalible, starting without gateway")
 	}
