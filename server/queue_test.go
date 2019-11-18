@@ -106,7 +106,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 
-	instance := CreateServerInstance(&def, NewImplementation)
+	instance, _ := CreateServerInstance(&def, NewImplementation)
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase

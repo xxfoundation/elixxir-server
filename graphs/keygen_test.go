@@ -488,7 +488,7 @@ func mockServerInstance(i interface{}) *server.Instance {
 		UserRegistry:    &globals.UserMap{},
 	}
 
-	instance := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	return instance
 }

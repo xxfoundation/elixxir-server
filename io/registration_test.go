@@ -100,7 +100,7 @@ func TestMain(m *testing.M) {
 	nodeIDs = append(nodeIDs, nid)
 	def.Topology = connect.NewCircuit(nodeIDs)
 
-	serverInstance = server.CreateServerInstance(&def, NewImplementation)
+	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation)
 
 	os.Exit(m.Run())
 }

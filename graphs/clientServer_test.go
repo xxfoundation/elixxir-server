@@ -67,7 +67,7 @@ func TestClientServer(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 	}
-	instance := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)

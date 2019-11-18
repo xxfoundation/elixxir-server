@@ -134,7 +134,7 @@ func StartServer(vip *viper.Viper) {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	instance, err := server.CreateServerInstance(def, node.NewImplementation)
 	if err != nil {
-		jww.ERROR.Printf("Could not create server instance: %v", err)
+		jww.FATAL.Printf("Could not create server instance: %v", err)
 	}
 
 	if instance.IsFirstNode() {
