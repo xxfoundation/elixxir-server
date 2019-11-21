@@ -32,8 +32,10 @@ type Round struct {
 	responses phase.ResponseMap
 
 	//holds round metrics data
-	roundMetrics measure.RoundMetrics
+	roundMetrics     measure.RoundMetrics
+	metricsReadyChan chan struct{}
 
+	// Round trip info
 	rtStarted   bool
 	rtStartTime time.Time
 	rtEndTime   time.Time
@@ -148,6 +150,8 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		jww.FATAL.Println("phase state initialization failed")
 	}
 
+	round.metricsReadyChan = make(chan struct{}, 1)
+
 	return &round
 }
 
@@ -250,6 +254,10 @@ func (r *Round) GetMeasurements(nid string, numNodes, index int,
 	rm.EndTime = time.Now()
 
 	return rm
+}
+
+func (r *Round) GetMeasurementsReadyChan() chan struct{} {
+	return r.metricsReadyChan
 }
 
 // String stringer interface implementation for rounds.

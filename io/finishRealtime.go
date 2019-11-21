@@ -56,7 +56,7 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 	// signal to all nodes except the first node that the round has been
 	// completed. Skip the first node and do it after to ensure all measurements
 	// are stored before it polls for the measurement data
-	for index := 1; index < topology.Len(); index++ {
+	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)
 		go func() {
@@ -81,22 +81,6 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 
 	// Wait for all responses
 	wg.Wait()
-
-	//send to first node now that the operation has concluded
-	recipient := topology.GetNodeAtIndex(0)
-
-	ack, err := network.SendFinishRealtime(recipient,
-		&mixmessages.RoundInfo{
-			ID: uint64(roundID),
-		})
-
-	if ack != nil && ack.Error != "" {
-		err = errors.Errorf("Remote Server Error: %s", ack.Error)
-	}
-
-	if err != nil {
-		errChan <- err
-	}
 
 	// Return all node comms or ack errors if any
 	// as a single error message

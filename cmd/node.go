@@ -156,9 +156,9 @@ func StartServer(vip *viper.Viper) {
 
 	// initialize the network
 	instance.InitNetwork(node.NewImplementation)
+	instance.Online = true
 
 	jww.INFO.Printf("Checking all servers are online")
-	// Check that all other nodes are online
 	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 
 	jww.INFO.Printf("Begining resource queue")
@@ -172,7 +172,6 @@ func StartServer(vip *viper.Viper) {
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 
-	jww.INFO.Printf("server online")
 }
 
 // Create dummy users to be manually inserted into the database
