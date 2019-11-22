@@ -158,7 +158,6 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	// initialize the network
-	instance.InitNetwork(node.NewImplementation)
 	instance.Online = true
 
 	jww.INFO.Printf("Checking all servers are online")
