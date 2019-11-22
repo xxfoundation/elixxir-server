@@ -9,11 +9,13 @@ package permissioning
 import (
 	"bytes"
 	"fmt"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/gateway"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/registration"
-	"gitlab.com/elixxir/primitives/circuit"
+	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"math/rand"
@@ -23,8 +25,8 @@ import (
 )
 
 var nodeId *id.Node
-var permComms *registration.RegistrationComms
-var gwComms *gateway.GatewayComms
+var permComms *registration.Comms
+var gwComms *gateway.Comms
 
 // Dummy implementation of permissioning server --------------------------------
 type mockPermission struct{}
@@ -37,10 +39,6 @@ func (i *mockPermission) RegisterNode(ID []byte, ServerAddr, ServerTlsCert,
 	GatewayAddr, GatewayTlsCert, RegistrationCode string) error {
 
 	go func() {
-		err := permComms.ConnectToRemote(nodeId, ServerAddr, nil, false)
-		if err != nil {
-			panic(err)
-		}
 		nodeTop := make([]*pb.NodeInfo, 0)
 		nodeTop = append(nodeTop, &pb.NodeInfo{
 			Id:             nodeId.Bytes(),
@@ -53,7 +51,10 @@ func (i *mockPermission) RegisterNode(ID []byte, ServerAddr, ServerTlsCert,
 		nwTop := &pb.NodeTopology{
 			Topology: nodeTop,
 		}
-		err = permComms.SendNodeTopology(nodeId, nwTop)
+
+		nodeHost, _ := permComms.GetHost(nodeId.String())
+
+		err := permComms.SendNodeTopology(nodeHost, nwTop)
 		if err != nil {
 			panic(err)
 		}
@@ -73,23 +74,23 @@ func (i *mockPermission) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
 // Dummy implementation of gateway server --------------------------------------
 type mockGateway struct{}
 
-func (*mockGateway) CheckMessages(userID *id.User, messageID string) ([]string, bool) {
-	return nil, false
-}
-
-func (*mockGateway) GetMessage(userID *id.User, msgID string) (*pb.Slot, bool) {
-	return nil, false
-}
-
-func (*mockGateway) PutMessage(message *pb.Slot) bool {
-	return false
-}
-
-func (*mockGateway) RequestNonce(message *pb.NonceRequest) (*pb.Nonce, error) {
+func (*mockGateway) CheckMessages(userID *id.User, messageID string, ipAddress string) ([]string, error) {
 	return nil, nil
 }
 
-func (*mockGateway) ConfirmNonce(message *pb.RequestRegistrationConfirmation) (*pb.
+func (*mockGateway) GetMessage(userID *id.User, msgID string, ipAddress string) (*pb.Slot, error) {
+	return nil, nil
+}
+
+func (*mockGateway) PutMessage(message *pb.Slot, ipAddress string) error {
+	return nil
+}
+
+func (*mockGateway) RequestNonce(message *pb.NonceRequest, ipAddress string) (*pb.Nonce, error) {
+	return nil, nil
+}
+
+func (*mockGateway) ConfirmNonce(message *pb.RequestRegistrationConfirmation, ipAddress string) (*pb.
 	RegistrationConfirmation, error) {
 	return nil, nil
 }
@@ -102,21 +103,28 @@ func TestRegisterNode(t *testing.T) {
 	gwConnected := make(chan struct{})
 	permDone := make(chan struct{})
 
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+
 	nodeId = id.NewNodeFromUInt(uint64(0), t)
 	addr := fmt.Sprintf("0.0.0.0:%d", 6000+rand.Intn(1000))
 
 	// Initialize permissioning server
 	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	pHandler := registration.Handler(&mockPermission{})
-	permComms = registration.StartRegistrationServer(pAddr, pHandler, nil, nil)
+	permComms = registration.StartRegistrationServer(pAddr, pHandler, cert, key)
+	_, err := permComms.AddHost(nodeId.String(), addr, cert, false)
+	if err != nil {
+		t.Fatalf("Permissioning could not connect to node")
+	}
 
 	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	gHandler := gateway.Handler(&mockGateway{})
-	gwComms = gateway.StartGateway(gAddr, gHandler, nil, nil)
+	gwComms = gateway.StartGateway(gAddr, gHandler, cert, key)
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		err := gwComms.ConnectToRemote(nodeId, addr, nil, false)
+		gwComms.AddHost(nodeId.String(), addr, cert, false)
 		if err != nil {
 			t.Fatalf("Gateway could not connect to node")
 		}
@@ -129,14 +137,14 @@ func TestRegisterNode(t *testing.T) {
 		ID:            nodeId,
 		PublicKey:     nil,
 		PrivateKey:    nil,
-		TlsCert:       nil,
-		TlsKey:        nil,
+		TlsCert:       cert,
+		TlsKey:        key,
 		Address:       addr,
 		LogPath:       "",
 		MetricLogPath: "",
 		Gateway: server.GW{
 			Address: gAddr,
-			TlsCert: nil,
+			TlsCert: cert,
 		},
 		UserRegistry:    nil,
 		GraphGenerator:  services.GraphGenerator{},
@@ -147,7 +155,7 @@ func TestRegisterNode(t *testing.T) {
 		Topology:        nil,
 		Nodes:           make([]server.Node, 1),
 		Permissioning: server.Perm{
-			TlsCert:          nil,
+			TlsCert:          cert,
 			RegistrationCode: "",
 			Address:          pAddr,
 		},
@@ -159,7 +167,7 @@ func TestRegisterNode(t *testing.T) {
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
-		def.Topology = circuit.New(nodeIds)
+		def.Topology = connect.NewCircuit(nodeIds)
 		permDone <- struct{}{}
 	}()
 
@@ -173,7 +181,8 @@ func TestRegisterNode(t *testing.T) {
 			t.Fatalf("Gateway could get cert from server")
 		}
 		numPolls++
-		msg, err := gwComms.PollSignedCerts(nodeId, &pb.Ping{})
+		nodeHost, _ := gwComms.GetHost(nodeId.String())
+		msg, err := gwComms.PollSignedCerts(nodeHost, &pb.Ping{})
 		if err != nil {
 			t.Errorf("Error on polling signed certs")
 		}

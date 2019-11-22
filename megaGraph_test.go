@@ -569,7 +569,7 @@ func TestBatchSize3(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
-			large.NewInt(4))
+		large.NewInt(4))
 
 	rngConstructor := NewPseudoRNG // FIXME: Why?
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,

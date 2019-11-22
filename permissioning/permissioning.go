@@ -54,17 +54,13 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 		}
 		return &certs, nil
 	}
-
 	// Start Node communication server
 	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
-	permissioningId := ConnAddr("Permissioning")
-
 	// Connect to the Permissioning Server
-	err := network.ConnectToRemote(permissioningId,
-		def.Permissioning.Address, def.Permissioning.TlsCert, true)
+
+	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
 	if err != nil {
-		jww.FATAL.Panicf("Unable to initiate Node registration: %+v",
-			errors.New(err.Error()))
+		jww.FATAL.Panicf("Unable to connect to registration server: %+v", errors.New(err.Error()))
 	}
 
 	// Attempt Node registration
@@ -73,7 +69,8 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
 			errors.New(err.Error()))
 	}
-	err = network.SendNodeRegistration(permissioningId,
+
+	err = network.SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
@@ -108,8 +105,8 @@ func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
 	// Shut down the Comms server
 	network.Shutdown()
 
-    // HACK HACK HACK
-    // FIXME: we should not be coupling connections and server objects
+	// HACK HACK HACK
+	// FIXME: we should not be coupling connections and server objects
 	// Technically the servers can fail to bind for up to
 	// a couple minutes (depending on operating system), but
 	// in practice 10 seconds works

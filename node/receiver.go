@@ -472,8 +472,12 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 		return nil
 	}
 
-	nextNode := topology.GetNextNode(myID)
+	// Pull the particular server host object from the commManager
+	nextNodeID := topology.GetNextNode(myID)
+	nextNodeIndex := topology.GetNodeLocation(nextNodeID)
+	nextNode := topology.GetHostAtIndex(nextNodeIndex)
 
+	//Send the round trip ping to the next node
 	_, err = instance.GetNetwork().RoundTripPing(nextNode, roundID, msg.Payload)
 	if err != nil {
 		err = errors.Errorf("ReceiveRoundTripPing failed to send ping to next node: %+v", err)

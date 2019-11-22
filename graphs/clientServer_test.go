@@ -7,11 +7,12 @@ package graphs
 
 /**/
 import (
+	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -62,11 +63,11 @@ func TestClientServer(t *testing.T) {
 	def := server.Definition{
 		ID:              nid,
 		CmixGroup:       grp,
-		Topology:        circuit.New([]*id.Node{nid}),
+		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 	}
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
@@ -139,4 +140,13 @@ func TestClientServer(t *testing.T) {
 			") did not produce the correct payloadB\n\treceived: %d\n"+
 			"\texpected: %d", inputMsg.GetPayloadB(), testMsg.GetPayloadB())
 	}
+}
+
+// NewImplementation creates a new implementation of the server.
+// When a function is added to comms, you'll need to point to it here.
+func NewImplementation(instance *server.Instance) *node.Implementation {
+
+	impl := node.NewImplementation()
+
+	return impl
 }

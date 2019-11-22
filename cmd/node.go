@@ -11,10 +11,10 @@ import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
@@ -115,7 +115,7 @@ func StartServer(vip *viper.Viper) {
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
-		def.Topology = circuit.New(nodeIds)
+		def.Topology = connect.NewCircuit(nodeIds)
 	}
 
 	jww.INFO.Printf("Creating server instance")
@@ -132,7 +132,10 @@ func StartServer(vip *viper.Viper) {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	instance := server.CreateServerInstance(def)
+	instance, err := server.CreateServerInstance(def, node.NewImplementation)
+	if err != nil {
+		jww.FATAL.Printf("Could not create server instance: %v", err)
+	}
 
 	if instance.IsFirstNode() {
 		jww.INFO.Printf("Initilizing as first node")
@@ -155,7 +158,6 @@ func StartServer(vip *viper.Viper) {
 	}
 
 	// initialize the network
-	instance.InitNetwork(node.NewImplementation)
 	instance.Online = true
 
 	jww.INFO.Printf("Checking all servers are online")

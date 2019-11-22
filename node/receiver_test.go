@@ -12,13 +12,13 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -72,12 +72,12 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(5)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-
-	instance := server.CreateServerInstance(&def)
+	def.ID = def.Topology.GetNodeAtIndex(0)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -157,14 +157,14 @@ func TestReceivePostNewBatch(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(1)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(1)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 	registry := instance.GetUserRegistry()
@@ -185,7 +185,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	realDecrypt := phase.New(phase.Definition{
 		Graph: realtime.InitDecryptGraph(gg),
 		Type:  phase.RealDecrypt,
-		TransmissionHandler: func(network *node.NodeComms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *circuit.Circuit, nodeId *id.Node, measure phase.Measure) error {
+		TransmissionHandler: func(network *node.Comms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *connect.Circuit, nodeId *id.Node, measure phase.Measure) error {
 			return nil
 		},
 		Timeout:        5 * time.Second,
@@ -250,14 +250,14 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(2)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(2)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	mockPhase := testUtil.InitMockPhase(t)
 
@@ -392,13 +392,13 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(2)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(2)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)
@@ -487,7 +487,7 @@ func initImplGroup() *cyclic.Group {
 }
 
 // Builds a list of node IDs for testing
-func buildMockTopology(numNodes int) *circuit.Circuit {
+func buildMockTopology(numNodes int) *connect.Circuit {
 	var nodeIDs []*id.Node
 
 	//Build IDs
@@ -499,7 +499,7 @@ func buildMockTopology(numNodes int) *circuit.Circuit {
 	}
 
 	//Build the topology
-	return circuit.New(nodeIDs)
+	return connect.NewCircuit(nodeIDs)
 }
 
 // Builds a list of base64 encoded node IDs for server instance construction
@@ -544,13 +544,13 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(5)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 	def.ID = def.Topology.GetNodeAtIndex(1)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -610,13 +610,13 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	grp := initImplGroup()
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(5)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 	topology := instance.GetTopology()
 
 	batchSize := uint32(3)
@@ -715,13 +715,13 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	grp := initImplGroup()
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(5)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
 	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
@@ -739,13 +739,13 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(5)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	topology := instance.GetTopology()
 
@@ -790,13 +790,14 @@ func TestPostPrecompResultFunc(t *testing.T) {
 
 		def := server.Definition{
 			CmixGroup:       grp,
-			Topology:        circuit.New(nodeIDs),
+			Topology:        connect.NewCircuit(nodeIDs),
 			UserRegistry:    &globals.UserMap{},
 			ResourceMonitor: &measure.ResourceMonitor{},
 			BatchSize:       4,
 		}
 		def.ID = def.Topology.GetNodeAtIndex(i)
-		instances = append(instances, server.CreateServerInstance(&def))
+		instance, _ := server.CreateServerInstance(&def, NewImplementation)
+		instances = append(instances, instance)
 	}
 	instances[0].InitFirstNode()
 	topology := instances[0].GetTopology()
@@ -863,13 +864,13 @@ func TestReceiveFinishRealtime(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(numNodes)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -936,13 +937,13 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(numNodes)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -1010,13 +1011,13 @@ func TestReceiveGetMeasure(t *testing.T) {
 	// Set instance for first node
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(numNodes)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -1084,7 +1085,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	// Set instance for first node
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(buildMockNodeIDs(numNodes)),
+		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
@@ -1207,7 +1208,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 
 	def := server.Definition{
 		CmixGroup:       grp,
-		Topology:        circuit.New(nodeIDs),
+		Topology:        connect.NewCircuit(nodeIDs),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
@@ -1219,12 +1220,12 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance := server.CreateServerInstance(&def)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation)
 
 	return instance
 }
 
-func mockTransmitGetMeasure(node *node.NodeComms, topology *circuit.Circuit, roundID id.Round) (string, error) {
+func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID id.Round) (string, error) {
 	serverRoundMetrics := map[string]measure.RoundMetrics{}
 	mockResourceMetrics := measure.ResourceMetric{
 		Time:          time.Unix(int64(0), int64(1)),

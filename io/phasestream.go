@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
@@ -22,12 +22,15 @@ import (
 )
 
 // StreamTransmitPhase streams slot messages to the provided Node.
-func StreamTransmitPhase(network *node.NodeComms, batchSize uint32,
+func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type,
 	getChunk phase.GetChunk, getMessage phase.GetMessage,
-	topology *circuit.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
+	topology *connect.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
 
-	recipient := topology.GetNextNode(nodeID)
+	// Pull the particular server host object from the commManager
+	recipientID := topology.GetNextNode(nodeID)
+	recipientIndex := topology.GetNodeLocation(recipientID)
+	recipient := topology.GetHostAtIndex(recipientIndex)
 
 	header := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
