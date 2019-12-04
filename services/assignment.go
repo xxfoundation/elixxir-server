@@ -7,8 +7,8 @@
 package services
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"sync/atomic"
 )
 

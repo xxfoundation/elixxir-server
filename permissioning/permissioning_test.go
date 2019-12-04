@@ -163,7 +163,10 @@ func TestRegisterNode(t *testing.T) {
 
 	// Register the node in a separate thread and notify when finished
 	go func() {
-		nodes, nodeIds, serverCert, gwCert := RegisterNode(def)
+		nodes, nodeIds, serverCert, gwCert, err := RegisterNode(def)
+		if err != nil {
+			t.Error(err)
+		}
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)

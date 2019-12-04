@@ -111,7 +111,20 @@ func StartServer(vip *viper.Viper) {
 
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration
-		nodes, nodeIds, serverCert, gwCert := permissioning.RegisterNode(def)
+		err := permissioning.RegisterNode(def)
+		if err != nil {
+			jww.FATAL.Panicf("Failed to register node: %+v", err)
+		}
+		// Blocking call: Request ndf from permissioning
+		newNdf, err := permissioning.PollNdf(def)
+		if err != nil {
+			jww.ERROR.Panicf("Failed to get ndf: %+v", err)
+		}
+		// Parse the Nd
+		nodes, nodeIds, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
+		if err != nil {
+			jww.ERROR.Panicf("Failed to install ndf: %+v", err)
+		}
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)

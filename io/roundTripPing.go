@@ -1,10 +1,10 @@
 package io
 
 import (
-	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/round"
