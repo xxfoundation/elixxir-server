@@ -9,6 +9,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/connect"
@@ -30,7 +31,7 @@ import (
 var numDemoUsers = int(256)
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(vip *viper.Viper) {
+func StartServer(vip *viper.Viper) error {
 	vip.Debug()
 
 	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
@@ -54,9 +55,8 @@ func StartServer(vip *viper.Viper) {
 	//Check that there is a gateway
 	if len(params.Gateways.Addresses) < 1 {
 		// No gateways in config file or passed via command line
-		jww.FATAL.Panicf("Error: No gateways specified! Add to" +
+		return errors.New("Error: No gateways specified! Add to" +
 			" configuration file!")
-		return
 	}
 
 	// Initialize the backend
@@ -113,17 +113,17 @@ func StartServer(vip *viper.Viper) {
 		// Blocking call: Begin Node registration
 		err := permissioning.RegisterNode(def)
 		if err != nil {
-			jww.FATAL.Panicf("Failed to register node: %+v", err)
+			return errors.Errorf("Failed to register node: %+v", err)
 		}
 		// Blocking call: Request ndf from permissioning
 		newNdf, err := permissioning.PollNdf(def)
 		if err != nil {
-			jww.ERROR.Panicf("Failed to get ndf: %+v", err)
+			return errors.Errorf("Failed to get ndf: %+v", err)
 		}
 		// Parse the Nd
 		nodes, nodeIds, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
 		if err != nil {
-			jww.ERROR.Panicf("Failed to install ndf: %+v", err)
+			return errors.Errorf("Failed to install ndf: %+v", err)
 		}
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
@@ -147,7 +147,7 @@ func StartServer(vip *viper.Viper) {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	instance, err := server.CreateServerInstance(def, node.NewImplementation)
 	if err != nil {
-		jww.FATAL.Printf("Could not create server instance: %v", err)
+		return errors.Errorf("Could not create server instance: %v", err)
 	}
 
 	if instance.IsFirstNode() {
@@ -165,7 +165,7 @@ func StartServer(vip *viper.Viper) {
 	if !disablePermissioning {
 		err = instance.VerifyTopology()
 		if err != nil {
-			jww.FATAL.Panicf("Could not verify all nodes were signed by the"+
+			return errors.Errorf("Could not verify all nodes were signed by the"+
 				" permissioning server: %+v", err)
 		}
 	}

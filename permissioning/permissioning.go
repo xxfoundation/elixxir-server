@@ -31,7 +31,7 @@ func RegisterNode(def *server.Definition) error {
 	// Connect to the Permissioning Server
 	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
 	if err != nil {
-		errMsg := errors.Errorf("Unable to connect to registration server: %+v", err)
+		errMsg := errors.Errorf("Unable to create registration host: %+v", err)
 		return errMsg
 	}
 
@@ -51,8 +51,7 @@ func RegisterNode(def *server.Definition) error {
 			RegistrationCode: def.Permissioning.RegistrationCode,
 		})
 	if err != nil {
-		errMsg := errors.Errorf("Unable to send Node registration: %+v", err)
-		return errMsg
+		return errors.Errorf("Unable to send Node registration: %+v", err)
 	}
 
 	//Shutdown the temp network and return no error
