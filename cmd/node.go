@@ -186,7 +186,7 @@ func StartServer(vip *viper.Viper) error {
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
-
+	return nil
 }
 
 // Create dummy users to be manually inserted into the database
