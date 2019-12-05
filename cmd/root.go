@@ -84,7 +84,7 @@ communications.`,
 
 		err := StartServer(viper.GetViper())
 		if err != nil {
-			jww.ERROR.Panicf("Failed to start server: %+v", err)
+			jww.FATAL.Panicf("Failed to start server: %+v", err)
 		}
 
 		// Prevent node from exiting

@@ -168,15 +168,12 @@ func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) ([]server
 // it returns the index of our node if found or an error if not found
 func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 	//Find this node's place in the newNDF
-	index := -1
 	for i, newNode := range nodes {
 		//Use that index bookkeeping purposes when later parsing ndf
 		if bytes.Compare(newNode.ID, nodeId) == 0 {
-			index = i
+			return i, nil
 		}
 	}
-	if index < 0 {
-		return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
-	}
-	return index, nil
+	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
+
 }
