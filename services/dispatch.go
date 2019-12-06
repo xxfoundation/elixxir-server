@@ -7,7 +7,7 @@
 package services
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 )
 
 var InvalidTypeAssert = errors.New("type assert failed")
