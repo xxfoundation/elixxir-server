@@ -94,9 +94,7 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 	jww.INFO.Printf("Beginning polling NDF...")
 	// Keep polling until there is a response (ie no error)
 	var response *pb.NDF
-	for response == nil || err != nil {
-		response, err = network.RequestNdf(permHost, &pb.NDFHash{})
-	}
+	response, err = network.RequestNdf(permHost, &pb.NDFHash{})
 
 	//Decode the ndf into an object
 	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
