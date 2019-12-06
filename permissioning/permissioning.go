@@ -10,6 +10,7 @@ package permissioning
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -94,11 +95,10 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 	jww.INFO.Printf("Beginning polling NDF...")
 	// Keep polling until there is a response (ie no error)
 	var response *pb.NDF
-	for response.Ndf == nil {
+	for response == nil {
 		response, _ = network.RequestNdf(permHost, &pb.NDFHash{})
 
 	}
-
 	//Decode the ndf into an object
 	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
 	if err != nil {
