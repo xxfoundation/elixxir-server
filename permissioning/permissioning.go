@@ -93,14 +93,14 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 
 	jww.INFO.Printf("Beginning polling NDF...")
 	// Keep polling until there is a response (ie no error)
-	var responseNdf []byte
-	for bytes.Compare(responseNdf, make([]byte, 0)) == 0 {
-		response, _ := network.RequestNdf(permHost, &pb.NDFHash{})
-		responseNdf = response.Ndf
+	var response *pb.NDF
+	for response.Ndf == nil {
+		response, _ = network.RequestNdf(permHost, &pb.NDFHash{})
 
 	}
+
 	//Decode the ndf into an object
-	newNdf, _, err := ndf.DecodeNDF(string(responseNdf))
+	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
 	if err != nil {
 		errMsg := errors.Errorf("Unable to parse ndf: %v", err)
 		return nil, errMsg
