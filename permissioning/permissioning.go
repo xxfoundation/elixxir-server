@@ -10,7 +10,6 @@ package permissioning
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
