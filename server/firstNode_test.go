@@ -2,8 +2,8 @@ package server
 
 import (
 	"errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"reflect"
 	"testing"
@@ -34,12 +34,12 @@ func TestFirstNode_GetCompletedPrecompQueue(t *testing.T) {
 
 var receivedRoundID id.Round
 
-func mockTransmitter(n *node.NodeComms, c *circuit.Circuit, rID id.Round) error {
+func mockTransmitter(n *node.Comms, c *connect.Circuit, rID id.Round) error {
 	receivedRoundID = rID
 	return nil
 }
 
-func mockTransmitter_Error(n *node.NodeComms, c *circuit.Circuit, rID id.Round) error {
+func mockTransmitter_Error(n *node.Comms, c *connect.Circuit, rID id.Round) error {
 	receivedRoundID = rID
 	return errors.New("test error")
 }
@@ -91,7 +91,7 @@ func TestFirstNode_roundCreationRunner_wait(t *testing.T) {
 	def := Definition{
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
-	def.Topology = circuit.New(nodeIDs)
+	def.Topology = connect.NewCircuit(nodeIDs)
 	def.ID = nodeIDs[2]
 	i := &Instance{definition: &def}
 
@@ -134,8 +134,8 @@ func TestFirstNode_roundCreationRunner_Timeout(t *testing.T) {
 	def := Definition{
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
-
-	fn.roundCreationRunner(CreateServerInstance(&def), 2*time.Millisecond,
+	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)
+	fn.roundCreationRunner(tmpInstance, 2*time.Millisecond,
 		mockTransmitter, func(*Instance, id.Round) error { return nil })
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
 }
@@ -162,9 +162,18 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 	def := Definition{
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
-
-	fn.roundCreationRunner(CreateServerInstance(&def), 2*time.Millisecond,
+	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)
+	fn.roundCreationRunner(tmpInstance, 2*time.Millisecond,
 		mockTransmitter_Error, func(*Instance, id.Round) error { return nil })
 
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
+}
+
+// NewImplementation creates a new implementation of the server.
+// When a function is added to comms, you'll need to point to it here.
+func NewImplementation(instance *Instance) *node.Implementation {
+
+	impl := node.NewImplementation()
+
+	return impl
 }

@@ -1,8 +1,8 @@
 package node
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
+func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32) ([]phase.Phase,
 	phase.ResponseMap) {
 
@@ -261,9 +261,9 @@ func NewRoundComponents(gc services.GraphGenerator, topology *circuit.Circuit,
 			// finish realtime needs access to lastNode to send out the results,
 			// an anonymous function is used to wrap the function, passing
 			// access while maintaining the transmit signature
-			func(network *node.NodeComms, batchSize uint32,
+			func(network *node.Comms, batchSize uint32,
 				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-				getMessage phase.GetMessage, topology *circuit.Circuit,
+				getMessage phase.GetMessage, topology *connect.Circuit,
 				nodeID *id.Node, measure phase.Measure) error {
 				return io.TransmitFinishRealtime(network, batchSize, roundID,
 					phaseTy, getChunk, getMessage, topology, nodeID, lastNode,

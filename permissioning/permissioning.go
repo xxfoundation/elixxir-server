@@ -15,121 +15,165 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
 	"net"
 	"time"
 )
 
-// Stringer object for Permissioning connection ID
-type ConnAddr string
-
-func (a ConnAddr) String() string {
-	return string(a)
-}
-
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition) ([]server.Node, []*id.Node, string,
-	string) {
-
-	// Channel for signaling completion of Node registration
-	toplogyCh := make(chan *pb.NodeTopology)
-	gatewayCertsCh := make(chan *pb.NodeInfo)
-	gatewayReadyCh := make(chan struct{}, 1)
-
+func RegisterNode(def *server.Definition) error {
 	// Assemble the Comms callback interface
 	impl := node.NewImplementation()
-	impl.Functions.DownloadTopology = func(info *node.MessageInfo, topology *pb.NodeTopology) {
-		// Signal completion of Node registration
-		toplogyCh <- topology
-	}
-
-	impl.Functions.GetSignedCert = func(ping *pb.Ping) (*pb.SignedCerts, error) {
-		certs := pb.SignedCerts{}
-		select {
-		case nodeInfo := <-gatewayCertsCh:
-			certs.GatewayCertPEM = nodeInfo.GatewayTlsCert
-			certs.ServerCertPEM = nodeInfo.ServerTlsCert
-			gatewayReadyCh <- struct{}{}
-		case <-time.After(1 * time.Second):
-		}
-		return &certs, nil
-	}
 
 	// Start Node communication server
 	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
-	permissioningId := ConnAddr("Permissioning")
-
 	// Connect to the Permissioning Server
-	err := network.ConnectToRemote(permissioningId,
-		def.Permissioning.Address, def.Permissioning.TlsCert, true)
+	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
 	if err != nil {
-		jww.FATAL.Panicf("Unable to initiate Node registration: %+v",
-			errors.New(err.Error()))
+		errMsg := errors.Errorf("Unable to create registration host: %+v", err)
+		return errMsg
+	}
+
+	_, _, err = net.SplitHostPort(def.Address)
+	if err != nil {
+		errMsg := errors.Errorf("Unable to obtain port from address: %+v", err)
+		return errMsg
 	}
 
 	// Attempt Node registration
-	_, port, err := net.SplitHostPort(def.Address)
-	if err != nil {
-		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
-			errors.New(err.Error()))
-	}
-	err = network.SendNodeRegistration(permissioningId,
+	err = network.SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
 			GatewayAddress:   def.Gateway.Address,
 			RegistrationCode: def.Permissioning.RegistrationCode,
-			Port:             port,
 		})
 	if err != nil {
-		jww.FATAL.Panicf("Unable to send Node registration: %+v",
-			errors.New(err.Error()))
+		return errors.Errorf("Unable to send Node registration: %+v", err)
 	}
 
-	// Wait for Node registration to complete
-	topology := <-toplogyCh
+	//Shutdown the temp network and return no error
+	network.Shutdown()
 
-	//send certs to the gateway
-	index := -1
-	for i, n := range topology.Topology {
-		// Update Cert for this Node
-		if bytes.Compare(n.Id, def.ID.Bytes()) == 0 {
-			index = i
+	return nil
+}
+
+//PollNdf handles the server requesting the ndf from permissioning
+// it also holds the callback which handles gateway requesting an ndf from its server
+func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
+	// Channel for signaling completion of Node registration
+	gatewayNdfChan := make(chan *pb.GatewayNdf)
+	gatewayReadyCh := make(chan struct{}, 1)
+
+	// Assemble the Comms callback interface
+	impl := node.NewImplementation()
+
+	// Assemble the Comms callback interface
+	impl.Functions.PollNdf = func(ping *pb.Ping) (*pb.GatewayNdf, error) {
+		var gwNdf *pb.GatewayNdf
+		select {
+		case gwNdf = <-gatewayNdfChan:
+			jww.DEBUG.Println("Giving ndf to gateway")
+			gatewayReadyCh <- struct{}{}
+		case <-time.After(1 * time.Second):
 		}
+		return gwNdf, nil
 
 	}
-	gatewayCertsCh <- topology.Topology[index]
+	// Start Node communication server
+	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
+	// Connect to the Permissioning Server
+	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
+	if err != nil {
+		errMsg := errors.Errorf("Unable to connect to registration server: %+v", err)
+		return nil, errMsg
+	}
+
+	jww.INFO.Printf("Beginning polling NDF...")
+	// Keep polling until there is a response (ie no error)
+	var response *pb.NDF
+	for response == nil {
+		response, _ = network.RequestNdf(permHost, &pb.NDFHash{})
+
+	}
+	//Decode the ndf into an object
+	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
+	if err != nil {
+		errMsg := errors.Errorf("Unable to parse ndf: %v", err)
+		return nil, errMsg
+	}
+	//Find this server's place in the ndf
+	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
+	if err != nil {
+		return nil, err
+	}
+
+	//Send the certs to the gateway
+	gatewayNdfChan <- &pb.GatewayNdf{
+		Id:  newNdf.Nodes[index].ID,
+		Ndf: &pb.NDF{Ndf: newNdf.Serialize()},
+	}
 
 	//Wait for gateway to be ready
 	<-gatewayReadyCh
-	time.Sleep(1 * time.Second)
 
-	// Shut down the Comms server
+	// Shut down the Comms server and return the ndf
 	network.Shutdown()
 
-    // HACK HACK HACK
-    // FIXME: we should not be coupling connections and server objects
+	// HACK HACK HACK
+	// FIXME: we should not be coupling connections and server objects
 	// Technically the servers can fail to bind for up to
 	// a couple minutes (depending on operating system), but
 	// in practice 10 seconds works
 	time.Sleep(10 * time.Second)
 
-	// Integrate the topology with the Definition
-	nodes := make([]server.Node, len(topology.Topology))
-	nodeIds := make([]*id.Node, len(topology.Topology))
-	for _, n := range topology.Topology {
-		// Build Node information
-		jww.INFO.Printf("Assembling node topology: %+v", n)
-		nodes[n.Index] = server.Node{
-			ID:      id.NewNodeFromBytes(n.Id),
-			TlsCert: []byte(n.ServerTlsCert),
-			Address: n.ServerAddress,
-		}
-		nodeIds[n.Index] = id.NewNodeFromBytes(n.Id)
+	jww.INFO.Printf("Successfully obtained NDF!")
+	return newNdf, nil
+
+}
+
+//InstallNdf parses the ndf for necessary information and returns that
+func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) ([]server.Node, []*id.Node,
+	string, string, error) {
+
+	jww.INFO.Println("Installing NDF now...")
+
+	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
+	if err != nil {
+		return nil, nil, "", "", err
 	}
 
-	return nodes, nodeIds, topology.Topology[index].ServerTlsCert,
-		topology.Topology[index].GatewayTlsCert
+	// Integrate the topology with the Definition
+	nodes := make([]server.Node, len(newNdf.Nodes))
+	nodeIds := make([]*id.Node, len(newNdf.Nodes))
+	for i, newNode := range newNdf.Nodes {
+		// Build Node information
+		jww.INFO.Printf("Assembling node topology: %+v", newNode)
+		nodes[i] = server.Node{
+			ID:      id.NewNodeFromBytes(newNode.ID),
+			TlsCert: []byte(newNode.TlsCertificate),
+			Address: newNode.Address,
+		}
+		nodeIds[i] = id.NewNodeFromBytes(newNode.ID)
+	}
+
+	//Fixme: at some point soon we will not be able to assume the node & corresponding gateway share the same index
+	// will need to add logic to find the corresponding gateway..
+	return nodes, nodeIds, newNdf.Nodes[index].TlsCertificate, newNdf.Gateways[index].TlsCertificate, nil
+}
+
+//findOurNode is a helper function which finds our node's index in the ndf
+// it returns the index of our node if found or an error if not found
+func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
+	//Find this node's place in the newNDF
+	for i, newNode := range nodes {
+		//Use that index bookkeeping purposes when later parsing ndf
+		if bytes.Compare(newNode.ID, nodeId) == 0 {
+			return i, nil
+		}
+	}
+	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
 
 }

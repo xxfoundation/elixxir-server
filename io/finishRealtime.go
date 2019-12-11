@@ -11,9 +11,9 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
@@ -25,9 +25,9 @@ import (
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
+func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *circuit.Circuit,
+	getMessage phase.GetMessage, topology *connect.Circuit,
 	nodeID *id.Node, lastNode *server.LastNode,
 	chunkChan chan services.Chunk, measureFunc phase.Measure) error {
 
@@ -60,8 +60,9 @@ func TransmitFinishRealtime(network *node.NodeComms, batchSize uint32,
 		localIndex := index
 		wg.Add(1)
 		go func() {
-			recipient := topology.GetNodeAtIndex(localIndex)
-
+			// Pull the particular server host object from the commManager
+			recipient := topology.GetHostAtIndex(localIndex)
+			// Send the message to that particular node
 			ack, err := network.SendFinishRealtime(recipient,
 				&mixmessages.RoundInfo{
 					ID: uint64(roundID),

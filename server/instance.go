@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -27,66 +27,59 @@ type Instance struct {
 	definition    *Definition
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
-	network       *node.NodeComms
+	network       *node.Comms
 	firstNode
 	LastNode
 }
 
 // Create a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
-func CreateServerInstance(def *Definition) *Instance {
-	instance := Instance{
+// After the network object is created, you still need to use it to connect
+// to other servers in the network
+// Additionally, to clean up the network object (especially in tests), call
+// Shutdown() on the network object.
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation) (*Instance, error) {
+	instance := &Instance{
 		Online:        false,
 		definition:    def,
 		roundManager:  round.NewManager(),
 		resourceQueue: initQueue(),
 	}
-	return &instance
-}
 
-// Initializes the network on this server instance
-// After the network object is created, you still need to use it to connect
-// to other servers in the network using ConnectToNode or ConnectToGateway.
-// Additionally, to clean up the network object (especially in tests), call
-// Shutdown() on the network object.
-func (i *Instance) InitNetwork(
-	makeImplementation func(*Instance) *node.Implementation) *node.NodeComms {
+	// Initializes the network on this server instance
 
 	//Start local node
-	i.network = node.StartNode(i.definition.Address, makeImplementation(i),
-		i.definition.TlsCert, i.definition.TlsKey)
+	instance.network = node.StartNode(instance.definition.Address, makeImplementation(instance),
+		instance.definition.TlsCert, instance.definition.TlsKey)
 
-	//Attempt to connect to all other nodes
-	// FIXME: This construction creates a race condition. In the older
-	//        server, connection information is carried with the ID,
-	//        and a connection is made as it is needed. State of the
-	//        connections in the system was not important, only availability
-	//        which is checked later. Now there is a race condition if
-	//        a server starts sending commands BEFORE this code completes!
-	for index, n := range i.definition.Nodes {
-		err := i.network.ConnectToRemote(n.ID, n.Address, n.TlsCert, false)
+	//Add all hosts to manager for future connections
+	for index, n := range instance.definition.Nodes {
+		nodeHost, err := instance.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false)
 		if err != nil {
-			jww.FATAL.Panicf("Count not connect to node %s (%v/%v): %+v",
-				n.ID, index+1, len(i.definition.Nodes), err)
+			errMsg := fmt.Sprintf("Could not add node %s (%v/%v) as a host: %+v",
+				n.ID, index+1, len(instance.definition.Nodes), err)
+			return nil, errors.New(errMsg)
 		}
+		instance.definition.Topology.AddHost(nodeHost)
+
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
-
 	//Attempt to connect Gateway
-	if i.definition.Gateway.Address != "" {
-		err := i.network.ConnectToRemote(i.definition.Gateway.ID,
-			i.definition.Gateway.Address, i.definition.Gateway.TlsCert, false)
+	if instance.definition.Gateway.Address != "" {
+		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
+			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false)
 		if err != nil {
-			jww.FATAL.Panicf("Count not connect to gateway %s: %+v",
-				i.definition.Gateway.ID, err)
+			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
+				instance.definition.Gateway.ID, err)
+			return nil, errors.New(errMsg)
+
 		}
 	} else {
 		jww.WARN.Printf("No Gateway avalible, starting without gateway")
 	}
-
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
-	return i.network
+	return instance, nil
 }
 
 // Run starts the resource queue
@@ -105,7 +98,7 @@ func (i *Instance) InitLastNode() {
 }
 
 // GetTopology returns the circuit object
-func (i *Instance) GetTopology() *circuit.Circuit {
+func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
 }
 
@@ -130,7 +123,7 @@ func (i *Instance) GetResourceQueue() *ResourceQueue {
 }
 
 // GetNetwork returns the network object
-func (i *Instance) GetNetwork() *node.NodeComms {
+func (i *Instance) GetNetwork() *node.Comms {
 	return i.network
 }
 
