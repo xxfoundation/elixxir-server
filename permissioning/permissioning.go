@@ -110,6 +110,8 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 		return nil, err
 	}
 
+	err = initializeHosts(newNdf, network, index)
+
 	//Send the certs to the gateway
 	gatewayNdfChan <- &pb.GatewayNdf{
 		Id:  newNdf.Nodes[index].ID,
@@ -176,4 +178,20 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 	}
 	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
 
+}
+
+func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
+	for i, host := range def.Nodes {
+		_, err := network.AddHost(string(host.ID), host.Address, []byte(host.TlsCertificate), false)
+		if err != nil {
+			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
+		}
+	}
+
+	gateway := def.Gateways[myIndex]
+	_, err := network.AddHost(network.String(), gateway.Address, []byte(gateway.TlsCertificate), false)
+	if err != nil {
+		return errors.Errorf("Unable to add host for gateway %d at %+v", network.String(), gateway.Address)
+	}
+	return nil
 }
