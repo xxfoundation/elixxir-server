@@ -6,6 +6,7 @@ require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/go-pg/pg v8.0.6+incompatible
 	github.com/golang/protobuf v1.3.2
+	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
@@ -24,9 +25,9 @@ require (
 	gitlab.com/elixxir/primitives v0.0.0-20191204001459-cef5ed720564
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
-	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
-	google.golang.org/genproto v0.0.0-20191206224255-0243a4be9c8f // indirect
-	google.golang.org/grpc v1.25.1
+	golang.org/x/sys v0.0.0-20191218084908-4a24b4065292 // indirect
+	google.golang.org/genproto v0.0.0-20191216205247-b31c10ee225f // indirect
+	google.golang.org/grpc v1.26.0
 	gopkg.in/yaml.v2 v2.2.7
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
 )
