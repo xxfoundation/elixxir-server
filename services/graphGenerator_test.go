@@ -54,6 +54,9 @@ func TestNewGraphGenerator(t *testing.T) {
 }
 
 func TestGraphGenerator_NewGraph(t *testing.T) {
+	stream := &Stream1{}
+	gg := NewGraphGenerator(4, GCPanicHandler, 0, 1, 0)
+	newGraph := gg.NewGraph("testGraph", stream)
 
 }
 
