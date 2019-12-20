@@ -10,8 +10,10 @@ package permissioning
 
 import (
 	"bytes"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -71,7 +73,7 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 	impl := node.NewImplementation()
 
 	// Assemble the Comms callback interface
-	impl.Functions.PollNdf = func(ping *pb.Ping) (*pb.GatewayNdf, error) {
+	impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
 		var gwNdf *pb.GatewayNdf
 		select {
 		case gwNdf = <-gatewayNdfChan:
@@ -95,7 +97,12 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
 	var response *pb.NDF
 	for response == nil {
-		response, _ = network.RequestNdf(permHost, &pb.NDFHash{})
+		msg, err := ptypes.MarshalAny(&pb.NDFHash{})
+		if err != nil {
+			errMsg := errors.Errorf("Unable to marshal anytype: %+v", err)
+			return nil, errMsg
+		}
+		response, _ = network.RequestNdf(permHost, &pb.AuthenticatedMessage{Message: msg})
 
 	}
 	//Decode the ndf into an object

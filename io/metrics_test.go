@@ -9,6 +9,7 @@ package io
 import (
 	"encoding/json"
 	"errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -41,7 +42,7 @@ const mockRoundMetricJSON = `{
 func MockGetMeasureImplementation(mockJSON string, err error) *node.Implementation {
 	impl := node.NewImplementation()
 
-	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
+	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo, auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
 		mock := mixmessages.RoundMetrics{
 			RoundMetricJSON: mockJSON,
 		}

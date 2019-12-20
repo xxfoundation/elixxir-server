@@ -42,7 +42,7 @@ func (i *mockPermission) RegisterNode([]byte, string, string, string, string, st
 	return nil
 }
 
-func (i *mockPermission) PollNdf(ID []byte) ([]byte, error) {
+func (i *mockPermission) PollNdf(ID []byte, auth *connect.Auth) ([]byte, error) {
 	ndfData, err := json.Marshal(testNdf)
 	if err != nil {
 		fmt.Println("Failed to marshall json")
