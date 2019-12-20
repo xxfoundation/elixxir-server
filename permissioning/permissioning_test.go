@@ -120,7 +120,7 @@ func TestRegisterNode(t *testing.T) {
 	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	pHandler := registration.Handler(&mockPermission{})
 	permComms = registration.StartRegistrationServer(pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId.String(), nodeAddr, cert, false)
+	_, err := permComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
 	if err != nil {
 		t.Fatalf("Permissioning could not connect to node")
 	}
@@ -131,7 +131,7 @@ func TestRegisterNode(t *testing.T) {
 	buildMockNdf(nodeId, nodeAddr, gAddr, cert, key)
 	go func() {
 		time.Sleep(1 * time.Second)
-		gwComms.AddHost(nodeId.String(), nodeAddr, cert, false)
+		gwComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
 		if err != nil {
 			t.Fatalf("Gateway could not connect to node")
 		}
@@ -204,8 +204,7 @@ func TestRegisterNode(t *testing.T) {
 		msg, err := gwComms.PollNdf(nodeHost, &pb.Ping{})
 		if err != nil {
 			t.Errorf("Error on polling signed certs")
-		}
-		if bytes.Compare(msg.Id, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {
+		} else if bytes.Compare(msg.Id, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {
 			break
 		}
 	}

@@ -29,7 +29,7 @@ func RegisterNode(def *server.Definition) error {
 	// Start Node communication server
 	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
 	// Connect to the Permissioning Server
-	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
+	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
 	if err != nil {
 		errMsg := errors.Errorf("Unable to create registration host: %+v", err)
 		return errMsg
@@ -85,7 +85,7 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 	// Start Node communication server
 	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
 	// Connect to the Permissioning Server
-	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
+	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
 	if err != nil {
 		errMsg := errors.Errorf("Unable to connect to registration server: %+v", err)
 		return nil, errMsg
@@ -182,14 +182,14 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 
 func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
 	for i, host := range def.Nodes {
-		_, err := network.AddHost(string(host.ID), host.Address, []byte(host.TlsCertificate), false)
+		_, err := network.AddHost(string(host.ID), host.Address, []byte(host.TlsCertificate), false, true)
 		if err != nil {
 			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
 		}
 	}
 
 	gateway := def.Gateways[myIndex]
-	_, err := network.AddHost(network.String(), gateway.Address, []byte(gateway.TlsCertificate), false)
+	_, err := network.AddHost(network.String(), gateway.Address, []byte(gateway.TlsCertificate), false, true)
 	if err != nil {
 		return errors.Errorf("Unable to add host for gateway %s at %+v", network.String(), gateway.Address)
 	}
