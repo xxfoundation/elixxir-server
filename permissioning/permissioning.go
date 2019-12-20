@@ -10,7 +10,6 @@ package permissioning
 
 import (
 	"bytes"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -97,12 +96,7 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
 	var response *pb.NDF
 	for response == nil {
-		msg, err := ptypes.MarshalAny(&pb.NDFHash{})
-		if err != nil {
-			errMsg := errors.Errorf("Unable to marshal anytype: %+v", err)
-			return nil, errMsg
-		}
-		response, _ = network.RequestNdf(permHost, &pb.AuthenticatedMessage{Message: msg})
+		response, _ = network.RequestNdf(permHost, &pb.NDFHash{})
 
 	}
 	//Decode the ndf into an object
@@ -187,7 +181,9 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 
 }
 
+// initializeHosts adds host objects for all relevant connections in the NDF
 func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
+	// Add hosts for nodes
 	for i, host := range def.Nodes {
 		_, err := network.AddHost(string(host.ID), host.Address, []byte(host.TlsCertificate), false, true)
 		if err != nil {
@@ -195,6 +191,7 @@ func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex in
 		}
 	}
 
+	// Add host for the relevant gateway
 	gateway := def.Gateways[myIndex]
 	_, err := network.AddHost(network.String(), gateway.Address, []byte(gateway.TlsCertificate), false, true)
 	if err != nil {
