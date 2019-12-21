@@ -8,7 +8,6 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
-	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"time"
 )
@@ -21,7 +20,7 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit) {
 		server := servers.GetHostAtIndex(i)
 
 		// Send comm to the other server
-		_, err := network.SendAskOnline(server, &pb.Ping{})
+		_, err := network.SendAskOnline(server)
 		jww.INFO.Printf("Waiting for cMix server %s (%d/%d)...",
 			serverID, i+1, servers.Len())
 		if err != nil {

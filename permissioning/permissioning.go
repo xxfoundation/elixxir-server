@@ -32,7 +32,7 @@ func RegisterNode(def *server.Definition) error {
 	// Connect to the Permissioning Server
 	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
 	if err != nil {
-		errMsg := errors.Errorf("Unable to create registration host: %+v", err)
+		errMsg := errors.Errorf("Unable to create permissioning host: %+v", err)
 		return errMsg
 	}
 
@@ -102,8 +102,6 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 		response, err = network.RequestNdf(permHost, &pb.NDFHash{})
 		if err != nil {
 			return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
-		} else if response == nil {
-			time.Sleep(1 * time.Second)
 		}
 	}
 
