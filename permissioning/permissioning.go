@@ -76,15 +76,17 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 		var gwNdf *pb.GatewayNdf
 		select {
 		case gwNdf = <-gatewayNdfChan:
-			jww.DEBUG.Println("Giving ndf to gateway")
+			jww.DEBUG.Println("Ndf ready for gateway!")
 			gatewayReadyCh <- struct{}{}
 		case <-time.After(1 * time.Second):
 		}
 		return gwNdf, nil
 
 	}
+
 	// Start Node communication server
 	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
+
 	// Connect to the Permissioning Server
 	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
 	if err != nil {
@@ -92,20 +94,26 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 		return nil, errMsg
 	}
 
-	jww.INFO.Printf("Beginning polling NDF...")
 	// Keep polling until there is a response (ie no error)
 	var response *pb.NDF
+	jww.INFO.Printf("Beginning polling NDF...")
 	for response == nil {
-		response, _ = network.RequestNdf(permHost, &pb.NDFHash{})
-
+		jww.DEBUG.Printf("Polling for Ndf...")
+		response, err = network.RequestNdf(permHost, &pb.NDFHash{})
+		if err != nil {
+			return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
+		} else if response == nil {
+			time.Sleep(1 * time.Second)
+		}
 	}
-	//Decode the ndf into an object
+
+	// Decode the ndf into an object
 	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
 	if err != nil {
-		errMsg := errors.Errorf("Unable to parse ndf: %v", err)
+		errMsg := errors.Errorf("Unable to parse Ndf: %v", err)
 		return nil, errMsg
 	}
-	//Find this server's place in the ndf
+	// Find this server's place in the ndf
 	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
 	if err != nil {
 		return nil, err
