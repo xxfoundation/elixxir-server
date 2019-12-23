@@ -71,7 +71,8 @@ func PollNdf(def *server.Definition, network *node.Comms,
 	jww.INFO.Printf("Beginning polling NDF...")
 	for response == nil {
 		jww.DEBUG.Printf("Polling for Ndf...")
-		response, err = network.RequestNdf(permHost, &pb.NDFHash{})
+		response, err = network.RequestNdf(permHost,
+			&pb.NDFHash{Hash: []byte("nil")})
 		if err != nil {
 			return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
 		}
