@@ -10,9 +10,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/gateway"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/registration"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/id"
@@ -170,12 +172,30 @@ func TestRegisterNode(t *testing.T) {
 
 	// Register the node in a separate thread and notify when finished
 	go func() {
-		err := RegisterNode(def)
+		impl := node.NewImplementation()
+
+		// Assemble the Comms callback interface
+		gatewayNdfChan := make(chan *pb.GatewayNdf)
+		gatewayReadyCh := make(chan struct{}, 1)
+		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
+			var gwNdf *pb.GatewayNdf
+			select {
+			case gwNdf = <-gatewayNdfChan:
+				jwalterweatherman.DEBUG.Println("Ndf ready for gateway!")
+				gatewayReadyCh <- struct{}{}
+			case <-time.After(1 * time.Second):
+			}
+			return gwNdf, nil
+
+		}
+		network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
+
+		err := RegisterNode(def, network)
 		if err != nil {
 			t.Error(err)
 		}
 		// Blocking call: Request ndf from permissioning
-		newNdf, err := PollNdf(def)
+		newNdf, err := PollNdf(def, network, gatewayNdfChan, gatewayReadyCh)
 		if err != nil {
 			t.Errorf("Failed to get ndf: %+v", err)
 		}

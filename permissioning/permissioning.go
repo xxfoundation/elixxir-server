@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -23,12 +22,9 @@ import (
 )
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition) error {
+func RegisterNode(def *server.Definition, network *node.Comms) error {
 	// Assemble the Comms callback interface
-	impl := node.NewImplementation()
 
-	// Start Node communication server
-	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
 	// Connect to the Permissioning Server
 	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
 	if err != nil {
@@ -55,38 +51,14 @@ func RegisterNode(def *server.Definition) error {
 		return errors.Errorf("Unable to send Node registration: %+v", err)
 	}
 
-	//Shutdown the temp network and return no error
-	network.Shutdown()
-
 	return nil
 }
 
 //PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
-func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
-	// Channel for signaling completion of Node registration
-	gatewayNdfChan := make(chan *pb.GatewayNdf)
-	gatewayReadyCh := make(chan struct{}, 1)
-
-	// Assemble the Comms callback interface
-	impl := node.NewImplementation()
-
-	// Assemble the Comms callback interface
-	impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
-		var gwNdf *pb.GatewayNdf
-		select {
-		case gwNdf = <-gatewayNdfChan:
-			jww.DEBUG.Println("Ndf ready for gateway!")
-			gatewayReadyCh <- struct{}{}
-		case <-time.After(1 * time.Second):
-		}
-		return gwNdf, nil
-
-	}
-
+func PollNdf(def *server.Definition, network *node.Comms,
+	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}) (*ndf.NetworkDefinition, error) {
 	// Start Node communication server
-	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
-
 	// Connect to the Permissioning Server
 	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
 	if err != nil {
@@ -127,9 +99,6 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 
 	//Wait for gateway to be ready
 	<-gatewayReadyCh
-
-	// Shut down the Comms server and return the ndf
-	network.Shutdown()
 
 	// HACK HACK HACK
 	// FIXME: we should not be coupling connections and server objects

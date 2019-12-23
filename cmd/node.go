@@ -13,6 +13,8 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/connect"
+	pb "gitlab.com/elixxir/comms/mixmessages"
+	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
@@ -110,16 +112,39 @@ func StartServer(vip *viper.Viper) error {
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	if !disablePermissioning {
+		impl := nodeComms.NewImplementation()
+
+		// Assemble the Comms callback interface
+		gatewayNdfChan := make(chan *pb.GatewayNdf)
+		gatewayReadyCh := make(chan struct{}, 1)
+		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
+			var gwNdf *pb.GatewayNdf
+			select {
+			case gwNdf = <-gatewayNdfChan:
+				jww.DEBUG.Println("Ndf ready for gateway!")
+				gatewayReadyCh <- struct{}{}
+			case <-time.After(1 * time.Second):
+			}
+			return gwNdf, nil
+
+		}
+
+		network := nodeComms.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
+
 		// Blocking call: Begin Node registration
-		err := permissioning.RegisterNode(def)
+		err := permissioning.RegisterNode(def, network)
 		if err != nil {
 			return errors.Errorf("Failed to register node: %+v", err)
 		}
+
 		// Blocking call: Request ndf from permissioning
-		newNdf, err := permissioning.PollNdf(def)
+		newNdf, err := permissioning.PollNdf(def, network, gatewayNdfChan, gatewayReadyCh)
 		if err != nil {
 			return errors.Errorf("Failed to get ndf: %+v", err)
 		}
+
+		network.Shutdown()
+
 		// Parse the Nd
 		nodes, nodeIds, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
 		if err != nil {
