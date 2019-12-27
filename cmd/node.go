@@ -118,7 +118,10 @@ func StartServer(vip *viper.Viper) error {
 		gatewayNdfChan := make(chan *pb.GatewayNdf)
 		gatewayReadyCh := make(chan struct{}, 1)
 		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
-			var gwNdf *pb.GatewayNdf
+			gwNdf := &pb.GatewayNdf{
+				Id:  make([]byte, 0),
+				Ndf: &pb.NDF{},
+			}
 			select {
 			case gwNdf = <-gatewayNdfChan:
 				jww.DEBUG.Println("Ndf ready for gateway!")
