@@ -133,7 +133,7 @@ func StartServer(vip *viper.Viper) error {
 		}
 
 		// Start comms network
-		network := nodeComms.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
+		network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
 
 		// Connect to the Permissioning Server
 		permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)

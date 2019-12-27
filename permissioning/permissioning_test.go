@@ -121,7 +121,7 @@ func TestRegisterNode(t *testing.T) {
 	// Initialize permissioning server
 	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	pHandler := registration.Handler(&mockPermission{})
-	permComms = registration.StartRegistrationServer(pAddr, pHandler, cert, key)
+	permComms = registration.StartRegistrationServer("ptest", pAddr, pHandler, cert, key)
 	_, err := permComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
 	if err != nil {
 		t.Fatalf("Permissioning could not connect to node")
@@ -129,7 +129,7 @@ func TestRegisterNode(t *testing.T) {
 
 	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	gHandler := gateway.Handler(&mockGateway{})
-	gwComms = gateway.StartGateway(gAddr, gHandler, cert, key)
+	gwComms = gateway.StartGateway("gtest", gAddr, gHandler, cert, key)
 	buildMockNdf(nodeId, nodeAddr, gAddr, cert, key)
 	go func() {
 		time.Sleep(1 * time.Second)
@@ -188,14 +188,18 @@ func TestRegisterNode(t *testing.T) {
 			return gwNdf, nil
 
 		}
-		network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
+		network := node.StartNode("nodeid", def.Address, impl, def.TlsCert, def.TlsKey)
+		permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+		if err != nil {
+			t.Errorf("Unable to connect to registration server: %+v", err)
+		}
 
-		err := RegisterNode(def, network)
+		err = RegisterNode(def, network, permHost)
 		if err != nil {
 			t.Error(err)
 		}
 		// Blocking call: Request ndf from permissioning
-		newNdf, err := PollNdf(def, network, gatewayNdfChan, gatewayReadyCh)
+		newNdf, err := PollNdf(def, network, gatewayNdfChan, gatewayReadyCh, permHost)
 		if err != nil {
 			t.Errorf("Failed to get ndf: %+v", err)
 		}

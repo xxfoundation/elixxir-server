@@ -49,7 +49,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-	instance.network = node.StartNode(instance.definition.Address, makeImplementation(instance),
+	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
 
 	//Add all hosts to manager for future connections

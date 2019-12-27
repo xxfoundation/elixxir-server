@@ -132,6 +132,7 @@ func TestFirstNode_roundCreationRunner_Timeout(t *testing.T) {
 	//fn.finishedRound <- fn.currentRoundID
 
 	def := Definition{
+		ID:             id.NewNodeFromBytes([]byte("testid")),
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
 	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)
@@ -160,6 +161,7 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 	fn.finishedRound <- fn.currentRoundID
 
 	def := Definition{
+		ID:             id.NewNodeFromBytes([]byte("test")),
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
 	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)

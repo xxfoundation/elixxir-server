@@ -80,7 +80,7 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 
 	for index, impl := range impls {
 		comms = append(comms,
-			node.StartNode(addrLst[index], impl, nil, nil))
+			node.StartNode(string(index), addrLst[index], impl, nil, nil))
 	}
 
 	//Connect the comms
