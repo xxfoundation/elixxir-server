@@ -132,16 +132,23 @@ func StartServer(vip *viper.Viper) error {
 
 		}
 
+		// Start comms network
 		network := nodeComms.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
 
+		// Connect to the Permissioning Server
+		permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+		if err != nil {
+			return errors.Errorf("Unable to connect to registration server: %+v", err)
+		}
+
 		// Blocking call: Begin Node registration
-		err := permissioning.RegisterNode(def, network)
+		err = permissioning.RegisterNode(def, network, permHost)
 		if err != nil {
 			return errors.Errorf("Failed to register node: %+v", err)
 		}
 
 		// Blocking call: Request ndf from permissioning
-		newNdf, err := permissioning.PollNdf(def, network, gatewayNdfChan, gatewayReadyCh)
+		newNdf, err := permissioning.PollNdf(def, network, gatewayNdfChan, gatewayReadyCh, permHost)
 		if err != nil {
 			return errors.Errorf("Failed to get ndf: %+v", err)
 		}

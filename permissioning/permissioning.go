@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -22,17 +23,8 @@ import (
 )
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition, network *node.Comms) error {
-	// Assemble the Comms callback interface
-
-	// Connect to the Permissioning Server
-	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
-	if err != nil {
-		errMsg := errors.Errorf("Unable to create permissioning host: %+v", err)
-		return errMsg
-	}
-
-	_, _, err = net.SplitHostPort(def.Address)
+func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect.Host) error {
+	_, _, err := net.SplitHostPort(def.Address)
 	if err != nil {
 		errMsg := errors.Errorf("Unable to obtain port from address: %+v", err)
 		return errMsg
@@ -57,17 +49,11 @@ func RegisterNode(def *server.Definition, network *node.Comms) error {
 //PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
 func PollNdf(def *server.Definition, network *node.Comms,
-	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}) (*ndf.NetworkDefinition, error) {
-	// Start Node communication server
-	// Connect to the Permissioning Server
-	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
-	if err != nil {
-		errMsg := errors.Errorf("Unable to connect to registration server: %+v", err)
-		return nil, errMsg
-	}
-
+	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
 	var response *pb.NDF
+	var err error
+
 	jww.INFO.Printf("Beginning polling NDF...")
 	for response == nil {
 		jww.DEBUG.Printf("Polling for Ndf...")
