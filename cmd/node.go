@@ -135,8 +135,9 @@ func StartServer(vip *viper.Viper) error {
 		// Start comms network
 		network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
 
-		// Connect to the Permissioning Server
-		permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+		// Connect to the Permissioning Server without authentication
+		permHost, err := network.AddHost(id.PERMISSIONING,
+			def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
 		if err != nil {
 			return errors.Errorf("Unable to connect to registration server: %+v", err)
 		}
@@ -145,6 +146,16 @@ func StartServer(vip *viper.Viper) error {
 		err = permissioning.RegisterNode(def, network, permHost)
 		if err != nil {
 			return errors.Errorf("Failed to register node: %+v", err)
+		}
+
+		// Disconnect the old permissioning server to enable authentication
+		permHost.Disconnect()
+
+		// Connect to the Permissioning Server with authentication enabled
+		permHost, err = network.AddHost(id.PERMISSIONING,
+			def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+		if err != nil {
+			return errors.Errorf("Unable to connect to registration server: %+v", err)
 		}
 
 		// Blocking call: Request ndf from permissioning
