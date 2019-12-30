@@ -189,7 +189,7 @@ func TestRegisterNode(t *testing.T) {
 
 		}
 		network := node.StartNode("nodeid", def.Address, impl, def.TlsCert, def.TlsKey)
-		permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+		permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
