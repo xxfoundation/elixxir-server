@@ -147,6 +147,9 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
 	// Add hosts for nodes
 	for i, host := range def.Nodes {
+		if i == myIndex {
+			continue
+		}
 		_, err := network.AddHost(string(host.ID), host.Address, []byte(host.TlsCertificate), false, true)
 		if err != nil {
 			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
@@ -155,7 +158,8 @@ func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex in
 
 	// Add host for the relevant gateway
 	gateway := def.Gateways[myIndex]
-	_, err := network.AddHost(network.String(), gateway.Address, []byte(gateway.TlsCertificate), false, true)
+	_, err := network.AddHost(string(def.Nodes[myIndex].ID), gateway.Address,
+		[]byte(gateway.TlsCertificate), false, true)
 	if err != nil {
 		return errors.Errorf("Unable to add host for gateway %s at %+v", network.String(), gateway.Address)
 	}

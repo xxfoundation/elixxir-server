@@ -134,6 +134,10 @@ func StartServer(vip *viper.Viper) error {
 
 		// Start comms network
 		network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
+		_, err := network.AddHost("tmp", def.Gateway.Address, def.Gateway.TlsCert, true, true)
+		if err != nil {
+			return errors.Errorf("Unable to add gateway host: %+v", err)
+		}
 
 		// Connect to the Permissioning Server without authentication
 		permHost, err := network.AddHost(id.PERMISSIONING,
