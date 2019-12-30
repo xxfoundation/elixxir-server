@@ -78,13 +78,13 @@ func PollNdf(def *server.Definition, network *node.Comms,
 	}
 
 	err = initializeHosts(newNdf, network, index)
+
 	//Prepare the ndf for gateway transmission
 	ndfData, err := json.Marshal(newNdf)
 	if err != nil {
 		return nil, err
 	}
 
-	jww.DEBUG.Printf("the ndf marshalled is: %s", string(ndfData))
 	//Send the certs to the gateway
 	gatewayNdfChan <- &pb.GatewayNdf{
 		Id:  newNdf.Nodes[index].ID,
