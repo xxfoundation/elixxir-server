@@ -83,7 +83,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveRoundTripPing(instance, ping)
 	}
 
-	impl.Functions.AskOnline = func(ping *mixmessages.Ping, auth *connect.Auth) error {
+	impl.Functions.AskOnline = func() error {
 		for instance.Online == false {
 			time.Sleep(250 * time.Millisecond)
 		}

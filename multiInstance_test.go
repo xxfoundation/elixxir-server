@@ -88,6 +88,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	for _, instance := range instances {
 		wg.Add(1)
 		localInstance := instance
+		jww.INFO.Println("Waiting...")
 		go func() {
 			localInstance.Online = true
 			wg.Done()
@@ -99,7 +100,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	t.Logf("Running the Queue for %v nodes", numNodes)
 	//begin every instance
 	for _, instance := range instances {
-		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
+		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology(), instance.GetID())
 		instance.Run()
 	}
 
