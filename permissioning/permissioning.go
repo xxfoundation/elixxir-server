@@ -19,20 +19,13 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
-	"net"
 	"time"
 )
 
 // Perform the Node registration process with the Permissioning Server
 func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect.Host) error {
-	_, _, err := net.SplitHostPort(def.Address)
-	if err != nil {
-		errMsg := errors.Errorf("Unable to obtain port from address: %+v", err)
-		return errMsg
-	}
-
 	// Attempt Node registration
-	err = network.SendNodeRegistration(permHost,
+	err := network.SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
