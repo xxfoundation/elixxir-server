@@ -25,9 +25,9 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit, id *id.N
 		}
 
 		// Send comm to the other server
-		_, err := network.SendAskOnline(server)
 		jww.INFO.Printf("Waiting for cMix server %s (%d/%d)...",
 			serverID, i+1, servers.Len())
+		_, err := network.SendAskOnline(server)
 		if err != nil {
 			jww.INFO.Printf("Could not contact cMix server %s (%d/%d)...",
 				serverID, i+1, servers.Len())

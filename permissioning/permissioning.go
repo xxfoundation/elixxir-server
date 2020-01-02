@@ -157,7 +157,8 @@ func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex in
 		if i == myIndex {
 			continue
 		}
-		_, err := network.AddHost(string(host.ID), host.Address, []byte(host.TlsCertificate), false, true)
+		_, err := network.AddHost(id.NewNodeFromBytes(host.ID).String(),
+			host.Address, []byte(host.TlsCertificate), false, true)
 		if err != nil {
 			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
 		}
