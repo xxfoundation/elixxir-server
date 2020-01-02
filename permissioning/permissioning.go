@@ -50,7 +50,6 @@ func PollNdf(def *server.Definition, network *node.Comms,
 
 	jww.INFO.Printf("Beginning polling NDF...")
 	for response == nil {
-		jww.DEBUG.Printf("Polling for Ndf...")
 		response, err = network.RequestNdf(permHost,
 			&pb.NDFHash{Hash: make([]byte, 0)})
 		if err != nil {
@@ -59,6 +58,7 @@ func PollNdf(def *server.Definition, network *node.Comms,
 	}
 
 	// Decode the ndf into an object
+	jww.DEBUG.Printf("Ndf received: %s", string(response.Ndf))
 	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
 	if err != nil {
 		errMsg := errors.Errorf("Unable to parse Ndf: %v", err)
