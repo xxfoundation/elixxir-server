@@ -98,7 +98,7 @@ type Perm struct {
 
 type GW struct {
 	// ID of the gateway
-	ID *id.Gateway
+	ID *id.Node
 	// PEM file containing the TLS cert
 	TlsCert []byte
 	// IP address of the gateway
