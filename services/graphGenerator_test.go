@@ -20,32 +20,32 @@ func assertPanic(t *testing.T, f func()) {
 
 func TestNewGraphGenerator(t *testing.T) {
 	//Test defaultNumTH set to 0 fails
-	gcTest := func (){
+	gcTest := func() {
 		NewGraphGenerator(4, GCPanicHandler, 0, 1, 0)
 	}
 	assertPanic(t, gcTest)
 
 	//Test minInputSize = 0 fails
-	gcTest = func (){
+	gcTest = func() {
 		NewGraphGenerator(0, GCPanicHandler, 1, 1, 0)
 	}
 	assertPanic(t, gcTest)
 
 	//Test if outputSize < 0 it fails
-	gcTest = func (){
+	gcTest = func() {
 		NewGraphGenerator(1, GCPanicHandler, 1, 1, -1)
 	}
 	assertPanic(t, gcTest)
 
 	//Test OutputThreshold > 1 it fails
-	gcTest = func (){
+	gcTest = func() {
 		NewGraphGenerator(1, GCPanicHandler, 1, 1, 2)
 	}
 	assertPanic(t, gcTest)
 
 	gc := NewGraphGenerator(1, GCPanicHandler, 1, 1, 0)
 
-	if(gc.defaultNumTh != 1 || gc.minInputSize != 1 || gc.outputSize != 1 || gc.outputThreshold != 0 ){
+	if gc.defaultNumTh != 1 || gc.minInputSize != 1 || gc.outputSize != 1 || gc.outputThreshold != 0 {
 		t.Logf("Graph Generator returned unexpected value")
 		t.Fail()
 	}
