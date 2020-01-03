@@ -215,7 +215,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	}
 
 	def.Gateway.TlsCert = GwTlsCerts
-	def.Gateway.ID = def.ID
+	def.Gateway.ID = def.ID.NewGateway()
 	def.BatchSize = p.Batch
 	def.CmixGroup = p.Groups.GetCMix()
 	def.E2EGroup = p.Groups.GetE2E()
