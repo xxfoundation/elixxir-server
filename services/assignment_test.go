@@ -77,12 +77,3 @@ func TestAssignment_GetChunk(t *testing.T) {
 	}
 
 }
-
-func TestAssignmentList_DenoteCompleted(t *testing.T) {
-
-	//FIXME: how do i generae an assignment List?
-}
-
-func TestAssignmentList_PrimeOutputs(t *testing.T) {
-
-}

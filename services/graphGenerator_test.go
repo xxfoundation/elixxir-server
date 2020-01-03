@@ -9,7 +9,6 @@ var GCPanicHandler ErrorCallback = func(g, m string, err error) {
 	panic(err)
 }
 
-
 func assertPanic(t *testing.T, f func()) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -121,18 +120,4 @@ func TestGraphGenerator_GetOutputThreshold(t *testing.T) {
 		t.Logf("GetOutputThreshhold returned unexpected value")
 		t.Fail()
 	}
-}
-
-func TestGraphGenerator_GetErrorHandler(t *testing.T) {
-
-}
-
-func TestGraphGenerator_SetErrorHandler(t *testing.T) {
-	//gc := NewGraphGenerator(4, GCPanicHandler, uint8(runtime.NumCPU()), 1, 0)
-
-	// TODO: whats the best way of testing this?
-	//var GCPanicHandlerTest ErrorCallback = func(g, m string, err error) {
-	//	panic(err)
-	//}
-
 }
