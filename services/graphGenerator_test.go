@@ -54,9 +54,18 @@ func TestNewGraphGenerator(t *testing.T) {
 
 func TestGraphGenerator_NewGraph(t *testing.T) {
 	stream := &Stream1{}
-	gg := NewGraphGenerator(4, GCPanicHandler, 0, 1, 0)
+	gg := NewGraphGenerator(4, GCPanicHandler, 1, 1, 0)
 	newGraph := gg.NewGraph("testGraph", stream)
 
+	if(newGraph.stream != stream){
+		t.Logf("Graphgenerator assigning wrong Stream")
+		t.Fail()
+	}
+
+	if(newGraph.name != "testGraph" ) {
+		t.Logf("GraphGenerator assigning wrong name")
+		t.Fail()
+	}
 }
 
 func TestGraphGenerator_GetDefaultNumTh(t *testing.T) {
