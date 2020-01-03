@@ -8,8 +8,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
-
 	"testing"
 	"time"
 )
@@ -27,7 +25,7 @@ func TestVerifyServersOnline(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		*d = 1
 	}(&done)
-	VerifyServersOnline(comms[0], topology, id.NewNodeFromBytes([]byte("test")))
+	VerifyServersOnline(comms[0], topology)
 	if done == 1 {
 		t.Errorf("Could not verify servers in less than 2 seconds!")
 	}

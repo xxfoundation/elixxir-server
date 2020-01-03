@@ -9,12 +9,11 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
 
 // VerifyServersOnline Blocks until all given servers respond
-func VerifyServersOnline(network *node.Comms, servers *connect.Circuit, id *id.Node) {
+func VerifyServersOnline(network *node.Comms, servers *connect.Circuit) {
 	for i := 0; i < servers.Len(); {
 		// Pull server's host from the connection manager
 		serverID := servers.GetNodeAtIndex(i)
