@@ -49,7 +49,7 @@ func PollNdf(def *server.Definition, network *node.Comms,
 	var err error
 
 	jww.INFO.Printf("Beginning polling NDF...")
-	for response == nil {
+	for response == nil || response.Ndf == nil {
 		response, err = network.RequestNdf(permHost,
 			&pb.NDFHash{Hash: make([]byte, 0)})
 		if err != nil {
