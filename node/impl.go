@@ -9,6 +9,7 @@
 package node
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/io"
@@ -22,15 +23,16 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) error {
+	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		return ReceiveCreateNewRound(instance, message)
 	}
 
-	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
+	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
+		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
 		return ReceiveGetMeasure(instance, message)
 	}
 
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
 		ReceivePostPhase(batch, instance)
 	}
 
@@ -38,50 +40,50 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveStreamPostPhase(streamServer, instance)
 	}
 
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
 		ReceivePostRoundPublicKey(instance, pk)
 	}
 
-	impl.Functions.GetRoundBufferInfo = func() (int, error) {
+	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
 		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
 	}
 
-	impl.Functions.GetCompletedBatch = func() (batch *mixmessages.Batch, e error) {
+	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, e error) {
 		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
 	}
 
 	// Receive finish realtime should gather metrics if first node
 	if instance.IsFirstNode() {
-		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 			return ReceiveFinishRealtime(instance, message)
 		}
 	} else {
-		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 			return ReceiveFinishRealtime(instance, message)
 		}
 	}
 
 	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
-		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte) ([]byte, []byte, error) {
+		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte, auth *connect.Auth) ([]byte, []byte, error) {
 		return io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
 			RSASignedByRegistration, DHSignedByClientRSA)
 	}
 
-	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte) ([]byte, error) {
+	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
 		return io.ConfirmRegistration(instance, UserID, Signature)
 	}
-	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error {
+	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		return ReceivePostPrecompResult(instance, roundID, slots)
 	}
-	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch) error {
+	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
 		return ReceivePostNewBatch(instance, newBatch)
 	}
 
-	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing) error {
+	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {
 		return ReceiveRoundTripPing(instance, ping)
 	}
 
-	impl.Functions.AskOnline = func(ping *mixmessages.Ping) error {
+	impl.Functions.AskOnline = func() error {
 		for instance.Online == false {
 			time.Sleep(250 * time.Millisecond)
 		}

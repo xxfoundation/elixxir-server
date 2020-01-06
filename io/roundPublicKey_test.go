@@ -7,6 +7,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -154,7 +155,7 @@ func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 
 func mockPostRoundPKImplementation0() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
 		receivedPks[0] = pk
 	}
 	return impl
@@ -162,7 +163,7 @@ func mockPostRoundPKImplementation0() *node.Implementation {
 
 func mockPostRoundPKImplementation1() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
 		receivedPks[1] = pk
 	}
 	return impl
@@ -170,7 +171,7 @@ func mockPostRoundPKImplementation1() *node.Implementation {
 
 func mockPostRoundPKImplementation2() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey) {
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
 		receivedPks[2] = pk
 	}
 	return impl

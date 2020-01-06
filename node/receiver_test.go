@@ -291,7 +291,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
 
 	//send the mockBatch to the impl
-	impl.PostPhase(mockBatch)
+	a := &connect.Auth{}
+	impl.PostPhase(mockBatch, a)
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
@@ -586,11 +587,11 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	actualBatch := &mixmessages.Batch{}
 	emptyBatch := &mixmessages.Batch{}
-	impl.Functions.PostPhase = func(message *mixmessages.Batch) {
+	impl.Functions.PostPhase = func(message *mixmessages.Batch, auth *connect.Auth) {
 		actualBatch = message
 	}
-
-	impl.Functions.PostRoundPublicKey(mockPk)
+	a := &connect.Auth{}
+	impl.Functions.PostRoundPublicKey(mockPk, a)
 
 	// Verify that a PostPhase isn't called by ensuring callback
 	// doesn't set the actual by comparing it to the empty batch
@@ -663,7 +664,8 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	impl.Functions.PostRoundPublicKey(mockPk)
+	a := &connect.Auth{}
+	impl.Functions.PostRoundPublicKey(mockPk, a)
 
 	// Verify that a PostPhase is called by ensuring callback
 	// does set the actual by comparing it to the expected batch

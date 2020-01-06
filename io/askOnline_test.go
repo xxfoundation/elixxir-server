@@ -8,7 +8,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-
 	"testing"
 	"time"
 )

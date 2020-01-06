@@ -23,7 +23,7 @@ import (
 func MockRTPingImplementation() *node.Implementation {
 	impl := node.NewImplementation()
 
-	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing) error {
+	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {
 		return nil
 	}
 

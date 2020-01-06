@@ -9,6 +9,7 @@ package cmd
 
 import (
 	"fmt"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/utils"
 	"os"
 	"runtime"
@@ -225,6 +226,7 @@ func initLog() {
 	if viper.GetBool("verbose") {
 		jww.SetLogThreshold(jww.LevelDebug)
 		jww.SetStdoutThreshold(jww.LevelDebug)
+		mixmessages.DebugMode()
 	} else {
 		jww.SetLogThreshold(jww.LevelInfo)
 		jww.SetStdoutThreshold(jww.LevelInfo)

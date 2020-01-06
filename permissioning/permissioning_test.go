@@ -10,9 +10,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/gateway"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/registration"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/id"
@@ -42,7 +44,7 @@ func (i *mockPermission) RegisterNode([]byte, string, string, string, string, st
 	return nil
 }
 
-func (i *mockPermission) PollNdf(ID []byte) ([]byte, error) {
+func (i *mockPermission) PollNdf(ID []byte, auth *connect.Auth) ([]byte, error) {
 	ndfData, err := json.Marshal(testNdf)
 	if err != nil {
 		fmt.Println("Failed to marshall json")
@@ -119,19 +121,19 @@ func TestRegisterNode(t *testing.T) {
 	// Initialize permissioning server
 	pAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	pHandler := registration.Handler(&mockPermission{})
-	permComms = registration.StartRegistrationServer(pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId.String(), nodeAddr, cert, false)
+	permComms = registration.StartRegistrationServer("ptest", pAddr, pHandler, cert, key)
+	_, err := permComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
 	if err != nil {
 		t.Fatalf("Permissioning could not connect to node")
 	}
 
 	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	gHandler := gateway.Handler(&mockGateway{})
-	gwComms = gateway.StartGateway(gAddr, gHandler, cert, key)
+	gwComms = gateway.StartGateway("gtest", gAddr, gHandler, cert, key)
 	buildMockNdf(nodeId, nodeAddr, gAddr, cert, key)
 	go func() {
 		time.Sleep(1 * time.Second)
-		gwComms.AddHost(nodeId.String(), nodeAddr, cert, false)
+		gwComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
 		if err != nil {
 			t.Fatalf("Gateway could not connect to node")
 		}
@@ -170,12 +172,34 @@ func TestRegisterNode(t *testing.T) {
 
 	// Register the node in a separate thread and notify when finished
 	go func() {
-		err := RegisterNode(def)
+		impl := node.NewImplementation()
+
+		// Assemble the Comms callback interface
+		gatewayNdfChan := make(chan *pb.GatewayNdf)
+		gatewayReadyCh := make(chan struct{}, 1)
+		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
+			var gwNdf *pb.GatewayNdf
+			select {
+			case gwNdf = <-gatewayNdfChan:
+				jwalterweatherman.DEBUG.Println("Ndf ready for gateway!")
+				gatewayReadyCh <- struct{}{}
+			case <-time.After(1 * time.Second):
+			}
+			return gwNdf, nil
+
+		}
+		network := node.StartNode("nodeid", def.Address, impl, def.TlsCert, def.TlsKey)
+		permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+		if err != nil {
+			t.Errorf("Unable to connect to registration server: %+v", err)
+		}
+
+		err = RegisterNode(def, network, permHost)
 		if err != nil {
 			t.Error(err)
 		}
 		// Blocking call: Request ndf from permissioning
-		newNdf, err := PollNdf(def)
+		newNdf, err := PollNdf(def, network, gatewayNdfChan, gatewayReadyCh, permHost)
 		if err != nil {
 			t.Errorf("Failed to get ndf: %+v", err)
 		}
@@ -201,11 +225,10 @@ func TestRegisterNode(t *testing.T) {
 		}
 		numPolls++
 		nodeHost, _ := gwComms.GetHost(nodeId.String())
-		msg, err := gwComms.PollNdf(nodeHost, &pb.Ping{})
+		msg, err := gwComms.PollNdf(nodeHost)
 		if err != nil {
 			t.Errorf("Error on polling signed certs")
-		}
-		if bytes.Compare(msg.Id, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {
+		} else if bytes.Compare(msg.Id, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {
 			break
 		}
 	}
