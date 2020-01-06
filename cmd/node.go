@@ -9,12 +9,13 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
@@ -30,14 +31,14 @@ import (
 var numDemoUsers = int(256)
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(vip *viper.Viper) {
+func StartServer(vip *viper.Viper) error {
 	vip.Debug()
 
 	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
-	runtime.GOMAXPROCS(runtime.NumCPU() * 2)
+	runtime.GOMAXPROCS(maxProcsOverride)
 
 	//Start the performance monitor
 	resourceMonitor := monitorMemoryUsage(performanceCheckPeriod,
@@ -54,9 +55,8 @@ func StartServer(vip *viper.Viper) {
 	//Check that there is a gateway
 	if len(params.Gateways.Addresses) < 1 {
 		// No gateways in config file or passed via command line
-		jww.FATAL.Panicf("Error: No gateways specified! Add to" +
+		return errors.New("Error: No gateways specified! Add to" +
 			" configuration file!")
-		return
 	}
 
 	// Initialize the backend
@@ -111,11 +111,24 @@ func StartServer(vip *viper.Viper) {
 
 	if !disablePermissioning {
 		// Blocking call: Begin Node registration
-		nodes, nodeIds, serverCert, gwCert := permissioning.RegisterNode(def)
+		err := permissioning.RegisterNode(def)
+		if err != nil {
+			return errors.Errorf("Failed to register node: %+v", err)
+		}
+		// Blocking call: Request ndf from permissioning
+		newNdf, err := permissioning.PollNdf(def)
+		if err != nil {
+			return errors.Errorf("Failed to get ndf: %+v", err)
+		}
+		// Parse the Nd
+		nodes, nodeIds, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
+		if err != nil {
+			return errors.Errorf("Failed to install ndf: %+v", err)
+		}
 		def.Nodes = nodes
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
-		def.Topology = circuit.New(nodeIds)
+		def.Topology = connect.NewCircuit(nodeIds)
 	}
 
 	jww.INFO.Printf("Creating server instance")
@@ -132,7 +145,10 @@ func StartServer(vip *viper.Viper) {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	instance := server.CreateServerInstance(def)
+	instance, err := server.CreateServerInstance(def, node.NewImplementation)
+	if err != nil {
+		return errors.Errorf("Could not create server instance: %v", err)
+	}
 
 	if instance.IsFirstNode() {
 		jww.INFO.Printf("Initilizing as first node")
@@ -149,13 +165,12 @@ func StartServer(vip *viper.Viper) {
 	if !disablePermissioning {
 		err = instance.VerifyTopology()
 		if err != nil {
-			jww.FATAL.Panicf("Could not verify all nodes were signed by the"+
+			return errors.Errorf("Could not verify all nodes were signed by the"+
 				" permissioning server: %+v", err)
 		}
 	}
 
 	// initialize the network
-	instance.InitNetwork(node.NewImplementation)
 	instance.Online = true
 
 	jww.INFO.Printf("Checking all servers are online")
@@ -171,7 +186,7 @@ func StartServer(vip *viper.Viper) {
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
-
+	return nil
 }
 
 // Create dummy users to be manually inserted into the database

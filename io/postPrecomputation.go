@@ -2,10 +2,10 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
@@ -16,9 +16,9 @@ import (
 // TransmitPrecompResult: The last node transmits the precomputation to all
 // nodes but the first, then the first node, after precomp strip
 // TODO Set this as the transmission handler for precomp strip?
-func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
+func TransmitPrecompResult(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *circuit.Circuit,
+	getMessage phase.GetMessage, topology *connect.Circuit,
 	nodeID *id.Node, measureFunc phase.Measure) error {
 	var wg sync.WaitGroup
 
@@ -46,7 +46,10 @@ func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
 	for i := 1; i < topology.Len(); i++ {
 		wg.Add(1)
 		go func(index int) {
-			recipient := topology.GetNodeAtIndex(index)
+			var err error
+			// Pull the particular server host object from the commManager
+			recipient := topology.GetHostAtIndex(index)
+
 			ack, err := network.SendPostPrecompResult(recipient, uint64(roundID), slots)
 			if err != nil {
 				errChan <- errors.Wrapf(err, "")
@@ -76,9 +79,10 @@ func TransmitPrecompResult(network *node.NodeComms, batchSize uint32,
 		return errs
 	}
 
-	// If we got here, there weren't errors, so let's send to the first node
-	// so the round can go on the finished precomps queue on that node
-	recipient := topology.GetNodeAtIndex(0)
+	// Pull the particular server host object from the commManager
+	recipient := topology.GetHostAtIndex(0)
+
+	//Send the message to that node
 	ack, err := network.SendPostPrecompResult(recipient, uint64(roundID), slots)
 	if err != nil {
 		return err

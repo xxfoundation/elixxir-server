@@ -2,9 +2,9 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"sync"
 )
@@ -12,8 +12,8 @@ import (
 // TransmitCreateNewRound is run on first node to tell other nodes to create the
 // round.  It does not follow the transmitter interface because it is run
 // custom through the first node runner.
-func TransmitCreateNewRound(network *node.NodeComms,
-	topology *circuit.Circuit, roundID id.Round) error {
+func TransmitCreateNewRound(network *node.Comms,
+	topology *connect.Circuit, roundID id.Round) error {
 
 	//Every node receives the same roundInfo
 	roundInfo := &mixmessages.RoundInfo{ID: uint64(roundID)}
@@ -28,8 +28,9 @@ func TransmitCreateNewRound(network *node.NodeComms,
 	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		go func() {
-			recipient := topology.GetNodeAtIndex(localIndex)
-
+			// Pull the particular server host object from the commManager
+			recipient := topology.GetHostAtIndex(localIndex)
+			// Send new round to that particular node
 			ack, err := network.SendNewRound(recipient, roundInfo)
 
 			if ack != nil && ack.Error != "" {

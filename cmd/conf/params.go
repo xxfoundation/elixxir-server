@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
@@ -220,7 +220,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.CmixGroup = p.Groups.GetCMix()
 	def.E2EGroup = p.Groups.GetE2E()
 
-	def.Topology = circuit.New(nodeIDs)
+	def.Topology = connect.NewCircuit(nodeIDs)
 	def.Nodes = nodes
 
 	var PermTlsCert []byte

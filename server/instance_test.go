@@ -1,10 +1,10 @@
 package server
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"os"
@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp := cyclic.NewGroup(prime, large.NewInt(2))
 	def := mockServerDef(m, grp)
-	instance = CreateServerInstance(def)
+	instance, _ = CreateServerInstance(def, NewImplementation)
 	os.Exit(m.Run())
 }
 
@@ -54,7 +54,7 @@ func TestInstance_GetResourceQueue(t *testing.T) {
 }
 
 func TestInstance_GetNetwork(t *testing.T) {
-	n := &node.NodeComms{}
+	n := &node.Comms{}
 	i := &Instance{network: n}
 
 	if !reflect.DeepEqual(i.GetNetwork(), n) {
@@ -87,7 +87,7 @@ func TestInstance_Topology(t *testing.T) {
 
 	//Build the topology
 	def := Definition{}
-	def.Topology = circuit.New(nodeIDs)
+	def.Topology = connect.NewCircuit(nodeIDs)
 	def.ID = nodeIDs[2]
 	i := &Instance{definition: &def}
 
@@ -107,9 +107,9 @@ func TestInstance_Topology(t *testing.T) {
 func TestInstance_GetResourceMonitor(t *testing.T) {
 
 	def := mockServerDef(t, grp)
-	i := CreateServerInstance(def)
+	tmpInstance, _ := CreateServerInstance(def, NewImplementation)
 
-	rm := i.GetResourceMonitor()
+	rm := tmpInstance.GetResourceMonitor()
 
 	expectedMetric := measure.ResourceMetric{
 		Time:          time.Unix(1, 2),
@@ -119,13 +119,13 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 
 	rm.Set(&expectedMetric)
 
-	if !i.GetResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
+	if !tmpInstance.GetResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
 		t.Errorf("Instance.GetResourceMonitor: Returned incorrect time")
 	}
-	if i.GetResourceMonitor().Get().NumThreads != expectedMetric.NumThreads {
+	if tmpInstance.GetResourceMonitor().Get().NumThreads != expectedMetric.NumThreads {
 		t.Errorf("Instance.GetResourceMonitor: Returned incorrect num threads")
 	}
-	if i.GetResourceMonitor().Get().MemAllocBytes != expectedMetric.MemAllocBytes {
+	if tmpInstance.GetResourceMonitor().Get().MemAllocBytes != expectedMetric.MemAllocBytes {
 		t.Errorf("Instance.GetResourceMonitor: Returned incorrect mem allcoated")
 	}
 

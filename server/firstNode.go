@@ -2,9 +2,9 @@ package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/round"
 	"sync"
@@ -27,7 +27,7 @@ type firstNode struct {
 
 // RoundCreationTransmitter is a function type which is used to notify all nodes
 // to create the round
-type RoundCreationTransmitter func(*node.NodeComms, *circuit.Circuit, id.Round) error
+type RoundCreationTransmitter func(*node.Comms, *connect.Circuit, id.Round) error
 
 // RoundStarter is a function type which is used to start a round locally
 type RoundStarter func(instance *Instance, roundID id.Round) error

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -11,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/circuit"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -75,7 +75,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
-		instance := server.CreateServerInstance(defsLst[i])
+		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation)
 		instances = append(instances, instance)
 	}
 
@@ -89,7 +89,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		wg.Add(1)
 		localInstance := instance
 		go func() {
-			localInstance.InitNetwork(node.NewImplementation)
 			localInstance.Online = true
 			wg.Done()
 		}()
@@ -337,6 +336,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Address: addr,
 		}
 		nodeLst = append(nodeLst, n)
+
 	}
 
 	//generate parameters list
@@ -350,7 +350,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 		def := server.Definition{
 			CmixGroup: grp,
-			Topology:  circuit.New(nidLst),
+			Topology:  connect.NewCircuit(nidLst),
 			ID:        nidLst[i],
 			BatchSize: uint32(batchsize),
 			Nodes:     nodeLst,
@@ -363,6 +363,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
+
 		defLst = append(defLst, &def)
 	}
 
