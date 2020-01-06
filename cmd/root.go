@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"gitlab.com/elixxir/primitives/utils"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/mitchellh/go-homedir"
@@ -34,6 +35,7 @@ var disablePermissioning bool
 var noTLS bool
 var metricsWhitespace bool
 var logPath = "cmix-server.log"
+var maxProcsOverride int
 
 // If true, runs pprof http server
 var profile bool
@@ -140,6 +142,10 @@ func init() {
 		"Set to ignore TLS")
 	rootCmd.Flags().BoolVarP(&metricsWhitespace, "metricsWhitespace", "w", false,
 		"Set to print indented metrics JSON files")
+	rootCmd.Flags().IntVar(&maxProcsOverride, "MaxProcsOverride", runtime.NumCPU(),
+		"Overrides the maximum number of processes go will use. Must "+
+			"be equal to or less than the number of logical cores on the device. "+
+			"Defaults at the number of logical cores on the device")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")
