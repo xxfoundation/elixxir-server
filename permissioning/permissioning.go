@@ -10,39 +10,22 @@ package permissioning
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
-	"net"
 	"time"
 )
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition) error {
-	// Assemble the Comms callback interface
-	impl := node.NewImplementation()
-
-	// Start Node communication server
-	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
-	// Connect to the Permissioning Server
-	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
-	if err != nil {
-		errMsg := errors.Errorf("Unable to create registration host: %+v", err)
-		return errMsg
-	}
-
-	_, _, err = net.SplitHostPort(def.Address)
-	if err != nil {
-		errMsg := errors.Errorf("Unable to obtain port from address: %+v", err)
-		return errMsg
-	}
-
+func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect.Host) error {
 	// Attempt Node registration
-	err = network.SendNodeRegistration(permHost,
+	err := network.SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
@@ -54,58 +37,43 @@ func RegisterNode(def *server.Definition) error {
 		return errors.Errorf("Unable to send Node registration: %+v", err)
 	}
 
-	//Shutdown the temp network and return no error
-	network.Shutdown()
-
 	return nil
 }
 
 //PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
-func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
-	// Channel for signaling completion of Node registration
-	gatewayNdfChan := make(chan *pb.GatewayNdf)
-	gatewayReadyCh := make(chan struct{}, 1)
-
-	// Assemble the Comms callback interface
-	impl := node.NewImplementation()
-
-	// Assemble the Comms callback interface
-	impl.Functions.PollNdf = func(ping *pb.Ping) (*pb.GatewayNdf, error) {
-		var gwNdf *pb.GatewayNdf
-		select {
-		case gwNdf = <-gatewayNdfChan:
-			jww.DEBUG.Println("Giving ndf to gateway")
-			gatewayReadyCh <- struct{}{}
-		case <-time.After(1 * time.Second):
-		}
-		return gwNdf, nil
-
-	}
-	// Start Node communication server
-	network := node.StartNode(def.Address, impl, def.TlsCert, def.TlsKey)
-	// Connect to the Permissioning Server
-	permHost, err := network.AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true)
-	if err != nil {
-		errMsg := errors.Errorf("Unable to connect to registration server: %+v", err)
-		return nil, errMsg
-	}
-
-	jww.INFO.Printf("Beginning polling NDF...")
+func PollNdf(def *server.Definition, network *node.Comms,
+	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
 	var response *pb.NDF
-	for response == nil {
-		response, _ = network.RequestNdf(permHost, &pb.NDFHash{})
+	var err error
 
+	jww.INFO.Printf("Beginning polling NDF...")
+	for response == nil || response.Ndf == nil {
+		response, err = network.RequestNdf(permHost,
+			&pb.NDFHash{Hash: make([]byte, 0)})
+		if err != nil {
+			return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
+		}
 	}
-	//Decode the ndf into an object
+
+	// Decode the ndf into an object
+	jww.DEBUG.Printf("Ndf received: %s", string(response.Ndf))
 	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
 	if err != nil {
-		errMsg := errors.Errorf("Unable to parse ndf: %v", err)
+		errMsg := errors.Errorf("Unable to parse Ndf: %v", err)
 		return nil, errMsg
 	}
-	//Find this server's place in the ndf
+	// Find this server's place in the ndf
 	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = initializeHosts(newNdf, network, index)
+
+	//Prepare the ndf for gateway transmission
+	ndfData, err := json.Marshal(newNdf)
 	if err != nil {
 		return nil, err
 	}
@@ -113,14 +81,11 @@ func PollNdf(def *server.Definition) (*ndf.NetworkDefinition, error) {
 	//Send the certs to the gateway
 	gatewayNdfChan <- &pb.GatewayNdf{
 		Id:  newNdf.Nodes[index].ID,
-		Ndf: &pb.NDF{Ndf: newNdf.Serialize()},
+		Ndf: &pb.NDF{Ndf: ndfData},
 	}
 
 	//Wait for gateway to be ready
 	<-gatewayReadyCh
-
-	// Shut down the Comms server and return the ndf
-	network.Shutdown()
 
 	// HACK HACK HACK
 	// FIXME: we should not be coupling connections and server objects
@@ -176,4 +141,25 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 	}
 	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
 
+}
+
+// initializeHosts adds host objects for all relevant connections in the NDF
+func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
+	// Add hosts for nodes
+	for i, host := range def.Nodes {
+		_, err := network.AddHost(id.NewNodeFromBytes(host.ID).String(),
+			host.Address, []byte(host.TlsCertificate), false, true)
+		if err != nil {
+			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
+		}
+	}
+
+	// Add host for the relevant gateway
+	gateway := def.Gateways[myIndex]
+	_, err := network.AddHost(id.NewNodeFromBytes(def.Nodes[myIndex].ID).NewGateway().String(),
+		gateway.Address, []byte(gateway.TlsCertificate), false, true)
+	if err != nil {
+		return errors.Errorf("Unable to add host for gateway %s at %+v", network.String(), gateway.Address)
+	}
+	return nil
 }

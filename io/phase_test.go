@@ -7,6 +7,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -121,7 +122,7 @@ func TestTransmitPhase(t *testing.T) {
 
 func mockPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch) {
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
 		receivedBatch = batch
 	}
 	return impl

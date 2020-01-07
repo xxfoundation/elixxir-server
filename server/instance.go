@@ -49,12 +49,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-	instance.network = node.StartNode(instance.definition.Address, makeImplementation(instance),
+	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
 
 	//Add all hosts to manager for future connections
 	for index, n := range instance.definition.Nodes {
-		nodeHost, err := instance.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false)
+		nodeHost, err := instance.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false, true)
 		if err != nil {
 			errMsg := fmt.Sprintf("Could not add node %s (%v/%v) as a host: %+v",
 				n.ID, index+1, len(instance.definition.Nodes), err)
@@ -67,7 +67,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	//Attempt to connect Gateway
 	if instance.definition.Gateway.Address != "" {
 		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
-			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false)
+			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
 		if err != nil {
 			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
 				instance.definition.Gateway.ID, err)

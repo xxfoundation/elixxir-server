@@ -1,6 +1,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -72,7 +73,7 @@ func MockPostPrecompResultImplementation(
 	precompReceiver chan []*mixmessages.Slot,
 	roundReceiver chan uint64) *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot) error {
+	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		roundReceiver <- roundID
 		precompReceiver <- slots
 		return nil

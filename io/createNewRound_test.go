@@ -2,6 +2,7 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -14,7 +15,7 @@ var receivedNewRound = make(chan *mixmessages.RoundInfo, 100)
 
 func MockCreateNewRoundImplementation() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) error {
+	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		receivedNewRound <- message
 		return nil
 	}
@@ -70,7 +71,7 @@ Loop:
 
 func MockCreateNewRoundImplementation_Error() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo) error {
+	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		return errors.New("Test error")
 	}
 	return impl

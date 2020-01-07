@@ -8,6 +8,7 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -21,7 +22,7 @@ var receivedFinishRealtime = make(chan *mixmessages.RoundInfo, 100)
 
 func MockFinishRealtimeImplementation() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		receivedFinishRealtime <- message
 		return nil
 	}
@@ -112,7 +113,7 @@ Loop:
 
 func MockFinishRealtimeImplementation_Error() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo) error {
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		return errors.New("Test error")
 	}
 	return impl
