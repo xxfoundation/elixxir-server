@@ -327,7 +327,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
-	// TODO send all the slot IDs that didn't make it back to the gateway
 	jww.INFO.Printf("[%s]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
