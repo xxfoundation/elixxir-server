@@ -2,6 +2,7 @@ package services
 
 import "testing"
 
+// Tests that the string outputted contains the expected results given the input.
 func TestNameStringer(t *testing.T) {
 	str := NameStringer("1.1.1.1", 0, 1)
 

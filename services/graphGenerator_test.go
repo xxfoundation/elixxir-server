@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"runtime"
 	"testing"
 )
@@ -9,6 +10,7 @@ var GCPanicHandler ErrorCallback = func(g, m string, err error) {
 	panic(err)
 }
 
+// We us this to catch panics that we expect so we can test appropriately.
 func assertPanic(t *testing.T, f func()) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -18,6 +20,8 @@ func assertPanic(t *testing.T, f func()) {
 	f()
 }
 
+// In this test we test that NewGraph Generator will fail under specific conditions
+// and that a newly generated graph will contain the expected values given predetermined inputs
 func TestNewGraphGenerator(t *testing.T) {
 	//Test defaultNumTH set to 0 fails
 	gcTest := func() {
@@ -43,8 +47,8 @@ func TestNewGraphGenerator(t *testing.T) {
 	}
 	assertPanic(t, gcTest)
 
+	// Test that graph generator returns a graph with expected values
 	gc := NewGraphGenerator(1, GCPanicHandler, 1, 1, 0)
-
 	if gc.defaultNumTh != 1 || gc.minInputSize != 1 || gc.outputSize != 1 || gc.outputThreshold != 0 {
 		t.Logf("Graph Generator returned unexpected value")
 		t.Fail()
@@ -57,12 +61,12 @@ func TestGraphGenerator_NewGraph(t *testing.T) {
 	gg := NewGraphGenerator(4, GCPanicHandler, 1, 1, 0)
 	newGraph := gg.NewGraph("testGraph", stream)
 
-	if(newGraph.stream != stream){
+	if newGraph.stream != stream {
 		t.Logf("Graphgenerator assigning wrong Stream")
 		t.Fail()
 	}
 
-	if(newGraph.name != "testGraph" ) {
+	if newGraph.name != "testGraph" {
 		t.Logf("GraphGenerator assigning wrong name")
 		t.Fail()
 	}
@@ -129,4 +133,35 @@ func TestGraphGenerator_GetOutputThreshold(t *testing.T) {
 		t.Logf("GetOutputThreshhold returned unexpected value")
 		t.Fail()
 	}
+}
+
+func TestGraphGenerator_GetErrorHandler(t *testing.T) {
+
+	gc := NewGraphGenerator(4, GCPanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	var errHandler = gc.GetErrorHandler()
+	var f = func() {
+		errHandler("", "", errors.New("test error"))
+	}
+
+	// Test that the error handler returend is the error handler that panics
+	assertPanic(t, f)
+}
+
+func TestGraphGenerator_SetErrorHandler(t *testing.T) {
+	var nopanicHandler ErrorCallback = func(g, m string, err error) {
+		t.Log("The graph generator setHandler is not working, this should have paniced")
+		t.Fail()
+	}
+
+	gc := NewGraphGenerator(4, nopanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	//Change it from a error handler that panics
+	gc.SetErrorHandler(GCPanicHandler)
+
+	var errHandler = gc.GetErrorHandler()
+	var f = func() {
+		errHandler("", "", errors.New("test error"))
+	}
+
+	// Test that the error handler is the error handler that panics
+	assertPanic(t, f)
 }
