@@ -135,6 +135,7 @@ func TestGraphGenerator_GetOutputThreshold(t *testing.T) {
 	}
 }
 
+// Test that GetErrorHandler returns expected
 func TestGraphGenerator_GetErrorHandler(t *testing.T) {
 
 	gc := NewGraphGenerator(4, GCPanicHandler, uint8(runtime.NumCPU()), 1, 0)
