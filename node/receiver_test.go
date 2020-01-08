@@ -77,7 +77,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 
@@ -164,7 +164,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
 	registry := instance.GetUserRegistry()
@@ -257,7 +257,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	mockPhase := testUtil.InitMockPhase(t)
 
@@ -399,7 +399,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)
@@ -551,7 +551,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(1)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -617,7 +617,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 	topology := instance.GetTopology()
 
 	batchSize := uint32(3)
@@ -723,7 +723,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
 	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
@@ -747,7 +747,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	topology := instance.GetTopology()
 
@@ -798,7 +798,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			BatchSize:       4,
 		}
 		def.ID = def.Topology.GetNodeAtIndex(i)
-		instance, _ := server.CreateServerInstance(&def, NewImplementation)
+		instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 		instances = append(instances, instance)
 	}
 	instances[0].InitFirstNode()
@@ -872,7 +872,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -945,7 +945,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -1019,7 +1019,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -1222,7 +1222,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	return instance
 }

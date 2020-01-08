@@ -38,7 +38,7 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation) (*Instance, error) {
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation, noTls bool) (*Instance, error) {
 	instance := &Instance{
 		Online:        false,
 		definition:    def,
@@ -51,6 +51,10 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
+
+	if noTls {
+		instance.network.DisableAuth()
+	}
 
 	//Add all hosts to manager for future connections
 	for index, n := range instance.definition.Nodes {
