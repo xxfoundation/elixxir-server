@@ -38,7 +38,7 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, makeImplementation func(*Instance, int) *node.Implementation) (*Instance, error) {
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation) (*Instance, error) {
 	instance := &Instance{
 		Online:        false,
 		definition:    def,
@@ -50,8 +50,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance, in
 
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
-		makeImplementation(instance, instance.definition.RoundCreationTimeout),
-		instance.definition.TlsCert, instance.definition.TlsKey)
+		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
 
 	//Add all hosts to manager for future connections
 	for index, n := range instance.definition.Nodes {
@@ -200,6 +199,10 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
+}
+
+func (i *Instance) GetRoundCreationTimeout() int {
+	return i.definition.RoundCreationTimeout
 }
 
 // GenerateId generates a random ID and returns it

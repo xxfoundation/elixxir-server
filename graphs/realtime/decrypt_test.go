@@ -583,7 +583,7 @@ func mockServerInstance(i interface{}) *server.Instance {
 
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
-func NewImplementation(instance *server.Instance, timeout int) *node.Implementation {
+func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 

@@ -275,7 +275,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	instance.GetRoundManager().AddRound(r)
 
 	// get the impl
-	impl := NewImplementation(instance, 2)
+	impl := NewImplementation(instance)
 
 	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
@@ -416,7 +416,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	instance.GetRoundManager().AddRound(r)
 
 	// get the impl
-	impl := NewImplementation(instance, 2)
+	impl := NewImplementation(instance)
 
 	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
@@ -583,7 +583,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		Key:   []byte{42},
 	}
 
-	impl := NewImplementation(instance, 2)
+	impl := NewImplementation(instance)
 
 	actualBatch := &mixmessages.Batch{}
 	emptyBatch := &mixmessages.Batch{}
@@ -662,7 +662,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 		Key:   []byte{42},
 	}
 
-	impl := NewImplementation(instance, 2)
+	impl := NewImplementation(instance)
 
 	a := &connect.Auth{}
 	impl.Functions.PostRoundPublicKey(mockPk, a)
