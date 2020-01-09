@@ -181,3 +181,7 @@ func createTempFiles(path string, num int) error {
 
 	return nil
 }
+
+func TestGatherMetrics(t *testing.T) {
+
+}
