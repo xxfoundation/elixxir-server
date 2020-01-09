@@ -14,7 +14,7 @@ import (
 )
 
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32) ([]phase.Phase,
+	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32, newRoundTimeout int) ([]phase.Phase,
 	phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
@@ -22,7 +22,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	generalExpectedStates := []phase.State{phase.Active}
 
 	// TODO: Expose this timeout on the command line
-	defaultTimeout := 2 * time.Minute
+	defaultTimeout := time.Duration(newRoundTimeout) * time.Minute
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 

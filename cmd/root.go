@@ -37,6 +37,7 @@ var noTLS bool
 var metricsWhitespace bool
 var logPath = "cmix-server.log"
 var maxProcsOverride int
+var newRoundTimeout int
 
 // If true, runs pprof http server
 var profile bool
@@ -147,6 +148,8 @@ func init() {
 		"Overrides the maximum number of processes go will use. Must "+
 			"be equal to or less than the number of logical cores on the device. "+
 			"Defaults at the number of logical cores on the device")
+	rootCmd.Flags().IntVarP(&newRoundTimeout, "newRoundTimeout", "t", 2,
+		"timeout for round creation")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")

@@ -6,7 +6,7 @@ require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/go-pg/pg v8.0.6+incompatible
 	github.com/golang/protobuf v1.3.2
-	github.com/google/go-cmp v0.3.1 // indirect
+	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20191106031601-ce3c9ade29de // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -25,12 +25,11 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.1
 	gitlab.com/elixxir/comms v0.0.0-20200106224700-3bc86e95b8af
-	gitlab.com/elixxir/crypto v0.0.0-20191121235352-86d305a9b253
-	gitlab.com/elixxir/primitives v0.0.0-20200107180006-ed32faae3625
-	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
+	gitlab.com/elixxir/crypto v0.0.0-20200108005412-8159c60663f9
+	gitlab.com/elixxir/primitives v0.0.0-20200108174340-0922447aec92
+	golang.org/x/crypto v0.0.0-20200109152110-61a87790db17
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
-	google.golang.org/genproto v0.0.0-20191230161307-f3c370f40bfb // indirect
+	google.golang.org/genproto v0.0.0-20200108215221-bd8f9a0ef82f // indirect
 	google.golang.org/grpc v1.26.0
 	gopkg.in/ini.v1 v1.51.1 // indirect
 	gopkg.in/yaml.v2 v2.2.7

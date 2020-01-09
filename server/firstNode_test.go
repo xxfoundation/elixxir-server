@@ -135,7 +135,7 @@ func TestFirstNode_roundCreationRunner_Timeout(t *testing.T) {
 		ID:             id.NewNodeFromBytes([]byte("testid")),
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
-	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)
+	tmpInstance, _ := CreateServerInstance(&def, NewImplementation, 2)
 	fn.roundCreationRunner(tmpInstance, 2*time.Millisecond,
 		mockTransmitter, func(*Instance, id.Round) error { return nil })
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
@@ -164,7 +164,7 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 		ID:             id.NewNodeFromBytes([]byte("test")),
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
-	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)
+	tmpInstance, _ := CreateServerInstance(&def, NewImplementation, 2)
 	fn.roundCreationRunner(tmpInstance, 2*time.Millisecond,
 		mockTransmitter_Error, func(*Instance, id.Round) error { return nil })
 
@@ -173,7 +173,7 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
-func NewImplementation(instance *Instance) *node.Implementation {
+func NewImplementation(instance *Instance, timeout int) *node.Implementation {
 
 	impl := node.NewImplementation()
 

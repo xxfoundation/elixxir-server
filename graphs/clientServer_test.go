@@ -67,7 +67,7 @@ func TestClientServer(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 	}
-	instance, _ := server.CreateServerInstance(&def, NewImplementation)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, 2)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
@@ -144,7 +144,7 @@ func TestClientServer(t *testing.T) {
 
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
-func NewImplementation(instance *server.Instance) *node.Implementation {
+func NewImplementation(instance *server.Instance, timeout int) *node.Implementation {
 
 	impl := node.NewImplementation()
 

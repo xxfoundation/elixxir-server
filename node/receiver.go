@@ -25,7 +25,7 @@ import (
 // ReceiveCreateNewRound receives the create new round signal and
 // creates the round
 func ReceiveCreateNewRound(instance *server.Instance,
-	message *mixmessages.RoundInfo) error {
+	message *mixmessages.RoundInfo, newRoundTimeout int) error {
 	roundID := id.Round(message.ID)
 
 	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance,
@@ -37,7 +37,8 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetTopology(),
 		instance.GetID(),
 		&instance.LastNode,
-		instance.GetBatchSize())
+		instance.GetBatchSize(),
+		newRoundTimeout)
 
 	//Build the round
 	rnd := round.New(
