@@ -70,7 +70,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 	//Attempt to connect Gateway
 	if instance.definition.Gateway.Address != "" {
-		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
+		_, err := instance.network.AddHost("tmp",
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
 		if err != nil {
 			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
