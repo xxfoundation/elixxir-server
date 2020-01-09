@@ -135,7 +135,7 @@ func TestFirstNode_roundCreationRunner_Timeout(t *testing.T) {
 		ID:             id.NewNodeFromBytes([]byte("testid")),
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
-	tmpInstance, _ := CreateServerInstance(&def, NewImplementation, 2)
+	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)
 	fn.roundCreationRunner(tmpInstance, 2*time.Millisecond,
 		mockTransmitter, func(*Instance, id.Round) error { return nil })
 	t.Errorf("RoundCreationRunner: Timeout test did not timeout")
@@ -164,7 +164,7 @@ func TestFirstNode_roundCreationRunner_NetworkError(t *testing.T) {
 		ID:             id.NewNodeFromBytes([]byte("test")),
 		MetricsHandler: func(i *Instance, roundID id.Round) error { return nil },
 	}
-	tmpInstance, _ := CreateServerInstance(&def, NewImplementation, 2)
+	tmpInstance, _ := CreateServerInstance(&def, NewImplementation)
 	fn.roundCreationRunner(tmpInstance, 2*time.Millisecond,
 		mockTransmitter_Error, func(*Instance, id.Round) error { return nil })
 

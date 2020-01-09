@@ -79,7 +79,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 	nodeIDs = append(nodeIDs, nid)
 	def.Topology = connect.NewCircuit(nodeIDs)
 
-	mockServerInstance, _ := server.CreateServerInstance(&def, NewImplementation, 2)
+	mockServerInstance, _ := server.CreateServerInstance(&def, NewImplementation)
 	mockServerInstance.GetNetwork()
 
 	roundID := id.Round(0)

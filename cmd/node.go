@@ -195,7 +195,8 @@ func StartServer(vip *viper.Viper) error {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	instance, err := server.CreateServerInstance(def, node.NewImplementation, newRoundTimeout)
+	def.RoundCreationTimeout = newRoundTimeout
+	instance, err := server.CreateServerInstance(def, node.NewImplementation)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}

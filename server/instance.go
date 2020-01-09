@@ -38,8 +38,7 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, makeImplementation func(*Instance, int) *node.Implementation,
-	newRoundTimeout int) (*Instance, error) {
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance, int) *node.Implementation) (*Instance, error) {
 	instance := &Instance{
 		Online:        false,
 		definition:    def,
@@ -50,7 +49,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance, in
 	// Initializes the network on this server instance
 
 	//Start local node
-	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address, makeImplementation(instance, newRoundTimeout),
+	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
+		makeImplementation(instance, instance.definition.RoundCreationTimeout),
 		instance.definition.TlsCert, instance.definition.TlsKey)
 
 	//Add all hosts to manager for future connections
