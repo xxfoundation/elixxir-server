@@ -148,8 +148,8 @@ func init() {
 		"Overrides the maximum number of processes go will use. Must "+
 			"be equal to or less than the number of logical cores on the device. "+
 			"Defaults at the number of logical cores on the device")
-	rootCmd.Flags().IntVarP(&newRoundTimeout, "newRoundTimeout", "t", 2,
-		"timeout for round creation in minutes")
+	rootCmd.Flags().IntVarP(&newRoundTimeout, "newRoundTimeout", "t", 120,
+		"timeout for round creation in seconds")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")
