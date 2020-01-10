@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -336,9 +337,20 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
-func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo) error {
+func ReceiveFinishRealtime(instance *server.Instance,
+	auth *connect.Auth, msg *mixmessages.RoundInfo) error {
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
+
+	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth " +
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
 		instance, roundID)
 

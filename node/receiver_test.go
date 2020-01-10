@@ -908,8 +908,18 @@ func TestReceiveFinishRealtime(t *testing.T) {
 		ID: uint64(roundID),
 	}
 
+	// Create a fake host and auth object to pass into function that needs it
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: true,
+		Sender: fakeHost,
+	}
+
 	go func() {
-		err = ReceiveFinishRealtime(instance, &info)
+		err = ReceiveFinishRealtime(instance, &auth, &info)
 	}()
 
 	var finishedRoundID id.Round
@@ -926,6 +936,142 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	if finishedRoundID != roundID {
 		t.Errorf("ReceiveFinishRealtime: Expected round %v to finish, "+
 			"recieved %v", roundID, finishedRoundID)
+	}
+}
+
+func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
+	// Smoke tests the management part of PostPrecompResult
+	grp := initImplGroup()
+	const numNodes = 5
+
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
+
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &resourceMonitor,
+	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	instance.InitFirstNode()
+	topology := instance.GetTopology()
+
+	// Set up a round first node
+	roundID := id.Round(45)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
+
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.RealPermute
+
+	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
+
+	instance.GetRoundManager().AddRound(rnd)
+
+	// Initially, there should be zero rounds on the precomp queue
+	if len(instance.GetFinishedRounds(t)) != 0 {
+		t.Error("Expected completed precomps to be empty")
+	}
+
+	var err error
+
+	info := mixmessages.RoundInfo{
+		ID: uint64(roundID),
+	}
+
+	// Create a fake host and auth object to pass into function that needs it
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: false,
+		Sender: fakeHost,
+	}
+
+	err = ReceiveFinishRealtime(instance, &auth, &info)
+	if err == nil {
+		t.Errorf("ReceiveFinishRealtime: did not error with IsAuthenticated false")
+	}
+}
+
+func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
+	// Smoke tests the management part of PostPrecompResult
+	grp := initImplGroup()
+	const numNodes = 5
+
+	resourceMonitor := measure.ResourceMonitor{}
+	resourceMonitor.Set(&measure.ResourceMetric{})
+
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &resourceMonitor,
+	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	instance.InitFirstNode()
+	topology := instance.GetTopology()
+
+	// Set up a round first node
+	roundID := id.Round(45)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
+
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.RealPermute
+
+	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
+
+	instance.GetRoundManager().AddRound(rnd)
+
+	// Initially, there should be zero rounds on the precomp queue
+	if len(instance.GetFinishedRounds(t)) != 0 {
+		t.Error("Expected completed precomps to be empty")
+	}
+
+	var err error
+
+	info := mixmessages.RoundInfo{
+		ID: uint64(roundID),
+	}
+
+	// Create a fake host and auth object to pass into function that needs it
+	fakeHost, err := connect.NewHost("bad", "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: true,
+		Sender: fakeHost,
+	}
+
+	err = ReceiveFinishRealtime(instance, &auth, &info)
+	if err == nil {
+		t.Errorf("ReceiveFinishRealtime: did not error with wrong host")
 	}
 }
 
@@ -981,8 +1127,18 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 		ID: uint64(roundID),
 	}
 
+	// Create a fake host and auth object to pass into function that needs it
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: true,
+		Sender: fakeHost,
+	}
+
 	go func() {
-		err = ReceiveFinishRealtime(instance, &info)
+		err = ReceiveFinishRealtime(instance, &auth, &info)
 	}()
 
 	var finishedRoundID id.Round

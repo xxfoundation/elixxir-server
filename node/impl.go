@@ -55,11 +55,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	// Receive finish realtime should gather metrics if first node
 	if instance.IsFirstNode() {
 		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-			return ReceiveFinishRealtime(instance, message)
+			return ReceiveFinishRealtime(instance, auth, message)
 		}
 	} else {
 		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-			return ReceiveFinishRealtime(instance, message)
+			return ReceiveFinishRealtime(instance, auth, message)
 		}
 	}
 
