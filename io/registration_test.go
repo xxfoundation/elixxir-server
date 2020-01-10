@@ -34,6 +34,7 @@ var clientRSAPriv *rsa.PrivateKey
 var clientDHPub *cyclic.Int
 var clintDHPriv *cyclic.Int
 var regPrivKey *rsa.PrivateKey
+var nodeId *id.Node
 
 func TestMain(m *testing.M) {
 
@@ -49,7 +50,7 @@ func TestMain(m *testing.M) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId(m)
+	nodeId = server.GenerateId(m)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
@@ -85,10 +86,10 @@ func TestMain(m *testing.M) {
 		CmixGroup: grp,
 		Nodes: []server.Node{
 			{
-				ID: nid,
+				ID: nodeId,
 			},
 		},
-		ID:              nid,
+		ID:              nodeId,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		PrivateKey:      serverRSAPriv,
@@ -97,7 +98,7 @@ func TestMain(m *testing.M) {
 
 	def.Permissioning.PublicKey = regPrivKey.GetPublic()
 	nodeIDs := make([]*id.Node, 0)
-	nodeIDs = append(nodeIDs, nid)
+	nodeIDs = append(nodeIDs, nodeId)
 	def.Topology = connect.NewCircuit(nodeIDs)
 
 	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, false)
@@ -105,10 +106,47 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// TODO: How should the public key be retrieved?
-// Is it from the Permissioning.Paths.Cert?
-// Perhaps Paths object should get a GetPublicKey Method?
-// Test request nonce
+// Test request nonce with good auth boolean but bad ID
+func TestRequestNonceFailAuthId(t *testing.T) {
+	gwHost, err := connect.NewHost("420blzit",
+		"", make([]byte, 0), false, true)
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	_, _, err2 := RequestNonce(serverInstance,
+		make([]byte, 0), "", clientDHPub.Bytes(), make([]byte, 0),
+		make([]byte, 0), &connect.Auth{
+			IsAuthenticated: false,
+			Sender:          gwHost,
+		})
+
+	if !connect.IsAuthError(err2) {
+		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
+	}
+}
+
+// Test request nonce with bad auth boolean but good ID
+func TestRequestNonceFailAuth(t *testing.T) {
+	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
+		"", make([]byte, 0), false, true)
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	_, _, err2 := RequestNonce(serverInstance,
+		make([]byte, 0), "", clientDHPub.Bytes(), make([]byte, 0),
+		make([]byte, 0), &connect.Auth{
+			IsAuthenticated: false,
+			Sender:          gwHost,
+		})
+
+	if !connect.IsAuthError(err2) {
+		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
+	}
+}
+
+// Test request nonce happy path
 func TestRequestNonce(t *testing.T) {
 	rng := csprng.NewSystemRNG()
 	salt := cmix.NewSalt(rng, 32)
@@ -139,9 +177,18 @@ func TestRequestNonce(t *testing.T) {
 		t.Errorf("COuld not sign client's DH key with client RSA "+
 			"key: %+v", err)
 	}
+	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
+		"", make([]byte, 0), false, true)
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
 
 	result, _, err2 := RequestNonce(serverInstance,
-		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient)
+		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg,
+		sigClient, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          gwHost,
+		})
 
 	if result == nil || err2 != nil {
 		t.Errorf("Error in RequestNonce: %+v", err2)
@@ -172,9 +219,17 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 		t.Errorf("COuld not sign client's DH key with client RSA "+
 			"key: %+v", err)
 	}
-
+	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
+		"", make([]byte, 0), false, true)
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
 	_, _, err2 := RequestNonce(serverInstance,
-		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient)
+		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg,
+		sigClient, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          gwHost,
+		})
 
 	if err2 == nil {
 		t.Errorf("Error in RequestNonce, did not fail with bad "+
@@ -205,8 +260,17 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	//dont sign the client's DH key with client's RSA key pair
 	sigClient := make([]byte, 42)
 
+	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
+		"", make([]byte, 0), false, true)
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
 	_, _, err2 := RequestNonce(serverInstance,
-		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient)
+		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg,
+		sigClient, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          gwHost,
+		})
 
 	if err2 == nil {
 		t.Errorf("Error in RequestNonce, did not fail with bad "+

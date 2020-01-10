@@ -12,6 +12,7 @@ import (
 	"crypto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
@@ -21,7 +22,14 @@ import (
 )
 
 func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
-	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte) ([]byte, []byte, error) {
+	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte,
+	auth *connect.Auth) ([]byte, []byte, error) {
+
+	// Verify the sender is the authenticated gateway for this node
+	if !auth.IsAuthenticated ||
+		auth.Sender.GetId() != instance.GetID().NewGateway().String() {
+		return nil, nil, connect.AuthError(auth.Sender.GetId())
+	}
 
 	grp := instance.GetGroup()
 	sha := crypto.SHA256

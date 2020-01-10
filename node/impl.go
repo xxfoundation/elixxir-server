@@ -36,7 +36,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		ReceivePostPhase(batch, instance)
 	}
 
-	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer) error {
+	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		return ReceiveStreamPostPhase(streamServer, instance)
 	}
 
@@ -66,7 +66,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
 		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte, auth *connect.Auth) ([]byte, []byte, error) {
 		return io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
-			RSASignedByRegistration, DHSignedByClientRSA)
+			RSASignedByRegistration, DHSignedByClientRSA, auth)
 	}
 
 	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
