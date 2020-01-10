@@ -73,7 +73,7 @@ func (a *assignment) GetChunk(size uint32) Chunk {
 	return Chunk{a.start, a.start + size}
 }
 
-// Denotes all assignments which have completed based upon an incoming chunk and
+// Denotes all assignments which have completed based upon an incoming chunk
 func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, error) {
 	position := c.Begin()
 
