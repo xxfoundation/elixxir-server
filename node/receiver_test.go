@@ -321,6 +321,175 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	}
 }
 
+// Happy path
+func TestImpl_PostPhase_Auth(t *testing.T) {
+	// Constants
+	numNodes := 5
+	batchSize := 1
+	roundID := id.Round(0)
+	grp := makeMultiInstanceGroup()
+
+	// Create the server definitions for numNodes
+	defsLst := makeMultiInstanceParams(numNodes, batchSize, 1000, grp)
+
+	mockPhase := testUtil.InitMockPhase(t)
+
+	// Create Response map
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
+		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
+			[]phase.State{phase.Active}, mockPhase.GetType()})
+
+	// Build the instances and impls
+	var instances []*server.Instance
+	var impls []*node.Implementation
+	t.Logf("Building instances for %v nodes", numNodes)
+
+	for i := 0; i < numNodes; i++ {
+		// Create instance
+		instance, _ := server.CreateServerInstance(defsLst[i], NewImplementation)
+
+		topology := instance.GetTopology()
+		fmt.Printf("topology: %+v\n", topology.GetHostAtIndex(i))
+		// Create mock round
+		r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+			responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize),
+			instance.GetRngStreamGen(), "0.0.0.0")
+
+		instance.GetRoundManager().AddRound(r)
+		instances = append(instances, instance)
+
+		impl := NewImplementation(instance)
+		impls = append(impls, impl)
+	}
+
+	// Create mock batch message to send through PostPhase
+	mockBatch := &mixmessages.Batch{}
+	for i := uint32(0); i < uint32(batchSize); i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				PayloadA: []byte{byte(i)},
+			})
+	}
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	topology := instances[0].GetTopology()
+
+	// Go through all the nodes
+	for i := numNodes - 1; i > 0; i-- {
+		fmt.Println(i)
+		testHost, err := connect.NewHost(topology.GetNodeAtIndex(i-1).String(), "", nil, true, true)
+		if err != nil {
+			t.Errorf("Failed to create host for %+v: %+v", i, testHost)
+		}
+
+		a := &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          testHost,
+		}
+
+		// Have them send a postPhase tot he previous node
+		impls[i].PostPhase(mockBatch, a)
+
+	}
+
+	// Run the first node, who's prevNode is the last node in the circuit
+	testHost, err := connect.NewHost(topology.GetNodeAtIndex(numNodes-1).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create host for %+v: %+v", numNodes-1, testHost)
+	}
+
+	a := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          testHost,
+	}
+
+	impls[0].PostPhase(mockBatch, a)
+
+}
+
+//Error path
+func TestImpl_PostPhase_NoAuth(t *testing.T) {
+	numNodes := 5
+	batchSize := 1
+	roundID := id.Round(0)
+	grp := makeMultiInstanceGroup()
+
+	// Create the server definitions for numNodes
+	defsLst := makeMultiInstanceParams(numNodes, batchSize, 1000, grp)
+
+	mockPhase := testUtil.InitMockPhase(t)
+
+	responseMap := make(phase.ResponseMap)
+	responseMap[mockPhase.GetType().String()] =
+		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
+			[]phase.State{phase.Active}, mockPhase.GetType()})
+
+	// Build the instances and impls
+	var instances []*server.Instance
+	var impls []*node.Implementation
+	t.Logf("Building instances for %v nodes", numNodes)
+
+	for i := 0; i < numNodes; i++ {
+		// Create instance
+		instance, _ := server.CreateServerInstance(defsLst[i], NewImplementation)
+
+		topology := instance.GetTopology()
+		fmt.Printf("topology: %+v\n", topology.GetHostAtIndex(i))
+		// Create mock round
+		r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+			responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize),
+			instance.GetRngStreamGen(), "0.0.0.0")
+
+		instance.GetRoundManager().AddRound(r)
+		instances = append(instances, instance)
+
+		impl := NewImplementation(instance)
+		impls = append(impls, impl)
+	}
+
+	// Create mock batch message to send through PostPhase
+	mockBatch := &mixmessages.Batch{}
+	for i := uint32(0); i < uint32(batchSize); i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				PayloadA: []byte{byte(i)},
+			})
+	}
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	topology := instances[0].GetTopology()
+
+	// Go through all the nodes and send a message
+	for i := 0; i < numNodes-1; i++ {
+		fmt.Println(i)
+		testHost, err := connect.NewHost(topology.GetNodeAtIndex(i+1).String(), "", nil, true, true)
+		if err != nil {
+			t.Errorf("Failed to create host for %+v: %+v", i, testHost)
+		}
+
+		a := &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          testHost,
+		}
+
+		// Have them send a postPhase tot he previous node
+		impls[i].PostPhase(mockBatch, a)
+		t.Errorf("Expected error path, should not be able to "+
+			"send to a node that isn't the previous in the circuit. \n Sender: %+v\nReceiver: %+v \n Topology",
+			instances[i].GetID(), testHost.GetId())
+	}
+	// Defer to an error when SetPayloadA() does not panic
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+	}()
+
+}
+
 type MockStreamPostPhaseServer struct {
 	batch *mixmessages.Batch
 }
@@ -435,9 +604,10 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	mockStreamServer := MockStreamPostPhaseServer{
 		batch: mockBatch,
 	}
+	a := &connect.Auth{}
 
 	//send the mockBatch to the impl
-	err := impl.StreamPostPhase(mockStreamServer)
+	err := impl.StreamPostPhase(mockStreamServer, a)
 
 	if err != nil {
 		t.Errorf("StreamPostPhase: error on call: %+v",
@@ -1256,4 +1426,74 @@ func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID
 		return "", err
 	}
 	return string(ret), nil
+}
+
+func makeMultiInstanceGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2))
+}
+
+func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
+
+	//generate IDs and addresses
+	var nidLst []*id.Node
+	var nodeLst []server.Node
+	addrFmt := "localhost:5%03d"
+	for i := 0; i < numNodes; i++ {
+		//generate id
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nidLst = append(nidLst, nodeID)
+		//generate address
+		addr := fmt.Sprintf(addrFmt, i+portstart)
+
+		n := server.Node{
+			ID:      nodeID,
+			Address: addr,
+		}
+		nodeLst = append(nodeLst, n)
+
+	}
+
+	//generate parameters list
+	var defLst []*server.Definition
+
+	PanicHandler := func(g, m string, err error) {
+		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
+	}
+
+	for i := 0; i < numNodes; i++ {
+
+		def := server.Definition{
+			CmixGroup: grp,
+			Topology:  connect.NewCircuit(nidLst),
+			ID:        nidLst[i],
+			BatchSize: uint32(batchsize),
+			Nodes:     nodeLst,
+			Flags: server.Flags{
+				KeepBuffers: true,
+			},
+			Address:        nodeLst[i].Address,
+			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
+			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
+			RngStreamGen: fastRNG.NewStreamGenerator(10000,
+				uint(runtime.NumCPU()), csprng.NewSystemRNG),
+		}
+
+		defLst = append(defLst, &def)
+	}
+
+	return defLst
 }

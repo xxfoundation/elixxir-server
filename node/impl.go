@@ -33,11 +33,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
-		ReceivePostPhase(batch, instance)
+		ReceivePostPhase(batch, instance, auth)
 	}
 
-	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer) error {
-		return ReceiveStreamPostPhase(streamServer, instance)
+	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
+		return ReceiveStreamPostPhase(streamServer, instance, auth)
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {

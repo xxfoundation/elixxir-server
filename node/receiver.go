@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -185,9 +186,26 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
-func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
+func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) {
+	//Check for auth
+	if !auth.IsAuthenticated {
+		jww.FATAL.Panicf("Error on PostPhase: "+
+			"Attempted communication by %+v has not been authenticated", auth.Sender)
+		return
+	}
+
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
+
+	topology := instance.GetTopology()
+	nodeID := instance.GetID()
+	prevNodeID := topology.GetPrevNode(nodeID)
+	fmt.Printf("currNoide: %+v\n", nodeID)
+	if prevNodeID.String() != auth.Sender.GetId() {
+		jww.FATAL.Panicf("Error on PostPhase: "+
+			"Contact was not started by the previous node! sender: %+v\n receiver: %+v", auth.Sender, instance.GetID())
+		return
+	}
 
 	rm := instance.GetRoundManager()
 
@@ -231,7 +249,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 // ReceiveStreamPostPhase handles the state checks and edge checks of
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
-	instance *server.Instance) error {
+	instance *server.Instance, auth *connect.Auth) error {
 
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
