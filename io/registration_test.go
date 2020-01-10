@@ -108,6 +108,7 @@ func TestMain(m *testing.M) {
 
 // Test request nonce with good auth boolean but bad ID
 func TestRequestNonceFailAuthId(t *testing.T) {
+	// The incorrect ID here is the crux of the test
 	gwHost, err := connect.NewHost("420blzit",
 		"", make([]byte, 0), false, true)
 	if err != nil {
@@ -137,7 +138,7 @@ func TestRequestNonceFailAuth(t *testing.T) {
 	_, _, err2 := RequestNonce(serverInstance,
 		make([]byte, 0), "", clientDHPub.Bytes(), make([]byte, 0),
 		make([]byte, 0), &connect.Auth{
-			IsAuthenticated: false,
+			IsAuthenticated: false, // This is the crux of the test
 			Sender:          gwHost,
 		})
 
