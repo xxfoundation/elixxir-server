@@ -290,9 +290,20 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	mockBatch.FromPhase = int32(mockPhase.GetType())
 	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
 
-	//send the mockBatch to the impl
-	a := &connect.Auth{}
-	impl.PostPhase(mockBatch, a)
+	// Build a host around the last node
+	lastNodeIndex := topology.Len() - 1
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+	// send the mockBatch to the impl
+	impl.PostPhase(mockBatch, auth)
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
@@ -322,171 +333,202 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 }
 
 // Happy path
-func TestImpl_PostPhase_Auth(t *testing.T) {
-	// Constants
-	numNodes := 5
-	batchSize := 1
-	roundID := id.Round(0)
-	grp := makeMultiInstanceGroup()
-
-	// Create the server definitions for numNodes
-	defsLst := makeMultiInstanceParams(numNodes, batchSize, 1000, grp)
-
-	mockPhase := testUtil.InitMockPhase(t)
-
-	// Create Response map
-	responseMap := make(phase.ResponseMap)
-	responseMap[mockPhase.GetType().String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
-
-	// Build the instances and impls
-	var instances []*server.Instance
-	var impls []*node.Implementation
-	t.Logf("Building instances for %v nodes", numNodes)
-
-	for i := 0; i < numNodes; i++ {
-		// Create instance
-		instance, _ := server.CreateServerInstance(defsLst[i], NewImplementation)
-
-		topology := instance.GetTopology()
-		fmt.Printf("topology: %+v\n", topology.GetHostAtIndex(i))
-		// Create mock round
-		r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
-			responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize),
-			instance.GetRngStreamGen(), "0.0.0.0")
-
-		instance.GetRoundManager().AddRound(r)
-		instances = append(instances, instance)
-
-		impl := NewImplementation(instance)
-		impls = append(impls, impl)
-	}
-
-	// Create mock batch message to send through PostPhase
-	mockBatch := &mixmessages.Batch{}
-	for i := uint32(0); i < uint32(batchSize); i++ {
-		mockBatch.Slots = append(mockBatch.Slots,
-			&mixmessages.Slot{
-				PayloadA: []byte{byte(i)},
-			})
-	}
-	mockBatch.FromPhase = int32(mockPhase.GetType())
-	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
-
-	topology := instances[0].GetTopology()
-
-	// Go through all the nodes
-	for i := numNodes - 1; i > 0; i-- {
-		fmt.Println(i)
-		testHost, err := connect.NewHost(topology.GetNodeAtIndex(i-1).String(), "", nil, true, true)
-		if err != nil {
-			t.Errorf("Failed to create host for %+v: %+v", i, testHost)
-		}
-
-		a := &connect.Auth{
-			IsAuthenticated: true,
-			Sender:          testHost,
-		}
-
-		// Have them send a postPhase tot he previous node
-		impls[i].PostPhase(mockBatch, a)
-
-	}
-
-	// Run the first node, who's prevNode is the last node in the circuit
-	testHost, err := connect.NewHost(topology.GetNodeAtIndex(numNodes-1).String(), "", nil, true, true)
-	if err != nil {
-		t.Errorf("Failed to create host for %+v: %+v", numNodes-1, testHost)
-	}
-
-	a := &connect.Auth{
-		IsAuthenticated: true,
-		Sender:          testHost,
-	}
-
-	impls[0].PostPhase(mockBatch, a)
-
-}
-
-//Error path
-func TestImpl_PostPhase_NoAuth(t *testing.T) {
-	numNodes := 5
-	batchSize := 1
-	roundID := id.Round(0)
-	grp := makeMultiInstanceGroup()
-
-	// Create the server definitions for numNodes
-	defsLst := makeMultiInstanceParams(numNodes, batchSize, 1000, grp)
-
-	mockPhase := testUtil.InitMockPhase(t)
-
-	responseMap := make(phase.ResponseMap)
-	responseMap[mockPhase.GetType().String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
-
-	// Build the instances and impls
-	var instances []*server.Instance
-	var impls []*node.Implementation
-	t.Logf("Building instances for %v nodes", numNodes)
-
-	for i := 0; i < numNodes; i++ {
-		// Create instance
-		instance, _ := server.CreateServerInstance(defsLst[i], NewImplementation)
-
-		topology := instance.GetTopology()
-		fmt.Printf("topology: %+v\n", topology.GetHostAtIndex(i))
-		// Create mock round
-		r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
-			responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize),
-			instance.GetRngStreamGen(), "0.0.0.0")
-
-		instance.GetRoundManager().AddRound(r)
-		instances = append(instances, instance)
-
-		impl := NewImplementation(instance)
-		impls = append(impls, impl)
-	}
-
-	// Create mock batch message to send through PostPhase
-	mockBatch := &mixmessages.Batch{}
-	for i := uint32(0); i < uint32(batchSize); i++ {
-		mockBatch.Slots = append(mockBatch.Slots,
-			&mixmessages.Slot{
-				PayloadA: []byte{byte(i)},
-			})
-	}
-	mockBatch.FromPhase = int32(mockPhase.GetType())
-	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
-
-	topology := instances[0].GetTopology()
-
-	// Go through all the nodes and send a message
-	for i := 0; i < numNodes-1; i++ {
-		fmt.Println(i)
-		testHost, err := connect.NewHost(topology.GetNodeAtIndex(i+1).String(), "", nil, true, true)
-		if err != nil {
-			t.Errorf("Failed to create host for %+v: %+v", i, testHost)
-		}
-
-		a := &connect.Auth{
-			IsAuthenticated: true,
-			Sender:          testHost,
-		}
-
-		// Have them send a postPhase tot he previous node
-		impls[i].PostPhase(mockBatch, a)
-		t.Errorf("Expected error path, should not be able to "+
-			"send to a node that isn't the previous in the circuit. \n Sender: %+v\nReceiver: %+v \n Topology",
-			instances[i].GetID(), testHost.GetId())
-	}
-	// Defer to an error when SetPayloadA() does not panic
+func TestPostPhase_NoAuth(t *testing.T) {
+	// Defer to a success when PostPhase call panics
 	defer func() {
 		if r := recover(); r != nil {
 			return
 		}
 	}()
+
+	batchSize := uint32(11)
+	roundID := id.Round(0)
+
+	instance := mockServerInstance(t)
+	mockPhase := testUtil.InitMockPhase(t)
+
+	topology := instance.GetTopology()
+
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{}
+
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	// Make an auth object around the last node
+	lastNodeIndex := topology.Len() - 1
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          fakeHost,
+	}
+
+	ReceivePostPhase(mockBatch, instance, auth)
+
+	t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
+
+}
+
+//Error path
+func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPhase call panics
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+	}()
+
+	batchSize := uint32(11)
+	roundID := id.Round(0)
+
+	instance := mockServerInstance(t)
+	mockPhase := testUtil.InitMockPhase(t)
+
+	topology := instance.GetTopology()
+
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{}
+
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	// Make an auth object around a node that is not the previous node
+	lastNodeIndex := topology.Len() - 2
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          fakeHost,
+	}
+
+	ReceivePostPhase(mockBatch, instance, auth)
+
+	t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
+
+}
+
+// Error Path
+func TestStreamPostPhase_NoAuth(t *testing.T) {
+	batchSize := uint32(11)
+	roundID := id.Round(0)
+
+	instance := mockServerInstance(t)
+	mockPhase := testUtil.InitMockPhase(t)
+
+	topology := instance.GetTopology()
+
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{}
+
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	mockStreamServer := MockStreamPostPhaseServer{
+		batch: mockBatch,
+	}
+
+	// Make an auth object around the last node
+	lastNodeIndex := topology.Len() - 1
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          fakeHost,
+	}
+
+	err = ReceiveStreamPostPhase(mockStreamServer, instance, auth)
+
+	if err != nil {
+		return
+	}
+
+	t.Errorf("Expected error case, should not be able to ReceiveStreamPostPhase when not authenticated")
+}
+
+// Error path
+func TestStreamPostPhase_WrongSender(t *testing.T) {
+	batchSize := uint32(11)
+	roundID := id.Round(0)
+
+	instance := mockServerInstance(t)
+	mockPhase := testUtil.InitMockPhase(t)
+
+	topology := instance.GetTopology()
+
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{}
+
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	mockStreamServer := MockStreamPostPhaseServer{
+		batch: mockBatch,
+	}
+
+	// Make an auth object around a non previous node
+	lastNodeIndex := topology.Len() - 2
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
+	err = ReceiveStreamPostPhase(mockStreamServer, instance, auth)
+
+	if err != nil {
+		return
+	}
+
+	t.Errorf("Expected error case, should not be able to ReceiveStreamPostPhase when not authenticated")
 
 }
 
@@ -604,10 +646,22 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	mockStreamServer := MockStreamPostPhaseServer{
 		batch: mockBatch,
 	}
-	a := &connect.Auth{}
+
+	// Make an auth object around the last node
+	lastNodeIndex := topology.Len() - 1
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
 
 	//send the mockBatch to the impl
-	err := impl.StreamPostPhase(mockStreamServer, a)
+	err = impl.StreamPostPhase(mockStreamServer, auth)
 
 	if err != nil {
 		t.Errorf("StreamPostPhase: error on call: %+v",

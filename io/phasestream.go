@@ -125,7 +125,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 
 	if slotsReceived != batchSize {
 		jww.FATAL.Panicf(fmt.Sprintf("mismatch between batch size %v"+
-			"and received num slots %v", batchSize, slotsReceived))
+			" and received num slots %v", batchSize, slotsReceived))
 	}
 
 	// Close the stream by sending ack

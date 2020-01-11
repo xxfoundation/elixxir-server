@@ -187,7 +187,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) {
-	//Check for auth
+	//Check for proper authentication
 	if !auth.IsAuthenticated {
 		jww.FATAL.Panicf("Error on PostPhase: "+
 			"Attempted communication by %+v has not been authenticated", auth.Sender)
@@ -197,10 +197,10 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
 
+	// Check if the sender is the previous node in the circuit
 	topology := instance.GetTopology()
 	nodeID := instance.GetID()
 	prevNodeID := topology.GetPrevNode(nodeID)
-	fmt.Printf("currNoide: %+v\n", nodeID)
 	if prevNodeID.String() != auth.Sender.GetId() {
 		jww.FATAL.Panicf("Error on PostPhase: "+
 			"Contact was not started by the previous node! sender: %+v\n receiver: %+v", auth.Sender, instance.GetID())
@@ -250,7 +250,12 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
+	//Check for proper authentication
+	if !auth.IsAuthenticated {
+		return errors.Errorf("Error on PostPhase: "+
+			"Attempted communication by %+v has not been authenticated", auth.Sender)
 
+	}
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
 		return err
@@ -258,6 +263,15 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 	roundID := id.Round(batchInfo.Round.ID)
 	phaseTy := phase.Type(batchInfo.FromPhase).String()
+
+	topology := instance.GetTopology()
+	nodeID := instance.GetID()
+	prevNodeID := topology.GetPrevNode(nodeID)
+
+	if prevNodeID.String() != auth.Sender.GetId() {
+		return errors.Errorf("Error on PostPhase: "+
+			"Contact was not started by the previous node! sender: %+v\n receiver: %+v", auth.Sender, instance.GetID())
+	}
 
 	rm := instance.GetRoundManager()
 
