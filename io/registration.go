@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 )
 
+// Handles a client request for a nonce during the client registration process
 func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte,
 	auth *connect.Auth) ([]byte, []byte, error) {
@@ -105,7 +106,15 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 	return userNonce.Bytes(), DHPub.Bytes(), nil
 }
 
-func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte) ([]byte, error) {
+// Handles nonce confirmation during the client registration process
+func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
+	auth *connect.Auth) ([]byte, error) {
+
+	// Verify the sender is the authenticated gateway for this node
+	if !auth.IsAuthenticated ||
+		auth.Sender.GetId() != instance.GetID().NewGateway().String() {
+		return nil, connect.AuthError(auth.Sender.GetId())
+	}
 
 	// Obtain the user from the database
 	user, err := instance.GetUserRegistry().GetUser(id.NewUserFromBytes(UserID))
