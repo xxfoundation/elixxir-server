@@ -36,7 +36,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		ReceivePostPhase(batch, instance)
 	}
 
-	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer) error {
+	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		return ReceiveStreamPostPhase(streamServer, instance)
 	}
 
