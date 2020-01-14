@@ -24,7 +24,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 
 	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		return ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout())
+		return ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
 	}
 
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
@@ -66,11 +66,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
 		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte, auth *connect.Auth) ([]byte, []byte, error) {
 		return io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
-			RSASignedByRegistration, DHSignedByClientRSA)
+			RSASignedByRegistration, DHSignedByClientRSA, auth)
 	}
 
 	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
-		return io.ConfirmRegistration(instance, UserID, Signature)
+		return io.ConfirmRegistration(instance, UserID, Signature, auth)
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		return ReceivePostPrecompResult(instance, roundID, slots)
