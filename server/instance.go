@@ -49,8 +49,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address, makeImplementation(instance),
-		instance.definition.TlsCert, instance.definition.TlsKey)
+	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
+		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
 
 	if noTls {
 		instance.network.DisableAuth()
@@ -203,6 +203,10 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
+}
+
+func (i *Instance) GetRoundCreationTimeout() int {
+	return i.definition.RoundCreationTimeout
 }
 
 // GenerateId generates a random ID and returns it

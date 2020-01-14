@@ -26,12 +26,13 @@ import (
 // ReceiveCreateNewRound receives the create new round signal and
 // creates the round
 func ReceiveCreateNewRound(instance *server.Instance,
-	message *mixmessages.RoundInfo, auth *connect.Auth) error {
+	message *mixmessages.RoundInfo, newRoundTimeout int,
+	auth *connect.Auth) error {
 	roundID := id.Round(message.ID)
 
 	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth " +
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
@@ -47,7 +48,8 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetTopology(),
 		instance.GetID(),
 		&instance.LastNode,
-		instance.GetBatchSize())
+		instance.GetBatchSize(),
+		newRoundTimeout)
 
 	//Build the round
 	rnd := round.New(
@@ -337,7 +339,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
-	// TODO send all the slot IDs that didn't make it back to the gateway
 	jww.INFO.Printf("[%s]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
