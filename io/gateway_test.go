@@ -1,10 +1,12 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"strings"
 	"testing"
 	"time"
 )
@@ -75,9 +77,13 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 
 	var batch *mixmessages.Batch
 
+	h, _ := connect.NewHost("test", "test", nil, false, false)
 	// Should timeout
 	go func() {
-		batch, _ = GetCompletedBatch(completedRoundQueue, 40*time.Millisecond)
+		batch, _ = GetCompletedBatch(completedRoundQueue, 40*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		}, "test")
 
 		doneChan <- struct{}{}
 
@@ -109,8 +115,12 @@ func TestGetCompletedBatch_ShortWait(t *testing.T) {
 		GetMessage: func(uint32) *mixmessages.Slot { return nil },
 	}
 
+	h, _ := connect.NewHost("test", "test", nil, false, false)
 	go func() {
-		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond)
+		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		}, "test")
 		doneChan <- struct{}{}
 	}()
 
@@ -154,8 +164,12 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 
 	complete.Receiver <- services.NewChunk(0, 3)
 
+	h, _ := connect.NewHost("test", "test", nil, false, false)
 	go func() {
-		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond)
+		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		}, "test")
 		doneChan <- struct{}{}
 	}()
 
@@ -168,5 +182,41 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 	}
 	if batch == nil {
 		t.Error("Expected a batch on wait case, got nil")
+	}
+}
+
+func TestGetCompletedBatch_NoAuth(t *testing.T) {
+	completedRoundQueue := make(chan *server.CompletedRound, 1)
+
+	h, _ := connect.NewHost("test", "test", nil, false, false)
+	_, err := GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          h,
+	}, "test")
+
+	if err == nil {
+		t.Errorf("Should have received authentication error")
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Errorf("Did not receive expected auth error.  Instead received: %+v", err)
+	}
+}
+
+func TestGetCompletedBatch_WrongSender(t *testing.T) {
+	completedRoundQueue := make(chan *server.CompletedRound, 1)
+
+	h, _ := connect.NewHost("test", "test", nil, false, false)
+	_, err := GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          h,
+	}, "other_test")
+
+	if err == nil {
+		t.Errorf("Should have received authentication error")
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Errorf("Did not receive expected auth error.  Instead received: %+v", err)
 	}
 }

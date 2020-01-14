@@ -1,6 +1,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
 	"time"
@@ -36,7 +37,11 @@ func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 // Returns a completed batch, or waits for a small amount of time for one to
 // materialize if there isn't one ready
 func GetCompletedBatch(completedRoundQueue chan *server.CompletedRound,
-	timeout time.Duration) (*mixmessages.Batch, error) {
+	timeout time.Duration, auth *connect.Auth, gwid string) (*mixmessages.Batch, error) {
+
+	if !auth.IsAuthenticated || auth.Sender.GetId() != gwid {
+		return nil, connect.AuthError(auth.Sender.GetId())
+	}
 
 	var roundQueue *server.CompletedRound
 	select {
