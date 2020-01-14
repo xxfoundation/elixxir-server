@@ -26,8 +26,17 @@ import (
 // ReceiveCreateNewRound receives the create new round signal and
 // creates the round
 func ReceiveCreateNewRound(instance *server.Instance,
-	message *mixmessages.RoundInfo) error {
+	message *mixmessages.RoundInfo, auth *connect.Auth) error {
 	roundID := id.Round(message.ID)
+
+	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth " +
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
 
 	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance,
 		roundID)
