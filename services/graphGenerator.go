@@ -48,34 +48,34 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 	}
 }
 
-func (gc GraphGenerator) GetMinInputSize() uint32 {
+func (gc *GraphGenerator) GetMinInputSize() uint32 {
 	return gc.minInputSize
 }
 
-func (gc GraphGenerator) GetDefaultNumTh() uint8 {
+func (gc *GraphGenerator) GetDefaultNumTh() uint8 {
 	return gc.defaultNumTh
 }
 
-func (gc GraphGenerator) GetErrorHandler() ErrorCallback {
+func (gc *GraphGenerator) GetErrorHandler() ErrorCallback {
 	return gc.errorHandler
 }
 
-func (gc GraphGenerator) SetErrorHandler(ec ErrorCallback) {
+func (gc *GraphGenerator) SetErrorHandler(ec ErrorCallback) {
 	gc.errorHandler = ec
 }
 
-func (gc GraphGenerator) GetOutputSize() uint32 {
+func (gc *GraphGenerator) GetOutputSize() uint32 {
 	return gc.outputSize
 }
 
-func (gc GraphGenerator) GetOutputThreshold() float32 {
+func (gc *GraphGenerator) GetOutputThreshold() float32 {
 	return gc.outputThreshold
 }
 
-func (gc GraphGenerator) NewGraph(name string, stream Stream) *Graph {
+func (gc *GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 
 	var g Graph
-	g.generator = gc
+	g.generator = *gc
 	g.modules = make(map[uint64]*Module)
 	g.idCount = 0
 	g.batchSize = 0
