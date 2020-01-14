@@ -155,7 +155,7 @@ func TestCreateServerInstance(t *testing.T) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp := cyclic.NewGroup(prime, large.NewInt(2))
 	def := mockServerDef(t, grp)
-	_, err := CreateServerInstance(def, NewImplementation)
+	_, err := CreateServerInstance(def, NewImplementation, false)
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -166,7 +166,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp := cyclic.NewGroup(prime, large.NewInt(2))
 	def := mockServerDef(t, grp)
-	instance, err := CreateServerInstance(def, NewImplementation)
+	instance, err := CreateServerInstance(def, NewImplementation, false)
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
