@@ -372,9 +372,20 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
-func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo) error {
+func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo,
+	auth *connect.Auth) error {
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
+
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1)
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
+		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth " +
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
 		instance, roundID)
 
