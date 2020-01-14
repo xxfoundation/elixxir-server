@@ -1181,7 +1181,9 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(
+		instance.GetTopology().Len()-1).String(), "", nil,
+		true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
