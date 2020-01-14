@@ -261,7 +261,9 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
 		errMsg := errors.Errorf("[%s]: Reception of StreamPostPhase comm failed authentication: "+
-			"(Expected ID: %s, received id: %s.\n Auth: %+v)", instance, auth.Sender.GetId(), auth.IsAuthenticated)
+			"(Expected ID: %+v, received id: %+v.\n Auth: %+v)", instance,
+			prevNodeID, auth.Sender.GetId(), auth.IsAuthenticated)
+
 		jww.ERROR.Println(errMsg)
 		return errMsg
 
