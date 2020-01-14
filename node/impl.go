@@ -49,8 +49,8 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, e error) {
-		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second,
-			auth, instance.GetID().NewGateway().String())
+		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(),
+			instance.GetID().NewGateway().String(), time.Second, auth)
 	}
 
 	// Receive finish realtime should gather metrics if first node

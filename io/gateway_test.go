@@ -80,10 +80,10 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 	h, _ := connect.NewHost("test", "test", nil, false, false)
 	// Should timeout
 	go func() {
-		batch, _ = GetCompletedBatch(completedRoundQueue, 40*time.Millisecond, &connect.Auth{
+		batch, _ = GetCompletedBatch(completedRoundQueue, "test", 40*time.Millisecond, &connect.Auth{
 			IsAuthenticated: true,
 			Sender:          h,
-		}, "test")
+		})
 
 		doneChan <- struct{}{}
 
@@ -117,10 +117,10 @@ func TestGetCompletedBatch_ShortWait(t *testing.T) {
 
 	h, _ := connect.NewHost("test", "test", nil, false, false)
 	go func() {
-		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+		batch, err = GetCompletedBatch(completedRoundQueue, "test", 20*time.Millisecond, &connect.Auth{
 			IsAuthenticated: true,
 			Sender:          h,
-		}, "test")
+		})
 		doneChan <- struct{}{}
 	}()
 
@@ -166,10 +166,10 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 
 	h, _ := connect.NewHost("test", "test", nil, false, false)
 	go func() {
-		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+		batch, err = GetCompletedBatch(completedRoundQueue, "test", 20*time.Millisecond, &connect.Auth{
 			IsAuthenticated: true,
 			Sender:          h,
-		}, "test")
+		})
 		doneChan <- struct{}{}
 	}()
 
@@ -185,14 +185,15 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 	}
 }
 
+// Verify that GetCompletedBatch returns the appropriate error when auth is false
 func TestGetCompletedBatch_NoAuth(t *testing.T) {
 	completedRoundQueue := make(chan *server.CompletedRound, 1)
 
 	h, _ := connect.NewHost("test", "test", nil, false, false)
-	_, err := GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+	_, err := GetCompletedBatch(completedRoundQueue, "test", 20*time.Millisecond, &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
-	}, "test")
+	})
 
 	if err == nil {
 		t.Errorf("Should have received authentication error")
@@ -203,14 +204,15 @@ func TestGetCompletedBatch_NoAuth(t *testing.T) {
 	}
 }
 
+// Verify that GetCompletedBatch returns the appropriate error when sender is not one we expect
 func TestGetCompletedBatch_WrongSender(t *testing.T) {
 	completedRoundQueue := make(chan *server.CompletedRound, 1)
 
 	h, _ := connect.NewHost("test", "test", nil, false, false)
-	_, err := GetCompletedBatch(completedRoundQueue, 20*time.Millisecond, &connect.Auth{
+	_, err := GetCompletedBatch(completedRoundQueue, "other_test", 20*time.Millisecond, &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
-	}, "other_test")
+	})
 
 	if err == nil {
 		t.Errorf("Should have received authentication error")

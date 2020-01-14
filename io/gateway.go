@@ -36,9 +36,10 @@ func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 
 // Returns a completed batch, or waits for a small amount of time for one to
 // materialize if there isn't one ready
-func GetCompletedBatch(completedRoundQueue chan *server.CompletedRound,
-	timeout time.Duration, auth *connect.Auth, gwid string) (*mixmessages.Batch, error) {
+func GetCompletedBatch(completedRoundQueue chan *server.CompletedRound, gwid string,
+	timeout time.Duration, auth *connect.Auth) (*mixmessages.Batch, error) {
 
+	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != gwid {
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
