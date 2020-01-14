@@ -923,7 +923,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, true)
 
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -960,7 +960,9 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(
+		instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(),
+		"", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

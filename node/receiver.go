@@ -351,8 +351,8 @@ func ReceiveFinishRealtime(instance *server.Instance,
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 
-	expectedID := instance.GetTopology().GetHostAtIndex(instance.GetTopology().Len()-1).GetId()
-	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1)
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
 		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth " +
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
