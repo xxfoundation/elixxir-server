@@ -24,7 +24,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 
 	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		return ReceiveCreateNewRound(instance, auth, message)
+		return ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
 	}
 
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
@@ -33,11 +33,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
-		ReceivePostPhase(batch, instance)
+		ReceivePostPhase(batch, instance, auth)
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
-		return ReceiveStreamPostPhase(streamServer, instance)
+		return ReceiveStreamPostPhase(streamServer, instance, auth)
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
