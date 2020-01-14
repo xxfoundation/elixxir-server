@@ -150,3 +150,156 @@ func mockServerDef(i interface{}, grp *cyclic.Group) *Definition {
 
 	return &def
 }
+
+func TestCreateServerInstance(t *testing.T) {
+	prime := large.NewIntFromString(MODP768, 16)
+	grp := cyclic.NewGroup(prime, large.NewInt(2))
+	def := mockServerDef(t, grp)
+	_, err := CreateServerInstance(def, NewImplementation)
+	if err != nil {
+		t.Logf("Failed to create a server instance")
+		t.Fail()
+	}
+}
+
+func createInstance(t *testing.T) (*Instance, *Definition) {
+	prime := large.NewIntFromString(MODP768, 16)
+	grp := cyclic.NewGroup(prime, large.NewInt(2))
+	def := mockServerDef(t, grp)
+	instance, err := CreateServerInstance(def, NewImplementation)
+	if err != nil {
+		t.Logf("Failed to create a server instance")
+		t.Fail()
+	}
+	return instance, def
+}
+
+func TestInstance_GetBatchSize(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.BatchSize != instance.GetBatchSize() {
+		t.Logf("BatchSize is not = to batchsize from Def")
+		t.Fail()
+	}
+}
+
+// Need to modify mockserver to add this ip into it, or else it will panic since we have nothing to return
+//func TestInstance_GetIP(t *testing.T) {
+//	instance, _ := createInstance(t)
+//	//addrWithPort := def.Nodes[instance.GetTopology().GetNodeLocation(instance.GetID())].Address
+//	//instance.GetIP()
+//	//expectedIP := strings.Split(addrWithPort, ":")[0]
+//	//if expectedIP != instance.GetIP() {
+//	//	t.Logf("IP is not expected IP value")
+//	//	t.Fail()
+//	//}
+//}
+
+func TestInstance_GetKeepBuffers(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.Flags.KeepBuffers != instance.GetKeepBuffers() {
+		t.Logf("Keep buffers is not expected Keep Buffers value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetMetricsLog(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.MetricLogPath != instance.GetMetricsLog() {
+		t.Logf("GetMetricLog returned unexpected value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetPrivKey(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.PrivateKey != instance.GetPrivKey() {
+		t.Logf("GetPrivKey returned unexpected value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetPubKey(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.PublicKey != instance.GetPubKey() {
+		t.Logf("GetPubKey returned unexpected value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetRegServerPubKey(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.Permissioning.PublicKey != instance.GetRegServerPubKey() {
+		t.Logf("GetMetricLog returned unexpected value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetRngStreamGen(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.RngStreamGen != instance.GetRngStreamGen() {
+		t.Logf("GetRngStreamGen returned unexpected value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetRoundManager(t *testing.T) {
+	instance, _ := createInstance(t)
+
+	if instance.roundManager != instance.GetRoundManager() {
+		t.Logf("GetMetricLog returned unexpected value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetTopology(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.Topology != instance.GetTopology() {
+		t.Logf("GetTopology returned unexpected value")
+		t.Fail()
+	}
+}
+
+func TestInstance_GetUserRegistry(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.UserRegistry != instance.GetUserRegistry() {
+		t.Logf("GetTopology returned unexpected value")
+		t.Fail()
+	}
+}
+
+// We need to modify the mockServerDef for this to work?
+//func TestInstance_IsFirstNode(t *testing.T) {
+//	instance, def := createInstance(t)
+//
+//	if def.Topology.IsFirstNode(def.ID) != instance.IsFirstNode() {
+//		t.Logf("IsFirstNode returned unexpected value")
+//		t.Fail()
+//	}
+//}
+//
+//func TestInstance_IsLastNode(t *testing.T) {
+//	instance, def := createInstance(t)
+//
+//	if def.Topology.IsLastNode(def.ID) != instance.IsLastNode() {
+//		t.Logf("IsLastNode returned unexpected value")
+//		t.Fail()
+//	}
+//}
+
+func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.Flags.SkipReg != instance.IsRegistrationAuthenticated() {
+		t.Logf("IsRegistrationAuthenticated() returned unexpected value")
+		t.Fail()
+	}
+}
