@@ -31,7 +31,7 @@ func ReceiveCreateNewRound(instance *server.Instance,
 
 	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth " +
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
@@ -196,25 +196,19 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) {
-	//Check for proper authentication
-	if !auth.IsAuthenticated {
+	// Check for proper authentication and if the sender
+	// is the previous node in the circuit
+	topology := instance.GetTopology()
+	nodeID := instance.GetID()
+	prevNodeID := topology.GetPrevNode(nodeID)
+
+	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
 		jww.FATAL.Panicf("Error on PostPhase: "+
 			"Attempted communication by %+v has not been authenticated", auth.Sender)
-		return
 	}
 
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
-
-	// Check if the sender is the previous node in the circuit
-	topology := instance.GetTopology()
-	nodeID := instance.GetID()
-	prevNodeID := topology.GetPrevNode(nodeID)
-	if prevNodeID.String() != auth.Sender.GetId() {
-		jww.FATAL.Panicf("Error on PostPhase: "+
-			"Contact was not started by the previous node! sender: %+v\n receiver: %+v", auth.Sender, instance.GetID())
-		return
-	}
 
 	rm := instance.GetRoundManager()
 
@@ -259,10 +253,17 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
-	//Check for proper authentication
-	if !auth.IsAuthenticated {
-		return errors.Errorf("Error on PostPhase: "+
-			"Attempted communication by %+v has not been authenticated", auth.Sender)
+
+	// Check for proper authentication and expected sender
+	topology := instance.GetTopology()
+	nodeID := instance.GetID()
+	prevNodeID := topology.GetPrevNode(nodeID)
+
+	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
+		errMsg := errors.Errorf("[%s]: Reception of StreamPostPhase comm failed authentication: "+
+			"(Expected ID: %s, received id: %s.\n Auth: %+v)", instance, auth.Sender.GetId(), auth.IsAuthenticated)
+		jww.ERROR.Println(errMsg)
+		return errMsg
 
 	}
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
@@ -272,15 +273,6 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 	roundID := id.Round(batchInfo.Round.ID)
 	phaseTy := phase.Type(batchInfo.FromPhase).String()
-
-	topology := instance.GetTopology()
-	nodeID := instance.GetID()
-	prevNodeID := topology.GetPrevNode(nodeID)
-
-	if prevNodeID.String() != auth.Sender.GetId() {
-		return errors.Errorf("Error on PostPhase: "+
-			"Contact was not started by the previous node! sender: %+v\n receiver: %+v", auth.Sender, instance.GetID())
-	}
 
 	rm := instance.GetRoundManager()
 

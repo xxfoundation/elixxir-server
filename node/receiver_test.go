@@ -50,7 +50,7 @@ func TestReceiveCreateNewRound(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
@@ -84,7 +84,7 @@ func TestReceiveCreateNewRound_NoAuth(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: false,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
@@ -106,7 +106,7 @@ func TestReceiveCreateNewRound_WrongSender(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
