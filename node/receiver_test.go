@@ -52,7 +52,7 @@ func TestReceiveCreateNewRound(t *testing.T) {
 		IsAuthenticated: true,
 		Sender: fakeHost,
 	}
-	err = ReceiveCreateNewRound(instance, &auth, fakeRoundInfo)
+	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
 	if err != nil {
 		t.Errorf("ReceiveCreateNewRound: error on call: %+v",
@@ -86,7 +86,7 @@ func TestReceiveCreateNewRound_NoAuth(t *testing.T) {
 		IsAuthenticated: false,
 		Sender: fakeHost,
 	}
-	err = ReceiveCreateNewRound(instance, &auth, fakeRoundInfo)
+	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
 	if err == nil {
 		t.Errorf("ReceiveCreateNewRound: did not error with IsAuthenticated false")
@@ -108,7 +108,7 @@ func TestReceiveCreateNewRound_WrongSender(t *testing.T) {
 		IsAuthenticated: true,
 		Sender: fakeHost,
 	}
-	err = ReceiveCreateNewRound(instance, &auth, fakeRoundInfo)
+	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
 	if err == nil {
 		t.Errorf("ReceiveCreateNewRound: did not error with wrong host")
