@@ -33,7 +33,7 @@ func Test_MultiInstance_N3_B8(t *testing.T) {
 
 func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
-	jww.SetStdoutThreshold(jww.LevelInfo)
+	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	if numNodes < 3 {
 		t.Errorf("Multi Instance Test must have a minnimum of 3 nodes,"+
@@ -75,7 +75,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
-		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation)
+		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation, true)
 		instances = append(instances, instance)
 	}
 

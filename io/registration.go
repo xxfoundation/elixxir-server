@@ -24,7 +24,6 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte) ([]byte, []byte, error) {
 
 	grp := instance.GetGroup()
-
 	sha := crypto.SHA256
 
 	if !instance.IsRegistrationAuthenticated() {
@@ -79,7 +78,6 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 	//Generate an ephemeral DH key pair
 	DHPriv := grp.RandomCoprime(grp.NewInt(1))
 	DHPub := grp.ExpG(DHPriv, grp.NewInt(1))
-
 	clientDHPub := grp.NewIntFromBytes(DHPubKey)
 
 	// Generate user CMIX baseKey
