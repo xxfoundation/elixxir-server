@@ -182,7 +182,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 	h, _ := connect.NewHost("test", "test", nil, false, false)
 	for len(completedBatch.Slots) == 0 {
-		completedBatch, _ = io.GetCompletedBatch(lastNode.GetCompletedBatchQueue(), "test", 100*time.Millisecond, &connect.Auth{
+		completedBatch, _ = io.GetCompletedBatch(lastNode, 100*time.Millisecond, &connect.Auth{
 			IsAuthenticated: true,
 			Sender:          h,
 		})
