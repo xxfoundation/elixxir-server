@@ -26,8 +26,7 @@ import (
 // ReceiveCreateNewRound receives the create new round signal and
 // creates the round
 func ReceiveCreateNewRound(instance *server.Instance,
-	auth *connect.Auth,
-	message *mixmessages.RoundInfo) error {
+	message *mixmessages.RoundInfo, auth *connect.Auth) error {
 	roundID := id.Round(message.ID)
 
 	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
