@@ -972,7 +972,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 
 	go func() {
-		err = ReceiveFinishRealtime(instance, &auth, &info)
+		err = ReceiveFinishRealtime(instance, &info, &auth)
 	}()
 
 	var finishedRoundID id.Round
@@ -1054,7 +1054,7 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 		Sender: fakeHost,
 	}
 
-	err = ReceiveFinishRealtime(instance, &auth, &info)
+	err = ReceiveFinishRealtime(instance, &info, &auth)
 	if err == nil {
 		t.Errorf("ReceiveFinishRealtime: did not error with IsAuthenticated false")
 	}
@@ -1122,7 +1122,7 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 		Sender: fakeHost,
 	}
 
-	err = ReceiveFinishRealtime(instance, &auth, &info)
+	err = ReceiveFinishRealtime(instance, &info, &auth)
 	if err == nil {
 		t.Errorf("ReceiveFinishRealtime: did not error with wrong host")
 	}
@@ -1193,7 +1193,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 
 	go func() {
-		err = ReceiveFinishRealtime(instance, &auth, &info)
+		err = ReceiveFinishRealtime(instance, &info, &auth)
 	}()
 
 	var finishedRoundID id.Round

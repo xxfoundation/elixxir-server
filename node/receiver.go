@@ -346,8 +346,8 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
-func ReceiveFinishRealtime(instance *server.Instance,
-	auth *connect.Auth, msg *mixmessages.RoundInfo) error {
+func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo,
+	auth *connect.Auth) error {
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 

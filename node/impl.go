@@ -52,15 +52,8 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
 	}
 
-	// Receive finish realtime should gather metrics if first node
-	if instance.IsFirstNode() {
-		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-			return ReceiveFinishRealtime(instance, auth, message)
-		}
-	} else {
-		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-			return ReceiveFinishRealtime(instance, auth, message)
-		}
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
+		return ReceiveFinishRealtime(instance, message, auth)
 	}
 
 	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
