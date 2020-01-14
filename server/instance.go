@@ -68,9 +68,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
-	//Attempt to connect Gateway
+	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
-		_, err := instance.network.AddHost("tmp",
+		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
 		if err != nil {
 			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
