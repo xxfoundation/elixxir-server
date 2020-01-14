@@ -166,7 +166,8 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 func mockStreamPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
+	impl.Functions.StreamPostPhase = func(stream mixmessages.
+		Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		receivedBatch = &mixmessages.Batch{}
 		return mockStreamPostPhase(stream)
 	}
