@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -63,9 +64,19 @@ func ReceiveCreateNewRound(instance *server.Instance,
 // for each node. Also starts precomputation decrypt phase with a
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
-	pk *mixmessages.RoundPublicKey) {
+	auth *connect.Auth, pk *mixmessages.RoundPublicKey) error {
 
 	roundID := id.Round(pk.Round.ID)
+
+	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth " +
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey START", instance,
 		roundID)
 
@@ -145,6 +156,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}
+	return nil
 }
 
 // ReceivePostPrecompResult handles the state checks and edge checks of

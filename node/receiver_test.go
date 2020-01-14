@@ -590,8 +590,17 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	impl.Functions.PostPhase = func(message *mixmessages.Batch, auth *connect.Auth) {
 		actualBatch = message
 	}
-	a := &connect.Auth{}
-	impl.Functions.PostRoundPublicKey(mockPk, a)
+
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: true,
+		Sender: fakeHost,
+	}
+
+	impl.Functions.PostRoundPublicKey(mockPk, &auth)
 
 	// Verify that a PostPhase isn't called by ensuring callback
 	// doesn't set the actual by comparing it to the empty batch

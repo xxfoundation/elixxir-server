@@ -41,7 +41,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
-		ReceivePostRoundPublicKey(instance, pk)
+		ReceivePostRoundPublicKey(instance, auth, pk)
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
