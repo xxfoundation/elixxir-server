@@ -45,7 +45,15 @@ func TestReceiveCreateNewRound(t *testing.T) {
 
 	fakeRoundInfo := &mixmessages.RoundInfo{ID: roundID}
 
-	err := ReceiveCreateNewRound(instance, fakeRoundInfo)
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+	err = ReceiveCreateNewRound(instance, fakeRoundInfo, 2, &auth)
 
 	if err != nil {
 		t.Errorf("ReceiveCreateNewRound: error on call: %+v",
@@ -61,6 +69,50 @@ func TestReceiveCreateNewRound(t *testing.T) {
 
 	if rnd == nil {
 		t.Error("ReceiveCreateNewRound: New round is nil")
+	}
+}
+
+func TestReceiveCreateNewRound_NoAuth(t *testing.T) {
+
+	instance := mockServerInstance(t)
+
+	roundID := uint64(5)
+
+	fakeRoundInfo := &mixmessages.RoundInfo{ID: roundID}
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: false,
+		Sender:          fakeHost,
+	}
+	err = ReceiveCreateNewRound(instance, fakeRoundInfo, 2, &auth)
+
+	if err == nil {
+		t.Errorf("ReceiveCreateNewRound: did not error with IsAuthenticated false")
+	}
+}
+
+func TestReceiveCreateNewRound_WrongSender(t *testing.T) {
+
+	instance := mockServerInstance(t)
+
+	roundID := uint64(5)
+
+	fakeRoundInfo := &mixmessages.RoundInfo{ID: roundID}
+	fakeHost, err := connect.NewHost("bad", "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+	err = ReceiveCreateNewRound(instance, fakeRoundInfo, 2, &auth)
+
+	if err == nil {
+		t.Errorf("ReceiveCreateNewRound: did not error with wrong host")
 	}
 }
 
