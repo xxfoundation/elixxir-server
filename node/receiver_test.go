@@ -992,6 +992,8 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 }
 
+// Tests that the ReceiveFinishRealtime function will fail when passed with an
+// auth object that has IsAuthenticated as false
 func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
@@ -1060,6 +1062,9 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	}
 }
 
+// Tests that the ReceiveFinishRealtime function will fail when passed with an
+// auth object that has Sender as something that isn't the right node for the
+// call
 func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
