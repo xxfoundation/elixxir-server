@@ -724,7 +724,14 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	a := &connect.Auth{}
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "",nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	a := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:fakeHost,
+	}
 	impl.Functions.PostRoundPublicKey(mockPk, a)
 
 	// Verify that a PostPhase is called by ensuring callback
