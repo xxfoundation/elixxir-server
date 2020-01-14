@@ -489,7 +489,8 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 
 	//send the mockBatch to the impl
-	err := impl.StreamPostPhase(mockStreamServer, nil)
+	a := &connect.Auth{}
+	err := impl.StreamPostPhase(mockStreamServer, a)
 
 	if err != nil {
 		t.Errorf("StreamPostPhase: error on call: %+v",
