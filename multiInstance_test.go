@@ -180,8 +180,12 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
+	h, _ := connect.NewHost(lastNode.GetID().NewGateway().String(), "test", nil, false, false)
 	for len(completedBatch.Slots) == 0 {
-		completedBatch, _ = io.GetCompletedBatch(lastNode.GetCompletedBatchQueue(), 100*time.Millisecond)
+		completedBatch, _ = io.GetCompletedBatch(lastNode, 100*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		})
 	}
 
 	//---BUILD PROBING TOOLS----------------------------------------------------
