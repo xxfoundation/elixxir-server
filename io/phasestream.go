@@ -45,7 +45,8 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 	// It's context must be canceled after receiving an ack
 	streamClient, cancel, err := network.GetPostPhaseStreamClient(recipient, header)
 	if err != nil {
-		jww.ERROR.Printf("Error on comm, unable to get streaming client: %+v", err)
+		return errors.Errorf("Error on comm, unable to get streaming client: %+v",
+			err)
 	}
 
 	// For each message chunk (slot) stream it out
@@ -56,7 +57,8 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 
 			err := streamClient.Send(msg)
 			if err != nil {
-				jww.ERROR.Printf("Error on comm, not able to send slot: %+v", err)
+				return errors.Errorf("Error on comm, not able to send slot: %+v",
+					err)
 			}
 		}
 	}
@@ -80,8 +82,7 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 
 	// Make sure the comm doesn't return an Ack with an error message
 	if ack != nil && ack.Error != "" {
-		err = errors.Errorf("Remote Server Error: %s", ack.Error)
-		return err
+		return errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
 
 	return nil
@@ -102,8 +103,9 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 
 		phaseErr := p.Input(index, slot)
 		if phaseErr != nil {
-			jww.ERROR.Printf("Failed on phase input %v for slot %v ",
-				index, slot)
+			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
+				index, slot, phaseErr)
+			jww.ERROR.Printf("%+v", err)
 			return phaseErr
 		}
 
@@ -124,8 +126,10 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	}
 
 	if slotsReceived != batchSize {
-		jww.FATAL.Panicf(fmt.Sprintf("mismatch between batch size %v"+
-			"and received num slots %v", batchSize, slotsReceived))
+		err = errors.Errorf("Mismatch between batch size %v"+
+			"and received num slots %v", batchSize, slotsReceived)
+		jww.ERROR.Printf("%+v", err)
+		return err
 	}
 
 	// Close the stream by sending ack
