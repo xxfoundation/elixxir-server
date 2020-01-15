@@ -33,6 +33,7 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -50,7 +51,7 @@ func TestReceiveCreateNewRound(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
@@ -84,7 +85,7 @@ func TestReceiveCreateNewRound_NoAuth(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: false,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
@@ -106,7 +107,7 @@ func TestReceiveCreateNewRound_WrongSender(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 	err = ReceiveCreateNewRound(instance, fakeRoundInfo, &auth)
 
@@ -642,13 +643,13 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		actualBatch = message
 	}
 
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 
 	impl.Functions.PostRoundPublicKey(mockPk, &auth)
@@ -664,6 +665,48 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		t.Errorf("CypherPublicKey doesn't match expected value of the public key")
 	}
 
+}
+
+func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
+	grp := initImplGroup()
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+	}
+	def.ID = def.Topology.GetNodeAtIndex(1)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	fakeHost, _ := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
+	auth := &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          fakeHost,
+	}
+
+	pk := &mixmessages.RoundPublicKey{
+		Round: &mixmessages.RoundInfo{
+			ID:                   0,
+			XXX_NoUnkeyedLiteral: struct{}{},
+			XXX_unrecognized:     nil,
+			XXX_sizecache:        0,
+		},
+		Key:                  nil,
+		XXX_NoUnkeyedLiteral: struct{}{},
+		XXX_unrecognized:     nil,
+		XXX_sizecache:        0,
+	}
+
+	err := ReceivePostRoundPublicKey(instance, auth, pk)
+	if err == nil {
+		t.Error("ReceivePostRoundPublicKey did not return error when expected")
+		return
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Error("Did not receive expected authentication error")
+	}
 }
 
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
@@ -724,13 +767,13 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "",nil, true, true)
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
 	a := &connect.Auth{
 		IsAuthenticated: true,
-		Sender:fakeHost,
+		Sender:          fakeHost,
 	}
 	impl.Functions.PostRoundPublicKey(mockPk, a)
 
