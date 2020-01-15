@@ -308,7 +308,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, auth *connect.Auth) error {
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetID().NewGateway().String() {
-		jww.INFO.Printf("[%s]: GetCompletedBatch failed auth (sender ID: %s, auth: %v)",
+		jww.INFO.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
