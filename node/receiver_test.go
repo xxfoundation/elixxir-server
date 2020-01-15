@@ -213,6 +213,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	err = ReceivePostNewBatch(instance, batch, auth)
 }
 
+// Test error case in which sender of postnewbatch is not authenticated
 func TestReceivePostNewBatch_AuthError(t *testing.T) {
 	instance := mockServerInstance(t)
 
@@ -253,6 +254,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 	}
 }
 
+// Test error case in which the sender of postnewbatch is not who we expect
 func TestReceivePostNewBatch_BadSender(t *testing.T) {
 	instance := mockServerInstance(t)
 
