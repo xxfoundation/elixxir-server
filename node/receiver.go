@@ -315,7 +315,14 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 // Receive PostNewBatch comm from the gateway
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
-	newBatch *mixmessages.Batch) error {
+	newBatch *mixmessages.Batch, auth *connect.Auth) error {
+	// Check that authentication is good and the sender is our gateway, otherwise error
+	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetID().NewGateway().String() {
+		jww.INFO.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v)",
+			instance, auth.Sender.GetId(), auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	// This shouldn't block,
 	// and should return an error if there's no round available
 	// You'd want to return this error in the Ack that's available for the

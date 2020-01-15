@@ -69,7 +69,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceivePostPrecompResult(instance, roundID, slots, auth)
 	}
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
-		return ReceivePostNewBatch(instance, newBatch)
+		return ReceivePostNewBatch(instance, newBatch, auth)
 	}
 
 	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {

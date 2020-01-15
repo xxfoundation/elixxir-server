@@ -33,6 +33,7 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -178,7 +179,13 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		},
 	}
 
-	err := ReceivePostNewBatch(instance, batch)
+	h, _ := connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	err := ReceivePostNewBatch(instance, batch, auth)
 	if err == nil {
 		t.Error("ReceivePostNewBatch should have errored out if there were no" +
 			" precomputations available")
@@ -197,7 +204,95 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		}
 	}()
 	instance.GetCompletedPrecomps().Push(r)
-	err = ReceivePostNewBatch(instance, batch)
+
+	h, _ = connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	auth = &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+	err = ReceivePostNewBatch(instance, batch, auth)
+}
+
+// Test error case in which sender of postnewbatch is not authenticated
+func TestReceivePostNewBatch_AuthError(t *testing.T) {
+	instance := mockServerInstance(t)
+
+	const roundID = 2
+
+	batch := &mixmessages.Batch{
+		Round: &mixmessages.RoundInfo{
+			ID: roundID,
+		},
+		FromPhase: int32(phase.RealDecrypt),
+		Slots: []*mixmessages.Slot{
+			{
+				// Do the fields need to be populated?
+				SenderID: nil,
+				PayloadA: nil,
+				PayloadB: nil,
+				Salt:     nil,
+				KMACs:    nil,
+			},
+		},
+	}
+
+	h, _ := connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          h,
+	}
+
+	err := ReceivePostNewBatch(instance, batch, auth)
+
+	if err == nil {
+		t.Error("Did not receive expected error")
+		return
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Error("Did not receive expected authentication error")
+	}
+}
+
+// Test error case in which the sender of postnewbatch is not who we expect
+func TestReceivePostNewBatch_BadSender(t *testing.T) {
+	instance := mockServerInstance(t)
+
+	const roundID = 2
+
+	batch := &mixmessages.Batch{
+		Round: &mixmessages.RoundInfo{
+			ID: roundID,
+		},
+		FromPhase: int32(phase.RealDecrypt),
+		Slots: []*mixmessages.Slot{
+			{
+				// Do the fields need to be populated?
+				SenderID: nil,
+				PayloadA: nil,
+				PayloadB: nil,
+				Salt:     nil,
+				KMACs:    nil,
+			},
+		},
+	}
+
+	h, _ := connect.NewHost("test", "test", nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	err := ReceivePostNewBatch(instance, batch, auth)
+
+	if err == nil {
+		t.Error("Did not receive expected error")
+		return
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Error("Did not receive expected authentication error")
+	}
 }
 
 // Tests the happy path of ReceivePostNewBatch, demonstrating that it can start
@@ -281,10 +376,17 @@ func TestReceivePostNewBatch(t *testing.T) {
 			},
 		},
 	}
+
+	h, _ := connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
 	// Actually, this should return an error because the batch has a malformed
 	// slot in it, so once we implement per-slot errors we can test all the
 	// realtime decrypt error cases from this reception handler if we want
-	err := ReceivePostNewBatch(instance, batch)
+	err := ReceivePostNewBatch(instance, batch, auth)
 	if err != nil {
 		t.Error(err)
 	}
