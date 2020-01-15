@@ -305,7 +305,14 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 // Receive PostNewBatch comm from the gateway
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
-	newBatch *mixmessages.Batch) error {
+	newBatch *mixmessages.Batch, auth *connect.Auth) error {
+	// Check that authentication is good and the sender is our gateway, otherwise error
+	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetID().NewGateway().String() {
+		jww.INFO.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v)",
+			instance, auth.Sender.GetId(), auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	// This shouldn't block,
 	// and should return an error if there's no round available
 	// You'd want to return this error in the Ack that's available for the
@@ -377,9 +384,9 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 
-	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1)
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1)
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
-		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth " +
+		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
