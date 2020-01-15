@@ -1134,22 +1134,23 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		t.Error("Expected completed precomps to be empty")
 	}
 
+	// Build a host around the last node
+	lastNodeIndex := topology.Len() - 1
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
 	// Since we give this 3 slots with the correct fields populated,
 	// it should work without errors on all nodes
 	for i := 0; i < numNodes; i++ {
-		// Build a host around the first node
-		lastNodeId := topology.GetPrevNode(instances[i].GetID())
-		fakeHost, err := connect.NewHost(lastNodeId.String(), "", nil, true, true)
-		if err != nil {
-			t.Errorf("Failed to create fakeHost, %s", err)
-		}
-
-		auth := &connect.Auth{
-			IsAuthenticated: true,
-			Sender:          fakeHost,
-		}
-
-		err = ReceivePostPrecompResult(instances[i], uint64(roundID),
+		err := ReceivePostPrecompResult(instances[i], uint64(roundID),
 			[]*mixmessages.Slot{{
 				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
 				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
@@ -1174,43 +1175,39 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	}
 }
 
-// Tests tjat
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("There was no panic when an invalid round was passed")
-		}
-	}()
-	grp := initImplGroup()
-	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
+	instance := mockServerInstance(t)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-
-	// Build a host around the first node
-	lastNodeIndex := def.Topology.Len() - 1
-	lastNodeId := def.Topology.GetNodeAtIndex(lastNodeIndex).String()
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
+	auth := connect.Auth{
+		IsAuthenticated: false,
+		Sender:          fakeHost,
+	}
+	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, &auth)
 
-	auth := &connect.Auth{
+	if err == nil {
+		t.Errorf("ReceivePostPrecompResult: did not error with IsAuthenticated false")
+	}
+}
+
+func TestPostPrecompResult_WrongSender(t *testing.T) {
+	instance := mockServerInstance(t)
+
+	fakeHost, err := connect.NewHost("bad", "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
 		IsAuthenticated: true,
 		Sender:          fakeHost,
 	}
-
-	// We haven't set anything up,
-	// so this should panic because the round can't be found
-	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, auth)
+	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, &auth)
 
 	if err == nil {
-		t.Error("Didn't get an error from a nonexistent round")
+		t.Errorf("ReceivePostPrecompResult: did not error with wrong host")
 	}
 }
 

@@ -165,13 +165,11 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
 
 	// Check for proper authentication and expected sender
-	topology := instance.GetTopology()
-	nodeID := instance.GetID()
-	prevNodeID := topology.GetPrevNode(nodeID)
-	if !auth.IsAuthenticated || auth.Sender.GetId() != prevNodeID.String() {
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1).String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, prevNodeID.String(), auth.Sender.GetId(),
+			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
