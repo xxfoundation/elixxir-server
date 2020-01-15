@@ -709,6 +709,48 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	}
 }
 
+func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
+	grp := initImplGroup()
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+	}
+	def.ID = def.Topology.GetNodeAtIndex(1)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
+	pk := &mixmessages.RoundPublicKey{
+		Round: &mixmessages.RoundInfo{
+			ID:                   0,
+			XXX_NoUnkeyedLiteral: struct{}{},
+			XXX_unrecognized:     nil,
+			XXX_sizecache:        0,
+		},
+		Key:                  nil,
+		XXX_NoUnkeyedLiteral: struct{}{},
+		XXX_unrecognized:     nil,
+		XXX_sizecache:        0,
+	}
+
+	err := ReceivePostRoundPublicKey(instance, auth, pk)
+	if err == nil {
+		t.Error("ReceivePostRoundPublicKey did not return error when expected")
+		return
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Error("Did not receive expected authentication error")
+	}
+}
+
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	grp := initImplGroup()
