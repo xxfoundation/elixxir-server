@@ -591,6 +591,7 @@ func buildMockNodeAddresses(numNodes int) []string {
 	return addrLst
 }
 
+// Test caller function for PostRoundPublicKey
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
@@ -667,6 +668,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 }
 
+// Test no auth error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	grp := initImplGroup()
 	def := server.Definition{
@@ -709,6 +711,7 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	}
 }
 
+// Test bad host error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 	grp := initImplGroup()
 	def := server.Definition{
@@ -751,6 +754,7 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 	}
 }
 
+// Test case in which PostRoundPublicKey is sent by first node
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	grp := initImplGroup()
