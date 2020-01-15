@@ -162,7 +162,19 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 // ReceivePostPrecompResult handles the state checks and edge checks of
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
-	slots []*mixmessages.Slot) error {
+	slots []*mixmessages.Slot, auth *connect.Auth) error {
+
+	// Check for proper authentication and expected sender
+	topology := instance.GetTopology()
+	nodeID := instance.GetID()
+	prevNodeID := topology.GetPrevNode(nodeID)
+	if !auth.IsAuthenticated || auth.Sender.GetId() != prevNodeID.String() {
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, prevNodeID.String(), auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
 
 	jww.INFO.Printf("[%s]: RID %d PostPrecompResult START", instance,
 		roundID)
@@ -377,9 +389,9 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 
-	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1)
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1)
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
-		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth " +
+		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)

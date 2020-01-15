@@ -1000,9 +1000,25 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	def.ID = def.Topology.GetNodeAtIndex(0)
 
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	// Build a host around the last node
+	lastNodeIndex := def.Topology.Len() - 1
+	lastNodeId := def.Topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
-	err := ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{})
+	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, auth)
+
+	fmt.Println(err)
 
 	if err == nil {
 		t.Error("Didn't get an error from a nonexistent round")
@@ -1044,9 +1060,23 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), "0.0.0.0"))
+
+	// Build a host around the last node
+	lastNodeIndex := def.Topology.Len() - 1
+	lastNodeId := def.Topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
 	// This should give an error because we give it fewer slots than are in the
 	// batch
-	err := ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{})
+	err = ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{}, auth)
 
 	if err == nil {
 		t.Error("Didn't get an error from the wrong number of slots")
@@ -1107,7 +1137,19 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Since we give this 3 slots with the correct fields populated,
 	// it should work without errors on all nodes
 	for i := 0; i < numNodes; i++ {
-		err := ReceivePostPrecompResult(instances[i], uint64(roundID),
+		// Build a host around the first node
+		lastNodeId := topology.GetPrevNode(instances[i].GetID())
+		fakeHost, err := connect.NewHost(lastNodeId.String(), "", nil, true, true)
+		if err != nil {
+			t.Errorf("Failed to create fakeHost, %s", err)
+		}
+
+		auth := &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          fakeHost,
+		}
+
+		err = ReceivePostPrecompResult(instances[i], uint64(roundID),
 			[]*mixmessages.Slot{{
 				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
 				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
@@ -1117,7 +1159,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			}, {
 				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
 				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
-			}})
+			}}, auth)
 
 		if err != nil {
 			t.Errorf("Error posting precomp on node %v: %v", i, err)
@@ -1129,6 +1171,46 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// The others don't have this variable initialized
 	if len(instances[0].GetCompletedPrecomps().CompletedPrecomputations) != 1 {
 		t.Error("Expected completed precomps to have the one precomp we posted")
+	}
+}
+
+// Tests tjat
+func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("There was no panic when an invalid round was passed")
+		}
+	}()
+	grp := initImplGroup()
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+	}
+	def.ID = def.Topology.GetNodeAtIndex(0)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	// Build a host around the first node
+	lastNodeIndex := def.Topology.Len() - 1
+	lastNodeId := def.Topology.GetNodeAtIndex(lastNodeIndex).String()
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
+	// We haven't set anything up,
+	// so this should panic because the round can't be found
+	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, auth)
+
+	if err == nil {
+		t.Error("Didn't get an error from a nonexistent round")
 	}
 }
 
@@ -1193,7 +1275,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 
 	go func() {
@@ -1278,7 +1360,7 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: false,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 
 	err = ReceiveFinishRealtime(instance, &info, &auth)
@@ -1349,7 +1431,7 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 
 	err = ReceiveFinishRealtime(instance, &info, &auth)
@@ -1419,7 +1501,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 	auth := connect.Auth{
 		IsAuthenticated: true,
-		Sender: fakeHost,
+		Sender:          fakeHost,
 	}
 
 	go func() {

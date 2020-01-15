@@ -66,7 +66,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return io.ConfirmRegistration(instance, UserID, Signature, auth)
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
-		return ReceivePostPrecompResult(instance, roundID, slots)
+		return ReceivePostPrecompResult(instance, roundID, slots, auth)
 	}
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
 		return ReceivePostNewBatch(instance, newBatch)
