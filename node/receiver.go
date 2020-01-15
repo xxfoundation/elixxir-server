@@ -31,7 +31,7 @@ func ReceiveCreateNewRound(instance *server.Instance,
 
 	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth " +
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
@@ -77,9 +77,9 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 	roundID := id.Round(pk.Round.ID)
 
-	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1).String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth " +
+		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
