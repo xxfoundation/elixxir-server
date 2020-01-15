@@ -1277,6 +1277,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	}
 }
 
+// Tests that ReceivePostPrecompResult() returns an error when isAuthenticated
+// is set to false in the Auth object.
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 	instance := mockServerInstance(t)
 
@@ -1295,6 +1297,8 @@ func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 	}
 }
 
+// Tests that ReceivePostPrecompResult() returns an error when Sender is set to
+// the wrong sender in the Auth object.
 func TestPostPrecompResult_WrongSender(t *testing.T) {
 	instance := mockServerInstance(t)
 
