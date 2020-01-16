@@ -75,9 +75,20 @@ func ReceiveCreateNewRound(instance *server.Instance,
 // for each node. Also starts precomputation decrypt phase with a
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
-	pk *mixmessages.RoundPublicKey) {
+	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 
 	roundID := id.Round(pk.Round.ID)
+
+	// Verify that auth is good and sender is last node
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1).String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey START", instance,
 		roundID)
 
@@ -157,6 +168,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}
+	return nil
 }
 
 // ReceivePostPrecompResult handles the state checks and edge checks of

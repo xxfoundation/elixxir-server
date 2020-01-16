@@ -917,6 +917,7 @@ func buildMockNodeAddresses(numNodes int) []string {
 	return addrLst
 }
 
+// Test caller function for PostRoundPublicKey
 func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
@@ -968,8 +969,17 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	impl.Functions.PostPhase = func(message *mixmessages.Batch, auth *connect.Auth) {
 		actualBatch = message
 	}
-	a := &connect.Auth{}
-	impl.Functions.PostRoundPublicKey(mockPk, a)
+
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	auth := connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
+	impl.Functions.PostRoundPublicKey(mockPk, &auth)
 
 	// Verify that a PostPhase isn't called by ensuring callback
 	// doesn't set the actual by comparing it to the empty batch
@@ -984,6 +994,93 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 }
 
+// Test no auth error on ReceivePostRoundPublicKey
+func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
+	grp := initImplGroup()
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+	}
+	def.ID = def.Topology.GetNodeAtIndex(1)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	fakeHost, _ := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
+	auth := &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          fakeHost,
+	}
+
+	pk := &mixmessages.RoundPublicKey{
+		Round: &mixmessages.RoundInfo{
+			ID:                   0,
+			XXX_NoUnkeyedLiteral: struct{}{},
+			XXX_unrecognized:     nil,
+			XXX_sizecache:        0,
+		},
+		Key:                  nil,
+		XXX_NoUnkeyedLiteral: struct{}{},
+		XXX_unrecognized:     nil,
+		XXX_sizecache:        0,
+	}
+
+	err := ReceivePostRoundPublicKey(instance, pk, auth)
+	if err == nil {
+		t.Error("ReceivePostRoundPublicKey did not return error when expected")
+		return
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Error("Did not receive expected authentication error")
+	}
+}
+
+// Test bad host error on ReceivePostRoundPublicKey
+func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
+	grp := initImplGroup()
+	def := server.Definition{
+		CmixGroup:       grp,
+		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+	}
+	def.ID = def.Topology.GetNodeAtIndex(1)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
+	pk := &mixmessages.RoundPublicKey{
+		Round: &mixmessages.RoundInfo{
+			ID:                   0,
+			XXX_NoUnkeyedLiteral: struct{}{},
+			XXX_unrecognized:     nil,
+			XXX_sizecache:        0,
+		},
+		Key:                  nil,
+		XXX_NoUnkeyedLiteral: struct{}{},
+		XXX_unrecognized:     nil,
+		XXX_sizecache:        0,
+	}
+
+	err := ReceivePostRoundPublicKey(instance, pk, auth)
+	if err == nil {
+		t.Error("ReceivePostRoundPublicKey did not return error when expected")
+		return
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Error("Did not receive expected authentication error")
+	}
+}
+
+// Test case in which PostRoundPublicKey is sent by first node
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	grp := initImplGroup()
@@ -1042,7 +1139,14 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	a := &connect.Auth{}
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+	a := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
 	impl.Functions.PostRoundPublicKey(mockPk, a)
 
 	// Verify that a PostPhase is called by ensuring callback
