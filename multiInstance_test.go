@@ -88,6 +88,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	for _, instance := range instances {
 		wg.Add(1)
 		localInstance := instance
+		jww.INFO.Println("Waiting...")
 		go func() {
 			localInstance.Online = true
 			wg.Done()
