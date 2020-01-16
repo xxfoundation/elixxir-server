@@ -700,7 +700,7 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 		XXX_sizecache:        0,
 	}
 
-	err := ReceivePostRoundPublicKey(instance, auth, pk)
+	err := ReceivePostRoundPublicKey(instance, pk, auth)
 	if err == nil {
 		t.Error("ReceivePostRoundPublicKey did not return error when expected")
 		return
@@ -743,7 +743,7 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 		XXX_sizecache:        0,
 	}
 
-	err := ReceivePostRoundPublicKey(instance, auth, pk)
+	err := ReceivePostRoundPublicKey(instance, pk, auth)
 	if err == nil {
 		t.Error("ReceivePostRoundPublicKey did not return error when expected")
 		return

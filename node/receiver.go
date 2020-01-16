@@ -73,10 +73,11 @@ func ReceiveCreateNewRound(instance *server.Instance,
 // for each node. Also starts precomputation decrypt phase with a
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
-	auth *connect.Auth, pk *mixmessages.RoundPublicKey) error {
+	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 
 	roundID := id.Round(pk.Round.ID)
 
+	// Verify that auth is good and sender is last node
 	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1).String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
