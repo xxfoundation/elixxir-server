@@ -162,7 +162,17 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 // ReceivePostPrecompResult handles the state checks and edge checks of
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
-	slots []*mixmessages.Slot) error {
+	slots []*mixmessages.Slot, auth *connect.Auth) error {
+
+	// Check for proper authentication and expected sender
+	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1).String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d PostPrecompResult failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
 
 	jww.INFO.Printf("[%s]: RID %d PostPrecompResult START", instance,
 		roundID)
