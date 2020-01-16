@@ -9,7 +9,6 @@ package io
 import (
 	"context"
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -166,7 +165,7 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 func mockStreamPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
+	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer) error {
 		receivedBatch = &mixmessages.Batch{}
 		return mockStreamPostPhase(stream)
 	}
