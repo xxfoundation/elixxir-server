@@ -51,6 +51,7 @@ func GetMockServerInstance(t *testing.T) *server.Instance {
 	nodeIDs := make([]*id.Node, 0)
 	nodeIDs = append(nodeIDs, nodeId)
 	def.Topology = connect.NewCircuit(nodeIDs)
+	def.Gateway.ID = id.NewTmpGateway()
 
 	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, false)
 	return serverInstance
@@ -120,15 +121,17 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 
 	var batch *mixmessages.Batch
 
-	h, _ := connect.NewHost(s.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
 	// Should timeout
-
 	go func() {
-		batch, _ = GetCompletedBatch(s, 40*time.Millisecond, &connect.Auth{
+		var err error
+		batch, err = GetCompletedBatch(s, 40*time.Millisecond, &connect.Auth{
 			IsAuthenticated: true,
 			Sender:          h,
 		})
-
+		if err!=nil{
+			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
+		}
 		doneChan <- struct{}{}
 
 	}()
@@ -157,12 +160,15 @@ func TestGetCompletedBatch_ShortWait(t *testing.T) {
 		GetMessage: func(uint32) *mixmessages.Slot { return nil },
 	}
 
-	h, _ := connect.NewHost(s.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
 	go func() {
 		batch, err = GetCompletedBatch(s, 20*time.Millisecond, &connect.Auth{
 			IsAuthenticated: true,
 			Sender:          h,
 		})
+		if err!=nil{
+			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
+		}
 		doneChan <- struct{}{}
 	}()
 
@@ -208,12 +214,15 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 
 	complete.Receiver <- services.NewChunk(0, 3)
 
-	h, _ := connect.NewHost(s.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
 	go func() {
 		batch, err = GetCompletedBatch(s, 20*time.Millisecond, &connect.Auth{
 			IsAuthenticated: true,
 			Sender:          h,
 		})
+		if err!=nil{
+			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
+		}
 		doneChan <- struct{}{}
 	}()
 
@@ -232,7 +241,7 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 // Test that we receive authentication error when not authenticated
 func TestGetCompletedBatch_NoAuth(t *testing.T) {
 	s := GetMockServerInstance(t)
-	h, _ := connect.NewHost(s.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
 	_, err := GetCompletedBatch(s, 20*time.Millisecond, &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,

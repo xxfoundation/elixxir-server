@@ -89,7 +89,7 @@ func StartServer(vip *viper.Viper) error {
 	userDatabase.UpsertUser(dummy)
 
 	jww.INFO.Printf("Converting params to server definition")
-	def := params.ConvertToDefinition()
+	def:= params.ConvertToDefinition()
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
@@ -179,6 +179,8 @@ func StartServer(vip *viper.Viper) error {
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
 		def.Topology = connect.NewCircuit(nodeIds)
+	}else{
+		def.Gateway.ID = id.NewTmpGateway()
 	}
 
 	jww.INFO.Printf("Creating server instance")

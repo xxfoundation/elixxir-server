@@ -70,6 +70,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
+		jww.WARN.Printf("LOTAD GW_ID: %s", instance.definition.Gateway.ID.String())
 		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
 		if err != nil {
@@ -104,6 +105,11 @@ func (i *Instance) InitLastNode() {
 // GetTopology returns the circuit object
 func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
+}
+
+// GetGateway returns the id of the node's gateway
+func (i *Instance) GetGateway() *id.Gateway {
+	return i.definition.Gateway.ID
 }
 
 //GetGroups returns the group used by the server
