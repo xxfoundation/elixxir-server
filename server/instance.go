@@ -70,7 +70,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
-		jww.WARN.Printf("LOTAD GW_ID: %s", instance.definition.Gateway.ID.String())
 		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
 		if err != nil {
