@@ -106,6 +106,11 @@ func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
 }
 
+// GetGateway returns the id of the node's gateway
+func (i *Instance) GetGateway() *id.Gateway {
+	return i.definition.Gateway.ID
+}
+
 //GetGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
 	return i.definition.CmixGroup

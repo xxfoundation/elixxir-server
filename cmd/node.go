@@ -111,7 +111,10 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
-	if !disablePermissioning {
+	// Handle initiation of permissioning logic
+	if disablePermissioning {
+		def.Gateway.ID = id.NewTmpGateway()
+	} else {
 		impl := nodeComms.NewImplementation()
 
 		// Assemble the Comms callback interface
