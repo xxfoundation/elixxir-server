@@ -134,7 +134,7 @@ func StartServer(vip *viper.Viper) error {
 
 		// Start comms network
 		network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
-		_, err := network.AddHost("tmp", def.Gateway.Address, def.Gateway.TlsCert, true, true)
+		_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
 		if err != nil {
 			return errors.Errorf("Unable to add gateway host: %+v", err)
 		}
@@ -195,7 +195,8 @@ func StartServer(vip *viper.Viper) error {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	instance, err := server.CreateServerInstance(def, node.NewImplementation)
+	def.RoundCreationTimeout = newRoundTimeout
+	instance, err := server.CreateServerInstance(def, node.NewImplementation, noTLS)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}

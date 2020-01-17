@@ -1,6 +1,8 @@
 package io
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
 	"time"
@@ -35,12 +37,19 @@ func GetRoundBufferInfo(roundBuffer *server.PrecompBuffer,
 
 // Returns a completed batch, or waits for a small amount of time for one to
 // materialize if there isn't one ready
-func GetCompletedBatch(completedRoundQueue chan *server.CompletedRound,
-	timeout time.Duration) (*mixmessages.Batch, error) {
+func GetCompletedBatch(instance *server.Instance,
+	timeout time.Duration, auth *connect.Auth) (*mixmessages.Batch, error) {
+
+	// Check that authentication is good and the sender is our gateway, otherwise error
+	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetID().NewGateway().String() {
+		jww.INFO.Printf("[%s]: GetCompletedBatch failed auth (sender ID: %s, auth: %v)",
+			instance, auth.Sender.GetId(), auth.IsAuthenticated)
+		return nil, connect.AuthError(auth.Sender.GetId())
+	}
 
 	var roundQueue *server.CompletedRound
 	select {
-	case roundQueue = <-completedRoundQueue:
+	case roundQueue = <-instance.GetCompletedBatchQueue():
 	case <-time.After(timeout):
 		return &mixmessages.Batch{}, nil
 	}

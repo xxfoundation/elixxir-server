@@ -24,7 +24,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 
 	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		return ReceiveCreateNewRound(instance, message)
+		return ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
 	}
 
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
@@ -33,15 +33,15 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
-		ReceivePostPhase(batch, instance)
+		ReceivePostPhase(batch, instance, auth)
 	}
 
-	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer) error {
-		return ReceiveStreamPostPhase(streamServer, instance)
+	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
+		return ReceiveStreamPostPhase(streamServer, instance, auth)
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
-		ReceivePostRoundPublicKey(instance, pk)
+		ReceivePostRoundPublicKey(instance, pk, auth)
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
@@ -49,34 +49,27 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, e error) {
-		return io.GetCompletedBatch(instance.GetCompletedBatchQueue(), time.Second)
+		return io.GetCompletedBatch(instance, time.Second, auth)
 	}
 
-	// Receive finish realtime should gather metrics if first node
-	if instance.IsFirstNode() {
-		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-			return ReceiveFinishRealtime(instance, message)
-		}
-	} else {
-		impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-			return ReceiveFinishRealtime(instance, message)
-		}
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
+		return ReceiveFinishRealtime(instance, message, auth)
 	}
 
 	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
 		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte, auth *connect.Auth) ([]byte, []byte, error) {
 		return io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
-			RSASignedByRegistration, DHSignedByClientRSA)
+			RSASignedByRegistration, DHSignedByClientRSA, auth)
 	}
 
 	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
-		return io.ConfirmRegistration(instance, UserID, Signature)
+		return io.ConfirmRegistration(instance, UserID, Signature, auth)
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
-		return ReceivePostPrecompResult(instance, roundID, slots)
+		return ReceivePostPrecompResult(instance, roundID, slots, auth)
 	}
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
-		return ReceivePostNewBatch(instance, newBatch)
+		return ReceivePostNewBatch(instance, newBatch, auth)
 	}
 
 	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {
