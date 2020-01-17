@@ -129,7 +129,7 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 			IsAuthenticated: true,
 			Sender:          h,
 		})
-		if err!=nil{
+		if err != nil {
 			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
 		}
 		doneChan <- struct{}{}
@@ -166,7 +166,7 @@ func TestGetCompletedBatch_ShortWait(t *testing.T) {
 			IsAuthenticated: true,
 			Sender:          h,
 		})
-		if err!=nil{
+		if err != nil {
 			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
 		}
 		doneChan <- struct{}{}
@@ -220,7 +220,7 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 			IsAuthenticated: true,
 			Sender:          h,
 		})
-		if err!=nil{
+		if err != nil {
 			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
 		}
 		doneChan <- struct{}{}

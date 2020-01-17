@@ -243,8 +243,6 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		Sender:          h,
 	}
 
-
-
 	err := ReceivePostNewBatch(instance, batch, auth)
 
 	if err == nil {
