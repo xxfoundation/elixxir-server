@@ -368,6 +368,11 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
+			Gateway: server.GW{
+				ID:      nidLst[i].NewGateway(),
+				TlsCert: nil,
+				Address: "",
+			},
 			Address:        nodeLst[i].Address,
 			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
 			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
