@@ -971,7 +971,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		actualBatch = message
 	}
 
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -1008,7 +1008,7 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
-	fakeHost, _ := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
+	fakeHost, _ := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          fakeHost,
@@ -1140,7 +1140,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -1476,7 +1476,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 
 	// Create a fake host and auth object to pass into function that needs it
 	fakeHost, err := connect.NewHost(
-		instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len()-1).String(),
+		instance.GetTopology().GetLastNode().String(),
 		"", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)

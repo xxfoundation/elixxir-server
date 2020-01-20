@@ -80,7 +80,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	roundID := id.Round(pk.Round.ID)
 
 	// Verify that auth is good and sender is last node
-	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1).String()
+	expectedID := instance.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
@@ -177,7 +177,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
 
 	// Check for proper authentication and expected sender
-	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1).String()
+	expectedID := instance.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%s]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
@@ -406,7 +406,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 
-	expectedID := instance.GetTopology().GetNodeAtIndex(instance.GetTopology().Len() - 1)
+	expectedID := instance.GetTopology().GetLastNode()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
 		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
