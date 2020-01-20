@@ -41,9 +41,9 @@ func GetCompletedBatch(instance *server.Instance,
 	timeout time.Duration, auth *connect.Auth) (*mixmessages.Batch, error) {
 
 	// Check that authentication is good and the sender is our gateway, otherwise error
-	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetID().NewGateway().String() {
-		jww.INFO.Printf("[%s]: GetCompletedBatch failed auth (sender ID: %s, auth: %v)",
-			instance, auth.Sender.GetId(), auth.IsAuthenticated)
+	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
+		jww.WARN.Printf("[%s]: GetCompletedBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 

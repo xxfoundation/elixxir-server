@@ -130,6 +130,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
+	def.Gateway.ID = id.NewTmpGateway()
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -179,7 +180,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -205,7 +206,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	}()
 	instance.GetCompletedPrecomps().Push(r)
 
-	h, _ = connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ = connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -236,7 +237,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
@@ -310,7 +311,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	}
 
 	def.ID = def.Topology.GetNodeAtIndex(0)
-
+	def.Gateway.ID = id.NewTmpGateway()
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 	instance.InitFirstNode()
 	topology := instance.GetTopology()
@@ -377,7 +378,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetID().NewGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -1951,7 +1952,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
 	def.ID = def.Topology.GetNodeAtIndex(0)
-
+	def.Gateway.ID = id.NewTmpGateway()
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
 
 	return instance
