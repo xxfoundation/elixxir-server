@@ -420,7 +420,6 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	select {
 	case <-c:
 	case <-t.C:
-		jww.ERROR.Print(" for get recieve measure ")
 		return nil, errors.New("Timer expired, could not " +
 		"receive measurement")
 	}
