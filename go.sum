@@ -238,8 +238,8 @@ github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGr
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
-gitlab.com/elixxir/comms v0.0.0-20200117202446-39ae6413c8c9 h1:V9+TZDDrG65saXsvKAkF1UmLHLml87a/0qJn+lCVrY8=
-gitlab.com/elixxir/comms v0.0.0-20200117202446-39ae6413c8c9/go.mod h1:DblaR0msnWpNGzNK2fXvXbfGZQNPH4KPiBl4YkkGF4Y=
+gitlab.com/elixxir/comms v0.0.0-20200121191454-2e6135a303fe h1:oBEEc/9qXCkSyDv28yS4Bwjdkx1uRqkKWxAlaL1m95c=
+gitlab.com/elixxir/comms v0.0.0-20200121191454-2e6135a303fe/go.mod h1:DblaR0msnWpNGzNK2fXvXbfGZQNPH4KPiBl4YkkGF4Y=
 gitlab.com/elixxir/crypto v0.0.0-20191121235352-86d305a9b253 h1:BqgqJ0mLANRjhAFLvGAcB5AWdgAnFZhsGx0qTk5G+3Y=
 gitlab.com/elixxir/crypto v0.0.0-20191121235352-86d305a9b253/go.mod h1:+46Zj/NE6JEkXExYnzdvvDokPpDbA+fJsRszvrezK9k=
 gitlab.com/elixxir/crypto v0.0.0-20200108005412-8159c60663f9 h1:MJ87g3yMIvA9MTDMojuqaw1tCxU6LIKzxMaH3oEiP4M=

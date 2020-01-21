@@ -92,7 +92,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
-	fmt.Println("KKKKKKKKKKKKKKKK")
 	//check that all servers are online and every server can talk to every other server
 	io.VerifyServersOnline(firstNode.GetNetwork(), firstNode.GetTopology())
 
@@ -108,7 +107,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	fmt.Println("sdkfsldfjk")
 	t.Logf("Initalizing the first node, begining operations")
 	//Initialize the first node
 

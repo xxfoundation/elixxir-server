@@ -22,7 +22,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
-	gitlab.com/elixxir/comms v0.0.0-20200117202446-39ae6413c8c9
+	gitlab.com/elixxir/comms v0.0.0-20200121191454-2e6135a303fe
 	gitlab.com/elixxir/crypto v0.0.0-20200108005412-8159c60663f9
 	gitlab.com/elixxir/primitives v0.0.0-20200117002728-1db5150ffe3d
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
