@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"math/rand"
 	"runtime"
 	"sync"
 	"testing"
@@ -43,7 +44,8 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	grp := makeMultiInstanceGroup()
 
 	//get parameters
-	defsLst := makeMultiInstanceParams(numNodes, batchsize, 1000, grp)
+	portOffset := int(rand.Uint32()%2000)
+	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, grp)
 
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
@@ -85,25 +87,18 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	t.Logf("Initilizing Network for %v nodes", numNodes)
 	//initialize the network for every instance
 	for _, instance := range instances {
+		instance.GetNetwork().DisableAuth()
 		instance.Online = true
 	}
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
-
+	fmt.Println("KKKKKKKKKKKKKKKK")
 	//check that all servers are online and every server can talk to every other server
-	wg := sync.WaitGroup{}
-	for _, instance := range instances {
-		wg.Add(1)
-		localInstance := instance
-		go func() {
-			io.VerifyServersOnline(localInstance.GetNetwork(), localInstance.GetTopology())
-			wg.Done()
-		}()
-	}
-	wg.Wait()
+	io.VerifyServersOnline(firstNode.GetNetwork(), firstNode.GetTopology())
 
+	fmt.Println("grewwerwerrewwerewr")
 	//begin every instance
-	wg = sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 	for _, instance := range instances {
 		wg.Add(1)
 		localInstance := instance
@@ -113,7 +108,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		}()
 	}
 	wg.Wait()
-
+	fmt.Println("sdkfsldfjk")
 	t.Logf("Initalizing the first node, begining operations")
 	//Initialize the first node
 
@@ -130,7 +125,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	if err2 != nil {
 		t.Errorf("Could not get KMAC hash: %+v", err2)
 	}
-
+	fmt.Println("GUISIE")
 	for i := 0; i < batchsize; i++ {
 		//make the salt
 		salt := make([]byte, 32)
@@ -331,7 +326,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 	//generate IDs and addresses
 	var nidLst []*id.Node
 	var nodeLst []server.Node
-	addrFmt := "localhost:5%03d"
+	addrFmt := "localhost:%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
 		nodIDBytes := make([]byte, id.NodeIdLen)
