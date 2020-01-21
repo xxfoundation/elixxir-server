@@ -95,7 +95,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	//check that all servers are online and every server can talk to every other server
 	io.VerifyServersOnline(firstNode.GetNetwork(), firstNode.GetTopology())
 
-	fmt.Println("grewwerwerrewwerewr")
 	//begin every instance
 	wg := sync.WaitGroup{}
 	for _, instance := range instances {
@@ -123,7 +122,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	if err2 != nil {
 		t.Errorf("Could not get KMAC hash: %+v", err2)
 	}
-	fmt.Println("GUISIE")
 	for i := 0; i < batchsize; i++ {
 		//make the salt
 		salt := make([]byte, 32)
