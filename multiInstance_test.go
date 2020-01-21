@@ -84,34 +84,43 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	t.Logf("Initilizing Network for %v nodes", numNodes)
 	//initialize the network for every instance
+	for _, instance := range instances {
+		instance.Online = true
+	}
+
+	t.Logf("Running the Queue for %v nodes", numNodes)
+
+	//check that all servers are online and every server can talk to every other server
 	wg := sync.WaitGroup{}
 	for _, instance := range instances {
 		wg.Add(1)
 		localInstance := instance
-		jww.INFO.Println("Waiting...")
 		go func() {
-			localInstance.Online = true
+			io.VerifyServersOnline(localInstance.GetNetwork(), localInstance.GetTopology())
 			wg.Done()
 		}()
 	}
-
 	wg.Wait()
 
-	t.Logf("Running the Queue for %v nodes", numNodes)
 	//begin every instance
+	wg = sync.WaitGroup{}
 	for _, instance := range instances {
-		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
-		instance.Run()
+		wg.Add(1)
+		localInstance := instance
+		go func() {
+			localInstance.Run()
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 
 	t.Logf("Initalizing the first node, begining operations")
 	//Initialize the first node
 
 	firstNode.InitFirstNode()
+	lastNode.InitLastNode()
 	firstNode.RunFirstNode(firstNode, 10*time.Second,
 		io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
-
-	lastNode.InitLastNode()
 
 	//build a batch to send to first node
 	expectedbatch := mixmessages.Batch{}
