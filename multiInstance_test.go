@@ -92,11 +92,21 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
+
 	//check that all servers are online and every server can talk to every other server
-	io.VerifyServersOnline(firstNode.GetNetwork(), firstNode.GetTopology())
+	wg := sync.WaitGroup{}
+	for _, instance := range instances {
+		wg.Add(1)
+		localInstance := instance
+		go func() {
+			io.VerifyServersOnline(localInstance.GetNetwork(), localInstance.GetTopology())
+			wg.Done()
+		}()
+	}
+	wg.Wait()
 
 	//begin every instance
-	wg := sync.WaitGroup{}
+	wg = sync.WaitGroup{}
 	for _, instance := range instances {
 		wg.Add(1)
 		localInstance := instance
