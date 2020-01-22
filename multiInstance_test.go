@@ -44,7 +44,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	grp := makeMultiInstanceGroup()
 
 	//get parameters
-	portOffset := int(rand.Uint32()%2000)
+	portOffset := int(rand.Uint32() % 2000)
 	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, grp)
 
 	//make user for sending messages

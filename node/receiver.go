@@ -421,7 +421,7 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 	case <-c:
 	case <-t.C:
 		return nil, errors.New("Timer expired, could not " +
-		"receive measurement")
+			"receive measurement")
 	}
 
 	// Get data for metrics object

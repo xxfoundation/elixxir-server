@@ -14,7 +14,7 @@ import (
 
 // VerifyServersOnline Blocks until all given servers respond
 func VerifyServersOnline(network *node.Comms, servers *connect.Circuit) {
-	for i := servers.Len()-1; i >= 0;{
+	for i := 0; i < servers.Len(); {
 		// Pull server's host from the connection manager
 		serverID := servers.GetNodeAtIndex(i)
 		server := servers.GetHostAtIndex(i)
@@ -28,7 +28,7 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit) {
 				serverID, i+1, servers.Len(), err)
 			time.Sleep(250 * time.Millisecond)
 		} else {
-			i--
+			i++
 		}
 	}
 }
