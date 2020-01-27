@@ -100,6 +100,7 @@ func TestMain(m *testing.M) {
 	nodeIDs := make([]*id.Node, 0)
 	nodeIDs = append(nodeIDs, nodeId)
 	def.Topology = connect.NewCircuit(nodeIDs)
+	def.Gateway.ID = id.NewTmpGateway()
 
 	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, false)
 
@@ -109,7 +110,7 @@ func TestMain(m *testing.M) {
 // Test request nonce with good auth boolean but bad ID
 func TestRequestNonceFailAuthId(t *testing.T) {
 	// The incorrect ID here is the crux of the test
-	gwHost, err := connect.NewHost("420blzit",
+	gwHost, err := connect.NewHost("420blazeit",
 		"", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
@@ -178,7 +179,7 @@ func TestRequestNonce(t *testing.T) {
 		t.Errorf("COuld not sign client's DH key with client RSA "+
 			"key: %+v", err)
 	}
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
+	gwHost, err := connect.NewHost(id.NewTmpGateway().String(),
 		"", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
@@ -300,7 +301,7 @@ func TestConfirmRegistration(t *testing.T) {
 	if sign == nil || err != nil {
 		t.Errorf("Error signing data")
 	}
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
+	gwHost, err := connect.NewHost(id.NewTmpGateway().String(),
 		"", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)

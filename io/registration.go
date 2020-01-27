@@ -28,7 +28,7 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated ||
-		auth.Sender.GetId() != instance.GetID().NewGateway().String() {
+		auth.Sender.GetId() != instance.GetGateway().String() {
 		return nil, nil, connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -112,7 +112,7 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated ||
-		auth.Sender.GetId() != instance.GetID().NewGateway().String() {
+		auth.Sender.GetId() != instance.GetGateway().String() {
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
