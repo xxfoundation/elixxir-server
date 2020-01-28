@@ -19,18 +19,28 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
+	"strconv"
+	"strings"
 	"time"
 )
 
 // Perform the Node registration process with the Permissioning Server
 func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect.Host) error {
+	// We don't check validity here, because the registration server should.
+	gw := strings.Split(def.Gateway.Address, ":")
+	gwPort, _ := strconv.ParseUint(gw[1], 10, 32)
+	node := strings.Split(def.Address, ":")
+	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
 	// Attempt Node registration
 	err := network.SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   def.Gateway.Address,
+			GatewayAddress:   gw[0],
+			GatewayPort:      uint32(gwPort),
+			ServerAddress:    node[0],
+			ServerPort:       uint32(nodePort),
 			RegistrationCode: def.Permissioning.RegistrationCode,
 		})
 	if err != nil {
