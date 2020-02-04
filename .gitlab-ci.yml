@@ -95,7 +95,7 @@ build:
     - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
     - ./release/server.linux64 --version
     - git remote add origin_tags git@gitlab.com:elixxir/client.git || true
-    - git tag $(./release/server.linux64 --version | grep "Elixxir Client v"| cut -d ' ' -f3) -f
+    - git tag $(./release/server.linux64 --version | grep "Elixxir Server v"| cut -d ' ' -f3) -f
     - git push origin_tags -f --tags
   artifacts:
     paths:
