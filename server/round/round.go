@@ -233,7 +233,6 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 }
 
 // Return a RoundMetrics objects for this round
-// TODO: Consider refactoring this as it may belong inside RoundMetrics
 func (r *Round) GetMeasurements(nid string, numNodes, index int,
 	resourceMetric measure.ResourceMetric) measure.RoundMetrics {
 
@@ -261,7 +260,6 @@ func (r *Round) GetMeasurementsReadyChan() chan struct{} {
 }
 
 // String stringer interface implementation for rounds.
-// TODO: Maybe print active conns for this round or other data?
 func (r *Round) String() string {
 	currentPhase := r.GetCurrentPhase()
 	return fmt.Sprintf("%d (%d - %s)", r.id, r.state, currentPhase)

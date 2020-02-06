@@ -1,13 +1,61 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"strings"
 	"testing"
 	"time"
 )
+
+func GetMockServerInstance(t *testing.T) *server.Instance {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
+	nodeId = server.GenerateId(t)
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2))
+
+	def := server.Definition{
+		CmixGroup: grp,
+		Nodes: []server.Node{
+			{
+				ID: nodeId,
+			},
+		},
+		ID:              nodeId,
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+		PrivateKey:      serverRSAPriv,
+		PublicKey:       serverRSAPub,
+	}
+
+	def.Permissioning.PublicKey = regPrivKey.GetPublic()
+	nodeIDs := make([]*id.Node, 0)
+	nodeIDs = append(nodeIDs, nodeId)
+	def.Topology = connect.NewCircuit(nodeIDs)
+	def.Gateway.ID = id.NewTmpGateway()
+
+	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, false)
+	return serverInstance
+}
 
 func TestGetRoundBufferInfo_RoundsInBuffer(t *testing.T) {
 	// This is actually an edge case: the number of available precomps is
@@ -68,17 +116,22 @@ func TestGetRoundBufferInfo_LessThanTimeout(t *testing.T) {
 }
 
 func TestGetCompletedBatch_Timeout(t *testing.T) {
-
-	completedRoundQueue := make(chan *server.CompletedRound)
-
+	s := GetMockServerInstance(t)
 	doneChan := make(chan struct{})
 
 	var batch *mixmessages.Batch
 
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
 	// Should timeout
 	go func() {
-		batch, _ = GetCompletedBatch(completedRoundQueue, 40*time.Millisecond)
-
+		var err error
+		batch, err = GetCompletedBatch(s, 40*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		})
+		if err != nil {
+			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
+		}
 		doneChan <- struct{}{}
 
 	}()
@@ -91,13 +144,11 @@ func TestGetCompletedBatch_Timeout(t *testing.T) {
 }
 
 func TestGetCompletedBatch_ShortWait(t *testing.T) {
-	// Not a timeout: There's an actual completed batch available in the
-	// channel after a certain period of time
-	completedRoundQueue := make(chan *server.CompletedRound, 1)
+	s := GetMockServerInstance(t)
+	s.InitLastNode()
 
 	// Should not timeout: writes to the completed rounds after an amount of
 	// time
-
 	var batch *mixmessages.Batch
 	var err error
 
@@ -109,14 +160,21 @@ func TestGetCompletedBatch_ShortWait(t *testing.T) {
 		GetMessage: func(uint32) *mixmessages.Slot { return nil },
 	}
 
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
 	go func() {
-		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond)
+		batch, err = GetCompletedBatch(s, 20*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		})
+		if err != nil {
+			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
+		}
 		doneChan <- struct{}{}
 	}()
 
 	time.After(5 * time.Millisecond)
 
-	completedRoundQueue <- complete
+	s.GetCompletedBatchQueue() <- complete
 
 	complete.Receiver <- services.NewChunk(0, 3)
 
@@ -133,8 +191,10 @@ func TestGetCompletedBatch_ShortWait(t *testing.T) {
 }
 
 func TestGetCompletedBatch_BatchReady(t *testing.T) {
+	s := GetMockServerInstance(t)
+	s.InitLastNode()
 	// If there's already a completed batch, the comm should get it immediately
-	completedRoundQueue := make(chan *server.CompletedRound, 1)
+	completedRoundQueue := s.GetCompletedBatchQueue()
 
 	// Should not timeout: writes to the completed rounds after an amount of
 	// time
@@ -154,8 +214,15 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 
 	complete.Receiver <- services.NewChunk(0, 3)
 
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
 	go func() {
-		batch, err = GetCompletedBatch(completedRoundQueue, 20*time.Millisecond)
+		batch, err = GetCompletedBatch(s, 20*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		})
+		if err != nil {
+			t.Errorf("Err from GetCompleteBatch: %s", err.Error())
+		}
 		doneChan <- struct{}{}
 	}()
 
@@ -168,5 +235,41 @@ func TestGetCompletedBatch_BatchReady(t *testing.T) {
 	}
 	if batch == nil {
 		t.Error("Expected a batch on wait case, got nil")
+	}
+}
+
+// Test that we receive authentication error when not authenticated
+func TestGetCompletedBatch_NoAuth(t *testing.T) {
+	s := GetMockServerInstance(t)
+	h, _ := connect.NewHost(s.GetGateway().String(), "test", nil, false, false)
+	_, err := GetCompletedBatch(s, 20*time.Millisecond, &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          h,
+	})
+
+	if err == nil {
+		t.Errorf("Should have received authentication error")
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Errorf("Did not receive expected auth error.  Instead received: %+v", err)
+	}
+}
+
+// Test that we receive authentication error when message is received from unexpected sender
+func TestGetCompletedBatch_WrongSender(t *testing.T) {
+	s := GetMockServerInstance(t)
+	h, _ := connect.NewHost("test", "test", nil, false, false)
+	_, err := GetCompletedBatch(s, 20*time.Millisecond, &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          h,
+	})
+
+	if err == nil {
+		t.Errorf("Should have received authentication error")
+	}
+
+	if !strings.Contains(err.Error(), "Failed to authenticate") {
+		t.Errorf("Did not receive expected auth error.  Instead received: %+v", err)
 	}
 }

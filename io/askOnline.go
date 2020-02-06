@@ -29,6 +29,8 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit) {
 			time.Sleep(250 * time.Millisecond)
 		} else {
 			i++
+			jww.INFO.Printf("cMix server %s (%d/%d) is online...",
+				serverID, i+1, servers.Len())
 		}
 	}
 }
