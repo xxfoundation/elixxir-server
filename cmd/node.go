@@ -225,18 +225,19 @@ func StartServer(vip *viper.Viper) error {
 		}
 	}
 
+	// initialize the network
+	instance.Online = true
+
 	jww.INFO.Printf("Begining resource queue")
 	//Begin the resource queue
 	instance.Run()
 
-	// initialize the network
-	instance.Online = true
-
-	jww.INFO.Printf("Checking all servers are online")
-	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
-
 	//Start runners for first node
 	if instance.IsFirstNode() {
+		jww.INFO.Printf("Checking all servers are online")
+
+		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
+
 		jww.INFO.Printf("Starting first node network manager")
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
