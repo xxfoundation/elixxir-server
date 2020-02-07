@@ -14,6 +14,9 @@ import (
 	"gitlab.com/elixxir/primitives/utils"
 )
 
+// Change this value to set the version for this build
+const currentVersion = "1.0.0"
+
 func printVersion() {
 	fmt.Printf("Elixxir Server v%s -- %s\n\n", SEMVER, GITVERSION)
 	fmt.Printf("Dependencies:\n\n%s\n", DEPENDENCIES)
@@ -38,6 +41,6 @@ var generateCmd = &cobra.Command{
 	Short: "Generates version and dependency information for the Elixxir binary",
 	Long:  `Generates version and dependency information for the Elixxir binary`,
 	Run: func(cmd *cobra.Command, args []string) {
-		utils.GenerateVersionFile()
+		utils.GenerateVersionFile(currentVersion)
 	},
 }
