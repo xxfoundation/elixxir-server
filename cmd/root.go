@@ -30,7 +30,6 @@ var verbose bool
 var serverIdx int
 var batchSize uint64
 var validConfig bool
-var showVer bool
 var keepBuffers bool
 var disablePermissioning bool
 var noTLS bool
@@ -52,11 +51,6 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		if showVer {
-			printVersion()
-			return
-		}
-		jww.INFO.Printf(getVersionInfo())
 		if !validConfig {
 			jww.FATAL.Panic("Invalid Config File")
 		}
@@ -128,8 +122,6 @@ func init() {
 		"Config index to use for local server")
 	rootCmd.Flags().Uint64VarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
-	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
-		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at 0.0.0.0:8087 for profiling")
 	rootCmd.Flags().BoolVarP(&disablePermissioning, "disablePermissioning", "",
