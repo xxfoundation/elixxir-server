@@ -114,7 +114,6 @@ func StartServer(vip *viper.Viper) error {
 	// Handle initiation of permissioning logic
 	if disablePermissioning {
 		def.Gateway.ID = id.NewTmpGateway()
-		jww.ERROR.Println("TMPGW: ", def.Gateway.ID.String())
 	} else {
 		impl := nodeComms.NewImplementation()
 
