@@ -114,7 +114,7 @@ tag:
     script:
         - git remote add origin_tags git@gitlab.com:elixxir/server.git || true
         - git remote set-url origin_tags git@gitlab.com:elixxir/server.git || true
-        - git tag $(./release/server.linux64 --version | grep "Elixxir Server v"| cut -d ' ' -f3) -f
+        - git tag $(./release/server.linux64 version | grep "Elixxir Server v"| cut -d ' ' -f3) -f
         - git push origin_tags -f --tags
 
 
