@@ -16,7 +16,7 @@ import (
 
 func printVersion() {
 	fmt.Printf("Elixxir Server v%s -- %s\n\n", SEMVER, GITVERSION)
-	//fmt.Printf("Dependencies:\n\n%s\n", DEPENDENCIES)
+	fmt.Printf("Dependencies:\n\n%s\n", DEPENDENCIES)
 }
 
 func init() {
