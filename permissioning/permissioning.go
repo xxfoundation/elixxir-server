@@ -62,8 +62,10 @@ func PollNdf(def *server.Definition, network *node.Comms,
 	for response == nil || response.Ndf == nil {
 		response, err = network.RequestNdf(permHost,
 			&pb.NDFHash{Hash: make([]byte, 0)})
-		jww.WARN.Printf("%+v: Requesting again!", err)
-		time.Sleep(250 * time.Millisecond)
+		if err != nil {
+			jww.WARN.Printf("%+v: Requesting again!", err)
+			time.Sleep(250 * time.Millisecond)
+		}
 	}
 
 	// Decode the ndf into an object
