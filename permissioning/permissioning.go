@@ -63,7 +63,8 @@ func PollNdf(def *server.Definition, network *node.Comms,
 		response, err = network.RequestNdf(permHost,
 			&pb.NDFHash{Hash: make([]byte, 0)})
 		if err != nil {
-			return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
+			jww.WARN.Printf("%+v: Requesting again!", err)
+			time.Sleep(250 * time.Millisecond)
 		}
 	}
 
