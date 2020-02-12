@@ -138,7 +138,6 @@ func StartServer(vip *viper.Viper) error {
 		if err != nil {
 			return errors.Errorf("Unable to add gateway host: %+v", err)
 		}
-
 		// Connect to the Permissioning Server without authentication
 		permHost, err := network.AddHost(id.PERMISSIONING,
 			def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
@@ -183,6 +182,7 @@ func StartServer(vip *viper.Viper) error {
 
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
+	jww.WARN.Printf("Notls set to: %+v", noTLS)
 	if noTLS {
 		jww.INFO.Println("Blanking TLS certs for non use")
 		def.TlsKey = nil

@@ -84,6 +84,10 @@ func (*mockGateway) ConfirmNonce(message *pb.RequestRegistrationConfirmation, ip
 	return nil, nil
 }
 
+func (*mockGateway) PollForNotifications(auth *connect.Auth) ([]string, error) {
+	return nil, nil
+}
+
 // -----------------------------------------------------------------------------
 
 func buildMockNdf(nodeId *id.Node, nodeAddress, gwAddress string, cert, key []byte) {
