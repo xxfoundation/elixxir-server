@@ -145,13 +145,6 @@ func TestCGC(t *testing.T) {
 	// I also need to check what happens if there are too many bytes on the CPU side!
 	// Fun stuff.
 
-	// todo list
-	//	populate exp test stream? (you would actually populate the round buffer)
-	// 	i mean you need some data in there right?
-	//  set the graph's stream to the expTestStream (review other tests for reference)
-	//  uh, there are all different modules, and they all specify exactly which fields are used in the module
-	//  function factory type of thing?
-
 	batchSize := uint32(500)
 
 	streamPool, err := gpumaths.NewStreamPool(2, 2048*int(batchSize))
@@ -253,4 +246,126 @@ func TestCGC(t *testing.T) {
 func TestGGG(t *testing.T) {
 	// Gold results: Cpu, cpu, cpu
 	// Compare to:   Gpu, gpu, gpu
+	batchSize := uint32(500)
+
+	streamPool, err := gpumaths.NewStreamPool(2, 2048*int(batchSize))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// approximate expanded batch size
+	expandBatchSize := 6*batchSize
+	rand := rand.New(rand.NewSource(1337))
+	g := initDispatchGroup()
+	goldExp := ExpTestStream{
+		streamPool: streamPool,
+		length:     batchSize,
+		a:          randIntBuffer(g, expandBatchSize, rand),
+		b:          randIntBuffer(g, expandBatchSize, rand),
+		ABResult:   g.NewIntBuffer(expandBatchSize, g.NewInt(2)),
+		c:          randIntBuffer(g, expandBatchSize, rand),
+		ABCResult:  g.NewIntBuffer(expandBatchSize, g.NewInt(2)),
+		d:          randIntBuffer(g, expandBatchSize, rand),
+		ABCDResult: g.NewIntBuffer(expandBatchSize, g.NewInt(2)),
+	}
+
+	// Make a copy to make sure we can get the same results in a different way
+	testExp := goldExp.DeepCopy()
+
+	// Make sure there's enough space in the stream to fit the input size
+	stream := streamPool.TakeStream()
+	streamPool.ReturnStream(stream)
+	// MaxSlotsExp should be the same with all streams
+	if int(gpumaths.ExpChunk.GetInputSize()) > stream.MaxSlotsExp {
+		t.Fatalf("stream too small! has %v slots. make it bigger", stream.MaxSlotsExp)
+	}
+
+	// TODO populate Adapt late for these modules
+	cpuA := ModuleExpCPU.DeepCopy()
+	cpuA.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
+		stream, ok := s.(*ExpTestStream)
+		if !ok {
+			return errors.New("Module A CPU: stream type assert failed")
+		}
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			cryptops.Exp(stream.g, stream.a.Get(i), stream.b.Get(i), stream.ABResult.Get(i))
+		}
+		return nil
+	}
+	cpuB := ModuleExpCPU.DeepCopy()
+	cpuB.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
+		stream, ok := s.(*ExpTestStream)
+		if !ok {
+			return errors.New("Module B CPU: stream type assert failed")
+		}
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			cryptops.Exp(stream.g, stream.ABResult.Get(i), stream.c.Get(i), stream.ABCResult.Get(i))
+		}
+		return nil
+	}
+	cpuC := ModuleExpCPU.DeepCopy()
+	cpuC.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
+		stream, ok := s.(*ExpTestStream)
+		if !ok {
+			return errors.New("Module C CPU: stream type assert failed")
+		}
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			cryptops.Exp(stream.g, stream.ABCResult.Get(i), stream.d.Get(i), stream.ABCDResult.Get(i))
+		}
+		return nil
+	}
+
+	ModuleExpGPU.InputSize = uint32(stream.MaxSlotsExp)
+	gpuA := ModuleExpGPU.DeepCopy()
+	gpuA.Adapt = func(s Stream, c cryptops.Cryptop, chunk Chunk) error {
+		stream, ok := s.(*ExpTestStream)
+		if !ok {
+			return errors.New("Module B GPU: stream type assert failed")
+		}
+
+		x := stream.a.GetSubBuffer(chunk.Begin(), chunk.End())
+		y := stream.b.GetSubBuffer(chunk.Begin(), chunk.End())
+		result := stream.ABResult.GetSubBuffer(chunk.Begin(), chunk.End())
+		_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
+		return err
+	}
+	gpuB := ModuleExpGPU.DeepCopy()
+	gpuB.Adapt = func(s Stream, c cryptops.Cryptop, chunk Chunk) error {
+		stream, ok := s.(*ExpTestStream)
+		if !ok {
+			return errors.New("Module B GPU: stream type assert failed")
+		}
+
+		x := stream.ABResult.GetSubBuffer(chunk.Begin(), chunk.End())
+		y := stream.c.GetSubBuffer(chunk.Begin(), chunk.End())
+		result := stream.ABCResult.GetSubBuffer(chunk.Begin(), chunk.End())
+		_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
+		return err
+	}
+	gpuC := ModuleExpGPU.DeepCopy()
+	gpuC.Adapt = func(s Stream, c cryptops.Cryptop, chunk Chunk) error {
+		stream, ok := s.(*ExpTestStream)
+		if !ok {
+			return errors.New("Module B GPU: stream type assert failed")
+		}
+
+		x := stream.ABCResult.GetSubBuffer(chunk.Begin(), chunk.End())
+		y := stream.d.GetSubBuffer(chunk.Begin(), chunk.End())
+		result := stream.ABCDResult.GetSubBuffer(chunk.Begin(), chunk.End())
+		_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
+		return err
+	}
+	// Time test graph runs, just for fun
+	start := time.Now()
+	runTestGraph(&goldExp, cpuA.DeepCopy(), cpuB.DeepCopy(), cpuC.DeepCopy())
+	t.Log(time.Since(start))
+	start = time.Now()
+	runTestGraph(testExp, gpuA.DeepCopy(), gpuB.DeepCopy(), gpuC.DeepCopy())
+	t.Log(time.Since(start))
+	// TODO Block on graph execution somehow
+	for i := uint32(0); i < batchSize; i++ {
+		if goldExp.ABCDResult.Get(i).Cmp(testExp.ABCDResult.Get(i)) != 0 {
+			t.Errorf("Results differ at slot %v", i)
+		}
+	}
 }
