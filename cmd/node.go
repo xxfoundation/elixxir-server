@@ -111,7 +111,10 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
-	if !disablePermissioning {
+	// Handle initiation of permissioning logic
+	if disablePermissioning {
+		def.Gateway.ID = id.NewTmpGateway()
+	} else {
 		impl := nodeComms.NewImplementation()
 
 		// Assemble the Comms callback interface
@@ -134,7 +137,7 @@ func StartServer(vip *viper.Viper) error {
 
 		// Start comms network
 		network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
-		_, err := network.AddHost("tmp", def.Gateway.Address, def.Gateway.TlsCert, true, true)
+		_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
 		if err != nil {
 			return errors.Errorf("Unable to add gateway host: %+v", err)
 		}
@@ -194,7 +197,8 @@ func StartServer(vip *viper.Viper) error {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	instance, err := server.CreateServerInstance(def, node.NewImplementation)
+	def.RoundCreationTimeout = newRoundTimeout
+	instance, err := server.CreateServerInstance(def, node.NewImplementation, noTLS)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}
@@ -219,18 +223,19 @@ func StartServer(vip *viper.Viper) error {
 		}
 	}
 
+	// initialize the network
+	instance.Online = true
+
 	jww.INFO.Printf("Begining resource queue")
 	//Begin the resource queue
 	instance.Run()
 
-	// initialize the network
-	instance.Online = true
-
-	jww.INFO.Printf("Checking all servers are online")
-	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
-
 	//Start runners for first node
 	if instance.IsFirstNode() {
+		jww.INFO.Printf("Checking all servers are online")
+
+		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
+
 		jww.INFO.Printf("Starting first node network manager")
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
 			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
