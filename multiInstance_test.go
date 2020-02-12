@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"math/rand"
 	"runtime"
 	"sync"
 	"testing"
@@ -33,7 +34,7 @@ func Test_MultiInstance_N3_B8(t *testing.T) {
 
 func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
-	jww.SetStdoutThreshold(jww.LevelInfo)
+	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	if numNodes < 3 {
 		t.Errorf("Multi Instance Test must have a minnimum of 3 nodes,"+
@@ -43,7 +44,8 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	grp := makeMultiInstanceGroup()
 
 	//get parameters
-	defsLst := makeMultiInstanceParams(numNodes, batchsize, 1000, grp)
+	portOffset := int(rand.Uint32() % 2000)
+	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, grp)
 
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
@@ -75,7 +77,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
-		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation)
+		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation, true)
 		instances = append(instances, instance)
 	}
 
@@ -84,34 +86,43 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	t.Logf("Initilizing Network for %v nodes", numNodes)
 	//initialize the network for every instance
+	for _, instance := range instances {
+		instance.GetNetwork().DisableAuth()
+		instance.Online = true
+	}
+
+	t.Logf("Running the Queue for %v nodes", numNodes)
+
+	//check that all servers are online and every server can talk to every other server
 	wg := sync.WaitGroup{}
 	for _, instance := range instances {
 		wg.Add(1)
 		localInstance := instance
-		jww.INFO.Println("Waiting...")
 		go func() {
-			localInstance.Online = true
+			io.VerifyServersOnline(localInstance.GetNetwork(), localInstance.GetTopology())
 			wg.Done()
 		}()
 	}
-
 	wg.Wait()
 
-	t.Logf("Running the Queue for %v nodes", numNodes)
 	//begin every instance
+	wg = sync.WaitGroup{}
 	for _, instance := range instances {
-		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
-		instance.Run()
+		wg.Add(1)
+		localInstance := instance
+		go func() {
+			localInstance.Run()
+			wg.Done()
+		}()
 	}
-
+	wg.Wait()
 	t.Logf("Initalizing the first node, begining operations")
 	//Initialize the first node
 
 	firstNode.InitFirstNode()
+	lastNode.InitLastNode()
 	firstNode.RunFirstNode(firstNode, 10*time.Second,
 		io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
-
-	lastNode.InitLastNode()
 
 	//build a batch to send to first node
 	expectedbatch := mixmessages.Batch{}
@@ -121,7 +132,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	if err2 != nil {
 		t.Errorf("Could not get KMAC hash: %+v", err2)
 	}
-
 	for i := 0; i < batchsize; i++ {
 		//make the salt
 		salt := make([]byte, 32)
@@ -170,8 +180,14 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		}
 	}
 
+	h, _ := connect.NewHost(firstNode.GetID().NewGateway().String(), "test", nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
 	//send the batch to the node
-	err = node.ReceivePostNewBatch(firstNode, &ecrbatch)
+	err = node.ReceivePostNewBatch(firstNode, &ecrbatch, auth)
 
 	if err != nil {
 		t.Errorf("MultiNode Test: Error returned from first node "+
@@ -180,8 +196,12 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
+	h, _ = connect.NewHost(lastNode.GetID().NewGateway().String(), "test", nil, false, false)
 	for len(completedBatch.Slots) == 0 {
-		completedBatch, _ = io.GetCompletedBatch(lastNode.GetCompletedBatchQueue(), 100*time.Millisecond)
+		completedBatch, _ = io.GetCompletedBatch(lastNode, 100*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		})
 	}
 
 	//---BUILD PROBING TOOLS----------------------------------------------------
@@ -322,7 +342,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 	//generate IDs and addresses
 	var nidLst []*id.Node
 	var nodeLst []server.Node
-	addrFmt := "localhost:5%03d"
+	addrFmt := "localhost:%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
 		nodIDBytes := make([]byte, id.NodeIdLen)
@@ -358,11 +378,17 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
+			Gateway: server.GW{
+				ID:      nidLst[i].NewGateway(),
+				TlsCert: nil,
+				Address: "",
+			},
 			Address:        nodeLst[i].Address,
 			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
 			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
+			RoundCreationTimeout: 2,
 		}
 
 		defLst = append(defLst, &def)

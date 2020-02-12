@@ -38,7 +38,7 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation) (*Instance, error) {
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation, noTls bool) (*Instance, error) {
 	instance := &Instance{
 		Online:        false,
 		definition:    def,
@@ -49,8 +49,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address, makeImplementation(instance),
-		instance.definition.TlsCert, instance.definition.TlsKey)
+	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
+		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
+
+	if noTls {
+		instance.network.DisableAuth()
+	}
 
 	//Add all hosts to manager for future connections
 	for index, n := range instance.definition.Nodes {
@@ -64,7 +68,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 		jww.INFO.Printf("Connected to node %s", n.ID)
 	}
-	//Attempt to connect Gateway
+	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
 		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
@@ -100,6 +104,11 @@ func (i *Instance) InitLastNode() {
 // GetTopology returns the circuit object
 func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
+}
+
+// GetGateway returns the id of the node's gateway
+func (i *Instance) GetGateway() *id.Gateway {
+	return i.definition.Gateway.ID
 }
 
 //GetGroups returns the group used by the server
@@ -199,6 +208,10 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
+}
+
+func (i *Instance) GetRoundCreationTimeout() int {
+	return i.definition.RoundCreationTimeout
 }
 
 // GenerateId generates a random ID and returns it
