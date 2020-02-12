@@ -55,7 +55,7 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 func PollNdf(def *server.Definition, network *node.Comms,
 	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
-	newNdf, err := network.PollNdf(nil)
+	newNdf, err := network.ProtoComms.PollNdf(nil)
 	if err != nil {
 		return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
 	}

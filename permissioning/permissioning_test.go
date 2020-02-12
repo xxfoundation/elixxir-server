@@ -181,7 +181,7 @@ func TestRegisterNode(t *testing.T) {
 		// Assemble the Comms callback interface
 		gatewayNdfChan := make(chan *pb.GatewayNdf)
 		gatewayReadyCh := make(chan struct{}, 1)
-		impl.Functions.SupplyNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
+		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
 			var gwNdf *pb.GatewayNdf
 			select {
 			case gwNdf = <-gatewayNdfChan:

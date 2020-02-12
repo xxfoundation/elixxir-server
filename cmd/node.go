@@ -117,7 +117,7 @@ func StartServer(vip *viper.Viper) error {
 		// Assemble the Comms callback interface
 		gatewayNdfChan := make(chan *pb.GatewayNdf)
 		gatewayReadyCh := make(chan struct{}, 1)
-		impl.Functions.SupplyNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
+		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
 			gwNdf := &pb.GatewayNdf{
 				Id:  make([]byte, 0),
 				Ndf: &pb.NDF{},
