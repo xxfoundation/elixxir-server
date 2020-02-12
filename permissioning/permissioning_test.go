@@ -181,7 +181,7 @@ func TestRegisterNode(t *testing.T) {
 		// Assemble the Comms callback interface
 		gatewayNdfChan := make(chan *pb.GatewayNdf)
 		gatewayReadyCh := make(chan struct{}, 1)
-		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
+		impl.Functions.SupplyNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
 			var gwNdf *pb.GatewayNdf
 			select {
 			case gwNdf = <-gatewayNdfChan:
@@ -229,7 +229,7 @@ func TestRegisterNode(t *testing.T) {
 		}
 		numPolls++
 		nodeHost, _ := gwComms.GetHost(nodeId.String())
-		msg, err := gwComms.PollNdf(nodeHost)
+		msg, err := gwComms.DemndNdf(nodeHost)
 		if err != nil {
 			t.Errorf("Error on polling signed certs")
 		} else if bytes.Compare(msg.Id, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {

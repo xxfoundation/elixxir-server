@@ -117,7 +117,7 @@ func StartServer(vip *viper.Viper) error {
 		// Assemble the Comms callback interface
 		gatewayNdfChan := make(chan *pb.GatewayNdf)
 		gatewayReadyCh := make(chan struct{}, 1)
-		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
+		impl.Functions.SupplyNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
 			gwNdf := &pb.GatewayNdf{
 				Id:  make([]byte, 0),
 				Ndf: &pb.NDF{},
@@ -138,7 +138,6 @@ func StartServer(vip *viper.Viper) error {
 		if err != nil {
 			return errors.Errorf("Unable to add gateway host: %+v", err)
 		}
-
 		// Connect to the Permissioning Server without authentication
 		permHost, err := network.AddHost(id.PERMISSIONING,
 			def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
@@ -183,6 +182,7 @@ func StartServer(vip *viper.Viper) error {
 
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
+	jww.WARN.Printf("Notls set to: %+v", noTLS)
 	if noTLS {
 		jww.INFO.Println("Blanking TLS certs for non use")
 		def.TlsKey = nil
