@@ -229,7 +229,7 @@ func TestRegisterNode(t *testing.T) {
 		}
 		numPolls++
 		nodeHost, _ := gwComms.GetHost(nodeId.String())
-		msg, err := gwComms.DemndNdf(nodeHost)
+		msg, err := gwComms.PollNdf(nodeHost)
 		if err != nil {
 			t.Errorf("Error on polling signed certs")
 		} else if bytes.Compare(msg.Id, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {
