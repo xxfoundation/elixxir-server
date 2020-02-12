@@ -182,7 +182,6 @@ func StartServer(vip *viper.Viper) error {
 
 	jww.INFO.Printf("Creating server instance")
 	// Create instance
-	jww.WARN.Printf("Notls set to: %+v", noTLS)
 	if noTLS {
 		jww.INFO.Println("Blanking TLS certs for non use")
 		def.TlsKey = nil
