@@ -50,30 +50,14 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 	return nil
 }
 
-//PollNdf handles the server requesting the ndf from permissioning
+// PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
 func PollNdf(def *server.Definition, network *node.Comms,
 	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
-	var response *pb.NDF
-	var err error
-
-	jww.INFO.Printf("Beginning polling NDF...")
-	for response == nil || response.Ndf == nil {
-		response, err = network.RequestNdf(permHost,
-			&pb.NDFHash{Hash: make([]byte, 0)})
-		if err != nil {
-			jww.WARN.Printf("%+v: Requesting again!", err)
-			time.Sleep(250 * time.Millisecond)
-		}
-	}
-
-	// Decode the ndf into an object
-	jww.DEBUG.Printf("Ndf received: %s", string(response.Ndf))
-	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
+	newNdf, err := network.ProtoComms.PollNdf(nil)
 	if err != nil {
-		errMsg := errors.Errorf("Unable to parse Ndf: %v", err)
-		return nil, errMsg
+		return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
 	}
 	// Find this server's place in the ndf
 	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
