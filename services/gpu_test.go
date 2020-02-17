@@ -12,25 +12,129 @@ import (
 	"time"
 )
 
-// Implement mod exp using GPU kernel
-var ModuleExpGPU = Module{
-	// Populate Adapt late
-	// Populate InputSize late using stream pool max size
-	Cryptop:        gpumaths.ExpChunk,
-	StartThreshold: 0,
-	Name:           "ExpGPU",
-	// two threads for two streams
-	NumThreads: 2,
-}
+var (
+	// Implement mod exp using GPU kernel
+	gpuA = Module{
+		// Cryptop is unused. Unsure if correct
+		Adapt: func(s Stream, _ cryptops.Cryptop, chunk Chunk) error {
+			stream, ok := s.(*ExpTestStream)
+			if !ok {
+				return errors.New("Module A GPU: stream type assert failed")
+			}
 
-var ModuleExpCPU = Module{
-	// Populate Adapt late
-	Cryptop:        cryptops.Exp,
-	InputSize:      0,
-	StartThreshold: 0,
-	Name:           "ExpCPU",
-	NumThreads:     uint8(runtime.NumCPU()),
-}
+			x := stream.a.GetSubBuffer(chunk.Begin(), chunk.End())
+			y := stream.b.GetSubBuffer(chunk.Begin(), chunk.End())
+			result := stream.ABResult.GetSubBuffer(chunk.Begin(), chunk.End())
+			_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
+			return err
+		},
+		InputSize:      8,
+		Cryptop:        gpumaths.ExpChunk,
+		StartThreshold: 0,
+		Name:           "ExpGPUA",
+		// two threads for two streams
+		NumThreads: 2,
+	}
+
+	gpuB = Module{
+		// Cryptop is unused. Unsure if correct
+		Adapt: func(s Stream, _ cryptops.Cryptop, chunk Chunk) error {
+			stream, ok := s.(*ExpTestStream)
+			if !ok {
+				return errors.New("Module B GPU: stream type assert failed")
+			}
+
+			x := stream.ABResult.GetSubBuffer(chunk.Begin(), chunk.End())
+			y := stream.c.GetSubBuffer(chunk.Begin(), chunk.End())
+			result := stream.ABCResult.GetSubBuffer(chunk.Begin(), chunk.End())
+			_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
+			return err
+		},
+		InputSize:      8,
+		Cryptop:        gpumaths.ExpChunk,
+		StartThreshold: 0,
+		Name:           "ExpGPUB",
+		// two threads for two streams
+		NumThreads: 2,
+	}
+
+	// Implement mod exp using GPU kernel
+	gpuC = Module{
+		// Cryptop is unused. Unsure if correct
+		Adapt: func(s Stream, _ cryptops.Cryptop, chunk Chunk) error {
+			stream, ok := s.(*ExpTestStream)
+			if !ok {
+				return errors.New("Module C GPU: stream type assert failed")
+			}
+
+			x := stream.ABCResult.GetSubBuffer(chunk.Begin(), chunk.End())
+			y := stream.d.GetSubBuffer(chunk.Begin(), chunk.End())
+			result := stream.ABCDResult.GetSubBuffer(chunk.Begin(), chunk.End())
+			_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
+			return err
+		},
+		InputSize:      8,
+		Cryptop:        gpumaths.ExpChunk,
+		StartThreshold: 0,
+		Name:           "ExpGPUC",
+		// two threads for two streams
+		NumThreads: 2,
+	}
+
+	cpuA = Module{
+		Adapt: func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
+			stream, ok := s.(*ExpTestStream)
+			if !ok {
+				return errors.New("Module A CPU: stream type assert failed")
+			}
+			for i := chunk.Begin(); i < chunk.End(); i++ {
+				cryptops.Exp(stream.g, stream.a.Get(i), stream.b.Get(i), stream.ABResult.Get(i))
+			}
+			return nil
+		},
+		Cryptop:        cryptops.Exp,
+		InputSize:      0,
+		StartThreshold: 0,
+		Name:           "ExpCPU",
+		NumThreads:     uint8(runtime.NumCPU()),
+	}
+
+	cpuB = Module{
+		Adapt: func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
+			stream, ok := s.(*ExpTestStream)
+			if !ok {
+				return errors.New("Module A CPU: stream type assert failed")
+			}
+			for i := chunk.Begin(); i < chunk.End(); i++ {
+				cryptops.Exp(stream.g, stream.ABResult.Get(i), stream.c.Get(i), stream.ABCResult.Get(i))
+			}
+			return nil
+		},
+		Cryptop:        cryptops.Exp,
+		InputSize:      0,
+		StartThreshold: 0,
+		Name:           "ExpCPU",
+		NumThreads:     uint8(runtime.NumCPU()),
+	}
+
+	cpuC = Module{
+		Adapt: func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
+			stream, ok := s.(*ExpTestStream)
+			if !ok {
+				return errors.New("Module A CPU: stream type assert failed")
+			}
+			for i := chunk.Begin(); i < chunk.End(); i++ {
+				cryptops.Exp(stream.g, stream.ABCResult.Get(i), stream.d.Get(i), stream.ABCDResult.Get(i))
+			}
+			return nil
+		},
+		Cryptop:        cryptops.Exp,
+		InputSize:      0,
+		StartThreshold: 0,
+		Name:           "ExpCPU",
+		NumThreads:     uint8(runtime.NumCPU()),
+	}
+)
 
 // Can I skip round buffer and just use the stream instead?
 type ExpTestStream struct {
@@ -153,7 +257,7 @@ func TestCGC(t *testing.T) {
 	}
 
 	// approximate expanded batch size
-	expandBatchSize := 6*batchSize
+	expandBatchSize := 6 * batchSize
 	rand := rand.New(rand.NewSource(1337))
 	g := initDispatchGroup()
 	goldExp := ExpTestStream{
@@ -179,61 +283,18 @@ func TestCGC(t *testing.T) {
 		t.Fatalf("stream too small! has %v slots. make it bigger", stream.MaxSlotsExp)
 	}
 
-	// TODO populate Adapt late for these modules
-	cpuA := ModuleExpCPU.DeepCopy()
-	cpuA.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module A CPU: stream type assert failed")
-		}
-		for i := chunk.Begin(); i < chunk.End(); i++ {
-			cryptops.Exp(stream.g, stream.a.Get(i), stream.b.Get(i), stream.ABResult.Get(i))
-		}
-		return nil
-	}
-	cpuB := ModuleExpCPU.DeepCopy()
-	cpuB.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module B CPU: stream type assert failed")
-		}
-		for i := chunk.Begin(); i < chunk.End(); i++ {
-			cryptops.Exp(stream.g, stream.ABResult.Get(i), stream.c.Get(i), stream.ABCResult.Get(i))
-		}
-		return nil
-	}
-	cpuC := ModuleExpCPU.DeepCopy()
-	cpuC.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module C CPU: stream type assert failed")
-		}
-		for i := chunk.Begin(); i < chunk.End(); i++ {
-			cryptops.Exp(stream.g, stream.ABCResult.Get(i), stream.d.Get(i), stream.ABCDResult.Get(i))
-		}
-		return nil
-	}
-
-	ModuleExpGPU.InputSize = uint32(stream.MaxSlotsExp)
-	gpuB := ModuleExpGPU.DeepCopy()
-	gpuB.Adapt = func(s Stream, c cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module B GPU: stream type assert failed")
-		}
-
-		x := stream.ABResult.GetSubBuffer(chunk.Begin(), chunk.End())
-		y := stream.c.GetSubBuffer(chunk.Begin(), chunk.End())
-		result := stream.ABCResult.GetSubBuffer(chunk.Begin(), chunk.End())
-		_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
-		return err
-	}
+	// Copy to set custom input size
+	gpuBLocal := gpuB.DeepCopy()
+	// We could also set input size to be the number of slots that's less than MaxSlotsExp that has a common factor with the CPU input sizes
+	// That would allow for fairly large chunks while not exceeding input size
+	// The user is responsible for choosing an input size that will work well with both the dispatcher and CUDA
+	gpuBLocal.InputSize = uint32(stream.MaxSlotsExp)
 	// Time test graph runs, just for fun
 	start := time.Now()
 	runTestGraph(&goldExp, cpuA.DeepCopy(), cpuB.DeepCopy(), cpuC.DeepCopy())
 	t.Log(time.Since(start))
 	start = time.Now()
-	runTestGraph(testExp, cpuA.DeepCopy(), gpuB.DeepCopy(), cpuC.DeepCopy())
+	runTestGraph(testExp, cpuA.DeepCopy(), gpuBLocal.DeepCopy(), cpuC.DeepCopy())
 	t.Log(time.Since(start))
 	// TODO Block on graph execution somehow
 	for i := uint32(0); i < batchSize; i++ {
@@ -254,7 +315,7 @@ func TestGGG(t *testing.T) {
 	}
 
 	// approximate expanded batch size
-	expandBatchSize := 6*batchSize
+	expandBatchSize := 6 * batchSize
 	rand := rand.New(rand.NewSource(1337))
 	g := initDispatchGroup()
 	goldExp := ExpTestStream{
@@ -280,87 +341,19 @@ func TestGGG(t *testing.T) {
 		t.Fatalf("stream too small! has %v slots. make it bigger", stream.MaxSlotsExp)
 	}
 
-	// TODO populate Adapt late for these modules
-	cpuA := ModuleExpCPU.DeepCopy()
-	cpuA.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module A CPU: stream type assert failed")
-		}
-		for i := chunk.Begin(); i < chunk.End(); i++ {
-			cryptops.Exp(stream.g, stream.a.Get(i), stream.b.Get(i), stream.ABResult.Get(i))
-		}
-		return nil
-	}
-	cpuB := ModuleExpCPU.DeepCopy()
-	cpuB.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module B CPU: stream type assert failed")
-		}
-		for i := chunk.Begin(); i < chunk.End(); i++ {
-			cryptops.Exp(stream.g, stream.ABResult.Get(i), stream.c.Get(i), stream.ABCResult.Get(i))
-		}
-		return nil
-	}
-	cpuC := ModuleExpCPU.DeepCopy()
-	cpuC.Adapt = func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module C CPU: stream type assert failed")
-		}
-		for i := chunk.Begin(); i < chunk.End(); i++ {
-			cryptops.Exp(stream.g, stream.ABCResult.Get(i), stream.d.Get(i), stream.ABCDResult.Get(i))
-		}
-		return nil
-	}
+	gpuALocal := gpuA.DeepCopy()
+	gpuBLocal := gpuB.DeepCopy()
+	gpuCLocal := gpuC.DeepCopy()
+	gpuALocal.InputSize = uint32(stream.MaxSlotsExp)
+	gpuBLocal.InputSize = uint32(stream.MaxSlotsExp)
+	gpuCLocal.InputSize = uint32(stream.MaxSlotsExp)
 
-	ModuleExpGPU.InputSize = uint32(stream.MaxSlotsExp)
-	gpuA := ModuleExpGPU.DeepCopy()
-	gpuA.Adapt = func(s Stream, c cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module B GPU: stream type assert failed")
-		}
-
-		x := stream.a.GetSubBuffer(chunk.Begin(), chunk.End())
-		y := stream.b.GetSubBuffer(chunk.Begin(), chunk.End())
-		result := stream.ABResult.GetSubBuffer(chunk.Begin(), chunk.End())
-		_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
-		return err
-	}
-	gpuB := ModuleExpGPU.DeepCopy()
-	gpuB.Adapt = func(s Stream, c cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module B GPU: stream type assert failed")
-		}
-
-		x := stream.ABResult.GetSubBuffer(chunk.Begin(), chunk.End())
-		y := stream.c.GetSubBuffer(chunk.Begin(), chunk.End())
-		result := stream.ABCResult.GetSubBuffer(chunk.Begin(), chunk.End())
-		_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
-		return err
-	}
-	gpuC := ModuleExpGPU.DeepCopy()
-	gpuC.Adapt = func(s Stream, c cryptops.Cryptop, chunk Chunk) error {
-		stream, ok := s.(*ExpTestStream)
-		if !ok {
-			return errors.New("Module B GPU: stream type assert failed")
-		}
-
-		x := stream.ABCResult.GetSubBuffer(chunk.Begin(), chunk.End())
-		y := stream.d.GetSubBuffer(chunk.Begin(), chunk.End())
-		result := stream.ABCDResult.GetSubBuffer(chunk.Begin(), chunk.End())
-		_, err := gpumaths.ExpChunk(stream.streamPool, stream.g, x, y, result)
-		return err
-	}
 	// Time test graph runs, just for fun
 	start := time.Now()
 	runTestGraph(&goldExp, cpuA.DeepCopy(), cpuB.DeepCopy(), cpuC.DeepCopy())
 	t.Log(time.Since(start))
 	start = time.Now()
-	runTestGraph(testExp, gpuA.DeepCopy(), gpuB.DeepCopy(), gpuC.DeepCopy())
+	runTestGraph(testExp, gpuALocal.DeepCopy(), gpuBLocal.DeepCopy(), gpuCLocal.DeepCopy())
 	t.Log(time.Since(start))
 	// TODO Block on graph execution somehow
 	for i := uint32(0); i < batchSize; i++ {
