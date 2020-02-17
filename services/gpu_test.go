@@ -1,3 +1,11 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
+// +build linux,cgo
+
 package services
 
 import (
@@ -13,7 +21,7 @@ import (
 )
 
 var (
-	// Implement mod exp using GPU kernel
+	// Use GPU to calculate a^b
 	gpuA = Module{
 		// Cryptop is unused. Unsure if correct
 		Adapt: func(s Stream, _ cryptops.Cryptop, chunk Chunk) error {
@@ -36,6 +44,7 @@ var (
 		NumThreads: 2,
 	}
 
+	// Use GPU to calculate (a^b)^c
 	gpuB = Module{
 		// Cryptop is unused. Unsure if correct
 		Adapt: func(s Stream, _ cryptops.Cryptop, chunk Chunk) error {
@@ -58,7 +67,7 @@ var (
 		NumThreads: 2,
 	}
 
-	// Implement mod exp using GPU kernel
+	// Use GPU to calculate ((a^b)^c)^d
 	gpuC = Module{
 		// Cryptop is unused. Unsure if correct
 		Adapt: func(s Stream, _ cryptops.Cryptop, chunk Chunk) error {
@@ -81,6 +90,7 @@ var (
 		NumThreads: 2,
 	}
 
+	// Use CPU to calculate a^b
 	cpuA = Module{
 		Adapt: func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 			stream, ok := s.(*ExpTestStream)
@@ -99,11 +109,12 @@ var (
 		NumThreads:     uint8(runtime.NumCPU()),
 	}
 
+	// Use CPU to calculate (a^b)^c
 	cpuB = Module{
 		Adapt: func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 			stream, ok := s.(*ExpTestStream)
 			if !ok {
-				return errors.New("Module A CPU: stream type assert failed")
+				return errors.New("Module B CPU: stream type assert failed")
 			}
 			for i := chunk.Begin(); i < chunk.End(); i++ {
 				cryptops.Exp(stream.g, stream.ABResult.Get(i), stream.c.Get(i), stream.ABCResult.Get(i))
@@ -117,11 +128,12 @@ var (
 		NumThreads:     uint8(runtime.NumCPU()),
 	}
 
+	// Use CPU to calculate ((a^b)^c)^d
 	cpuC = Module{
 		Adapt: func(s Stream, cryptop cryptops.Cryptop, chunk Chunk) error {
 			stream, ok := s.(*ExpTestStream)
 			if !ok {
-				return errors.New("Module A CPU: stream type assert failed")
+				return errors.New("Module C CPU: stream type assert failed")
 			}
 			for i := chunk.Begin(); i < chunk.End(); i++ {
 				cryptops.Exp(stream.g, stream.ABCResult.Get(i), stream.d.Get(i), stream.ABCDResult.Get(i))
@@ -136,10 +148,10 @@ var (
 	}
 )
 
-// Can I skip round buffer and just use the stream instead?
+// This stream has all the variables and results needed to do exponentiation
+// It also includes a stream pool which is needed to run GPU kernels
 type ExpTestStream struct {
 	g *cyclic.Group
-	// Use this stream pool for space to run the GPU code
 	streamPool *gpumaths.StreamPool
 	length     uint32
 	a          *cyclic.IntBuffer
@@ -151,20 +163,24 @@ type ExpTestStream struct {
 	ABCDResult *cyclic.IntBuffer
 }
 
+// Implement stream interface
+// Returns stream tag to help logging
 func (s *ExpTestStream) GetName() string {
 	return "ExpTestStream"
 }
 
+// Implement stream interface
+// Gives stream a group and length
+// Int buffers should be populated elsewhere
 func (s *ExpTestStream) Link(grp *cyclic.Group, BatchSize uint32, source ...interface{}) {
-	// For some reason the group that gets passed to Link is nil, so I just use initDispatchGroup instead of understanding why
+	// For some reason the group that gets passed to Link is nil, so I just use initDispatchGroup instead of figuring out why
 	s.g = initDispatchGroup()
 	s.length = BatchSize
-	// All int buffers should be populated already
 }
 
-func (s *ExpTestStream) Input(index uint32, msg *mixmessages.Slot) error {
-	return nil
-}
+// Implement stream interface
+func (s *ExpTestStream) Input(index uint32, msg *mixmessages.Slot) error {return nil }
+// Implement stream interface
 func (s *ExpTestStream) Output(index uint32) *mixmessages.Slot { return nil }
 
 // Return an ExpTestStream with all int buffers deepcopied.
@@ -189,6 +205,7 @@ func (s *ExpTestStream) DeepCopy() *ExpTestStream {
 }
 
 // Precondition: ExpTestStream is populated with test data
+// Prepares and runs a graph with the specified 3 modules
 func runTestGraph(stream *ExpTestStream, moduleA, moduleB, moduleC *Module) {
 	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
 	// need to do _something_ here???
@@ -241,6 +258,7 @@ func randInGroup(g *cyclic.Group, rand *rand.Rand) []byte {
 }
 
 // Compare modular exponentiation results with Exp kernel with those doing modular exponentiation on the CPU to show they're both the same
+// Shows that the GPU code can work with and integrate with CPU modules if needed
 func TestCGC(t *testing.T) {
 	// Gold results: Cpu, cpu, cpu
 	// Compare to:	 Cpu, gpu, cpu
@@ -304,6 +322,8 @@ func TestCGC(t *testing.T) {
 	}
 }
 
+// Compare modular exponentiation results with Exp kernel with those doing modular exponentiation on the CPU to show they're both the same
+// Shows that the GPU code can work correctly on its own
 func TestGGG(t *testing.T) {
 	// Gold results: Cpu, cpu, cpu
 	// Compare to:   Gpu, gpu, gpu
