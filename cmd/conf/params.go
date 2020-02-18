@@ -274,7 +274,6 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
 	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
-
 	if len(def.Permissioning.TlsCert) > 0 {
 		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
 		if err != nil {
