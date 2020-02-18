@@ -13,7 +13,7 @@ import "time"
 func main() {
 
 	//run the state machiene
-	for s := Get(); s!=CRASH;s = GetUpdate(){
+	for s := state.Get(); s!=CRASH;s = state.GetUpdate(){
 		switch s{
 		case NOT_STARTED:
 
