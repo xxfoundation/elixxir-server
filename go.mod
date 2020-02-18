@@ -25,7 +25,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.5.0 // indirect
-	gitlab.com/elixxir/comms v0.0.0-20200218211723-6fa8cd36556a
+	gitlab.com/elixxir/comms v0.0.0-20200218232629-9f5cd47b8798
 	gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23
 	gitlab.com/elixxir/primitives v0.0.0-20200218211222-4193179f359c
 	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6
