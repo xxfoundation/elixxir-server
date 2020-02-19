@@ -69,16 +69,17 @@ const NUM_STATES = CRASH + 1
 
 // Stringer to get the name of the state
 func (s State)String()string{
-	if s>CRASH {
-		return fmt.Sprintf("UNKNOWN STATE: %d", s)
+	switch(s){
+	case NOT_STARTED: return "NOT_STARTED"
+	case WAITING: return "WAITING"
+	case PRECOMPUTING: return "PRECOMPUTING"
+	case STANDBY: return "STANDBY"
+	case REALTIME: return "REALTIME"
+	case ERROR: return "ERROR"
+	case CRASH: return "CRASH"
+	default: return fmt.Sprintf("UNKNOWN STATE: %d", s)
 	}
-
-	return stateNames[s]
 }
-
-// underlying state names
-var stateNames = []string{"INVALID_STATE_0", "NOT_STARTED", "WAITING",
-	"PRECOMPUTING", "STANDBY", "REALTIME", "ERROR", "CRASH"}
 
 /*///State Object/////////////////////////////////////////////////////////////*/
 
