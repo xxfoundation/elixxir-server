@@ -68,7 +68,7 @@ func TestNew(t *testing.T) {
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
 
 	if round.GetID() != roundId {
 		t.Error("Round ID wasn't set correctly")
@@ -140,7 +140,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
 
 	timeNow := time.Now()
 	resourceMetric := measure.ResourceMetric{
@@ -185,7 +185,7 @@ func TestRound_StartRoundTrip(t *testing.T) {
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
 	payload := "NULL/ACK"
 	unsetStart := round.rtStartTime
 	round.StartRoundTrip(payload)
@@ -213,7 +213,7 @@ func TestRound_StopRoundTrip(t *testing.T) {
 
 	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
 	unsetStop := round.rtEndTime
 
 	err := round.StopRoundTrip()

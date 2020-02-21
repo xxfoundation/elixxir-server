@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
@@ -294,24 +293,8 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 			m, err))
 	}
 
-	var streamPool *gpumaths.StreamPool
-	if def.UseGPU {
-		// Try to initialize the GPU
-		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
-		memSize := 268435456
-		jww.INFO.Printf("Initializing GPU maths, CUDA backend, with memory size %v", memSize)
-		var err error
-		// It could be better to configure the amount of memory used in a configuration file instead
-		streamPool, err = gpumaths.NewStreamPool(2, memSize)
-		// An instance without a stream pool is still valid
-		// So, log the error here instead of returning it, because we didn't fail to create the server instance here
-		if err != nil {
-			jww.ERROR.Printf("Couldn't initialize GPU. Falling back to CPU math. Error: %v", err.Error())
-		}
-	}
-
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
-		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold, streamPool)
+		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
 	return def
 }

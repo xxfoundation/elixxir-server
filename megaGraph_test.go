@@ -772,7 +772,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	//Link precomputation
 	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngStreamGen)
-	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysPayloadA,
+	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB)
 	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB, keysPayloadAPermuted, cypherPayloadAPermuted,

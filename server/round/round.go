@@ -7,6 +7,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -35,6 +36,10 @@ type Round struct {
 	roundMetrics     measure.RoundMetrics
 	metricsReadyChan chan struct{}
 
+	// hold GPU stream references - should be populated if GPU in use,
+	// should be nil if CPU only
+	streamPool *gpumaths.StreamPool
+
 	// Round trip info
 	rtStarted   bool
 	rtStartTime time.Time
@@ -46,11 +51,12 @@ type Round struct {
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
-	rngStreamGen *fastRNG.StreamGenerator, localIP string) *Round {
+	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
+	localIP string) *Round {
 
 	roundMetrics := measure.NewRoundMetrics(id, batchSize)
 	roundMetrics.IP = localIP
-	round := Round{id: id, roundMetrics: roundMetrics}
+	round := Round{id: id, roundMetrics: roundMetrics, streamPool: streamPool}
 
 	maxBatchSize := uint32(0)
 
@@ -134,7 +140,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	}
 
 	for index, p := range phases {
-		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen)
+		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
 		round.phaseMap[p.GetType()] = index
 	}
 

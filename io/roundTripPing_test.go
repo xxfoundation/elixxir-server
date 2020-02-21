@@ -100,7 +100,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		mockServerInstance.GetRngStreamGen(), "0.0.0.0")
+		mockServerInstance.GetRngStreamGen(), nil, "0.0.0.0")
 
 	before := r.GetRTStart().String()
 

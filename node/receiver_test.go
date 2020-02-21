@@ -104,7 +104,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 	instance.GetRoundManager().AddRound(r)
 
 	// Build a fake batch for the reception handler
@@ -204,7 +204,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 	instance.GetRoundManager().AddRound(r)
 	instance.GetCompletedPrecomps().Push(r)
 
@@ -270,7 +270,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -411,7 +411,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -572,7 +572,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhase}, responseMap, instance.GetTopology(),
 		instance.GetTopology().GetNodeAtIndex(1), batchSize,
-		instance.GetRngStreamGen(), "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -651,7 +651,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -767,7 +767,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	instance.GetRoundManager().AddRound(round.New(grp,
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), "0.0.0.0"))
+		instance.GetRngStreamGen(), nil, "0.0.0.0"))
 	// This should give an error because we give it fewer slots than are in the
 	// batch
 	err := ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{})
@@ -820,7 +820,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		instances[i].GetRoundManager().AddRound(round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
-			3, instances[i].GetRngStreamGen(), "0.0.0.0"))
+			3, instances[i].GetRngStreamGen(), nil, "0.0.0.0"))
 	}
 
 	// Initially, there should be zero rounds on the precomp queue
@@ -893,7 +893,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -966,7 +966,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1040,7 +1040,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
 
@@ -1117,7 +1117,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0")
 	r.StartRoundTrip("test")
 
 	before := r.GetRTEnd().String()

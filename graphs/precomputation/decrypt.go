@@ -48,8 +48,13 @@ func (ds *DecryptStream) GetName() string {
 // Link binds stream to state objects in round
 func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
 
-	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer,
+	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
@@ -58,9 +63,10 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 }
 
 func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
-	keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer) {
+	pool *gpumaths.StreamPool, keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer) {
 
 	ds.Grp = grp
+	ds.StreamPool = pool
 	ds.PublicCypherKey = roundBuffer.CypherPublicKey
 
 	ds.R = roundBuffer.R.GetSubBuffer(0, batchSize)
@@ -185,22 +191,23 @@ var DecryptElgamalChunk = services.Module{
 
 // InitDecryptGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
-	sp := gc.GetStreamPool()
-	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{StreamPool: sp})
-	if sp != nil {
-		decryptElgamalChunk := DecryptElgamalChunk.DeepCopy()
-		// TODO Populate InputSize here!
-		// Probably should make a function for it so I can populate inputsize in a way that works well for all phases
-		//  (or at least all that use ElgamalChunk)
+	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{})
 
-		g.First(decryptElgamalChunk)
-		g.Last(decryptElgamalChunk)
-	} else {
-		decryptElgamal := DecryptElgamal.DeepCopy()
+	decryptElgamal := DecryptElgamal.DeepCopy()
 
-		g.First(decryptElgamal)
-		g.Last(decryptElgamal)
-	}
+	g.First(decryptElgamal)
+	g.Last(decryptElgamal)
+
+	return g
+}
+
+func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
+	g := gc.NewGraph("PrecompDecryptGPU", &DecryptStream{})
+
+	decryptElgamalChunk := DecryptElgamalChunk.DeepCopy()
+
+	g.First(decryptElgamalChunk)
+	g.Last(decryptElgamalChunk)
 
 	return g
 }
