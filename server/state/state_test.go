@@ -311,7 +311,7 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 
 	//create runner to clear the notification
 	go func(){
-		timer := time.NewTimer(5*time.Millisecond)
+		timer := time.NewTimer(50*time.Millisecond)
 		select{
 		case r := <- s.notify:
 			r.f(nil)
