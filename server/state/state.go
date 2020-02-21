@@ -152,7 +152,7 @@ func newState() stateObj {
 	S.addStateTransition(PRECOMPUTING,STANDBY,ERROR)
 	S.addStateTransition(STANDBY,REALTIME,ERROR)
 	S.addStateTransition(REALTIME,WAITING,ERROR)
-	S.addStateTransition(ERROR,WAITING,CRASH)
+	S.addStateTransition(ERROR,WAITING,ERROR,CRASH)
 
 	return S
 }

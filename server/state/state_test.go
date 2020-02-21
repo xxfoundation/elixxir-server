@@ -18,7 +18,7 @@ var expectedStateMap = [][]bool{
 []bool{false, false, false, false, true, false, true, false},
 []bool{false, false, false, false, false, true, true, false},
 []bool{false, false, true, false, false, false, true, false},
-[]bool{false, false, true, false, false, false, false, true},
+[]bool{false, false, true, false, false, false, true, true},
 []bool{false, false, false, false, false, false, false, false},
 }
 
@@ -536,7 +536,7 @@ func TestWaitFor_WaitForState(t *testing.T) {
 }
 
 //tests when it takes time for the state to come
-func TestWaitFor_WaitForState_BadState(t *testing.T) {
+func TestWaitFor_WaitForBadState(t *testing.T) {
 	s = newState()
 
 	*s.State = PRECOMPUTING
@@ -552,7 +552,7 @@ func TestWaitFor_WaitForState_BadState(t *testing.T) {
 
 	if b{
 		t.Errorf("WaitFor() returned true when doing check on state" +
-			" which happened incorrectly")
+			" transition which happened incorrectly")
 	}
 
 	if err==nil{
@@ -560,8 +560,8 @@ func TestWaitFor_WaitForState_BadState(t *testing.T) {
 			"occured")
 	}else if strings.Contains(err.Error(), "state not updated to the " +
 	"correct state"){
-		t.Errorf("WaitFor() returned teh wrong error on bad state " +
-			"change occured: %s", err.Error())
+		t.Errorf("WaitFor() returned thh wrong error on bad state " +
+			"change: %s", err.Error())
 	}
 }
 
