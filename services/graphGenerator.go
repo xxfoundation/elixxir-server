@@ -8,6 +8,7 @@ package services
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/gpumaths"
 )
 
 // Should probably add more params to this like block ID, worker thread ID, etc
@@ -19,9 +20,10 @@ type GraphGenerator struct {
 	defaultNumTh    uint8
 	outputSize      uint32
 	outputThreshold float32
+	streamPool      *gpumaths.StreamPool
 }
 
-func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8, outputSize uint32, outputThreshold float32) GraphGenerator {
+func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8, outputSize uint32, outputThreshold float32, streamPool *gpumaths.StreamPool) GraphGenerator {
 	if defaultNumTh == 0 {
 		jww.FATAL.Panicf("Cannot default to zero threads")
 	}
@@ -45,6 +47,7 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 		defaultNumTh:    defaultNumTh,
 		outputSize:      outputSize,
 		outputThreshold: outputThreshold,
+		streamPool:      streamPool,
 	}
 }
 
@@ -70,6 +73,10 @@ func (gc *GraphGenerator) GetOutputSize() uint32 {
 
 func (gc *GraphGenerator) GetOutputThreshold() float32 {
 	return gc.outputThreshold
+}
+
+func (gc *GraphGenerator) GetStreamPool() *gpumaths.StreamPool {
+	return gc.streamPool
 }
 
 func (gc *GraphGenerator) NewGraph(name string, stream Stream) *Graph {

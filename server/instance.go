@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -29,8 +28,6 @@ type Instance struct {
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
 	network       *node.Comms
-	// In general, use CPU math if the stream pool is nil
-	streamPool *gpumaths.StreamPool
 	firstNode
 	LastNode
 }
@@ -47,21 +44,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		definition:    def,
 		roundManager:  round.NewManager(),
 		resourceQueue: initQueue(),
-	}
-
-	if def.UseGPU {
-		// Try to initialize the GPU
-		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
-		memSize := 268435456
-		jww.INFO.Printf("Initializing GPU maths, CUDA backend, with memory size %v", memSize)
-		var err error
-		// It could be better to configure the amount of memory used in a configuration file instead
-		instance.streamPool, err = gpumaths.NewStreamPool(2, memSize)
-		// An instance without a stream pool is still valid
-		// So, log the error here instead of returning it, because we didn't fail to create the server instance here
-		if err != nil {
-			jww.ERROR.Printf("Couldn't initialize GPU. Falling back to CPU math. Error: %v", err.Error())
-		}
 	}
 
 	// Initializes the network on this server instance
@@ -143,11 +125,6 @@ func (i *Instance) GetResourceQueue() *ResourceQueue {
 // GetNetwork returns the network object
 func (i *Instance) GetNetwork() *node.Comms {
 	return i.network
-}
-
-// GetStreamPool returns the stream pool for running math on the GPU
-func (i *Instance) GetStreamPool() *gpumaths.StreamPool {
-	return i.streamPool
 }
 
 //GetID returns this node's ID
