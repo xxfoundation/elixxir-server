@@ -37,7 +37,8 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetTopology(),
 		instance.GetID(),
 		&instance.LastNode,
-		instance.GetBatchSize())
+		instance.GetBatchSize(),
+		instance.GetStreamPool())
 
 	//Build the round
 	rnd := round.New(
