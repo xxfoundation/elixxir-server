@@ -8,7 +8,6 @@ package node
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -319,7 +318,9 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
 	strmErr := io.StreamPostPhase(p, batchInfo.BatchSize, streamServer)
-
+	if strmErr != nil {
+		jww.ERROR.Printf("%+v", strmErr)
+	}
 	return strmErr
 
 }
@@ -330,7 +331,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, auth *connect.Auth) error {
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
-		jww.WARN.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+		jww.ERROR.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
 		return connect.AuthError(auth.Sender.GetId())
 	}
@@ -341,9 +342,9 @@ func ReceivePostNewBatch(instance *server.Instance,
 	// return value of the PostNewBatch comm.
 	r, ok := instance.GetCompletedPrecomps().Pop()
 	if !ok {
-		err := errors.New(fmt.Sprintf(
+		err := errors.Errorf(
 			"[%s]: ReceivePostNewBatch(): No precomputation available",
-			instance))
+			instance)
 		// This round should be at a state where its precomp
 		// is complete. So, we might want more than one
 		// phase, since it's at a boundary between phases.
