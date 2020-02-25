@@ -4,17 +4,6 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package state
-
-import (
-	"fmt"
-	"github.com/pkg/errors"
-	//jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/primitives/states"
-	"sync"
-	"time"
-)
-
 // This package holds the server's state object. It defines what states exist
 // and what state transitions are allowable within the NewMachine() function.
 // Builds the state machine documented in the cBetaNet document
@@ -93,6 +82,17 @@ func main() {
 	select{}
 }
 */
+
+package state
+
+import (
+	"fmt"
+	"github.com/pkg/errors"
+	//jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/primitives/states"
+	"sync"
+	"time"
+)
 
 /*///State Machine Object/////////////////////////////////////////////////////*/
 
