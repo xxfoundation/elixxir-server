@@ -6,7 +6,7 @@
 package io
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
@@ -47,9 +47,8 @@ func GetCompletedBatch(instance *server.Instance,
 
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
-		jww.ERROR.Printf("[%s]: GetCompletedBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+		return nil, errors.Errorf("[%s]: GetCompletedBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
-		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
 	var roundQueue *server.CompletedRound

@@ -97,7 +97,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		return errors.Errorf("[%s]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -105,7 +105,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on posting PostRoundPublicKey "+
+		return errors.Errorf("[%s]: Error on posting PostRoundPublicKey "+
 			"to io, should be able to return: %+v", instance, err)
 	}
 
@@ -143,7 +143,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
 		if err != nil {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
+			return errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to get decrypt phase: %+v", err)
 		}
 
@@ -156,14 +156,14 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		decrypt.Measure(measure.TagReceiveOnReception)
 
 		if !queued {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey " +
+			return errors.Errorf("Error on first node PostRoundPublicKey " +
 				"comm, should be able to queue decrypt phase")
 		}
 
 		err = io.PostPhase(decrypt, blankBatch)
 
 		if err != nil {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
+			return errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}
@@ -193,7 +193,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		return errors.Errorf("[%s]: Error on reception of "+
 			"PostPrecompResult comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -218,7 +218,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
-func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) {
+func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
 	// Check for proper authentication and if the sender
 	// is the previous node in the circuit
 	topology := instance.GetTopology()
@@ -226,7 +226,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	prevNodeID := topology.GetPrevNode(nodeID)
 
 	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
-		jww.FATAL.Panicf("Error on PostPhase: "+
+		return errors.Errorf("Error on PostPhase: "+
 			"Attempted communication by %+v has not been authenticated", auth.Sender)
 	}
 
@@ -267,9 +267,11 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	err = io.PostPhase(p, batch)
 
 	if err != nil {
-		jww.FATAL.Panicf("Error on PostPhase comm, should be"+
+		return errors.Errorf("Error on PostPhase comm, should be"+
 			" able to return: %+v", err)
 	}
+
+	return nil
 }
 
 // ReceiveStreamPostPhase handles the state checks and edge checks of
@@ -283,17 +285,14 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	prevNodeID := topology.GetPrevNode(nodeID)
 
 	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
-		errMsg := errors.Errorf("[%s]: Reception of StreamPostPhase comm failed authentication: "+
+		return errors.Errorf("[%s]: Reception of StreamPostPhase comm failed authentication: "+
 			"(Expected ID: %+v, received id: %+v.\n Auth: %+v)", instance,
 			prevNodeID, auth.Sender.GetId(), auth.IsAuthenticated)
-
-		jww.ERROR.Println(errMsg)
-		return errMsg
 
 	}
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
-		return err
+		return errors.Errorf("[%s]: Failed to retrieve batch info: %+v", err)
 	}
 
 	roundID := id.Round(batchInfo.Round.ID)
@@ -305,7 +304,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		return errors.Errorf("[%s]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -319,7 +318,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 	strmErr := io.StreamPostPhase(p, batchInfo.BatchSize, streamServer)
 	if strmErr != nil {
-		jww.ERROR.Printf("%+v", strmErr)
+		return errors.Errorf("%+v", strmErr)
 	}
 	return strmErr
 
@@ -331,9 +330,8 @@ func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, auth *connect.Auth) error {
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
-		jww.ERROR.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+		return errors.Errorf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
-		return connect.AuthError(auth.Sender.GetId())
 	}
 
 	// This shouldn't block,
@@ -342,14 +340,12 @@ func ReceivePostNewBatch(instance *server.Instance,
 	// return value of the PostNewBatch comm.
 	r, ok := instance.GetCompletedPrecomps().Pop()
 	if !ok {
-		err := errors.Errorf(
+		return errors.Errorf(
 			"[%s]: ReceivePostNewBatch(): No precomputation available",
 			instance)
 		// This round should be at a state where its precomp
 		// is complete. So, we might want more than one
 		// phase, since it's at a boundary between phases.
-		jww.ERROR.Print(err)
-		return err
 	}
 	newBatch.Round = &mixmessages.RoundInfo{
 		ID: uint64(r.GetID()),
@@ -360,21 +356,21 @@ func ReceivePostNewBatch(instance *server.Instance,
 		newBatch.Round.ID)
 
 	if uint32(len(newBatch.Slots)) != r.GetBuffer().GetBatchSize() {
-		jww.FATAL.Panicf("[%s]: RID %d PostNewBatch ERROR - Gateway sent "+
+		return errors.Errorf("[%s]: RID %d PostNewBatch ERROR - Gateway sent "+
 			"batch with improper size", instance, newBatch.Round.ID)
 	}
 
 	p, err := r.GetPhase(phase.RealDecrypt)
 
 	if err != nil {
-		jww.FATAL.Panicf(
+		return errors.Errorf(
 			"[%s]: RID %d Error on incoming PostNewBatch comm, could "+
 				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
 			phase.RealDecrypt, err)
 	}
 
 	if p.GetState() != phase.Active {
-		jww.FATAL.Panicf(
+		return errors.Errorf(
 			"[%s]: RID %d Error on incoming PostNewBatch comm, phase "+
 				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
@@ -390,7 +386,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	err = io.PostPhase(p, newBatch)
 
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: RID %d Error on incoming PostNewBatch comm at"+
+		return errors.Errorf("[%s]: RID %d Error on incoming PostNewBatch comm at"+
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
@@ -409,11 +405,10 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	expectedID := instance.GetTopology().GetLastNode()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
-		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth "+
+		return errors.Errorf("[%s]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
-		return connect.AuthError(auth.Sender.GetId())
 	}
 
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
@@ -428,7 +423,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		return errors.Errorf("[%s]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -543,9 +538,7 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	if topology.IsFirstNode(myID) {
 		err = r.StopRoundTrip()
 		if err != nil {
-			err = errors.Errorf("ReceiveRoundTrip failed to stop round trip: %+v", err)
-			jww.ERROR.Println(err.Error())
-			return err
+			return errors.Errorf("ReceiveRoundTrip failed to stop round trip: %+v", err)
 		}
 		return nil
 	}
@@ -558,8 +551,7 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	//Send the round trip ping to the next node
 	_, err = instance.GetNetwork().RoundTripPing(nextNode, roundID, msg.Payload)
 	if err != nil {
-		err = errors.Errorf("ReceiveRoundTripPing failed to send ping to next node: %+v", err)
-		return err
+		return errors.Errorf("ReceiveRoundTripPing failed to send ping to next node: %+v", err)
 	}
 
 	return nil
