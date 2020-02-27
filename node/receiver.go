@@ -238,7 +238,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		return errors.Errorf("[%s]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -292,7 +292,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	}
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
-		return errors.Errorf("[%s]: Failed to retrieve batch info: %+v", err)
+		return errors.Errorf("[%s]: Failed to retrieve batch info: %+v", instance, err)
 	}
 
 	roundID := id.Round(batchInfo.Round.ID)
@@ -330,8 +330,10 @@ func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, auth *connect.Auth) error {
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
-		return errors.Errorf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+		jww.DEBUG.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
+
+		return connect.AuthError(auth.Sender.GetId())
 	}
 
 	// This shouldn't block,
@@ -405,10 +407,12 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	expectedID := instance.GetTopology().GetLastNode()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
-		return errors.Errorf("[%s]: RID %d FinishRealtime failed auth "+
+		jww.DEBUG.Printf("[%s]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+
 	}
 
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",

@@ -74,8 +74,9 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		// Build the function this phase will use to increment its state
 		increment := func(from, to phase.State) bool {
 			if from >= to {
-				jww.FATAL.Panicf("Cannot increment backwards from %s to %s",
+				jww.ERROR.Printf("Cannot increment backwards from %s to %s",
 					from, to)
+				return false
 			}
 			// 1 is subtracted because Initialized doesnt hold a true state
 			newState := localStateOffset + uint32(to) - 1

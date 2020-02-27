@@ -42,12 +42,13 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	}
 
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
-		// TODO: return error here?
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
 		err := ReceivePostPhase(batch, instance, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Panicf("%+v", err)
 		}
+
+		return err
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
@@ -58,12 +59,12 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return err
 	}
 
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
-		// TODO: return error here?
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		err := ReceivePostRoundPublicKey(instance, pk, auth)
 		if err != nil {
-			jww.FATAL.Printf("%+v", err)
+			jww.ERROR.Panicf("%+v", err)
 		}
+		return err
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
@@ -72,6 +73,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, err error) {
 		batch, err = io.GetCompletedBatch(instance, time.Second, auth)
+		if err != nil {
+			jww.ERROR.Printf("%+v", err)
+		}
 		return batch, err
 	}
 
