@@ -27,7 +27,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		err := ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
 		if err != nil {
-			jww.ERROR.Printf("[%+v] ReceiveCreateNewRound failed auth: %+v", instance, err)
+			jww.ERROR.Printf("ReceiveCreateNewRound error: %+v, %+v", auth, err)
 		}
 		return err
 	}
@@ -36,7 +36,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
 		metrics, err := ReceiveGetMeasure(instance, message)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("GetMeasure error: %+v, %+v", auth, err)
 		}
 		return metrics, err
 
@@ -45,16 +45,15 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
 		err := ReceivePostPhase(batch, instance, auth)
 		if err != nil {
-			jww.ERROR.Panicf("%+v", err)
+			jww.ERROR.Panicf("ReceivePostPhase error: %+v, %+v", auth, err)
 		}
-
 		return err
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		err := ReceiveStreamPostPhase(streamServer, instance, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("StreamPostPhase error: %+v, %+v", auth, err)
 		}
 		return err
 	}
@@ -62,19 +61,25 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		err := ReceivePostRoundPublicKey(instance, pk, auth)
 		if err != nil {
-			jww.ERROR.Printf("[%+v] ReceivePostRoundPublicKey failed auth: %+v", instance, err)
+			jww.ERROR.Printf("ReceivePostRoundPublicKey error: %+v, %+v", auth,
+				err)
 		}
 		return err
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
-		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
+		numPrecomps, err := io.GetRoundBufferInfo(instance.
+			GetCompletedPrecomps(), time.Second)
+		if err != nil {
+			jww.ERROR.Printf("GetRoundBufferInfo error: %+v, %+v", auth, err)
+		}
+		return numPrecomps, err
 	}
 
 	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, err error) {
 		batch, err = io.GetCompletedBatch(instance, time.Second, auth)
 		if err != nil {
-			jww.ERROR.Printf("[%+v] GetCompletedBatch failed auth: %+v", instance, err)
+			jww.ERROR.Printf("GetCompletedBatch error: %+v, %+v", auth, err)
 		}
 		return batch, err
 	}
@@ -82,7 +87,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		err := ReceiveFinishRealtime(instance, message, auth)
 		if err != nil {
-			jww.ERROR.Printf("[%+v] ReceiveFinishRealtime failed auth: %+v", instance, err)
+			jww.ERROR.Printf("ReceiveFinishRealtime error: %+v, %+v", auth, err)
 		}
 		return err
 
@@ -93,7 +98,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		nonce, dhPub, err := io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
 			RSASignedByRegistration, DHSignedByClientRSA, auth)
 		if err != nil {
-			jww.WARN.Printf("[%v] RequestNonce failed auth: %+v", instance, auth)
+			jww.ERROR.Printf("RequestNonce error: %+v, %+v", auth, err)
 		}
 		return nonce, dhPub, err
 	}
@@ -101,21 +106,22 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
 		bytes, err := io.ConfirmRegistration(instance, UserID, Signature, auth)
 		if err != nil {
-			jww.WARN.Printf("[%v] ConfirmRegistration failed auth: %+v", instance, auth)
+			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
 		}
 		return bytes, err
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		err := ReceivePostPrecompResult(instance, roundID, slots, auth)
 		if err != nil {
-			jww.ERROR.Printf("[%+v] ReceivePostPrecompResult failed auth: %+v", instance, err)
+			jww.ERROR.Printf("ReceivePostPrecompResult error: %+v, %+v", auth, err)
 		}
 		return err
 	}
+
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
 		err := ReceivePostNewBatch(instance, newBatch, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("ReceivePostNewBatch error: %+v, %+v", auth, err)
 		}
 		return err
 	}
@@ -123,7 +129,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {
 		err := ReceiveRoundTripPing(instance, ping)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("SendRoundTripPing error: %+v, %+v", auth, err)
 		}
 		return err
 	}
