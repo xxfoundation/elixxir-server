@@ -105,7 +105,6 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		if phaseErr != nil {
 			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
 				index, slot, phaseErr)
-			jww.ERROR.Printf("%+v", err)
 			return phaseErr
 		}
 
@@ -128,7 +127,6 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	if slotsReceived != batchSize {
 		err = errors.Errorf("Mismatch between batch size %v"+
 			"and received num slots %v", batchSize, slotsReceived)
-		jww.ERROR.Printf("%+v", err)
 		return err
 	}
 

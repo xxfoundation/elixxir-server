@@ -1,7 +1,11 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package io
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/server"
@@ -42,8 +46,6 @@ func GetCompletedBatch(instance *server.Instance,
 
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
-		jww.WARN.Printf("[%s]: GetCompletedBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
-			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
