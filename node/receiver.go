@@ -31,10 +31,6 @@ func ReceiveCreateNewRound(instance *server.Instance,
 
 	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
-			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
-			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -81,10 +77,6 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	// Verify that auth is good and sender is last node
 	expectedID := instance.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
-			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
-			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -178,10 +170,6 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	// Check for proper authentication and expected sender
 	expectedID := instance.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d PostPrecompResult failed auth "+
-			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
-			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -330,7 +318,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, auth *connect.Auth) error {
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
-		jww.DEBUG.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+		jww.WARN.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
 
 		return connect.AuthError(auth.Sender.GetId())
@@ -407,10 +395,6 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	expectedID := instance.GetTopology().GetLastNode()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
-		jww.DEBUG.Printf("[%s]: RID %d FinishRealtime failed auth "+
-			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
-			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 
 	}

@@ -108,6 +108,7 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated ||
 		auth.Sender.GetId() != instance.GetGateway().String() {
+
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 

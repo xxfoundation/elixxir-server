@@ -27,7 +27,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		err := ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("[%+v] ReceiveCreateNewRound failed auth: %+v", instance, err)
 		}
 		return err
 	}
@@ -62,7 +62,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		err := ReceivePostRoundPublicKey(instance, pk, auth)
 		if err != nil {
-			jww.ERROR.Panicf("%+v", err)
+			jww.ERROR.Printf("[%+v] ReceivePostRoundPublicKey failed auth: %+v", instance, err)
 		}
 		return err
 	}
@@ -74,7 +74,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, err error) {
 		batch, err = io.GetCompletedBatch(instance, time.Second, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("[%+v] GetCompletedBatch failed auth: %+v", instance, err)
 		}
 		return batch, err
 	}
@@ -82,7 +82,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		err := ReceiveFinishRealtime(instance, message, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("[%+v] ReceiveFinishRealtime failed auth: %+v", instance, err)
 		}
 		return err
 
@@ -93,7 +93,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		nonce, dhPub, err := io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
 			RSASignedByRegistration, DHSignedByClientRSA, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.WARN.Printf("[%v] RequestNonce failed auth: %+v", instance, auth)
 		}
 		return nonce, dhPub, err
 	}
@@ -101,14 +101,14 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
 		bytes, err := io.ConfirmRegistration(instance, UserID, Signature, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.WARN.Printf("[%v] ConfirmRegistration failed auth: %+v", instance, auth)
 		}
 		return bytes, err
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		err := ReceivePostPrecompResult(instance, roundID, slots, auth)
 		if err != nil {
-			jww.ERROR.Printf("%+v", err)
+			jww.ERROR.Printf("[%+v] ReceivePostPrecompResult failed auth: %+v", instance, err)
 		}
 		return err
 	}

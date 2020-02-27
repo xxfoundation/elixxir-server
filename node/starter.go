@@ -81,7 +81,7 @@ func MakeStarter(batchSize uint32) server.RoundStarter {
 		err = io.PostPhase(p, newBatch)
 
 		if err != nil {
-			jww.ERROR.Panicf("Error first node generation init: "+
+			return errors.Errorf("Error first node generation init: "+
 				"should be able to return: %+v", err)
 		}
 		return nil
