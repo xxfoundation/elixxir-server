@@ -527,7 +527,10 @@ func TestPostPhase_NoAuth(t *testing.T) {
 		Sender:          fakeHost,
 	}
 
-	ReceivePostPhase(mockBatch, instance, auth)
+	err = ReceivePostPhase(mockBatch, instance, auth)
+	if err != nil {
+		return
+	}
 
 	t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
 
@@ -966,8 +969,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	actualBatch := &mixmessages.Batch{}
 	emptyBatch := &mixmessages.Batch{}
-	impl.Functions.PostPhase = func(message *mixmessages.Batch, auth *connect.Auth) {
+	impl.Functions.PostPhase = func(message *mixmessages.Batch, auth *connect.Auth) error {
 		actualBatch = message
+		return nil
 	}
 
 	fakeHost, err := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
@@ -1188,12 +1192,12 @@ func batchEq(a *mixmessages.Batch, b *mixmessages.Batch) bool {
 	return true
 }
 
-// Shows that ReceivePostPrecompResult panics when the round isn't in
+// Shows that ReceivePostPrecompResult errors when the round isn't in
 // the round manager
 func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
-			t.Error("There was no panic when an invalid round was passed")
+		if r := recover(); r != nil {
+			return
 		}
 	}()
 	grp := initImplGroup()
@@ -1224,10 +1228,10 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	// so this should panic because the round can't be found
 	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, auth)
 
-	fmt.Println(err)
+	fmt.Printf("%+v", err)
 
-	if err == nil {
-		t.Error("Didn't get an error from a nonexistent round")
+	if err != nil {
+		return
 	}
 }
 

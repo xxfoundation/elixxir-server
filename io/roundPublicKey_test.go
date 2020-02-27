@@ -155,24 +155,27 @@ func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 
 func mockPostRoundPKImplementation0() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		receivedPks[0] = pk
+		return nil
 	}
 	return impl
 }
 
 func mockPostRoundPKImplementation1() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		receivedPks[1] = pk
+		return nil
 	}
 	return impl
 }
 
 func mockPostRoundPKImplementation2() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		receivedPks[2] = pk
+		return nil
 	}
 	return impl
 }

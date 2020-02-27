@@ -122,8 +122,9 @@ func TestTransmitPhase(t *testing.T) {
 
 func mockPostPhaseImplementation() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
 		receivedBatch = batch
+		return nil
 	}
 	return impl
 }
