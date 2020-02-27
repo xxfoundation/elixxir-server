@@ -141,7 +141,6 @@ func StartServer(vip *viper.Viper) error {
 		if err != nil {
 			return errors.Errorf("Unable to add gateway host: %+v", err)
 		}
-
 		// Connect to the Permissioning Server without authentication
 		permHost, err := network.AddHost(id.PERMISSIONING,
 			def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
@@ -231,11 +230,12 @@ func StartServer(vip *viper.Viper) error {
 	//Begin the resource queue
 	instance.Run()
 
+	jww.INFO.Printf("Checking all servers are online")
+
+	io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
+
 	//Start runners for first node
 	if instance.IsFirstNode() {
-		jww.INFO.Printf("Checking all servers are online")
-
-		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 
 		jww.INFO.Printf("Starting first node network manager")
 		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
