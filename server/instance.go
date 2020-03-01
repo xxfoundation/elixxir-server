@@ -29,7 +29,7 @@ type Instance struct {
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
 	network       *node.Comms
-	machine state.Machine
+	machine       state.Machine
 
 	precompQueue   round.RoundQueue
 	realtimeQueue  round.RoundQueue
