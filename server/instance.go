@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"strings"
 	"testing"
@@ -28,8 +29,11 @@ type Instance struct {
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
 	network       *node.Comms
-	firstNode
-	LastNode
+	machine state.Machine
+
+	precompQueue   round.RoundQueue
+	realtimeQueue  round.RoundQueue
+	completedQueue round.RoundQueue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -40,10 +44,13 @@ type Instance struct {
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation, noTls bool) (*Instance, error) {
 	instance := &Instance{
-		Online:        false,
-		definition:    def,
-		roundManager:  round.NewManager(),
-		resourceQueue: initQueue(),
+		Online:         false,
+		definition:     def,
+		roundManager:   round.NewManager(),
+		resourceQueue:  initQueue(),
+		precompQueue:   round.NewRoundQueue(),
+		realtimeQueue:  round.NewRoundQueue(),
+		completedQueue: round.NewRoundQueue(),
 	}
 
 	// Initializes the network on this server instance
@@ -91,16 +98,6 @@ func (i *Instance) Run() {
 	go i.resourceQueue.run(i)
 }
 
-// InitFirstNode initializes the first node components of the instance
-func (i *Instance) InitFirstNode() {
-	i.firstNode.Initialize()
-}
-
-// InitLastNode initializes the last node components of the instance
-func (i *Instance) InitLastNode() {
-	i.LastNode.Initialize()
-}
-
 // GetTopology returns the circuit object
 func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
@@ -126,9 +123,24 @@ func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
 }
 
-//GetResourceQueue returns the resource queue used by the serverequals
+//GetResourceQueue returns the resource queue used by the server
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
+}
+
+//GetPrecompQueue returns the round queue used for new precomputations
+func (i *Instance) GetPrecompQueue() round.RoundQueue {
+	return i.precompQueue
+}
+
+//GetRealtimeQueue returns the round queue used for new precomputations
+func (i *Instance) GetRealtimeQueue() round.RoundQueue {
+	return i.realtimeQueue
+}
+
+//GetRealtimeQueue returns the round queue used for new precomputations
+func (i *Instance) GetRealtimeQueue() round.RoundQueue {
+	return i.realtimeQueue
 }
 
 // GetNetwork returns the network object
