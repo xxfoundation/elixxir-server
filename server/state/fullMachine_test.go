@@ -7,7 +7,7 @@ package state_test
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/primitives/states"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server/state"
 	"testing"
 	"time"
@@ -20,14 +20,14 @@ func TestMockBusinessLoop(t *testing.T) {
 	var m state.Machine
 
 	// build result tracker and expected results
-	activityCount := make([]int, states.NUM_STATES)
-	expectedActivity := []int{1, 16, 15, 14, 14, 2, 1}
+	activityCount := make([]int, current.NUM_STATES)
+	expectedActivity := []int{1, 16, 15, 14, 14, 14, 2, 1}
 
 	done := make(chan struct{})
 
 	// wrapper for function used to change the state with logging. run in a
 	// new go routine
-	generalUpdate := func(from, to states.State) {
+	generalUpdate := func(from, to current.Activity) {
 		//wait for calling state to be complete
 		done, err := m.WaitFor(from, 5*time.Millisecond)
 		if !done {
@@ -42,94 +42,103 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//create the state change function table
-	var stateChanges [states.NUM_STATES]state.Change
+	var stateChanges [current.NUM_STATES]state.Change
 
 	//NOT_STARTED state
-	stateChanges[states.NOT_STARTED] = func(from states.State) error {
-		activityCount[states.NOT_STARTED]++
+	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
+		activityCount[current.NOT_STARTED]++
 		// move to next state
-		go generalUpdate(states.NOT_STARTED, states.WAITING)
+		go generalUpdate(current.NOT_STARTED, current.WAITING)
 		return nil
 	}
 
 	//WAITING State
-	stateChanges[states.WAITING] = func(from states.State) error {
-		activityCount[states.WAITING]++
+	stateChanges[current.WAITING] = func(from current.Activity) error {
+		activityCount[current.WAITING]++
 		// return an error if we have run the number of designated times
-		if activityCount[states.WAITING] == expectedActivity[states.WAITING] {
+		if activityCount[current.WAITING] == expectedActivity[current.WAITING] {
 			return errors.New("error from waiting")
 		}
 
 		// otherwise move to next state
-		go generalUpdate(states.WAITING, states.PRECOMPUTING)
+		go generalUpdate(current.WAITING, current.PRECOMPUTING)
 
 		return nil
 	}
 
 	//PRECOMPUTING State
-	stateChanges[states.PRECOMPUTING] = func(from states.State) error {
-		activityCount[states.PRECOMPUTING]++
+	stateChanges[current.PRECOMPUTING] = func(from current.Activity) error {
+		activityCount[current.PRECOMPUTING]++
 		// return an error if we have run the number of designated times
-		if activityCount[states.PRECOMPUTING] ==
-			expectedActivity[states.PRECOMPUTING] {
+		if activityCount[current.PRECOMPUTING] ==
+			expectedActivity[current.PRECOMPUTING] {
 
 			return errors.New("error from precomputing")
 		}
 
 		// otherwise move to next state
-		go generalUpdate(states.PRECOMPUTING, states.STANDBY)
+		go generalUpdate(current.PRECOMPUTING, current.STANDBY)
 
 		return nil
 
 	}
 
 	//STANDBY State
-	stateChanges[states.STANDBY] = func(from states.State) error {
-		activityCount[states.STANDBY]++
+	stateChanges[current.STANDBY] = func(from current.Activity) error {
+		activityCount[current.STANDBY]++
 		// move to next state
-		go generalUpdate(states.STANDBY, states.REALTIME)
+		go generalUpdate(current.STANDBY, current.REALTIME)
 
 		return nil
 	}
 
 	//REALTIME State
-	stateChanges[states.REALTIME] = func(from states.State) error {
-		activityCount[states.REALTIME]++
+	stateChanges[current.REALTIME] = func(from current.Activity) error {
+		activityCount[current.REALTIME]++
 		// move to next state
-		go generalUpdate(states.REALTIME, states.WAITING)
+		go generalUpdate(current.REALTIME, current.COMPLETED)
+
+		return nil
+	}
+
+	//COMPLETED State
+	stateChanges[current.COMPLETED] = func(from current.Activity) error {
+		activityCount[current.COMPLETED]++
+		// move to next state
+		go generalUpdate(current.COMPLETED, current.WAITING)
 
 		return nil
 	}
 
 	//ERROR State
-	stateChanges[states.ERROR] = func(from states.State) error {
-		activityCount[states.ERROR]++
+	stateChanges[current.ERROR] = func(from current.Activity) error {
+		activityCount[current.ERROR]++
 		// return an error if we have run the number of designated times
-		if activityCount[states.ERROR] == expectedActivity[states.ERROR] {
+		if activityCount[current.ERROR] == expectedActivity[current.ERROR] {
 			// move to crash state
 			go func() {
 				done, err := m.WaitFor(from, 5*time.Millisecond)
 				if !done {
 					t.Logf("State %s never came: %s", from, err)
 				}
-				b, err := m.Update(states.CRASH)
+				b, err := m.Update(current.CRASH)
 				if !b {
 					t.Errorf("Failure when updating to %s: %s",
-						states.CRASH, err.Error())
+						current.CRASH, err.Error())
 				}
 			}()
 			// signal success
 			return errors.New("crashing")
 		} else {
 			// move to next state
-			go generalUpdate(states.ERROR, states.WAITING)
+			go generalUpdate(current.ERROR, current.WAITING)
 		}
 		return nil
 	}
 
 	//CRASH State
-	stateChanges[states.CRASH] = func(from states.State) error {
-		activityCount[states.CRASH]++
+	stateChanges[current.CRASH] = func(from current.Activity) error {
+		activityCount[current.CRASH]++
 		done <- struct{}{}
 		return nil
 	}
@@ -146,14 +155,14 @@ func TestMockBusinessLoop(t *testing.T) {
 
 	// check that the final state is correct
 	finalState := m.Get()
-	if finalState != states.CRASH {
+	if finalState != current.CRASH {
 		t.Errorf("Final state not correct; expected: %s, recieved: %s",
-			states.CRASH, finalState)
+			current.CRASH, finalState)
 	}
 
 	// check if the state machine executed properly. make sure each state was
 	// executed the correct number of times
-	for i := states.NOT_STARTED; i < states.NUM_STATES; i++ {
+	for i := current.NOT_STARTED; i < current.NUM_STATES; i++ {
 		if activityCount[i] != expectedActivity[i] {
 			t.Errorf("State %s did not exicute enough times. "+
 				"Exicuted %d times instead of %d", i, activityCount[i],

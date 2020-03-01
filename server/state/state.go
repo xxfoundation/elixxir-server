@@ -88,8 +88,7 @@ package state
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	//jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/primitives/states"
+	"gitlab.com/elixxir/primitives/current"
 	"sync"
 	"time"
 )
@@ -98,56 +97,57 @@ import (
 
 // function which does a state change.  It should operate quickly, and cannot
 // instruct state changes itself without creating a deadlock
-type Change func(from states.State) error
+type Change func(from current.Activity) error
 
 //core state machine object
 type Machine struct {
 	//holds the state
-	*states.State
+	*current.Activity
 	//mux to ensure proper access to state
 	*sync.RWMutex
 	//hold the functions used to change to different states
-	changeList [states.NUM_STATES]Change
+	changeList [current.NUM_STATES]Change
 
 	//used to signal to waiting threads that a state change has occurred
-	signal chan states.State
+	signal chan current.Activity
 	//holds valid state transitions
 	stateMap [][]bool
 }
 
 // builds the stateObj  and sets valid transitions
-func NewMachine(changeList [states.NUM_STATES]Change) (Machine, error) {
-	ss := states.NOT_STARTED
+func NewMachine(changeList [current.NUM_STATES]Change) (Machine, error) {
+	ss := current.NOT_STARTED
 
 	//builds the object
 	M := Machine{&ss,
 		&sync.RWMutex{},
 		changeList,
-		make(chan states.State),
-		make([][]bool, states.NUM_STATES),
+		make(chan current.Activity),
+		make([][]bool, current.NUM_STATES),
 	}
 
 	//finish populating the stateMap
-	for i := 0; i < int(states.NUM_STATES); i++ {
-		M.stateMap[i] = make([]bool, states.NUM_STATES)
+	for i := 0; i < int(current.NUM_STATES); i++ {
+		M.stateMap[i] = make([]bool, current.NUM_STATES)
 	}
 
 	//add state transitions
-	M.addStateTransition(states.NOT_STARTED, states.WAITING, states.ERROR, states.CRASH)
-	M.addStateTransition(states.WAITING, states.PRECOMPUTING, states.ERROR)
-	M.addStateTransition(states.PRECOMPUTING, states.STANDBY, states.ERROR)
-	M.addStateTransition(states.STANDBY, states.REALTIME, states.ERROR)
-	M.addStateTransition(states.REALTIME, states.WAITING, states.ERROR)
-	M.addStateTransition(states.ERROR, states.WAITING, states.ERROR, states.CRASH)
+	M.addStateTransition(current.NOT_STARTED, current.WAITING, current.ERROR, current.CRASH)
+	M.addStateTransition(current.WAITING, current.PRECOMPUTING, current.ERROR)
+	M.addStateTransition(current.PRECOMPUTING, current.STANDBY, current.ERROR)
+	M.addStateTransition(current.STANDBY, current.REALTIME, current.ERROR)
+	M.addStateTransition(current.REALTIME, current.COMPLETED, current.ERROR)
+	M.addStateTransition(current.COMPLETED, current.WAITING, current.ERROR)
+	M.addStateTransition(current.ERROR, current.WAITING, current.ERROR, current.CRASH)
 
 	//enter into NOT_STARTED State
-	_, err := M.stateChange(states.NOT_STARTED)
+	_, err := M.stateChange(current.NOT_STARTED)
 
 	return M, err
 }
 
 // adds a state transition to the state object
-func (m Machine) addStateTransition(from states.State, to ...states.State) {
+func (m Machine) addStateTransition(from current.Activity, to ...current.Activity) {
 	for _, t := range to {
 		m.stateMap[from][t] = true
 	}
@@ -159,14 +159,14 @@ func (m Machine) addStateTransition(from states.State, to ...states.State) {
 // next state and updates any go routines waiting on the state update.
 // returns a boolean if the update cannot be done and an error explaining why
 // UPDATE CANNOT BE CALLED WITHIN STATE CHANGE FUNCTIONS
-func (m Machine) Update(nextState states.State) (bool, error) {
+func (m Machine) Update(nextState current.Activity) (bool, error) {
 	m.Lock()
 	defer m.Unlock()
 	// check if the requested state change is valid
-	if !m.stateMap[*m.State][nextState] {
+	if !m.stateMap[*m.Activity][nextState] {
 		// return an error if state change if invalid
 		return false, errors.Errorf("not a valid state change from "+
-			"%s to %s", *m.State, nextState)
+			"%s to %s", *m.Activity, nextState)
 	}
 
 	//execute the state change
@@ -179,7 +179,7 @@ func (m Machine) Update(nextState states.State) (bool, error) {
 	// are non waiting on the channel
 	for signal := true; signal; {
 		select {
-		case m.signal <- *m.State:
+		case m.signal <- *m.Activity:
 		default:
 			signal = false
 		}
@@ -188,16 +188,16 @@ func (m Machine) Update(nextState states.State) (bool, error) {
 }
 
 // gets the current state under a read lock
-func (m Machine) Get() states.State {
+func (m Machine) Get() current.Activity {
 	m.RLock()
 	defer m.RUnlock()
-	return *m.State
+	return *m.Activity
 }
 
 // if the the passed state is the next state update, waits until that update
 // happens. return true if the waited state is the current state. returns an
 // error after the timeout expires
-func (m Machine) WaitFor(expected states.State, timeout time.Duration) (bool, error) {
+func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool, error) {
 	// take the read lock to ensure state does not change during intital
 	// checks
 	m.RLock()
@@ -230,7 +230,7 @@ func (m Machine) WaitFor(expected states.State, timeout time.Duration) (bool, er
 	}()
 
 	// if already in the state return true
-	if *m.State == expected {
+	if *m.Activity == expected {
 		// kill the worker thread
 		kill <- struct{}{}
 		// release the read lock
@@ -241,14 +241,14 @@ func (m Machine) WaitFor(expected states.State, timeout time.Duration) (bool, er
 
 	// if not in the state and the expected state cannot be reached from the
 	// current one, return false and an error
-	if !m.stateMap[*m.State][expected] {
+	if !m.stateMap[*m.Activity][expected] {
 		// kill the worker thread
 		kill <- struct{}{}
 		// release the read lock
 		m.RUnlock()
 		// return the error
 		return false, errors.Errorf("Cannot wait for state %s which "+
-			"cannot be reached from the current state %s", expected, *m.State)
+			"cannot be reached from the current state %s", expected, *m.Activity)
 	}
 
 	// unlock the read lock, allows state changes to take effect
@@ -266,32 +266,32 @@ func (m Machine) WaitFor(expected states.State, timeout time.Duration) (bool, er
 }
 
 // Internal function used to change states in NewMachine() and Machine.Update()
-func (m Machine) stateChange(nextState states.State) (bool, error) {
-	oldState := *m.State
-	*m.State = nextState
-	err := m.changeList[*m.State](oldState)
+func (m Machine) stateChange(nextState current.Activity) (bool, error) {
+	oldState := *m.Activity
+	*m.Activity = nextState
+	err := m.changeList[*m.Activity](oldState)
 
 	if err != nil {
-		*m.State = states.ERROR
+		*m.Activity = current.ERROR
 		var errState error
 
 		//move to the error state if that was not the intention of the update call
-		if nextState != states.ERROR {
+		if nextState != current.ERROR {
 
 			//wait for the error state to return
-			errState = m.changeList[states.ERROR](oldState)
+			errState = m.changeList[current.ERROR](oldState)
 		}
 
 		//return the error from the error state if it exists
 		if errState == nil {
 			err = errors.Wrap(err,
 				fmt.Sprintf("Error occured on error state change from %s to %s,"+
-					" moving to %s state", *m.State, nextState, states.ERROR))
+					" moving to %s state", *m.Activity, nextState, current.ERROR))
 		} else {
 			err = errors.Wrap(err,
 				fmt.Sprintf("Error occured on state change from %s to %s,"+
-					" moving to %s state, error state returned: %s", *m.State,
-					nextState, states.ERROR, errState.Error()))
+					" moving to %s state, error state returned: %s", *m.Activity,
+					nextState, current.ERROR, errState.Error()))
 		}
 		return false, err
 	}
