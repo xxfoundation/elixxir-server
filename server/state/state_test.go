@@ -7,7 +7,7 @@ package state
 
 import (
 	"errors"
-	"gitlab.com/elixxir/primitives/states"
+	"gitlab.com/elixxir/primitives/current"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -18,23 +18,25 @@ import (
 // expected state transitions to be used in tests.  Should match the exact
 // state transitions set in newState
 var expectedStateMap = [][]bool{
-	{false, true, false, false, false, true, true},
-	{false, false, true, false, false, true, false},
-	{false, false, false, true, false, true, false},
-	{false, false, false, false, true, true, false},
-	{false, true, false, false, false, true, false},
-	{false, true, false, false, false, true, true},
-	{false, false, false, false, false, false, false},
+	{false, true, false, false, false, false, true, true},
+	{false, false, true, false, false, false, true, false},
+	{false, false, false, true, false, false, true, false},
+	{false, false, false, false, true, false, true, false},
+	{false, false, false, false, false, true, true, false},
+	{false, true, false, false, false, false, true, false},
+	{false, true, false, false, false, false, true, true},
+	{false, false, false, false, false, false, false, false},
 }
 
-var dummyStates = [states.NUM_STATES]Change{
-	func(from states.State) error { return nil },
-	func(from states.State) error { return nil },
-	func(from states.State) error { return nil },
-	func(from states.State) error { return nil },
-	func(from states.State) error { return nil },
-	func(from states.State) error { return nil },
-	func(from states.State) error { return nil },
+var dummyStates = [current.NUM_STATES]Change{
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
 }
 
 //tests that new Machiene works properly function creates a properly formed state object
@@ -47,12 +49,12 @@ func TestNewMachine(t *testing.T) {
 	}
 
 	// check the state pointer is properly initialized
-	if m.State == nil {
+	if m.Activity == nil {
 		t.Errorf("State pointer in state object should not be nil")
 	}
 
-	if *m.State != states.NOT_STARTED {
-		t.Errorf("State should be %s, is %s", states.NOT_STARTED, *m.State)
+	if *m.Activity != current.NOT_STARTED {
+		t.Errorf("State should be %s, is %s", current.NOT_STARTED, *m.Activity)
 	}
 
 	// check the RWMutex has been created
@@ -63,7 +65,7 @@ func TestNewMachine(t *testing.T) {
 	//check that the signal channel works properly
 	// check the notify channel works properly
 	go func() {
-		m.signal <- states.WAITING
+		m.signal <- current.WAITING
 	}()
 
 	timer := time.NewTimer(time.Millisecond)
@@ -80,7 +82,7 @@ func TestNewMachine(t *testing.T) {
 
 	// check the change list is correct by checking if pointers are
 	// correct
-	for i := states.NOT_STARTED; i < states.NUM_STATES; i++ {
+	for i := current.NOT_STARTED; i < current.NUM_STATES; i++ {
 		if m.changeList[i] == nil {
 			t.Errorf("Change function for %s is nil", i)
 		}
@@ -92,8 +94,8 @@ func TestNewMachine(t *testing.T) {
 func TestNewMachine_Error(t *testing.T) {
 	dummyStatesErr := dummyStates
 
-	dummyStatesErr[states.NOT_STARTED] =
-		func(from states.State) error { return errors.New("mock error") }
+	dummyStatesErr[current.NOT_STARTED] =
+		func(from current.Activity) error { return errors.New("mock error") }
 
 	m, err := NewMachine(dummyStatesErr)
 
@@ -102,9 +104,9 @@ func TestNewMachine_Error(t *testing.T) {
 		t.Errorf("NewMachine() did not error when expected")
 	}
 
-	if *m.State != states.ERROR {
+	if *m.Activity != current.ERROR {
 		t.Errorf("NewMachine() did not enter %s state, entered %s",
-			states.ERROR, *m.State)
+			current.ERROR, *m.Activity)
 	}
 
 }
@@ -114,30 +116,30 @@ func TestAddStateTransition(t *testing.T) {
 	//do 100 random tests
 	for i := 0; i < 100; i++ {
 		//number of states each will transition to
-		numStatesToo := uint8(rand.Uint64()%uint64(states.NUM_STATES-1)) + 1
-		var stateList []states.State
+		numStatesToo := uint8(rand.Uint64()%uint64(current.NUM_STATES-1)) + 1
+		var stateList []current.Activity
 
 		//generate states to transition to
 		for j := 0; j < int(numStatesToo); j++ {
 			stateList = append(stateList,
-				states.State(rand.Uint64()%uint64(states.NUM_STATES-1))+1)
+				current.Activity(rand.Uint64()%uint64(current.NUM_STATES-1))+1)
 		}
 
-		for j := states.State(1); j < states.NUM_STATES; j++ {
+		for j := current.Activity(1); j < current.NUM_STATES; j++ {
 
 			//build the object for the test
 			M := Machine{}
-			M.stateMap = make([][]bool, states.NUM_STATES)
+			M.stateMap = make([][]bool, current.NUM_STATES)
 
-			for i := 0; i < int(states.NUM_STATES); i++ {
-				M.stateMap[i] = make([]bool, states.NUM_STATES)
+			for i := 0; i < int(current.NUM_STATES); i++ {
+				M.stateMap[i] = make([]bool, current.NUM_STATES)
 			}
 
 			//call addStateTransition
 			M.addStateTransition(j, stateList...)
 
 			//check that all states are correct
-			for k := states.State(0); k < states.NUM_STATES; k++ {
+			for k := current.Activity(0); k < current.NUM_STATES; k++ {
 				//find if k is in state list
 				expected := false
 				for _, st := range stateList {
@@ -165,9 +167,9 @@ func TestUpdate_Transitions(t *testing.T) {
 	}
 
 	//test invalid state transitions
-	for i := states.State(0); i < states.NUM_STATES; i++ {
-		for j := states.State(0); j < states.NUM_STATES; j++ {
-			*m.State = i
+	for i := current.Activity(0); i < current.NUM_STATES; i++ {
+		for j := current.Activity(0); j < current.NUM_STATES; j++ {
+			*m.Activity = i
 			success, err := m.Update(j)
 			// if it is a valid state change make sure it is successful
 			if expectedStateMap[i][j] {
@@ -199,8 +201,8 @@ func TestUpdate_Transitions(t *testing.T) {
 func TestUpdate_TransitionError(t *testing.T) {
 	dummyStatesErr := dummyStates
 
-	dummyStatesErr[states.STANDBY] =
-		func(from states.State) error { return errors.New("mock error") }
+	dummyStatesErr[current.STANDBY] =
+		func(from current.Activity) error { return errors.New("mock error") }
 
 	m, err := NewMachine(dummyStatesErr)
 
@@ -209,10 +211,10 @@ func TestUpdate_TransitionError(t *testing.T) {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)
 	}
 
-	*m.State = states.PRECOMPUTING
+	*m.Activity = current.PRECOMPUTING
 
 	//try to update the state
-	success, err := m.Update(states.STANDBY)
+	success, err := m.Update(current.STANDBY)
 	if success {
 		t.Errorf("Update succeded when it should have failed")
 	}
@@ -229,10 +231,10 @@ func TestUpdate_TransitionError(t *testing.T) {
 func TestUpdate_TransitionDoubleError(t *testing.T) {
 	dummyStatesErr := dummyStates
 
-	dummyStatesErr[states.STANDBY] =
-		func(from states.State) error { return errors.New("mock error STANDBY") }
-	dummyStatesErr[states.ERROR] =
-		func(from states.State) error { return errors.New("mock error ERROR") }
+	dummyStatesErr[current.STANDBY] =
+		func(from current.Activity) error { return errors.New("mock error STANDBY") }
+	dummyStatesErr[current.ERROR] =
+		func(from current.Activity) error { return errors.New("mock error ERROR") }
 
 	m, err := NewMachine(dummyStatesErr)
 
@@ -240,10 +242,10 @@ func TestUpdate_TransitionDoubleError(t *testing.T) {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)
 	}
 
-	*m.State = states.PRECOMPUTING
+	*m.Activity = current.PRECOMPUTING
 
 	//try to update the state
-	success, err := m.Update(states.STANDBY)
+	success, err := m.Update(current.STANDBY)
 	if success {
 		t.Errorf("Update succeded when it should have failed")
 	}
@@ -277,10 +279,10 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 		timedOut := false
 		select {
 		case st := <-m.signal:
-			if st != states.WAITING {
+			if st != current.WAITING {
 				t.Errorf("signal runners recieved an update to "+
 					"the wrong state: Expected: %s, Recieved: %s",
-					states.WAITING, st)
+					current.WAITING, st)
 			}
 		case <-timer.C:
 			timedOut = true
@@ -297,7 +299,7 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 
 	//update to trigger the runners
-	success, err := m.Update(states.WAITING)
+	success, err := m.Update(current.WAITING)
 
 	if !success || err != nil {
 		t.Errorf("Update that should have succeeded failed: ")
@@ -331,8 +333,8 @@ func TestGet_Happy(t *testing.T) {
 
 	numTest := 100
 	for i := 0; i < numTest; i++ {
-		expectedState := states.State(rand.Uint64()%uint64(states.NUM_STATES-1) + 1)
-		*m.State = expectedState
+		expectedState := current.Activity(rand.Uint64()%uint64(current.NUM_STATES-1) + 1)
+		*m.Activity = expectedState
 		recievedState := m.Get()
 		if recievedState != expectedState {
 			t.Errorf("Get returned the wrong value. "+
@@ -352,9 +354,9 @@ func TestGet_Locked(t *testing.T) {
 	}
 
 	//set to waiting state
-	*m.State = states.WAITING
+	*m.Activity = current.WAITING
 
-	readState := make(chan states.State)
+	readState := make(chan current.Activity)
 
 	//lock the state so get cannot return
 	m.Lock()
@@ -379,9 +381,9 @@ func TestGet_Locked(t *testing.T) {
 	timer = time.NewTimer(1 * time.Millisecond)
 	select {
 	case st := <-readState:
-		if st != states.WAITING {
+		if st != current.WAITING {
 			t.Errorf("Get() did not return the correct state. "+
-				"Expected: %s, Recieved: %s", states.WAITING, st)
+				"Expected: %s, Recieved: %s", current.WAITING, st)
 		}
 	case <-timer.C:
 		t.Errorf("Get() did not return when it should not have been " +
@@ -398,9 +400,9 @@ func TestWaitFor_CorrectState(t *testing.T) {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)
 	}
 
-	*m.State = states.PRECOMPUTING
+	*m.Activity = current.PRECOMPUTING
 
-	b, err := m.WaitFor(states.PRECOMPUTING, time.Millisecond)
+	b, err := m.WaitFor(current.PRECOMPUTING, time.Millisecond)
 
 	if !b {
 		t.Errorf("WaitFor() returned false when doing check on state" +
@@ -423,9 +425,9 @@ func TestWaitFor_Unreachable(t *testing.T) {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)
 	}
 
-	*m.State = states.PRECOMPUTING
+	*m.Activity = current.PRECOMPUTING
 
-	b, err := m.WaitFor(states.CRASH, time.Millisecond)
+	b, err := m.WaitFor(current.CRASH, time.Millisecond)
 
 	if b {
 		t.Errorf("WaitFor() succeded when the state cannot be reached")
@@ -450,9 +452,9 @@ func TestWaitFor_Timeout(t *testing.T) {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)
 	}
 
-	*m.State = states.PRECOMPUTING
+	*m.Activity = current.PRECOMPUTING
 
-	b, err := m.WaitFor(states.STANDBY, time.Millisecond)
+	b, err := m.WaitFor(current.STANDBY, time.Millisecond)
 
 	if b {
 		t.Errorf("WaitFor() returned true when doing check on state" +
@@ -477,16 +479,16 @@ func TestWaitFor_WaitForState(t *testing.T) {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)
 	}
 
-	*m.State = states.PRECOMPUTING
+	*m.Activity = current.PRECOMPUTING
 
 	//create runner which after delay will send wait for state
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		m.signal <- states.STANDBY
+		m.signal <- current.STANDBY
 	}()
 
 	//run wait for state with longer timeout than delay in update
-	b, err := m.WaitFor(states.STANDBY, 100*time.Millisecond)
+	b, err := m.WaitFor(current.STANDBY, 100*time.Millisecond)
 
 	if !b {
 		t.Errorf("WaitFor() returned true when doing check on state" +
@@ -508,16 +510,16 @@ func TestWaitFor_WaitForBadState(t *testing.T) {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)
 	}
 
-	*m.State = states.PRECOMPUTING
+	*m.Activity = current.PRECOMPUTING
 
 	//create runner which after delay will send wait for state
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		m.signal <- states.ERROR
+		m.signal <- current.ERROR
 	}()
 
 	//run wait for state with longer timeout than delay in update
-	b, err := m.WaitFor(states.STANDBY, 100*time.Millisecond)
+	b, err := m.WaitFor(current.STANDBY, 100*time.Millisecond)
 
 	if b {
 		t.Errorf("WaitFor() returned true when doing check on state" +
