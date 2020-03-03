@@ -103,11 +103,16 @@ func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
 }
 
-
 // GetTopology returns the consensus object
 func (i *Instance) GetConsensus() *network.Instance {
 	return i.consensus
 }
+
+// GetStateMachine returns the consensus object
+func (i *Instance) GetStateMachine() state.Machine {
+	return i.machine
+}
+
 // GetGateway returns the id of the node's gateway
 func (i *Instance) GetGateway() *id.Gateway {
 	return i.definition.Gateway.ID
@@ -131,21 +136,6 @@ func (i *Instance) GetRoundManager() *round.Manager {
 //GetResourceQueue returns the resource queue used by the server
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
-}
-
-//GetPrecompQueue returns the round queue used for new precomputations
-func (i *Instance) GetPrecompQueue() round.RoundQueue {
-	return i.precompQueue
-}
-
-//GetRealtimeQueue returns the round queue used for new precomputations
-func (i *Instance) GetRealtimeQueue() round.RoundQueue {
-	return i.realtimeQueue
-}
-
-//GetRealtimeQueue returns the round queue used for new precomputations
-func (i *Instance) GetRealtimeQueue() round.RoundQueue {
-	return i.realtimeQueue
 }
 
 // GetNetwork returns the network object
