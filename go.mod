@@ -23,13 +23,10 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
-	gitlab.com/elixxir/comms v0.0.0-20200218232629-9f5cd47b8798
+	gitlab.com/elixxir/comms v0.0.0-20200226192712-7408a0777a46
 	gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23
-	gitlab.com/elixxir/primitives v0.0.0-20200224180855-54b80f152a89
+	gitlab.com/elixxir/primitives v0.0.0-20200226184757-992605f821ee
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
-	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0 // indirect
-	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
-	google.golang.org/genproto v0.0.0-20200224152610-e50cd9704f63 // indirect
 	google.golang.org/grpc v1.27.1
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
