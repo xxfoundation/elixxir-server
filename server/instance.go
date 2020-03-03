@@ -31,9 +31,9 @@ type Instance struct {
 	network       *node.Comms
 	machine       state.Machine
 
-	precompQueue   round.RoundQueue
-	realtimeQueue  round.RoundQueue
-	completedQueue round.RoundQueue
+	precompQueue   round.Queue
+	realtimeQueue  round.Queue
+	completedQueue round.Queue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -48,9 +48,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		definition:     def,
 		roundManager:   round.NewManager(),
 		resourceQueue:  initQueue(),
-		precompQueue:   round.NewRoundQueue(),
-		realtimeQueue:  round.NewRoundQueue(),
-		completedQueue: round.NewRoundQueue(),
+		precompQueue:   round.NewQueue(),
+		realtimeQueue:  round.NewQueue(),
+		completedQueue: round.NewQueue(),
 	}
 
 	// Initializes the network on this server instance
@@ -129,17 +129,12 @@ func (i *Instance) GetResourceQueue() *ResourceQueue {
 }
 
 //GetPrecompQueue returns the round queue used for new precomputations
-func (i *Instance) GetPrecompQueue() round.RoundQueue {
+func (i *Instance) GetPrecompQueue() round.Queue {
 	return i.precompQueue
 }
 
 //GetRealtimeQueue returns the round queue used for new precomputations
-func (i *Instance) GetRealtimeQueue() round.RoundQueue {
-	return i.realtimeQueue
-}
-
-//GetRealtimeQueue returns the round queue used for new precomputations
-func (i *Instance) GetRealtimeQueue() round.RoundQueue {
+func (i *Instance) GetRealtimeQueue() round.Queue {
 	return i.realtimeQueue
 }
 

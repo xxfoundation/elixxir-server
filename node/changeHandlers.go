@@ -10,14 +10,13 @@ import (
 	"gitlab.com/elixxir/server/server/state"
 )
 
-
-func NotStarted(from current.Activity) error  {
+func NotStarted(from current.Activity) error {
 	// all the server startup code
 
 	return nil
 }
 
-func Waiting(from current.Activity) error  {
+func Waiting(from current.Activity) error {
 	// start waiting process
 	return nil
 }
@@ -34,7 +33,7 @@ func Standby(from current.Activity) error {
 
 }
 
-func Realtime(from current.Activity) error  {
+func Realtime(from current.Activity) error {
 	// start realtime
 	return nil
 
@@ -44,7 +43,6 @@ func Completed(from current.Activity) error {
 	// start completed
 	return nil
 }
-
 
 func NewStateChanges() [current.NUM_STATES]state.Change {
 	//return state changes arr
@@ -57,7 +55,6 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	stateChanges[current.STANDBY] = Standby
 	stateChanges[current.REALTIME] = Realtime
 	stateChanges[current.COMPLETED] = Completed
-
 
 	return stateChanges
 }
