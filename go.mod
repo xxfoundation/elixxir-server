@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/go-pg/pg v8.0.6+incompatible
-	github.com/golang/protobuf v1.3.3
+	github.com/golang/protobuf v1.3.4
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
@@ -25,8 +25,11 @@ require (
 	github.com/spf13/viper v1.6.2
 	gitlab.com/elixxir/comms v0.0.0-20200226192712-7408a0777a46
 	gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23
-	gitlab.com/elixxir/primitives v0.0.0-20200226184757-992605f821ee
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	gitlab.com/elixxir/primitives v0.0.0-20200301205752-350e61bd19b3
+	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
+	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
+	google.golang.org/genproto v0.0.0-20200303153909-beee998c1893 // indirect
 	google.golang.org/grpc v1.27.1
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8

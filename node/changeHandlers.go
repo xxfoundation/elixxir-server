@@ -1,50 +1,63 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package node
 
 import (
-	"github.com/pkg/errors"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server/state"
-	"time"
 )
 
 
-func NotStarted(m state.Machine)  {
+func NotStarted(from current.Activity) error  {
 	// all the server startup code
 
-	go generalUpdate(current.NOT_STARTED, current.WAITING, m)
-	return
+	return nil
 }
 
-func Waiting(m state.Machine)  {
-	go generalUpdate(current.WAITING, current.PRECOMPUTING, m)
-	return
+func Waiting(from current.Activity) error  {
+	// start waiting process
+	return nil
 }
 
-func Precomputing(m state.Machine)  {
+func Precomputing(from current.Activity) error {
 	// start pre-precomputation
 
-	go generalUpdate(current.PRECOMPUTING, current.STANDBY, m)
-	return
+	return nil
 }
 
-func Standby(m state.Machine)  {
-	go generalUpdate(current.STANDBY, current.REALTIME, m)
-
+func Standby(from current.Activity) error {
+	// start standby process
+	return nil
 
 }
 
-func Realtime(m state.Machine)  {
-	go generalUpdate(current.REALTIME, current.COMPLETED, m)
+func Realtime(from current.Activity) error  {
+	// start realtime
+	return nil
+
 }
 
-func Completed(m state.Machine)  {
-	go generalUpdate(current.ERROR, current.WAITING, m)
+func Completed(from current.Activity) error {
+	// start completed
+	return nil
 }
 
-func NewStateChanges() {
+
+func NewStateChanges() [current.NUM_STATES]state.Change {
 	//return state changes arr
 	//create the state change function table
 	var stateChanges [current.NUM_STATES]state.Change
 
-	stateChanges[current.NOT_STARTED]
+	stateChanges[current.NOT_STARTED] = NotStarted
+	stateChanges[current.WAITING] = Waiting
+	stateChanges[current.PRECOMPUTING] = Precomputing
+	stateChanges[current.STANDBY] = Standby
+	stateChanges[current.REALTIME] = Realtime
+	stateChanges[current.COMPLETED] = Completed
+
+
+	return stateChanges
 }
