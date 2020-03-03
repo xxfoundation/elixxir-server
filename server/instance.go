@@ -6,13 +6,16 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
@@ -30,10 +33,11 @@ type Instance struct {
 	resourceQueue *ResourceQueue
 	network       *node.Comms
 	machine       state.Machine
+	machineList   [current.NUM_STATES]state.Change
 
-	precompQueue   round.RoundQueue
-	realtimeQueue  round.RoundQueue
-	completedQueue round.RoundQueue
+	consensus	  *network.Instance
+
+
 }
 
 // Create a server instance. To actually kick off the server,
@@ -42,39 +46,32 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation, noTls bool) (*Instance, error) {
+func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImplementation func(*Instance) *node.Implementation,
+	changeList [current.NUM_STATES]state.Change, noTls bool) (*Instance, error) {
 	instance := &Instance{
 		Online:         false,
 		definition:     def,
 		roundManager:   round.NewManager(),
 		resourceQueue:  initQueue(),
-		precompQueue:   round.NewRoundQueue(),
-		realtimeQueue:  round.NewRoundQueue(),
-		completedQueue: round.NewRoundQueue(),
+		machineList:    changeList,
 	}
-
-	// Initializes the network on this server instance
 
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
 
+
 	if noTls {
 		instance.network.DisableAuth()
 	}
 
-	//Add all hosts to manager for future connections
-	for index, n := range instance.definition.Nodes {
-		nodeHost, err := instance.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false, true)
-		if err != nil {
-			errMsg := fmt.Sprintf("Could not add node %s (%v/%v) as a host: %+v",
-				n.ID, index+1, len(instance.definition.Nodes), err)
-			return nil, errors.New(errMsg)
-		}
-		instance.definition.Topology.AddHost(nodeHost)
-
-		jww.INFO.Printf("Connected to node %s", n.ID)
+	// Initializes the network state tracking on this server instance
+	var err error
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, ndf)
+	if err!=nil{
+		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
+
 	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
 		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
@@ -94,8 +91,11 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 }
 
 // Run starts the resource queue
-func (i *Instance) Run() {
+func (i *Instance) Run() error{
 	go i.resourceQueue.run(i)
+	var err error
+	i.machine, err = state.NewMachine(i.machineList)
+	return err
 }
 
 // GetTopology returns the circuit object
@@ -103,6 +103,11 @@ func (i *Instance) GetTopology() *connect.Circuit {
 	return i.definition.Topology
 }
 
+
+// GetTopology returns the consensus object
+func (i *Instance) GetConsensus() *network.Instance {
+	return i.consensus
+}
 // GetGateway returns the id of the node's gateway
 func (i *Instance) GetGateway() *id.Gateway {
 	return i.definition.Gateway.ID
