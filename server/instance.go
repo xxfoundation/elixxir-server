@@ -31,12 +31,14 @@ type Instance struct {
 	definition    *Definition
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
-	roundQueue    *round.Queue
 	network       *node.Comms
 	machine       state.Machine
 	machineList   [current.NUM_STATES]state.Change
 
 	consensus *network.Instance
+
+	// Channels
+	completedBatchQueue round.CompletedQueue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -217,6 +219,10 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 func (i *Instance) GetRoundCreationTimeout() int {
 	return i.definition.RoundCreationTimeout
+}
+
+func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
+	return i.completedBatchQueue
 }
 
 // GenerateId generates a random ID and returns it

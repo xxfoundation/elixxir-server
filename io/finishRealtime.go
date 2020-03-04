@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"sync"
 )
@@ -25,24 +26,21 @@ import (
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
-	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.Instance, measureFunc phase.Measure) error {
+func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
+	getChunk phase.GetChunk, getMessage phase.GetMessage, topology *connect.Circuit,
+	instance *server.Instance, chunkChan chan services.Chunk, measureFunc phase.Measure) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len())
 
-	// need to send batch to gateway reception handler & trigger permissioning polling handler
-	// Update to completed state, and if we are last node send the proper
-	// Make a channel to push things into
-	complete := server.CompletedRound{
+	// Form completedround object & push to gateway handler
+	complete := &round.CompletedRound{
 		RoundID:    roundID,
-		Receiver:   chunkChan,
+		Receiver:   make(chan services.Chunk, 100000),
 		GetMessage: getMessage,
 	}
 
-	lastNode.SendCompletedBatchQueue(complete)
+	instance.GetCompletedBatchQueue().SendCompletedBatchQueue(complete)
 
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		chunkChan <- chunk
@@ -78,7 +76,6 @@ func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 			}
 			wg.Done()
 		}()
-
 	}
 
 	// Wait for all responses

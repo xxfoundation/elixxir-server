@@ -29,47 +29,7 @@ import (
 func ReceiveCreateNewRound(instance *server.Instance,
 	message *mixmessages.RoundInfo, newRoundTimeout int,
 	auth *connect.Auth) error {
-	roundID := id.Round(message.ID)
 
-	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
-	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
-			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
-			auth.IsAuthenticated)
-		return connect.AuthError(auth.Sender.GetId())
-	}
-
-	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance,
-		roundID)
-
-	//Build the components of the round
-	phases, phaseResponses := NewRoundComponents(
-		instance.GetGraphGenerator(),
-		instance.GetTopology(),
-		instance.GetID(),
-		&instance,
-		instance.GetBatchSize(),
-		newRoundTimeout)
-
-	//Build the round
-	rnd := round.New(
-		instance.GetGroup(),
-		instance.GetUserRegistry(),
-		roundID, phases, phaseResponses,
-		instance.GetTopology(),
-		instance.GetID(),
-		instance.GetBatchSize(),
-		instance.GetRngStreamGen(),
-		instance.GetIP())
-
-	//Add the round to the manager
-	instance.GetRoundManager().AddRound(rnd)
-
-	jww.INFO.Printf("[%s]: RID %d CreateNewRound COMPLETE", instance,
-		roundID)
-
-	return nil
 }
 
 // ReceivePostRoundPublicKey from last node and sets it for the round
