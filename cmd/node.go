@@ -206,10 +206,6 @@ func StartServer(vip *viper.Viper) error {
 		jww.INFO.Printf("Checking all servers are online")
 
 		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
-
-		jww.INFO.Printf("Starting first node network manager")
-		instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
-			io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
 	}
 	return nil
 }

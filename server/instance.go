@@ -36,6 +36,9 @@ type Instance struct {
 	machineList   [current.NUM_STATES]state.Change
 
 	consensus *network.Instance
+
+	// Channels
+	completedBatchQueue round.CompletedQueue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -66,7 +69,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.ndf.Get())
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, ndf)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -218,6 +221,10 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 func (i *Instance) GetRoundCreationTimeout() int {
 	return i.definition.RoundCreationTimeout
+}
+
+func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
+	return i.completedBatchQueue
 }
 
 // GenerateId generates a random ID and returns it
