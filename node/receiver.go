@@ -24,6 +24,8 @@ import (
 	"time"
 )
 
+const errFailedToWait  = "Waiting for %s failed."
+const errCouldNotWait = "Could not wait for %s"
 // ReceiveCreateNewRound receives the create new round signal and
 // creates the round
 func ReceiveCreateNewRound(instance *server.Instance,
@@ -336,6 +338,14 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
+	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
+	if err != nil{
+		return errors.Errorf(errFailedToWait, "REALTIME")
+	}
+	if !ok {
+		return errors.Errorf(errCouldNotWait, "REALTIME")
+	}
+
 	// This shouldn't block,
 	// and should return an error if there's no round available
 	// You'd want to return this error in the Ack that's available for the
@@ -407,10 +417,10 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
 	if err != nil{
-		return errors.WithMessage(err, "Failed to wait for state REALTIME")
+		return errors.Errorf(errFailedToWait, "REALTIME")
 	}
 	if !ok {
-		return errors.New("Could not wait for state REALTIME")
+		return errors.Errorf(errCouldNotWait, "REALTIME")
 	}
 
 	//check that the round should have finished and return it
