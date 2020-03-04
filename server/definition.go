@@ -45,7 +45,7 @@ type Definition struct {
 	Gateway GW
 
 	// todo doc string
-	Permisiong Perm
+	Permissioning Perm
 
 	// todo doc string
 	ndf network.SecuredNdf

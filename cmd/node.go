@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/network"
 	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -121,37 +122,8 @@ func StartServer(vip *viper.Viper) error {
 		def.Gateway.ID = id.NewTmpGateway()
 	} else {
 
-		//todo first set up instance, then poll
+		//todo first set up instance, then poll (server instance or netwk instance)?
 
-		// Assemble the Comms callback interface
-		gatewayNdfChan := make(chan *pb.GatewayNdf)
-		gatewayReadyCh := make(chan struct{}, 1)
-		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
-			gwNdf := &pb.GatewayNdf{
-				Id:  make([]byte, 0),
-				Ndf: &pb.NDF{},
-			}
-			select {
-			case gwNdf = <-gatewayNdfChan:
-				jww.DEBUG.Println("Ndf ready for gateway!")
-				gatewayReadyCh <- struct{}{}
-			case <-time.After(1 * time.Second):
-			}
-			return gwNdf, nil
-
-		}
-
-
-
-		// Parse the Nd
-		nodes, nodeIds, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
-		if err != nil {
-			return errors.Errorf("Failed to install ndf: %+v", err)
-		}
-		def.Nodes = nodes
-		def.TlsCert = []byte(serverCert)
-		def.Gateway.TlsCert = []byte(gwCert)
-		def.Topology = connect.NewCircuit(nodeIds)
 	}
 
 	jww.INFO.Printf("Creating server instance")
@@ -169,10 +141,6 @@ func StartServer(vip *viper.Viper) error {
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	def.RoundCreationTimeout = newRoundTimeout
-	instance, err := server.CreateServerInstance(def, node.NewImplementation, noTLS)
-	if err != nil {
-		return errors.Errorf("Could not create server instance: %v", err)
-	}
 
 	if instance.IsFirstNode() {
 		jww.INFO.Printf("Initilizing as first node")

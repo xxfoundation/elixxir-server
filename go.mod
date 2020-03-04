@@ -32,7 +32,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/objx v0.2.0 // indirect
-	gitlab.com/elixxir/comms v0.0.0-20200304210108-90190a37e482
+	gitlab.com/elixxir/comms v0.0.0-20200304213350-1b5725e1d5f4
 	gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0
 	gitlab.com/elixxir/primitives v0.0.0-20200301205752-350e61bd19b3
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073

@@ -7,6 +7,7 @@ package node
 
 import (
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
@@ -23,7 +24,7 @@ func Dummy(from current.Activity) error {
 }
 
 // todo connect o perm here
-func NotStarted(from current.Activity) error {
+func NotStarted(def *server.Definition, instance server.Instance) error {
 	// all the server startup code
 	impl := nodeComms.NewImplementation()
 
@@ -59,14 +60,23 @@ func NotStarted(from current.Activity) error {
 	}
 
 	// Blocking call: Request ndf from permissioning
-	newNdf, err := permissioning.PollNdf(def, network, gatewayNdfChan, gatewayReadyCh, permHost)
+	newNdf, err := permissioning.PollNdf(def, network, permHost)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
 
 	network.Shutdown()
 
-
+	// Parse the Ndf
+	//nodes, nodeIds,
+	_, _, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
+	if err != nil {
+		return errors.Errorf("Failed to install ndf: %+v", err)
+	}
+	//def.Nodes = nodes
+	def.TlsCert = []byte(serverCert)
+	def.Gateway.TlsCert = []byte(gwCert)
+	//def.Topology = connect.NewCircuit(nodeIds)
 
 	return nil
 }
@@ -79,8 +89,7 @@ func Waiting(from current.Activity) error {
 func Precomputing(instance server.Instance, newRoundTimeout int) state.Change {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
-	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance,
-		roundID)
+	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance, roundID)
 
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(
