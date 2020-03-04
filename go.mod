@@ -10,6 +10,7 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
@@ -23,9 +24,10 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
+	github.com/stretchr/testify v1.5.1 // indirect
 	gitlab.com/elixxir/comms v0.0.0-20200218232629-9f5cd47b8798
 	gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23
-	gitlab.com/elixxir/primitives v0.0.0-20200224180855-54b80f152a89
+	gitlab.com/elixxir/primitives v0.0.0-20200226191544-59ff3303abb3
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0 // indirect
 	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect

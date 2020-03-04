@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/primitives/current"
 	"time"
 )
 
@@ -403,6 +404,15 @@ func ReceivePostNewBatch(instance *server.Instance,
 // receiving the signal that the realtime has completed
 func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo,
 	auth *connect.Auth) error {
+
+	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
+	if err != nil{
+		return errors.WithMessage(err, "Failed to wait for state REALTIME")
+	}
+	if !ok {
+		return errors.New("Could not wait for state REALTIME")
+	}
+
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
 
@@ -475,6 +485,8 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	case r.GetMeasurementsReadyChan() <- struct{}{}:
 	default:
 	}
+
+
 
 	return nil
 }
