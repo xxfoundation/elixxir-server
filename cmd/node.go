@@ -111,11 +111,17 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
+	instance, err := server.CreateServerInstance(def, node.NewImplementation, node.NewStateChanges(), noTLS)
+	if err != nil {
+		return errors.Errorf("Could not create server instance: %v", err)
+	}
+
 	// Handle initiation of permissioning logic
 	if disablePermissioning {
 		def.Gateway.ID = id.NewTmpGateway()
 	} else {
-		impl := nodeComms.NewImplementation()
+
+		//todo first set up instance, then poll
 
 		// Assemble the Comms callback interface
 		gatewayNdfChan := make(chan *pb.GatewayNdf)
@@ -135,42 +141,7 @@ func StartServer(vip *viper.Viper) error {
 
 		}
 
-		// Start comms network
-		network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
-		_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
-		if err != nil {
-			return errors.Errorf("Unable to add gateway host: %+v", err)
-		}
-		// Connect to the Permissioning Server without authentication
-		permHost, err := network.AddHost(id.PERMISSIONING,
-			def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
-		if err != nil {
-			return errors.Errorf("Unable to connect to registration server: %+v", err)
-		}
 
-		// Blocking call: Begin Node registration
-		err = permissioning.RegisterNode(def, network, permHost)
-		if err != nil {
-			return errors.Errorf("Failed to register node: %+v", err)
-		}
-
-		// Disconnect the old permissioning server to enable authentication
-		permHost.Disconnect()
-
-		// Connect to the Permissioning Server with authentication enabled
-		permHost, err = network.AddHost(id.PERMISSIONING,
-			def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
-		if err != nil {
-			return errors.Errorf("Unable to connect to registration server: %+v", err)
-		}
-
-		// Blocking call: Request ndf from permissioning
-		newNdf, err := permissioning.PollNdf(def, network, gatewayNdfChan, gatewayReadyCh, permHost)
-		if err != nil {
-			return errors.Errorf("Failed to get ndf: %+v", err)
-		}
-
-		network.Shutdown()
 
 		// Parse the Nd
 		nodes, nodeIds, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
