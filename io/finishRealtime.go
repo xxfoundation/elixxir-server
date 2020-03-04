@@ -28,13 +28,14 @@ import (
 func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 	getMessage phase.GetMessage, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode,
-	chunkChan chan services.Chunk, measureFunc phase.Measure) error {
+	nodeID *id.Node, lastNode *server.Instance, measureFunc phase.Measure) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len())
 
-	//Send the batch to the gateway
+	// need to send batch to gateway reception handler & trigger permissioning polling handler
+	// Update to completed state, and if we are last node send the proper
+	// Make a channel to push things into
 	complete := server.CompletedRound{
 		RoundID:    roundID,
 		Receiver:   chunkChan,

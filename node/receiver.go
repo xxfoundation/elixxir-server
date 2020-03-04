@@ -48,7 +48,7 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetGraphGenerator(),
 		instance.GetTopology(),
 		instance.GetID(),
-		&instance.LastNode,
+		&instance,
 		instance.GetBatchSize(),
 		newRoundTimeout)
 
