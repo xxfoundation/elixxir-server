@@ -19,11 +19,9 @@ func TestNewStateChanges(t *testing.T) {
 	}
 
 	for i := 0; i < int(current.NUM_STATES); i++ {
-		err := ourStates[i](current.Activity(i))
-		if err != nil {
-			t.Errorf("Unexpected error case on %d: %+v", i, err)
+		if ourStates[i] == nil {
+			t.Errorf("Case %d wasn't initialized, should not be nil!", i)
 		}
 
 	}
-
 }
