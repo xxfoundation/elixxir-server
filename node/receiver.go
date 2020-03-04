@@ -483,11 +483,15 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	jww.INFO.Printf("[%s]: RID %d Round took %v seconds",
 		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
+	//Send batch to Gateway Polling Receiver on last node
+	if r.GetTopology().IsLastNode(instance.GetID()){
+
+	}
+
 	//Send the finished signal on first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
 		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
 			" SENDING END ROUND SIGNAL", instance, roundID)
-
 		instance.FinishRound(roundID)
 
 	}
@@ -557,7 +561,6 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	}
 
 	//jww.INFO.Printf("Recieved RoundTripPing, payload size: %v", len(msg.Payload.Value))
-
 	topology := r.GetTopology()
 	myID := instance.GetID()
 
