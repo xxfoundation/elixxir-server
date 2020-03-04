@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/comms/network"
 	"time"
@@ -79,7 +80,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.GatewayPoll = func(poll *mixmessages.GatewayPoll, instance network.Instance) (*mixmessages.GatewayPoll, error){
 
-		return
+		return RecievePollGateway()
 	}
 
 	impl.Functions.AskOnline = func() error {

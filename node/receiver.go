@@ -588,3 +588,8 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 
 	return nil
 }
+
+func RecievePollGateway() (*mixmessages.GatewayPoll, error){
+
+	return nil, nil
+}
