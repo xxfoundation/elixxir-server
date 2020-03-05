@@ -1,42 +1,22 @@
 package receivers
 
-import (
-	"fmt"
-	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/graphs/realtime"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/testUtil"
-	"runtime"
-	"strings"
-	"testing"
-	"time"
-)
-
+/*
 func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// This round should be at a state where its precomp is complete.
 	// So, we might want more than one phase,
 	// since it's at a boundary between phases.
 	grp := initImplGroup()
 
+	topology := connect.NewCircuit(buildMockNodeIDs(5))
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
+	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = id.NewTmpGateway()
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-	instance.InitFirstNode()
-	topology := instance.GetTopology()
+
+	l := [current.NUM_STATES]state.Change{}
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, l, false)
 
 	const batchSize = 1
 	const roundID = 2
@@ -300,3 +280,4 @@ func TestReceivePostNewBatch(t *testing.T) {
 		t.Errorf("Realtime decrypt is not queued")
 	}
 }
+*/

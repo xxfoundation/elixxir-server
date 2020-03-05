@@ -38,7 +38,6 @@ func RecievePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 	// Get the request for a new batch que and store it into res
 	res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
-
 	// Get a Batch message and store it into res
 	cr := instance.GetCompletedBatchQueue().Recieve()
 	if cr != nil {

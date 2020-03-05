@@ -95,12 +95,11 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
 			" SENDING END ROUND SIGNAL", instance, roundID)
 
-		instance.FinishRound(roundID)
+		//instance.FinishRound(roundID)
 
 	}
 	select {
 	case r.GetMeasurementsReadyChan() <- struct{}{}:
-		k
 	default:
 	}
 

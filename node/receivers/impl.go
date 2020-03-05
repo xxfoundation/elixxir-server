@@ -6,14 +6,13 @@
 
 // Package io impl.go implements server utility functions needed to work
 // with the comms library
-package node
+package receivers
 
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"time"
 )
@@ -23,10 +22,6 @@ import (
 func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
-
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		return ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
-	}
 
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
 		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
@@ -46,11 +41,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
-		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
+		return 0, nil //io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
 	}
 
 	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, e error) {
-		return io.GetCompletedBatch(instance, time.Second, auth)
+		return nil, nil //io.GetCompletedBatch(instance, time.Second, auth)
 	}
 
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
@@ -77,9 +72,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveRoundTripPing(instance, ping)
 	}
 
-	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, instance network.Instance) (*mixmessages.ServerPollResponse, error) {
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
-		return RecievePoll()
+		return nil, nil //receivers.RecievePoll()
 	}
 
 	impl.Functions.AskOnline = func() error {

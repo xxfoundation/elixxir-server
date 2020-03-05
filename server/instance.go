@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
@@ -106,7 +105,8 @@ func (i *Instance) Run() error {
 
 // GetTopology returns the circuit object
 func (i *Instance) GetTopology() *connect.Circuit {
-	return i.definition.Topology
+	//return i.definition.Topology
+	return nil
 }
 
 // GetTopology returns the consensus object
@@ -126,7 +126,8 @@ func (i *Instance) GetGateway() *id.Gateway {
 
 //GetGroups returns the group used by the server
 func (i *Instance) GetGroup() *cyclic.Group {
-	return i.definition.CmixGroup
+	//return i.definition.CmixGroup
+	return nil
 }
 
 //GetUserRegistry returns the user registry used by the server
@@ -181,7 +182,8 @@ func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
 
 //GetBatchSize returns the batch size
 func (i *Instance) GetBatchSize() uint32 {
-	return i.definition.BatchSize
+	//return i.definition.BatchSize
+	return 100000
 }
 
 // FIXME Populate this from the YAML or something
@@ -201,21 +203,24 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 
 // IsFirstNode returns if the node is first node
 func (i *Instance) IsFirstNode() bool {
-	return i.definition.Topology.IsFirstNode(i.definition.ID)
+	//return i.definition.Topology.IsFirstNode(i.definition.ID)
+	return true
 }
 
 // IsLastNode returns if the node is last node
 func (i *Instance) IsLastNode() bool {
-	return i.definition.Topology.IsLastNode(i.definition.ID)
+	//return i.definition.Topology.IsLastNode(i.definition.ID)
+	return true
 }
 
 // GetIP returns the IP of the node from the instance
 func (i *Instance) GetIP() string {
-	fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
+	/*fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
 	fmt.Printf("i.GetTopology(): %+v\n", i.GetTopology())
 	fmt.Printf("i.GetID(): %+v\n", i.GetID())
 	addrWithPort := i.definition.Nodes[i.GetTopology().GetNodeLocation(i.GetID())].Address
-	return strings.Split(addrWithPort, ":")[0]
+	return strings.Split(addrWithPort, ":")[0]*/
+	return ""
 }
 
 // GetResourceMonitor returns the resource monitoring object
@@ -284,24 +289,24 @@ func (i *Instance) VerifyTopology() error {
 	permissioningCert.BasicConstraintsValid = true
 	permissioningCert.IsCA = true
 	permissioningCert.KeyUsage = x509.KeyUsageCertSign
+	/*
+		//Iterate through the topology
+		for j := 0; j < i.definition.Topology.Len(); j++ {
+			//Load the node Cert from topology
+			nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
+			if err != nil {
+				errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
+				return errors.New(errorMsg)
+			}
 
-	//Iterate through the topology
-	for j := 0; j < i.definition.Topology.Len(); j++ {
-		//Load the node Cert from topology
-		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
-		if err != nil {
-			errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
-			return errors.New(errorMsg)
+			//Check that the node's cert was signed by the permissioning server's cert
+			err = nodeCert.CheckSignatureFrom(permissioningCert)
+			if err != nil {
+				errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioning: %v", j, err)
+				return errors.New(errorMsg)
+			}
 		}
-
-		//Check that the node's cert was signed by the permissioning server's cert
-		err = nodeCert.CheckSignatureFrom(permissioningCert)
-		if err != nil {
-			errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioning: %v", j, err)
-			return errors.New(errorMsg)
-		}
-	}
-
+	*/
 	return nil
 }
 
@@ -309,8 +314,8 @@ func (i *Instance) VerifyTopology() error {
 // information about the node
 func (i *Instance) String() string {
 	nid := i.definition.ID
-	numNodes := i.definition.Topology.Len()
-	myLoc := i.definition.Topology.GetNodeLocation(nid)
+	numNodes := 0 //i.definition.Topology.Len()
+	myLoc := 0    //i.definition.Topology.GetNodeLocation(nid)
 	localServer := i.network.String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)

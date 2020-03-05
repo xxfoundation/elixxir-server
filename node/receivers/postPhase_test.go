@@ -3,13 +3,14 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )
@@ -19,16 +20,15 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	roundID := id.Round(0)
 	grp := initImplGroup()
 
+	topology := connect.NewCircuit(buildMockNodeIDs(2))
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(2)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
 
-	def.ID = def.Topology.GetNodeAtIndex(0)
+	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
 
 	mockPhase := testUtil.InitMockPhase(t)
 
@@ -36,8 +36,6 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
-
-	topology := instance.GetTopology()
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
@@ -74,7 +72,10 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		Sender:          fakeHost,
 	}
 	// send the mockBatch to the impl
-	impl.PostPhase(mockBatch, auth)
+	err = impl.PostPhase(mockBatch, auth)
+	if err != nil {
+		t.Errorf("Failed to PostPhase: %+v", err)
+	}
 
 	//check the mock phase to see if the correct result has been stored
 	for index := range mockBatch.Slots {
@@ -147,8 +148,10 @@ func TestPostPhase_NoAuth(t *testing.T) {
 		Sender:          fakeHost,
 	}
 
-	ReceivePostPhase(mockBatch, instance, auth)
-
+	err = ReceivePostPhase(mockBatch, instance, auth)
+	if err != nil {
+		t.Errorf("Failed to receive postphase: %+v", err)
+	}
 	t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
 
 }
@@ -196,7 +199,10 @@ func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPh
 		Sender:          fakeHost,
 	}
 
-	ReceivePostPhase(mockBatch, instance, auth)
+	err = ReceivePostPhase(mockBatch, instance, auth)
+	if err != nil {
+		t.Errorf("Failed to receive post phase: %+v", err)
+	}
 
 	t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
 
@@ -309,23 +315,20 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	grp := initImplGroup()
 
+	topology := connect.NewCircuit(buildMockNodeIDs(2))
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(2)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
+	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
-
-	topology := instance.GetTopology()
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
@@ -334,7 +337,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	instance.GetRoundManager().AddRound(r)
 
 	// get the impl
-	impl := node.NewImplementation(instance)
+	impl := NewImplementation(instance)
 
 	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}

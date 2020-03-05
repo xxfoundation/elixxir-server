@@ -2,12 +2,18 @@ package receivers
 
 import (
 	"encoding/json"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"testing"
 )
 
 func TestReceiveGetMeasure(t *testing.T) {
@@ -17,20 +23,16 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
-
+	topology := connect.NewCircuit(buildMockNodeIDs(numNodes))
 	// Set instance for first node
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
+	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-
-	instance.InitFirstNode()
-	topology := instance.GetTopology()
+	states := [current.NUM_STATES]state.Change{}
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, states, false)
 
 	// Set up a round first node
 	roundID := id.Round(45)
