@@ -19,6 +19,10 @@ func (cq CompletedQueue) SendCompletedBatchQueue(cr *CompletedRound) {
 	}
 }
 
+func (cq CompletedQueue) Pop() *CompletedRound {
+	return <-cq
+}
+
 type CompletedRound struct {
 	RoundID    id.Round
 	Receiver   chan services.Chunk

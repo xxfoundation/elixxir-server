@@ -8,7 +8,6 @@ package node
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -347,6 +346,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
+	// Wait for state to be REALTIME
 	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
@@ -355,35 +355,23 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
-	// This shouldn't block,
-	// and should return an error if there's no round available
-	// You'd want to return this error in the Ack that's available for the
-	// return value of the PostNewBatch comm.
-	r, ok := instance.GetCompletedPrecomps().Pop()
-	if !ok {
-		err := errors.New(fmt.Sprintf(
-			"[%s]: ReceivePostNewBatch(): No precomputation available",
-			instance))
-		// This round should be at a state where its precomp
-		// is complete. So, we might want more than one
-		// phase, since it's at a boundary between phases.
-		jww.ERROR.Print(err)
-		return err
+	// Get the roundinfo object
+	ri := newBatch.Round
+	rm := instance.GetRoundManager()
+	rnd, err := rm.GetRound(ri.GetRoundId())
+	if err != nil {
+		return errors.WithMessage(err, "Failed to get round object from manager")
 	}
-	newBatch.Round = &mixmessages.RoundInfo{
-		ID: uint64(r.GetID()),
-	}
-	newBatch.FromPhase = int32(phase.RealDecrypt)
 
 	jww.INFO.Printf("[%s]: RID %d PostNewBatch START", instance,
-		newBatch.Round.ID)
+		ri.ID)
 
-	if uint32(len(newBatch.Slots)) != r.GetBuffer().GetBatchSize() {
+	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
 		jww.FATAL.Panicf("[%s]: RID %d PostNewBatch ERROR - Gateway sent "+
 			"batch with improper size", instance, newBatch.Round.ID)
 	}
 
-	p, err := r.GetPhase(phase.RealDecrypt)
+	p, err := rnd.GetPhase(phase.RealDecrypt)
 
 	if err != nil {
 		jww.FATAL.Panicf(
@@ -507,6 +495,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	}
 	select {
 	case r.GetMeasurementsReadyChan() <- struct{}{}:
+		k
 	default:
 	}
 

@@ -38,8 +38,7 @@ type Instance struct {
 	consensus *network.Instance
 
 	// Channels
-	createRoundQueue round.Queue
-
+	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
 }
 
