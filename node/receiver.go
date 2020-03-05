@@ -14,14 +14,12 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/comms/network"
-	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/primitives/current"
 	"time"
 )
 
@@ -80,6 +78,13 @@ func ReceiveCreateNewRound(instance *server.Instance,
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
 	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to wait for state PRECOMPUTING")
+	}
+	if !ok {
+		return errors.New("Could not wait on state PRECOMPUTING")
+	}
 
 	roundID := id.Round(pk.Round.ID)
 
@@ -179,6 +184,13 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to wait for state PRECOMPUTING")
+	}
+	if !ok {
+		return errors.New("Could not wait on state PRECOMPUTING")
+	}
 
 	// Check for proper authentication and expected sender
 	expectedID := instance.GetTopology().GetLastNode().String()
@@ -211,34 +223,61 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	}
 
 	p.UpdateFinalStates()
-	// Now, this round has completed this precomputation,
-	// so we can push it on the precomp queue if this is the first node
-	if r.GetTopology().IsFirstNode(instance.GetID()) {
-		instance.GetCompletedPrecomps().Push(r)
-	}
-	jww.INFO.Printf("[%s]: RID %d PostPrecompResult END", instance,
-		roundID)
+
+	// Update the state in a gofunc
+	go func() {
+		ok, err = instance.GetStateMachine().Update(current.STANDBY)
+		if err != nil {
+			jww.FATAL.Panicf("Failed to transition to state STANDBY: %+v", err)
+		}
+		if !ok {
+			jww.FATAL.Panic("Could not transition to state STANDBY")
+		}
+	}()
 	return nil
 }
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
-func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) {
-	// Check for proper authentication and if the sender
-	// is the previous node in the circuit
-	topology := instance.GetTopology()
+func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
 	nodeID := instance.GetID()
-	prevNodeID := topology.GetPrevNode(nodeID)
-
-	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
-		jww.FATAL.Panicf("Error on PostPhase: "+
-			"Attempted communication by %+v has not been authenticated", auth.Sender)
-	}
-
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
 
 	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return errors.WithMessagef(err, "Failed to get round %d", roundID)
+	}
+
+	ptype := r.GetCurrentPhaseType()
+	if shouldWaitPrecomp(ptype) {
+		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to wait for state PRECOMPUTING")
+		}
+		if !ok {
+			return errors.New("Could not wait on state PRECOMPUTING")
+		}
+	} else if shouldWaitRealtime(ptype) {
+		ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to wait for state REALTIME")
+		}
+		if !ok {
+			return errors.New("Could not wait for state REALTIME")
+		}
+	}
+
+	topology := r.GetTopology()
+	prevNodeID := topology.GetPrevNode(nodeID)
+
+	// Check for proper authentication and if the sender
+	// is the previous node in the circuit
+	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
+		jww.FATAL.Panicf("Error on PostPhase: "+
+			"Attempted communication by %+v has not been authenticated", auth.Sender)
+	}
 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
@@ -275,15 +314,46 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 		jww.FATAL.Panicf("Error on PostPhase comm, should be"+
 			" able to return: %+v", err)
 	}
+	return nil
 }
 
 // ReceiveStreamPostPhase handles the state checks and edge checks of
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
+	// Get batch info
+	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
+	if err != nil {
+		return err
+	}
+	roundID := id.Round(batchInfo.Round.ID)
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return errors.WithMessagef(err, "Failed to get round %d", roundID)
+	}
+	topology := r.GetTopology()
+
+	ptype := r.GetCurrentPhaseType()
+	if shouldWaitPrecomp(ptype) {
+		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to wait for state PRECOMPUTING")
+		}
+		if !ok {
+			return errors.New("Could not wait on state PRECOMPUTING")
+		}
+	} else if shouldWaitRealtime(ptype) {
+		ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to wait for state REALTIME")
+		}
+		if !ok {
+			return errors.New("Could not wait for state REALTIME")
+		}
+	}
 
 	// Check for proper authentication and expected sender
-	topology := instance.GetTopology()
 	nodeID := instance.GetID()
 	prevNodeID := topology.GetPrevNode(nodeID)
 
@@ -296,15 +366,8 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 		return errMsg
 
 	}
-	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
-	if err != nil {
-		return err
-	}
 
-	roundID := id.Round(batchInfo.Round.ID)
 	phaseTy := phase.Type(batchInfo.FromPhase).String()
-
-	rm := instance.GetRoundManager()
 
 	// Check if the operation can be done and get the correct
 	// phase if it can
@@ -493,6 +556,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
 		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
 			" SENDING END ROUND SIGNAL", instance, roundID)
+
 		instance.FinishRound(roundID)
 
 	}
@@ -562,6 +626,7 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	}
 
 	//jww.INFO.Printf("Recieved RoundTripPing, payload size: %v", len(msg.Payload.Value))
+
 	topology := r.GetTopology()
 	myID := instance.GetID()
 
@@ -588,6 +653,16 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 	}
 
 	return nil
+}
+
+func shouldWaitPrecomp(p phase.Type) bool {
+	return p == phase.PrecompShare || p == phase.PrecompGeneration ||
+		p == phase.PrecompDecrypt || p == phase.PrecompReveal ||
+		p == phase.PrecompPermute
+}
+
+func shouldWaitRealtime(p phase.Type) bool {
+	return p == phase.RealDecrypt || p == phase.RealPermute
 }
 
 // Handles incomming Poll gateway responses, compares our NDF with the existing ndf

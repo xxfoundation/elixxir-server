@@ -35,9 +35,12 @@ type Instance struct {
 	machine       state.Machine
 	machineList   [current.NUM_STATES]state.Change
 
-	consensus	  *network.Instance
+	consensus *network.Instance
 
+	// Channels
+	createRoundQueue round.Queue
 
+	completedBatchQueue round.CompletedQueue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -49,17 +52,16 @@ type Instance struct {
 func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImplementation func(*Instance) *node.Implementation,
 	changeList [current.NUM_STATES]state.Change, noTls bool) (*Instance, error) {
 	instance := &Instance{
-		Online:         false,
-		definition:     def,
-		roundManager:   round.NewManager(),
-		resourceQueue:  initQueue(),
-		machineList:    changeList,
+		Online:        false,
+		definition:    def,
+		roundManager:  round.NewManager(),
+		resourceQueue: initQueue(),
+		machineList:   changeList,
 	}
 
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
-
 
 	if noTls {
 		instance.network.DisableAuth()
@@ -68,7 +70,7 @@ func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImple
 	// Initializes the network state tracking on this server instance
 	var err error
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, ndf)
-	if err!=nil{
+	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
 
@@ -91,7 +93,7 @@ func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImple
 }
 
 // Run starts the resource queue
-func (i *Instance) Run() error{
+func (i *Instance) Run() error {
 	go i.resourceQueue.run(i)
 	var err error
 	i.machine, err = state.NewMachine(i.machineList)
@@ -219,6 +221,14 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 func (i *Instance) GetRoundCreationTimeout() int {
 	return i.definition.RoundCreationTimeout
+}
+
+func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
+	return i.completedBatchQueue
+}
+
+func (i *Instance) GetCreateRoundQueue() round.Queue {
+	return i.createRoundQueue
 }
 
 // GenerateId generates a random ID and returns it
