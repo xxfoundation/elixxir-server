@@ -78,9 +78,9 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveRoundTripPing(instance, ping)
 	}
 
-	impl.Functions.GatewayPoll = func(poll *mixmessages.GatewayPoll, instance network.Instance) (*mixmessages.GatewayPoll, error){
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll ,instance network.Instance) (*mixmessages.ServerPollResponse, error){
 
-		return RecievePollGateway()
+		return RecievePoll()
 	}
 
 	impl.Functions.AskOnline = func() error {
