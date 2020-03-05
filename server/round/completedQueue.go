@@ -9,13 +9,22 @@ import (
 
 type CompletedQueue chan *CompletedRound
 
-func (cq CompletedQueue) SendCompletedBatchQueue(cr *CompletedRound) {
+func (cq CompletedQueue) Send(cr *CompletedRound) {
 	select {
 	case cq <- cr:
 	default:
 		jww.ERROR.Printf("Completed batch queue full, " +
 			"batch dropped. Check Gateway")
 
+	}
+}
+
+func (cq CompletedQueue) Recieve() *CompletedRound{
+	select {
+		case cr:= <- cq:
+			return cr
+		default:
+			return nil
 	}
 }
 

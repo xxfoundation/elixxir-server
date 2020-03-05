@@ -41,6 +41,9 @@ type Instance struct {
 	createRoundQueue round.Queue
 
 	completedBatchQueue round.CompletedQueue
+
+	requestNewBatchQueue round.Queue
+
 }
 
 // Create a server instance. To actually kick off the server,
@@ -59,6 +62,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		roundManager:  round.NewManager(),
 		resourceQueue: initQueue(),
 		machineList:   changeList,
+		requestNewBatchQueue: round.NewQueue(),
 	}
 
 	//Start local node
@@ -231,6 +235,10 @@ func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {
 	return i.createRoundQueue
+}
+
+func (i *Instance) GetRequestNewBatchQueue() round.Queue{
+	return i.requestNewBatchQueue
 }
 
 // GenerateId generates a random ID and returns it

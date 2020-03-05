@@ -21,8 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/comms/network"
+	"gitlab.com/elixxir/server/services"
 	"time"
 )
 
@@ -613,27 +612,48 @@ func shouldWait(p phase.Type) current.Activity {
 }
 
 // Handles incomming Poll gateway responses, compares our NDF with the existing ndf
-func RecievePoll(poll *mixmessages.ServerPoll, instance network.Instance) (*mixmessages.ServerPollResponse, error) {
+func RecievePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
 
 	res := mixmessages.ServerPollResponse{}
 
+	network := instance.GetConsensus()
 	//Compare partial NDF hash with instance and return the new one if they do not match
-	isSame:= instance.GetPartialNdf().CompareHash(poll.GetPartial().Hash)
+	isSame:= instance.GetConsensus().GetPartialNdf().CompareHash(poll.GetPartial().Hash)
 	if(!isSame){
-		res.PartialNDF = instance.GetPartialNdf().GetPb()
+		res.PartialNDF = network.GetPartialNdf().GetPb()
 	}
 
 	//Compare Full NDF hash with instance and return the new one if they do not match
-	isSame = instance.GetFullNdf().CompareHash(poll.GetFull().Hash)
+	isSame = network.GetFullNdf().CompareHash(poll.GetFull().Hash)
 	if(!isSame){
-		res.FullNDF = instance.GetFullNdf().GetPb()
+		res.FullNDF = network.GetFullNdf().GetPb()
 	}
 
 	//Check if any updates where made and get them
-	round, err := instance.GetRoundUpdates(int(poll.LastUpdate))
+	round, err := network.GetRoundUpdates(int(poll.LastUpdate))
 	res.Updates = round
 	if(err != nil){
 		return nil, err
+	}
+
+	// Get the request for a new batch que and store it into res
+	res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
+
+	// Get a Batch message and store it into res
+	cr := instance.GetCompletedBatchQueue().Recieve()
+	if cr != nil{
+		r, err := instance.GetRoundManager().GetRound(cr.RoundID)
+		if err != nil{
+			jww.ERROR.Printf("Recieved completed batch for round %v that doesn't exist: %s", cr.RoundID, err)
+		}else{
+			res.Slots = make([]*mixmessages.Slot, r.GetBatchSize())
+			// wait for everything from the channel then put it into a slot and return it
+			for chunk := range(cr.Receiver) {
+				for c := chunk.Begin(); c < chunk.End(); c++{
+					res.Slots[c] = cr.GetMessage(c)
+				}
+			}
+		}
 	}
 
 	return &res, nil
