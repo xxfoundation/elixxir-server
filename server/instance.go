@@ -49,7 +49,9 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImplementation func(*Instance) *node.Implementation,
+// todo remove ndf here, move to part of defition obj
+//
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	changeList [current.NUM_STATES]state.Change, noTls bool) (*Instance, error) {
 	instance := &Instance{
 		Online:        false,
@@ -69,7 +71,7 @@ func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImple
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, ndf)
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.ndf.Get())
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}

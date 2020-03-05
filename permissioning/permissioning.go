@@ -10,7 +10,6 @@ package permissioning
 
 import (
 	"bytes"
-	"encoding/json"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -52,8 +51,7 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 
 // PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
-func PollNdf(def *server.Definition, network *node.Comms,
-	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
+func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
 	newNdf, err := network.RetrieveNdf(nil)
 	if err != nil {
@@ -66,21 +64,6 @@ func PollNdf(def *server.Definition, network *node.Comms,
 	}
 
 	err = initializeHosts(newNdf, network, index)
-
-	//Prepare the ndf for gateway transmission
-	ndfData, err := json.Marshal(newNdf)
-	if err != nil {
-		return nil, err
-	}
-
-	//Send the certs to the gateway
-	gatewayNdfChan <- &pb.GatewayNdf{
-		Id:  newNdf.Nodes[index].ID,
-		Ndf: &pb.NDF{Ndf: ndfData},
-	}
-
-	//Wait for gateway to be ready
-	<-gatewayReadyCh
 
 	// HACK HACK HACK
 	// FIXME: we should not be coupling connections and server objects

@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/comms/network"
 	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -111,76 +112,18 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
+	instance, err := server.CreateServerInstance(def, node.NewImplementation, node.NewStateChanges(), noTLS)
+	if err != nil {
+		return errors.Errorf("Could not create server instance: %v", err)
+	}
+
 	// Handle initiation of permissioning logic
 	if disablePermissioning {
 		def.Gateway.ID = id.NewTmpGateway()
 	} else {
-		impl := nodeComms.NewImplementation()
 
-		// Assemble the Comms callback interface
-		gatewayNdfChan := make(chan *pb.GatewayNdf)
-		gatewayReadyCh := make(chan struct{}, 1)
-		impl.Functions.PollNdf = func(ping *pb.Ping, auth *connect.Auth) (*pb.GatewayNdf, error) {
-			gwNdf := &pb.GatewayNdf{
-				Id:  make([]byte, 0),
-				Ndf: &pb.NDF{},
-			}
-			select {
-			case gwNdf = <-gatewayNdfChan:
-				jww.DEBUG.Println("Ndf ready for gateway!")
-				gatewayReadyCh <- struct{}{}
-			case <-time.After(1 * time.Second):
-			}
-			return gwNdf, nil
+		//todo first set up instance, then poll (server instance or netwk instance)?
 
-		}
-
-		// Start comms network
-		network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
-		_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
-		if err != nil {
-			return errors.Errorf("Unable to add gateway host: %+v", err)
-		}
-		// Connect to the Permissioning Server without authentication
-		permHost, err := network.AddHost(id.PERMISSIONING,
-			def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
-		if err != nil {
-			return errors.Errorf("Unable to connect to registration server: %+v", err)
-		}
-
-		// Blocking call: Begin Node registration
-		err = permissioning.RegisterNode(def, network, permHost)
-		if err != nil {
-			return errors.Errorf("Failed to register node: %+v", err)
-		}
-
-		// Disconnect the old permissioning server to enable authentication
-		permHost.Disconnect()
-
-		// Connect to the Permissioning Server with authentication enabled
-		permHost, err = network.AddHost(id.PERMISSIONING,
-			def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
-		if err != nil {
-			return errors.Errorf("Unable to connect to registration server: %+v", err)
-		}
-
-		// Blocking call: Request ndf from permissioning
-		newNdf, err := permissioning.PollNdf(def, network, gatewayNdfChan, gatewayReadyCh, permHost)
-		if err != nil {
-			return errors.Errorf("Failed to get ndf: %+v", err)
-		}
-
-		network.Shutdown()
-
-		// Parse the Nd
-		nodes, nodeIds, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
-		if err != nil {
-			return errors.Errorf("Failed to install ndf: %+v", err)
-		}
-		def.Nodes = nodes
-		def.TlsCert = []byte(serverCert)
-		def.Gateway.TlsCert = []byte(gwCert)
-		def.Topology = connect.NewCircuit(nodeIds)
 	}
 
 	jww.INFO.Printf("Creating server instance")
@@ -198,10 +141,6 @@ func StartServer(vip *viper.Viper) error {
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	def.RoundCreationTimeout = newRoundTimeout
-	instance, err := server.CreateServerInstance(def, node.NewImplementation, noTLS)
-	if err != nil {
-		return errors.Errorf("Could not create server instance: %v", err)
-	}
 
 	if instance.IsFirstNode() {
 		jww.INFO.Printf("Initilizing as first node")
