@@ -619,5 +619,5 @@ func RecievePoll(poll *mixmessages.ServerPoll, instance network.Instance) (*mixm
 
 
 
-	return nil, nil
+	return &res, nil
 }
