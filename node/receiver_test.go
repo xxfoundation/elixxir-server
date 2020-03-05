@@ -1979,3 +1979,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 	return defLst
 }
+
+func TestRecievePoll_ReturnsNothing(t *testing.T) {
+
+}

@@ -40,6 +40,8 @@ type Instance struct {
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
+
+	requestNewBatchQueue round.Queue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -53,11 +55,12 @@ type Instance struct {
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	changeList [current.NUM_STATES]state.Change, noTls bool) (*Instance, error) {
 	instance := &Instance{
-		Online:        false,
-		definition:    def,
-		roundManager:  round.NewManager(),
-		resourceQueue: initQueue(),
-		machineList:   changeList,
+		Online:               false,
+		definition:           def,
+		roundManager:         round.NewManager(),
+		resourceQueue:        initQueue(),
+		machineList:          changeList,
+		requestNewBatchQueue: round.NewQueue(),
 	}
 
 	//Start local node
@@ -230,6 +233,10 @@ func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {
 	return i.createRoundQueue
+}
+
+func (i *Instance) GetRequestNewBatchQueue() round.Queue {
+	return i.requestNewBatchQueue
 }
 
 // GenerateId generates a random ID and returns it
