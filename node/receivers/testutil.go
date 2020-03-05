@@ -1,26 +1,20 @@
 package receivers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/services"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"reflect"
-	"runtime"
-	"testing"
 	"time"
 )
 
@@ -117,6 +111,7 @@ func buildMockNodeAddresses(numNodes int) []string {
 	return addrLst
 }
 
+/*
 func mockServerInstance(t *testing.T) *server.Instance {
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -178,7 +173,7 @@ func mockServerInstance(t *testing.T) *server.Instance {
 
 	return instance
 }
-
+*/
 func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID id.Round) (string, error) {
 	serverRoundMetrics := map[string]measure.RoundMetrics{}
 	mockResourceMetrics := measure.ResourceMetric{
@@ -226,6 +221,7 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		large.NewInt(2))
 }
 
+/*
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
 
 	//generate IDs and addresses
@@ -279,6 +275,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 	return defLst
 }
+*/
 
 /* MockStreamPostPhaseServer */
 type MockStreamPostPhaseServer struct {

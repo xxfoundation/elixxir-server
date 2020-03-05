@@ -5,7 +5,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"

@@ -90,6 +90,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/primitives/current"
 	"sync"
+	"testing"
 	"time"
 )
 
@@ -112,6 +113,24 @@ type Machine struct {
 	signal chan current.Activity
 	//holds valid state transitions
 	stateMap [][]bool
+}
+
+func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t *testing.T) (Machine, error) {
+	if t != nil {
+		panic("Cannot use outside of test environment")
+	}
+
+	m, err := NewMachine(changeList)
+	if err != nil {
+		return Machine{}, err
+	}
+	ok, err := m.stateChange(start)
+	if err != nil {
+		return Machine{}, err
+	}
+	if !ok {
+		return Machine{}, errors.New("Could not change state")
+	}
 }
 
 // builds the stateObj  and sets valid transitions
@@ -298,4 +317,3 @@ func (m Machine) stateChange(nextState current.Activity) (bool, error) {
 
 	return true, nil
 }
-

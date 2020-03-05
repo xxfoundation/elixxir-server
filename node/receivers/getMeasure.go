@@ -2,6 +2,7 @@ package receivers
 
 import (
 	"encoding/json"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
