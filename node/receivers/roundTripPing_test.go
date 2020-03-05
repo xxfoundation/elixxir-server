@@ -1,6 +1,7 @@
 package receivers
 
 import (
+	"crypto/rand"
 	"github.com/golang/protobuf/ptypes"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -21,19 +22,15 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
+	topology := connect.NewCircuit(buildMockNodeIDs(numNodes))
 	// Set instance for first node
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
+	def.ID = topology.GetNodeAtIndex(0)
 
 	instance := mockServerInstance(t)
-	topology := instance.GetTopology()
-
-	instance.InitFirstNode()
 
 	// Set up a round first node
 	roundID := id.Round(45)

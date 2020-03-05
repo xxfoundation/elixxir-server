@@ -131,6 +131,7 @@ func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activit
 	if !ok {
 		return Machine{}, errors.New("Could not change state")
 	}
+	return m, nil
 }
 
 // builds the stateObj  and sets valid transitions

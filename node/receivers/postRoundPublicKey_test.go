@@ -3,12 +3,14 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"strings"
 	"testing"
@@ -19,15 +21,14 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	grp := initImplGroup()
 
+	topology := connect.NewCircuit(buildMockNodeIDs(5))
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	def.ID = def.Topology.GetNodeAtIndex(1)
+	def.ID = topology.GetNodeAtIndex(1)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -63,8 +64,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	actualBatch := &mixmessages.Batch{}
 	emptyBatch := &mixmessages.Batch{}
-	impl.Functions.PostPhase = func(message *mixmessages.Batch, auth *connect.Auth) {
+	impl.Functions.PostPhase = func(message *mixmessages.Batch, auth *connect.Auth) error {
 		actualBatch = message
+		return nil
 	}
 
 	fakeHost, err := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
@@ -76,7 +78,10 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		Sender:          fakeHost,
 	}
 
-	impl.Functions.PostRoundPublicKey(mockPk, &auth)
+	err = impl.Functions.PostRoundPublicKey(mockPk, &auth)
+	if err != nil {
+		t.Errorf("Failed to post round publickey: %+v", err)
+	}
 
 	// Verify that a PostPhase isn't called by ensuring callback
 	// doesn't set the actual by comparing it to the empty batch
@@ -93,16 +98,15 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 // Test no auth error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
-	grp := initImplGroup()
+	//grp := initImplGroup()
+	topology := connect.NewCircuit(buildMockNodeIDs(5))
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	def.ID = def.Topology.GetNodeAtIndex(1)
+	def.ID = topology.GetNodeAtIndex(1)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
 
 	fakeHost, _ := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
 	auth := &connect.Auth{
@@ -136,16 +140,15 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 
 // Test bad host error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
-	grp := initImplGroup()
+	//grp := initImplGroup()
+	topology := connect.NewCircuit(buildMockNodeIDs(5))
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	def.ID = def.Topology.GetNodeAtIndex(1)
+	def.ID = topology.GetNodeAtIndex(1)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
 
 	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
 	auth := &connect.Auth{
@@ -181,16 +184,14 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	grp := initImplGroup()
+	topology := connect.NewCircuit(buildMockNodeIDs(5))
 	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(5)),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
+	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-	topology := instance.GetTopology()
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
 
 	batchSize := uint32(3)
 	roundID := id.Round(0)
@@ -244,7 +245,10 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 		IsAuthenticated: true,
 		Sender:          fakeHost,
 	}
-	impl.Functions.PostRoundPublicKey(mockPk, a)
+	err = impl.Functions.PostRoundPublicKey(mockPk, a)
+	if err != nil {
+		t.Errorf("Failed to PostRoundPublicKey: %+v", err)
+	}
 
 	// Verify that a PostPhase is called by ensuring callback
 	// does set the actual by comparing it to the expected batch
