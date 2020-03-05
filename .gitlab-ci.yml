@@ -20,6 +20,7 @@ before_script:
   - echo $CI_BUILD_REF
   - echo $CI_PROJECT_DIR
   - echo $PWD
+  - echo $USER
   - eval $(ssh-agent -s)
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   - mkdir -p ~/.ssh
@@ -28,6 +29,7 @@ before_script:
   - git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
   - export GOFLAGS=-mod=vendor
   - export PATH=$HOME/go/bin:$PATH
+  - cat /usr/local/cuda/version.txt
   - nvidia-smi
 
 stages:
