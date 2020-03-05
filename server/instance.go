@@ -38,6 +38,8 @@ type Instance struct {
 	consensus *network.Instance
 
 	// Channels
+	createRoundQueue round.Queue
+
 	completedBatchQueue round.CompletedQueue
 }
 
@@ -223,6 +225,10 @@ func (i *Instance) GetRoundCreationTimeout() int {
 
 func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 	return i.completedBatchQueue
+}
+
+func (i *Instance) GetCreateRoundQueue() round.Queue {
+	return i.createRoundQueue
 }
 
 // GenerateId generates a random ID and returns it

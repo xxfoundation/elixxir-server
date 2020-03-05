@@ -20,17 +20,8 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
 	"time"
 )
-
-// ReceiveCreateNewRound receives the create new round signal and
-// creates the round
-func ReceiveCreateNewRound(instance *server.Instance,
-	message *mixmessages.RoundInfo, newRoundTimeout int,
-	auth *connect.Auth) error {
-
-}
 
 // ReceivePostRoundPublicKey from last node and sets it for the round
 // for each node. Also starts precomputation decrypt phase with a
@@ -182,13 +173,17 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	}
 
 	p.UpdateFinalStates()
-	// Now, this round has completed this precomputation,
-	// so we can push it on the precomp queue if this is the first node
-	if r.GetTopology().IsFirstNode(instance.GetID()) {
-		instance.GetCompletedPrecomps().Push(r)
-	}
-	jww.INFO.Printf("[%s]: RID %d PostPrecompResult END", instance,
-		roundID)
+
+	// Update the state in a gofunc
+	go func() {
+		ok, err = instance.GetStateMachine().Update(current.STANDBY)
+		if err != nil {
+			jww.FATAL.Panicf("Failed to transition to state STANDBY: %+v", err)
+		}
+		if !ok {
+			jww.FATAL.Panic("Could not transition to state STANDBY")
+		}
+	}()
 	return nil
 }
 

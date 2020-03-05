@@ -177,8 +177,12 @@ gitlab.com/elixxir/comms v0.0.0-20200218232629-9f5cd47b8798 h1:IHlY06a/U7k631Am0
 gitlab.com/elixxir/comms v0.0.0-20200218232629-9f5cd47b8798/go.mod h1:juAeTqtxFZaCIQiJ8FHKy25dbJgKT7EnTKGx6MxipgQ=
 gitlab.com/elixxir/comms v0.0.0-20200226192712-7408a0777a46 h1:Rc4jDTFwusmIXBM0NUYPZdusSo9QzDZr1N8yLZlt/6w=
 gitlab.com/elixxir/comms v0.0.0-20200226192712-7408a0777a46/go.mod h1:pZbgW2Q4F9M0oMtxnIAkIhTLXV2pRIzBlQB0JkzTfCA=
+gitlab.com/elixxir/comms v0.0.0-20200304213350-1b5725e1d5f4 h1:O0r4AoCKqV48LUHh5TUmHZ85+siTcZsJ9oZEoE4hcgo=
+gitlab.com/elixxir/comms v0.0.0-20200304213350-1b5725e1d5f4/go.mod h1:LjpQBs9m2Bvp9JpVTFXh/W/lOuNnGzp7X4jBNlnu1Dc=
 gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23 h1:J9MKdOxLGzDZoLy2Q0CAxPlPjSH+k4NG3JhgvatAZjo=
 gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23/go.mod h1:wWulHuSqxiGhvasduZrtyTTqy+7y5ebe440GdORhzig=
+gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0 h1:2oq/Y1pA3bwCdlRjhFjoOtb2somDY+wYz2vuiOQkVVA=
+gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0/go.mod h1:QPClJr3F90ejz6iHaCZuhexytd6PP97dDnt93iRCTDo=
 gitlab.com/elixxir/primitives v0.0.0-20200131183153-e93c6b75019f/go.mod h1:REJMcwIcyxh74VSHqy4S9yYiaEsQYObOPglRExDpk14=
 gitlab.com/elixxir/primitives v0.0.0-20200210205543-5c55c1f6949f h1:1bYEOz3/a3Q09dxE0ND64+9l21MsyeailzoFYEGC93s=
 gitlab.com/elixxir/primitives v0.0.0-20200210205543-5c55c1f6949f/go.mod h1:REJMcwIcyxh74VSHqy4S9yYiaEsQYObOPglRExDpk14=
@@ -281,6 +285,8 @@ google.golang.org/genproto v0.0.0-20200225123651-fc8f55426688 h1:1+0Z5cgv1eDXJD9
 google.golang.org/genproto v0.0.0-20200225123651-fc8f55426688/go.mod h1:55QSHmfGQM9UVYDPBsyGGes0y52j32PQ3BqQfXhyH3c=
 google.golang.org/genproto v0.0.0-20200303153909-beee998c1893 h1:OTjq5CN+5TpMIvzqxSFCjbBX3jNKjX0XOPi4SdBxQU8=
 google.golang.org/genproto v0.0.0-20200303153909-beee998c1893/go.mod h1:55QSHmfGQM9UVYDPBsyGGes0y52j32PQ3BqQfXhyH3c=
+google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c h1:Mm69MraVZ+yh1vw8pQOUW4uJkkSEQbbTr076A94lvqs=
+google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c/go.mod h1:55QSHmfGQM9UVYDPBsyGGes0y52j32PQ3BqQfXhyH3c=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.21.0 h1:G+97AoqBnmZIT91cLG/EkCoK9NSelj64P8bOHHNmGn0=
 google.golang.org/grpc v1.21.0/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=

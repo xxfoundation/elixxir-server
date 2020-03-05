@@ -32,16 +32,16 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveGetMeasure(instance, message)
 	}
 
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
-		ReceivePostPhase(batch, instance, auth)
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
+		return ReceivePostPhase(batch, instance, auth)
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		return ReceiveStreamPostPhase(streamServer, instance, auth)
 	}
 
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
-		ReceivePostRoundPublicKey(instance, pk, auth)
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
+		return ReceivePostRoundPublicKey(instance, pk, auth)
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
