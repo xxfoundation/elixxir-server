@@ -26,7 +26,7 @@ require (
 	gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0
 	gitlab.com/elixxir/primitives v0.0.0-20200301205752-350e61bd19b3
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
-	google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c // indirect
+	google.golang.org/genproto v0.0.0-20200305110556-506484158171 // indirect
 	google.golang.org/grpc v1.27.1
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8

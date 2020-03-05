@@ -7,11 +7,11 @@ package node
 
 import (
 	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
@@ -89,8 +89,11 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()
-	roundID := id.Round(roundInfo.ID)
+	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
+
+	// Extract topology from RoundInfo
+	// TODO: create NewTopology function which accepts list of strings
 	nodeIDs := make([]*id.Node, 0)
 	for _, s := range topology {
 		nodeIDs = append(nodeIDs, id.NewNodeFromBytes([]byte(s)))
@@ -124,7 +127,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 		roundID)
 
 	if circuit.IsFirstNode(instance.GetID()) {
-		err := StartLocalPrecomp(instance, roundID, roundInfo.BatchSize)
+		err := StartLocalPrecomp(instance, roundID)
 		if err != nil {
 			return nil, errors.WithMessage(err, "Failed to TransmitCreateNewRound")
 		}

@@ -16,8 +16,9 @@ import (
 )
 
 type Round struct {
-	id     id.Round
-	buffer *Buffer
+	id        id.Round
+	buffer    *Buffer
+	batchSize uint32
 
 	topology *connect.Circuit
 	state    *uint32
@@ -152,6 +153,8 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 
 	round.metricsReadyChan = make(chan struct{}, 1)
 
+	round.batchSize = batchSize
+
 	return &round
 }
 
@@ -166,6 +169,10 @@ func (r *Round) GetTimeStart() time.Time {
 
 func (r *Round) GetBuffer() *Buffer {
 	return r.buffer
+}
+
+func (r *Round) GetBatchSize() uint32 {
+	return r.batchSize
 }
 
 func (r *Round) GetPhase(p phase.Type) (phase.Phase, error) {

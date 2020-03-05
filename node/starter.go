@@ -14,7 +14,18 @@ import (
 	insecureRand "math/rand"
 )
 
-func StartLocalPrecomp(instance *server.Instance, rid id.Round, batchSize uint32) error {
+func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
+	//get the round from the instance
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(rid)
+	if err != nil {
+		jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
+			"round (%v) right after round init", rid)
+
+	}
+
+	// Create new batch object
+	batchSize := r.GetBatchSize()
 	newBatch := &mixmessages.Batch{
 		Slots:     make([]*mixmessages.Slot, batchSize),
 		FromPhase: int32(phase.PrecompGeneration),
@@ -26,17 +37,7 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round, batchSize uint32
 		newBatch.Slots[i] = &mixmessages.Slot{}
 	}
 
-	//get the round from the instance
-	rm := instance.GetRoundManager()
-	r, err := rm.GetRound(rid)
-
-	if err != nil {
-		jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
-			"round (%v) right after round init", rid)
-
-	}
-
-	// Do a round trip ping if we are the first node (in a goroutine so it doesn't block us
+	// Start a round trip ping (in a goroutine so it doesn't block)
 	topology := r.GetTopology()
 	myID := instance.GetID()
 	go func() {

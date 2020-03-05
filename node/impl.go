@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/comms/network"
 	"time"
 )
 
@@ -78,7 +77,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveRoundTripPing(instance, ping)
 	}
 
-	impl.Functions.Poll = func(poll *mixmessages.ServerPoll ,instance network.Instance) (*mixmessages.ServerPollResponse, error){
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, instance network.Instance) (*mixmessages.ServerPollResponse, error) {
 
 		return RecievePoll()
 	}
