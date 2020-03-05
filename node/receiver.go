@@ -20,6 +20,8 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/comms/network"
 	"time"
 )
 
@@ -671,19 +673,13 @@ func RecievePoll(poll *mixmessages.ServerPoll, instance network.Instance) (*mixm
 	res := mixmessages.ServerPollResponse{}
 
 	//Compare partial NDF hash with instance and return the new one if they do not match
-	isSame, err := instance.GetPartialNdf().CompareHash(poll.GetPartial().Hash)
-	if( err !=nil){
-		return nil, err
-	}
+	isSame:= instance.GetPartialNdf().CompareHash(poll.GetPartial().Hash)
 	if(!isSame){
 		res.PartialNDF = instance.GetPartialNdf().GetPb()
 	}
 
 	//Compare Full NDF hash with instance and return the new one if they do not match
-	isSame, err = instance.GetFullNdf().CompareHash(poll.GetFull().Hash)
-	if( err !=nil) {
-		return nil, err
-	}
+	isSame = instance.GetFullNdf().CompareHash(poll.GetFull().Hash)
 	if(!isSame){
 		res.FullNDF = instance.GetFullNdf().GetPb()
 	}
@@ -691,6 +687,9 @@ func RecievePoll(poll *mixmessages.ServerPoll, instance network.Instance) (*mixm
 	//Check if any updates where made and get them
 	round, err := instance.GetRoundUpdates(int(poll.LastUpdate))
 	res.Updates = round
+	if(err != nil){
+		return nil, err
+	}
 
 
 
