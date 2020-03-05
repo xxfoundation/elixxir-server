@@ -298,3 +298,4 @@ func (m Machine) stateChange(nextState current.Activity) (bool, error) {
 
 	return true, nil
 }
+

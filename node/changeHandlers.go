@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
-	"time"
 )
 
 func Dummy(from current.Activity) error {
@@ -86,15 +85,22 @@ func Waiting(from current.Activity) error {
 	return nil
 }
 
-func Precomputing(instance server.Instance, newRoundTimeout int) state.Change {
+func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change, error) {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
-	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance, roundID)
+	roundInfo := <-instance.GetCreateRoundQueue()
+	roundID := id.Round(roundInfo.ID)
+	topology := roundInfo.GetTopology()
+	nodeIDs := make([]*id.Node, 0)
+	for _, s := range topology {
+		nodeIDs = append(nodeIDs, id.NewNodeFromBytes([]byte(s)))
+	}
+	circuit := connect.NewCircuit(nodeIDs)
 
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(
 		instance.GetGraphGenerator(),
-		instance.GetTopology(),
+		circuit,
 		instance.GetID(),
 		instance,
 		instance.GetBatchSize(),
@@ -105,7 +111,7 @@ func Precomputing(instance server.Instance, newRoundTimeout int) state.Change {
 		instance.GetGroup(),
 		instance.GetUserRegistry(),
 		roundID, phases, phaseResponses,
-		instance.GetTopology(),
+		circuit,
 		instance.GetID(),
 		instance.GetBatchSize(),
 		instance.GetRngStreamGen(),
@@ -114,13 +120,17 @@ func Precomputing(instance server.Instance, newRoundTimeout int) state.Change {
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
-	jww.INFO.Printf("[%s]: RID %d CreateNewRound COMPLETE", instance,
+	jwalterweatherman.INFO.Printf("[%s]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
 
-	instance.RunFirstNode(instance, roundBufferTimeout*time.Second,
-		io.TransmitCreateNewRound, node.MakeStarter(params.Batch))
+	if circuit.IsFirstNode(instance.GetID()) {
+		err := StartLocalPrecomp(instance, roundID, roundInfo.BatchSize)
+		if err != nil {
+			return nil, errors.WithMessage(err, "Failed to TransmitCreateNewRound")
+		}
+	}
 
-	return nil
+	return nil, nil
 }
 
 func Standby(from current.Activity) error {

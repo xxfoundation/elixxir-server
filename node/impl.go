@@ -13,7 +13,9 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/comms/network"
 	"time"
 )
 
@@ -32,16 +34,16 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return ReceiveGetMeasure(instance, message)
 	}
 
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
-		ReceivePostPhase(batch, instance, auth)
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
+		return ReceivePostPhase(batch, instance, auth)
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		return ReceiveStreamPostPhase(streamServer, instance, auth)
 	}
 
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
-		ReceivePostRoundPublicKey(instance, pk, auth)
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
+		return ReceivePostRoundPublicKey(instance, pk, auth)
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
@@ -74,6 +76,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {
 		return ReceiveRoundTripPing(instance, ping)
+	}
+
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll ,instance network.Instance) (*mixmessages.ServerPollResponse, error){
+
+		return RecievePoll()
 	}
 
 	impl.Functions.AskOnline = func() error {
