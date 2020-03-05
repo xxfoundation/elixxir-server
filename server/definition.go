@@ -48,7 +48,7 @@ type Definition struct {
 	Permissioning Perm
 
 	// todo doc string
-	ndf network.SecuredNdf
+	Ndf network.SecuredNdf
 
 	//Links to the database holding user keys
 	UserRegistry globals.UserRegistry
