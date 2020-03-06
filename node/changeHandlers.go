@@ -111,7 +111,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 
 	//Build the round
 	rnd := round.New(
-		instance.GetGroup(),
+		instance.GetConsensus().GetCmixGroup(),
 		instance.GetUserRegistry(),
 		roundID, phases, phaseResponses,
 		circuit,
@@ -164,6 +164,8 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	stateChanges[current.STANDBY] = Dummy
 	stateChanges[current.REALTIME] = Dummy
 	stateChanges[current.COMPLETED] = Dummy
+	stateChanges[current.ERROR] = Dummy
+	stateChanges[current.CRASH] = Dummy
 
 	return stateChanges
 }

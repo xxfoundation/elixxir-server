@@ -53,7 +53,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	}
 	p.Measure(measure.TagVerification)
 
-	err = io.PostPrecompResult(r.GetBuffer(), instance.GetGroup(), slots)
+	err = io.PostPrecompResult(r.GetBuffer(), instance.GetConsensus().GetCmixGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)

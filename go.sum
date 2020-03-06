@@ -181,6 +181,10 @@ gitlab.com/elixxir/comms v0.0.0-20200304213350-1b5725e1d5f4 h1:O0r4AoCKqV48LUHh5
 gitlab.com/elixxir/comms v0.0.0-20200304213350-1b5725e1d5f4/go.mod h1:LjpQBs9m2Bvp9JpVTFXh/W/lOuNnGzp7X4jBNlnu1Dc=
 gitlab.com/elixxir/comms v0.0.0-20200305214117-6f6b7c72cbf4 h1:XUBRtCaCUyJ0tM3wMVD0XL2iw9ksuNW1939FBs+zcrs=
 gitlab.com/elixxir/comms v0.0.0-20200305214117-6f6b7c72cbf4/go.mod h1:EB52kEu+HBytMqDXbHY2OZjSJvWI02iPQ20IPi3up2A=
+gitlab.com/elixxir/comms v0.0.0-20200306212503-d9f6721a4909 h1:jc8X0fBHwxyxTxwFCshbMmxWd6Lm0QtPVwGPf2c5xLY=
+gitlab.com/elixxir/comms v0.0.0-20200306212503-d9f6721a4909/go.mod h1:EB52kEu+HBytMqDXbHY2OZjSJvWI02iPQ20IPi3up2A=
+gitlab.com/elixxir/comms v0.0.0-20200306223753-867ed014817b h1:ow4Cg5x4UPAO0D9BWv57lgD8oUwDWyH0IleE/MfJlsY=
+gitlab.com/elixxir/comms v0.0.0-20200306223753-867ed014817b/go.mod h1:gqE1rAKr1v1qd3jO2gvtZ4HCX8p1JSjkIXADLOhVW3o=
 gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23 h1:J9MKdOxLGzDZoLy2Q0CAxPlPjSH+k4NG3JhgvatAZjo=
 gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23/go.mod h1:wWulHuSqxiGhvasduZrtyTTqy+7y5ebe440GdORhzig=
 gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0 h1:2oq/Y1pA3bwCdlRjhFjoOtb2somDY+wYz2vuiOQkVVA=
@@ -198,7 +202,10 @@ gitlab.com/elixxir/primitives v0.0.0-20200226184757-992605f821ee/go.mod h1:REJMc
 gitlab.com/elixxir/primitives v0.0.0-20200226191544-59ff3303abb3 h1:572R0Ap/rYmC6XNNQeoZfvfqXyuiRENidgUzdpCbFHw=
 gitlab.com/elixxir/primitives v0.0.0-20200301205752-350e61bd19b3 h1:vPyV7UFvsrDKOmNUMdtyEPCmbzRIpleGarA/ejou6cI=
 gitlab.com/elixxir/primitives v0.0.0-20200301205752-350e61bd19b3/go.mod h1:ZCg9za7qWcObBMVRGulVTL/0+Z2zX2BH3XkCPDOtb18=
+gitlab.com/elixxir/primitives v0.0.0-20200305204536-da5cbdcd2d96 h1:OxJV2cEVfLFprhz1cbK78JtJxaGV4J3DEqQM8zrXvbI=
 gitlab.com/elixxir/primitives v0.0.0-20200305204536-da5cbdcd2d96/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
+gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152 h1:RqT4XSphs+73DWvdKaWlTI8qY6eUdkG9LfTli+qukjU=
+gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=
@@ -292,6 +299,8 @@ google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c h1:Mm69MraVZ+yh1vw
 google.golang.org/genproto v0.0.0-20200304201815-d429ff31ee6c/go.mod h1:55QSHmfGQM9UVYDPBsyGGes0y52j32PQ3BqQfXhyH3c=
 google.golang.org/genproto v0.0.0-20200305110556-506484158171 h1:xes2Q2k+d/+YNXVw0FpZkIDJiaux4OVrRKXRAzH6A0U=
 google.golang.org/genproto v0.0.0-20200305110556-506484158171/go.mod h1:55QSHmfGQM9UVYDPBsyGGes0y52j32PQ3BqQfXhyH3c=
+google.golang.org/genproto v0.0.0-20200306153348-d950eab6f860 h1:QmnwU8dKvY8c/vZikd2jhBNwrrGS5qeyK/2Aeeh9Grk=
+google.golang.org/genproto v0.0.0-20200306153348-d950eab6f860/go.mod h1:55QSHmfGQM9UVYDPBsyGGes0y52j32PQ3BqQfXhyH3c=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.21.0 h1:G+97AoqBnmZIT91cLG/EkCoK9NSelj64P8bOHHNmGn0=
 google.golang.org/grpc v1.21.0/go.mod h1:oYelfM1adQP15Ek0mdvEgi9Df8B9CZIaU1084ijfRaM=

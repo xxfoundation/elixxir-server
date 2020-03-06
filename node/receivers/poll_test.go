@@ -4,12 +4,10 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-
 package receivers
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
@@ -22,7 +20,7 @@ import (
 // test recieve everything
 // test recieved just each individual part
 
-func testSetup(t *testing.T) (server.Instance, *mixmessages.ServerPoll){
+func testSetup(t *testing.T) (server.Instance, *mixmessages.ServerPoll) {
 	//Generate everything needed to make a user
 	nid := server.GenerateId(t)
 	def := server.Definition{
@@ -31,10 +29,9 @@ func testSetup(t *testing.T) (server.Instance, *mixmessages.ServerPoll){
 		UserRegistry:    &globals.UserMap{},
 	}
 
-	changeList := [current.NUM_STATES]state.Change{}
-
-	instance, err := server.CreateServerInstance(&def, NewImplementation, changeList,false)
-	if err != nil{
+	m := state.NewMachine(dummyStates)
+	instance, err := server.CreateServerInstance(&def, NewImplementation, m, false)
+	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()
 	}
@@ -57,30 +54,29 @@ func TestRecievePoll_AllNil(t *testing.T) {
 
 	instance, poll := testSetup(t)
 
-
 	res, err := RecievePoll(poll, &instance)
-	if err == nil{
+	if err == nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
 
-	if( res.Slots != nil){
+	if res.Slots != nil {
 		t.Logf("ServerPollResponse.Slots is not nil")
 		t.Fail()
 	}
-	if( res.BatchRequest != nil){
+	if res.BatchRequest != nil {
 		t.Logf("ServerPollResponse.BatchRequest is not nil")
 		t.Fail()
 	}
-	if( res.Updates != nil){
+	if res.Updates != nil {
 		t.Logf("ServerPollResponse.Updates is not nil")
 		t.Fail()
 	}
-	if( res.Id != nil){
+	if res.Id != nil {
 		t.Logf("ServerPollResponse.Id is not nil")
 		t.Fail()
 	}
-	if( res.FullNDF != nil){
+	if res.FullNDF != nil {
 		t.Logf("ServerPollResponse.ul is not nil")
 		t.Fail()
 	}

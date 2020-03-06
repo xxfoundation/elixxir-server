@@ -8,7 +8,6 @@ import (
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
@@ -69,7 +68,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.NDF.Get())
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.NDF)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -111,12 +110,6 @@ func (i *Instance) GetStateMachine() state.Machine {
 // GetGateway returns the id of the node's gateway
 func (i *Instance) GetGateway() *id.Gateway {
 	return i.definition.Gateway.ID
-}
-
-//GetGroups returns the group used by the server
-func (i *Instance) GetGroup() *cyclic.Group {
-	//return i.definition.CmixGroup
-	return nil
 }
 
 //GetUserRegistry returns the user registry used by the server
