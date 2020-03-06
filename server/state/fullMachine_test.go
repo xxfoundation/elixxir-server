@@ -143,8 +143,8 @@ func TestMockBusinessLoop(t *testing.T) {
 		return nil
 	}
 
-	m, err := state.NewMachine(stateChanges)
-
+	m = state.NewMachine(stateChanges)
+	err := m.Start()
 	//check if an error was returned
 	if err != nil {
 		t.Errorf("NewMachine() errored unexpectedly %s", err)

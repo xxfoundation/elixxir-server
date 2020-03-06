@@ -9,7 +9,7 @@ import (
 
 type CompletedQueue chan *CompletedRound
 
-func (cq CompletedQueue) SendCompletedBatchQueue(cr *CompletedRound) {
+func (cq CompletedQueue) Send(cr *CompletedRound) {
 	select {
 	case cq <- cr:
 	default:
@@ -19,8 +19,13 @@ func (cq CompletedQueue) SendCompletedBatchQueue(cr *CompletedRound) {
 	}
 }
 
-func (cq CompletedQueue) Pop() *CompletedRound {
-	return <-cq
+func (cq CompletedQueue) Recieve() *CompletedRound {
+	select {
+	case cr := <-cq:
+		return cr
+	default:
+		return nil
+	}
 }
 
 type CompletedRound struct {
