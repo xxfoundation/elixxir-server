@@ -24,10 +24,8 @@ func Dummy(from current.Activity) error {
 	return nil
 }
 
-// todo connect to perm here
-// fixme: doc string
 // Beginning state of state machine, enters waiting upon successful completion
-func NotStarted(def *server.Definition, instance server.Instance) error {
+func NotStarted(def *server.Definition, instance *server.Instance) error {
 	// all the server startup code
 	impl := nodeComms.NewImplementation()
 
@@ -63,7 +61,7 @@ func NotStarted(def *server.Definition, instance server.Instance) error {
 	}
 
 	// Blocking call: Request ndf from permissioning
-	newNdf, err := permissioning.PollNdf(def, network, permHost)
+	err = permissioning.PollNdf(def, network, permHost, instance)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
@@ -71,15 +69,12 @@ func NotStarted(def *server.Definition, instance server.Instance) error {
 	network.Shutdown()
 
 	// Parse the Ndf
-	//nodes, nodeIds,
-	serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
+	serverCert, gwCert, err := permissioning.InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
-	//def.Nodes = nodes
 	def.TlsCert = []byte(serverCert)
 	def.Gateway.TlsCert = []byte(gwCert)
-	//def.Topology = connect.NewCircuit(nodeIds)
 
 	return nil
 }
@@ -91,7 +86,7 @@ func Waiting(from current.Activity) error {
 }
 
 // fixme: doc string
-func Precomputing(instance server.Instance, newRoundTimeout int) state.Change {
+func Precomputing(instance *server.Instance, newRoundTimeout int) state.Change {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()
