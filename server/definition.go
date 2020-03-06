@@ -1,10 +1,10 @@
 package server
 
 import (
-	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
@@ -48,7 +48,7 @@ type Definition struct {
 	Permissioning Perm
 
 	// todo doc string
-	NDF *network.SecuredNdf
+	NDF *ndf.NetworkDefinition
 
 	//Links to the database holding user keys
 	UserRegistry globals.UserRegistry

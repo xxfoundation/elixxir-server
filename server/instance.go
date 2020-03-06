@@ -74,7 +74,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.NDF.Get())
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.NDF)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -308,8 +308,8 @@ func (i *Instance) VerifyTopology() error {
 // information about the node
 func (i *Instance) String() string {
 	nid := i.definition.ID
-	numNodes := 0 //i.definition.Topology.Len()
-	myLoc := 0    //i.definition.Topology.GetNodeLocation(nid)
+	numNodes := i.definition.Topology.Len()
+	myLoc := i.definition.Topology.GetNodeLocation(nid)
 	localServer := i.network.String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)

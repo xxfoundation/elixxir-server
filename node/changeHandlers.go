@@ -61,7 +61,7 @@ func NotStarted(def *server.Definition, instance *server.Instance) error {
 	}
 
 	// Blocking call: Request ndf from permissioning
-	err = permissioning.PollNdf(def, network, permHost, instance)
+	err = permissioning.Poll(def, network, permHost, instance)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
@@ -86,7 +86,7 @@ func Waiting(from current.Activity) error {
 }
 
 // fixme: doc string
-func Precomputing(instance *server.Instance, newRoundTimeout int) state.Change {
+func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change, error) {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()

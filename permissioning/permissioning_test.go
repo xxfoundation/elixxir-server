@@ -203,7 +203,7 @@ func TestRegisterNode(t *testing.T) {
 			t.Error(err)
 		}
 		// Blocking call: Request ndf from permissioning
-		err := PollNdf(def, network, permHost)
+		err := Poll(def, network, permHost)
 		if err != nil {
 			t.Errorf("Failed to get ndf: %+v", err)
 		}

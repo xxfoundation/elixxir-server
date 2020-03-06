@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -52,20 +53,29 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 
 // PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
-func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host, instance *server.Instance) error {
+func Poll(def *server.Definition, network *node.Comms, permHost *connect.Host, instance *server.Instance) error {
 
-	// Keep polling until there is a response (ie no error)
-	errChan := make(chan error)
-	done := make(chan struct{})
+	// Initialize variable useful for polling
+	errChan := make(chan error) // Used to check errors
+	done := make(chan struct{}) // Used to signal that polling has completed once
+	var once sync.Once          // Used to only send to above channel once
+	sendDoneSignal := func() {  //  for the continuous loop
+		done <- struct{}{}
+	}
+
+	// Routinely poll permissioning for state updates
 	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
 		// Continuously poll permissioning for information
 		for {
-			RetrieveNdf(permHost, network, instance, errChan)
-			time.Sleep(500 * time.Millisecond)
-			// Only send once to avoid a memory leak
-			if len(done) == 0 {
-				done <- struct{}{}
+			select {
+			case <-ticker.C:
+				permResponse := RetrieveState(permHost, instance, errChan)
+				UpdateInternalState(permResponse, instance, errChan)
+
 			}
+			// Only send once to avoid a memory leak
+			once.Do(sendDoneSignal)
 		}
 	}()
 
@@ -96,8 +106,9 @@ func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host
 
 }
 
-// RetrieveNdf polls the permissioning server for updates and
-func RetrieveNdf(permHost *connect.Host, network *node.Comms, instance *server.Instance, errorChan chan error) {
+// RetrieveState polls the permissioning server for updates and
+func RetrieveState(permHost *connect.Host,
+	instance *server.Instance, errorChan chan error) *pb.PermissionPollResponse {
 	// Get the ndf hashes for partial and full ndf
 	var fullNdfHash, partialNdfHash []byte
 	if instance.GetConsensus().GetFullNdf() != nil {
@@ -120,28 +131,30 @@ func RetrieveNdf(permHost *connect.Host, network *node.Comms, instance *server.I
 	}
 
 	// Send the message to permissioning
-	permissioningResponse, err := network.SendPoll(permHost, pollMsg)
+	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
 		errorChan <- errors.Errorf("Issue polling permissioning: %+v", err)
 	}
 
-	// Fixme: Move below logic into installNdf logic? Reviewer thoughts? Would need to pull
-	//  the message out of the gofunc or call installNdf in the gofunc. Either way works, as all these update funcs
-	//  are thread-safe (using locks)
+	return permissioningResponse
+}
+
+// UpdateState processes the polling response from permissioning, installing any changes if needed
+func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance, errorChan chan error) {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 
 	// Update round info
 	for _, roundInfo := range newUpdates {
-		err = instance.GetConsensus().RoundUpdate(roundInfo)
+		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
 			errorChan <- errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
 	}
 
 	// Update the full ndf
-	err = instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+	err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 	if err != nil {
 		errorChan <- err
 	}
@@ -153,11 +166,10 @@ func RetrieveNdf(permHost *connect.Host, network *node.Comms, instance *server.I
 	}
 
 	// Update the hosts
-	err = initializeHosts(instance.GetConsensus().GetFullNdf().Get(), network, instance.GetID().Bytes())
+	err = initializeHosts(instance.GetConsensus().GetFullNdf().Get(), instance.GetNetwork(), instance.GetID().Bytes())
 	if err != nil {
 		errorChan <- err
 	}
-
 }
 
 // InstallNdf parses the ndf for necessary information and returns that
