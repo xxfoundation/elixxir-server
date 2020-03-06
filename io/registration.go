@@ -169,7 +169,3 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 
 	return make([]byte, 0), nil
 }
-
-func PollN() {
-
-}

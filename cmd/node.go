@@ -112,21 +112,12 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
+	jww.INFO.Printf("Creating server instance")
 	instance, err := server.CreateServerInstance(def, node.NewImplementation, node.NewStateChanges(), noTLS)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}
 
-	// Handle initiation of permissioning logic
-	if disablePermissioning {
-		def.Gateway.ID = id.NewTmpGateway()
-	} else {
-
-		//todo first set up instance, then poll ?
-
-	}
-
-	jww.INFO.Printf("Creating server instance")
 	// Create instance
 	if noTLS {
 		jww.INFO.Println("Blanking TLS certs for non use")
