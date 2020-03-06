@@ -62,6 +62,9 @@ type Definition struct {
 
 	// Generates random numbers
 	RngStreamGen *fastRNG.StreamGenerator
+
+	// timeout for round creation
+	RoundCreationTimeout int
 }
 
 // Holds all input flags to the system.

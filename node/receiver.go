@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
@@ -25,8 +26,18 @@ import (
 // ReceiveCreateNewRound receives the create new round signal and
 // creates the round
 func ReceiveCreateNewRound(instance *server.Instance,
-	message *mixmessages.RoundInfo) error {
+	message *mixmessages.RoundInfo, newRoundTimeout int,
+	auth *connect.Auth) error {
 	roundID := id.Round(message.ID)
+
+	expectedID := instance.GetTopology().GetNodeAtIndex(0).String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d CreateNewRound failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
 
 	jww.INFO.Printf("[%s]: RID %d CreateNewRound RECIEVE", instance,
 		roundID)
@@ -38,6 +49,7 @@ func ReceiveCreateNewRound(instance *server.Instance,
 		instance.GetID(),
 		&instance.LastNode,
 		instance.GetBatchSize(),
+		newRoundTimeout,
 		instance.GetStreamPool())
 
 	//Build the round
@@ -65,9 +77,20 @@ func ReceiveCreateNewRound(instance *server.Instance,
 // for each node. Also starts precomputation decrypt phase with a
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
-	pk *mixmessages.RoundPublicKey) {
+	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 
 	roundID := id.Round(pk.Round.ID)
+
+	// Verify that auth is good and sender is last node
+	expectedID := instance.GetTopology().GetLastNode().String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey START", instance,
 		roundID)
 
@@ -147,12 +170,23 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}
+	return nil
 }
 
 // ReceivePostPrecompResult handles the state checks and edge checks of
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
-	slots []*mixmessages.Slot) error {
+	slots []*mixmessages.Slot, auth *connect.Auth) error {
+
+	// Check for proper authentication and expected sender
+	expectedID := instance.GetTopology().GetLastNode().String()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+		jww.INFO.Printf("[%s]: RID %d PostPrecompResult failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
 
 	jww.INFO.Printf("[%s]: RID %d PostPrecompResult START", instance,
 		roundID)
@@ -187,7 +221,18 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
-func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
+func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) {
+	// Check for proper authentication and if the sender
+	// is the previous node in the circuit
+	topology := instance.GetTopology()
+	nodeID := instance.GetID()
+	prevNodeID := topology.GetPrevNode(nodeID)
+
+	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
+		jww.FATAL.Panicf("Error on PostPhase: "+
+			"Attempted communication by %+v has not been authenticated", auth.Sender)
+	}
+
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
 
@@ -233,8 +278,22 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance) {
 // ReceiveStreamPostPhase handles the state checks and edge checks of
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
-	instance *server.Instance) error {
+	instance *server.Instance, auth *connect.Auth) error {
 
+	// Check for proper authentication and expected sender
+	topology := instance.GetTopology()
+	nodeID := instance.GetID()
+	prevNodeID := topology.GetPrevNode(nodeID)
+
+	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
+		errMsg := errors.Errorf("[%s]: Reception of StreamPostPhase comm failed authentication: "+
+			"(Expected ID: %+v, received id: %+v.\n Auth: %+v)", instance,
+			prevNodeID, auth.Sender.GetId(), auth.IsAuthenticated)
+
+		jww.ERROR.Println(errMsg)
+		return errMsg
+
+	}
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
 		return err
@@ -270,7 +329,14 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 // Receive PostNewBatch comm from the gateway
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
-	newBatch *mixmessages.Batch) error {
+	newBatch *mixmessages.Batch, auth *connect.Auth) error {
+	// Check that authentication is good and the sender is our gateway, otherwise error
+	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
+		jww.WARN.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	// This shouldn't block,
 	// and should return an error if there's no round available
 	// You'd want to return this error in the Ack that's available for the
@@ -329,7 +395,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
-	// TODO send all the slot IDs that didn't make it back to the gateway
 	jww.INFO.Printf("[%s]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
@@ -338,9 +403,20 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
-func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo) error {
+func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo,
+	auth *connect.Auth) error {
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
+
+	expectedID := instance.GetTopology().GetLastNode()
+	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
+		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return connect.AuthError(auth.Sender.GetId())
+	}
+
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
 		instance, roundID)
 

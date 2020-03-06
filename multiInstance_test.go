@@ -38,7 +38,7 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 
 func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
-	jww.SetStdoutThreshold(jww.LevelInfo)
+	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	if numNodes < 3 {
 		t.Errorf("Multi Instance Test must have a minnimum of 3 nodes,"+
@@ -81,7 +81,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
-		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation)
+		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation, true)
 		instances = append(instances, instance)
 	}
 
@@ -184,8 +184,14 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 		}
 	}
 
+	h, _ := connect.NewHost(firstNode.GetID().NewGateway().String(), "test", nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
 	//send the batch to the node
-	err = node.ReceivePostNewBatch(firstNode, &ecrbatch)
+	err = node.ReceivePostNewBatch(firstNode, &ecrbatch, auth)
 
 	if err != nil {
 		t.Errorf("MultiNode Test: Error returned from first node "+
@@ -194,8 +200,12 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
+	h, _ = connect.NewHost(lastNode.GetID().NewGateway().String(), "test", nil, false, false)
 	for len(completedBatch.Slots) == 0 {
-		completedBatch, _ = io.GetCompletedBatch(lastNode.GetCompletedBatchQueue(), 100*time.Millisecond)
+		completedBatch, _ = io.GetCompletedBatch(lastNode, 100*time.Millisecond, &connect.Auth{
+			IsAuthenticated: true,
+			Sender:          h,
+		})
 	}
 
 	//---BUILD PROBING TOOLS----------------------------------------------------
@@ -373,11 +383,17 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool, gr
 				KeepBuffers: true,
 				UseGPU:      useGPU,
 			},
+			Gateway: server.GW{
+				ID:      nidLst[i].NewGateway(),
+				TlsCert: nil,
+				Address: "",
+			},
 			Address:        nodeLst[i].Address,
 			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
 			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
+			RoundCreationTimeout: 2,
 		}
 
 		defLst = append(defLst, &def)

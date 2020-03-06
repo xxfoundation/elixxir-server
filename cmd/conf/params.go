@@ -28,7 +28,7 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
-	Index            int // TODO: Do we need this field and how do we populate it?
+	Index            int
 	Batch            uint32
 	SkipReg          bool `yaml:"skipReg"`
 	Verbose          bool
@@ -277,7 +277,6 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
 	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
-
 	if len(def.Permissioning.TlsCert) > 0 {
 		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
 		if err != nil {

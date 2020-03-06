@@ -19,18 +19,28 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
+	"strconv"
+	"strings"
 	"time"
 )
 
 // Perform the Node registration process with the Permissioning Server
 func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect.Host) error {
+	// We don't check validity here, because the registration server should.
+	gw := strings.Split(def.Gateway.Address, ":")
+	gwPort, _ := strconv.ParseUint(gw[1], 10, 32)
+	node := strings.Split(def.Address, ":")
+	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
 	// Attempt Node registration
 	err := network.SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   def.Gateway.Address,
+			GatewayAddress:   gw[0],
+			GatewayPort:      uint32(gwPort),
+			ServerAddress:    node[0],
+			ServerPort:       uint32(nodePort),
 			RegistrationCode: def.Permissioning.RegistrationCode,
 		})
 	if err != nil {
@@ -40,29 +50,14 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 	return nil
 }
 
-//PollNdf handles the server requesting the ndf from permissioning
+// PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
 func PollNdf(def *server.Definition, network *node.Comms,
 	gatewayNdfChan chan *pb.GatewayNdf, gatewayReadyCh chan struct{}, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
 	// Keep polling until there is a response (ie no error)
-	var response *pb.NDF
-	var err error
-
-	jww.INFO.Printf("Beginning polling NDF...")
-	for response == nil || response.Ndf == nil {
-		response, err = network.RequestNdf(permHost,
-			&pb.NDFHash{Hash: make([]byte, 0)})
-		if err != nil {
-			return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
-		}
-	}
-
-	// Decode the ndf into an object
-	jww.DEBUG.Printf("Ndf received: %s", string(response.Ndf))
-	newNdf, _, err := ndf.DecodeNDF(string(response.Ndf))
+	newNdf, err := network.RetrieveNdf(nil)
 	if err != nil {
-		errMsg := errors.Errorf("Unable to parse Ndf: %v", err)
-		return nil, errMsg
+		return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
 	}
 	// Find this server's place in the ndf
 	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)

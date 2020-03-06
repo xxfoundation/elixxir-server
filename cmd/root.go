@@ -30,13 +30,13 @@ var verbose bool
 var serverIdx int
 var batchSize uint64
 var validConfig bool
-var showVer bool
 var keepBuffers bool
 var disablePermissioning bool
 var noTLS bool
 var metricsWhitespace bool
 var logPath = "cmix-server.log"
 var maxProcsOverride int
+var newRoundTimeout int
 
 // If true, runs pprof http server
 var profile bool
@@ -51,11 +51,6 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		if showVer {
-			printVersion()
-			return
-		}
-		jww.INFO.Printf(getVersionInfo())
 		if !validConfig {
 			jww.FATAL.Panic("Invalid Config File")
 		}
@@ -127,8 +122,6 @@ func init() {
 		"Config index to use for local server")
 	rootCmd.Flags().Uint64VarP(&batchSize, "batch", "b", 1,
 		"Batch size to use for node server rounds")
-	rootCmd.Flags().BoolVarP(&showVer, "version", "V", false,
-		"Show the server version information.")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at 0.0.0.0:8087 for profiling")
 	rootCmd.Flags().BoolVarP(&disablePermissioning, "disablePermissioning", "",
@@ -147,6 +140,8 @@ func init() {
 		"Overrides the maximum number of processes go will use. Must "+
 			"be equal to or less than the number of logical cores on the device. "+
 			"Defaults at the number of logical cores on the device")
+	rootCmd.Flags().IntVarP(&newRoundTimeout, "newRoundTimeout", "t", 120,
+		"timeout for round creation in seconds")
 
 	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
 	handleBindingError(err, "batchSize")
