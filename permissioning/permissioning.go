@@ -58,16 +58,29 @@ func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host
 	errChan := make(chan error)
 	done := make(chan struct{})
 	go func() {
+		// Continuously poll permissioning for information
 		for {
 			RetrieveNdf(permHost, network, instance, errChan)
 			time.Sleep(500 * time.Millisecond)
-			done <- struct{}{}
+			// Only send once to avoid a memory leak
+			if len(done) == 0 {
+				done <- struct{}{}
+			}
 		}
 	}()
 
+	// Wait for the go function to complete once
 	<-done
 
-	if len(errChan) != 0 {
+	//See if the polling has returned errors
+	var errs error
+	for len(errChan) > 0 {
+		err := <-errChan
+		if errs != nil {
+			errs = errors.Wrap(errs, err.Error())
+		} else {
+			errs = err
+		}
 
 	}
 
@@ -79,15 +92,11 @@ func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host
 	time.Sleep(10 * time.Second)
 
 	jww.INFO.Printf("Successfully obtained NDF!")
-	return nil
+	return errs
 
 }
 
-// todo: determine if this belongs here or comms or something
-//  after first time it autoruns?
-//  if you handle connectivity b4
-//  it should handle
-//  if they groups don't match, error
+// RetrieveNdf polls the permissioning server for updates and
 func RetrieveNdf(permHost *connect.Host, network *node.Comms, instance *server.Instance, errorChan chan error) {
 	// Get the ndf hashes for partial and full ndf
 	var fullNdfHash, partialNdfHash []byte
@@ -116,12 +125,14 @@ func RetrieveNdf(permHost *connect.Host, network *node.Comms, instance *server.I
 		errorChan <- errors.Errorf("Issue polling permissioning: %+v", err)
 	}
 
+	// Fixme: Move below logic into installNdf logic? Reviewer thoughts? Would need to pull
+	//  the message out of the gofunc or call installNdf in the gofunc. Either way works, as all these update funcs
+	//  are thread-safe (using locks)
+
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 
-	// update instance logic...
-	// todo: figure out if this should be outside of this function or inside, decide how go-func shit should work
-	//  and figure out any race conditions
+	// Update round info
 	for _, roundInfo := range newUpdates {
 		err = instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
@@ -135,13 +146,13 @@ func RetrieveNdf(permHost *connect.Host, network *node.Comms, instance *server.I
 		errorChan <- err
 	}
 
-	// Update the full ndf
+	// Update the partial ndf
 	err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 	if err != nil {
 		errorChan <- err
 	}
 
-	// Update the full ndf
+	// Update the hosts
 	err = initializeHosts(instance.GetConsensus().GetFullNdf().Get(), network, instance.GetID().Bytes())
 	if err != nil {
 		errorChan <- err
