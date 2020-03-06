@@ -70,6 +70,7 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
+
 	// Set definition for newly signed certs
 	def.TlsCert = []byte(serverCert)
 	def.Gateway.TlsCert = []byte(gwCert)
@@ -125,7 +126,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
-	jwalterweatherman.INFO.Printf("[%s]: RID %d CreateNewRound COMPLETE", instance,
+	jwalterweatherman.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
 
 	if circuit.IsFirstNode(instance.GetID()) {
@@ -158,10 +159,9 @@ func Completed(from current.Activity) error {
 	return nil
 }
 
-// fixme: doc string
+// NewStateChanges creates a state table with dummy functions
 func NewStateChanges() [current.NUM_STATES]state.Change {
-	//return state changes arr
-	//create the state change function table
+	// Create the state change function table
 	var stateChanges [current.NUM_STATES]state.Change
 
 	stateChanges[current.NOT_STARTED] = Dummy

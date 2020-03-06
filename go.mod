@@ -7,7 +7,7 @@ require (
 	github.com/go-pg/pg v8.0.6+incompatible
 	github.com/golang/protobuf v1.3.4
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
-	github.com/jasonlvhit/gocron v0.0.0-20191228163020-98b59b546dee
+	github.com/jasonlvhit/gocron v0.0.0-20191228163020-98b59b546dee // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
@@ -27,6 +27,7 @@ require (
 	gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0
 	gitlab.com/elixxir/primitives v0.0.0-20200305204536-da5cbdcd2d96
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	google.golang.org/genproto v0.0.0-20200306153348-d950eab6f860 // indirect
 	google.golang.org/grpc v1.27.1
 	gopkg.in/ini.v1 v1.52.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
