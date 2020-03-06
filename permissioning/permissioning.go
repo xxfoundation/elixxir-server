@@ -10,7 +10,6 @@ package permissioning
 
 import (
 	"bytes"
-	"github.com/jasonlvhit/gocron"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -51,9 +50,9 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 	return nil
 }
 
-// PollNdf handles the server requesting the ndf from permissioning
+// Poll handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
-func Poll(def *server.Definition, network *node.Comms, permHost *connect.Host, instance *server.Instance) error {
+func Poll(permHost *connect.Host, instance *server.Instance) error {
 
 	// Initialize variable useful for polling
 	errChan := make(chan error) // Used to check errors
@@ -165,11 +164,18 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 		errorChan <- err
 	}
 
-	// Update the hosts
-	err = initializeHosts(instance.GetConsensus().GetFullNdf().Get(), instance.GetNetwork(), instance.GetID().Bytes())
+	// Update the nodes in the network.Instance with the new ndf
+	err = instance.GetConsensus().UpdateNodeConnections()
 	if err != nil {
 		errorChan <- err
 	}
+
+	// Update the gateways in the network.Instance with the new ndf
+	err = instance.GetConsensus().UpdateGatewayConnections()
+	if err != nil {
+		errorChan <- err
+	}
+
 }
 
 // InstallNdf parses the ndf for necessary information and returns that
@@ -200,6 +206,8 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
 
 }
+
+// todo: delete function??
 
 // initializeHosts adds host objects for all relevant connections in the NDF
 func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, ourId []byte) error {

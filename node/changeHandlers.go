@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
-	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
@@ -25,13 +25,12 @@ func Dummy(from current.Activity) error {
 }
 
 // Beginning state of state machine, enters waiting upon successful completion
-func NotStarted(def *server.Definition, instance *server.Instance) error {
+func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) error {
 	// all the server startup code
-	impl := nodeComms.NewImplementation()
 
 	// instance.get
 	// Start comms network
-	network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
+	network := instance.GetNetwork()
 	_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to add gateway host: %+v", err)
@@ -61,20 +60,22 @@ func NotStarted(def *server.Definition, instance *server.Instance) error {
 	}
 
 	// Blocking call: Request ndf from permissioning
-	err = permissioning.Poll(def, network, permHost, instance)
+	err = permissioning.Poll(permHost, instance)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
 
-	network.Shutdown()
-
-	// Parse the Ndf
+	// Parse the Ndf for the new signed certs from  permissioning
 	serverCert, gwCert, err := permissioning.InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
+	// Set definition for newly signed certs
 	def.TlsCert = []byte(serverCert)
 	def.Gateway.TlsCert = []byte(gwCert)
+
+	// Restart the network with these signed certs
+	instance.RestartNetwork(receivers.NewImplementation, def, noTls)
 
 	return nil
 }
