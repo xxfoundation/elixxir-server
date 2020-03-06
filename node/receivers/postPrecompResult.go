@@ -25,8 +25,14 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
 	}
 
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(id.Round(roundID))
+	if err != nil {
+		return errors.WithMessagef(err, "Failed to retrieve round %+v", roundID)
+	}
+
 	// Check for proper authentication and expected sender
-	expectedID := instance.GetTopology().GetLastNode().String()
+	expectedID := r.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%s]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
@@ -37,8 +43,6 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 	jww.INFO.Printf("[%s]: RID %d PostPrecompResult START", instance,
 		roundID)
-
-	rm := instance.GetRoundManager()
 
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)

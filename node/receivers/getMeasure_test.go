@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
+	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -20,19 +20,25 @@ func TestReceiveGetMeasure(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
+	var err error
 
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	topology := connect.NewCircuit(buildMockNodeIDs(numNodes))
+	sndf, err := network.NewSecuredNdf(testUtil.NDF)
+	if err != nil {
+		t.Error(err)
+	}
 	// Set instance for first node
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
+		NDF:             sndf,
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	states := [current.NUM_STATES]state.Change{}
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, states, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	// Set up a round first node
 	roundID := id.Round(45)
@@ -54,7 +60,6 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	instance.GetRoundManager().AddRound(rnd)
 
-	var err error
 	var resp *mixmessages.RoundMetrics
 
 	info := mixmessages.RoundInfo{

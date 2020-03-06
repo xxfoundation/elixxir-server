@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -13,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -32,7 +30,6 @@ type Instance struct {
 	resourceQueue *ResourceQueue
 	network       *node.Comms
 	machine       state.Machine
-	machineList   [current.NUM_STATES]state.Change
 
 	consensus *network.Instance
 
@@ -52,13 +49,13 @@ type Instance struct {
 // todo remove ndf here, move to part of defition obj
 //
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	changeList [current.NUM_STATES]state.Change, noTls bool) (*Instance, error) {
+	machine state.Machine, noTls bool) (*Instance, error) {
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
 		roundManager:         round.NewManager(),
 		resourceQueue:        initQueue(),
-		machineList:          changeList,
+		machine:              machine,
 		requestNewBatchQueue: round.NewQueue(),
 	}
 
@@ -72,7 +69,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.ndf.Get())
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.NDF.Get())
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -98,15 +95,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 // Run starts the resource queue
 func (i *Instance) Run() error {
 	go i.resourceQueue.run(i)
-	var err error
-	i.machine, err = state.NewMachine(i.machineList)
-	return err
-}
-
-// GetTopology returns the circuit object
-func (i *Instance) GetTopology() *connect.Circuit {
-	//return i.definition.Topology
-	return nil
+	return i.machine.Start()
 }
 
 // GetTopology returns the consensus object

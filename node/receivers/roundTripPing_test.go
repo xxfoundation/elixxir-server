@@ -30,7 +30,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t)
 
 	// Set up a round first node
 	roundID := id.Round(45)

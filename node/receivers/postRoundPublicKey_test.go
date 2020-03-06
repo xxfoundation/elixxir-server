@@ -3,7 +3,6 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -28,7 +27,8 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(1)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -47,8 +47,8 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 	// Skip first node
 	r := round.New(grp, instance.GetUserRegistry(), roundID,
-		[]phase.Phase{mockPhase}, responseMap, instance.GetTopology(),
-		instance.GetTopology().GetNodeAtIndex(1), batchSize,
+		[]phase.Phase{mockPhase}, responseMap, topology,
+		topology.GetNodeAtIndex(1), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
@@ -69,7 +69,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		return nil
 	}
 
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -106,9 +106,10 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(1)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
-	fakeHost, _ := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
+	fakeHost, _ := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          fakeHost,
@@ -148,7 +149,8 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(1)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
 	auth := &connect.Auth{
@@ -191,7 +193,8 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	batchSize := uint32(3)
 	roundID := id.Round(0)
@@ -237,7 +240,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetLastNode().String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

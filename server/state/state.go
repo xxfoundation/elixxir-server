@@ -120,10 +120,7 @@ func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activit
 		panic("Cannot use outside of test environment")
 	}
 
-	m, err := NewMachine(changeList)
-	if err != nil {
-		return Machine{}, err
-	}
+	m := NewMachine(changeList)
 	ok, err := m.stateChange(start)
 	if err != nil {
 		return Machine{}, err
@@ -135,7 +132,7 @@ func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activit
 }
 
 // builds the stateObj  and sets valid transitions
-func NewMachine(changeList [current.NUM_STATES]Change) (Machine, error) {
+func NewMachine(changeList [current.NUM_STATES]Change) Machine {
 	ss := current.NOT_STARTED
 
 	//builds the object
@@ -160,10 +157,12 @@ func NewMachine(changeList [current.NUM_STATES]Change) (Machine, error) {
 	M.addStateTransition(current.COMPLETED, current.WAITING, current.ERROR)
 	M.addStateTransition(current.ERROR, current.WAITING, current.ERROR, current.CRASH)
 
-	//enter into NOT_STARTED State
-	_, err := M.stateChange(current.NOT_STARTED)
+	return M
+}
 
-	return M, err
+func (m Machine) Start() error {
+	_, err := m.stateChange(*m.Activity)
+	return err
 }
 
 // adds a state transition to the state object

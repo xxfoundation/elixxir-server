@@ -5,13 +5,27 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/state"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 )
+
+var dummyStates = [current.NUM_STATES]state.Change{
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+}
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -31,7 +45,8 @@ func TestMain(m *testing.M) {
 	prime := large.NewIntFromString(MODP768, 16)
 	grp := cyclic.NewGroup(prime, large.NewInt(2))
 	def := mockServerDef(m, grp)
-	instance, _ = CreateServerInstance(def, NewImplementation, false)
+	sm := state.NewMachine(dummyStates)
+	instance, _ = CreateServerInstance(def, receivers.NewImplementation, sm, false)
 	os.Exit(m.Run())
 }
 
@@ -87,11 +102,11 @@ func TestInstance_Topology(t *testing.T) {
 
 	//Build the topology
 	def := Definition{}
-	def.Topology = connect.NewCircuit(nodeIDs)
+	topology := connect.NewCircuit(nodeIDs)
 	def.ID = nodeIDs[2]
 	i := &Instance{definition: &def}
 
-	if !reflect.DeepEqual(i.GetTopology(), def.Topology) {
+	if !reflect.DeepEqual(i.GetTopology(), topology) {
 		t.Errorf("Instance.GetTopology: Returned incorrect " +
 			"Topology")
 	}

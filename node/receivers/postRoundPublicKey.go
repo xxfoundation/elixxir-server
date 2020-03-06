@@ -27,9 +27,14 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	}
 
 	roundID := id.Round(pk.Round.ID)
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return errors.WithMessagef(err, "Failed to retrieve round %+v", roundID)
+	}
 
 	// Verify that auth is good and sender is last node
-	expectedID := instance.GetTopology().GetLastNode().String()
+	expectedID := r.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
@@ -40,8 +45,6 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey START", instance,
 		roundID)
-
-	rm := instance.GetRoundManager()
 
 	tag := phase.PrecompShare.String() + "Verification"
 
