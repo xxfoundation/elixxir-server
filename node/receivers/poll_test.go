@@ -8,7 +8,6 @@ package receivers
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
@@ -30,9 +29,8 @@ func testSetup(t *testing.T) (server.Instance, *mixmessages.ServerPoll) {
 		UserRegistry:    &globals.UserMap{},
 	}
 
-	changeList := [current.NUM_STATES]state.Change{}
-
-	instance, err := server.CreateServerInstance(&def, NewImplementation, changeList, false)
+	m := state.NewMachine(dummyStates)
+	instance, err := server.CreateServerInstance(&def, NewImplementation, m, false)
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()

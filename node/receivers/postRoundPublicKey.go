@@ -56,7 +56,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	}
 	p.Measure(measure.TagVerification)
 
-	err = io.PostRoundPublicKey(instance.GetGroup(), r.GetBuffer(), pk)
+	err = io.PostRoundPublicKey(instance.GetConsensus().GetCmixGroup(), r.GetBuffer(), pk)
 	if err != nil {
 		jww.FATAL.Panicf("[%s]: Error on posting PostRoundPublicKey "+
 			"to io, should be able to return: %+v", instance, err)

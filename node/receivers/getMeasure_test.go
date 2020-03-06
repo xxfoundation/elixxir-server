@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -25,15 +24,11 @@ func TestReceiveGetMeasure(t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	topology := connect.NewCircuit(buildMockNodeIDs(numNodes))
-	sndf, err := network.NewSecuredNdf(testUtil.NDF)
-	if err != nil {
-		t.Error(err)
-	}
 	// Set instance for first node
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
-		NDF:             sndf,
+		NDF:             testUtil.NDF,
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
