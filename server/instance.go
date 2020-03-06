@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package server
 
 import (
@@ -15,7 +20,6 @@ import (
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
@@ -278,10 +282,12 @@ func (i *Instance) VerifyTopology() error {
 	permissioningCert.IsCA = true
 	permissioningCert.KeyUsage = x509.KeyUsageCertSign
 
+	ourNdf := i.consensus.GetFullNdf().Get()
 	//Iterate through the topology
 	for j := 0; j < i.definition.Topology.Len(); j++ {
 		//Load the node Cert from topology
-		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
+
+		nodeCert, err := tls.LoadCertificate(string(ourNdf.Nodes[j].TlsCertificate))
 		if err != nil {
 			errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
 			return errors.New(errorMsg)

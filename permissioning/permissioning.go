@@ -10,6 +10,7 @@ package permissioning
 
 import (
 	"bytes"
+	"github.com/jasonlvhit/gocron"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -51,9 +52,15 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 
 // PollNdf handles the server requesting the ndf from permissioning
 // it also holds the callback which handles gateway requesting an ndf from its server
-func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host) (*ndf.NetworkDefinition, error) {
+func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host,
+	instance *server.Instance) (*ndf.NetworkDefinition, error) {
+
 	// Keep polling until there is a response (ie no error)
-	newNdf, err := network.RetrieveNdf(nil)
+	errChan := make(chan error)
+	go RetrieveNdf(permHost, network, def, instance, errChan)
+
+
+	newNdf, err := network.SendPoll(permHost, )
 	if err != nil {
 		return nil, errors.Errorf("Unable to poll for Ndf: %+v", err)
 	}
@@ -77,34 +84,76 @@ func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host
 
 }
 
+// todo: determine if this belongs here or comms or something
+//  after first time it autoruns?
+//  if you handle connectivity b4
+//  it should handle
+//  if they groups don't match, error
+func RetrieveNdf(permHost *connect.Host, network *node.Comms, def *server.Definition, instance *server.Instance, errorChan chan error)  {
+	var fullNdfHash, partialNdfHash []byte
+	if instance.GetConsensus().GetFullNdf() != nil {
+		fullNdfHash = instance.GetConsensus().GetFullNdf().GetHash()
+	}
+	if instance.GetConsensus().GetPartialNdf() != nil {
+		partialNdfHash = instance.GetConsensus().GetPartialNdf().GetHash()
+	}
+
+	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
+
+	pollMsg := &pb.PermissioningPoll{
+		Full: &pb.NDFHash{Hash: fullNdfHash},
+		Partial: &pb.NDFHash{Hash: partialNdfHash},
+		LastUpdate: uint64(lastUpdateId),
+		Activity:,
+	}
+
+	permissioningResponse, err := network.SendPoll(permHost, pollMsg)
+	if err != nil {
+		errorChan <- errors.Errorf("Issue polling permissioning: %+v", err)
+	}
+
+	newUpdates := permissioningResponse.Updates
+
+	// update instance logic...
+	// todo: figure out if this should be outside of this function or inside, decide how go-func shit should work
+	//  and figure out any race conditions
+	for _, roundInfo := range newUpdates {
+		err = instance.GetConsensus().RoundUpdate(roundInfo)
+		if err != nil {
+			errorChan <- errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
+		}
+	}
+
+	//
+	err = instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+	if err != nil {
+		errorChan <- err
+	}
+
+	//
+	err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
+	if err != nil {
+		errorChan <- err
+	}
+
+
+}
+
+
 //InstallNdf parses the ndf for necessary information and returns that
-func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) ([]server.Node, []*id.Node,
-	string, string, error) {
+func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
 
 	jww.INFO.Println("Installing NDF now...")
 
 	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
 	if err != nil {
-		return nil, nil, "", "", err
+		return "", "", err
 	}
 
-	// Integrate the topology with the Definition
-	nodes := make([]server.Node, len(newNdf.Nodes))
-	nodeIds := make([]*id.Node, len(newNdf.Nodes))
-	for i, newNode := range newNdf.Nodes {
-		// Build Node information
-		jww.INFO.Printf("Assembling node topology: %+v", newNode)
-		nodes[i] = server.Node{
-			ID:      id.NewNodeFromBytes(newNode.ID),
-			TlsCert: []byte(newNode.TlsCertificate),
-			Address: newNode.Address,
-		}
-		nodeIds[i] = id.NewNodeFromBytes(newNode.ID)
-	}
 
 	//Fixme: at some point soon we will not be able to assume the node & corresponding gateway share the same index
 	// will need to add logic to find the corresponding gateway..
-	return nodes, nodeIds, newNdf.Nodes[index].TlsCertificate, newNdf.Gateways[index].TlsCertificate, nil
+	return newNdf.Nodes[index].TlsCertificate, newNdf.Gateways[index].TlsCertificate, nil
 }
 
 //findOurNode is a helper function which finds our node's index in the ndf

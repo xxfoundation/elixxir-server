@@ -122,7 +122,7 @@ func StartServer(vip *viper.Viper) error {
 		def.Gateway.ID = id.NewTmpGateway()
 	} else {
 
-		//todo first set up instance, then poll (server instance or netwk instance)?
+		//todo first set up instance, then poll ?
 
 	}
 

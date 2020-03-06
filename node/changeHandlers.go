@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package node
 
+// fixme: add file description
+
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/jwalterweatherman"
@@ -22,7 +24,9 @@ func Dummy(from current.Activity) error {
 	return nil
 }
 
-// todo connect o perm here
+// todo connect to perm here
+// fixme: doc string
+// Beginning state of state machine, enters waiting upon successful completion
 func NotStarted(def *server.Definition, instance server.Instance) error {
 	// all the server startup code
 	impl := nodeComms.NewImplementation()
@@ -68,7 +72,7 @@ func NotStarted(def *server.Definition, instance server.Instance) error {
 
 	// Parse the Ndf
 	//nodes, nodeIds,
-	_, _, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
+	serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
@@ -80,12 +84,14 @@ func NotStarted(def *server.Definition, instance server.Instance) error {
 	return nil
 }
 
+// fixme: doc string
 func Waiting(from current.Activity) error {
 	// start waiting process
 	return nil
 }
 
-func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change, error) {
+// fixme: doc string
+func Precomputing(instance server.Instance, newRoundTimeout int) state.Change {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()
@@ -136,23 +142,27 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	return nil, nil
 }
 
+// fixme: doc string
 func Standby(from current.Activity) error {
 	// start standby process
 	return nil
 
 }
 
+// fixme: doc string
 func Realtime(from current.Activity) error {
 	// start realtime
 	return nil
 
 }
 
+// fixme: doc string
 func Completed(from current.Activity) error {
 	// start completed
 	return nil
 }
 
+// fixme: doc string
 func NewStateChanges() [current.NUM_STATES]state.Change {
 	//return state changes arr
 	//create the state change function table
