@@ -18,13 +18,20 @@ func RecievePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 	network := instance.GetConsensus()
 	//Compare partial NDF hash with instance and return the new one if they do not match
-	isSame := instance.GetConsensus().GetPartialNdf().CompareHash(poll.GetPartial().Hash)
-	if !isSame {
-		res.PartialNDF = network.GetPartialNdf().GetPb()
+	jww.ERROR.Printf("Instance ndf is: %v", instance.GetConsensus().GetPartialNdf())
+	instancePartialNdf := instance.GetConsensus().GetPartialNdf()
+
+	// we are initializing this as nil and will crash if it is the case
+	if instancePartialNdf != nil{
+		isSame := instancePartialNdf.CompareHash(poll.GetPartial().Hash)
+		if !isSame {
+			res.PartialNDF = network.GetPartialNdf().GetPb()
+		}
 	}
 
 	//Compare Full NDF hash with instance and return the new one if they do not match
-	isSame = network.GetFullNdf().CompareHash(poll.GetFull().Hash)
+	//TODO: make compare ndf return an error
+	isSame := network.GetFullNdf().CompareHash(poll.GetFull().Hash)
 	if !isSame {
 		res.FullNDF = network.GetFullNdf().GetPb()
 	}
