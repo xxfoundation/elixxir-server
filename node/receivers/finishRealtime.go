@@ -27,8 +27,13 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	//check that the round should have finished and return it
 	roundID := id.Round(msg.ID)
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to get round")
+	}
 
-	expectedID := instance.GetTopology().GetLastNode()
+	expectedID := r.GetTopology().GetLastNode()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
 		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
@@ -39,12 +44,6 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
 		instance, roundID)
-
-	rm := instance.GetRoundManager()
-	r, err := rm.GetRound(roundID)
-	if err != nil {
-		return errors.Errorf("Failed to get round with round ID: %+v", roundID)
-	}
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)

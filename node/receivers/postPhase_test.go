@@ -3,7 +3,6 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -21,14 +20,17 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	grp := initImplGroup()
 
 	topology := connect.NewCircuit(buildMockNodeIDs(2))
+
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
+		NDF:             testUtil.NDF,
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	mockPhase := testUtil.InitMockPhase(t)
 
@@ -42,7 +44,11 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
-
+	err := instance.Run()
+	if err != nil {
+		t.Errorf("Failed to run instance: %+v", err)
+		return
+	}
 	// get the impl
 	impl := NewImplementation(instance)
 
@@ -116,10 +122,8 @@ func TestPostPhase_NoAuth(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance := mockServerInstance(t)
+	instance, topology := mockServerInstance(t)
 	mockPhase := testUtil.InitMockPhase(t)
-
-	topology := instance.GetTopology()
 
 	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
@@ -167,10 +171,8 @@ func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPh
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance := mockServerInstance(t)
+	instance, topology := mockServerInstance(t)
 	mockPhase := testUtil.InitMockPhase(t)
-
-	topology := instance.GetTopology()
 
 	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
@@ -213,10 +215,8 @@ func TestStreamPostPhase_NoAuth(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance := mockServerInstance(t)
+	instance, topology := mockServerInstance(t)
 	mockPhase := testUtil.InitMockPhase(t)
-
-	topology := instance.GetTopology()
 
 	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
@@ -263,10 +263,8 @@ func TestStreamPostPhase_WrongSender(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance := mockServerInstance(t)
+	instance, topology := mockServerInstance(t)
 	mockPhase := testUtil.InitMockPhase(t)
-
-	topology := instance.GetTopology()
 
 	// Build a mock mockBatch to receive
 	mockBatch := &mixmessages.Batch{}
@@ -322,7 +320,8 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)

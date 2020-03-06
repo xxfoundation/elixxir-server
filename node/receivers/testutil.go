@@ -27,6 +27,17 @@ import (
 	"time"
 )
 
+var dummyStates = [current.NUM_STATES]state.Change{
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+}
+
 // batchEq compares two batches to see if they are equal
 // Return true if they are equal and false otherwise
 func batchEq(a *mixmessages.Batch, b *mixmessages.Batch) bool {
@@ -120,7 +131,7 @@ func buildMockNodeAddresses(numNodes int) []string {
 	return addrLst
 }
 
-func mockServerInstance(t *testing.T) *server.Instance {
+func mockServerInstance(t *testing.T) (*server.Instance, *connect.Circuit) {
 	//primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	//	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 	//	"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -174,9 +185,10 @@ func mockServerInstance(t *testing.T) *server.Instance {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = id.NewTmpGateway()
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
-	return instance
+	return instance, topology
 }
 
 func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID id.Round) (string, error) {

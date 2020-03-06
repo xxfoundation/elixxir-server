@@ -33,7 +33,7 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 
 	// Get data for metrics object
 	nodeId := instance.GetID()
-	topology := instance.GetTopology()
+	topology := r.GetTopology()
 	index := topology.GetNodeLocation(nodeId)
 	numNodes := topology.Len()
 	resourceMonitor := instance.GetResourceMonitor()

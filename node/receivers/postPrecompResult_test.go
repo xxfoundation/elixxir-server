@@ -3,7 +3,6 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -31,7 +30,8 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
@@ -68,7 +68,8 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	roundID := id.Round(45)
 	// Is this the right setup for the response?
@@ -121,18 +122,18 @@ func TestPostPrecompResultFunc(t *testing.T) {
 
 	// Set up all the instances
 	var instances []*server.Instance
+	topology := connect.NewCircuit(nodeIDs)
 	for i := 0; i < numNodes; i++ {
-		topology := connect.NewCircuit(nodeIDs)
 		def := server.Definition{
 			UserRegistry:    &globals.UserMap{},
 			ResourceMonitor: &measure.ResourceMonitor{},
 		}
 		def.ID = topology.GetNodeAtIndex(i)
-		instance, _ := server.CreateServerInstance(&def, NewImplementation, [current.NUM_STATES]state.Change{}, false)
+
+		m := state.NewMachine(dummyStates)
+		instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 		instances = append(instances, instance)
 	}
-
-	topology := instances[0].GetTopology()
 
 	// Set up a round on all the instances
 	roundID := id.Round(45)
@@ -202,9 +203,9 @@ func TestPostPrecompResultFunc(t *testing.T) {
 // Tests that ReceivePostPrecompResult() returns an error when isAuthenticated
 // is set to false in the Auth object.
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, topology := mockServerInstance(t)
 
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0).String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -222,7 +223,7 @@ func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 // Tests that ReceivePostPrecompResult() returns an error when Sender is set to
 // the wrong sender in the Auth object.
 func TestPostPrecompResult_WrongSender(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t)
 
 	fakeHost, err := connect.NewHost("bad", "", nil, true, true)
 	if err != nil {

@@ -73,7 +73,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	if p.GetType() == phase.PrecompShare && len(batch.Slots) != 1 {
 		batch.Slots = batch.Slots[:1]
 		batch.Slots[0].PartialRoundPublicCypherKey =
-			instance.GetGroup().GetG().Bytes()
+			instance.GetConsensus().GetCmixGroup().GetG().Bytes()
 		jww.INFO.Printf("[%s]: RID %d PostPhase PRECOMP SHARE HACK "+
 			"HACK HACK", instance, roundID)
 	}
