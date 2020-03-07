@@ -180,11 +180,15 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 gitlab.com/elixxir/comms v0.0.0-20200305230007-d02e9f0a995c h1:MD1tD/tQsam1hi7GB/nw43Y3LjsW+L9K2AkV+V18Byk=
 gitlab.com/elixxir/comms v0.0.0-20200305230007-d02e9f0a995c/go.mod h1:EB52kEu+HBytMqDXbHY2OZjSJvWI02iPQ20IPi3up2A=
+gitlab.com/elixxir/comms v0.0.0-20200306223753-867ed014817b h1:ow4Cg5x4UPAO0D9BWv57lgD8oUwDWyH0IleE/MfJlsY=
+gitlab.com/elixxir/comms v0.0.0-20200306223753-867ed014817b/go.mod h1:gqE1rAKr1v1qd3jO2gvtZ4HCX8p1JSjkIXADLOhVW3o=
 gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0 h1:2oq/Y1pA3bwCdlRjhFjoOtb2somDY+wYz2vuiOQkVVA=
 gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0/go.mod h1:QPClJr3F90ejz6iHaCZuhexytd6PP97dDnt93iRCTDo=
 gitlab.com/elixxir/primitives v0.0.0-20200218211222-4193179f359c/go.mod h1:REJMcwIcyxh74VSHqy4S9yYiaEsQYObOPglRExDpk14=
 gitlab.com/elixxir/primitives v0.0.0-20200305204536-da5cbdcd2d96 h1:OxJV2cEVfLFprhz1cbK78JtJxaGV4J3DEqQM8zrXvbI=
 gitlab.com/elixxir/primitives v0.0.0-20200305204536-da5cbdcd2d96/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
+gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152 h1:RqT4XSphs+73DWvdKaWlTI8qY6eUdkG9LfTli+qukjU=
+gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=

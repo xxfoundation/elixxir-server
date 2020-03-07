@@ -26,9 +26,6 @@ func Dummy(from current.Activity) error {
 
 // Beginning state of state machine, enters waiting upon successful completion
 func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) error {
-	// all the server startup code
-
-	// instance.get
 	// Start comms network
 	network := instance.GetNetwork()
 	_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
