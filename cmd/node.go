@@ -12,10 +12,6 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/comms/connect"
-	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/network"
-	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
@@ -24,10 +20,10 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
-	"gitlab.com/elixxir/server/permissioning"
+	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/state"
 	"runtime"
-	"time"
 )
 
 // Number of hard-coded users to create
@@ -112,44 +108,38 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
-	instance, err := server.CreateServerInstance(def, node.NewImplementation, node.NewStateChanges(), noTLS)
+	jww.INFO.Printf("Creating server instance")
+	ourMachine := state.NewMachine(node.NewStateChanges())
+	instance, err := server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}
 
-	// Handle initiation of permissioning logic
-	if disablePermissioning {
-		def.Gateway.ID = id.NewTmpGateway()
-	} else {
+	jww.INFO.Printf("Instance created!")
 
-		//todo first set up instance, then poll (server instance or netwk instance)?
-
-	}
-
-	jww.INFO.Printf("Creating server instance")
 	// Create instance
 	if noTLS {
 		jww.INFO.Println("Blanking TLS certs for non use")
 		def.TlsKey = nil
 		def.TlsCert = nil
 		def.Gateway.TlsCert = nil
-		for i := 0; i < def.Topology.Len(); i++ {
-			def.Nodes[i].TlsCert = nil
-		}
+		//for i := 0; i < def.Topology.Len(); i++ {
+		//	def.Nodes[i].TlsCert = nil
+		//}
 	}
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	def.RoundCreationTimeout = newRoundTimeout
 
-	if instance.IsFirstNode() {
-		jww.INFO.Printf("Initilizing as first node")
-		instance.InitFirstNode()
-	}
-	if instance.IsLastNode() {
-		jww.INFO.Printf("Initilizing as last node")
-		instance.InitLastNode()
-	}
+	//if instance.IsFirstNode() {
+	//	jww.INFO.Printf("Initilizing as first node")
+	//	instance.InitFirstNode()
+	//}
+	//if instance.IsLastNode() {
+	//	jww.INFO.Printf("Initilizing as last node")
+	//	instance.InitLastNode()
+	//}
 
 	jww.INFO.Printf("Connecting to network")
 
@@ -167,7 +157,10 @@ func StartServer(vip *viper.Viper) error {
 
 	jww.INFO.Printf("Begining resource queue")
 	//Begin the resource queue
-	instance.Run()
+	err = instance.Run()
+	if err != nil {
+		return errors.Errorf("Unable to run instance: %+v", err)
+	}
 
 	//Start runners for first node
 	if instance.IsFirstNode() {

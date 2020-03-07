@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package server
 
 import (
@@ -17,7 +22,6 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
-	"strings"
 	"testing"
 )
 
@@ -46,7 +50,6 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 // todo remove ndf here, move to part of defition obj
-//
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, noTls bool) (*Instance, error) {
 	instance := &Instance{
@@ -89,6 +92,21 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
 	return instance, nil
+}
+
+// RestartNetwork is intended to reset the network with newly signed certs obtained from polling
+// permissioning
+func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation,
+	definition *Definition, noTls bool) {
+
+	i.network = node.StartNode(i.definition.ID.String(), i.definition.Address,
+		makeImplementation(i), i.definition.TlsCert, i.definition.TlsKey)
+
+	if noTls {
+		i.network.DisableAuth()
+	}
+
+	return
 }
 
 // Run starts the resource queue
@@ -292,14 +310,16 @@ func (i *Instance) VerifyTopology() error {
 	return nil
 }
 
+/*
 // String adheres to the stringer interface, returns unique identifying
 // information about the node
 func (i *Instance) String() string {
 	nid := i.definition.ID
-	numNodes := 0 //i.definition.Topology.Len()
-	myLoc := 0    //i.definition.Topology.GetNodeLocation(nid)
 	localServer := i.network.String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
 	return services.NameStringer(addr, myLoc, numNodes)
 }
+
+
+*/

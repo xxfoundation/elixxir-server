@@ -5,13 +5,15 @@
 ////////////////////////////////////////////////////////////////////////////////
 package node
 
+// fixme: add file description
+
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
-	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
@@ -22,14 +24,10 @@ func Dummy(from current.Activity) error {
 	return nil
 }
 
-// todo connect o perm here
-func NotStarted(def *server.Definition, instance server.Instance) error {
-	// all the server startup code
-	impl := nodeComms.NewImplementation()
-
-	// instance.get
+// Beginning state of state machine, enters waiting upon successful completion
+func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) error {
 	// Start comms network
-	network := nodeComms.StartNode(def.ID.String(), def.Address, impl, def.TlsCert, def.TlsKey)
+	network := instance.GetNetwork()
 	_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to add gateway host: %+v", err)
@@ -59,32 +57,34 @@ func NotStarted(def *server.Definition, instance server.Instance) error {
 	}
 
 	// Blocking call: Request ndf from permissioning
-	newNdf, err := permissioning.PollNdf(def, network, permHost)
+	err = permissioning.Poll(permHost, instance)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
 
-	network.Shutdown()
-
-	// Parse the Ndf
-	//nodes, nodeIds,
-	_, _, serverCert, gwCert, err := permissioning.InstallNdf(def, newNdf)
+	// Parse the Ndf for the new signed certs from  permissioning
+	serverCert, gwCert, err := permissioning.InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
-	//def.Nodes = nodes
+
+	// Set definition for newly signed certs
 	def.TlsCert = []byte(serverCert)
 	def.Gateway.TlsCert = []byte(gwCert)
-	//def.Topology = connect.NewCircuit(nodeIds)
+
+	// Restart the network with these signed certs
+	instance.RestartNetwork(receivers.NewImplementation, def, noTls)
 
 	return nil
 }
 
+// fixme: doc string
 func Waiting(from current.Activity) error {
 	// start waiting process
 	return nil
 }
 
+// fixme: doc string
 func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change, error) {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
@@ -123,7 +123,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
-	jwalterweatherman.INFO.Printf("[%s]: RID %d CreateNewRound COMPLETE", instance,
+	jwalterweatherman.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
 
 	if circuit.IsFirstNode(instance.GetID()) {
@@ -136,26 +136,29 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	return nil, nil
 }
 
+// fixme: doc string
 func Standby(from current.Activity) error {
 	// start standby process
 	return nil
 
 }
 
+// fixme: doc string
 func Realtime(from current.Activity) error {
 	// start realtime
 	return nil
 
 }
 
+// fixme: doc string
 func Completed(from current.Activity) error {
 	// start completed
 	return nil
 }
 
+// NewStateChanges creates a state table with dummy functions
 func NewStateChanges() [current.NUM_STATES]state.Change {
-	//return state changes arr
-	//create the state change function table
+	// Create the state change function table
 	var stateChanges [current.NUM_STATES]state.Change
 
 	stateChanges[current.NOT_STARTED] = Dummy
