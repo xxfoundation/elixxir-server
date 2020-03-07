@@ -136,7 +136,8 @@ func TestRecievePoll_RoundUpdatesFail(t *testing.T) {
 }
 
 
-// Test what happens when you send in an all nil result.
+// Test that when the partial ndf hash is different as the incomming ndf hash
+// the ndf returned in the server poll is the new ndf from the poll
 func TestRecievePoll_DifferentFullNDF(t *testing.T) {
 	instance, poll := setupTests(t)
 	res, err := RecievePoll(poll, &instance)
@@ -151,7 +152,8 @@ func TestRecievePoll_DifferentFullNDF(t *testing.T) {
 	}
 }
 
-// Test that if poll contains a new Full NDF that the response contains it
+// Test that when the fulll ndf hash is the same as the
+// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
 func TestRecievePoll_SameFullNDF(t *testing.T) {
 	instance, poll := setupTests(t)
 	//poll.Full = fullHash2
@@ -167,7 +169,8 @@ func TestRecievePoll_SameFullNDF(t *testing.T) {
 	}
 }
 
-// Test what happens when you send in an all nil result.
+// Test that when the partial ndf hash is different as the incomming ndf hash
+// the ndf returned in the server poll is the new ndf from the poll
 func TestRecievePoll_DifferentPartiallNDF(t *testing.T) {
 	instance, poll := setupTests(t)
 	res, err := RecievePoll(poll, &instance)
@@ -182,7 +185,8 @@ func TestRecievePoll_DifferentPartiallNDF(t *testing.T) {
 	}
 }
 
-// Test that if poll contains a new Full NDF that the response contains it
+// Test that when the partial ndf hash is the same as the
+// incomming ndf hash the ndf returned in the server poll is the same ndf we started out with
 func TestRecievePoll_SamePartialNDF(t *testing.T) {
 	instance, poll := setupTests(t)
 	//poll.Full = fullHash2
