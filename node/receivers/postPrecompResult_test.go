@@ -3,6 +3,7 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -22,16 +23,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 			t.Error("There was no panic when an invalid round was passed")
 		}
 	}()
-	//grp := initImplGroup()
-	topology := connect.NewCircuit(buildMockNodeIDs(5))
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = topology.GetNodeAtIndex(0)
-
-	m := state.NewMachine(dummyStates)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, topology, _ := setup(t)
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
@@ -59,17 +51,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 // number of slots in the message
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-	grp := initImplGroup()
-
-	topology := connect.NewCircuit(buildMockNodeIDs(5))
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = topology.GetNodeAtIndex(0)
-
-	m := state.NewMachine(dummyStates)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, topology, grp := setup(t)
 
 	roundID := id.Round(45)
 	// Is this the right setup for the response?
@@ -127,11 +109,20 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		def := server.Definition{
 			UserRegistry:    &globals.UserMap{},
 			ResourceMonitor: &measure.ResourceMonitor{},
+			FullNDF:         testUtil.NDF,
+			PartialNDF:      testUtil.NDF,
 		}
-		def.ID = topology.GetNodeAtIndex(i)
+		def.ID = topology.GetNodeAtIndex(1)
 
-		m := state.NewMachine(dummyStates)
+		m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+		if err != nil {
+			t.Errorf("Failed to create test machine: %+v", err)
+		}
 		instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+		rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
+			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
+			3, instance.GetRngStreamGen(), "0.0.0.0")
+		instance.GetRoundManager().AddRound(rnd)
 		instances = append(instances, instance)
 	}
 

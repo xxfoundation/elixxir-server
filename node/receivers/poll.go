@@ -36,7 +36,7 @@ func RecievePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 	// Check if any updates where made and get them
 	// Error case here just means there weren't any updates newer than our last
-	round, _ := network.GetRoundUpdates(int(poll.LastUpdate))
+	round := network.GetRoundUpdates(int(poll.LastUpdate))
 	res.Updates = round
 
 	// Get the request for a new batch que and store it into res
