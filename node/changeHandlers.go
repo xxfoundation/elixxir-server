@@ -13,9 +13,6 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/states"
-	"gitlab.com/elixxir/server/graphs/realtime"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
@@ -165,7 +162,7 @@ func Realtime(instance *server.Instance) error {
 	}
 
 	// Check for correct phase in round
-	if ourRound.GetCurrentPhase() != phase.RealDecrypt {
+	if ourRound.GetCurrentPhase().GetType() != phase.RealDecrypt {
 		return errors.Errorf("Not in correct phase. Expected phase: %+v. "+
 			"Current phase: %+v", phase.RealDecrypt, ourRound.GetCurrentPhase())
 	}
