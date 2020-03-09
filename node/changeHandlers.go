@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node/receivers"
@@ -21,7 +22,6 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
-	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/primitives/states"
 )
 
 func Dummy(from current.Activity) error {
