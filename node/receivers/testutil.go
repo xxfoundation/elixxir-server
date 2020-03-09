@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"reflect"
@@ -182,10 +183,15 @@ func mockServerInstance(t *testing.T) (*server.Instance, *connect.Circuit) {
 			2, 2, 0),
 		RngStreamGen: fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),
+		PartialNDF: testUtil.NDF,
+		FullNDF:    testUtil.NDF,
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = id.NewTmpGateway()
-	m := state.NewMachine(dummyStates)
+	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	if err != nil {
+		t.Errorf("Failed to create test machine: %+v", err)
+	}
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	return instance, topology
