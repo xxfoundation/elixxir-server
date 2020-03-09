@@ -36,21 +36,21 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	// Verify that auth is good and sender is last node
 	expectedID := r.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d ReceivePostRoundPublicKey failed auth "+
+		jww.INFO.Printf("[%v]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey START", instance,
 		roundID)
 
 	tag := phase.PrecompShare.String() + "Verification"
 
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -58,16 +58,16 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 	err = io.PostRoundPublicKey(instance.GetConsensus().GetCmixGroup(), r.GetBuffer(), pk)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on posting PostRoundPublicKey "+
+		jww.FATAL.Panicf("[%v]: Error on posting PostRoundPublicKey "+
 			"to io, should be able to return: %+v", instance, err)
 	}
 
-	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey PK is: %s",
+	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey PK is: %s",
 		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))
 
 	p.UpdateFinalStates()
 
-	jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey END", instance,
+	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey END", instance,
 		roundID)
 
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
@@ -100,7 +100,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 				"comm, should be able to get decrypt phase: %+v", err)
 		}
 
-		jww.INFO.Printf("[%s]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance,
+		jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance,
 			roundID, decrypt.GetType())
 
 		queued :=

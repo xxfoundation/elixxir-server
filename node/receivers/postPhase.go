@@ -55,13 +55,13 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
@@ -74,7 +74,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 		batch.Slots = batch.Slots[:1]
 		batch.Slots[0].PartialRoundPublicCypherKey =
 			instance.GetConsensus().GetCmixGroup().GetG().Bytes()
-		jww.INFO.Printf("[%s]: RID %d PostPhase PRECOMP SHARE HACK "+
+		jww.INFO.Printf("[%v]: RID %d PostPhase PRECOMP SHARE HACK "+
 			"HACK HACK", instance, roundID)
 	}
 
@@ -111,7 +111,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	nodeID := instance.GetID()
 	prevNodeID := topology.GetPrevNode(nodeID)
 	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
-		errMsg := errors.Errorf("[%s]: Reception of StreamPostPhase comm failed authentication: "+
+		errMsg := errors.Errorf("[%v]: Reception of StreamPostPhase comm failed authentication: "+
 			"(Expected ID: %+v, received id: %+v.\n Auth: %+v)", instance,
 			prevNodeID, auth.Sender.GetId(), auth.IsAuthenticated)
 
@@ -141,13 +141,13 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 
 	//queue the phase to be operated on if it is not queued yet

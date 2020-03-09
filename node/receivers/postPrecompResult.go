@@ -34,20 +34,20 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	// Check for proper authentication and expected sender
 	expectedID := r.GetTopology().GetLastNode().String()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
-		jww.INFO.Printf("[%s]: RID %d PostPrecompResult failed auth "+
+		jww.INFO.Printf("[%v]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	jww.INFO.Printf("[%s]: RID %d PostPrecompResult START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostPrecompResult START", instance,
 		roundID)
 
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"PostPrecompResult comm, should be able to return: \n %+v",
 			instance, err)
 	}

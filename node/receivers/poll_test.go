@@ -7,20 +7,14 @@
 package receivers
 
 import (
-	"fmt"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	ndf2 "gitlab.com/elixxir/primitives/ndf"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/state"
-	"math/rand"
+	"gitlab.com/elixxir/server/testUtil"
 	"testing"
-	"time"
 )
 
 // Total of 7 tests needed
@@ -32,30 +26,12 @@ var fullHash2 = []byte("")
 var partialHash1 = []byte("")
 var partialHash2 = []byte("")
 
-func setupTests(t *testing.T) (server.Instance, *mixmessages.ServerPoll){
-
-	nodeId := id.NewNodeFromUInt(uint64(0), t)
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 6000+rand.Intn(1000))
-	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
-
+func setupTests(t *testing.T) (server.Instance, *pb.ServerPoll){
 	//Generate everything needed to make a user
-	node := ndf.Node{
-		ID:             nodeId.Bytes(),
-		TlsCertificate: string(cert),
-		Address:        nodeAddr,
-	}
-	gw := ndf.Gateway{
-		Address:        gAddr,
-		TlsCertificate: string(cert),
-	}
-	testNdf := &ndf2.NetworkDefinition{
-		Timestamp: time.Now(),
-		Nodes:     []ndf.Node{node},
-		Gateways:  []ndf.Gateway{gw},
-		E2E:       ndf.Group{},
-		CMIX:      ndf.Group{},
-		UDB:       ndf.UDB{},
+	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	if err != nil{
+		t.Logf("Failed to decode ndf")
+		t.Fail()
 	}
 
 	nid := server.GenerateId(t)
@@ -73,9 +49,11 @@ func setupTests(t *testing.T) (server.Instance, *mixmessages.ServerPoll){
 		t.Fail()
 	}
 
-	poll := mixmessages.ServerPoll{
-		Full:                 &mixmessages.NDFHash{Hash: fullHash1},
-		Partial:              &mixmessages.NDFHash{Hash: partialHash1},
+	//Push a round update that can be used for the test:
+
+	poll := pb.ServerPoll{
+		Full:                 &pb.NDFHash{Hash: fullHash1},
+		Partial:              &pb.NDFHash{Hash: partialHash1},
 		LastUpdate:           0,
 		Error:                "",
 		XXX_NoUnkeyedLiteral: struct{}{},
@@ -87,22 +65,45 @@ func setupTests(t *testing.T) (server.Instance, *mixmessages.ServerPoll){
 
 }
 
+func pushRandomRoundUpdate(instance server.Instance){
+	//newRound := *pb.RoundInfo{
+	//	ID:                   0,
+	//	UpdateID:             0,
+	//	State:                0,
+	//	BatchSize:            0,
+	//	Topology:             nil,
+	//	Timestamps:           nil,
+	//	Errors:               nil,
+	//	Signature:            nil,
+	//	XXX_NoUnkeyedLiteral: struct{}{},
+	//	XXX_unrecognized:     nil,
+	//	XXX_sizecache:        0,
+	//}
+	//
+	//instance.GetConsensus().RoundUpdate(&newRound)
+
+}
+
 // Test what happens when you send in an all nil result.
-func TestRecievePoll_AllNil(t *testing.T) {
+func TestRecievePoll_NoUpdates(t *testing.T) {
 
 	instance, poll := setupTests(t)
 
 	res, err := RecievePoll(poll, &instance)
-	if err == nil{
+	if err != nil{
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
+	if res == nil{
+		t.Logf("Response was nil")
+		t.Fail()
+	}
 
-	if( res.Slots != nil){
+	if res.Slots != nil{
 		t.Logf("ServerPollResponse.Slots is not nil")
 		t.Fail()
 	}
-	if( res.BatchRequest != nil){
+	if res.BatchRequest != nil{
 		t.Logf("ServerPollResponse.BatchRequest is not nil")
 		t.Fail()
 	}
@@ -136,7 +137,7 @@ func TestRecievePoll_RoundUpdatesFail(t *testing.T) {
 }
 
 
-// Test that when the partial ndf hash is different as the incomming ndf hash
+// Test that when the partial ndf hash is different as the incoming ndf hash
 // the ndf returned in the server poll is the new ndf from the poll
 func TestRecievePoll_DifferentFullNDF(t *testing.T) {
 	instance, poll := setupTests(t)
@@ -169,7 +170,7 @@ func TestRecievePoll_SameFullNDF(t *testing.T) {
 	}
 }
 
-// Test that when the partial ndf hash is different as the incomming ndf hash
+// Test that when the partial ndf hash is different as the incoming ndf hash
 // the ndf returned in the server poll is the new ndf from the poll
 func TestRecievePoll_DifferentPartiallNDF(t *testing.T) {
 	instance, poll := setupTests(t)

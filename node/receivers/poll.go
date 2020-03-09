@@ -37,11 +37,8 @@ func RecievePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 	}
 
 	//Check if any updates where made and get them
-	round, err := network.GetRoundUpdates(int(poll.LastUpdate))
-	res.Updates = round
-	if err != nil {
-		return nil, err
-	}
+	res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
+	jww.ERROR.Printf("GOT ROUND %v", res.Updates)
 
 	// Get the request for a new batch que and store it into res
 	res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
