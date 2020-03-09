@@ -149,21 +149,22 @@ func Standby(from current.Activity) error {
 
 }
 
-// fixme: doc string
+// Realtime checks if we are in the correct phase
 func Realtime(instance *server.Instance) error {
-	// start realtime
 
 	// Get new realtime round info from queue
 	roundInfo, err := instance.GetRealtimeRoundQueue().Receive()
 	if err != nil {
 		return errors.Errorf("Unable to receive from RealtimeRoundQueue: %+v", err)
 	}
-	// check for correct phase in round
+
+	// Get our round
 	ourRound, err := instance.GetRoundManager().GetRound(roundInfo.GetRoundId())
 	if err != nil {
 		return errors.Errorf("Unable to get round from round info: %+v", err)
 	}
 
+	// Check for correct phase in round
 	if ourRound.GetCurrentPhase() != phase.RealDecrypt {
 		return errors.Errorf("Not in correct phase. Expected phase: %+v. "+
 			"Current phase: %+v", phase.RealDecrypt, ourRound.GetCurrentPhase())
