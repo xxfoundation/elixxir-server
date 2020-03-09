@@ -253,6 +253,10 @@ gitlab.com/elixxir/comms v0.0.0-20200306223753-867ed014817b h1:ow4Cg5x4UPAO0D9BW
 gitlab.com/elixxir/comms v0.0.0-20200306223753-867ed014817b/go.mod h1:gqE1rAKr1v1qd3jO2gvtZ4HCX8p1JSjkIXADLOhVW3o=
 gitlab.com/elixxir/comms v0.0.0-20200309163508-bfdc0fbd6dcc h1:29uJ5J5vYKpp0hI7xh6FlW7xLY9lq7dCUrCbkeidFic=
 gitlab.com/elixxir/comms v0.0.0-20200309163508-bfdc0fbd6dcc/go.mod h1:47uPmB4XqFb0azZAQElMHLRuz0EumsVOqo6hXWMkM50=
+gitlab.com/elixxir/comms v0.0.0-20200309170033-0920a0eadbdd h1:ovn/grukT/eAX54y9l1FYpqsMksGZ5VK8Jj8nR37lUw=
+gitlab.com/elixxir/comms v0.0.0-20200309170033-0920a0eadbdd/go.mod h1:47uPmB4XqFb0azZAQElMHLRuz0EumsVOqo6hXWMkM50=
+gitlab.com/elixxir/comms v0.0.0-20200309182411-78321b57a404 h1:bfLaFM/IOnZsFHzqfkFhjngZMhUrfKsh4RattIssouw=
+gitlab.com/elixxir/comms v0.0.0-20200309182411-78321b57a404/go.mod h1:47uPmB4XqFb0azZAQElMHLRuz0EumsVOqo6hXWMkM50=
 gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23 h1:J9MKdOxLGzDZoLy2Q0CAxPlPjSH+k4NG3JhgvatAZjo=
 gitlab.com/elixxir/crypto v0.0.0-20200206203107-b8926242da23/go.mod h1:wWulHuSqxiGhvasduZrtyTTqy+7y5ebe440GdORhzig=
 gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0 h1:2oq/Y1pA3bwCdlRjhFjoOtb2somDY+wYz2vuiOQkVVA=
@@ -274,6 +278,10 @@ gitlab.com/elixxir/primitives v0.0.0-20200305204536-da5cbdcd2d96 h1:OxJV2cEVfLFp
 gitlab.com/elixxir/primitives v0.0.0-20200305204536-da5cbdcd2d96/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
 gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152 h1:RqT4XSphs+73DWvdKaWlTI8qY6eUdkG9LfTli+qukjU=
 gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
+gitlab.com/elixxir/primitives v0.0.0-20200309165723-59e55dc5ca4f h1:DPWx085d4eg4GOXc2otR2625QGbGJvLF3gmzCyGNv9E=
+gitlab.com/elixxir/primitives v0.0.0-20200309165723-59e55dc5ca4f/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
+gitlab.com/elixxir/primitives v0.0.0-20200309183733-02b3b90fce65 h1:IkGoRpS5seVK53z3CCTKssJqMdv7nmx0hx5GM4cm7MM=
+gitlab.com/elixxir/primitives v0.0.0-20200309183733-02b3b90fce65/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
