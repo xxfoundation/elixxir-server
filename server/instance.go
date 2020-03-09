@@ -100,8 +100,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation,
 	definition *Definition, noTls bool) {
 
-	i.network = node.StartNode(i.definition.ID.String(), i.definition.Address,
-		makeImplementation(i), i.definition.TlsCert, i.definition.TlsKey)
+	i.definition = definition
+	i.network = node.StartNode(definition.ID.String(), definition.Address,
+		makeImplementation(i), definition.TlsCert, definition.TlsKey)
 
 	if noTls {
 		i.network.DisableAuth()
