@@ -3,6 +3,7 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -24,12 +25,12 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
-		NDF:             testUtil.NDF,
+		FullNDF:         testUtil.NDF,
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)
 
-	m := state.NewMachine(dummyStates)
+	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	mockPhase := testUtil.InitMockPhase(t)
@@ -44,7 +45,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
-	err := instance.Run()
+	err = instance.Run()
 	if err != nil {
 		t.Errorf("Failed to run instance: %+v", err)
 		return

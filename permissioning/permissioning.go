@@ -72,7 +72,7 @@ func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host
 	// in practice 10 seconds works
 	time.Sleep(10 * time.Second)
 
-	jww.INFO.Printf("Successfully obtained NDF!")
+	jww.INFO.Printf("Successfully obtained FullNDF!")
 	return newNdf, nil
 
 }
@@ -81,7 +81,7 @@ func PollNdf(def *server.Definition, network *node.Comms, permHost *connect.Host
 func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) ([]server.Node, []*id.Node,
 	string, string, error) {
 
-	jww.INFO.Println("Installing NDF now...")
+	jww.INFO.Println("Installing FullNDF now...")
 
 	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
 	if err != nil {
@@ -121,7 +121,7 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 
 }
 
-// initializeHosts adds host objects for all relevant connections in the NDF
+// initializeHosts adds host objects for all relevant connections in the FullNDF
 func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
 	// Add hosts for nodes
 	for i, host := range def.Nodes {

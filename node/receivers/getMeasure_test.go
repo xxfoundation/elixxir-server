@@ -28,7 +28,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
-		NDF:             testUtil.NDF,
+		FullNDF:         testUtil.NDF,
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 

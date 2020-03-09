@@ -116,7 +116,7 @@ type Machine struct {
 }
 
 func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t *testing.T) (Machine, error) {
-	if t != nil {
+	if t == nil {
 		panic("Cannot use outside of test environment")
 	}
 
