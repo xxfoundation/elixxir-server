@@ -18,7 +18,9 @@ import (
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
+	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/state"
 	"strconv"
 	"strings"
 	"sync"
@@ -73,12 +75,16 @@ func Poll(permHost *connect.Host, instance *server.Instance) error {
 			select {
 			// Continuously poll every ticker signal
 			case <-ticker.C:
-				permResponse := RetrieveState(permHost, instance, errChan)
-				UpdateInternalState(permResponse, instance, errChan)
+				permResponse, err := RetrieveState(permHost, instance)
+				if err != nil {
+					errChan <- err
+				} else {
+					// If no error above we update the internal state
+					err = UpdateInternalState(permResponse, instance)
+					if err != nil {
+						errChan <- err
+					}
 
-				if instance.GetStateMachine().Get() == current.COMPLETED {
-					// move to a waiting state
-					//in
 				}
 
 			}
@@ -114,9 +120,9 @@ func Poll(permHost *connect.Host, instance *server.Instance) error {
 
 }
 
-// RetrieveState polls the permissioning server for updates and
+// RetrieveState polls the permissioning server for updates
 func RetrieveState(permHost *connect.Host,
-	instance *server.Instance, errorChan chan error) *pb.PermissionPollResponse {
+	instance *server.Instance) (*pb.PermissionPollResponse, error) {
 	// Get the ndf hashes for partial and full ndf
 	var fullNdfHash, partialNdfHash []byte
 	if instance.GetConsensus().GetFullNdf() != nil {
@@ -141,70 +147,134 @@ func RetrieveState(permHost *connect.Host,
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
-		errorChan <- errors.Errorf("Issue polling permissioning: %+v", err)
+		return nil, errors.Errorf("Issue polling permissioning: %+v", err)
 	}
 
-	return permissioningResponse
+	return permissioningResponse, err
 }
 
 // UpdateState processes the polling response from permissioning, installing any changes if needed
-func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance, errorChan chan error) {
+//  It also parsed the message and determines where to transition given contect
+func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 
 	// Update round info
 	for _, roundInfo := range newUpdates {
-		// Add the new information to the network instace
+		// Add the new information to the network instance
 		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
-			errorChan <- errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
+			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
 
-		// Get the round added above
-		roundId := id.Round(roundInfo.ID)
-		newRound, err := instance.GetRoundManager().GetRound(roundId)
+		//// Get the round added above
+		//roundId := id.Round(roundInfo.ID)
+		//newRound, err := instance.GetRoundManager().GetRound(roundId)
+		//if err != nil {
+		//	return errors.Errorf("Failed to get round out of message: %+v", err)
+		//}
+
+		newNodeList, err := id.NewNodeListFromStrings(roundInfo.Topology)
 		if err != nil {
-			errorChan <- errors.Errorf("Failed to get round out of message: %+v", err)
+			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 		}
+
+		// fixme: this panic on error, external comm
+		//  should not be able to crash server
+		newTopology := connect.NewCircuit(newNodeList)
 
 		// Check if our node is in this round
-		if index := newRound.GetTopology().GetNodeLocation(instance.GetID()); index != -1 {
-			// If we are the first node in the team
-			if index == 0 {
-				// Then we enter realtime decrypt on itself
-				// fixme ?? hwo do above
+		if index := newTopology.GetNodeLocation(instance.GetID()); index != -1 {
+			// Depending on the state in the roundInfo
+			switch states.Round(roundInfo.State) {
+			case states.PRECOMPUTING: // Prepare for precomputing state
+				// Wait for waiting transition
+				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
+				if !ok || err != nil {
+					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
+				}
 
-			} else {
-				// if we are not the first node in the team wait until realtime start
-				ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 50*time.Millisecond)
+				// Send info to round queue
+				err = instance.GetCreateRoundQueue().Send(roundInfo)
+				if err != nil {
+					return errors.Errorf("Unable to send to CreateRoundQueue: %+v", err)
+				}
+
+				// Begin precomputing state
+				ok, err = instance.GetStateMachine().Update(current.PRECOMPUTING)
+				if !ok || err != nil {
+					return errors.Errorf("Cannot move to precomputing state: %+v", err)
+				}
+
+			case states.REALTIME: // Prepare for realtime state
+				// todo: waitfor standby, pass round into a queue and update to realtime
+				//  in new gothread, wait til given time
+				// Wait for standby transition
+				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
+				if !ok || err != nil {
+					return errors.Errorf("Cannot start standby when not in realtime state: %+v", err)
+				}
+
+				// Wait until ready to start realtime
+				go WaitForRealtime(instance.GetStateMachine(),
+					time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME])))
+
+			case states.PENDING:
+				// Don't do anything
+			case states.STANDBY:
+				// Don't do anything
+			case states.COMPLETED:
+				// Don't do anything
+
+			default:
+				return errors.New("Round in unknown state")
 
 			}
+
 		}
 	}
 
 	// Update the full ndf
 	err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 	if err != nil {
-		errorChan <- err
+		return err
 	}
 
 	// Update the partial ndf
 	err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 	if err != nil {
-		errorChan <- err
+		return err
 	}
 
 	// Update the nodes in the network.Instance with the new ndf
 	err = instance.GetConsensus().UpdateNodeConnections()
 	if err != nil {
-		errorChan <- err
+		return err
 	}
 
 	// Update the gateways in the network.Instance with the new ndf
 	err = instance.GetConsensus().UpdateGatewayConnections()
 	if err != nil {
-		errorChan <- err
+		return err
+	}
+
+	return nil
+}
+
+// WaitForRealtime initiates the realtime state on the machine
+//  when ready. Readiness determined by the duration argument
+func WaitForRealtime(ourMachine state.Machine, duration time.Time) {
+	// If the timeDiff is positive, then we are not yet ready to start realtime.
+	//  We then sleep for timeDiff time
+	if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
+		time.Sleep(timeDiff)
+	}
+
+	// Update to realtime when ready
+	ok, err := ourMachine.Update(current.REALTIME)
+	if !ok || err != nil {
+		return errors.Errorf("Cannot move to realtime state: %+v", err)
 	}
 
 }
