@@ -64,9 +64,6 @@ func Poll(permHost *connect.Host, instance *server.Instance) error {
 		done <- struct{}{}
 	}
 
-	//instance.qu\
-	// todo merge with jonah?
-
 	// Routinely poll permissioning for state updates
 	go func() {
 		ticker := time.NewTicker(50 * time.Millisecond)
@@ -162,18 +159,36 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 	// Update round info
 	for _, roundInfo := range newUpdates {
+
+		// Update the full ndf
+		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+		if err != nil {
+			return err
+		}
+
+		// Update the partial ndf
+		err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
+		if err != nil {
+			return err
+		}
+
+		// Update the nodes in the network.Instance with the new ndf
+		err = instance.GetConsensus().UpdateNodeConnections()
+		if err != nil {
+			return err
+		}
+
+		// Update the gateways in the network.Instance with the new ndf
+		err = instance.GetConsensus().UpdateGatewayConnections()
+		if err != nil {
+			return err
+		}
+
 		// Add the new information to the network instance
-		err := instance.GetConsensus().RoundUpdate(roundInfo)
+		err = instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
-
-		//// Get the round added above
-		//roundId := id.Round(roundInfo.ID)
-		//newRound, err := instance.GetRoundManager().GetRound(roundId)
-		//if err != nil {
-		//	return errors.Errorf("Failed to get round out of message: %+v", err)
-		//}
 
 		// Extract topology from RoundInfo
 		newNodeList, err := id.NewNodeListFromStrings(roundInfo.Topology)
@@ -208,8 +223,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 				}
 
 			case states.REALTIME: // Prepare for realtime state
-				// todo: waitfor standby, pass round into a queue and update to realtime
-				//  in new gothread, wait til given time
 				// Wait for STANDBY transition
 				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
 				if !ok || err != nil {
@@ -239,30 +252,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			}
 
 		}
-	}
-
-	// Update the full ndf
-	err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
-	if err != nil {
-		return err
-	}
-
-	// Update the partial ndf
-	err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
-	if err != nil {
-		return err
-	}
-
-	// Update the nodes in the network.Instance with the new ndf
-	err = instance.GetConsensus().UpdateNodeConnections()
-	if err != nil {
-		return err
-	}
-
-	// Update the gateways in the network.Instance with the new ndf
-	err = instance.GetConsensus().UpdateGatewayConnections()
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -315,23 +304,23 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 
 }
 
-// initializeHosts adds host objects for all relevant connections in the FullNDF
-func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
-	// Add hosts for nodes
-	for i, host := range def.Nodes {
-		_, err := network.AddHost(id.NewNodeFromBytes(host.ID).String(),
-			host.Address, []byte(host.TlsCertificate), false, true)
-		if err != nil {
-			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
-		}
-	}
-
-	// Add host for the relevant gateway
-	gateway := def.Gateways[myIndex]
-	_, err = network.AddHost(id.NewNodeFromBytes(def.Nodes[myIndex].ID).NewGateway().String(),
-		gateway.Address, []byte(gateway.TlsCertificate), false, true)
-	if err != nil {
-		return errors.Errorf("Unable to add host for gateway %s at %+v", network.String(), gateway.Address)
-	}
-	return nil
-}
+//// initializeHosts adds host objects for all relevant connections in the FullNDF
+//func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
+//	// Add hosts for nodes
+//	for i, host := range def.Nodes {
+//		_, err := network.AddHost(id.NewNodeFromBytes(host.ID).String(),
+//			host.Address, []byte(host.TlsCertificate), false, true)
+//		if err != nil {
+//			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
+//		}
+//	}
+//
+//	// Add host for the relevant gateway
+//	gateway := def.Gateways[myIndex]
+//	_, err = network.AddHost(id.NewNodeFromBytes(def.Nodes[myIndex].ID).NewGateway().String(),
+//		gateway.Address, []byte(gateway.TlsCertificate), false, true)
+//	if err != nil {
+//		return errors.Errorf("Unable to add host for gateway %s at %+v", network.String(), gateway.Address)
+//	}
+//	return nil
+//}
