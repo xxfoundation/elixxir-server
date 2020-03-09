@@ -116,3 +116,9 @@ func buildBatchRTPingPayload(batchsize uint32) (proto.Message, error) {
 
 	return payload, nil
 }
+
+//
+func StartLocalRealtime(instance *server.Instance) error {
+
+	return nil
+}

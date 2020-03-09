@@ -9,22 +9,26 @@ package node
 
 import (
 	"github.com/pkg/errors"
-	"github.com/spf13/jwalterweatherman"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/graphs/realtime"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/primitives/states"
 )
 
 func Dummy(from current.Activity) error {
 	return nil
 }
 
-// Beginning state of state machine, enters waiting upon successful completion
+// NotStarted is the beginning state of state machine. Enters waiting upon successful completion
 func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) error {
 	// Start comms network
 	network := instance.GetNetwork()
@@ -32,6 +36,7 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	if err != nil {
 		return errors.Errorf("Unable to add gateway host: %+v", err)
 	}
+
 	// Connect to the Permissioning Server without authentication
 	permHost, err := network.AddHost(id.PERMISSIONING,
 		// instance.GetPermissioningAddress,
@@ -93,11 +98,12 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	topology := roundInfo.GetTopology()
 
 	// Extract topology from RoundInfo
-	// TODO: create NewTopology function which accepts list of strings
-	nodeIDs := make([]*id.Node, 0)
-	for _, s := range topology {
-		nodeIDs = append(nodeIDs, id.NewNodeFromBytes([]byte(s)))
+	nodeIDs, err := id.NewNodeListFromStrings(topology)
+	if err != nil {
+		return nil, errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
+
+	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
 	//Build the components of the round
@@ -123,7 +129,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
-	jwalterweatherman.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
+	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
 
 	if circuit.IsFirstNode(instance.GetID()) {
@@ -144,10 +150,26 @@ func Standby(from current.Activity) error {
 }
 
 // fixme: doc string
-func Realtime(from current.Activity) error {
+func Realtime(instance *server.Instance) error {
 	// start realtime
-	return nil
 
+	// Get new realtime round info from queue
+	roundInfo, err := instance.GetRealtimeRoundQueue().Receive()
+	if err != nil {
+		return errors.Errorf("Unable to receive from RealtimeRoundQueue: %+v", err)
+	}
+	// check for correct phase in round
+	ourRound, err := instance.GetRoundManager().GetRound(roundInfo.GetRoundId())
+	if err != nil {
+		return errors.Errorf("Unable to get round from round info: %+v", err)
+	}
+
+	if ourRound.GetCurrentPhase() != phase.RealDecrypt {
+		return errors.Errorf("Not in correct phase. Expected phase: %+v. "+
+			"Current phase: %+v", phase.RealDecrypt, ourRound.GetCurrentPhase())
+	}
+
+	return nil
 }
 
 // fixme: doc string

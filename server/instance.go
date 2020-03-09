@@ -39,6 +39,7 @@ type Instance struct {
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
+	realtimeRoundQueue  round.Queue
 
 	requestNewBatchQueue round.Queue
 }
@@ -238,6 +239,11 @@ func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {
 	return i.createRoundQueue
+}
+
+// todo: docstring
+func (i *Instance) GetRealtimeRoundQueue() round.Queue {
+	return i.realtimeRoundQueue
 }
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {

@@ -175,13 +175,13 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 		//	return errors.Errorf("Failed to get round out of message: %+v", err)
 		//}
 
+		// Extract topology from RoundInfo
 		newNodeList, err := id.NewNodeListFromStrings(roundInfo.Topology)
 		if err != nil {
 			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 		}
 
-		// fixme: this panic on error, external comm
-		//  should not be able to crash server
+		// fixme: this panic on error, external comm should not be able to crash server
 		newTopology := connect.NewCircuit(newNodeList)
 
 		// Check if our node is in this round
@@ -189,7 +189,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
-				// Wait for waiting transition
+				// Wait for WAITING transition
 				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
@@ -201,7 +201,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Unable to send to CreateRoundQueue: %+v", err)
 				}
 
-				// Begin precomputing state
+				// Begin PRECOMPUTING state
 				ok, err = instance.GetStateMachine().Update(current.PRECOMPUTING)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot move to precomputing state: %+v", err)
@@ -210,10 +210,16 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			case states.REALTIME: // Prepare for realtime state
 				// todo: waitfor standby, pass round into a queue and update to realtime
 				//  in new gothread, wait til given time
-				// Wait for standby transition
+				// Wait for STANDBY transition
 				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot start standby when not in realtime state: %+v", err)
+				}
+
+				// Send info to the realtime round queue
+				err = instance.GetRealtimeRoundQueue().Send(roundInfo)
+				if err != nil {
+					return errors.Errorf("Unable to send to RealtimeRoundQueue: %+v", err)
 				}
 
 				// Wait until ready to start realtime
@@ -274,7 +280,7 @@ func WaitForRealtime(ourMachine state.Machine, duration time.Time) {
 	// Update to realtime when ready
 	ok, err := ourMachine.Update(current.REALTIME)
 	if !ok || err != nil {
-		return errors.Errorf("Cannot move to realtime state: %+v", err)
+		jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
 	}
 
 }

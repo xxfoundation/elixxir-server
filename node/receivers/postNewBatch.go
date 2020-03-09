@@ -44,7 +44,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 		ri.ID)
 
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
-		jww.FATAL.Panicf("[%s]: RID %d PostNewBatch ERROR - Gateway sent "+
+		jww.FATAL.Panicf("[%+v]: RID %d PostNewBatch ERROR - Gateway sent "+
 			"batch with improper size", instance, newBatch.Round.ID)
 	}
 
@@ -52,14 +52,14 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 	if err != nil {
 		jww.FATAL.Panicf(
-			"[%s]: RID %d Error on incoming PostNewBatch comm, could "+
+			"[%+v]: RID %d Error on incoming PostNewBatch comm, could "+
 				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
 			phase.RealDecrypt, err)
 	}
 
 	if p.GetState() != phase.Active {
 		jww.FATAL.Panicf(
-			"[%s]: RID %d Error on incoming PostNewBatch comm, phase "+
+			"[%+v]: RID %d Error on incoming PostNewBatch comm, phase "+
 				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
 	}
@@ -74,7 +74,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	err = io.PostPhase(p, newBatch)
 
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: RID %d Error on incoming PostNewBatch comm at"+
+		jww.FATAL.Panicf("[%+v]: RID %d Error on incoming PostNewBatch comm at"+
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
