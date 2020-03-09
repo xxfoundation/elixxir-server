@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
@@ -51,7 +52,6 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 }
 
 // Poll handles the server requesting the ndf from permissioning
-// it also holds the callback which handles gateway requesting an ndf from its server
 func Poll(permHost *connect.Host, instance *server.Instance) error {
 
 	// Initialize variable useful for polling
@@ -62,15 +62,24 @@ func Poll(permHost *connect.Host, instance *server.Instance) error {
 		done <- struct{}{}
 	}
 
+	//instance.qu\
+	// todo merge with jonah?
+
 	// Routinely poll permissioning for state updates
 	go func() {
 		ticker := time.NewTicker(50 * time.Millisecond)
 		// Continuously poll permissioning for information
 		for {
 			select {
+			// Continuously poll every ticker signal
 			case <-ticker.C:
 				permResponse := RetrieveState(permHost, instance, errChan)
 				UpdateInternalState(permResponse, instance, errChan)
+
+				if instance.GetStateMachine().Get() == current.COMPLETED {
+					// move to a waiting state
+					//in
+				}
 
 			}
 			// Only send once to avoid a memory leak
@@ -146,9 +155,31 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 	// Update round info
 	for _, roundInfo := range newUpdates {
+		// Add the new information to the network instace
 		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
 			errorChan <- errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
+		}
+
+		// Get the round added above
+		roundId := id.Round(roundInfo.ID)
+		newRound, err := instance.GetRoundManager().GetRound(roundId)
+		if err != nil {
+			errorChan <- errors.Errorf("Failed to get round out of message: %+v", err)
+		}
+
+		// Check if our node is in this round
+		if index := newRound.GetTopology().GetNodeLocation(instance.GetID()); index != -1 {
+			// If we are the first node in the team
+			if index == 0 {
+				// Then we enter realtime decrypt on itself
+				// fixme ?? hwo do above
+
+			} else {
+				// if we are not the first node in the team wait until realtime start
+				ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 50*time.Millisecond)
+
+			}
 		}
 	}
 
@@ -190,7 +221,8 @@ func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, 
 
 	//Fixme: at some point soon we will not be able to assume the node & corresponding gateway share the same index
 	// will need to add logic to find the corresponding gateway..
-	return newNdf.Nodes[index].TlsCertificate, newNdf.Gateways[index].TlsCertificate, nil
+	return newNdf.Nodes[index].TlsCertificate, // it also holds the callback which handles gateway requesting an ndf from its server
+		newNdf.Gateways[index].TlsCertificate, nil
 }
 
 //findOurNode is a helper function which finds our node's index in the ndf
@@ -208,7 +240,6 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 }
 
 // todo: delete function??
-
 // initializeHosts adds host objects for all relevant connections in the NDF
 func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, ourId []byte) error {
 	// Find this server's place in the ndf
