@@ -212,7 +212,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 // InstallNdf parses the ndf for necessary information and returns that
 func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
 
-	jww.INFO.Println("Installing NDF now...")
+	jww.INFO.Println("Installing FullNDF now...")
 
 	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
 	if err != nil {
@@ -239,15 +239,8 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 
 }
 
-// todo: delete function??
-// initializeHosts adds host objects for all relevant connections in the NDF
-func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, ourId []byte) error {
-	// Find this server's place in the ndf
-	myIndex, err := findOurNode(ourId, def.Nodes)
-	if err != nil {
-		return err
-	}
-
+// initializeHosts adds host objects for all relevant connections in the FullNDF
+func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
 	// Add hosts for nodes
 	for i, host := range def.Nodes {
 		_, err := network.AddHost(id.NewNodeFromBytes(host.ID).String(),

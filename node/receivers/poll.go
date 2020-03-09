@@ -11,30 +11,33 @@ import (
 	"gitlab.com/elixxir/server/server"
 )
 
-// Handles incomming Poll gateway responses, compares our NDF with the existing ndf
+// Handles incomming Poll gateway responses, compares our FullNDF with the existing ndf
 func RecievePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
 
 	res := mixmessages.ServerPollResponse{}
 
 	network := instance.GetConsensus()
-	//Compare partial NDF hash with instance and return the new one if they do not match
-	isSame := instance.GetConsensus().GetPartialNdf().CompareHash(poll.GetPartial().Hash)
-	if !isSame {
-		res.PartialNDF = network.GetPartialNdf().GetPb()
+	//Compare partial FullNDF hash with instance and return the new one if they do not match
+
+	if poll.Partial != nil {
+		isSame := instance.GetConsensus().GetPartialNdf().CompareHash(poll.GetPartial().Hash)
+		if !isSame {
+			res.PartialNDF = network.GetPartialNdf().GetPb()
+		}
 	}
 
-	//Compare Full NDF hash with instance and return the new one if they do not match
-	isSame = network.GetFullNdf().CompareHash(poll.GetFull().Hash)
-	if !isSame {
-		res.FullNDF = network.GetFullNdf().GetPb()
+	//Compare Full FullNDF hash with instance and return the new one if they do not match
+	if poll.Full != nil {
+		isSame := network.GetFullNdf().CompareHash(poll.GetFull().Hash)
+		if !isSame {
+			res.FullNDF = network.GetFullNdf().GetPb()
+		}
 	}
 
-	//Check if any updates where made and get them
-	round, err := network.GetRoundUpdates(int(poll.LastUpdate))
+	// Check if any updates where made and get them
+	// Error case here just means there weren't any updates newer than our last
+	round, _ := network.GetRoundUpdates(int(poll.LastUpdate))
 	res.Updates = round
-	if err != nil {
-		return nil, err
-	}
 
 	// Get the request for a new batch que and store it into res
 	res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()

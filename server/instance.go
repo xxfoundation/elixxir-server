@@ -71,7 +71,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, def.NDF)
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}

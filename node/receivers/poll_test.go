@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )
 
@@ -27,6 +28,8 @@ func testSetup(t *testing.T) (server.Instance, *mixmessages.ServerPoll) {
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
 	m := state.NewMachine(dummyStates)
@@ -55,7 +58,7 @@ func TestRecievePoll_AllNil(t *testing.T) {
 	instance, poll := testSetup(t)
 
 	res, err := RecievePoll(poll, &instance)
-	if err == nil {
+	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
