@@ -41,12 +41,7 @@ var dummyStates = [current.NUM_STATES]Change{
 
 //tests that new Machiene works properly function creates a properly formed state object
 func TestNewMachine(t *testing.T) {
-	m, err := NewMachine(dummyStates)
-
-	//check if an error was returned
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	// check the state pointer is properly initialized
 	if m.Activity == nil {
@@ -95,14 +90,18 @@ func TestNewMachine_Error(t *testing.T) {
 	dummyStatesErr := dummyStates
 
 	dummyStatesErr[current.NOT_STARTED] =
+		func(from current.Activity) error { return nil }
+
+	dummyStatesErr[current.WAITING] =
 		func(from current.Activity) error { return errors.New("mock error") }
 
-	m, err := NewMachine(dummyStatesErr)
-
-	//check if an error was returned
-	if err == nil {
-		t.Errorf("NewMachine() did not error when expected")
+	m := NewMachine(dummyStatesErr)
+	err := m.Start()
+	if err != nil {
+		t.Errorf("Failed to start state machine: %+v", err)
 	}
+
+	_, _ = m.Update(current.WAITING)
 
 	if *m.Activity != current.ERROR {
 		t.Errorf("NewMachine() did not enter %s state, entered %s",
@@ -159,12 +158,7 @@ func TestAddStateTransition(t *testing.T) {
 
 //test that all state transitions occur as expected
 func TestUpdate_Transitions(t *testing.T) {
-	m, err := NewMachine(dummyStates)
-
-	//check if an error was returned
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	//test invalid state transitions
 	for i := current.Activity(0); i < current.NUM_STATES; i++ {
@@ -204,12 +198,7 @@ func TestUpdate_TransitionError(t *testing.T) {
 	dummyStatesErr[current.STANDBY] =
 		func(from current.Activity) error { return errors.New("mock error") }
 
-	m, err := NewMachine(dummyStatesErr)
-
-	//check if an error was returned
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStatesErr)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -236,11 +225,7 @@ func TestUpdate_TransitionDoubleError(t *testing.T) {
 	dummyStatesErr[current.ERROR] =
 		func(from current.Activity) error { return errors.New("mock error ERROR") }
 
-	m, err := NewMachine(dummyStatesErr)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStatesErr)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -264,11 +249,7 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 	numNotifications := 10
 	timeout := 100 * time.Millisecond
 
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	//channel runners to be notified will return results on
 	completion := make(chan bool)
@@ -325,11 +306,7 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 
 //test that get returns the correct value
 func TestGet_Happy(t *testing.T) {
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	numTest := 100
 	for i := 0; i < numTest; i++ {
@@ -347,11 +324,7 @@ func TestGet_Happy(t *testing.T) {
 func TestGet_Locked(t *testing.T) {
 
 	//create a new state
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	//set to waiting state
 	*m.Activity = current.WAITING
@@ -394,11 +367,7 @@ func TestGet_Locked(t *testing.T) {
 //test that WaitFor returns immediately when the state is already correct
 func TestWaitFor_CorrectState(t *testing.T) {
 	//create a new state
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -419,11 +388,7 @@ func TestWaitFor_CorrectState(t *testing.T) {
 // reachable from the current
 func TestWaitFor_Unreachable(t *testing.T) {
 	//create a new state
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -446,11 +411,7 @@ func TestWaitFor_Unreachable(t *testing.T) {
 //test the timeout for when the state change does not happen
 func TestWaitFor_Timeout(t *testing.T) {
 	//create a new state
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -473,11 +434,7 @@ func TestWaitFor_Timeout(t *testing.T) {
 //tests when it takes time for the state to come
 func TestWaitFor_WaitForState(t *testing.T) {
 	//create a new state
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -504,11 +461,7 @@ func TestWaitFor_WaitForState(t *testing.T) {
 //tests when it takes time for the state to come
 func TestWaitFor_WaitForBadState(t *testing.T) {
 	//create a new state
-	m, err := NewMachine(dummyStates)
-
-	if err != nil {
-		t.Errorf("NewMachine() errored unexpectedly %s", err)
-	}
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 

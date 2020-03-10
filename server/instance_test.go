@@ -1,17 +1,27 @@
 package server
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/testUtil"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 )
+
+var dummyStates = [current.NUM_STATES]state.Change{
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+}
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -28,19 +38,13 @@ const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 var instance *Instance
 
 func TestMain(m *testing.M) {
-	prime := large.NewIntFromString(MODP768, 16)
-	grp := cyclic.NewGroup(prime, large.NewInt(2))
-	def := mockServerDef(m, grp)
-	instance, _ = CreateServerInstance(def, NewImplementation, false)
-	os.Exit(m.Run())
-}
-
-func TestInstance_GetGroup(t *testing.T) {
-	prime := large.NewIntFromString(MODP768, 16)
-	grp := cyclic.NewGroup(prime, large.NewInt(2))
-	if instance.GetGroup().GetFingerprint() != grp.GetFingerprint() {
-		t.Errorf("Instance.GetGroup: Returned incorrect group")
+	impl := func(*Instance) *node.Implementation {
+		return node.NewImplementation()
 	}
+	def := mockServerDef(m)
+	sm := state.NewMachine(dummyStates)
+	instance, _ = CreateServerInstance(def, impl, sm, false)
+	os.Exit(m.Run())
 }
 
 func TestInstance_GetResourceQueue(t *testing.T) {
@@ -74,40 +78,14 @@ func TestInstance_GetID(t *testing.T) {
 	}
 }
 
-func TestInstance_Topology(t *testing.T) {
-	var nodeIDs []*id.Node
-
-	//Build IDs
-	for i := 0; i < 3; i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
-		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
-		nodeIDs = append(nodeIDs, nodeID)
-	}
-
-	//Build the topology
-	def := Definition{}
-	def.Topology = connect.NewCircuit(nodeIDs)
-	def.ID = nodeIDs[2]
-	i := &Instance{definition: &def}
-
-	if !reflect.DeepEqual(i.GetTopology(), def.Topology) {
-		t.Errorf("Instance.GetTopology: Returned incorrect " +
-			"Topology")
-	}
-
-	if i.IsFirstNode() {
-		t.Errorf("I am not first node!")
-	}
-	if !i.IsLastNode() {
-		t.Errorf("I should be last node!")
-	}
-}
-
 func TestInstance_GetResourceMonitor(t *testing.T) {
 
-	def := mockServerDef(t, grp)
-	tmpInstance, _ := CreateServerInstance(def, NewImplementation, false)
+	impl := func(*Instance) *node.Implementation {
+		return node.NewImplementation()
+	}
+	def := mockServerDef(t)
+	m := state.NewMachine(dummyStates)
+	tmpInstance, _ := CreateServerInstance(def, impl, m, false)
 
 	rm := tmpInstance.GetResourceMonitor()
 
@@ -131,7 +109,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 
 }
 
-func mockServerDef(i interface{}, grp *cyclic.Group) *Definition {
+func mockServerDef(i interface{}) *Definition {
 	nid := GenerateId(i)
 
 	resourceMetric := measure.ResourceMetric{
@@ -144,18 +122,20 @@ func mockServerDef(i interface{}, grp *cyclic.Group) *Definition {
 
 	def := Definition{
 		ID:              nid,
-		CmixGroup:       grp,
 		ResourceMonitor: &resourceMonitor,
+		FullNDF:         testUtil.NDF,
 	}
 
 	return &def
 }
 
 func TestCreateServerInstance(t *testing.T) {
-	prime := large.NewIntFromString(MODP768, 16)
-	grp := cyclic.NewGroup(prime, large.NewInt(2))
-	def := mockServerDef(t, grp)
-	_, err := CreateServerInstance(def, NewImplementation, true)
+	impl := func(*Instance) *node.Implementation {
+		return node.NewImplementation()
+	}
+	def := mockServerDef(t)
+	m := state.NewMachine(dummyStates)
+	_, err := CreateServerInstance(def, impl, m, true)
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -163,37 +143,18 @@ func TestCreateServerInstance(t *testing.T) {
 }
 
 func createInstance(t *testing.T) (*Instance, *Definition) {
-	prime := large.NewIntFromString(MODP768, 16)
-	grp := cyclic.NewGroup(prime, large.NewInt(2))
-	def := mockServerDef(t, grp)
-	instance, err := CreateServerInstance(def, NewImplementation, true)
+	impl := func(*Instance) *node.Implementation {
+		return node.NewImplementation()
+	}
+	def := mockServerDef(t)
+	m := state.NewMachine(dummyStates)
+	instance, err := CreateServerInstance(def, impl, m, true)
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
 	}
 	return instance, def
 }
-
-func TestInstance_GetBatchSize(t *testing.T) {
-	instance, def := createInstance(t)
-
-	if def.BatchSize != instance.GetBatchSize() {
-		t.Logf("BatchSize is not = to batchsize from Def")
-		t.Fail()
-	}
-}
-
-// Need to modify mockserver to add this ip into it, or else it will panic since we have nothing to return
-//func TestInstance_GetIP(t *testing.T) {
-//	instance, _ := createInstance(t)
-//	//addrWithPort := def.Nodes[instance.GetTopology().GetNodeLocation(instance.GetID())].Address
-//	//instance.GetIP()
-//	//expectedIP := strings.Split(addrWithPort, ":")[0]
-//	//if expectedIP != instance.GetIP() {
-//	//	t.Logf("IP is not expected IP value")
-//	//	t.Fail()
-//	//}
-//}
 
 func TestInstance_GetKeepBuffers(t *testing.T) {
 	instance, def := createInstance(t)
@@ -258,15 +219,6 @@ func TestInstance_GetRoundManager(t *testing.T) {
 	}
 }
 
-func TestInstance_GetTopology(t *testing.T) {
-	instance, def := createInstance(t)
-
-	if def.Topology != instance.GetTopology() {
-		t.Logf("GetTopology returned unexpected value")
-		t.Fail()
-	}
-}
-
 func TestInstance_GetUserRegistry(t *testing.T) {
 	instance, def := createInstance(t)
 
@@ -275,25 +227,6 @@ func TestInstance_GetUserRegistry(t *testing.T) {
 		t.Fail()
 	}
 }
-
-// We need to modify the mockServerDef for this to work?
-//func TestInstance_IsFirstNode(t *testing.T) {
-//	instance, def := createInstance(t)
-//
-//	if def.Topology.IsFirstNode(def.ID) != instance.IsFirstNode() {
-//		t.Logf("IsFirstNode returned unexpected value")
-//		t.Fail()
-//	}
-//}
-//
-//func TestInstance_IsLastNode(t *testing.T) {
-//	instance, def := createInstance(t)
-//
-//	if def.Topology.IsLastNode(def.ID) != instance.IsLastNode() {
-//		t.Logf("IsLastNode returned unexpected value")
-//		t.Fail()
-//	}
-//}
 
 func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
 	instance, def := createInstance(t)

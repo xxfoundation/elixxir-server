@@ -14,78 +14,61 @@ import (
 	insecureRand "math/rand"
 )
 
-func MakeStarter(batchSize uint32) server.RoundStarter {
-	localBatchSize := batchSize
-	return func(instance *server.Instance, rid id.Round) error {
-		newBatch := &mixmessages.Batch{
-			Slots:     make([]*mixmessages.Slot, localBatchSize),
-			FromPhase: int32(phase.PrecompGeneration),
-			Round: &mixmessages.RoundInfo{
-				ID: uint64(rid),
-			},
-		}
-		for i := 0; i < int(localBatchSize); i++ {
-			newBatch.Slots[i] = &mixmessages.Slot{}
-		}
+func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
+	//get the round from the instance
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(rid)
+	if err != nil {
+		jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
+			"round (%v) right after round init", rid)
 
-		//get the round from the instance
-		rm := instance.GetRoundManager()
-		r, err := rm.GetRound(rid)
-
-		if err != nil {
-			jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
-				"round (%v) right after round init", rid)
-
-		}
-
-		// Do a round trip ping if we are the first node
-		topology := r.GetTopology()
-		myID := instance.GetID()
-		if topology.IsFirstNode(myID) {
-
-			payloadInfo := "EMPTY/ACK"
-			var payload proto.Message
-			payload = &mixmessages.Ack{}
-			//does not work properly because it doesnt use streaming comms
-			/*
-				if rid%FullTestFrequency == 0 {
-					p, err := buildBatchRTPingPayload(batchSize)
-
-					if err != nil {
-						jww.WARN.Printf("Could not build batch payload to "+
-							"transmit on 50th round for round trip ping, "+
-							"transmitting blank instead: %+v", err)
-					}
-
-					payload = p
-					payloadInfo = "FULL/BATCH"
-				}*/
-
-			nextNode := topology.GetNextNode(myID)
-			err = io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
-				r, payload, payloadInfo)
-			if err != nil {
-				jww.WARN.Printf("Failed to transmit round trip ping: %+v", err)
-			}
-		}
-
-		//get the phase
-		p := r.GetCurrentPhase()
-
-		//queue the phase to be operated on if it is not queued yet
-		p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
-		p.Measure(measure.TagReceiveOnReception)
-
-		//send the data to the phase
-		err = io.PostPhase(p, newBatch)
-
-		if err != nil {
-			jww.ERROR.Panicf("Error first node generation init: "+
-				"should be able to return: %+v", err)
-		}
-		return nil
 	}
+
+	// Create new batch object
+	batchSize := r.GetBatchSize()
+	newBatch := &mixmessages.Batch{
+		Slots:     make([]*mixmessages.Slot, batchSize),
+		FromPhase: int32(phase.PrecompGeneration),
+		Round: &mixmessages.RoundInfo{
+			ID: uint64(rid),
+		},
+	}
+	for i := 0; i < int(batchSize); i++ {
+		newBatch.Slots[i] = &mixmessages.Slot{}
+	}
+
+	// Start a round trip ping (in a goroutine so it doesn't block)
+	topology := r.GetTopology()
+	myID := instance.GetID()
+	go func() {
+		payloadInfo := "EMPTY/ACK"
+		var payload proto.Message
+		payload = &mixmessages.Ack{}
+
+		nextNode := topology.GetNextNode(myID)
+		err = io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
+			r, payload, payloadInfo)
+		if err != nil {
+			jww.WARN.Printf("Failed to transmit round trip ping: %+v", err)
+		}
+	}()
+
+	//get the phase
+	p := r.GetCurrentPhase()
+
+	//queue the phase to be operated on if it is not queued yet
+	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
+
+	p.Measure(measure.TagReceiveOnReception)
+
+	//send the data to the phase
+	err = io.PostPhase(p, newBatch)
+
+	if err != nil {
+		jww.ERROR.Panicf("Error first node generation init: "+
+			"should be able to return: %+v", err)
+	}
+	return nil
 }
 
 //buildBatchRTPingPayload builds a fake batch to use for testing of full

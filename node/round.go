@@ -14,7 +14,7 @@ import (
 )
 
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32, newRoundTimeout int) ([]phase.Phase,
+	nodeID *id.Node, instance *server.Instance, batchSize uint32, newRoundTimeout int) ([]phase.Phase,
 	phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
@@ -265,9 +265,8 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 				getMessage phase.GetMessage, topology *connect.Circuit,
 				nodeID *id.Node, measure phase.Measure) error {
-				return io.TransmitFinishRealtime(network, batchSize, roundID,
-					phaseTy, getChunk, getMessage, topology, nodeID, lastNode,
-					chunkChan, measure)
+				return io.TransmitFinishRealtime(network, roundID, getChunk,
+					getMessage, topology, instance, chunkChan, measure)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)

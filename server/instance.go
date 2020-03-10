@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package server
 
 import (
@@ -5,23 +10,18 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
-	"strings"
 	"testing"
 )
 
@@ -33,11 +33,15 @@ type Instance struct {
 	resourceQueue *ResourceQueue
 	network       *node.Comms
 	machine       state.Machine
-	machineList   [current.NUM_STATES]state.Change
 
-	consensus	  *network.Instance
+	consensus *network.Instance
 
+	// Channels
+	createRoundQueue    round.Queue
+	completedBatchQueue round.CompletedQueue
+	realtimeRoundQueue  round.Queue
 
+	requestNewBatchQueue round.Queue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -46,20 +50,23 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImplementation func(*Instance) *node.Implementation,
-	changeList [current.NUM_STATES]state.Change, noTls bool) (*Instance, error) {
+// todo remove ndf here, move to part of defition obj
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
+	machine state.Machine, noTls bool) (*Instance, error) {
 	instance := &Instance{
-		Online:         false,
-		definition:     def,
-		roundManager:   round.NewManager(),
-		resourceQueue:  initQueue(),
-		machineList:    changeList,
+		Online:               false,
+		definition:           def,
+		roundManager:         round.NewManager(),
+		resourceQueue:        initQueue(),
+		machine:              machine,
+		requestNewBatchQueue: round.NewQueue(),
+		createRoundQueue:     round.NewQueue(),
+		realtimeRoundQueue:   round.NewQueue(),
 	}
 
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
-
 
 	if noTls {
 		instance.network.DisableAuth()
@@ -67,8 +74,8 @@ func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImple
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, nil, ndf)
-	if err!=nil{
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF)
+	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
 
@@ -90,17 +97,26 @@ func CreateServerInstance(def *Definition, ndf *ndf.NetworkDefinition, makeImple
 	return instance, nil
 }
 
-// Run starts the resource queue
-func (i *Instance) Run() error{
-	go i.resourceQueue.run(i)
-	var err error
-	i.machine, err = state.NewMachine(i.machineList)
-	return err
+// RestartNetwork is intended to reset the network with newly signed certs obtained from polling
+// permissioning
+func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation,
+	definition *Definition, noTls bool) {
+
+	i.definition = definition
+	i.network = node.StartNode(definition.ID.String(), definition.Address,
+		makeImplementation(i), definition.TlsCert, definition.TlsKey)
+
+	if noTls {
+		i.network.DisableAuth()
+	}
+
+	return
 }
 
-// GetTopology returns the circuit object
-func (i *Instance) GetTopology() *connect.Circuit {
-	return i.definition.Topology
+// Run starts the resource queue
+func (i *Instance) Run() error {
+	go i.resourceQueue.run(i)
+	return i.machine.Start()
 }
 
 // GetTopology returns the consensus object
@@ -116,11 +132,6 @@ func (i *Instance) GetStateMachine() state.Machine {
 // GetGateway returns the id of the node's gateway
 func (i *Instance) GetGateway() *id.Gateway {
 	return i.definition.Gateway.ID
-}
-
-//GetGroups returns the group used by the server
-func (i *Instance) GetGroup() *cyclic.Group {
-	return i.definition.CmixGroup
 }
 
 //GetUserRegistry returns the user registry used by the server
@@ -175,7 +186,8 @@ func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
 
 //GetBatchSize returns the batch size
 func (i *Instance) GetBatchSize() uint32 {
-	return i.definition.BatchSize
+	//return i.definition.BatchSize
+	return 100000
 }
 
 // FIXME Populate this from the YAML or something
@@ -195,21 +207,24 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 
 // IsFirstNode returns if the node is first node
 func (i *Instance) IsFirstNode() bool {
-	return i.definition.Topology.IsFirstNode(i.definition.ID)
+	//return i.definition.Topology.IsFirstNode(i.definition.ID)
+	return true
 }
 
 // IsLastNode returns if the node is last node
 func (i *Instance) IsLastNode() bool {
-	return i.definition.Topology.IsLastNode(i.definition.ID)
+	//return i.definition.Topology.IsLastNode(i.definition.ID)
+	return true
 }
 
 // GetIP returns the IP of the node from the instance
 func (i *Instance) GetIP() string {
-	fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
+	/*fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
 	fmt.Printf("i.GetTopology(): %+v\n", i.GetTopology())
 	fmt.Printf("i.GetID(): %+v\n", i.GetID())
 	addrWithPort := i.definition.Nodes[i.GetTopology().GetNodeLocation(i.GetID())].Address
-	return strings.Split(addrWithPort, ":")[0]
+	return strings.Split(addrWithPort, ":")[0]*/
+	return ""
 }
 
 // GetResourceMonitor returns the resource monitoring object
@@ -219,6 +234,23 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 func (i *Instance) GetRoundCreationTimeout() int {
 	return i.definition.RoundCreationTimeout
+}
+
+func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
+	return i.completedBatchQueue
+}
+
+func (i *Instance) GetCreateRoundQueue() round.Queue {
+	return i.createRoundQueue
+}
+
+// todo: docstring
+func (i *Instance) GetRealtimeRoundQueue() round.Queue {
+	return i.realtimeRoundQueue
+}
+
+func (i *Instance) GetRequestNewBatchQueue() round.Queue {
+	return i.requestNewBatchQueue
 }
 
 // GenerateId generates a random ID and returns it
@@ -266,35 +298,37 @@ func (i *Instance) VerifyTopology() error {
 	permissioningCert.BasicConstraintsValid = true
 	permissioningCert.IsCA = true
 	permissioningCert.KeyUsage = x509.KeyUsageCertSign
+	/*
+		//Iterate through the topology
+		for j := 0; j < i.definition.Topology.Len(); j++ {
+			//Load the node Cert from topology
+			nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
+			if err != nil {
+				errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
+				return errors.New(errorMsg)
+			}
 
-	//Iterate through the topology
-	for j := 0; j < i.definition.Topology.Len(); j++ {
-		//Load the node Cert from topology
-		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
-		if err != nil {
-			errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
-			return errors.New(errorMsg)
+			//Check that the node's cert was signed by the permissioning server's cert
+			err = nodeCert.CheckSignatureFrom(permissioningCert)
+			if err != nil {
+				errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioning: %v", j, err)
+				return errors.New(errorMsg)
+			}
 		}
-
-		//Check that the node's cert was signed by the permissioning server's cert
-		err = nodeCert.CheckSignatureFrom(permissioningCert)
-		if err != nil {
-			errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioning: %v", j, err)
-			return errors.New(errorMsg)
-		}
-	}
-
+	*/
 	return nil
 }
 
+/*
 // String adheres to the stringer interface, returns unique identifying
 // information about the node
 func (i *Instance) String() string {
 	nid := i.definition.ID
-	numNodes := i.definition.Topology.Len()
-	myLoc := i.definition.Topology.GetNodeLocation(nid)
 	localServer := i.network.String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
 	return services.NameStringer(addr, myLoc, numNodes)
 }
+
+
+*/

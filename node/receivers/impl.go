@@ -6,7 +6,7 @@
 
 // Package io impl.go implements server utility functions needed to work
 // with the comms library
-package node
+package receivers
 
 import (
 	"gitlab.com/elixxir/comms/connect"
@@ -23,33 +23,29 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		return ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
-	}
-
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
 		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
 		return ReceiveGetMeasure(instance, message)
 	}
 
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
-		ReceivePostPhase(batch, instance, auth)
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
+		return ReceivePostPhase(batch, instance, auth)
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		return ReceiveStreamPostPhase(streamServer, instance, auth)
 	}
 
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) {
-		ReceivePostRoundPublicKey(instance, pk, auth)
+	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
+		return ReceivePostRoundPublicKey(instance, pk, auth)
 	}
 
 	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
-		return io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
+		return 0, nil //io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
 	}
 
 	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, e error) {
-		return io.GetCompletedBatch(instance, time.Second, auth)
+		return nil, nil //io.GetCompletedBatch(instance, time.Second, auth)
 	}
 
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
@@ -74,6 +70,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {
 		return ReceiveRoundTripPing(instance, ping)
+	}
+
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
+
+		return nil, nil //receivers.ReceivePoll()
 	}
 
 	impl.Functions.AskOnline = func() error {
