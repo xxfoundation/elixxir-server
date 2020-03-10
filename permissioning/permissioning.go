@@ -163,25 +163,25 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {
-			return err
+			return errors.Errorf("Could not update full ndf: %+v", err)
 		}
 
 		// Update the partial ndf
 		err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 		if err != nil {
-			return err
+			return errors.Errorf("Could not update partial ndf: %+v", err)
 		}
 
 		// Update the nodes in the network.Instance with the new ndf
 		err = instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
-			return err
+			return errors.Errorf("Could not update node connections: %+v", err)
 		}
 
 		// Update the gateways in the network.Instance with the new ndf
 		err = instance.GetConsensus().UpdateGatewayConnections()
 		if err != nil {
-			return err
+			return errors.Errorf("Could not update gateway connections: %+v", err)
 		}
 
 		// Add the new information to the network instance
