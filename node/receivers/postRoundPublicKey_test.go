@@ -17,7 +17,7 @@ import (
 	"testing"
 )
 
-func setup(t *testing.T) (*server.Instance, *connect.Circuit, *cyclic.Group) {
+func setup(t *testing.T, instIndex int) (*server.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
 	topology := connect.NewCircuit(buildMockNodeIDs(5))
@@ -27,7 +27,7 @@ func setup(t *testing.T) (*server.Instance, *connect.Circuit, *cyclic.Group) {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 	}
-	def.ID = topology.GetNodeAtIndex(1)
+	def.ID = topology.GetNodeAtIndex(instIndex)
 
 	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	if err != nil {
@@ -44,7 +44,7 @@ func setup(t *testing.T) (*server.Instance, *connect.Circuit, *cyclic.Group) {
 
 // Test caller function for PostRoundPublicKey
 func TestPostRoundPublicKeyFunc(t *testing.T) {
-	instance, topology, grp := setup(t)
+	instance, topology, grp := setup(t, 1)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -114,7 +114,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 // Test no auth error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
-	instance, topology, _ := setup(t)
+	instance, topology, _ := setup(t, 1)
 
 	fakeHost, _ := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
 	auth := &connect.Auth{
@@ -148,7 +148,7 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 
 // Test bad host error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
-	instance, _, _ := setup(t)
+	instance, _, _ := setup(t, 1)
 
 	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
 	auth := &connect.Auth{
@@ -182,7 +182,7 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 
 // Test case in which PostRoundPublicKey is sent by first node
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
-	instance, topology, grp := setup(t)
+	instance, topology, grp := setup(t, 0)
 
 	batchSize := uint32(3)
 	roundID := id.Round(0)

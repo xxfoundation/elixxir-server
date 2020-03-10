@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"time"
 )
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
@@ -33,8 +34,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	// Check for proper authentication and if the sender
 	// is the previous node in the circuit
 	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
-		jww.FATAL.Panicf("Error on PostPhase: "+
+		jww.WARN.Printf("Error on PostPhase: "+
 			"Attempted communication by %+v has not been authenticated", auth.Sender)
+		return connect.AuthError(auth.Sender.GetId())
 	}
 
 	// Waiting for correct phase
@@ -43,7 +45,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
 	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250)
+		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
 		if err != nil {
 			return errors.WithMessagef(err, errFailedToWait, toWait.String())
 		}
@@ -126,7 +128,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
 	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250)
+		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
 		if err != nil {
 			return errors.WithMessagef(err, errFailedToWait, toWait.String())
 		}

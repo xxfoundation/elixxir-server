@@ -17,7 +17,7 @@ import (
 // receiving the signal that the realtime has completed
 func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo,
 	auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
+	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
 	}

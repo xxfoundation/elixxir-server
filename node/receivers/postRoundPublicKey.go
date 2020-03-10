@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"time"
 )
 
 // ReceivePostRoundPublicKey from last node and sets it for the round
@@ -18,7 +19,7 @@ import (
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
 	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250)
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}

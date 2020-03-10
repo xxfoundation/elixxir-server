@@ -11,20 +11,20 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"time"
 )
 
 // ReceivePostPrecompResult handles the state checks and edge checks of
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250)
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
 	if !ok {
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
 	}
-
 	rm := instance.GetRoundManager()
 	r, err := rm.GetRound(id.Round(roundID))
 	if err != nil {
@@ -33,7 +33,8 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 	// Check for proper authentication and expected sender
 	expectedID := r.GetTopology().GetLastNode().String()
-	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+	senderID := auth.Sender.GetId()
+	if !auth.IsAuthenticated || senderID != expectedID {
 		jww.INFO.Printf("[%s]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
