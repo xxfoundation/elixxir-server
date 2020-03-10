@@ -3,6 +3,8 @@ package receivers
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -15,20 +17,34 @@ import (
 	"testing"
 )
 
-// Test caller function for PostRoundPublicKey
-func TestPostRoundPublicKeyFunc(t *testing.T) {
-
+func setup(t *testing.T, instIndex int) (*server.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
 	topology := connect.NewCircuit(buildMockNodeIDs(5))
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
-	def.ID = topology.GetNodeAtIndex(1)
+	def.ID = topology.GetNodeAtIndex(instIndex)
 
-	m := state.NewMachine(dummyStates)
+	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	if err != nil {
+		t.Errorf("Failed to create test machine: %+v", err)
+	}
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
+		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
+		3, instance.GetRngStreamGen(), "0.0.0.0")
+	instance.GetRoundManager().AddRound(rnd)
+
+	return instance, topology, grp
+}
+
+// Test caller function for PostRoundPublicKey
+func TestPostRoundPublicKeyFunc(t *testing.T) {
+	instance, topology, grp := setup(t, 1)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -98,16 +114,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 // Test no auth error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
-	//grp := initImplGroup()
-	topology := connect.NewCircuit(buildMockNodeIDs(5))
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = topology.GetNodeAtIndex(1)
-
-	m := state.NewMachine(dummyStates)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, topology, _ := setup(t, 1)
 
 	fakeHost, _ := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
 	auth := &connect.Auth{
@@ -141,16 +148,7 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 
 // Test bad host error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
-	//grp := initImplGroup()
-	topology := connect.NewCircuit(buildMockNodeIDs(5))
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = topology.GetNodeAtIndex(1)
-
-	m := state.NewMachine(dummyStates)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _, _ := setup(t, 1)
 
 	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
 	auth := &connect.Auth{
@@ -184,17 +182,7 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 
 // Test case in which PostRoundPublicKey is sent by first node
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
-
-	grp := initImplGroup()
-	topology := connect.NewCircuit(buildMockNodeIDs(5))
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = topology.GetNodeAtIndex(0)
-
-	m := state.NewMachine(dummyStates)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, topology, grp := setup(t, 0)
 
 	batchSize := uint32(3)
 	roundID := id.Round(0)
