@@ -74,7 +74,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
-		return nil, nil //receivers.RecievePoll()
+		return nil, nil //receivers.ReceivePoll()
 	}
 
 	impl.Functions.AskOnline = func() error {
