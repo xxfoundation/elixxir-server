@@ -34,7 +34,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 	res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
 
 	// Get the request for a new batch que and store it into res
-	if instance.GetStateMachine().Get() == current.REALTIME{
+	if instance.GetStateMachine().Get() == current.REALTIME {
 		res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
 	}
 

@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	ndf2 "gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
@@ -23,17 +24,16 @@ import (
 	"time"
 )
 
-
 // These are ndf hash value we use through out the tests to change the expected out put.
 var fullHash1 = []byte("")
 var fullHash2 = []byte("")
 var partialHash1 = []byte("")
 var partialHash2 = []byte("")
 
-func setupTests(t *testing.T) (server.Instance, *pb.ServerPoll){
+func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb.ServerPoll) {
 	//Get a new ndf
 	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
-	if err != nil{
+	if err != nil {
 		t.Logf("Failed to decode ndf")
 		t.Fail()
 	}
@@ -41,7 +41,7 @@ func setupTests(t *testing.T) (server.Instance, *pb.ServerPoll){
 	// Since no deep copy of ndf exists we create a new object entirely for second ndf that
 	// We use to test against
 	test2Ndf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
-	if err != nil{
+	if err != nil {
 		t.Logf("Failed to decode ndf 2")
 		t.Fail()
 	}
@@ -51,19 +51,23 @@ func setupTests(t *testing.T) (server.Instance, *pb.ServerPoll){
 	fullHash2, err = dataStructures.GenerateNDFHash(test2Ndf)
 	partialHash2, err = dataStructures.GenerateNDFHash(test2Ndf)
 
-
 	// We need to create a server.Definition so we can create a server instance.
 	nid := server.GenerateId(t)
 	def := server.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
-		FullNDF: 		 testNdf,
-		PartialNDF: 	 testNdf,
+		FullNDF:         testNdf,
+		PartialNDF:      testNdf,
 	}
 
 	// Here we create a server instance so that we can test the poll ndf.
-	m := state.NewMachine(dummyStates)
+	m, err := state.NewTestMachine(dummyStates, test_state, t)
+	if err != nil {
+		t.Logf("Failed to create test state machine: %v", err)
+		t.Fail()
+	}
+
 	instance, err := server.CreateServerInstance(&def, NewImplementation, m, false)
 	if err != nil {
 		t.Logf("failed to create server Instance")
@@ -76,36 +80,39 @@ func setupTests(t *testing.T) (server.Instance, *pb.ServerPoll){
 	keyPath := testkeys.GetGatewayKeyPath()
 	privKeyPem := testkeys.LoadFromPath(keyPath)
 	privKey, err := rsa.LoadPrivateKeyFromPem(privKeyPem)
-	if err != nil{
+	if err != nil {
 		t.Logf("Private Key failed to generate %v", err)
 		t.Fail()
 	}
 
 	// Add the certs to our network instance
-	instance.GetNetwork().AddHost(id.PERMISSIONING, "", cert,false, false)
-
+	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, "", cert, false, false)
+	if err != nil {
+		t.Logf("Failed to create host, %v", err)
+		t.Fail()
+	}
 	// Generate and sign the new ndf with the key we retrieved
-	f := pb.NDF {}
+	f := pb.NDF{}
 	f.Ndf, err = testNdf.Marshal()
-	if err != nil{
+	if err != nil {
 		t.Log(err)
 		t.Fail()
 	}
 	err = signature.Sign(&f, privKey)
-	if err != nil{
+	if err != nil {
 		t.Log(err)
 		t.Fail()
 	}
 
 	// Push ndf updates to our instance so we can retrieve them from poll function
 	err = instance.GetConsensus().UpdateFullNdf(&f)
-	if err != nil{
+	if err != nil {
 		t.Log(err)
 		t.Fail()
 	}
 
 	err = instance.GetConsensus().UpdatePartialNdf(&f)
-	if err != nil{
+	if err != nil {
 		t.Log(err)
 		t.Fail()
 	}
@@ -131,28 +138,28 @@ func setupTests(t *testing.T) (server.Instance, *pb.ServerPoll){
 // Test what happens when you send in an all nil result.
 func TestReceivePoll_NoUpdates(t *testing.T) {
 
-	instance, poll := setupTests(t)
+	instance, poll := setupTests(t, current.REALTIME)
 
 	res, err := ReceivePoll(poll, &instance)
-	if err != nil{
+	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
-	if res == nil{
+	if res == nil {
 		t.Logf("Response was nil")
 		t.Fail()
 	}
 
-	if res.Slots != nil{
+	if res.Slots != nil {
 		t.Logf("ServerPollResponse.Slots is not nil")
 		t.Fail()
 	}
-	if res.BatchRequest != nil{
+	if res.BatchRequest != nil {
 		t.Logf("ServerPollResponse.BatchRequest is not nil")
 		t.Fail()
 	}
 
-	if len(res.Updates) > 0   {
+	if len(res.Updates) > 0 {
 		t.Logf("ServerPollResponse.Updates is not nil")
 		t.Fail()
 	}
@@ -166,11 +173,10 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 	}
 }
 
-
 // Test that when the partial ndf hash is different as the incoming ndf hash
 // the ndf returned in the server poll is the new ndf from the poll
 func TestReceivePoll_DifferentFullNDF(t *testing.T) {
-	instance, poll := setupTests(t)
+	instance, poll := setupTests(t, current.REALTIME)
 	//Change the full hash so we get a the new ndf returned to us
 	poll.Full.Hash = fullHash2
 
@@ -180,7 +186,7 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 		t.Fail()
 	}
 
-	if (res.FullNDF == nil) {
+	if res.FullNDF == nil {
 		t.Logf("ReceivePoll should have returned a new ndf")
 		t.Fail()
 	}
@@ -189,14 +195,14 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 // Test that when the fulll ndf hash is the same as the
 // incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
-	instance, poll := setupTests(t)
+	instance, poll := setupTests(t, current.REALTIME)
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
 
-	if (res.FullNDF != nil) {
+	if res.FullNDF != nil {
 		t.Logf("ReceivePoll should have not returned the same ndf from instance")
 		t.Fail()
 	}
@@ -205,7 +211,7 @@ func TestReceivePoll_SameFullNDF(t *testing.T) {
 // Test that when the partial ndf hash is different as the incoming ndf hash
 // the ndf returned in the server poll is the new ndf from the poll
 func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
-	instance, poll := setupTests(t)
+	instance, poll := setupTests(t, current.REALTIME)
 	poll.Partial.Hash = fullHash2
 
 	res, err := ReceivePoll(poll, &instance)
@@ -214,7 +220,7 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 		t.Fail()
 	}
 
-	if (res.PartialNDF == nil) {
+	if res.PartialNDF == nil {
 		t.Logf("ReceivePoll should have returned a new ndf")
 		t.Fail()
 	}
@@ -223,14 +229,14 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 // Test that when the partial ndf hash is the same as the
 // incoming ndf hash the ndf returned in the server poll is the same ndf we started out with
 func TestReceivePoll_SamePartialNDF(t *testing.T) {
-	instance, poll := setupTests(t)
+	instance, poll := setupTests(t, current.REALTIME)
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
 
-	if (res.PartialNDF != nil) {
+	if res.PartialNDF != nil {
 		t.Logf("ReceivePoll should not have returned a new ndf: %v", res.PartialNDF)
 		t.Fail()
 	}
@@ -238,25 +244,100 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 
 // Send a round update to receive poll and test that we get the expected value back in server poll response
 func TestReceivePoll_GetRoundUpdates(t *testing.T) {
-	instance, poll := setupTests(t)
+	instance, poll := setupTests(t, current.COMPLETED)
 	newRound := &pb.RoundInfo{
 		ID: uint64(23),
 	}
 
-	instance.GetConsensus().RoundUpdate(newRound)
+	err := instance.GetConsensus().RoundUpdate(newRound)
+	if err != nil {
+		t.Logf("error pushing round %v", err)
+		t.Fail()
+	}
+
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
 
-	if (res.Updates[0].ID != 23) {
+	if res.Updates[0].ID != 23 {
 		t.Logf("We did not recieve the expected round id.")
 		t.Fail()
 	}
 }
 
+// Send a batch request to receive poll function and test that the returned value is expected
+func TestReceivePoll_GetBatchRequest(t *testing.T) {
+	//show if its not in real time it doesnt get anything
+	instance, poll := setupTests(t, current.COMPLETED)
+	newRound := &pb.RoundInfo{
+		ID: uint64(23),
+	}
+	err := instance.GetRequestNewBatchQueue().Send(newRound)
+	if err != nil {
+		t.Logf("Failed to send roundInfo to que %v", err)
+	}
+
+	res, err := ReceivePoll(poll, &instance)
+	if err != nil {
+		t.Logf("Unexpected error %v", err)
+		t.Fail()
+	}
+
+	if res.GetBatchRequest() != nil {
+		t.Logf("Batch request should be nill")
+		t.Fail()
+	}
+
+	//show if its in real time it gets the request
+	instance, poll = setupTests(t, current.REALTIME)
+	newRound = &pb.RoundInfo{
+		ID: uint64(23),
+	}
+	err = instance.GetRequestNewBatchQueue().Send(newRound)
+	if err != nil {
+		t.Logf("Failed to send roundInfo to que %v", err)
+	}
+
+	res, err = ReceivePoll(poll, &instance)
+	if err != nil {
+		t.Logf("Unexpected error %v", err)
+		t.Fail()
+	}
+
+	if res.GetBatchRequest().ID != newRound.ID {
+		t.Logf("Wrong batch request recieved")
+		t.Fail()
+	}
+
+}
+
 // Send a batch message to receive poll function and test that the returned value is expected
 func TestReceivePoll_GetBatchMessage(t *testing.T) {
-
+	//instance, poll := setupTests(t, current.REALTIME)
+	//newRound := &pb.RoundInfo{
+	//	ID: uint64(23),
+	//}
+	//instance.GetConsensus().RoundUpdate(newRound)
+	//
+	//// Set batch size to 10
+	//gm := phase.GetMessage()
+	//cr := round.CompletedRound{
+	//	RoundID:    id.Round(23),
+	//	Receiver:   nil,
+	//	GetMessage: gm,
+	//}
+	//instance.GetCompletedBatchQueue().Send(&cr)
+	//
+	//res, err := ReceivePoll(poll, &instance)
+	//if err != nil {
+	//	t.Logf("Unexpected error %v", err)
+	//	t.Fail()
+	//}
+	//
+	//if (res.Slots[0]. != 23) {
+	//	t.Logf("We did not recieve the expected round id.")
+	//	t.Fail()
+	//}
 }
