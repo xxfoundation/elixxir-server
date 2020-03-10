@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
+	github.com/fsnotify/fsnotify v1.4.8 // indirect
 	github.com/go-pg/pg v8.0.6+incompatible
 	github.com/golang/protobuf v1.3.4
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
@@ -22,11 +23,12 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.2
-	gitlab.com/elixxir/comms v0.0.0-20200309182411-78321b57a404
+	gitlab.com/elixxir/comms v0.0.0-20200309215530-176f73f77b46
 	gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0
 	gitlab.com/elixxir/primitives v0.0.0-20200309183733-02b3b90fce65
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
-	google.golang.org/grpc v1.27.1
+	google.golang.org/genproto v0.0.0-20200310143817-43be25429f5a // indirect
+	google.golang.org/grpc v1.28.0
 	gopkg.in/ini.v1 v1.54.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect

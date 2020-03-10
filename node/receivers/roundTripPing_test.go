@@ -1,21 +1,6 @@
 package receivers
 
-import (
-	"crypto/rand"
-	"github.com/golang/protobuf/ptypes"
-	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/testUtil"
-	"testing"
-)
-
-func TestReceiveRoundTripPing(t *testing.T) {
+/*func TestReceiveRoundTripPing(t *testing.T) {
 	grp := initImplGroup()
 	const numNodes = 5
 
@@ -97,4 +82,4 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	if before == r.GetRTEnd().String() {
 		t.Error("ReceiveRoundTripPing didn't update end time")
 	}
-}
+}*/
