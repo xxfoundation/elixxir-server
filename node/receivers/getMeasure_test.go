@@ -1,20 +1,6 @@
 package receivers
 
-import (
-	"encoding/json"
-	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/server/state"
-	"gitlab.com/elixxir/server/testUtil"
-	"testing"
-)
-
+/*
 func TestReceiveGetMeasure(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
@@ -85,4 +71,4 @@ func TestReceiveGetMeasure(t *testing.T) {
 	if err == nil {
 		t.Errorf("This should have thrown an error, instead got: %+v", err)
 	}
-}
+}*/
