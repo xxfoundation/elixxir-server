@@ -59,6 +59,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		resourceQueue:        initQueue(),
 		machine:              machine,
 		requestNewBatchQueue: round.NewQueue(),
+		completedBatchQueue:  round.NewCompletedQueue(),
 	}
 
 	//Start local node
