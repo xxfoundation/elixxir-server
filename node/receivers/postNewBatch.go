@@ -18,7 +18,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, auth *connect.Auth) error {
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
-		jww.WARN.Printf("[%s]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
+		jww.WARN.Printf("[%v]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
 		return connect.AuthError(auth.Sender.GetId())
 	}
@@ -40,11 +40,11 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return errors.WithMessage(err, "Failed to get round object from manager")
 	}
 
-	jww.INFO.Printf("[%s]: RID %d PostNewBatch START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostNewBatch START", instance,
 		ri.ID)
 
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
-		jww.FATAL.Panicf("[%+v]: RID %d PostNewBatch ERROR - Gateway sent "+
+		jww.FATAL.Panicf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
 			"batch with improper size", instance, newBatch.Round.ID)
 	}
 
@@ -52,14 +52,14 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 	if err != nil {
 		jww.FATAL.Panicf(
-			"[%+v]: RID %d Error on incoming PostNewBatch comm, could "+
+			"[%v]: RID %d Error on incoming PostNewBatch comm, could "+
 				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
 			phase.RealDecrypt, err)
 	}
 
 	if p.GetState() != phase.Active {
 		jww.FATAL.Panicf(
-			"[%+v]: RID %d Error on incoming PostNewBatch comm, phase "+
+			"[%v]: RID %d Error on incoming PostNewBatch comm, phase "+
 				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
 	}
@@ -74,11 +74,11 @@ func ReceivePostNewBatch(instance *server.Instance,
 	err = io.PostPhase(p, newBatch)
 
 	if err != nil {
-		jww.FATAL.Panicf("[%+v]: RID %d Error on incoming PostNewBatch comm at"+
+		jww.FATAL.Panicf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
-	jww.INFO.Printf("[%s]: RID %d PostNewBatch END", instance,
+	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
 	return nil

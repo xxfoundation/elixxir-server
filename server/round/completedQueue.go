@@ -19,13 +19,17 @@ func (cq CompletedQueue) Send(cr *CompletedRound) {
 	}
 }
 
-func (cq CompletedQueue) Recieve() *CompletedRound {
+func (cq CompletedQueue) Receive() *CompletedRound {
 	select {
 	case cr := <-cq:
 		return cr
 	default:
 		return nil
 	}
+}
+
+func NewCompletedQueue() CompletedQueue {
+	return make(CompletedQueue, 1)
 }
 
 type CompletedRound struct {

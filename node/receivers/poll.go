@@ -6,43 +6,42 @@
 package receivers
 
 import (
+	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server"
 )
 
-// Handles incomming Poll gateway responses, compares our FullNDF with the existing ndf
-func RecievePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
+// Handles incoming Poll gateway responses, compares our NDF with the existing ndf
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
 
 	res := mixmessages.ServerPollResponse{}
 
 	network := instance.GetConsensus()
-	//Compare partial FullNDF hash with instance and return the new one if they do not match
-
-	if poll.Partial != nil {
-		isSame := instance.GetConsensus().GetPartialNdf().CompareHash(poll.GetPartial().Hash)
-		if !isSame {
-			res.PartialNDF = network.GetPartialNdf().GetPb()
-		}
+	//Compare partial NDF hash with instance and return the new one if they do not match
+	isSame := network.GetPartialNdf().CompareHash(poll.GetPartial().Hash)
+	if !isSame {
+		res.PartialNDF = network.GetPartialNdf().GetPb()
 	}
 
-	//Compare Full FullNDF hash with instance and return the new one if they do not match
-	if poll.Full != nil {
-		isSame := network.GetFullNdf().CompareHash(poll.GetFull().Hash)
-		if !isSame {
-			res.FullNDF = network.GetFullNdf().GetPb()
-		}
+	//Compare Full NDF hash with instance and return the new one if they do not match
+	isSame = network.GetFullNdf().CompareHash(poll.GetFull().Hash)
+	if !isSame {
+		res.FullNDF = network.GetFullNdf().GetPb()
 	}
 
-	// Check if any updates where made and get them
-	// Error case here just means there weren't any updates newer than our last
-	round := network.GetRoundUpdates(int(poll.LastUpdate))
-	res.Updates = round
+	//Check if any updates where made and get them
+	res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
 
 	// Get the request for a new batch que and store it into res
-	res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
+	if instance.GetStateMachine().Get() == current.REALTIME {
+		res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
+	}
+
 	// Get a Batch message and store it into res
-	cr := instance.GetCompletedBatchQueue().Recieve()
+	cr := instance.GetCompletedBatchQueue().Receive()
+	fmt.Println(cr)
 	if cr != nil {
 		r, err := instance.GetRoundManager().GetRound(cr.RoundID)
 		if err != nil {

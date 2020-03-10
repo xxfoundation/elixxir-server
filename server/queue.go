@@ -70,7 +70,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 			return
 		}
 
-		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
+		jww.INFO.Printf("[%v]: RID %d Beginning execution of Phase \"%s\"", server,
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 
 		runningPhase := rq.activePhase
@@ -142,7 +142,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//process timeout
 		if timeout {
-			jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s has timed out",
+			jww.ERROR.Printf("[%v]: RID %d Graph %s of phase %s has timed out",
 				server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
 			jww.ERROR.Panicf("A round has failed killing node")
@@ -170,7 +170,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 				rq.activePhase.GetRoundID(), rtnPhase.GetType())
 		}
 
-		jww.INFO.Printf("[%s]: RID %d Finishing execution of Phase \"%s\"", server,
+		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase \"%s\"", server,
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 	}
 }

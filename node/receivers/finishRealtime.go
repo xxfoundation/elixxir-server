@@ -17,7 +17,7 @@ import (
 // receiving the signal that the realtime has completed
 func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo,
 	auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
+	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
 	}
@@ -35,20 +35,20 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	expectedID := r.GetTopology().GetLastNode()
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
-		jww.INFO.Printf("[%s]: RID %d FinishRealtime failed auth "+
+		jww.INFO.Printf("[%v]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime START",
+	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime START",
 		instance, roundID)
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
 	}
@@ -63,7 +63,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 			//Delete the round and its data from the manager
 			//Delay so it can be used by post round hanlders
 			go func() {
-				jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime CLEARING "+
+				jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime CLEARING "+
 					"CMIX BUFFERS", instance, roundID)
 
 				time.Sleep(time.Duration(60) * time.Second)
@@ -72,16 +72,16 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 			}()
 
 		} else {
-			jww.WARN.Printf("[%s]: RID %d ReceiveFinishRealtime MEMORY "+
+			jww.WARN.Printf("[%v]: RID %d ReceiveFinishRealtime MEMORY "+
 				"LEAK - Round buffers not purged ", instance,
 				roundID)
 		}
 	}()
 
-	jww.INFO.Printf("[%s]: RID %d ReceiveFinishRealtime END", instance,
+	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime END", instance,
 		roundID)
 
-	jww.INFO.Printf("[%s]: RID %d Round took %v seconds",
+	jww.INFO.Printf("[%v]: RID %d Round took %v seconds",
 		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
 	//Send batch to Gateway Polling Receiver on last node
@@ -91,7 +91,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	//Send the finished signal on first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
-		jww.INFO.Printf("[%s]: RID %d FIRST NODE ReceiveFinishRealtime"+
+		jww.INFO.Printf("[%v]: RID %d FIRST NODE ReceiveFinishRealtime"+
 			" SENDING END ROUND SIGNAL", instance, roundID)
 
 		//instance.FinishRound(roundID)

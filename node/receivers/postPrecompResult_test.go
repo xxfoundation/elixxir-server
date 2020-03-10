@@ -18,12 +18,7 @@ import (
 // Shows that ReceivePostPrecompResult panics when the round isn't in
 // the round manager
 func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("There was no panic when an invalid round was passed")
-		}
-	}()
-	instance, topology, _ := setup(t)
+	instance, topology, _ := setup(t, 1)
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
@@ -40,7 +35,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
-	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, auth)
+	err = ReceivePostPrecompResult(instance, 1, []*mixmessages.Slot{}, auth)
 
 	if err == nil {
 		t.Error("Didn't get an error from a nonexistent round")
@@ -51,7 +46,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 // number of slots in the message
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-	instance, topology, grp := setup(t)
+	instance, topology, grp := setup(t, 1)
 
 	roundID := id.Round(45)
 	// Is this the right setup for the response?
@@ -166,7 +161,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Since we give this 3 slots with the correct fields populated,
 	// it should work without errors on all nodes
 	for i := 0; i < numNodes; i++ {
-		err := ReceivePostPrecompResult(instances[i], uint64(roundID),
+		inst := instances[i]
+		err := ReceivePostPrecompResult(inst, uint64(roundID),
 			[]*mixmessages.Slot{{
 				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
 				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
@@ -182,13 +178,6 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			t.Errorf("Error posting precomp on node %v: %v", i, err)
 		}
 	}
-
-	// Then, after the reception handler ran successfully,
-	// there should be 1 precomputation in the buffer on the first node
-	// The others don't have this variable initialized
-	//if len(instances[0].GetCompletedPrecomps().CompletedPrecomputations) != 1 {
-	//	t.Error("Expected completed precomps to have the one precomp we posted")
-	//}
 }
 
 // Tests that ReceivePostPrecompResult() returns an error when isAuthenticated

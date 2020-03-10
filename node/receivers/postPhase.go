@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"time"
 )
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
@@ -33,8 +34,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	// Check for proper authentication and if the sender
 	// is the previous node in the circuit
 	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
-		jww.FATAL.Panicf("Error on PostPhase: "+
+		jww.WARN.Printf("Error on PostPhase: "+
 			"Attempted communication by %+v has not been authenticated", auth.Sender)
+		return connect.AuthError(auth.Sender.GetId())
 	}
 
 	// Waiting for correct phase
@@ -43,7 +45,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
 	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250)
+		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
 		if err != nil {
 			return errors.WithMessagef(err, errFailedToWait, toWait.String())
 		}
@@ -55,13 +57,13 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%s]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
@@ -74,7 +76,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 		batch.Slots = batch.Slots[:1]
 		batch.Slots[0].PartialRoundPublicCypherKey =
 			instance.GetConsensus().GetCmixGroup().GetG().Bytes()
-		jww.INFO.Printf("[%s]: RID %d PostPhase PRECOMP SHARE HACK "+
+		jww.INFO.Printf("[%v]: RID %d PostPhase PRECOMP SHARE HACK "+
 			"HACK HACK", instance, roundID)
 	}
 
@@ -111,7 +113,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	nodeID := instance.GetID()
 	prevNodeID := topology.GetPrevNode(nodeID)
 	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
-		errMsg := errors.Errorf("[%s]: Reception of StreamPostPhase comm failed authentication: "+
+		errMsg := errors.Errorf("[%v]: Reception of StreamPostPhase comm failed authentication: "+
 			"(Expected ID: %+v, received id: %+v.\n Auth: %+v)", instance,
 			prevNodeID, auth.Sender.GetId(), auth.IsAuthenticated)
 
@@ -126,7 +128,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
 	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250)
+		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
 		if err != nil {
 			return errors.WithMessagef(err, errFailedToWait, toWait.String())
 		}
@@ -141,13 +143,13 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%s]: Error on reception of "+
+		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%s]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
 		roundID, phaseTy, p.GetType())
 
 	//queue the phase to be operated on if it is not queued yet

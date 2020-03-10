@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync/atomic"
+	"testing"
 	"time"
 )
 
@@ -156,6 +157,14 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	round.batchSize = batchSize
 
 	return &round
+}
+
+func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
+	if t == nil {
+		panic("Can not use NewDummyRound out side of testing")
+	}
+
+	return &Round{id: roundId, batchSize: batchSize}
 }
 
 //GetID return the ID

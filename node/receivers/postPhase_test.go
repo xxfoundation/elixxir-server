@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
+	"time"
 )
 
 func TestNewImplementation_PostPhase(t *testing.T) {
@@ -26,6 +27,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)
@@ -45,7 +47,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
-	err = instance.Run()
+	err = instance.GetStateMachine().Start()
 	if err != nil {
 		t.Errorf("Failed to run instance: %+v", err)
 		return
@@ -98,11 +100,11 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	}
 
 	var queued bool
-
+	timer := time.NewTimer(time.Second)
 	select {
 	case <-instance.GetResourceQueue().GetQueue(t):
 		queued = true
-	default:
+	case <-timer.C:
 		queued = false
 	}
 
@@ -123,7 +125,13 @@ func TestPostPhase_NoAuth(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
+	grp := initImplGroup()
 	instance, topology := mockServerInstance(t)
+	rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
+		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
+		3, instance.GetRngStreamGen(), "0.0.0.0")
+	instance.GetRoundManager().AddRound(rnd)
+
 	mockPhase := testUtil.InitMockPhase(t)
 
 	// Build a mock mockBatch to receive
@@ -154,11 +162,9 @@ func TestPostPhase_NoAuth(t *testing.T) {
 	}
 
 	err = ReceivePostPhase(mockBatch, instance, auth)
-	if err != nil {
-		t.Errorf("Failed to receive postphase: %+v", err)
+	if err == nil {
+		t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
 	}
-	t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
-
 }
 
 //Error path
@@ -203,12 +209,9 @@ func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPh
 	}
 
 	err = ReceivePostPhase(mockBatch, instance, auth)
-	if err != nil {
-		t.Errorf("Failed to receive post phase: %+v", err)
+	if err == nil {
+		t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
 	}
-
-	t.Errorf("Expected error case, should not be able to ReceivePostPhase when not authenticated")
-
 }
 
 // Error Path
@@ -312,17 +315,8 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	grp := initImplGroup()
+	instance, topology, grp := setup(t, 1)
 
-	topology := connect.NewCircuit(buildMockNodeIDs(2))
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = topology.GetNodeAtIndex(0)
-
-	m := state.NewMachine(dummyStates)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	responseMap := make(phase.ResponseMap)
@@ -358,8 +352,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 
 	// Make an auth object around the last node
-	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetPrevNode(instance.GetID()).String()
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
