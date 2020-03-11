@@ -136,14 +136,8 @@ func TestPoll(t *testing.T) {
 	}
 	defer permComms.Shutdown()
 
-	// Retrieve permissioning's host object
-	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
-	if !ok {
-		t.Errorf("Could not get permissioning host. Was it added?")
-	}
-
 	// Poll the permissioning server for updates
-	err = Poll(permHost, instance)
+	err = Poll(instance)
 	if err != nil {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}
@@ -652,7 +646,7 @@ func TestRegistration(t *testing.T) {
 			t.Error(err)
 		}
 		// Blocking call: Request ndf from permissioning
-		err = Poll(permHost, instance)
+		err = Poll(instance)
 		if err != nil {
 			t.Errorf("Failed to get ndf: %+v", err)
 		}

@@ -52,64 +52,24 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 	return nil
 }
 
-// pollPerm is a utility function to retrieve state from permissioning
-//  and update our internal state
-func pollPerm(permHost *connect.Host, instance *server.Instance) error {
+// Poll is used to retrieve updated state information from permissioning
+//  and update our internal state accordingly
+func Poll(instance *server.Instance) error {
+	// Fetch the host information from the network
+	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
+	if !ok {
+		return errors.New("Could not get permissioning host")
+	}
+
+	// Ping permissioning for updated information
 	permResponse, err := RetrieveState(permHost, instance)
 	if err != nil {
 		return err
 	}
+
+	// Update the internal state of our instance
 	err = UpdateInternalState(permResponse, instance)
 	return err
-}
-
-// Poll handles the server requesting the ndf from permissioning
-func Poll(permHost *connect.Host, instance *server.Instance) error {
-
-	// Initialize variable useful for polling
-	errChan := make(chan error, 1) // Used to check errors
-	done := make(chan struct{})    // Used to signal that polling has completed once
-
-	ticker := time.NewTicker(50 * time.Millisecond)
-
-	// Routinely poll permissioning for state updates
-	go func() {
-		var err error
-		// Poll permissioning initially to update our state
-		err = pollPerm(permHost, instance)
-
-		// Send to waiting thread that we have received some response
-		done <- struct{}{}
-
-		// If there is an error, alert the error chan and close the function
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		// Continuously poll permissioning for information afterwards
-		for range ticker.C {
-			err = pollPerm(permHost, instance)
-			if err != nil {
-				// After the initial poll, panic this thread
-				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
-			}
-		}
-	}()
-
-	// Wait for the go function to complete once
-	<-done
-
-	//See if the polling has returned errors
-	var err error
-	select {
-	// Receive from errChan if error occurred
-	case err = <-errChan:
-	default:
-	}
-
-	return err
-
 }
 
 // RetrieveState polls the permissioning server for updates
@@ -173,7 +133,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 
-	// Parse the updates
+	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 
 		// Add the new information to the network instance
@@ -188,7 +148,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 		}
 
-		// fixme: this panic on error, external comm should not be able to crash server
+		// fixme: this panics on error, external comm should not be able to crash server
 		newTopology := connect.NewCircuit(newNodeList)
 
 		// Check if our node is in this round

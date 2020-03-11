@@ -60,7 +60,7 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	}
 
 	// Blocking call: Request ndf from permissioning
-	err = permissioning.Poll(permHost, instance)
+	err = permissioning.Poll(instance)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
@@ -84,6 +84,18 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	// a couple minutes (depending on operating system), but
 	// in practice 10 seconds works
 	time.Sleep(10 * time.Second)
+
+	// Periodically re-poll permissioning
+	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
+		for range ticker.C {
+			err := permissioning.Poll(instance)
+			if err != nil {
+				// After the initial poll, panic this thread
+				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
+			}
+		}
+	}()
 
 	return nil
 }
