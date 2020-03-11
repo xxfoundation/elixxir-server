@@ -39,9 +39,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 	}
 
 	// Get a Batch message and store it into res
-	cr := instance.GetCompletedBatchQueue().Receive()
-
-	if cr != nil {
+	cr, err := instance.GetCompletedBatchQueue().Receive()
+	if err == nil {
 		r, err := instance.GetRoundManager().GetRound(cr.RoundID)
 		if err != nil {
 			jww.ERROR.Printf("Recieved completed batch for round %v that doesn't exist: %s", cr.RoundID, err)
