@@ -72,10 +72,7 @@ func TestPrecomputing(t *testing.T) {
 		func(from current.Activity) error { return nil },
 		func(from current.Activity) error { return nil },
 	}
-	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	if err != nil {
-		t.Errorf("Failed to create test machine: %+v", err)
-	}
+	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
 
 	var top []string
@@ -90,7 +87,7 @@ func TestPrecomputing(t *testing.T) {
 		}
 	}()
 
-	_, err = Precomputing(instance, 3)
+	_, err := Precomputing(instance, 3)
 	if err != nil {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
