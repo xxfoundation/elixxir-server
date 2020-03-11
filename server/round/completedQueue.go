@@ -1,7 +1,7 @@
 package round
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
+	"errors"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -9,22 +9,22 @@ import (
 
 type CompletedQueue chan *CompletedRound
 
-func (cq CompletedQueue) Send(cr *CompletedRound) {
+func (cq CompletedQueue) Send(cr *CompletedRound) error{
 	select {
 	case cq <- cr:
+		return nil
 	default:
-		jww.ERROR.Printf("Completed batch queue full, " +
+		return errors.New("Completed batch queue full, " +
 			"batch dropped. Check Gateway")
-
 	}
 }
 
-func (cq CompletedQueue) Receive() *CompletedRound {
+func (cq CompletedQueue) Receive() (*CompletedRound, error){
 	select {
 	case cr := <-cq:
-		return cr
+		return cr, nil
 	default:
-		return nil
+		return nil, errors.New("Did not recieve a completed round")
 	}
 }
 
