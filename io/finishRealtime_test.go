@@ -12,13 +12,15 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"testing"
 	"time"
 )
 
 var receivedFinishRealtime = make(chan *mixmessages.RoundInfo, 100)
+var getMessage = func(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{}
+}
 
 func MockFinishRealtimeImplementation() *node.Implementation {
 	impl := node.NewImplementation()
@@ -48,9 +50,6 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	rndID := id.Round(42)
 
-	ln := server.LastNode{}
-	ln.Initialize()
-
 	chunkChan := make(chan services.Chunk, numChunks)
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
@@ -63,8 +62,8 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	var err error
 	go func() {
-		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
-			getChunk, nil, topology, nil, &ln, chunkChan, nil)
+		err = TransmitFinishRealtime(comms[0], rndID,
+			getChunk, getMessage, topology, serverInstance, chunkChan, nil)
 		doneCH <- struct{}{}
 	}()
 
@@ -134,9 +133,6 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 
 	rndID := id.Round(42)
 
-	ln := server.LastNode{}
-	ln.Initialize()
-
 	chunkChan := make(chan services.Chunk, numChunks)
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
@@ -149,8 +145,8 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 
 	var err error
 	go func() {
-		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
-			getChunk, nil, topology, nil, &ln, chunkChan, nil)
+		err = TransmitFinishRealtime(comms[0], rndID,
+			getChunk, getMessage, topology, serverInstance, chunkChan, nil)
 		doneCH <- struct{}{}
 	}()
 

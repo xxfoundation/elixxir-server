@@ -115,13 +115,17 @@ type Machine struct {
 	stateMap [][]bool
 }
 
-func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t *testing.T) Machine {
-	if t == nil {
-		panic("Cannot use outside of test environment")
+func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t interface{}) Machine {
+	switch v := t.(type) {
+	case *testing.T:
+	case *testing.M:
+		break
+	default:
+		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
 	}
 
 	m := NewMachine(changeList)
-	*m.Activity =start
+	*m.Activity = start
 
 	return m
 }
@@ -284,7 +288,7 @@ func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool
 // error after the timeout expires.  Only for use in testing.
 func (m Machine) WaitForUnsafe(expected current.Activity, timeout time.Duration,
 	t *testing.T) (bool, error) {
-	if t==nil{
+	if t == nil {
 		panic("cannot use WaitForUnsafe outside of tests")
 	}
 	// take the read lock to ensure state does not change during intital
