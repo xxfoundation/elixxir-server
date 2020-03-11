@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"runtime"
 	"testing"
 	"time"
@@ -109,6 +110,8 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 	m := state.NewMachine(dummyStates)
 	instance, _ := CreateServerInstance(&def, impl, m, false)

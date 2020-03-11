@@ -1,6 +1,5 @@
 package receivers
 
-
 import (
 	"encoding/json"
 	"gitlab.com/elixxir/comms/connect"
@@ -17,8 +16,6 @@ import (
 	"testing"
 	"time"
 )
-
-
 
 func TestReceiveGetMeasure(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
@@ -42,7 +39,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 		CPUPercentage:   0,
 	}
 
-	monitor := measure.ResourceMonitor{ RWMutex: sync.RWMutex{},}
+	monitor := measure.ResourceMonitor{RWMutex: sync.RWMutex{}}
 	monitor.Set(&metric)
 	//nid := server.GenerateId(t)
 	def := server.Definition{
@@ -105,4 +102,4 @@ func TestReceiveGetMeasure(t *testing.T) {
 	if err == nil {
 		t.Errorf("This should have thrown an error, instead got: %+v", err)
 	}
-}*/
+}
