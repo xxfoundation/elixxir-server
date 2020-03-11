@@ -2,6 +2,7 @@ package receivers
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
@@ -40,6 +41,7 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 
 	resourceMetric := measure.ResourceMetric{}
 
+	fmt.Printf("Resouce monitor: %v", resourceMonitor)
 	if resourceMonitor != nil {
 		resourceMetric = *resourceMonitor.Get()
 	}

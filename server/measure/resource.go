@@ -23,14 +23,14 @@ type ResourceMetric struct {
 
 // ResourceMonitor structure contains a mutable resource metric.
 type ResourceMonitor struct {
-	lastMetric *ResourceMetric
+	LastMetric *ResourceMetric
 	sync.RWMutex
 }
 
 // Get returns the last ResourceMetric.
 func (rm ResourceMonitor) Get() *ResourceMetric {
 	rm.RLock()
-	lastResourceMetric := rm.lastMetric
+	lastResourceMetric := rm.LastMetric
 	rm.RUnlock()
 
 	return lastResourceMetric
@@ -40,6 +40,6 @@ func (rm ResourceMonitor) Get() *ResourceMetric {
 // ResourceMetric.
 func (rm *ResourceMonitor) Set(b *ResourceMetric) {
 	rm.Lock()
-	rm.lastMetric = b
+	rm.LastMetric = b
 	rm.Unlock()
 }

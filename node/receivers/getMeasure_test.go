@@ -12,7 +12,9 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestReceiveGetMeasure(t *testing.T) {
@@ -25,14 +27,28 @@ func TestReceiveGetMeasure(t *testing.T) {
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	topology := connect.NewCircuit(buildMockNodeIDs(numNodes))
 	// Set instance for first node
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &resourceMonitor,
-		FullNDF:         testUtil.NDF,
-	}
-	def.ID = topology.GetNodeAtIndex(0)
 
 	m := state.NewMachine(dummyStates)
+
+	metric := measure.ResourceMetric{
+		SystemStartTime: time.Time{},
+		Time:            time.Time{},
+		MemAllocBytes:   0,
+		MemAvailable:    0,
+		NumThreads:      0,
+		CPUPercentage:   0,
+	}
+
+	monitor := measure.ResourceMonitor{LastMetric: &metric, RWMutex: sync.RWMutex{},}
+	//nid := server.GenerateId(t)
+	def := server.Definition{
+		ID:              topology.GetNodeAtIndex(0),
+		ResourceMonitor: &monitor,
+		UserRegistry:    &globals.UserMap{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
+	}
+
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	// Set up a round first node
