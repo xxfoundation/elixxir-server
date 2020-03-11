@@ -3,6 +3,7 @@ package permissioning
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/gateway"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -16,6 +17,7 @@ import (
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
+	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
@@ -73,6 +75,128 @@ func (i *mockPermission) GetCurrentClientVersion() (string, error) {
 }
 
 func (i *mockPermission) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
+	return nil, nil
+}
+
+// --------------------------------Dummy implementation of permissioning server --------------------------------
+type mockPermissionMultipleRounds struct{}
+
+func (i *mockPermissionMultipleRounds) PollNdf([]byte, *connect.Auth) ([]byte, error) {
+	return nil, nil
+}
+
+func (i *mockPermissionMultipleRounds) RegisterUser(registrationCode, test string) (hash []byte, err error) {
+	return nil, nil
+}
+
+func (i *mockPermissionMultipleRounds) RegisterNode([]byte, string, string, string, string, string) error {
+	return nil
+}
+
+func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
+	ourNdf := testUtil.NDF
+	fullNdf, _ := ourNdf.Marshal()
+	stripNdf, _ := ourNdf.StripNdf().Marshal()
+
+	fullNDFMsg := &pb.NDF{Ndf: fullNdf}
+	partialNDFMsg := &pb.NDF{Ndf: stripNdf}
+
+	signNdf(fullNDFMsg)
+	signNdf(partialNDFMsg)
+
+	ourRoundInfoList := buildRoundInfoMessages()
+
+	return &pb.PermissionPollResponse{
+		FullNDF:    fullNDFMsg,
+		PartialNDF: partialNDFMsg,
+		Updates:    ourRoundInfoList,
+	}, nil
+}
+
+func buildRoundInfoMessages() []*pb.RoundInfo {
+	numUpdates := uint64(0)
+
+	node1 := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	node2 := []byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	node3 := []byte{3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	node4 := []byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	// Create a topology for round info
+	nodeOne := id.NewNodeFromBytes(node1).String()
+	jww.FATAL.Println(nodeOne)
+	nodeTwo := id.NewNodeFromBytes(node2).String()
+	nodeThree := id.NewNodeFromBytes(node3).String()
+	ourTopology := []string{nodeOne, nodeTwo, nodeThree}
+
+	// Construct round info message indicating PRECOMP starting
+	precompRoundInfo := &pb.RoundInfo{
+		ID:       0,
+		UpdateID: numUpdates,
+		State:    uint32(states.PRECOMPUTING),
+		Topology: ourTopology,
+	}
+	signRoundInfo(precompRoundInfo)
+	// Increment updates id for next message
+	numUpdates++
+
+	// Construct round info message indicating STANDBY starting
+	standbyRoundInfo := &pb.RoundInfo{
+		ID:       0,
+		UpdateID: numUpdates,
+		State:    uint32(states.STANDBY),
+		Topology: ourTopology,
+	}
+	signRoundInfo(standbyRoundInfo)
+
+	// Increment updates id for next message
+	numUpdates++
+
+	// Construct message which adds node to team
+	nodeFour := id.NewNodeFromBytes(node4).String()
+	ourTopology = append(ourTopology, nodeFour)
+
+	// Add new round in standby stage
+	newNodeRoundInfo := &pb.RoundInfo{
+		ID:       0,
+		UpdateID: numUpdates,
+		State:    uint32(states.STANDBY),
+		Topology: ourTopology,
+	}
+
+	// Set the signature field of the round info
+	signRoundInfo(newNodeRoundInfo)
+
+	// Increment updates id for next message
+	numUpdates++
+
+	// Create a time stamp in which to transfer stats
+	ourTime := time.Now().Add(500 * time.Millisecond).UnixNano()
+	timestamps := make([]uint64, states.FAILED)
+	timestamps[states.REALTIME] = uint64(ourTime)
+
+	// Construct round info message for REALTIME
+	realtimeRoundInfo := &pb.RoundInfo{
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.REALTIME),
+		Topology:   ourTopology,
+		Timestamps: timestamps,
+	}
+
+	// Increment updates id for next message
+	numUpdates++
+
+	// Set the signature field of the round info
+	signRoundInfo(realtimeRoundInfo)
+
+	return []*pb.RoundInfo{precompRoundInfo, standbyRoundInfo, newNodeRoundInfo, realtimeRoundInfo}
+}
+
+func (i *mockPermissionMultipleRounds) GetCurrentClientVersion() (string, error) {
+	return "0.0.0", nil
+}
+
+func (i *mockPermissionMultipleRounds) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
 	return nil, nil
 }
 
@@ -207,23 +331,23 @@ func signNdf(ourNdf *pb.NDF) error {
 }
 
 // Utility function which signs a round info message
-func signRoundInfo(t *testing.T, ri *pb.RoundInfo) {
+func signRoundInfo(ri *pb.RoundInfo) error {
 	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
 	if err != nil {
-		t.Errorf("couldn't load privKey: %+v", err)
+		return errors.Errorf("couldn't load privKey: %+v", err)
 	}
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
 	signature.Sign(ri, ourPrivKey)
-
+	return nil
 }
 
 // Utility function which builds a signed full-ndf message
-func setupFullNdf(t *testing.T) *mixmessages.NDF {
+func setupFullNdf() (*pb.NDF, error) {
 	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
 	if err != nil {
-		t.Errorf("couldn't load privKey: %+v", err)
+		return nil, errors.Errorf("couldn't load privKey: %+v", err)
 	}
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
@@ -232,23 +356,23 @@ func setupFullNdf(t *testing.T) *mixmessages.NDF {
 	tmpNdf, _, _ := ndf.DecodeNDF(testUtil.ExampleJSON)
 	f.Ndf, err = tmpNdf.Marshal()
 	if err != nil {
-		t.Errorf("Failed to marshal ndf: %+v", err)
+		return nil, errors.Errorf("Failed to marshal ndf: %+v", err)
 	}
 
 	if err != nil {
-		t.Errorf("Could not generate serialized ndf: %s", err)
+		return nil, errors.Errorf("Could not generate serialized ndf: %s", err)
 	}
 
 	err = signature.Sign(f, ourPrivKey)
 
-	return f
+	return f, nil
 }
 
 // Utility function which builds a signed partial-ndf message
-func setupPartialNdf(t *testing.T) *mixmessages.NDF {
+func setupPartialNdf() (*pb.NDF, error) {
 	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
 	if err != nil {
-		t.Errorf("couldn't load privKey: %+v", err)
+		return nil, errors.Errorf("couldn't load privKey: %+v", err)
 	}
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
@@ -259,12 +383,12 @@ func setupPartialNdf(t *testing.T) *mixmessages.NDF {
 	f.Ndf = stipped
 
 	if err != nil {
-		t.Errorf("Could not generate serialized ndf: %s", err)
+		return nil, errors.Errorf("Could not generate serialized ndf: %s", err)
 	}
 
 	err = signature.Sign(f, ourPrivKey)
 
-	return f
+	return f, nil
 }
 
 // Utility function which creates an instance
@@ -359,4 +483,19 @@ func startGateway() (*gateway.Comms, error) {
 	}
 
 	return gwComms, nil
+}
+
+func startMultipleRoundUpdatesPermissioning() (*registration.Comms, error) {
+	cert := []byte(testUtil.RegCert)
+	key := []byte(testUtil.RegPrivKey)
+	// Initialize permissioning server
+	pHandler := registration.Handler(&mockPermissionMultipleRounds{})
+	permComms = registration.StartRegistrationServer(id.PERMISSIONING, pAddr, pHandler, cert, key)
+	_, err := permComms.AddHost(nodeId.String(), pAddr, cert, false, false)
+	if err != nil {
+		return nil, errors.Errorf("Permissioning could not connect to node")
+	}
+
+	return permComms, nil
+
 }

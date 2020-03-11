@@ -301,4 +301,3 @@ func TestReceivePostNewBatch(t *testing.T) {
 		t.Errorf("Realtime decrypt is not queued")
 	}
 }
-

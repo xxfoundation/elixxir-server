@@ -65,8 +65,17 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
 
+	//
+	instance.SetGatewayAsReady()
+
+	// Indicate that gateway is ready for polling
+	err = instance.GetGatewayFirstTime().Receive(5 * time.Second)
+	if err != nil {
+		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
+	}
+
 	// Parse the Ndf for the new signed certs from  permissioning
-	serverCert, gwCert, err := permissioning.InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
+	serverCert, gwCert, err := permissioning.FindSelfInNdf(def, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}

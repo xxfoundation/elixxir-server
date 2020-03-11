@@ -188,9 +188,23 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 				}
 
 				// Wait until ready to start realtime
-				go WaitForRealtime(instance.GetStateMachine(),
-					time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME])))
+				go func() {
+					// Get the realtime start time
+					duration := time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME]))
 
+					// Fixme: find way to calculate sleep length that doesn't lose time
+					// If the timeDiff is positive, then we are not yet ready to start realtime.
+					//  We then sleep for timeDiff time
+					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
+						time.Sleep(timeDiff)
+					}
+
+					// Update to realtime when ready
+					ok, err := instance.GetStateMachine().Update(current.REALTIME)
+					if !ok || err != nil {
+						jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
+					}
+				}()
 			case states.PENDING:
 				// Don't do anything
 			case states.STANDBY:
@@ -226,7 +240,7 @@ func WaitForRealtime(ourMachine state.Machine, duration time.Time) {
 }
 
 // InstallNdf parses the ndf for necessary information and returns that
-func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
+func FindSelfInNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
 
 	jww.INFO.Println("Installing FullNDF now...")
 

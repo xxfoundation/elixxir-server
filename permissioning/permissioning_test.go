@@ -171,6 +171,12 @@ func TestPoll(t *testing.T) {
 			"\n\tReceived: %+v", string(expectedPartialNdf), string(receivedPartialNdf))
 	}
 
+	if instance.GetStateMachine().Get().String() != current.WAITING.String() {
+		t.Errorf("In unexpected state after polling!"+
+			"\n\tExpected: %+v"+
+			"\n\tReceived: %+v", current.WAITING, instance.GetStateMachine().Get())
+	}
+
 }
 
 // Happy path: Pings the mock registration server for a poll response
@@ -249,11 +255,11 @@ func TestUpdateInternalState(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(t, precompRoundInfo)
+	signRoundInfo(precompRoundInfo)
 
 	// Set up the ndf's
-	fullNdf := setupFullNdf(t)
-	stripNdf := setupPartialNdf(t)
+	fullNdf, _ := setupFullNdf()
+	stripNdf, _ := setupPartialNdf()
 
 	// ------------------- TRANSFER FROM WAITING TO PRECOMP ---------------------------------------
 
@@ -328,7 +334,7 @@ func TestUpdateInternalState(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(t, realtimeRoundInfo)
+	signRoundInfo(realtimeRoundInfo)
 
 	// Construct permissioning poll response
 	mockPollResponse = &pb.PermissionPollResponse{
@@ -383,11 +389,11 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(t, pendingRoundInfo)
+	signRoundInfo(pendingRoundInfo)
 
 	// Set up the ndf's
-	fullNdf := setupFullNdf(t)
-	stripNdf := setupPartialNdf(t)
+	fullNdf, _ := setupFullNdf()
+	stripNdf, _ := setupPartialNdf()
 
 	// Construct permissioning poll response
 	mockPollResponse := &pb.PermissionPollResponse{
@@ -414,7 +420,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(t, standbyRoundInfo)
+	signRoundInfo(standbyRoundInfo)
 
 	// Construct permissioning poll response
 	mockPollResponse = &pb.PermissionPollResponse{
@@ -441,7 +447,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(t, completedRoundInfo)
+	signRoundInfo(completedRoundInfo)
 
 	// Construct permissioning poll response
 	mockPollResponse = &pb.PermissionPollResponse{
@@ -484,11 +490,11 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Set the signature field of the round info
-	signRoundInfo(t, NumStateRoundInfo)
+	signRoundInfo(NumStateRoundInfo)
 
 	// Set up the ndf's
-	fullNdf := setupFullNdf(t)
-	stripNdf := setupPartialNdf(t)
+	fullNdf, _ := setupFullNdf()
+	stripNdf, _ := setupPartialNdf()
 
 	// Construct permissioning poll response
 	mockPollResponse := &pb.PermissionPollResponse{
@@ -517,7 +523,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Set the signature field of the round info
-	signRoundInfo(t, theirRoundInfo)
+	signRoundInfo(theirRoundInfo)
 
 	// Construct permissioning poll response
 	mockPollResponse = &pb.PermissionPollResponse{
@@ -652,7 +658,7 @@ func TestRegistration(t *testing.T) {
 		}
 
 		// Parse the Ndf
-		serverCert, gwCert, err := InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
+		serverCert, gwCert, err := FindSelfInNdf(def, instance.GetConsensus().GetFullNdf().Get())
 		if err != nil {
 			t.Errorf("Failed to install ndf: %+v", err)
 		}
@@ -692,4 +698,28 @@ func TestRegistration(t *testing.T) {
 
 	//wait for server to finish
 	<-permDone
+}
+
+func TestPoll_MultipleRoundupdates(t *testing.T) {
+	// Create instance
+	instance, err := createServerInstance(t)
+	if err != nil {
+		t.Errorf("Couldn't create instance: %+v", err)
+	}
+
+	// Start up permissioning server which will return multiple round updates
+	permComms, err := startMultipleRoundUpdatesPermissioning()
+	if err != nil {
+		t.Errorf("Couldn't create permissioning server: %+v", err)
+	}
+	defer permComms.Shutdown()
+
+	// Poll the permissioning server for updates
+	err = Poll(instance)
+	if err != nil {
+		t.Errorf("Failed to poll for ndf: %+v", err)
+	}
+
+	// todo: check internal state for changes appropriate to permissioning response
+
 }
