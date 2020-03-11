@@ -1,8 +1,15 @@
 package node
 
+import (
+	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/services"
+	"testing"
+)
+
 const expectedNumPhases = 7
 
-/*
+
 func TestNewRoundComponents_FirstNode(t *testing.T) {
 	expectedFirstNodeResponses := 7
 
@@ -81,4 +88,21 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 			expectedLastNodeResponses, len(responses))
 	}
 }
-*/
+
+
+// Builds a list of node IDs for testing
+func buildMockTopology(numNodes int) *connect.Circuit {
+	var nodeIDs []*id.Node
+
+	//Build IDs
+	for i := 0; i < numNodes; i++ {
+		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes[0] = byte(i + 1)
+		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeIDs = append(nodeIDs, nodeID)
+	}
+
+	//Build the topology
+	return connect.NewCircuit(nodeIDs)
+}
+
