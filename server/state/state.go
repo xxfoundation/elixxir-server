@@ -115,9 +115,13 @@ type Machine struct {
 	stateMap [][]bool
 }
 
-func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t *testing.T) (Machine, error) {
-	if t == nil {
-		panic("Cannot use outside of test environment")
+func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t interface{}) (Machine, error) {
+	switch v := t.(type) {
+	case *testing.T:
+	case *testing.M:
+		break
+	default:
+		panic(fmt.Sprintf("Must pass in testing interface, instead got %+v", v))
 	}
 
 	m := NewMachine(changeList)

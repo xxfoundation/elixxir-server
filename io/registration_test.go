@@ -17,10 +17,13 @@ import (
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/testUtil"
 	"os"
 	"testing"
 	"time"
@@ -83,26 +86,24 @@ func TestMain(m *testing.M) {
 	serverRSAPub = serverRSAPriv.GetPublic()
 
 	def := server.Definition{
-		CmixGroup: grp,
-		Nodes: []server.Node{
-			{
-				ID: nodeId,
-			},
-		},
 		ID:              nodeId,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		PrivateKey:      serverRSAPriv,
 		PublicKey:       serverRSAPub,
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
 	def.Permissioning.PublicKey = regPrivKey.GetPublic()
 	nodeIDs := make([]*id.Node, 0)
 	nodeIDs = append(nodeIDs, nodeId)
-	def.Topology = connect.NewCircuit(nodeIDs)
+	_ = connect.NewCircuit(nodeIDs)
 	def.Gateway.ID = id.NewTmpGateway()
 
-	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, false)
+	mach, _ := state.NewTestMachine(dummyStates, current.PRECOMPUTING, m)
+
+	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, mach, false)
 
 	os.Exit(m.Run())
 }
@@ -283,7 +284,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 // Test confirm nonce
 func TestConfirmRegistration(t *testing.T) {
 	//make new user
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	user.IsRegistered = false
 	user.RsaPublicKey = clientRSAPub
@@ -330,7 +331,7 @@ func TestConfirmRegistration(t *testing.T) {
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuth(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -365,7 +366,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuthId(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -401,7 +402,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 
 // Test confirm nonce that doesn't exist
 func TestConfirmRegistration_NonExistant(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -436,7 +437,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 
 // Test confirm nonce expired
 func TestConfirmRegistration_Expired(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(1)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
@@ -479,7 +480,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 
 // Test confirm nonce with invalid signature
 func TestConfirmRegistration_BadSignature(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 	user.RsaPublicKey = clientRSAPub
