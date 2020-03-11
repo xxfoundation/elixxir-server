@@ -1,14 +1,9 @@
 package receivers
 
-import "testing"
-
-
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
@@ -18,25 +13,7 @@ import (
 )
 
 func TestReceiveFinishRealtime(t *testing.T) {
-	// Smoke tests the management part of PostPrecompResult
-	grp := initImplGroup()
-	const numNodes = 5
-
-	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
-
-	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &resourceMonitor,
-	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
-
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, true)
-
-	instance.InitFirstNode()
-	topology := instance.GetTopology()
+	instance, topology, grp := setup(t, 0)
 
 	// Set up a round first node
 	roundID := id.Round(45)
@@ -71,7 +48,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 
 	// Create a fake host and auth object to pass into function that needs it
 	fakeHost, err := connect.NewHost(
-		instance.GetTopology().GetLastNode().String(),
+		topology.GetLastNode().String(),
 		"", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -106,24 +83,10 @@ func TestReceiveFinishRealtime(t *testing.T) {
 // auth object that has IsAuthenticated as false
 func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-	grp := initImplGroup()
 	const numNodes = 5
-
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
-
-	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &resourceMonitor,
-	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
-
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-
-	instance.InitFirstNode()
-	topology := instance.GetTopology()
+	instance, topology, grp := setup(t, 0)
 
 	// Set up a round first node
 	roundID := id.Round(45)
@@ -157,7 +120,7 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(0).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0).String(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -177,24 +140,11 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 // call
 func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-	grp := initImplGroup()
 	const numNodes = 5
-
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
-	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &resourceMonitor,
-	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
-
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-
-	instance.InitFirstNode()
-	topology := instance.GetTopology()
+	instance, topology, grp := setup(t, 0)
 
 	// Set up a round first node
 	roundID := id.Round(45)
@@ -245,24 +195,12 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 
 func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-	grp := initImplGroup()
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
-	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(numNodes)),
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &resourceMonitor,
-	}
-	def.ID = def.Topology.GetNodeAtIndex(0)
-
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-
-	instance.InitFirstNode()
-	topology := instance.GetTopology()
+	instance, topology, grp := setup(t, 0)
 
 	// Set up a round first node
 	roundID := id.Round(45)
@@ -296,8 +234,8 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(instance.GetTopology().GetNodeAtIndex(
-		instance.GetTopology().Len()-1).String(), "", nil,
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(
+		topology.Len()-1).String(), "", nil,
 		true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -327,4 +265,3 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 			"recieved %v", roundID, finishedRoundID)
 	}
 }
-
