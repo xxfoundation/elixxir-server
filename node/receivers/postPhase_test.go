@@ -32,7 +32,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	def.ID = topology.GetNodeAtIndex(0)
 
-	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	mockPhase := testUtil.InitMockPhase(t)
@@ -47,7 +47,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		instance.GetRngStreamGen(), "0.0.0.0")
 
 	instance.GetRoundManager().AddRound(r)
-	err = instance.GetStateMachine().Start()
+	err := instance.GetStateMachine().Start()
 	if err != nil {
 		t.Errorf("Failed to run instance: %+v", err)
 		return

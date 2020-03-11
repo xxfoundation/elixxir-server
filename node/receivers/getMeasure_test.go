@@ -1,5 +1,6 @@
 package receivers
 
+
 import (
 	"encoding/json"
 	"gitlab.com/elixxir/comms/connect"
@@ -16,6 +17,8 @@ import (
 	"testing"
 	"time"
 )
+
+
 
 func TestReceiveGetMeasure(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
@@ -39,7 +42,8 @@ func TestReceiveGetMeasure(t *testing.T) {
 		CPUPercentage:   0,
 	}
 
-	monitor := measure.ResourceMonitor{LastMetric: &metric, RWMutex: sync.RWMutex{},}
+	monitor := measure.ResourceMonitor{ RWMutex: sync.RWMutex{},}
+	monitor.Set(&metric)
 	//nid := server.GenerateId(t)
 	def := server.Definition{
 		ID:              topology.GetNodeAtIndex(0),

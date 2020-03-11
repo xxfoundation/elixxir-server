@@ -3,8 +3,7 @@ package receivers
 import (
 	"crypto/rand"
 	"github.com/golang/protobuf/ptypes"
-	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/mixmessages"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -21,14 +20,15 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
+	//Dummy round object
+	newRound := round.NewDummyRound(id.Round(1), 10 , t)
 
-	topology := connect.NewCircuit(buildMockNodeIDs(numNodes))
 	// Set instance for first node
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
-	def.ID = topology.GetNodeAtIndex(0)
+	def.ID = newRound.GetTopology().GetNodeAtIndex(0)
 
 	instance, _ := mockServerInstance(t)
 
@@ -50,7 +50,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	batchSize := uint32(11)
 
 	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
+		responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
 	r.StartRoundTrip("test")
 
@@ -67,8 +67,8 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	if err != nil {
 		t.Errorf("TransmitRoundTripPing: failed to generate random bytes B: %+v", err)
 	}
-	anyPayload := &mixmessages.Batch{
-		Slots: []*mixmessages.Slot{
+	anyPayload := &pb.Batch{
+		Slots: []*pb.Slot{
 			{
 				SenderID: instance.GetID().Bytes(),
 				PayloadA: A,
@@ -82,9 +82,9 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	}
 	any, _ := ptypes.MarshalAny(anyPayload)
 
-	msg := &mixmessages.RoundTripPing{
+	msg := &pb.RoundTripPing{
 		Payload: any,
-		Round: &mixmessages.RoundInfo{
+		Round: &pb.RoundInfo{
 			ID: 45,
 		},
 	}
