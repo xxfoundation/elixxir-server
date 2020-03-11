@@ -9,7 +9,6 @@ package permissioning
 import (
 	"bytes"
 	"fmt"
-	"gitlab.com/elixxir/comms/gateway"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -34,13 +33,18 @@ func TestRegisterNode(t *testing.T) {
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
+	// Set up id's and address
 	nodeId = id.NewNodeFromUInt(uint64(0), t)
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
 	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
+
 	cnt++
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000))
+
+	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
+
 	// Build the node
 	emptyNdf := builEmptydMockNdf()
+
 	// Initialize definition
 	def := &server.Definition{
 		Flags:         server.Flags{},
@@ -96,58 +100,81 @@ func TestRegisterNode(t *testing.T) {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
+	// Start up permissioning server
 	permComms, err := startPermisioning()
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
 	defer permComms.Shutdown()
 
+	// Fetch permissioning host
 	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
 	if !ok {
 		t.Errorf("Could not get permissioning host. Was it added?")
 	}
 
+	// Register node with permissioning
 	err = RegisterNode(def, instance.GetNetwork(), permHost)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Failed to register node: %+v", err)
 	}
 
 }
 
+// Happy path: Test polling
 func TestPoll(t *testing.T) {
+	// Create instance
 	instance, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
+	// Start up permissioning server
 	permComms, err := startPermisioning()
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
 	defer permComms.Shutdown()
 
+	// Retrieve permissioning's host object
 	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
 	if !ok {
 		t.Errorf("Could not get permissioning host. Was it added?")
 	}
 
+	// Poll the permissioning server for updates
 	err = Poll(permHost, instance)
 	if err != nil {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}
 
-	receivedNdf, err := instance.GetConsensus().GetFullNdf().Get().Marshal()
+	// Fetch the full ndf
+	receivedFullNdf, err := instance.GetConsensus().GetFullNdf().Get().Marshal()
 	if err != nil {
 		t.Errorf("Failed to marshall full ndf: %+v", err)
 	}
 
+	// Fetch the partial ndf
+	receivedPartialNdf, err := instance.GetConsensus().GetPartialNdf().Get().Marshal()
+	if err != nil {
+		t.Errorf("Failed to marshall partial ndf: %+v", err)
+	}
+
 	// Take the expected partial and full ndf
 	expectedFullNdf, _ := testUtil.NDF.Marshal()
+	expectedPartialNdf, _ := testUtil.NDF.StripNdf().Marshal()
 
-	if !reflect.DeepEqual(receivedNdf, expectedFullNdf) {
+	if !reflect.DeepEqual(receivedFullNdf, expectedFullNdf) {
 		t.Errorf("Failed to build ndf in instance!"+
 			"\n\tExpected: %+v"+
-			"\n\n\n\tReceived: %+v", string(expectedFullNdf), string(receivedNdf))
+			"\n\n\n\tReceived: %+v", string(expectedFullNdf), string(receivedFullNdf))
+	}
+
+	// Check the partial ndf
+	if !bytes.Equal(receivedPartialNdf, expectedPartialNdf) {
+		t.Errorf("Failed to poll ndf correctly."+
+			"\n\tExpected: %+v"+
+			"\n\tReceived: %+v", string(expectedPartialNdf), string(receivedPartialNdf))
 	}
 
 }
@@ -234,6 +261,8 @@ func TestUpdateInternalState(t *testing.T) {
 	fullNdf := setupFullNdf(t)
 	stripNdf := setupPartialNdf(t)
 
+	// ------------------- TRANSFER FROM WAITING TO PRECOMP ---------------------------------------
+
 	// Construct permissioning poll response
 	mockPollResponse := &pb.PermissionPollResponse{
 		FullNDF:    fullNdf,
@@ -280,7 +309,7 @@ func TestUpdateInternalState(t *testing.T) {
 			"\n\tReceived state: %+v", current.PRECOMPUTING, instance.GetStateMachine().Get())
 	}
 
-	// ------------------- TRANSFER FROM PRECOMPUTING TO REALTIME ---------------------------------------
+	// ----------------------- TRANSFER FROM STANDBY TO REALTIME ---------------------------------------
 
 	ok, err := instance.GetStateMachine().Update(current.STANDBY)
 	if !ok || err != nil {
@@ -480,7 +509,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 		t.Errorf("Expected error path. Attempted to transfer to an unknown state")
 	}
 
-	//  --------------- Non team member -----------------------------------------
+	//  --------------- Non team member test case -----------------------------------------
 
 	// Exclude our node from the topology
 	badTopology := []string{nodeTwo, nodeThree}
@@ -518,16 +547,20 @@ func TestRegistration(t *testing.T) {
 	gwConnected := make(chan struct{})
 	permDone := make(chan struct{})
 
+	// Pull certs and key
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
+	// Generate id's and addresses
 	nodeId = id.NewNodeFromUInt(uint64(0), t)
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
 	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
 	cnt++
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000))
+	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
+
 	// Build the node
 	emptyNdf := builEmptydMockNdf()
+
 	// Initialize definition
 	def := &server.Definition{
 		Flags:         server.Flags{},
@@ -544,14 +577,12 @@ func TestRegistration(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
 		UserRegistry: nil,
 		Permissioning: server.Perm{
 			TlsCert:          []byte(testUtil.RegCert),
 			Address:          pAddr,
 			RegistrationCode: "",
 		},
-
 		GraphGenerator:  services.GraphGenerator{},
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
@@ -583,46 +614,39 @@ func TestRegistration(t *testing.T) {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
+	// Boot up permissioning server
 	permComms, err := startPermisioning()
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
 	defer permComms.Shutdown()
 
-	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
-	if !ok {
-		t.Errorf("Could not get permissioning host. Was it added?")
-	}
-
-	err = RegisterNode(def, instance.GetNetwork(), permHost)
-	if err != nil {
-		t.Error(err)
-	}
-
+	// In go func
 	go func() {
-		time.Sleep(1 * time.Second)
-		gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
-		gHandler := gateway.Handler(&mockGateway{})
-		gwComms = gateway.StartGateway(nodeId.NewGateway().String(), gAddr, gHandler, cert, key)
-		_, err := gwComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
-		if err != nil {
-			t.Errorf("Failed to add gateway host")
-		}
-		if err != nil {
-			t.Fatalf("Gateway could not connect to node")
-		}
+		// fixme: have gateway testing supported for a full stack test?
+		//time.Sleep(1 * time.Second)
+		//gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
+		//gHandler := gateway.Handler(&mockGateway{})
+		//gwComms = gateway.StartGateway(nodeId.NewGateway().String(), gAddr, gHandler, cert, key)
+		//_, err := gwComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
+		//if err != nil {
+		//	t.Errorf("Failed to add gateway host")
+		//}
+		//if err != nil {
+		//	t.Fatalf("Gateway could not connect to node")
+		//}
 		gwConnected <- struct{}{}
 	}()
 
 	// Register the node in a separate thread and notify when finished
 	go func() {
-
-		//network := node.StartNode("nodeid", def.Address, impl(instance), def.TlsCert, def.TlsKey)
+		// Fetch permissioning host
 		permHost, err := instance.GetNetwork().AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
 
+		// Register with node
 		err = RegisterNode(def, instance.GetNetwork(), permHost)
 		if err != nil {
 			t.Error(err)
@@ -632,11 +656,14 @@ func TestRegistration(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to get ndf: %+v", err)
 		}
-		// Parse the Nd
+
+		// Parse the Ndf
 		serverCert, gwCert, err := InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
 		if err != nil {
 			t.Errorf("Failed to install ndf: %+v", err)
 		}
+
+		// Restart the network with new certs
 		def.TlsCert = []byte(serverCert)
 		def.Gateway.TlsCert = []byte(gwCert)
 		instance.RestartNetwork(impl, def, true)
