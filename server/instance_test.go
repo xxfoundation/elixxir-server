@@ -124,6 +124,7 @@ func mockServerDef(i interface{}) *Definition {
 		ID:              nid,
 		ResourceMonitor: &resourceMonitor,
 		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
 	return &def

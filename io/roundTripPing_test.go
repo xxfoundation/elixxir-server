@@ -9,12 +9,14 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )
@@ -63,23 +65,19 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		large.NewInt(2))
 
 	def := server.Definition{
-		CmixGroup: grp,
-		Nodes: []server.Node{
-			{
-				ID: nid,
-			},
-		},
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		PrivateKey:      mockRSAPriv,
 		PublicKey:       mockRSAPub,
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 	nodeIDs := make([]*id.Node, 0)
 	nodeIDs = append(nodeIDs, nid)
-	def.Topology = connect.NewCircuit(nodeIDs)
 
-	mockServerInstance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	mockServerInstance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 	mockServerInstance.GetNetwork()
 
 	roundID := id.Round(0)

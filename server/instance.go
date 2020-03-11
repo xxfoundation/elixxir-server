@@ -54,14 +54,16 @@ type Instance struct {
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, noTls bool) (*Instance, error) {
 	instance := &Instance{
-		Online:               false,
-		definition:           def,
-		roundManager:         round.NewManager(),
-		resourceQueue:        initQueue(),
-		machine:              machine,
+		Online:        false,
+		definition:    def,
+		roundManager:  round.NewManager(),
+		resourceQueue: initQueue(),
+		machine:       machine,
+
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
+		completedBatchQueue:  round.NewCompletedQueue(),
 	}
 
 	//Start local node

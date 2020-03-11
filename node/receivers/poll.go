@@ -6,7 +6,6 @@
 package receivers
 
 import (
-	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
@@ -41,7 +40,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 	// Get a Batch message and store it into res
 	cr := instance.GetCompletedBatchQueue().Receive()
-	fmt.Println(cr)
+
 	if cr != nil {
 		r, err := instance.GetRoundManager().GetRound(cr.RoundID)
 		if err != nil {

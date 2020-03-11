@@ -57,11 +57,7 @@ func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb
 	}
 
 	// Here we create a server instance so that we can test the poll ndf.
-	m, err := state.NewTestMachine(dummyStates, test_state, t)
-	if err != nil {
-		t.Logf("Failed to create test state machine: %v", err)
-		t.Fail()
-	}
+	m := state.NewTestMachine(dummyStates, test_state, t)
 
 	instance, err := server.CreateServerInstance(&def, NewImplementation, m, false)
 	if err != nil {
