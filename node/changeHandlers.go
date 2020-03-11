@@ -13,6 +13,8 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/node/receivers"
+	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
@@ -24,54 +26,54 @@ func Dummy(from current.Activity) error {
 
 // Beginning state of state machine, enters waiting upon successful completion
 func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) error {
-	//// Start comms network
-	//network := instance.GetNetwork()
-	//_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
-	//if err != nil {
-	//	return errors.Errorf("Unable to add gateway host: %+v", err)
-	//}
-	//// Connect to the Permissioning Server without authentication
-	//permHost, err := network.AddHost(id.PERMISSIONING,
-	//	// instance.GetPermissioningAddress,
-	//	def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
-	//if err != nil {
-	//	return errors.Errorf("Unable to connect to registration server: %+v", err)
-	//}
-	//
-	//// Blocking call: Begin Node registration
-	//err = permissioning.RegisterNode(def, network, permHost)
-	//if err != nil {
-	//	return errors.Errorf("Failed to register node: %+v", err)
-	//}
-	//
-	//// Disconnect the old permissioning server to enable authentication
-	//permHost.Disconnect()
-	//
-	//// Connect to the Permissioning Server with authentication enabled
-	//permHost, err = network.AddHost(id.PERMISSIONING,
-	//	def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
-	//if err != nil {
-	//	return errors.Errorf("Unable to connect to registration server: %+v", err)
-	//}
-	//
-	//// Blocking call: Request ndf from permissioning
-	//err = permissioning.Poll(permHost, instance)
-	//if err != nil {
-	//	return errors.Errorf("Failed to get ndf: %+v", err)
-	//}
-	//
-	//// Parse the Ndf for the new signed certs from  permissioning
-	//serverCert, gwCert, err := permissioning.InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
-	//if err != nil {
-	//	return errors.Errorf("Failed to install ndf: %+v", err)
-	//}
-	//
-	//// Set definition for newly signed certs
-	//def.TlsCert = []byte(serverCert)
-	//def.Gateway.TlsCert = []byte(gwCert)
-	//
-	//// Restart the network with these signed certs
-	//instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+	// Start comms network
+	network := instance.GetNetwork()
+	_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
+	if err != nil {
+		return errors.Errorf("Unable to add gateway host: %+v", err)
+	}
+	// Connect to the Permissioning Server without authentication
+	permHost, err := network.AddHost(id.PERMISSIONING,
+		// instance.GetPermissioningAddress,
+		def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+	if err != nil {
+		return errors.Errorf("Unable to connect to registration server: %+v", err)
+	}
+
+	// Blocking call: Begin Node registration
+	err = permissioning.RegisterNode(def, network, permHost)
+	if err != nil {
+		return errors.Errorf("Failed to register node: %+v", err)
+	}
+
+	// Disconnect the old permissioning server to enable authentication
+	permHost.Disconnect()
+
+	// Connect to the Permissioning Server with authentication enabled
+	permHost, err = network.AddHost(id.PERMISSIONING,
+		def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+	if err != nil {
+		return errors.Errorf("Unable to connect to registration server: %+v", err)
+	}
+
+	// Blocking call: Request ndf from permissioning
+	err = permissioning.Poll(permHost, instance)
+	if err != nil {
+		return errors.Errorf("Failed to get ndf: %+v", err)
+	}
+
+	// Parse the Ndf for the new signed certs from  permissioning
+	serverCert, gwCert, err := permissioning.InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
+	if err != nil {
+		return errors.Errorf("Failed to install ndf: %+v", err)
+	}
+
+	// Set definition for newly signed certs
+	def.TlsCert = []byte(serverCert)
+	def.Gateway.TlsCert = []byte(gwCert)
+
+	// Restart the network with these signed certs
+	instance.RestartNetwork(receivers.NewImplementation, def, noTls)
 
 	return nil
 }
