@@ -39,6 +39,7 @@ type Instance struct {
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
+	realtimeRoundQueue  round.Queue
 
 	requestNewBatchQueue round.Queue
 }
@@ -53,14 +54,16 @@ type Instance struct {
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, noTls bool) (*Instance, error) {
 	instance := &Instance{
-		Online:               false,
-		definition:           def,
-		roundManager:         round.NewManager(),
-		resourceQueue:        initQueue(),
-		machine:              machine,
+		Online:        false,
+		definition:    def,
+		roundManager:  round.NewManager(),
+		resourceQueue: initQueue(),
+		machine:       machine,
+
 		requestNewBatchQueue: round.NewQueue(),
-		completedBatchQueue:  round.NewCompletedQueue(),
 		createRoundQueue:     round.NewQueue(),
+		realtimeRoundQueue:   round.NewQueue(),
+		completedBatchQueue:  round.NewCompletedQueue(),
 	}
 
 	//Start local node
@@ -101,8 +104,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation,
 	definition *Definition, noTls bool) {
 
-	i.network = node.StartNode(i.definition.ID.String(), i.definition.Address,
-		makeImplementation(i), i.definition.TlsCert, i.definition.TlsKey)
+	i.definition = definition
+	i.network = node.StartNode(definition.ID.String(), definition.Address,
+		makeImplementation(i), definition.TlsCert, definition.TlsKey)
 
 	if noTls {
 		i.network.DisableAuth()
@@ -240,6 +244,11 @@ func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {
 	return i.createRoundQueue
+}
+
+// todo: docstring
+func (i *Instance) GetRealtimeRoundQueue() round.Queue {
+	return i.realtimeRoundQueue
 }
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {

@@ -110,6 +110,66 @@ func TestNewMachine_Error(t *testing.T) {
 
 }
 
+//tests that new Machiene works properly function creates a properly formed state object
+func TestNewTestMachine(t *testing.T) {
+	m := NewTestMachine(dummyStates, current.REALTIME, t)
+
+	// check the state pointer is properly initialized
+	if m.Activity == nil {
+		t.Errorf("State pointer in state object should not be nil")
+	}
+
+	if *m.Activity != current.REALTIME {
+		t.Errorf("State should be %s, is %s", current.NOT_STARTED, *m.Activity)
+	}
+
+	// check the RWMutex has been created
+	if m.RWMutex == nil {
+		t.Errorf("State mutex should exist")
+	}
+
+	//check that the signal channel works properly
+	// check the notify channel works properly
+	go func() {
+		m.signal <- current.WAITING
+	}()
+
+	timer := time.NewTimer(time.Millisecond)
+	select {
+	case <-m.signal:
+	case <-timer.C:
+		t.Errorf("Should not have timed out on testing signal channel")
+	}
+
+	// check the initialized state map is correct
+	if !reflect.DeepEqual(expectedStateMap, m.stateMap) {
+		t.Errorf("State map does not match expectated")
+	}
+
+	// check the change list is correct by checking if pointers are
+	// correct
+	for i := current.NOT_STARTED; i < current.NUM_STATES; i++ {
+		if m.changeList[i] == nil {
+			t.Errorf("Change function for %s is nil", i)
+		}
+	}
+}
+
+//tests that new NewTestMachine panics when called without a testing object
+func TestNewTestMachine_Panic(t *testing.T) {
+
+	//catch the panic
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+
+	NewTestMachine(dummyStates, current.REALTIME, nil)
+
+	//error if it somehow didnt panic
+	t.Errorf("Panic did not occur in NewTestMachine")
+}
+
 //tests that state transitions are recorded properly
 func TestAddStateTransition(t *testing.T) {
 	//do 100 random tests
@@ -487,4 +547,122 @@ func TestWaitFor_WaitForBadState(t *testing.T) {
 		t.Errorf("WaitFor() returned thh wrong error on bad state "+
 			"change: %s", err.Error())
 	}
+}
+
+//test that WaitForUnsafe returns immediately when the state is already correct
+func TestWaitForUnsafe_CorrectState(t *testing.T) {
+	//create a new state
+	m := NewMachine(dummyStates)
+
+	*m.Activity = current.PRECOMPUTING
+
+	b, err := m.WaitForUnsafe(current.PRECOMPUTING, time.Millisecond, t)
+
+	if !b {
+		t.Errorf("WaitFor() returned false when doing check on state" +
+			" which is already true")
+	}
+
+	if err != nil {
+		t.Errorf("WaitFor() returned error when doing check on state " +
+			"which is already true")
+	}
+}
+
+//test the timeout for when the state change does not happen
+func TestWaitForUnsafe_Timeout(t *testing.T) {
+	//create a new state
+	m := NewMachine(dummyStates)
+
+	*m.Activity = current.PRECOMPUTING
+
+	b, err := m.WaitForUnsafe(current.STANDBY, time.Millisecond, t)
+
+	if b {
+		t.Errorf("WaitFor() returned true when doing check on state" +
+			" change which never happened")
+	}
+
+	if err == nil {
+		t.Errorf("WaitFor() returned nil error when it should " +
+			"have timed")
+	} else if strings.Contains("timed out before state update", err.Error()) {
+		t.Errorf("WaitFor() returned the wrong error when timing out: %s",
+			err)
+	}
+}
+
+//tests when it takes time for the state to come
+func TestWaitForUnsafe_WaitForState(t *testing.T) {
+	//create a new state
+	m := NewMachine(dummyStates)
+
+	*m.Activity = current.PRECOMPUTING
+
+	//create runner which after delay will send wait for state
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		m.signal <- current.STANDBY
+	}()
+
+	//run wait for state with longer timeout than delay in update
+	b, err := m.WaitForUnsafe(current.STANDBY, 100*time.Millisecond, t)
+
+	if !b {
+		t.Errorf("WaitFor() returned true when doing check on state" +
+			" which should have happened")
+	}
+
+	if err != nil {
+		t.Errorf("WaitFor() returned an error when doing check on state" +
+			" which should have happened correctly")
+	}
+}
+
+//tests when it takes time for the state to come
+func TestMachine_WaitForUnsafe_WaitForBadState(t *testing.T) {
+	//create a new state
+	m := NewMachine(dummyStates)
+
+	*m.Activity = current.PRECOMPUTING
+
+	//create runner which after delay will send wait for state
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		m.signal <- current.ERROR
+	}()
+
+	//run wait for state with longer timeout than delay in update
+	b, err := m.WaitForUnsafe(current.STANDBY, 100*time.Millisecond, t)
+
+	if b {
+		t.Errorf("WaitFor() returned true when doing check on state" +
+			" transition which happened incorrectly")
+	}
+
+	if err == nil {
+		t.Errorf("WaitFor() returned no error when bad state change " +
+			"occured")
+	} else if strings.Contains(err.Error(), "state not updated to the "+
+		"correct state") {
+		t.Errorf("WaitFor() returned thh wrong error on bad state "+
+			"change: %s", err.Error())
+	}
+}
+
+//tests when it takes time for the state to come
+func TestMachine_WaitForUnsafe_Panic(t *testing.T) {
+	//create a new state
+	m := NewMachine(dummyStates)
+
+	//catch the panic
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+
+	m.WaitForUnsafe(current.STANDBY, 100*time.Millisecond, nil)
+
+	//error if it somehow didnt panic
+	t.Errorf("Panic did not occur in WaitForUnsafe_Panic")
 }

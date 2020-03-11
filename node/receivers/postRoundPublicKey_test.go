@@ -29,10 +29,8 @@ func setup(t *testing.T, instIndex int) (*server.Instance, *connect.Circuit, *cy
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 
-	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	if err != nil {
-		t.Errorf("Failed to create test machine: %+v", err)
-	}
+	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 	rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),

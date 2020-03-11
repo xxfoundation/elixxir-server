@@ -101,7 +101,7 @@ func TestMain(m *testing.M) {
 	_ = connect.NewCircuit(nodeIDs)
 	def.Gateway.ID = id.NewTmpGateway()
 
-	mach, _ := state.NewTestMachine(dummyStates, current.PRECOMPUTING, m)
+	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, m)
 
 	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, mach, false)
 

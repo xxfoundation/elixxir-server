@@ -110,10 +110,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		}
 		def.ID = topology.GetNodeAtIndex(1)
 
-		m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-		if err != nil {
-			t.Errorf("Failed to create test machine: %+v", err)
-		}
+		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+
 		instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 		rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),

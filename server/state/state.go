@@ -115,24 +115,19 @@ type Machine struct {
 	stateMap [][]bool
 }
 
-func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t interface{}) (Machine, error) {
+func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t interface{}) Machine {
 	switch v := t.(type) {
 	case *testing.T:
 	case *testing.M:
 		break
 	default:
-		panic(fmt.Sprintf("Must pass in testing interface, instead got %+v", v))
+		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
 	}
 
 	m := NewMachine(changeList)
-	ok, err := m.stateChange(start)
-	if err != nil {
-		return Machine{}, err
-	}
-	if !ok {
-		return Machine{}, errors.New("Could not change state")
-	}
-	return m, nil
+	*m.Activity = start
+
+	return m
 }
 
 // builds the stateObj  and sets valid transitions
@@ -272,6 +267,69 @@ func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool
 		// return the error
 		return false, errors.Errorf("Cannot wait for state %s which "+
 			"cannot be reached from the current state %s", expected, *m.Activity)
+	}
+
+	// unlock the read lock, allows state changes to take effect
+	m.RUnlock()
+
+	// wait for the state change to happen
+	err := <-done
+
+	// return the result
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// Waits until an update to the given expected state happens.
+// return true if the waited state is the current state. returns an
+// error after the timeout expires.  Only for use in testing.
+func (m Machine) WaitForUnsafe(expected current.Activity, timeout time.Duration,
+	t *testing.T) (bool, error) {
+	if t == nil {
+		panic("cannot use WaitForUnsafe outside of tests")
+	}
+	// take the read lock to ensure state does not change during intital
+	// checks
+	m.RLock()
+
+	// channels to control and receive from the worker thread
+	kill := make(chan struct{})
+	done := make(chan error)
+
+	// start a thread to reserve a spot to get a notification on state updates
+	// state updates cannot happen until the state read lock is released, so
+	// this wont do anything until the initial checks are done, but will ensure
+	// there are no laps in being ready to receive a notifications
+	timer := time.NewTimer(timeout)
+	go func() {
+		// wait on a state change notification or a timeout
+		select {
+		case newState := <-m.signal:
+			if newState != expected {
+				done <- errors.Errorf("State not updated to the "+
+					"correct state: expected: %s receive: %s", expected,
+					newState)
+			} else {
+				done <- nil
+			}
+		case <-timer.C:
+			done <- errors.Errorf("Timer of %s timed out before "+
+				"state update", timeout)
+		case <-kill:
+		}
+	}()
+
+	// if already in the state return true
+	if *m.Activity == expected {
+		// kill the worker thread
+		kill <- struct{}{}
+		// release the read lock
+		m.RUnlock()
+		// return that the state is correct
+		return true, nil
 	}
 
 	// unlock the read lock, allows state changes to take effect
