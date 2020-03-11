@@ -110,7 +110,6 @@ func TestNewMachine_Error(t *testing.T) {
 
 }
 
-
 //tests that new Machiene works properly function creates a properly formed state object
 func TestNewTestMachine(t *testing.T) {
 	m := NewTestMachine(dummyStates, current.REALTIME, t)
@@ -569,7 +568,6 @@ func TestWaitForUnsafe_CorrectState(t *testing.T) {
 			"which is already true")
 	}
 }
-
 
 //test the timeout for when the state change does not happen
 func TestWaitForUnsafe_Timeout(t *testing.T) {
