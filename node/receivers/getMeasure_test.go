@@ -105,4 +105,4 @@ func TestReceiveGetMeasure(t *testing.T) {
 	if err == nil {
 		t.Errorf("This should have thrown an error, instead got: %+v", err)
 	}
-}
+}*/
