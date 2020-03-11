@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
+	"time"
 )
 
 // Shows that ReceivePostPrecompResult panics when the round isn't in
@@ -109,10 +110,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		}
 		def.ID = topology.GetNodeAtIndex(1)
 
-		m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-		if err != nil {
-			t.Errorf("Failed to create test machine: %+v", err)
-		}
+		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+
 		instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 		rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
@@ -176,6 +175,10 @@ func TestPostPrecompResultFunc(t *testing.T) {
 
 		if err != nil {
 			t.Errorf("Error posting precomp on node %v: %v", i, err)
+		}
+		time.Sleep(time.Second)
+		if inst.GetStateMachine().Get() != current.STANDBY {
+			t.Errorf("Instance did not transition to standby")
 		}
 	}
 }

@@ -1,8 +1,13 @@
 package node
 
+import (
+	"gitlab.com/elixxir/server/services"
+	"testing"
+)
+
 const expectedNumPhases = 7
 
-/*
+
 func TestNewRoundComponents_FirstNode(t *testing.T) {
 	expectedFirstNodeResponses := 7
 
@@ -81,4 +86,4 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 			expectedLastNodeResponses, len(responses))
 	}
 }
-*/
+

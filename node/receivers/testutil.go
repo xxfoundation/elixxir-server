@@ -188,10 +188,7 @@ func mockServerInstance(t *testing.T) (*server.Instance, *connect.Circuit) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = id.NewTmpGateway()
-	m, err := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	if err != nil {
-		t.Errorf("Failed to create test machine: %+v", err)
-	}
+	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	return instance, topology
