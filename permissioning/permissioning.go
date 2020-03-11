@@ -23,7 +23,6 @@ import (
 	"gitlab.com/elixxir/server/server/state"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -53,40 +52,48 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 	return nil
 }
 
+// pollPerm is a utility function to retrieve state from permissioning
+//  and update our internal state
+func pollPerm(permHost *connect.Host, instance *server.Instance) error {
+	permResponse, err := RetrieveState(permHost, instance)
+	if err != nil {
+		return err
+	}
+	err = UpdateInternalState(permResponse, instance)
+	return err
+}
+
 // Poll handles the server requesting the ndf from permissioning
 func Poll(permHost *connect.Host, instance *server.Instance) error {
 
 	// Initialize variable useful for polling
-	errChan := make(chan error) // Used to check errors
-	done := make(chan struct{}) // Used to signal that polling has completed once
-	var once sync.Once          // Used to only send to above channel once
-	sendDoneSignal := func() {  //  for the continuous loop
-		done <- struct{}{}
-	}
+	errChan := make(chan error, 1) // Used to check errors
+	done := make(chan struct{})    // Used to signal that polling has completed once
+
+	ticker := time.NewTicker(50 * time.Millisecond)
 
 	// Routinely poll permissioning for state updates
 	go func() {
-		ticker := time.NewTicker(50 * time.Millisecond)
-		// Continuously poll permissioning for information
-		for {
-			select {
-			// Continuously poll every ticker signal
-			case <-ticker.C:
-				permResponse, err := RetrieveState(permHost, instance)
-				if err != nil {
-					errChan <- err
-				} else {
-					// If no error above we update the internal state
-					err = UpdateInternalState(permResponse, instance)
-					if err != nil {
-						errChan <- err
-					}
+		var err error
+		// Poll permissioning initially to update our state
+		err = pollPerm(permHost, instance)
 
-				}
+		// Send to waiting thread that we have received some response
+		done <- struct{}{}
 
+		// If there is an error, alert the error chan and close the function
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		// Continuously poll permissioning for information afterwards
+		for range ticker.C {
+			err = pollPerm(permHost, instance)
+			if err != nil {
+				// After the initial poll, panic this thread
+				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
 			}
-			// Only send once to avoid a memory leak
-			once.Do(sendDoneSignal)
 		}
 	}()
 
@@ -94,37 +101,28 @@ func Poll(permHost *connect.Host, instance *server.Instance) error {
 	<-done
 
 	//See if the polling has returned errors
-	var errs error
-	for len(errChan) > 0 {
-		err := <-errChan
-		if errs != nil {
-			errs = errors.Wrap(errs, err.Error())
-		} else {
-			errs = err
-		}
-
+	var err error
+	select {
+	// Receive from errChan if error occurred
+	case err = <-errChan:
+	default:
 	}
 
-	// HACK HACK HACK
-	// FIXME: we should not be coupling connections and server objects
-	// Technically the servers can fail to bind for up to
-	// a couple minutes (depending on operating system), but
-	// in practice 10 seconds works
-	time.Sleep(10 * time.Second)
-
-	jww.INFO.Printf("Successfully obtained NDF!")
-	return errs
+	return err
 
 }
 
 // RetrieveState polls the permissioning server for updates
 func RetrieveState(permHost *connect.Host,
 	instance *server.Instance) (*pb.PermissionPollResponse, error) {
-	// Get the ndf hashes for partial and full ndf
 	var fullNdfHash, partialNdfHash []byte
+
+	// Get the ndf hashes for the full ndf if available
 	if instance.GetConsensus().GetFullNdf() != nil {
 		fullNdfHash = instance.GetConsensus().GetFullNdf().GetHash()
 	}
+
+	// Get the ndf hashes for the partial ndf if available
 	if instance.GetConsensus().GetPartialNdf() != nil {
 		partialNdfHash = instance.GetConsensus().GetPartialNdf().GetHash()
 	}
@@ -154,35 +152,29 @@ func RetrieveState(permHost *connect.Host,
 //  It also parsed the message and determines where to transition given contect
 func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
+	// Update the full ndf
+	err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+	if err != nil {
+		return errors.Errorf("Could not update full ndf: %+v", err)
+	}
+
+	// Update the partial ndf
+	err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
+	if err != nil {
+		return errors.Errorf("Could not update partial ndf: %+v", err)
+	}
+
+	// Update the nodes in the network.Instance with the new ndf
+	err = instance.GetConsensus().UpdateNodeConnections()
+	if err != nil {
+		return errors.Errorf("Could not update node connections: %+v", err)
+	}
+
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 
-	// Update round info
+	// Parse the updates
 	for _, roundInfo := range newUpdates {
-
-		// Update the full ndf
-		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
-		if err != nil {
-			return errors.Errorf("Could not update full ndf: %+v", err)
-		}
-
-		// Update the partial ndf
-		err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
-		if err != nil {
-			return errors.Errorf("Could not update partial ndf: %+v", err)
-		}
-
-		// Update the nodes in the network.Instance with the new ndf
-		err = instance.GetConsensus().UpdateNodeConnections()
-		if err != nil {
-			return errors.Errorf("Could not update node connections: %+v", err)
-		}
-
-		// Update the gateways in the network.Instance with the new ndf
-		err = instance.GetConsensus().UpdateGatewayConnections()
-		if err != nil {
-			return errors.Errorf("Could not update gateway connections: %+v", err)
-		}
 
 		// Add the new information to the network instance
 		err = instance.GetConsensus().RoundUpdate(roundInfo)
@@ -253,7 +245,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 		}
 	}
-
 	return nil
 }
 
@@ -303,24 +294,3 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
 
 }
-
-//// initializeHosts adds host objects for all relevant connections in the FullNDF
-//func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
-//	// Add hosts for nodes
-//	for i, host := range def.Nodes {
-//		_, err := network.AddHost(id.NewNodeFromBytes(host.ID).String(),
-//			host.Address, []byte(host.TlsCertificate), false, true)
-//		if err != nil {
-//			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
-//		}
-//	}
-//
-//	// Add host for the relevant gateway
-//	gateway := def.Gateways[myIndex]
-//	_, err = network.AddHost(id.NewNodeFromBytes(def.Nodes[myIndex].ID).NewGateway().String(),
-//		gateway.Address, []byte(gateway.TlsCertificate), false, true)
-//	if err != nil {
-//		return errors.Errorf("Unable to add host for gateway %s at %+v", network.String(), gateway.Address)
-//	}
-//	return nil
-//}

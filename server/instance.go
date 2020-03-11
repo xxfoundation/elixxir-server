@@ -79,6 +79,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
 
+	// Connect to our gateway
+	err = instance.GetConsensus().UpdateGatewayConnections()
+	if err != nil {
+		return nil, errors.Errorf("Could not update gateway connections: %+v", err)
+	}
+
 	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
 		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
@@ -101,7 +107,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 // permissioning
 func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation,
 	definition *Definition, noTls bool) {
-
+	i.network.Shutdown()
 	i.definition = definition
 	i.network = node.StartNode(definition.ID.String(), definition.Address,
 		makeImplementation(i), definition.TlsCert, definition.TlsKey)

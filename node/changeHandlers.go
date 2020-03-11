@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
+	"time"
 )
 
 func Dummy(from current.Activity) error {
@@ -76,6 +77,13 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 
 	// Restart the network with these signed certs
 	instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+
+	// HACK HACK HACK
+	// FIXME: we should not be coupling connections and server objects
+	// Technically the servers can fail to bind for up to
+	// a couple minutes (depending on operating system), but
+	// in practice 10 seconds works
+	time.Sleep(10 * time.Second)
 
 	return nil
 }
