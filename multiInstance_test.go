@@ -6,20 +6,25 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	node2 "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"math/rand"
 	"runtime"
@@ -68,7 +73,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		defsLst[i].UserRegistry = registry
 	}
 
-	//build the instances
+	// build the instances
 	var instances []*server.Instance
 
 	t.Logf("Building instances for %v nodes", numNodes)
@@ -76,8 +81,25 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
+	var dummyStates = [current.NUM_STATES]state.Change{
+		func(from current.Activity) error { return nil },
+		func(from current.Activity) error { return nil },
+		func(from current.Activity) error { return nil },
+		func(from current.Activity) error { return nil },
+		func(from current.Activity) error { return nil },
+		func(from current.Activity) error { return nil },
+		func(from current.Activity) error { return nil },
+		func(from current.Activity) error { return nil },
+	}
+
+	// Add handler for instance
+	impl := func(i *server.Instance) *node2.Implementation {
+		return receivers.NewImplementation(i)
+	}
+
+	sm := state.NewMachine(dummyStates)
 	for i := 0; i < numNodes; i++ {
-		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation, true)
+		instance, _ := server.CreateServerInstance(defsLst[i], impl, sm, true)
 		instances = append(instances, instance)
 	}
 
@@ -85,7 +107,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	lastNode := instances[len(instances)-1]
 
 	t.Logf("Initilizing Network for %v nodes", numNodes)
-	//initialize the network for every instance
+	// initialize the network for every instance
 	for _, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
@@ -93,20 +115,8 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
 
-	//check that all servers are online and every server can talk to every other server
-	wg := sync.WaitGroup{}
-	for _, instance := range instances {
-		wg.Add(1)
-		localInstance := instance
-		go func() {
-			io.VerifyServersOnline(localInstance.GetNetwork(), localInstance.GetTopology())
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-
 	//begin every instance
-	wg = sync.WaitGroup{}
+	wg := sync.WaitGroup{}
 	for _, instance := range instances {
 		wg.Add(1)
 		localInstance := instance
@@ -118,11 +128,11 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	wg.Wait()
 	t.Logf("Initalizing the first node, begining operations")
 	//Initialize the first node
-
-	firstNode.InitFirstNode()
-	lastNode.InitLastNode()
-	firstNode.RunFirstNode(firstNode, 10*time.Second,
-		io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
+	//
+	//firstNode.InitFirstNode()
+	//lastNode.InitLastNode()
+	//firstNode.RunFirstNode(firstNode, 10*time.Second,
+	//	io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
 
 	//build a batch to send to first node
 	expectedbatch := mixmessages.Batch{}
@@ -360,6 +370,8 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 	}
 
+	networkDef := buildNdf(nodeLst)
+
 	//generate parameters list
 	var defLst []*server.Definition
 
@@ -370,11 +382,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 	for i := 0; i < numNodes; i++ {
 
 		def := server.Definition{
-			CmixGroup: grp,
-			Topology:  connect.NewCircuit(nidLst),
-			ID:        nidLst[i],
-			BatchSize: uint32(batchsize),
-			Nodes:     nodeLst,
+			ID: nidLst[i],
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
@@ -383,6 +391,9 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 				TlsCert: nil,
 				Address: "",
 			},
+			// todo: fill these in
+			FullNDF:        networkDef,
+			PartialNDF:     nil,
 			Address:        nodeLst[i].Address,
 			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
 			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
@@ -411,4 +422,45 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
+}
+
+// buildNdf builds the ndf used for definitions
+func buildNdf(nodeLst []server.Node) *ndf.NetworkDefinition {
+	// Pull the node id's out of nodeList
+	ndfNodes := make([]ndf.Node, 0)
+	for _, ourNode := range nodeLst {
+		tmpNode := ndf.Node{
+			ID:             ourNode.ID.Bytes(),
+			Address:        ourNode.Address,
+			TlsCertificate: string(ourNode.TlsCert),
+		}
+		ndfNodes = append(ndfNodes, tmpNode)
+
+	}
+
+	// Build a group
+	group := ndf.Group{
+		Prime: "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+			"15728E5A8AACAA68FFFFFFFFFFFFFFFF",
+		SmallPrime: "2",
+		Generator:  "2",
+	}
+
+	// Construct an ndf
+	return &ndf.NetworkDefinition{
+		Timestamp: time.Time{},
+		Nodes:     ndfNodes,
+		E2E:       group,
+		CMIX:      group,
+	}
+
 }
