@@ -22,7 +22,6 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
-	node2 "gitlab.com/elixxir/server/vendor/gitlab.com/elixxir/comms/node"
 	"sync/atomic"
 	"testing"
 )
@@ -113,7 +112,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // RestartNetwork is intended to reset the network with newly signed certs obtained from polling
 // permissioning
-func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node2.Implementation, definition *Definition, noTls bool) error {
+func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, definition *Definition, noTls bool) error {
 	i.network.Shutdown()
 	i.definition = definition
 	i.network = node.StartNode(definition.ID.String(), definition.Address,
@@ -132,11 +131,9 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node2.Impl
 
 	_, err = i.network.AddHost(i.definition.Gateway.ID.String(), i.definition.Gateway.Address,
 		i.definition.Gateway.TlsCert, false, true)
-	if err != nil {
-		return
-	}
 
-	return nil
+
+	return err
 }
 
 // Run starts the resource queue
