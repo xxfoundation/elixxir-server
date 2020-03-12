@@ -1,6 +1,10 @@
-package receivers
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 
-import "testing"
+package receivers
 
 import (
 	"gitlab.com/elixxir/comms/connect"
