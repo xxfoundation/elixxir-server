@@ -4,7 +4,7 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-// +build linux,cgo
+// +build linux,cuda,cgo
 
 package services
 
@@ -297,8 +297,8 @@ func TestCGC(t *testing.T) {
 	stream := streamPool.TakeStream()
 	streamPool.ReturnStream(stream)
 	// MaxSlotsExp should be the same with all streams
-	if int(gpumaths.ExpChunk.GetInputSize()) > stream.MaxSlotsExp {
-		t.Fatalf("stream too small! has %v slots. make it bigger", stream.MaxSlotsExp)
+	if int(gpumaths.ExpChunk.GetInputSize()) > stream.GetMaxSlotsExp() {
+		t.Fatalf("stream too small! has %v slots. make it bigger", stream.GetMaxSlotsExp())
 	}
 
 	// Copy to set custom input size
@@ -306,7 +306,7 @@ func TestCGC(t *testing.T) {
 	// We could also set input size to be the number of slots that's less than MaxSlotsExp that has a common factor with the CPU input sizes
 	// That would allow for fairly large chunks while not exceeding input size
 	// The user is responsible for choosing an input size that will work well with both the dispatcher and CUDA
-	gpuBLocal.InputSize = uint32(stream.MaxSlotsExp)
+	gpuBLocal.InputSize = uint32(stream.GetMaxSlotsExp())
 	// Time test graph runs, just for fun
 	start := time.Now()
 	runTestGraph(&goldExp, cpuA.DeepCopy(), cpuB.DeepCopy(), cpuC.DeepCopy())
@@ -357,16 +357,16 @@ func TestGGG(t *testing.T) {
 	stream := streamPool.TakeStream()
 	streamPool.ReturnStream(stream)
 	// MaxSlotsExp should be the same with all streams
-	if int(gpumaths.ExpChunk.GetInputSize()) > stream.MaxSlotsExp {
-		t.Fatalf("stream too small! has %v slots. make it bigger", stream.MaxSlotsExp)
+	if int(gpumaths.ExpChunk.GetInputSize()) > stream.GetMaxSlotsExp() {
+		t.Fatalf("stream too small! has %v slots. make it bigger", stream.GetMaxSlotsExp())
 	}
 
 	gpuALocal := gpuA.DeepCopy()
 	gpuBLocal := gpuB.DeepCopy()
 	gpuCLocal := gpuC.DeepCopy()
-	gpuALocal.InputSize = uint32(stream.MaxSlotsExp)
-	gpuBLocal.InputSize = uint32(stream.MaxSlotsExp)
-	gpuCLocal.InputSize = uint32(stream.MaxSlotsExp)
+	gpuALocal.InputSize = uint32(stream.GetMaxSlotsExp())
+	gpuBLocal.InputSize = uint32(stream.GetMaxSlotsExp())
+	gpuCLocal.InputSize = uint32(stream.GetMaxSlotsExp())
 
 	// Time test graph runs, just for fun
 	start := time.Now()
