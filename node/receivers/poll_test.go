@@ -364,7 +364,11 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		Receiver:   make(chan services.Chunk, 10),
 		GetMessage: gm,
 	}
-	instance.GetCompletedBatchQueue().Send(&cr)
+	err := instance.GetCompletedBatchQueue().Send(&cr)
+	if err != nil {
+		t.Logf("We failed to send a completed batch: %v", err)
+	}
+
 	cr.Receiver <- services.NewChunk(0, 10)
 	close(cr.Receiver)
 

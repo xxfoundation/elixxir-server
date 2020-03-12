@@ -41,7 +41,10 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		}
 
 		// Get a Batch message and store it into res
-		cr := instance.GetCompletedBatchQueue().Receive()
+		cr, err := instance.GetCompletedBatchQueue().Receive()
+		if err != nil {
+			return nil, errors.New("Unable to receive from CompletedBatchQueue")
+		}
 
 		if cr != nil {
 			r, err := instance.GetRoundManager().GetRound(cr.RoundID)

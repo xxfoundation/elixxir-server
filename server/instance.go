@@ -132,7 +132,6 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Imple
 	_, err = i.network.AddHost(i.definition.Gateway.ID.String(), i.definition.Gateway.Address,
 		i.definition.Gateway.TlsCert, false, true)
 
-
 	return err
 }
 
