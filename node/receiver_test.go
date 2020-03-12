@@ -1545,7 +1545,7 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
 		"0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
@@ -1616,7 +1616,7 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
 		"0.0.0.0")
 
 	instance.GetRoundManager().AddRound(rnd)
