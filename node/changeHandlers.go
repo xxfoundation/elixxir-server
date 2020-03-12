@@ -65,10 +65,10 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
 
-	//
+	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
-	// Indicate that gateway is ready for polling
+	// Receive signal that indicates that gateway is ready for polling
 	err = instance.GetGatewayFirstTime().Receive(5 * time.Second)
 	if err != nil {
 		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
@@ -100,7 +100,7 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
-				// After the initial poll, panic this thread
+				// If we receive an error polling here, panic this thread
 				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
 			}
 		}

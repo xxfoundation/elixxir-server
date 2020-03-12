@@ -6,11 +6,12 @@
 package receivers
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server"
+	"strings"
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
@@ -40,10 +41,10 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 			res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
 		}
 
-		// Get a Batch message and store it into res
+		// Check if a completed batch is ready to be returned, get the batch and return it if it is
 		cr, err := instance.GetCompletedBatchQueue().Receive()
-		if err != nil {
-			return nil, errors.New("Unable to receive from CompletedBatchQueue")
+		if err != nil && strings.Contains(err.Error(), "Did not recieve a completed round") {
+			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
 		if cr != nil {

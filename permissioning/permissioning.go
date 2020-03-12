@@ -156,7 +156,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
-				// Wait for WAITING transition
+				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
@@ -175,10 +175,10 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 				}
 
 			case states.REALTIME: // Prepare for realtime state
-				// Wait for STANDBY transition
+				// Wait until in STANDBY to ensure a valid transition into precomputing
 				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
 				if !ok || err != nil {
-					return errors.Errorf("Cannot start standby when not in realtime state: %+v", err)
+					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
 				}
 
 				// Send info to the realtime round queue
@@ -187,7 +187,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Unable to send to RealtimeRoundQueue: %+v", err)
 				}
 
-				// Wait until ready to start realtime
+				// Wait until the permissioning-instructed time to begin REALTIME
 				go func() {
 					// Get the realtime start time
 					duration := time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME]))
