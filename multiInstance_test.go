@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -337,6 +338,41 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 }
 
+
+func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T){
+
+	//define a mechanism to wait until the next state
+	asyncWaitUntil := func(wg sync.WaitGroup, until current.Activity, node *server.Instance ){
+		wg.Add(1)
+		go func(){
+			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
+			if !success{
+				t.Errorf("Wait for node to enter state %s failed: %s", node.GetID(), err)
+			}else{
+				wg.Done()
+			}
+		}()
+	}
+
+	//wait until all nodes are started
+	wg := sync.WaitGroup{}
+
+	for _, n := range nodes{
+		asyncWaitUntil(wg, current.WAITING, n)
+	}
+
+	wg.Done()
+
+	//start the round on each node
+
+
+
+
+
+}
+
+
+
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
 
 	//generate IDs and addresses
@@ -371,9 +407,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 		def := server.Definition{
 			CmixGroup: grp,
-			Topology:  connect.NewCircuit(nidLst),
 			ID:        nidLst[i],
-			BatchSize: uint32(batchsize),
 			Nodes:     nodeLst,
 			Flags: server.Flags{
 				KeepBuffers: true,
