@@ -1,6 +1,5 @@
 package receivers
 
-
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
