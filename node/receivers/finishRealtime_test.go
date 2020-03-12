@@ -1,6 +1,5 @@
 package receivers
 
-import "testing"
 
 import (
 	"gitlab.com/elixxir/comms/connect"
