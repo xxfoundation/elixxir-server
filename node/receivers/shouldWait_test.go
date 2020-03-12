@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2018 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package receivers
 
 import (
@@ -24,11 +30,13 @@ func TestShouldWait_ReturnPrecomputing(t *testing.T) {
 	testPhaseForActivity(phase.PrecompPermute, current.PRECOMPUTING, t)
 }
 
+// Test all variables that should be returning REALTIME
 func TestShouldWait_ReturnRealtime(t *testing.T) {
 	testPhaseForActivity(phase.RealDecrypt, current.REALTIME, t)
 	testPhaseForActivity(phase.RealPermute, current.REALTIME, t)
 }
 
+// Test all variables that should be returning ERRORS
 func TestShouldWait_ReturnError(t *testing.T) {
 	testPhaseForActivity(phase.Complete, current.ERROR, t)
 	testPhaseForActivity(phase.PhaseError, current.ERROR, t)
