@@ -23,7 +23,6 @@ import (
 	"gitlab.com/elixxir/server/server/state"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -53,78 +52,37 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 	return nil
 }
 
-// Poll handles the server requesting the ndf from permissioning
-func Poll(permHost *connect.Host, instance *server.Instance) error {
-
-	// Initialize variable useful for polling
-	errChan := make(chan error) // Used to check errors
-	done := make(chan struct{}) // Used to signal that polling has completed once
-	var once sync.Once          // Used to only send to above channel once
-	sendDoneSignal := func() {  //  for the continuous loop
-		done <- struct{}{}
+// Poll is used to retrieve updated state information from permissioning
+//  and update our internal state accordingly
+func Poll(instance *server.Instance) error {
+	// Fetch the host information from the network
+	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
+	if !ok {
+		return errors.New("Could not get permissioning host")
 	}
 
-	// Routinely poll permissioning for state updates
-	go func() {
-		ticker := time.NewTicker(50 * time.Millisecond)
-		// Continuously poll permissioning for information
-		for {
-			select {
-			// Continuously poll every ticker signal
-			case <-ticker.C:
-				permResponse, err := RetrieveState(permHost, instance)
-				if err != nil {
-					errChan <- err
-				} else {
-					// If no error above we update the internal state
-					err = UpdateInternalState(permResponse, instance)
-					if err != nil {
-						errChan <- err
-					}
-
-				}
-
-			}
-			// Only send once to avoid a memory leak
-			once.Do(sendDoneSignal)
-		}
-	}()
-
-	// Wait for the go function to complete once
-	<-done
-
-	//See if the polling has returned errors
-	var errs error
-	for len(errChan) > 0 {
-		err := <-errChan
-		if errs != nil {
-			errs = errors.Wrap(errs, err.Error())
-		} else {
-			errs = err
-		}
-
+	// Ping permissioning for updated information
+	permResponse, err := RetrieveState(permHost, instance)
+	if err != nil {
+		return err
 	}
 
-	// HACK HACK HACK
-	// FIXME: we should not be coupling connections and server objects
-	// Technically the servers can fail to bind for up to
-	// a couple minutes (depending on operating system), but
-	// in practice 10 seconds works
-	time.Sleep(10 * time.Second)
-
-	jww.INFO.Printf("Successfully obtained NDF!")
-	return errs
-
+	// Update the internal state of our instance
+	err = UpdateInternalState(permResponse, instance)
+	return err
 }
 
 // RetrieveState polls the permissioning server for updates
 func RetrieveState(permHost *connect.Host,
 	instance *server.Instance) (*pb.PermissionPollResponse, error) {
-	// Get the ndf hashes for partial and full ndf
 	var fullNdfHash, partialNdfHash []byte
+
+	// Get the ndf hashes for the full ndf if available
 	if instance.GetConsensus().GetFullNdf() != nil {
 		fullNdfHash = instance.GetConsensus().GetFullNdf().GetHash()
 	}
+
+	// Get the ndf hashes for the partial ndf if available
 	if instance.GetConsensus().GetPartialNdf() != nil {
 		partialNdfHash = instance.GetConsensus().GetPartialNdf().GetHash()
 	}
@@ -154,35 +112,29 @@ func RetrieveState(permHost *connect.Host,
 //  It also parsed the message and determines where to transition given contect
 func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
+	// Update the full ndf
+	err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+	if err != nil {
+		return errors.Errorf("Could not update full ndf: %+v", err)
+	}
+
+	// Update the partial ndf
+	err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
+	if err != nil {
+		return errors.Errorf("Could not update partial ndf: %+v", err)
+	}
+
+	// Update the nodes in the network.Instance with the new ndf
+	err = instance.GetConsensus().UpdateNodeConnections()
+	if err != nil {
+		return errors.Errorf("Could not update node connections: %+v", err)
+	}
+
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 
-	// Update round info
+	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
-
-		// Update the full ndf
-		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
-		if err != nil {
-			return errors.Errorf("Could not update full ndf: %+v", err)
-		}
-
-		// Update the partial ndf
-		err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
-		if err != nil {
-			return errors.Errorf("Could not update partial ndf: %+v", err)
-		}
-
-		// Update the nodes in the network.Instance with the new ndf
-		err = instance.GetConsensus().UpdateNodeConnections()
-		if err != nil {
-			return errors.Errorf("Could not update node connections: %+v", err)
-		}
-
-		// Update the gateways in the network.Instance with the new ndf
-		err = instance.GetConsensus().UpdateGatewayConnections()
-		if err != nil {
-			return errors.Errorf("Could not update gateway connections: %+v", err)
-		}
 
 		// Add the new information to the network instance
 		err = instance.GetConsensus().RoundUpdate(roundInfo)
@@ -196,7 +148,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 		}
 
-		// fixme: this panic on error, external comm should not be able to crash server
+		// fixme: this panics on error, external comm should not be able to crash server
 		newTopology := connect.NewCircuit(newNodeList)
 
 		// Check if our node is in this round
@@ -204,7 +156,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
-				// Wait for WAITING transition
+				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
@@ -223,10 +175,10 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 				}
 
 			case states.REALTIME: // Prepare for realtime state
-				// Wait for STANDBY transition
+				// Wait until in STANDBY to ensure a valid transition into precomputing
 				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
 				if !ok || err != nil {
-					return errors.Errorf("Cannot start standby when not in realtime state: %+v", err)
+					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
 				}
 
 				// Send info to the realtime round queue
@@ -235,10 +187,24 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Unable to send to RealtimeRoundQueue: %+v", err)
 				}
 
-				// Wait until ready to start realtime
-				go WaitForRealtime(instance.GetStateMachine(),
-					time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME])))
+				// Wait until the permissioning-instructed time to begin REALTIME
+				go func() {
+					// Get the realtime start time
+					duration := time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME]))
 
+					// Fixme: find way to calculate sleep length that doesn't lose time
+					// If the timeDiff is positive, then we are not yet ready to start realtime.
+					//  We then sleep for timeDiff time
+					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
+						time.Sleep(timeDiff)
+					}
+
+					// Update to realtime when ready
+					ok, err := instance.GetStateMachine().Update(current.REALTIME)
+					if !ok || err != nil {
+						jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
+					}
+				}()
 			case states.PENDING:
 				// Don't do anything
 			case states.STANDBY:
@@ -253,7 +219,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 		}
 	}
-
 	return nil
 }
 
@@ -275,7 +240,7 @@ func WaitForRealtime(ourMachine state.Machine, duration time.Time) {
 }
 
 // InstallNdf parses the ndf for necessary information and returns that
-func InstallNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
+func FindSelfInNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
 
 	jww.INFO.Println("Installing FullNDF now...")
 
@@ -303,24 +268,3 @@ func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
 	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
 
 }
-
-//// initializeHosts adds host objects for all relevant connections in the FullNDF
-//func initializeHosts(def *ndf.NetworkDefinition, network *node.Comms, myIndex int) error {
-//	// Add hosts for nodes
-//	for i, host := range def.Nodes {
-//		_, err := network.AddHost(id.NewNodeFromBytes(host.ID).String(),
-//			host.Address, []byte(host.TlsCertificate), false, true)
-//		if err != nil {
-//			return errors.Errorf("Unable to add host for gateway %d at %+v", i, host.Address)
-//		}
-//	}
-//
-//	// Add host for the relevant gateway
-//	gateway := def.Gateways[myIndex]
-//	_, err = network.AddHost(id.NewNodeFromBytes(def.Nodes[myIndex].ID).NewGateway().String(),
-//		gateway.Address, []byte(gateway.TlsCertificate), false, true)
-//	if err != nil {
-//		return errors.Errorf("Unable to add host for gateway %s at %+v", network.String(), gateway.Address)
-//	}
-//	return nil
-//}

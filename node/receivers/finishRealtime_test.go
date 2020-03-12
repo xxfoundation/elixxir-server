@@ -2,7 +2,6 @@ package receivers
 
 import "testing"
 
-
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -327,4 +326,3 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 			"recieved %v", roundID, finishedRoundID)
 	}
 }
-

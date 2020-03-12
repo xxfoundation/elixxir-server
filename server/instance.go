@@ -22,6 +22,7 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"sync/atomic"
 	"testing"
 )
 
@@ -34,13 +35,14 @@ type Instance struct {
 	network       *node.Comms
 	machine       state.Machine
 
-	consensus *network.Instance
-
+	consensus      *network.Instance
+	isGatewayReady *uint32
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
 
+	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 }
 
@@ -50,20 +52,22 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-// todo remove ndf here, move to part of defition obj
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, noTls bool) (*Instance, error) {
-	instance := &Instance{
-		Online:        false,
-		definition:    def,
-		roundManager:  round.NewManager(),
-		resourceQueue: initQueue(),
-		machine:       machine,
+	isGwReady := uint32(0)
 
+	instance := &Instance{
+		Online:               false,
+		definition:           def,
+		roundManager:         round.NewManager(),
+		resourceQueue:        initQueue(),
+		machine:              machine,
+		isGatewayReady:       &isGwReady,
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
+		gatewayPoll:          NewFirstTime(),
 	}
 
 	//Start local node
@@ -79,6 +83,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
+	}
+
+	// Connect to our gateway. At this point we should only know our gateway as this should occur
+	//  BEFORE polling
+	err = instance.GetConsensus().UpdateGatewayConnections()
+	if err != nil {
+		return nil, errors.Errorf("Could not update gateway connections: %+v", err)
 	}
 
 	// Add gateways to host object
@@ -101,9 +112,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // RestartNetwork is intended to reset the network with newly signed certs obtained from polling
 // permissioning
-func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation,
-	definition *Definition, noTls bool) {
-
+func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, definition *Definition, noTls bool) error {
+	i.network.Shutdown()
 	i.definition = definition
 	i.network = node.StartNode(definition.ID.String(), definition.Address,
 		makeImplementation(i), definition.TlsCert, definition.TlsKey)
@@ -112,7 +122,17 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Imple
 		i.network.DisableAuth()
 	}
 
-	return
+	// Connect to the Permissioning Server with authentication enabled
+	_, err := i.network.AddHost(id.PERMISSIONING,
+		i.definition.Permissioning.Address, i.definition.Permissioning.TlsCert, true, true)
+	if err != nil {
+		return err
+	}
+
+	_, err = i.network.AddHost(i.definition.Gateway.ID.String(), i.definition.Gateway.Address,
+		i.definition.Gateway.TlsCert, false, true)
+
+	return err
 }
 
 // Run starts the resource queue
@@ -238,6 +258,10 @@ func (i *Instance) GetRoundCreationTimeout() int {
 	return i.definition.RoundCreationTimeout
 }
 
+func (i *Instance) GetGatewayFirstTime() *FirstTime {
+	return i.gatewayPoll
+}
+
 func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 	return i.completedBatchQueue
 }
@@ -253,6 +277,16 @@ func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
+}
+
+func (i *Instance) IsReadyForGateway() bool {
+	ourVal := atomic.LoadUint32(i.isGatewayReady)
+
+	return ourVal == 1
+}
+
+func (i *Instance) SetGatewayAsReady() {
+	atomic.StoreUint32(i.isGatewayReady, 1)
 }
 
 // GenerateId generates a random ID and returns it

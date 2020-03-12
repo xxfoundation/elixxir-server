@@ -18,7 +18,6 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
@@ -166,7 +165,7 @@ func StartServer(vip *viper.Viper) error {
 	if instance.IsFirstNode() {
 		jww.INFO.Printf("Checking all servers are online")
 
-		io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
+		//io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
 	}
 	return nil
 }

@@ -12,22 +12,21 @@ import (
 	"testing"
 )
 
-
 func TestCompletedRound_GetChunk(t *testing.T) {
-	cr := CompletedRound{RoundID:    1,
-		Receiver:make(chan services.Chunk, 10),
-		GetMessage: nil,}
+	cr := CompletedRound{RoundID: 1,
+		Receiver:   make(chan services.Chunk, 10),
+		GetMessage: nil}
 
 	//Send a chunk to receive
 	cr.Receiver <- services.NewChunk(0, 10)
 	chunkIn, ok := cr.GetChunk()
 
-	if !ok{
+	if !ok {
 		t.Logf("Failed to get chunk")
 		t.Fail()
 	}
 
-	if chunkIn.Len() != 10{
+	if chunkIn.Len() != 10 {
 		t.Logf("Chunk recieved was not chunk sent")
 		t.Fail()
 	}
@@ -66,7 +65,7 @@ func TestCompletedQueue_Send(t *testing.T) {
 		t.Errorf("New Queue expected to be of length 0! Length is: %+v", len(ourNewQ))
 	}
 
-	cr := CompletedRound{RoundID:    1, Receiver:   nil, GetMessage: nil,}
+	cr := CompletedRound{RoundID: 1, Receiver: nil, GetMessage: nil}
 	err := ourNewQ.Send(&cr)
 	if err != nil {
 		t.Errorf("Should be able to send when queue is empty: %+v."+
@@ -77,7 +76,7 @@ func TestCompletedQueue_Send(t *testing.T) {
 // Error path: Attempt to send to an already full queue
 func TestCompletedQueue_Send_Send_Error(t *testing.T) {
 	ourNewQ := NewCompletedQueue()
-	cr := CompletedRound{RoundID:    1, Receiver:   nil, GetMessage: nil,}
+	cr := CompletedRound{RoundID: 1, Receiver: nil, GetMessage: nil}
 	// Send to queue once
 	err := ourNewQ.Send(&cr)
 	if err != nil {
@@ -97,7 +96,7 @@ func TestCompletedQueue_Send_Send_Error(t *testing.T) {
 func TestCompletedQueue_Receive(t *testing.T) {
 	ourNewQ := NewCompletedQueue()
 
-	cr := CompletedRound{RoundID:    23, Receiver:   nil, GetMessage: nil,}
+	cr := CompletedRound{RoundID: 23, Receiver: nil, GetMessage: nil}
 	// Send to queue
 	err := ourNewQ.Send(&cr)
 	if err != nil {
@@ -109,7 +108,7 @@ func TestCompletedQueue_Receive(t *testing.T) {
 		t.Errorf("Expected happy path, received error when receiving! Err: %+v", err)
 	}
 
-	if receivedRoundInfo.RoundID != 23{
+	if receivedRoundInfo.RoundID != 23 {
 		t.Logf("Recieved unexpected round id")
 		t.Fail()
 	}

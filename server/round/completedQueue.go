@@ -9,7 +9,7 @@ import (
 
 type CompletedQueue chan *CompletedRound
 
-func (cq CompletedQueue) Send(cr *CompletedRound) error{
+func (cq CompletedQueue) Send(cr *CompletedRound) error {
 	select {
 	case cq <- cr:
 		return nil
@@ -19,7 +19,7 @@ func (cq CompletedQueue) Send(cr *CompletedRound) error{
 	}
 }
 
-func (cq CompletedQueue) Receive() (*CompletedRound, error){
+func (cq CompletedQueue) Receive() (*CompletedRound, error) {
 	select {
 	case cr := <-cq:
 		return cr, nil

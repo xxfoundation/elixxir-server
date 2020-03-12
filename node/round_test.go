@@ -9,7 +9,6 @@ import (
 
 const expectedNumPhases = 7
 
-
 func TestNewRoundComponents_FirstNode(t *testing.T) {
 	expectedFirstNodeResponses := 7
 
@@ -89,7 +88,6 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 	}
 }
 
-
 // Builds a list of node IDs for testing
 func buildMockTopology(numNodes int) *connect.Circuit {
 	var nodeIDs []*id.Node
@@ -105,4 +103,3 @@ func buildMockTopology(numNodes int) *connect.Circuit {
 	//Build the topology
 	return connect.NewCircuit(nodeIDs)
 }
-

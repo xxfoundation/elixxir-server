@@ -42,7 +42,6 @@ func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
 
 	_ = instance.GetCompletedBatchQueue().Send(complete)
 
-
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		chunkChan <- chunk
 	}
