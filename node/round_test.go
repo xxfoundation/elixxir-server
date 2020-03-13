@@ -5,6 +5,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"testing"
+	"time"
 )
 
 const expectedNumPhases = 7
@@ -20,7 +21,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 	nodeID := topology.GetNodeAtIndex(0)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2)
+		100, 2*time.Second)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -47,7 +48,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 	nodeID := topology.GetNodeAtIndex(1)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2)
+		100, 2*time.Second)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -73,7 +74,7 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 	nodeID := topology.GetNodeAtIndex(2)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2)
+		100, 2*time.Second)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+

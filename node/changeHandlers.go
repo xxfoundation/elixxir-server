@@ -85,7 +85,10 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	def.Gateway.TlsCert = []byte(gwCert)
 
 	// Restart the network with these signed certs
-	instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+	err = instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+	if err != nil {
+		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
+	}
 
 	// HACK HACK HACK
 	// FIXME: we should not be coupling connections and server objects
@@ -116,7 +119,7 @@ func Waiting(from current.Activity) error {
 }
 
 // fixme: doc string
-func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change, error) {
+func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()
@@ -126,7 +129,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	// Extract topology from RoundInfo
 	nodeIDs, err := id.NewNodeListFromStrings(topology)
 	if err != nil {
-		return nil, errors.Errorf("Unable to convert topology into a node list: %+v", err)
+		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
 
 	// fixme: this panics on error, external comm should not be able to crash server
@@ -161,11 +164,11 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	if circuit.IsFirstNode(instance.GetID()) {
 		err := StartLocalPrecomp(instance, roundID)
 		if err != nil {
-			return nil, errors.WithMessage(err, "Failed to TransmitCreateNewRound")
+			return errors.WithMessage(err, "Failed to TransmitCreateNewRound")
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 // fixme: doc string

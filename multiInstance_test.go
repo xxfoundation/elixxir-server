@@ -3,22 +3,25 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	node2 "gitlab.com/elixxir/comms/node"
+	pb "gitlab.com/elixxir/comms/mixmessages"
+	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
@@ -26,6 +29,7 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -81,30 +85,33 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
-	var dummyStates = [current.NUM_STATES]state.Change{
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-	}
-
 	// Add handler for instance
-	impl := func(i *server.Instance) *node2.Implementation {
+	impl := func(i *server.Instance) *nodeComms.Implementation {
 		return receivers.NewImplementation(i)
 	}
 
-	sm := state.NewMachine(dummyStates)
 	for i := 0; i < numNodes; i++ {
-		instance, _ := server.CreateServerInstance(defsLst[i], impl, sm, true)
+		// pass in the
+		var instance *server.Instance
+		var testStates [current.NUM_STATES]state.Change
+		testStates[current.NOT_STARTED] = func(from current.Activity) error { return nil }
+		testStates[current.WAITING] = func(from current.Activity) error { return nil }
+		testStates[current.PRECOMPUTING] = func(from current.Activity) error {
+			return node.Precomputing(instance, 1*time.Second)
+		}
+		testStates[current.STANDBY] = func(from current.Activity) error { return nil }
+		testStates[current.REALTIME] = func(from current.Activity) error {
+			return node.Realtime(instance)
+		}
+		testStates[current.COMPLETED] = func(from current.Activity) error { return nil }
+		sm := state.NewMachine(testStates)
+
+		instance, _ = server.CreateServerInstance(defsLst[i], impl, sm, true)
 		instances = append(instances, instance)
 	}
 
-	firstNode := instances[0]
-	lastNode := instances[len(instances)-1]
+	//firstNode := instances[0]
+	//lastNode := instances[len(instances)-1]
 
 	t.Logf("Initilizing Network for %v nodes", numNodes)
 	// initialize the network for every instance
@@ -132,87 +139,32 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	//firstNode.InitFirstNode()
 	//lastNode.InitLastNode()
 	//firstNode.RunFirstNode(firstNode, 10*time.Second,
-	//	io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
+	//io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
 
-	//build a batch to send to first node
-	expectedbatch := mixmessages.Batch{}
-	ecrbatch := mixmessages.Batch{}
-
-	kmacHash, err2 := hash.NewCMixHash()
-	if err2 != nil {
-		t.Errorf("Could not get KMAC hash: %+v", err2)
-	}
-	for i := 0; i < batchsize; i++ {
-		//make the salt
-		salt := make([]byte, 32)
-		binary.BigEndian.PutUint64(salt[0:8], uint64(100+6*i))
-
-		//make the payload
-		payloadA := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(format.PayloadLen)
-		payloadB := grp.NewIntFromUInt(uint64((513 + i) * 256)).LeftpadBytes(format.PayloadLen)
-
-		//make the message
-		msg := format.NewMessage()
-		msg.SetPayloadA(payloadA)
-		msg.SetPayloadB(payloadB)
-
-		//encrypt the message
-		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
-		kmacs := cmix.GenerateKMACs(salt, baseKeys, kmacHash)
-
-		//make the slot
-		ecrslot := &mixmessages.Slot{}
-		ecrslot.PayloadA = ecrMsg.GetPayloadA()
-		ecrslot.PayloadB = ecrMsg.GetPayloadB()
-		ecrslot.SenderID = userID.Bytes()
-		ecrslot.Salt = salt
-		ecrslot.KMACs = kmacs
-
-		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)
-
-		slot := &mixmessages.Slot{}
-		slot.PayloadA = msg.GetPayloadA()
-		slot.PayloadB = msg.GetPayloadB()
-		slot.SenderID = userID.Bytes()
-		slot.Salt = salt
-		expectedbatch.Slots = append(expectedbatch.Slots, slot)
-	}
-
-	//wait until the first node is ready for a batch
-	numPrecompsAvalible := 0
-	var err error
-
-	for numPrecompsAvalible == 0 {
-		numPrecompsAvalible, err = io.GetRoundBufferInfo(firstNode.GetCompletedPrecomps(), 100*time.Millisecond)
-		if err != nil {
-			t.Errorf("MultiNode Test: Error returned from first node "+
-				"`GetRoundBufferInfo`: %v", err)
-		}
-	}
-
-	h, _ := connect.NewHost(firstNode.GetID().NewGateway().String(), "test", nil, false, false)
-	auth := &connect.Auth{
-		IsAuthenticated: true,
-		Sender:          h,
-	}
-
-	//send the batch to the node
-	err = node.ReceivePostNewBatch(firstNode, &ecrbatch, auth)
-
+	expectedbatch, ecrbatch, err := buildMockBatch(batchsize, grp, baseKeys, userID)
 	if err != nil {
-		t.Errorf("MultiNode Test: Error returned from first node "+
-			"`ReceivePostNewBatch`: %v", err)
+		t.Errorf("%+v", err)
 	}
+
+	done := make(chan struct{})
+
+	iterate(done, instances, t, ecrbatch)
+
+	// <- done
+	//if err != nil {
+	//	t.Errorf("MultiNode Test: Error returned from first node "+
+	//		"`ReceivePostNewBatch`: %v", err)
+	//}
 
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
-	h, _ = connect.NewHost(lastNode.GetID().NewGateway().String(), "test", nil, false, false)
-	for len(completedBatch.Slots) == 0 {
-		completedBatch, _ = io.GetCompletedBatch(lastNode, 100*time.Millisecond, &connect.Auth{
-			IsAuthenticated: true,
-			Sender:          h,
-		})
-	}
+	//h, _ := connect.NewHost(lastNode.GetID().NewGateway().String(), "test", nil, false, false)
+	//for len(completedBatch.Slots) == 0 {
+	//	completedBatch, _ = io.GetCompletedBatch(lastNode, 100*time.Millisecond, &connect.Auth{
+	//		IsAuthenticated: true,
+	//		Sender:          h,
+	//	})
+	//}
 
 	//---BUILD PROBING TOOLS----------------------------------------------------
 
@@ -347,6 +299,143 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 }
 
+// buildMockBatch
+func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
+	userID *id.User) (*pb.Batch, *pb.Batch, error) {
+	//build a batch to send to first node
+	expectedbatch := &mixmessages.Batch{}
+	ecrbatch := &mixmessages.Batch{}
+
+	kmacHash, err2 := hash.NewCMixHash()
+	if err2 != nil {
+		return &pb.Batch{}, &pb.Batch{}, errors.Errorf("Could not get KMAC hash: %+v", err2)
+	}
+	for i := 0; i < batchsize; i++ {
+		//make the salt
+		salt := make([]byte, 32)
+		binary.BigEndian.PutUint64(salt[0:8], uint64(100+6*i))
+
+		//make the payload
+		payloadA := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(format.PayloadLen)
+		payloadB := grp.NewIntFromUInt(uint64((513 + i) * 256)).LeftpadBytes(format.PayloadLen)
+
+		//make the message
+		msg := format.NewMessage()
+		msg.SetPayloadA(payloadA)
+		msg.SetPayloadB(payloadB)
+
+		//encrypt the message
+		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
+		kmacs := cmix.GenerateKMACs(salt, baseKeys, kmacHash)
+
+		//make the slot
+		ecrslot := &mixmessages.Slot{}
+		ecrslot.PayloadA = ecrMsg.GetPayloadA()
+		ecrslot.PayloadB = ecrMsg.GetPayloadB()
+		ecrslot.SenderID = userID.Bytes()
+		ecrslot.Salt = salt
+		ecrslot.KMACs = kmacs
+
+		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)
+
+		slot := &mixmessages.Slot{}
+		slot.PayloadA = msg.GetPayloadA()
+		slot.PayloadB = msg.GetPayloadB()
+		slot.SenderID = userID.Bytes()
+		slot.Salt = salt
+		expectedbatch.Slots = append(expectedbatch.Slots, slot)
+	}
+
+	return expectedbatch, ecrbatch, nil
+}
+
+//
+func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T, ecrBatch *pb.Batch) {
+
+	// Define a mechanism to wait until the next state
+	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
+		wg.Add(1)
+		go func() {
+			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
+			t.Logf("success: %+v\nerr: %+v\n stateMachine: %+v", success, err, node.GetStateMachine())
+			if !success {
+				t.Errorf("Wait for node to enter state %s failed: %s", node.GetID(), err)
+			}
+
+			wg.Done()
+		}()
+	}
+
+	//wait until all nodes are started
+	wg := sync.WaitGroup{}
+
+	// Parse through the nodes prepping them for rounds
+	for _, nodeInstance := range nodes {
+		asyncWaitUntil(&wg, current.WAITING, nodeInstance)
+	}
+
+	wg.Wait()
+
+	t.Logf("our fucking state machine: %+v", nodes[0].GetStateMachine().Get())
+
+	// Build topology
+	ourTopology := make([]string, 0)
+	for _, nodeInstance := range nodes {
+		ourTopology = append(ourTopology, nodeInstance.GetID().String())
+
+	}
+
+	// Construct round info message
+	roundInfoMsg := &mixmessages.RoundInfo{
+		ID:        0,
+		UpdateID:  0,
+		State:     uint32(current.PRECOMPUTING),
+		BatchSize: 32,
+		Topology:  ourTopology,
+	}
+
+	signRoundInfo(roundInfoMsg)
+
+	for index, nodeInstance := range nodes {
+		// Send the round info to the instance (to be handled internally later)
+		err := nodeInstance.GetCreateRoundQueue().Send(roundInfoMsg)
+		if err != nil {
+			t.Errorf("Unable to send to RealtimeRoundQueue for node %d: %+v", index, err)
+		}
+
+		// Begin the PRECOMPUTING state
+		ok, err := nodeInstance.GetStateMachine().Update(current.PRECOMPUTING)
+		if !ok || err != nil {
+			t.Errorf("Cannot move to precomputing state: %+v", err)
+		}
+
+	}
+
+	// need to look in permissioning, manually do steps
+	// Parse through the nodes prepping them for rounds
+	for _, nodeInstance := range nodes {
+		asyncWaitUntil(&wg, current.STANDBY, nodeInstance)
+		receivers.HandleBatch(nodeInstance, ecrBatch)
+	}
+
+	wg.Wait()
+
+	done <- struct{}{}
+}
+
+// Utility function which signs a round info message
+func signRoundInfo(ri *pb.RoundInfo) error {
+	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+	if err != nil {
+		return errors.Errorf("couldn't load privKey: %+v", err)
+	}
+
+	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
+
+	signature.Sign(ri, ourPrivKey)
+	return nil
+}
+
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
 
 	//generate IDs and addresses
@@ -391,9 +480,8 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 				TlsCert: nil,
 				Address: "",
 			},
-			// todo: fill these in
 			FullNDF:        networkDef,
-			PartialNDF:     nil,
+			PartialNDF:     networkDef,
 			Address:        nodeLst[i].Address,
 			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
 			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),

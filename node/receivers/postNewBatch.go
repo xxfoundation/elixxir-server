@@ -32,6 +32,20 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
+	err = HandleBatch(instance, newBatch)
+	if err != nil {
+		return err
+	}
+
+	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
+		newBatch.Round.ID)
+
+	return nil
+}
+
+// HandleBatch is a helper function which handles phase and state operations
+//  as well as calling postPhase
+func HandleBatch(instance *server.Instance, newBatch *mixmessages.Batch) error {
 	// Get the roundinfo object
 	ri := newBatch.Round
 	rm := instance.GetRoundManager()
@@ -77,9 +91,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 		jww.FATAL.Panicf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
-
-	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
-		newBatch.Round.ID)
 
 	return nil
 }

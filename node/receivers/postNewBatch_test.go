@@ -120,7 +120,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 
 // Test error case in which sender of postnewbatch is not authenticated
 func TestReceivePostNewBatch_AuthError(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t)
 
 	const roundID = 2
 
