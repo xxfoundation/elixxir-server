@@ -32,6 +32,7 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 	// Pull the particular server host object from the commManager
 	recipientID := topology.GetNextNode(nodeID)
 	nextNodeIndex := topology.GetNodeLocation(recipientID)
+	jww.FATAL.Printf("nextnodeindex: %+v", nextNodeIndex)
 	recipient := topology.GetHostAtIndex(nextNodeIndex)
 
 	// Create the message structure to send the messages

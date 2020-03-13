@@ -32,7 +32,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
-	err = HandleBatch(instance, newBatch)
+	err = HandleRealtimeBatch(instance, newBatch)
 	if err != nil {
 		return err
 	}
@@ -43,10 +43,11 @@ func ReceivePostNewBatch(instance *server.Instance,
 	return nil
 }
 
-// HandleBatch is a helper function which handles phase and state operations
-//  as well as calling postPhase
-func HandleBatch(instance *server.Instance, newBatch *mixmessages.Batch) error {
+// HandleRealtimeBatch is a helper function which handles phase and state operations
+//  as well as calling postPhase for starting REALTIME
+func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch) error {
 	// Get the roundinfo object
+	jww.FATAL.Printf("our batch round: %+v", newBatch.Round)
 	ri := newBatch.Round
 	rm := instance.GetRoundManager()
 	rnd, err := rm.GetRound(ri.GetRoundId())

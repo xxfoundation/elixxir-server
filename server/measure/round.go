@@ -34,8 +34,9 @@ type RoundMetrics struct {
 
 // NewRoundMetrics initializes a new RoundMetrics object with the specified
 // round ID.
-func NewRoundMetrics(roundId id.Round, batchSize uint32) RoundMetrics {
+func NewRoundMetrics(roundId id.Round, batchSize uint32, nodeId *id.Node) RoundMetrics {
 	return RoundMetrics{
+		NodeID:       nodeId.String(),
 		RoundID:      roundId,
 		BatchSize:    batchSize,
 		StartTime:    time.Now().Round(0),
@@ -45,7 +46,8 @@ func NewRoundMetrics(roundId id.Round, batchSize uint32) RoundMetrics {
 
 // AddPhase adds a phase and its metrics to the RoundMetrics object.
 func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
-	newPhaseMetric := phaseMetric{name, metrics}
+	metrics.NodeId = rm.NodeID
+	newPhaseMetric := phaseMetric{name, metrics, rm.NodeID}
 
 	rm.PhaseMetrics = append(rm.PhaseMetrics, newPhaseMetric)
 }

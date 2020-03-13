@@ -10,6 +10,7 @@ package measure
 type phaseMetric struct {
 	PhaseName string
 	Metrics   Metrics
+	nodeId    string
 }
 
 // PhaseMetrics is a list of phaseMetric objects.

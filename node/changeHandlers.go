@@ -5,7 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package node
 
-// fixme: add file description
+// ChangeHandlers contains the logic for every state within the state machine
 
 import (
 	"github.com/pkg/errors"
@@ -109,6 +109,22 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 		}
 	}()
 
+	// Once done with notStarted transition into waiting
+	go func() {
+		// Ensure that instance is in not started prior to transition
+		ok, err := instance.GetStateMachine().WaitFor(current.NOT_STARTED, 1*time.Second)
+		if !ok || err != nil {
+			jww.FATAL.Panicf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+		}
+
+		// Transition state machine into waiting state
+		ok, err = instance.GetStateMachine().Update(current.WAITING)
+		if !ok || err != nil {
+			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.WAITING, err)
+		}
+
+	}()
+
 	return nil
 }
 
@@ -125,7 +141,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	roundInfo := <-instance.GetCreateRoundQueue()
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
-
+	jww.FATAL.Printf("our roundinfo in precom: %+v", topology)
 	// Extract topology from RoundInfo
 	nodeIDs, err := id.NewNodeListFromStrings(topology)
 	if err != nil {
@@ -135,6 +151,13 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
+	for i := 0; i < circuit.Len(); i++ {
+		ourHost, ok := instance.GetNetwork().GetHost(circuit.GetNodeAtIndex(i).String())
+		if !ok {
+			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))
+		}
+		circuit.AddHost(ourHost)
+	}
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(
 		instance.GetGraphGenerator(),

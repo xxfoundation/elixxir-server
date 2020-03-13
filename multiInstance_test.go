@@ -85,21 +85,39 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 
-	// Add handler for instance
-	impl := func(i *server.Instance) *nodeComms.Implementation {
-		return receivers.NewImplementation(i)
-	}
-
 	for i := 0; i < numNodes; i++ {
-		// pass in the
 		var instance *server.Instance
-		var testStates [current.NUM_STATES]state.Change
-		testStates[current.NOT_STARTED] = func(from current.Activity) error { return nil }
-		testStates[current.WAITING] = func(from current.Activity) error { return nil }
-		testStates[current.PRECOMPUTING] = func(from current.Activity) error {
-			return node.Precomputing(instance, 1*time.Second)
+
+		// Add handler for instance
+		impl := func(i *server.Instance) *nodeComms.Implementation {
+			return receivers.NewImplementation(i)
 		}
+
+		// Construct the state machine
+		var testStates [current.NUM_STATES]state.Change
+		// Create not started
+		testStates[current.NOT_STARTED] = func(from current.Activity) error {
+			ok, err := instance.GetStateMachine().WaitFor(current.NOT_STARTED, 1*time.Second)
+			if !ok || err != nil {
+				t.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+			}
+
+			ok, err = instance.GetStateMachine().Update(current.WAITING)
+			if !ok || err != nil {
+				t.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
+			}
+
+			return nil
+		}
+		// Create waiting
+		testStates[current.WAITING] = func(from current.Activity) error { return nil }
+		// Create precomputing
+		testStates[current.PRECOMPUTING] = func(from current.Activity) error {
+			return node.Precomputing(instance, 10*time.Second)
+		}
+		// Create standby
 		testStates[current.STANDBY] = func(from current.Activity) error { return nil }
+		// Create realtime
 		testStates[current.REALTIME] = func(from current.Activity) error {
 			return node.Realtime(instance)
 		}
@@ -107,6 +125,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		sm := state.NewMachine(testStates)
 
 		instance, _ = server.CreateServerInstance(defsLst[i], impl, sm, true)
+		instance.GetConsensus().UpdateNodeConnections()
 		instances = append(instances, instance)
 	}
 
@@ -141,16 +160,32 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	//firstNode.RunFirstNode(firstNode, 10*time.Second,
 	//io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
 
-	expectedbatch, ecrbatch, err := buildMockBatch(batchsize, grp, baseKeys, userID)
+	// Build topology
+	ourTopology := make([]string, 0)
+	for _, nodeInstance := range instances {
+		ourTopology = append(ourTopology, nodeInstance.GetID().String())
+
+	}
+	jww.FATAL.Printf("our topology: %+v", ourTopology)
+	// Construct round info message
+	roundInfoMsg := &mixmessages.RoundInfo{
+		ID:        0,
+		UpdateID:  0,
+		State:     uint32(current.PRECOMPUTING),
+		BatchSize: 32,
+		Topology:  ourTopology,
+	}
+
+	expectedbatch, ecrbatch, err := buildMockBatch(batchsize, grp, baseKeys, userID, roundInfoMsg)
 	if err != nil {
 		t.Errorf("%+v", err)
 	}
 
 	done := make(chan struct{})
 
-	iterate(done, instances, t, ecrbatch)
+	iterate(done, instances, t, ecrbatch, roundInfoMsg)
 
-	// <- done
+	<-done
 	//if err != nil {
 	//	t.Errorf("MultiNode Test: Error returned from first node "+
 	//		"`ReceivePostNewBatch`: %v", err)
@@ -301,7 +336,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 // buildMockBatch
 func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
-	userID *id.User) (*pb.Batch, *pb.Batch, error) {
+	userID *id.User, ri *mixmessages.RoundInfo) (*pb.Batch, *pb.Batch, error) {
 	//build a batch to send to first node
 	expectedbatch := &mixmessages.Batch{}
 	ecrbatch := &mixmessages.Batch{}
@@ -337,6 +372,7 @@ func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 		ecrslot.KMACs = kmacs
 
 		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)
+		ecrbatch.Round = ri
 
 		slot := &mixmessages.Slot{}
 		slot.PayloadA = msg.GetPayloadA()
@@ -350,20 +386,22 @@ func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 }
 
 //
-func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T, ecrBatch *pb.Batch) {
+func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
+	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo) {
 
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
 		wg.Add(1)
 		go func() {
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
-			t.Logf("success: %+v\nerr: %+v\n stateMachine: %+v", success, err, node.GetStateMachine())
+			//			t.Logf("success: %+v\nerr: %+v\n stateMachine: %+v", success, err, node.GetStateMachine())
 			if !success {
 				t.Errorf("Wait for node to enter state %s failed: %s", node.GetID(), err)
+			} else {
+				wg.Done()
 			}
-
-			wg.Done()
 		}()
+
 	}
 
 	//wait until all nodes are started
@@ -371,28 +409,16 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T, ecrBatc
 
 	// Parse through the nodes prepping them for rounds
 	for _, nodeInstance := range nodes {
+		//nodeInstance.GetStateMachine().Update(current.WAITING)
 		asyncWaitUntil(&wg, current.WAITING, nodeInstance)
+
 	}
 
 	wg.Wait()
 
-	t.Logf("our fucking state machine: %+v", nodes[0].GetStateMachine().Get())
+	jww.FATAL.Printf("our fucking state machine: %+v", nodes[0].GetStateMachine().Get())
 
-	// Build topology
-	ourTopology := make([]string, 0)
-	for _, nodeInstance := range nodes {
-		ourTopology = append(ourTopology, nodeInstance.GetID().String())
-
-	}
-
-	// Construct round info message
-	roundInfoMsg := &mixmessages.RoundInfo{
-		ID:        0,
-		UpdateID:  0,
-		State:     uint32(current.PRECOMPUTING),
-		BatchSize: 32,
-		Topology:  ourTopology,
-	}
+	jww.FATAL.Printf("round info msg: %+v", roundInfoMsg)
 
 	signRoundInfo(roundInfoMsg)
 
@@ -415,7 +441,18 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T, ecrBatc
 	// Parse through the nodes prepping them for rounds
 	for _, nodeInstance := range nodes {
 		asyncWaitUntil(&wg, current.STANDBY, nodeInstance)
-		receivers.HandleBatch(nodeInstance, ecrBatch)
+	}
+
+	wg.Wait()
+	jww.FATAL.Printf("our fucking state machine: %+v", nodes[0].GetStateMachine().Get())
+
+	err := receivers.HandleRealtimeBatch(nodes[0], ecrBatch)
+	if err != nil {
+		t.Errorf("Unable to handle realtime batch: %+v", err)
+	}
+
+	for _, nodeInstance := range nodes {
+		asyncWaitUntil(&wg, current.COMPLETED, nodeInstance)
 	}
 
 	wg.Wait()

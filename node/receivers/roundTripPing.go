@@ -4,12 +4,20 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
+	"time"
 )
 
 // ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
 func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripPing) error {
+	// Ensure that round trip ping is in the correct state
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 1*time.Second)
+	if !ok || err != nil {
+		jww.FATAL.Panicf("ReceiveRoundTripPing timed out in state transition to %v: %+v", current.PRECOMPUTING, err)
+	}
+
 	roundID := msg.Round.ID
 	rm := instance.GetRoundManager()
 	r, err := rm.GetRound(id.Round(roundID))
