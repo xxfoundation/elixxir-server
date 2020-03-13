@@ -7,13 +7,9 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs/realtime"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"runtime"
@@ -22,22 +18,15 @@ import (
 	"time"
 )
 
+var postPhase = func(p phase.Phase, batch *mixmessages.Batch) error {
+	return nil
+}
+
 func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// This round should be at a state where its precomp is complete.
 	// So, we might want more than one phase,
 	// since it's at a boundary between phases.
-	grp := initImplGroup()
-
-	topology := connect.NewCircuit(buildMockNodeIDs(5))
-	def := server.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-	def.ID = topology.GetNodeAtIndex(0)
-	def.Gateway.ID = id.NewTmpGateway()
-
-	l := [current.NUM_STATES]state.Change{}
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, l, false)
+	instance, topology, grp := setup(t, 0, current.REALTIME)
 
 	const batchSize = 1
 	const roundID = 2
@@ -45,8 +34,10 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// Does the mockPhase move through states?
 	precompReveal := testUtil.InitMockPhase(t)
 	precompReveal.Ptype = phase.PrecompReveal
+	precompReveal.SetState(t, phase.Active)
 	realDecrypt := testUtil.InitMockPhase(t)
 	realDecrypt.Ptype = phase.RealDecrypt
+	realDecrypt.SetState(t, phase.Active)
 
 	tagKey := realDecrypt.Ptype.String()
 	responseMap := make(phase.ResponseMap)
@@ -69,7 +60,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// This emulates what the gateway would send to the comm
 	batch := &mixmessages.Batch{
 		Round: &mixmessages.RoundInfo{
-			ID: roundID,
+			ID: roundID + 10,
 		},
 		FromPhase: int32(phase.RealDecrypt),
 		Slots: []*mixmessages.Slot{
@@ -90,10 +81,9 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Sender:          h,
 	}
 
-	err := ReceivePostNewBatch(instance, batch, auth)
+	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
 	if err == nil {
-		t.Error("ReceivePostNewBatch should have errored out if there were no" +
-			" precomputations available")
+		t.Error("ReceivePostNewBatch should have errored out if the round ID was not found")
 	}
 
 	// OK, let's put that round on the queue of completed precomps now,
@@ -108,19 +98,26 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 				" call")
 		}
 	}()
-	instance.GetCompletedPrecomps().Push(r)
+
+	batch = &mixmessages.Batch{
+		Round: &mixmessages.RoundInfo{
+			ID: roundID,
+		},
+		FromPhase: int32(phase.RealDecrypt),
+		Slots:     []*mixmessages.Slot{},
+	}
 
 	h, _ = connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
-	err = ReceivePostNewBatch(instance, batch, auth)
+	err = ReceivePostNewBatch(instance, batch, postPhase, auth)
 }
 
 // Test error case in which sender of postnewbatch is not authenticated
 func TestReceivePostNewBatch_AuthError(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t, current.REALTIME)
 
 	const roundID = 2
 
@@ -147,7 +144,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		Sender:          h,
 	}
 
-	err := ReceivePostNewBatch(instance, batch, auth)
+	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
 
 	if err == nil {
 		t.Error("Did not receive expected error")
@@ -161,7 +158,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 
 // Test error case in which the sender of postnewbatch is not who we expect
 func TestReceivePostNewBatch_BadSender(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t, current.REALTIME)
 
 	const roundID = 2
 
@@ -188,7 +185,7 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 		Sender:          h,
 	}
 
-	err := ReceivePostNewBatch(instance, batch, auth)
+	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
 
 	if err == nil {
 		t.Error("Did not receive expected error")
@@ -205,20 +202,7 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 // Note: In this case, the happy path includes an error from one of the slots
 // that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
-	grp := initImplGroup()
-
-	def := server.Definition{
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit(buildMockNodeIDs(1)),
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-	}
-
-	def.ID = def.Topology.GetNodeAtIndex(0)
-	def.Gateway.ID = id.NewTmpGateway()
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
-	instance.InitFirstNode()
-	topology := instance.GetTopology()
+	instance, topology, grp := setup(t, 0, current.REALTIME)
 	registry := instance.GetUserRegistry()
 
 	// Make and register a user
@@ -258,7 +242,6 @@ func TestReceivePostNewBatch(t *testing.T) {
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		"0.0.0.0")
 	instance.GetRoundManager().AddRound(r)
-	instance.GetCompletedPrecomps().Push(r)
 
 	// Build a fake batch for the reception handler
 	// This emulates what the gateway would send to the comm
@@ -291,7 +274,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	// Actually, this should return an error because the batch has a malformed
 	// slot in it, so once we implement per-slot errors we can test all the
 	// realtime decrypt error cases from this reception handler if we want
-	err := ReceivePostNewBatch(instance, batch, auth)
+	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
 	if err != nil {
 		t.Error(err)
 	}
@@ -301,4 +284,3 @@ func TestReceivePostNewBatch(t *testing.T) {
 		t.Errorf("Realtime decrypt is not queued")
 	}
 }
-
