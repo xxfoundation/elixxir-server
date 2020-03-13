@@ -138,7 +138,7 @@ func buildMockNodeAddresses(numNodes int) []string {
 	return addrLst
 }
 
-func mockServerInstance(t *testing.T) (*server.Instance, *connect.Circuit) {
+func mockServerInstance(t *testing.T, s current.Activity) (*server.Instance, *connect.Circuit) {
 	//primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	//	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 	//	"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -194,7 +194,7 @@ func mockServerInstance(t *testing.T) (*server.Instance, *connect.Circuit) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = id.NewTmpGateway()
-	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	m := state.NewTestMachine(dummyStates, s, t)
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 
 	return instance, topology

@@ -338,17 +338,16 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 }
 
-
-func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T){
+func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T) {
 
 	//define a mechanism to wait until the next state
-	asyncWaitUntil := func(wg sync.WaitGroup, until current.Activity, node *server.Instance ){
+	asyncWaitUntil := func(wg sync.WaitGroup, until current.Activity, node *server.Instance) {
 		wg.Add(1)
-		go func(){
+		go func() {
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
-			if !success{
+			if !success {
 				t.Errorf("Wait for node to enter state %s failed: %s", node.GetID(), err)
-			}else{
+			} else {
 				wg.Done()
 			}
 		}()
@@ -357,7 +356,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T){
 	//wait until all nodes are started
 	wg := sync.WaitGroup{}
 
-	for _, n := range nodes{
+	for _, n := range nodes {
 		asyncWaitUntil(wg, current.WAITING, n)
 	}
 
@@ -365,13 +364,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T){
 
 	//start the round on each node
 
-
-
-
-
 }
-
-
 
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
 
