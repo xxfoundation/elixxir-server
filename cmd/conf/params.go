@@ -13,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/id"
@@ -216,12 +215,6 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 
 	def.Gateway.TlsCert = GwTlsCerts
 	def.Gateway.ID = def.ID.NewGateway()
-	def.BatchSize = p.Batch
-	def.CmixGroup = p.Groups.GetCMix()
-	def.E2EGroup = p.Groups.GetE2E()
-
-	def.Topology = connect.NewCircuit(nodeIDs)
-	def.Nodes = nodes
 
 	var PermTlsCert []byte
 

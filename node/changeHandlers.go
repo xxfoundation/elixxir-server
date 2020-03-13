@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
+	"time"
 )
 
 func Dummy(from current.Activity) error {
@@ -59,13 +60,22 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	}
 
 	// Blocking call: Request ndf from permissioning
-	err = permissioning.Poll(permHost, instance)
+	err = permissioning.Poll(instance)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
 
+	// Atomically denote that gateway is ready for polling
+	instance.SetGatewayAsReady()
+
+	// Receive signal that indicates that gateway is ready for polling
+	err = instance.GetGatewayFirstTime().Receive(5 * time.Second)
+	if err != nil {
+		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
+	}
+
 	// Parse the Ndf for the new signed certs from  permissioning
-	serverCert, gwCert, err := permissioning.InstallNdf(def, instance.GetConsensus().GetFullNdf().Get())
+	serverCert, gwCert, err := permissioning.FindSelfInNdf(def, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
@@ -76,6 +86,25 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 
 	// Restart the network with these signed certs
 	instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+
+	// HACK HACK HACK
+	// FIXME: we should not be coupling connections and server objects
+	// Technically the servers can fail to bind for up to
+	// a couple minutes (depending on operating system), but
+	// in practice 10 seconds works
+	time.Sleep(10 * time.Second)
+
+	// Periodically re-poll permissioning
+	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
+		for range ticker.C {
+			err := permissioning.Poll(instance)
+			if err != nil {
+				// If we receive an error polling here, panic this thread
+				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
+			}
+		}
+	}()
 
 	return nil
 }
