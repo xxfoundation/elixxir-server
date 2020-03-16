@@ -61,7 +61,7 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 
 	p.Measure(measure.TagReceiveOnReception)
 	//send the data to the phase
-	err = io.PostPhase(p, newBatch, instance)
+	err = io.PostPhase(p, newBatch)
 
 	if err != nil {
 		jww.ERROR.Panicf("Error first node generation init: "+

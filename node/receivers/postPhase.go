@@ -88,7 +88,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 
 	batch.FromPhase = int32(p.GetType())
 	//send the data to the phase
-	err = io.PostPhase(p, batch, instance)
+	err = io.PostPhase(p, batch)
 
 	if err != nil {
 		jww.FATAL.Panicf("Error on PostPhase comm, should be"+

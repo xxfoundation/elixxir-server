@@ -35,7 +35,7 @@ func TestPostPhase(t *testing.T) {
 	}
 
 	//receive the mockBatch
-	err := PostPhase(mockPhase, &mockBatch, nil)
+	err := PostPhase(mockPhase, &mockBatch)
 
 	if err != nil {
 		t.Errorf("PostPhase: Unexpected error returned: %+v", err)
@@ -56,7 +56,7 @@ func TestPostPhase(t *testing.T) {
 	mockBatch.Slots[0].Salt = []byte{42}
 	mockBatch.Round = &mixmessages.RoundInfo{}
 
-	err = PostPhase(mockPhase, &mockBatch, nil)
+	err = PostPhase(mockPhase, &mockBatch)
 
 	if err == nil {
 		t.Errorf("PostPhase: did not error when expected")
