@@ -81,9 +81,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	}
 
 	batch.FromPhase = int32(p.GetType())
-
+	jww.FATAL.Printf("RECEIVEPOSTPHASE: %+v", instance.GetID().Bytes())
 	//send the data to the phase
-	err = io.PostPhase(p, batch)
+	err = io.PostPhase(p, batch, instance)
 
 	if err != nil {
 		jww.FATAL.Panicf("Error on PostPhase comm, should be"+
@@ -96,6 +96,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
+	jww.FATAL.Printf("OBNOXIIOUS PRINT STATEMENT!!!!!!!!!!!!!!1")
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {

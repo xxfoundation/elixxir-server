@@ -7,17 +7,18 @@ package graphs
 
 /**/
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"math/rand"
@@ -62,12 +63,39 @@ func TestClientServer(t *testing.T) {
 	nid := server.GenerateId(t)
 	def := server.Definition{
 		ID:              nid,
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 	}
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	var stateChanges [current.NUM_STATES]state.Change
+	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.WAITING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.PRECOMPUTING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.STANDBY] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.REALTIME] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.COMPLETED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.ERROR] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.CRASH] = func(from current.Activity) error {
+		return nil
+	}
+
+	sm := state.NewMachine(stateChanges)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, sm, false)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)

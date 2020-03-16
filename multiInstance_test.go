@@ -122,10 +122,18 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 			return node.Realtime(instance)
 		}
 		testStates[current.COMPLETED] = func(from current.Activity) error { return nil }
+		testStates[current.ERROR] = func(from current.Activity) error {
+			jww.FATAL.Printf("Errored in the error state")
+			return nil
+		}
+
 		sm := state.NewMachine(testStates)
 
 		instance, _ = server.CreateServerInstance(defsLst[i], impl, sm, true)
-		instance.GetConsensus().UpdateNodeConnections()
+		err := instance.GetConsensus().UpdateNodeConnections()
+		if err != nil {
+			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
+		}
 		instances = append(instances, instance)
 	}
 
@@ -183,9 +191,10 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	done := make(chan struct{})
 
-	iterate(done, instances, t, ecrbatch, roundInfoMsg)
-
+	go iterate(done, instances, t, ecrbatch, roundInfoMsg)
+	jww.FATAL.Printf("pre done signal")
 	<-done
+	jww.FATAL.Printf("received done signal")
 	//if err != nil {
 	//	t.Errorf("MultiNode Test: Error returned from first node "+
 	//		"`ReceivePostNewBatch`: %v", err)
@@ -193,14 +202,12 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
-	//h, _ := connect.NewHost(lastNode.GetID().NewGateway().String(), "test", nil, false, false)
-	//for len(completedBatch.Slots) == 0 {
-	//	completedBatch, _ = io.GetCompletedBatch(lastNode, 100*time.Millisecond, &connect.Auth{
-	//		IsAuthenticated: true,
-	//		Sender:          h,
-	//	})
-	//}
+	completedBatch.Slots, err = receivers.GetCompletedBatch(instances[numNodes-1])
+	if err != nil {
+		t.Errorf("Failed to get completed batch: %+v", err)
+	}
 
+	jww.FATAL.Printf("finished getting completed batch")
 	//---BUILD PROBING TOOLS----------------------------------------------------
 
 	//get round buffers for probing
@@ -392,11 +399,12 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
 		wg.Add(1)
+		jww.FATAL.Printf("attempting to transition to: %+v ", until.String())
 		go func() {
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
 			//			t.Logf("success: %+v\nerr: %+v\n stateMachine: %+v", success, err, node.GetStateMachine())
 			if !success {
-				t.Errorf("Wait for node to enter state %s failed: %s", node.GetID(), err)
+				jww.FATAL.Printf("Wait for node to enter state %s failed: %s", node.GetID(), err)
 			} else {
 				wg.Done()
 			}
@@ -409,7 +417,6 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 
 	// Parse through the nodes prepping them for rounds
 	for _, nodeInstance := range nodes {
-		//nodeInstance.GetStateMachine().Update(current.WAITING)
 		asyncWaitUntil(&wg, current.WAITING, nodeInstance)
 
 	}
@@ -444,19 +451,33 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-	jww.FATAL.Printf("our fucking state machine: %+v", nodes[0].GetStateMachine().Get())
+	jww.FATAL.Printf("our fucking state machine after standby: %+v", nodes[0].GetStateMachine().Get())
+
+	for _, nodeInstance := range nodes {
+		// Send info to the realtime round queue
+		err := nodeInstance.GetRealtimeRoundQueue().Send(roundInfoMsg)
+		if err != nil {
+			jww.FATAL.Printf("Unable to send to RealtimeRoundQueue: %+v", err)
+		}
+
+		ok, err := nodeInstance.GetStateMachine().Update(current.REALTIME)
+		if !ok || err != nil {
+			jww.FATAL.Printf("Failed to update to realtime: %+v", err)
+		}
+	}
 
 	err := receivers.HandleRealtimeBatch(nodes[0], ecrBatch)
 	if err != nil {
 		t.Errorf("Unable to handle realtime batch: %+v", err)
 	}
 
+	jww.FATAL.Printf("done with finish realtime, transition to completed")
 	for _, nodeInstance := range nodes {
 		asyncWaitUntil(&wg, current.COMPLETED, nodeInstance)
 	}
 
 	wg.Wait()
-
+	jww.FATAL.Printf("finished complete state transition")
 	done <- struct{}{}
 }
 

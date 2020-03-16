@@ -164,7 +164,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		circuit,
 		instance.GetID(),
 		instance,
-		instance.GetBatchSize(),
+		roundInfo.GetBatchSize(),
 		newRoundTimeout)
 
 	//Build the round
@@ -174,7 +174,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		roundID, phases, phaseResponses,
 		circuit,
 		instance.GetID(),
-		instance.GetBatchSize(),
+		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
 		instance.GetIP())
 

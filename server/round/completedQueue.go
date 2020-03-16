@@ -2,6 +2,7 @@ package round
 
 import (
 	"errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -22,6 +23,7 @@ func (cq CompletedQueue) Send(cr *CompletedRound) error {
 func (cq CompletedQueue) Receive() (*CompletedRound, error) {
 	select {
 	case cr := <-cq:
+		jww.FATAL.Printf("We have shit in the chan")
 		return cr, nil
 	default:
 		return nil, errors.New("Did not recieve a completed round")

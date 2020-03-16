@@ -7,6 +7,7 @@
 package measure
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
@@ -47,6 +48,7 @@ func NewRoundMetrics(roundId id.Round, batchSize uint32, nodeId *id.Node) RoundM
 // AddPhase adds a phase and its metrics to the RoundMetrics object.
 func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
 	metrics.NodeId = rm.NodeID
+	jww.FATAL.Printf("our node id: %+v", rm.NodeID)
 	newPhaseMetric := phaseMetric{name, metrics, rm.NodeID}
 
 	rm.PhaseMetrics = append(rm.PhaseMetrics, newPhaseMetric)

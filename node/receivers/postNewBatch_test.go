@@ -161,7 +161,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 
 // Test error case in which the sender of postnewbatch is not who we expect
 func TestReceivePostNewBatch_BadSender(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t)
 
 	const roundID = 2
 

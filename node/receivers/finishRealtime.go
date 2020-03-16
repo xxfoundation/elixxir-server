@@ -53,13 +53,10 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 			instance, err)
 	}
 	p.Measure(measure.TagVerification)
-
 	go func() {
 
 		p.UpdateFinalStates()
-
 		if !instance.GetKeepBuffers() {
-
 			//Delete the round and its data from the manager
 			//Delay so it can be used by post round hanlders
 			go func() {
@@ -84,10 +81,16 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	jww.INFO.Printf("[%v]: RID %d Round took %v seconds",
 		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
-	//Send batch to Gateway Polling Receiver on last node
-	if r.GetTopology().IsLastNode(instance.GetID()) {
+	// Once done with realtime transition into waiting
+	go func() {
+		jww.FATAL.Printf("transitioning to completed state")
+		// Transition state machine into COMPLETED state
+		ok, err = instance.GetStateMachine().Update(current.COMPLETED)
+		if !ok || err != nil {
+			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.COMPLETED, err)
+		}
 
-	}
+	}()
 
 	//Send the finished signal on first node
 	if r.GetTopology().IsFirstNode(instance.GetID()) {

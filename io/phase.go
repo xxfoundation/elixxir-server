@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -72,8 +73,7 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 
 // PostPhase implements the server gRPC handler for posting a
 // phase from another node
-func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
-
+func PostPhase(p phase.Phase, batch *mixmessages.Batch, instance *server.Instance) error {
 	// Send a chunk per slot
 	for index, message := range batch.Slots {
 		curIdx := uint32(index)
