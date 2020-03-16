@@ -223,9 +223,9 @@ func getMeasureInfo(p *phase, tag string) string {
 	p.metrics.Unlock()
 
 	// Format string to return
-	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %s\n\t"+
-		"tag: %s\n\ttimestamp: %s\n\tdelta: %s\n\tNodeId: %s",
-		p.roundID, p.tYpe, tag, timestamp.String(), delta.String(), p.metrics.NodeId)
+	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %d\n\t"+
+		"tag: %s\n\ttimestamp: %s\n\tdelta: %s",
+		p.roundID, p.tYpe, tag, timestamp.String(), delta.String())
 	return result
 }
 

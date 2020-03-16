@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
 	"testing"
@@ -471,6 +472,8 @@ func mockServerInstance(i interface{}) *server.Instance {
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
 	var stateChanges [current.NUM_STATES]state.Change

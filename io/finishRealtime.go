@@ -11,7 +11,6 @@ package io
 
 import (
 	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -49,7 +48,7 @@ func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
 
 	err := instance.GetCompletedBatchQueue().Send(complete)
 	if err != nil {
-		jww.FATAL.Printf("failed to send to batch: %+v", err)
+		return errors.Errorf("Failed to send to CompletedBatch: %+v", err)
 	}
 
 	close(chunkChan)

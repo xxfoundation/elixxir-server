@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"golang.org/x/crypto/blake2b"
 	"math/rand"
 	"reflect"
@@ -65,6 +66,8 @@ func TestClientServer(t *testing.T) {
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
+		PartialNDF:      testUtil.NDF,
+		FullNDF:         testUtil.NDF,
 	}
 
 	var stateChanges [current.NUM_STATES]state.Change
