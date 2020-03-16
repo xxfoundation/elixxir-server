@@ -83,7 +83,6 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 	// Once done with realtime transition into waiting
 	go func() {
-		jww.FATAL.Printf("transitioning to completed state")
 		// Transition state machine into COMPLETED state
 		ok, err = instance.GetStateMachine().Update(current.COMPLETED)
 		if !ok || err != nil {

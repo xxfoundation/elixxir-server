@@ -7,7 +7,6 @@
 package measure
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"time"
 )
@@ -35,9 +34,8 @@ type RoundMetrics struct {
 
 // NewRoundMetrics initializes a new RoundMetrics object with the specified
 // round ID.
-func NewRoundMetrics(roundId id.Round, batchSize uint32, nodeId *id.Node) RoundMetrics {
+func NewRoundMetrics(roundId id.Round, batchSize uint32) RoundMetrics {
 	return RoundMetrics{
-		NodeID:       nodeId.String(),
 		RoundID:      roundId,
 		BatchSize:    batchSize,
 		StartTime:    time.Now().Round(0),
@@ -48,7 +46,6 @@ func NewRoundMetrics(roundId id.Round, batchSize uint32, nodeId *id.Node) RoundM
 // AddPhase adds a phase and its metrics to the RoundMetrics object.
 func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
 	metrics.NodeId = rm.NodeID
-	jww.FATAL.Printf("our node id: %+v", rm.NodeID)
 	newPhaseMetric := phaseMetric{name, metrics, rm.NodeID}
 
 	rm.PhaseMetrics = append(rm.PhaseMetrics, newPhaseMetric)

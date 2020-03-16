@@ -141,7 +141,6 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	roundInfo := <-instance.GetCreateRoundQueue()
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
-	jww.FATAL.Printf("our roundinfo in precom: %+v", topology)
 	// Extract topology from RoundInfo
 	nodeIDs, err := id.NewNodeListFromStrings(topology)
 	if err != nil {

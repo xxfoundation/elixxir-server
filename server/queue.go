@@ -111,7 +111,6 @@ func (rq *ResourceQueue) run(server *Instance) {
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-			jww.FATAL.Printf("cur round topology: %+v", curRound.GetTopology())
 			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
 				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,

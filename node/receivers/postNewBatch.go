@@ -40,8 +40,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
-	//instance.GetStateMachine().Update(current.COMPLETED)
-
 	return nil
 }
 
@@ -49,7 +47,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 //  as well as calling postPhase for starting REALTIME
 func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch) error {
 	// Get the roundinfo object
-	jww.FATAL.Printf("our batch round: %+v", newBatch.Round)
 	ri := newBatch.Round
 	rm := instance.GetRoundManager()
 	rnd, err := rm.GetRound(ri.GetRoundId())
@@ -88,7 +85,6 @@ func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch)
 	for i := range newBatch.Slots {
 		jww.DEBUG.Printf("new Batch: %#v", newBatch.Slots[i])
 	}
-	jww.FATAL.Printf("HANDLEREALTTIME: %+v", instance.GetID().Bytes())
 	err = io.PostPhase(p, newBatch, instance)
 
 	if err != nil {

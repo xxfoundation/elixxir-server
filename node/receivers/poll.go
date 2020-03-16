@@ -7,7 +7,6 @@ package receivers
 
 import (
 	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server"
@@ -61,7 +60,6 @@ func GetCompletedBatch(instance *server.Instance) ([]*mixmessages.Slot, error) {
 		return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 	}
 
-	jww.FATAL.Printf("err: %+v", err)
 	var Slots []*mixmessages.Slot
 	if cr != nil {
 		r, err := instance.GetRoundManager().GetRound(cr.RoundID)
@@ -69,10 +67,8 @@ func GetCompletedBatch(instance *server.Instance) ([]*mixmessages.Slot, error) {
 			return nil, errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", cr.RoundID, err)
 		} else {
 			Slots = make([]*mixmessages.Slot, r.GetBatchSize())
-			jww.FATAL.Printf("about to enter for loop")
 			// wait for everything from the channel then put it into a slot and return it
 			for chunk := range cr.Receiver {
-				jww.FATAL.Printf("in for loop: %+v", chunk)
 				for c := chunk.Begin(); c < chunk.End(); c++ {
 					Slots[c] = cr.GetMessage(c)
 				}

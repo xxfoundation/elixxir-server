@@ -113,7 +113,6 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 			jww.FATAL.Panicf("Error on first node PostRoundPublicKey " +
 				"comm, should be able to queue decrypt phase")
 		}
-		jww.FATAL.Printf("RECEIVEPUBKEY: %+v", instance.GetID().Bytes())
 		err = io.PostPhase(decrypt, blankBatch, instance)
 
 		if err != nil {

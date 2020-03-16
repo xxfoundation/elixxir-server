@@ -50,7 +50,6 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 
 	// For each message chunk (slot) stream it out
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-		jww.FATAL.Printf("chunks sent: %+v", chunk.Begin())
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 
@@ -96,7 +95,6 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	slot, err := stream.Recv()
 	slotsReceived := uint32(0)
 	for ; err == nil; slot, err = stream.Recv() {
-		jww.FATAL.Printf("slot index received: %+v", slot.Index)
 		index := slot.Index
 
 		phaseErr := p.Input(index, slot)

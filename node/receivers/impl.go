@@ -9,7 +9,6 @@
 package receivers
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -35,7 +34,6 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		err := ReceiveStreamPostPhase(streamServer, instance, auth)
-		jww.FATAL.Printf("recvPostPhase errors: %+v", err)
 		return err
 	}
 
@@ -53,7 +51,6 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		err := ReceiveFinishRealtime(instance, message, auth)
-		jww.FATAL.Printf("errored in finishRealtime: %+v", err)
 		return err
 	}
 

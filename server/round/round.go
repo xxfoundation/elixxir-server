@@ -50,7 +50,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, localIP string) *Round {
 
-	roundMetrics := measure.NewRoundMetrics(id, batchSize, nodeID)
+	roundMetrics := measure.NewRoundMetrics(id, batchSize)
 	roundMetrics.IP = localIP
 	round := Round{id: id, roundMetrics: roundMetrics}
 
