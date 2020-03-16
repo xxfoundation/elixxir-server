@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package receivers
 
 import (
@@ -17,7 +23,7 @@ import (
 	"testing"
 )
 
-func setup(t *testing.T, instIndex int) (*server.Instance, *connect.Circuit, *cyclic.Group) {
+func setup(t *testing.T, instIndex int, s current.Activity) (*server.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
 	topology := connect.NewCircuit(buildMockNodeIDs(5))
@@ -26,10 +32,13 @@ func setup(t *testing.T, instIndex int) (*server.Instance, *connect.Circuit, *cy
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Gateway: server.GW{
+			ID: id.NewTmpGateway(),
+		},
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 
-	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	m := state.NewTestMachine(dummyStates, s, t)
 
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
 	rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
@@ -42,7 +51,7 @@ func setup(t *testing.T, instIndex int) (*server.Instance, *connect.Circuit, *cy
 
 // Test caller function for PostRoundPublicKey
 func TestPostRoundPublicKeyFunc(t *testing.T) {
-	instance, topology, grp := setup(t, 1)
+	instance, topology, grp := setup(t, 1, current.PRECOMPUTING)
 
 	batchSize := uint32(11)
 	roundID := id.Round(0)
@@ -112,7 +121,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 
 // Test no auth error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
-	instance, topology, _ := setup(t, 1)
+	instance, topology, _ := setup(t, 1, current.PRECOMPUTING)
 
 	fakeHost, _ := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
 	auth := &connect.Auth{
@@ -146,7 +155,7 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 
 // Test bad host error on ReceivePostRoundPublicKey
 func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
-	instance, _, _ := setup(t, 1)
+	instance, _, _ := setup(t, 1, current.PRECOMPUTING)
 
 	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
 	auth := &connect.Auth{
@@ -180,7 +189,7 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 
 // Test case in which PostRoundPublicKey is sent by first node
 func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
-	instance, topology, grp := setup(t, 0)
+	instance, topology, grp := setup(t, 0, current.PRECOMPUTING)
 
 	batchSize := uint32(3)
 	roundID := id.Round(0)

@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package receivers
 
 import (
@@ -126,7 +132,7 @@ func TestPostPhase_NoAuth(t *testing.T) {
 	roundID := id.Round(0)
 
 	grp := initImplGroup()
-	instance, topology := mockServerInstance(t)
+	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 	rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 		3, instance.GetRngStreamGen(), "0.0.0.0")
@@ -178,7 +184,7 @@ func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPh
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance, topology := mockServerInstance(t)
+	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	// Build a mock mockBatch to receive
@@ -219,7 +225,7 @@ func TestStreamPostPhase_NoAuth(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance, topology := mockServerInstance(t)
+	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	// Build a mock mockBatch to receive
@@ -267,7 +273,7 @@ func TestStreamPostPhase_WrongSender(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance, topology := mockServerInstance(t)
+	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 	mockPhase := testUtil.InitMockPhase(t)
 
 	// Build a mock mockBatch to receive
@@ -315,7 +321,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	batchSize := uint32(11)
 	roundID := id.Round(0)
 
-	instance, topology, grp := setup(t, 1)
+	instance, topology, grp := setup(t, 1, current.PRECOMPUTING)
 
 	mockPhase := testUtil.InitMockPhase(t)
 

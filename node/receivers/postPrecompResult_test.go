@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
+
 package receivers
 
 import (
@@ -19,7 +25,7 @@ import (
 // Shows that ReceivePostPrecompResult panics when the round isn't in
 // the round manager
 func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
-	instance, topology, _ := setup(t, 1)
+	instance, topology, _ := setup(t, 1, current.PRECOMPUTING)
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
@@ -47,7 +53,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 // number of slots in the message
 func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
-	instance, topology, grp := setup(t, 1)
+	instance, topology, grp := setup(t, 1, current.PRECOMPUTING)
 
 	roundID := id.Round(45)
 	// Is this the right setup for the response?
@@ -186,7 +192,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 // Tests that ReceivePostPrecompResult() returns an error when isAuthenticated
 // is set to false in the Auth object.
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
-	instance, topology := mockServerInstance(t)
+	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 
 	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0).String(), "", nil, true, true)
 	if err != nil {
@@ -206,7 +212,7 @@ func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 // Tests that ReceivePostPrecompResult() returns an error when Sender is set to
 // the wrong sender in the Auth object.
 func TestPostPrecompResult_WrongSender(t *testing.T) {
-	instance, _ := mockServerInstance(t)
+	instance, _ := mockServerInstance(t, current.PRECOMPUTING)
 
 	fakeHost, err := connect.NewHost("bad", "", nil, true, true)
 	if err != nil {

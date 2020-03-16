@@ -159,13 +159,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	t.Logf("Initalizing the first node, begining operations")
-	//Initialize the first node
-	//
-	//firstNode.InitFirstNode()
-	//lastNode.InitLastNode()
-	//firstNode.RunFirstNode(firstNode, 10*time.Second,
-	//io.TransmitCreateNewRound, node.MakeStarter(uint32(batchsize)))
 
 	// Build topology
 	ourTopology := make([]string, 0)
@@ -390,7 +383,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
 		wg.Add(1)
-		go func() {
+		go func(){
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
 			//			t.Logf("success: %+v\nerr: %+v\n stateMachine: %+v", success, err, node.GetStateMachine())
 			if !success {
