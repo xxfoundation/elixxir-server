@@ -17,7 +17,6 @@ import (
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
 func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
 	res := mixmessages.ServerPollResponse{}
-	var err error
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
 		network := instance.GetConsensus()
@@ -43,7 +42,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 		// Check if a completed batch is ready to be returned, get the batch and return it if it is
 		cr, err := instance.GetCompletedBatchQueue().Receive()
-		if err != nil && strings.Contains(err.Error(), "Did not recieve a completed round") {
+		if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
@@ -66,8 +65,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		return &res, nil
 	}
 
-	err = errors.New("Node is not ready for gateway polling")
-
 	// If node has not gotten a response from permissioning, return an empty message
-	return &res, err
+	return &res, errors.New("Node is not ready for gateway polling")
 }
