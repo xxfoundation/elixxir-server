@@ -159,7 +159,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	return &round
 }
 
-func NewDummyRound(roundId id.Round, batchSize uint32, phaseList []phase.Phase,t *testing.T) *Round {
+func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 	if t == nil {
 		panic("Can not use NewDummyRound out side of testing")
 	}
@@ -168,12 +168,11 @@ func NewDummyRound(roundId id.Round, batchSize uint32, phaseList []phase.Phase,t
 	for i := uint64(0); i < 8; i++ {
 		node := id.NewNodeFromUInt(i, t)
 		list = append(list, node)
-
 	}
 
 	top := *connect.NewCircuit(list)
 
-	return &Round{id: roundId, batchSize: batchSize, topology: &top, phases: phaseList,}
+	return &Round{id: roundId, batchSize: batchSize, topology: &top,}
 }
 
 //GetID return the ID

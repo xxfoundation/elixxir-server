@@ -1,7 +1,10 @@
 package node
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/testkeys"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/server/phase"
 
 	//"gitlab.com/elixxir/crypto/signature/rsa"
@@ -29,8 +32,17 @@ var dummyStates = [current.NUM_STATES]state.Change{
 	func(from current.Activity) error { return nil },
 }
 
+func assertPanic(t *testing.T, f func()) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+			t.Fail()
+		}
+	}()
+	f()
+}
 
-func setupStartNode(t *testing.T) (*server.Instance, id.Round){
+func setupStartNode(t *testing.T) (*server.Instance){
 	//Get a new ndf
 	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
 	if err != nil {
@@ -39,15 +51,13 @@ func setupStartNode(t *testing.T) (*server.Instance, id.Round){
 	}
 
 	// We need to create a server.Definition so we can create a server instance.
-	nid := server.GenerateId(t)
 	def := server.Definition{
-		ID:              nid,
+		ID:              id.NewNodeFromUInt(0, t),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 	}
-
 
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
@@ -58,14 +68,10 @@ func setupStartNode(t *testing.T) (*server.Instance, id.Round){
 		t.Fail()
 	}
 
-	//topology := connect.NewCircuit(receivers.BuildMockNodeIDs(10))
-
 	// In order for our instance to return updated ndf we need to sign it so here we extract keys
 	certPath := testkeys.GetGatewayCertPath()
 	cert := testkeys.LoadFromPath(certPath)
-	//keyPath := testkeys.GetGatewayKeyPath()
-	//privKeyPem := testkeys.LoadFromPath(keyPath)
-	//privKey, err := rsa.LoadPrivateKeyFromPem(privKeyPem)
+
 	if err != nil {
 		t.Logf("Private Key failed to generate %v", err)
 		t.Fail()
@@ -77,51 +83,113 @@ func setupStartNode(t *testing.T) (*server.Instance, id.Round){
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
 	}
-	roundId := id.Round(23)
 
-	phaseDef := phase.Definition{
-		Graph:               nil,
-		Type:                1,
-		TransmissionHandler: nil,
-		Timeout:             0,
-		DoVerification:      false,
-	}
-
-	newPhase := phase.New(phaseDef)
-	dr := round.NewDummyRound(roundId, 10,[]phase.Phase{newPhase},t)
-	instance.GetRoundManager().AddRound(dr)
-
-	return  instance, roundId
+	return  instance
 }
 
+func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *round.Round{
+
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2))
+
+
+	mockPhase := testUtil.InitMockPhase(t)
+	mockPhase.Ptype = phase.PrecompShare
+
+	tagKey := mockPhase.GetType().String() + "Verification"
+	responseMap := make(phase.ResponseMap)
+	responseMap[tagKey] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  mockPhase.GetType(),
+			ExpectedStates: []phase.State{phase.Active},
+			PhaseToExecute: mockPhase.GetType()},
+	)
+
+	batchSize := uint32(10)
+
+	list := []*id.Node{}
+
+	for i := uint64(0); i < 8; i++ {
+		node := id.NewNodeFromUInt(i, t)
+		list = append(list, node)
+	}
+
+	top := connect.NewCircuit(list)
+
+
+	r := round.New(grp, &globals.UserMap{}, roundId, []phase.Phase{mockPhase},
+		responseMap, top, top.GetNodeAtIndex(0), batchSize,
+		instance.GetRngStreamGen(), "0.0.0.0")
+
+	return r
+}
 
 func TestStartLocalPrecomp_HappyPath(t *testing.T) {
+	instance:= setupStartNode(t)
+	roundId := id.Round(0)
+	r := createRound(roundId, instance, t)
+	instance.GetRoundManager().AddRound(r)
 
-	instance, roundId := setupStartNode(t)
+
 	err := StartLocalPrecomp(instance, roundId)
 	if err != nil {
 		t.Logf("%v",err)
 		t.Fail()
 	}
-
 }
 
 // Test that if there is no round we catch a panic
 func TestStartLocalPrecomp_NoRoundError(t *testing.T) {
-	instance, roundId := setupStartNode(t)
-	err := StartLocalPrecomp(instance, roundId)
-	if err != nil {
-		t.Logf("%v",err)
-		t.Fail()
-	}
+	instance := setupStartNode(t)
+	roundId := id.Round(0)
+
+	assertPanic(t, func(){
+		err := StartLocalPrecomp(instance, roundId)
+		if err != nil {
+			t.Logf("%v",err)
+			t.Fail()
+		}
+	})
 }
 
 // Test that if there is no round we catch a panic
 func TestStartLocalPrecomp_PostPhaseFail(t *testing.T) {
-	instance, roundId := setupStartNode(t)
-	err := StartLocalPrecomp(instance, roundId)
-	if err != nil {
-		t.Logf("%v",err)
+	//instance := setupStartNode(t)
+	//roundId := id.Round(0)
+	//err := StartLocalPrecomp(instance, roundId)
+	//if err != nil {
+	//	t.Logf("%v",err)
+	//	t.Fail()
+	//}
+}
+
+
+// In TestStartLocalPrecomp we also test the happy path of doRoundTripPing
+// because it should work if those tests are passing So in this test we test all
+//the scenerios where doRound Tripping Should fail, and make sure it is doing so.
+func TestDoRoundTripPing_Fails(t *testing.T){
+	instance := setupStartNode(t)
+	roundId := id.Round(0)
+
+	r := createRound(roundId, instance, t)
+	top := r.GetTopology()
+	nodeId := id.NewNodeFromUInt(10, t)
+
+	err := doRoundTripPing(top, nodeId, r, instance)
+	if err != nil{
+		t.Logf("doRoundTrip Should have failed with all nil values")
 		t.Fail()
 	}
 }
