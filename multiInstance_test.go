@@ -22,6 +22,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
@@ -444,7 +445,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 		}
 	}
 
-	err := receivers.HandleRealtimeBatch(nodes[0], ecrBatch)
+	err := receivers.HandleRealtimeBatch(nodes[0], ecrBatch, io.PostPhase)
 	if err != nil {
 		t.Errorf("Unable to handle realtime batch: %+v", err)
 	}
