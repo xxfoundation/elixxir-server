@@ -163,33 +163,3 @@ func TestStartLocalPrecomp_NoRoundError(t *testing.T) {
 		}
 	})
 }
-
-// Test that if there is no round we catch a panic
-func TestStartLocalPrecomp_PostPhaseFail(t *testing.T) {
-	//instance := setupStartNode(t)
-	//roundId := id.Round(0)
-	//err := StartLocalPrecomp(instance, roundId)
-	//if err != nil {
-	//	t.Logf("%v",err)
-	//	t.Fail()
-	//}
-}
-
-
-// In TestStartLocalPrecomp we also test the happy path of doRoundTripPing
-// because it should work if those tests are passing So in this test we test all
-//the scenerios where doRound Tripping Should fail, and make sure it is doing so.
-func TestDoRoundTripPing_Fails(t *testing.T){
-	instance := setupStartNode(t)
-	roundId := id.Round(0)
-
-	r := createRound(roundId, instance, t)
-	top := r.GetTopology()
-	nodeId := id.NewNodeFromUInt(10, t)
-
-	err := doRoundTripPing(top, nodeId, r, instance)
-	if err != nil{
-		t.Logf("doRoundTrip Should have failed with all nil values")
-		t.Fail()
-	}
-}
