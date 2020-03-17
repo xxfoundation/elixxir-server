@@ -33,7 +33,8 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
-		return ReceiveStreamPostPhase(streamServer, instance, auth)
+		err := ReceiveStreamPostPhase(streamServer, instance, auth)
+		return err
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
@@ -49,7 +50,8 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		return ReceiveFinishRealtime(instance, message, auth)
+		err := ReceiveFinishRealtime(instance, message, auth)
+		return err
 	}
 
 	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,

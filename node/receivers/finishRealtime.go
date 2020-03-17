@@ -59,11 +59,9 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 			instance, err)
 	}
 	p.Measure(measure.TagVerification)
-
 	go func() {
 
 		p.UpdateFinalStates()
-
 		if !instance.GetKeepBuffers() {
 			//Delete the round and its data from the manager
 			//Delay so it can be used by post round hanlders

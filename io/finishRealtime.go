@@ -40,10 +40,15 @@ func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
 		GetMessage: getMessage,
 	}
 
-	_ = instance.GetCompletedBatchQueue().Send(complete)
-
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		chunkChan <- chunk
+	}
+
+	complete.Receiver = chunkChan
+
+	err := instance.GetCompletedBatchQueue().Send(complete)
+	if err != nil {
+		return errors.Errorf("Failed to send to CompletedBatch: %+v", err)
 	}
 
 	close(chunkChan)

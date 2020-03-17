@@ -5,7 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package node
 
-// fixme: add file description
+// ChangeHandlers contains the logic for every state within the state machine
 
 import (
 	"github.com/pkg/errors"
@@ -85,7 +85,10 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	def.Gateway.TlsCert = []byte(gwCert)
 
 	// Restart the network with these signed certs
-	instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+	err = instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+	if err != nil {
+		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
+	}
 
 	// HACK HACK HACK
 	// FIXME: we should not be coupling connections and server objects
@@ -106,6 +109,22 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 		}
 	}()
 
+	// Once done with notStarted transition into waiting
+	go func() {
+		// Ensure that instance is in not started prior to transition
+		ok, err := instance.GetStateMachine().WaitFor(current.NOT_STARTED, 1*time.Second)
+		if !ok || err != nil {
+			jww.FATAL.Panicf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+		}
+
+		// Transition state machine into waiting state
+		ok, err = instance.GetStateMachine().Update(current.WAITING)
+		if !ok || err != nil {
+			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.WAITING, err)
+		}
+
+	}()
+
 	return nil
 }
 
@@ -116,29 +135,35 @@ func Waiting(from current.Activity) error {
 }
 
 // fixme: doc string
-func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change, error) {
+func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
-
 	// Extract topology from RoundInfo
 	nodeIDs, err := id.NewNodeListFromStrings(topology)
 	if err != nil {
-		return nil, errors.Errorf("Unable to convert topology into a node list: %+v", err)
+		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
 
 	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
+	for i := 0; i < circuit.Len(); i++ {
+		ourHost, ok := instance.GetNetwork().GetHost(circuit.GetNodeAtIndex(i).String())
+		if !ok {
+			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))
+		}
+		circuit.AddHost(ourHost)
+	}
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(
 		instance.GetGraphGenerator(),
 		circuit,
 		instance.GetID(),
 		instance,
-		instance.GetBatchSize(),
+		roundInfo.GetBatchSize(),
 		newRoundTimeout)
 
 	//Build the round
@@ -148,7 +173,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 		roundID, phases, phaseResponses,
 		circuit,
 		instance.GetID(),
-		instance.GetBatchSize(),
+		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
 		instance.GetIP())
 
@@ -161,11 +186,11 @@ func Precomputing(instance *server.Instance, newRoundTimeout int) (state.Change,
 	if circuit.IsFirstNode(instance.GetID()) {
 		err := StartLocalPrecomp(instance, roundID)
 		if err != nil {
-			return nil, errors.WithMessage(err, "Failed to TransmitCreateNewRound")
+			return errors.WithMessage(err, "Failed to TransmitCreateNewRound")
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 // fixme: doc string

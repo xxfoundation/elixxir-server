@@ -206,12 +206,6 @@ func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
 	return i.definition.Permissioning.PublicKey
 }
 
-//GetBatchSize returns the batch size
-func (i *Instance) GetBatchSize() uint32 {
-	//return i.definition.BatchSize
-	return 100000
-}
-
 // FIXME Populate this from the YAML or something
 func (i *Instance) GetGraphGenerator() services.GraphGenerator {
 	return i.definition.GraphGenerator
