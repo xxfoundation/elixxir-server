@@ -164,8 +164,7 @@ func StartServer(vip *viper.Viper) error {
 	//Start runners for first node
 	if instance.IsFirstNode() {
 		jww.INFO.Printf("Checking all servers are online")
-
-		//io.VerifyServersOnline(instance.GetNetwork(), instance.GetTopology())
+		//io.VerifyServersOnline(instance.GetNetwork(), instance.GetConsensus())
 	}
 	return nil
 }

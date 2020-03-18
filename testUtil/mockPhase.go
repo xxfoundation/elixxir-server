@@ -36,6 +36,8 @@ type MockPhase struct {
 	indices      []uint32
 	stateChecker phase.GetState
 	Ptype        phase.Type
+	state        phase.State
+	testState    bool
 }
 
 func (mp *MockPhase) GetChunks() []services.Chunk {
@@ -64,7 +66,20 @@ func (mp *MockPhase) ConnectToRound(id id.Round, setState phase.Transition,
 	return
 }
 
-func (mp *MockPhase) GetState() phase.State     { return mp.stateChecker() }
+func (mp *MockPhase) SetState(t *testing.T, s phase.State) {
+	if t == nil {
+		panic("Cannot call outside of test")
+	}
+	mp.state = s
+	mp.testState = true
+}
+
+func (mp *MockPhase) GetState() phase.State {
+	if mp.testState {
+		return mp.state
+	}
+	return mp.stateChecker()
+}
 func (mp *MockPhase) GetGraph() *services.Graph { return mp.graph }
 
 func (*MockPhase) EnableVerification()    { return }
@@ -98,5 +113,5 @@ func InitMockPhase(t *testing.T) *MockPhase {
 	mockModuleCopy := mockModule.DeepCopy()
 	g.First(mockModuleCopy)
 	g.Last(mockModuleCopy)
-	return &MockPhase{graph: g}
+	return &MockPhase{graph: g, testState: false}
 }

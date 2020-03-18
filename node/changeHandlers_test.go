@@ -87,7 +87,7 @@ func TestPrecomputing(t *testing.T) {
 		}
 	}()
 
-	_, err := Precomputing(instance, 3)
+	err := Precomputing(instance, 3)
 	if err != nil {
 		t.Errorf("Failed to precompute: %+v", err)
 	}

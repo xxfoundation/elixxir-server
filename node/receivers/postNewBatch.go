@@ -12,16 +12,17 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 )
 
+type PostPhase func(p phase.Phase, batch *mixmessages.Batch) error
+
 // Receive PostNewBatch comm from the gateway
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
-	newBatch *mixmessages.Batch, auth *connect.Auth) error {
+	newBatch *mixmessages.Batch, postPhase PostPhase, auth *connect.Auth) error {
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
 		jww.WARN.Printf("[%v]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
@@ -38,6 +39,20 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
+	err = HandleRealtimeBatch(instance, newBatch, postPhase)
+	if err != nil {
+		return err
+	}
+
+	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
+		newBatch.Round.ID)
+
+	return nil
+}
+
+// HandleRealtimeBatch is a helper function which handles phase and state operations
+//  as well as calling postPhase for starting REALTIME
+func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch, postPhase PostPhase) error {
 	// Get the roundinfo object
 	ri := newBatch.Round
 	rm := instance.GetRoundManager()
@@ -77,15 +92,12 @@ func ReceivePostNewBatch(instance *server.Instance,
 	for i := range newBatch.Slots {
 		jww.DEBUG.Printf("new Batch: %#v", newBatch.Slots[i])
 	}
-	err = io.PostPhase(p, newBatch)
+	err = postPhase(p, newBatch)
 
 	if err != nil {
 		jww.FATAL.Panicf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
-
-	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
-		newBatch.Round.ID)
 
 	return nil
 }

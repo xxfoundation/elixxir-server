@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"github.com/golang/protobuf/ptypes"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
@@ -36,7 +37,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	}
 	def.ID = newRound.GetTopology().GetNodeAtIndex(0)
 
-	instance, _ := mockServerInstance(t)
+	instance, _ := mockServerInstance(t, current.PRECOMPUTING)
 
 	// Set up a round first node
 	roundID := id.Round(45)

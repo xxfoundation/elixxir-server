@@ -7,7 +7,6 @@ package receivers
 
 import (
 	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server"
@@ -62,9 +61,37 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		}
 
 		instance.GetGatewayFirstTime().Send()
-		return &res, nil
+		return &res, err
 	}
 
 	// If node has not gotten a response from permissioning, return an empty message
 	return &res, errors.New("Node is not ready for gateway polling")
+}
+
+// todo: docstring
+func GetCompletedBatch(instance *server.Instance) ([]*mixmessages.Slot, error) {
+	// Check if a completed batch is ready to be returned, get the batch and return it if it is
+	cr, err := instance.GetCompletedBatchQueue().Receive()
+	if err != nil && strings.Contains(err.Error(), "Did not recieve a completed round") {
+		return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
+	}
+
+	var Slots []*mixmessages.Slot
+	if cr != nil {
+		r, err := instance.GetRoundManager().GetRound(cr.RoundID)
+		if err != nil {
+			return nil, errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", cr.RoundID, err)
+		} else {
+			Slots = make([]*mixmessages.Slot, r.GetBatchSize())
+			// wait for everything from the channel then put it into a slot and return it
+			for chunk := range cr.Receiver {
+				for c := chunk.Begin(); c < chunk.End(); c++ {
+					Slots[c] = cr.GetMessage(c)
+				}
+			}
+		}
+	}
+
+	return Slots, nil
+
 }

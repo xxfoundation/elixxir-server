@@ -87,7 +87,6 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	}
 
 	batch.FromPhase = int32(p.GetType())
-
 	//send the data to the phase
 	err = io.PostPhase(p, batch)
 

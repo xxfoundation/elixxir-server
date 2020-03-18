@@ -58,7 +58,6 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
 	p.Measure(measure.TagReceiveOnReception)
-
 	//send the data to the phase
 	err = io.PostPhase(p, newBatch)
 	if err != nil {

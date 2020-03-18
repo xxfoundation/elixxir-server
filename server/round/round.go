@@ -270,6 +270,7 @@ func (r *Round) GetMeasurements(nid string, numNodes, index int,
 	for _, ph := range r.phases {
 		phaseName := ph.GetType().String()
 		phaseMeasure := ph.GetMeasure()
+		phaseMeasure.NodeId = nid
 		rm.AddPhase(phaseName, phaseMeasure)
 	}
 
