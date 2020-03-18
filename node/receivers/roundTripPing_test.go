@@ -28,7 +28,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(&measure.ResourceMetric{})
 	//Dummy round object
-	newRound := round.NewDummyRound(id.Round(1), 10, t)
+	newRound := round.NewDummyRound(id.Round(1), 10, nil,t)
 
 	// Set instance for first node
 	def := server.Definition{

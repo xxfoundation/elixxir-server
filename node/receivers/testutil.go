@@ -18,6 +18,8 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -103,7 +105,7 @@ func buildMockTopology(numNodes int) *connect.Circuit {
 }
 
 // Builds a list of base64 encoded node IDs for server instance construction
-func buildMockNodeIDs(numNodes int) []*id.Node {
+func BuildMockNodeIDs(numNodes int) []*id.Node {
 	var nodeIDs []*id.Node
 
 	//Build IDs
@@ -245,6 +247,32 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
+}
+
+
+func PushNRoundUpdates(n int, instance server.Instance, key *rsa.PrivateKey, t *testing.T) {
+
+	for i := 1; i < n+1; i++ {
+		newRound := &mixmessages.RoundInfo{
+			ID:       uint64(i),
+			UpdateID: uint64(i),
+		}
+
+		err := signature.Sign(newRound, key)
+		if err != nil {
+			t.Logf("Failed to sign: %v", err)
+			t.Fail()
+		}
+
+		//t.Logf("ROUND: %v", newRound)
+
+		err = instance.GetConsensus().RoundUpdate(newRound)
+		if err != nil {
+			t.Logf("error pushing round %v", err)
+			t.Fail()
+		}
+	}
+
 }
 
 /*

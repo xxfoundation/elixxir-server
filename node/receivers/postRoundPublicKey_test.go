@@ -26,7 +26,7 @@ import (
 func setup(t *testing.T, instIndex int, s current.Activity) (*server.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
-	topology := connect.NewCircuit(buildMockNodeIDs(5))
+	topology := connect.NewCircuit(BuildMockNodeIDs(5))
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},

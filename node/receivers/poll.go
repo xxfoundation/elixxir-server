@@ -16,7 +16,6 @@ import (
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
 func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
 	res := mixmessages.ServerPollResponse{}
-	var err error
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
 		network := instance.GetConsensus()
@@ -40,16 +39,33 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 			res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
 		}
 
-		res.Slots, err = GetCompletedBatch(instance)
+		// Check if a completed batch is ready to be returned, get the batch and return it if it is
+		cr, err := instance.GetCompletedBatchQueue().Receive()
+		if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
+		}
+
+		if cr != nil {
+			r, err := instance.GetRoundManager().GetRound(cr.RoundID)
+			if err != nil {
+				jww.ERROR.Printf("Recieved completed batch for round %v that doesn't exist: %s", cr.RoundID, err)
+			} else {
+				res.Slots = make([]*mixmessages.Slot, r.GetBatchSize())
+				// wait for everything from the channel then put it into a slot and return it
+				for chunk := range cr.Receiver {
+					for c := chunk.Begin(); c < chunk.End(); c++ {
+						res.Slots[c] = cr.GetMessage(c)
+					}
+				}
+			}
+		}
 
 		instance.GetGatewayFirstTime().Send()
 		return &res, err
 	}
 
-	err = errors.New("Node is not ready for gateway polling")
-
 	// If node has not gotten a response from permissioning, return an empty message
-	return &res, err
+	return &res, errors.New("Node is not ready for gateway polling")
 }
 
 // todo: docstring
