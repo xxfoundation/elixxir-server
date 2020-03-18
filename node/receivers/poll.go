@@ -25,11 +25,13 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		if !isSame {
 			res.PartialNDF = network.GetPartialNdf().GetPb()
 		}
+
 		//Compare Full NDF hash with instance and return the new one if they do not match
 		isSame = network.GetFullNdf().CompareHash(poll.GetFull().Hash)
 		if !isSame {
 			res.FullNDF = network.GetFullNdf().GetPb()
 		}
+
 		//Check if any updates where made and get them
 		res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
 
@@ -43,10 +45,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		return &res, err
 	}
 
-	err = errors.New("Node is not ready for gateway polling")
-
 	// If node has not gotten a response from permissioning, return an empty message
-	return &res, err
+	return &res, errors.New("Node is not ready for gateway polling")
 }
 
 // todo: docstring

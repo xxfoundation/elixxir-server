@@ -61,10 +61,11 @@ func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb
 
 	instance, err := server.CreateServerInstance(&def, NewImplementation, m, false)
 	if err != nil {
-		t.Errorf("failed to create server Instance")
-		t.FailNow()
+		t.Logf("failed to create server Instance")
+		t.Fail()
 	}
 
+	//Make sure instance is ready by default
 	instance.SetGatewayAsReady()
 
 	// In order for our instance to return updated ndf we need to sign it so here we extract keys
@@ -250,36 +251,11 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	}
 }
 
-func pushNRoundUpdates(n int, instance server.Instance, key *rsa.PrivateKey, t *testing.T) {
-
-	for i := 1; i < n+1; i++ {
-		newRound := &pb.RoundInfo{
-			ID:       uint64(i),
-			UpdateID: uint64(i),
-		}
-
-		err := signature.Sign(newRound, key)
-		if err != nil {
-			t.Logf("Failed to sign: %v", err)
-			t.Fail()
-		}
-
-		//t.Logf("ROUND: %v", newRound)
-
-		err = instance.GetConsensus().RoundUpdate(newRound)
-		if err != nil {
-			t.Logf("error pushing round %v", err)
-			t.Fail()
-		}
-	}
-
-}
-
 // Send a round update to receive poll and test that we get the expected value back in server poll response
 func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 	instance, poll, _, privKey := setupTests(t, current.REALTIME)
 
-	pushNRoundUpdates(10, instance, privKey, t)
+	PushNRoundUpdates(10, instance, privKey, t)
 
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {

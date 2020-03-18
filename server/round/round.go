@@ -168,12 +168,14 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 		panic("Can not use NewDummyRound out side of testing")
 	}
 	list := []*id.Node{}
+
 	for i := uint64(0); i < 8; i++ {
 		node := id.NewNodeFromUInt(i, t)
 		list = append(list, node)
 	}
 
 	top := *connect.NewCircuit(list)
+
 	return &Round{id: roundId, batchSize: batchSize, topology: &top}
 }
 

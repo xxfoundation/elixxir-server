@@ -27,7 +27,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	roundID := id.Round(0)
 	grp := initImplGroup()
 
-	topology := connect.NewCircuit(buildMockNodeIDs(2))
+	topology := connect.NewCircuit(BuildMockNodeIDs(2))
 
 	def := server.Definition{
 		UserRegistry:    &globals.UserMap{},

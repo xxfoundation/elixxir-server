@@ -106,7 +106,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
-	nodeIDs := buildMockNodeIDs(5)
+	nodeIDs := BuildMockNodeIDs(5)
 
 	// Set up all the instances
 	var instances []*server.Instance
