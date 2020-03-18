@@ -27,10 +27,12 @@ func Dummy(from current.Activity) error {
 }
 
 // NotStarted is the beginning state of state machine. Enters waiting upon successful completion
-func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) error {
+func NotStarted(instance *server.Instance, noTls bool) error {
 	// Start comms network
+	ourDef := instance.GetDefinition()
+	jww.FATAL.Printf("beginning not started state")
 	network := instance.GetNetwork()
-	_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
+	_, err := network.AddHost(id.NewTmpGateway().String(), ourDef.Gateway.Address, ourDef.Gateway.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to add gateway host: %+v", err)
 	}
@@ -38,13 +40,13 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	// Connect to the Permissioning Server without authentication
 	permHost, err := network.AddHost(id.PERMISSIONING,
 		// instance.GetPermissioningAddress,
-		def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, false)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
 	// Blocking call: Begin Node registration
-	err = permissioning.RegisterNode(def, network, permHost)
+	err = permissioning.RegisterNode(ourDef, network, permHost)
 	if err != nil {
 		return errors.Errorf("Failed to register node: %+v", err)
 	}
@@ -54,7 +56,7 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 
 	// Connect to the Permissioning Server with authentication enabled
 	permHost, err = network.AddHost(id.PERMISSIONING,
-		def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
@@ -75,17 +77,13 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	}
 
 	// Parse the Ndf for the new signed certs from  permissioning
-	serverCert, gwCert, err := permissioning.FindSelfInNdf(def, instance.GetConsensus().GetFullNdf().Get())
+	serverCert, gwCert, err := permissioning.FindSelfInNdf(ourDef, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
 
-	// Set definition for newly signed certs
-	def.TlsCert = []byte(serverCert)
-	def.Gateway.TlsCert = []byte(gwCert)
-
 	// Restart the network with these signed certs
-	err = instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+	err = instance.RestartNetwork(receivers.NewImplementation, noTls, serverCert, gwCert)
 	if err != nil {
 		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
 	}
@@ -134,7 +132,7 @@ func Waiting(from current.Activity) error {
 	return nil
 }
 
-// fixme: doc string
+// Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
@@ -230,6 +228,18 @@ func Realtime(instance *server.Instance) error {
 // fixme: doc string
 func Completed(from current.Activity) error {
 	// start completed
+	return nil
+}
+
+// fixme: doc string
+func Error(from current.Activity) error {
+	// start error
+	return nil
+}
+
+// fixme: doc string
+func Crash(from current.Activity) error {
+	// start error
 	return nil
 }
 

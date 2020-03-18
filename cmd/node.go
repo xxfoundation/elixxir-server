@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
@@ -23,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/state"
 	"runtime"
+	"time"
 )
 
 // Number of hard-coded users to create
@@ -108,8 +110,49 @@ func StartServer(vip *viper.Viper) error {
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	jww.INFO.Printf("Creating server instance")
-	ourMachine := state.NewMachine(node.NewStateChanges())
-	instance, err := server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
+	var instance *server.Instance
+
+	ourChangeList := node.NewStateChanges()
+
+	// Update the changelist to contain state functions
+	ourChangeList[current.NOT_STARTED] = func(from current.Activity) error {
+		return node.NotStarted(instance, noTLS)
+	}
+
+	ourChangeList[current.WAITING] = func(from current.Activity) error {
+		return node.Waiting(from)
+	}
+
+	ourChangeList[current.PRECOMPUTING] = func(from current.Activity) error {
+		// todo: ask reviewer about this magic number
+		return node.Precomputing(instance, 5*time.Second)
+	}
+
+	ourChangeList[current.STANDBY] = func(from current.Activity) error {
+		return node.Standby(from)
+	}
+
+	ourChangeList[current.REALTIME] = func(from current.Activity) error {
+		return node.Realtime(instance)
+	}
+
+	ourChangeList[current.COMPLETED] = func(from current.Activity) error {
+		return node.Completed(from)
+	}
+
+	ourChangeList[current.ERROR] = func(from current.Activity) error {
+		return node.Error(from)
+	}
+
+	ourChangeList[current.ERROR] = func(from current.Activity) error {
+		return node.Crash(from)
+	}
+
+	// Create the machine with these state functions
+	ourMachine := state.NewMachine(ourChangeList)
+
+	// Create instance
+	instance, err = server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}

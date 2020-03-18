@@ -94,7 +94,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
-		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
+		_, err := instance.network.AddHost(id.NewTmpGateway().String(),
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
 		if err != nil {
 			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
@@ -112,12 +112,25 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // RestartNetwork is intended to reset the network with newly signed certs obtained from polling
 // permissioning
-func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, definition *Definition, noTls bool) error {
-	i.network.Shutdown()
-	i.definition = definition
-	i.network = node.StartNode(definition.ID.String(), definition.Address,
-		makeImplementation(i), definition.TlsCert, definition.TlsKey)
+func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, noTls bool,
+	serverCert, gwCert string) error {
 
+	// Shut down the network so we can restart
+	i.network.Shutdown()
+
+	// Set definition for newly signed certs
+	i.definition.TlsCert = []byte(serverCert)
+	i.definition.Gateway.TlsCert = []byte(gwCert)
+
+	// Get the id and cert
+	ourId := i.GetID().String()
+	ourDef := i.GetDefinition()
+
+	// Reset the network with the newly signed certs
+	i.network = node.StartNode(ourId, ourDef.Address,
+		makeImplementation(i), ourDef.TlsCert, ourDef.TlsKey)
+
+	// Disable auth if running in a noTLS environment [TESTING ONLY]
 	if noTls {
 		i.network.DisableAuth()
 	}
@@ -139,6 +152,11 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Imple
 func (i *Instance) Run() error {
 	go i.resourceQueue.run(i)
 	return i.machine.Start()
+}
+
+// GetDefinition returns the server.Definition object
+func (i *Instance) GetDefinition() *Definition {
+	return i.definition
 }
 
 // GetTopology returns the consensus object

@@ -77,6 +77,7 @@ func RetrieveState(permHost *connect.Host,
 	instance *server.Instance) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
+	jww.FATAL.Printf("our state is at: %+v", instance.GetStateMachine().Get())
 	// Get the ndf hashes for the full ndf if available
 	if instance.GetConsensus().GetFullNdf() != nil {
 		fullNdfHash = instance.GetConsensus().GetFullNdf().GetHash()
@@ -98,7 +99,7 @@ func RetrieveState(permHost *connect.Host,
 		LastUpdate: uint64(lastUpdateId),
 		Activity:   uint32(activity),
 	}
-
+	jww.FATAL.Printf("polling for an update")
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {

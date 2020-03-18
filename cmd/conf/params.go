@@ -16,12 +16,14 @@ import (
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"net"
 	"runtime"
+	"time"
 )
 
 // This object is used by the server instance.
@@ -132,6 +134,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 
 	def := &server.Definition{}
 
+	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.SkipReg = p.SkipReg
 	def.Flags.Verbose = p.Verbose
@@ -277,6 +280,11 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		def.Permissioning.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
 	}
 
+	//
+	ourNdf := createNdf(def, p)
+	def.FullNDF = ourNdf
+	def.PartialNDF = ourNdf
+
 	PanicHandler := func(g, m string, err error) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))
@@ -285,4 +293,62 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
 	return def
+}
+
+// createNdf is a helper function which builds a network ndf based off of the
+//  server.Definition
+func createNdf(def *server.Definition, params *Params) *ndf.NetworkDefinition {
+	// Build our node
+	ourNode := ndf.Node{
+		ID:             def.ID.Bytes(),
+		Address:        def.Address,
+		TlsCertificate: string(def.TlsCert),
+	}
+
+	// Build our gateway
+	ourGateway := ndf.Gateway{
+		Address:        def.Gateway.Address,
+		TlsCertificate: string(def.Gateway.TlsCert),
+	}
+
+	// Build the perm server
+	ourPerm := ndf.Registration{
+		Address:        def.Permissioning.Address,
+		TlsCertificate: string(def.Permissioning.TlsCert),
+	}
+
+	// Build the group
+	cmixGrp := toNdfGroup(params.Groups.CMix)
+	e2eGrp := toNdfGroup(params.Groups.E2E)
+
+	networkDef := &ndf.NetworkDefinition{
+		Timestamp:    time.Time{},
+		Gateways:     []ndf.Gateway{ourGateway},
+		Nodes:        []ndf.Node{ourNode},
+		Registration: ourPerm,
+		Notification: ndf.Notification{},
+		UDB:          ndf.UDB{},
+		E2E:          e2eGrp,
+		CMIX:         cmixGrp,
+	}
+
+	return networkDef
+
+}
+
+// todo: docstring
+func toNdfGroup(grp map[string]string) ndf.Group {
+	pStr, pOk := grp["prime"]
+	gStr, gOk := grp["generator"]
+
+	if !gOk || !pOk {
+		jww.FATAL.Panicf("Invalid Group Config "+
+			"(prime: %v, generator: %v",
+			pOk, gOk)
+	}
+
+	return ndf.Group{
+		Prime:     pStr,
+		Generator: gStr,
+	}
 }
