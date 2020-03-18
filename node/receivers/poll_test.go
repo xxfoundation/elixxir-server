@@ -61,9 +61,11 @@ func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb
 
 	instance, err := server.CreateServerInstance(&def, NewImplementation, m, false)
 	if err != nil {
-		t.Logf("failed to create server Instance")
-		t.Fail()
+		t.Errorf("failed to create server Instance")
+		t.FailNow()
 	}
+
+	instance.SetGatewayAsReady()
 
 	// In order for our instance to return updated ndf we need to sign it so here we extract keys
 	certPath := testkeys.GetGatewayCertPath()
@@ -136,9 +138,19 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
+	dr := round.NewDummyRound(0, 10, t)
+	instance.GetRoundManager().AddRound(dr)
+
+	recv := make(chan services.Chunk)
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		close(recv)
+	}()
+
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
+		t.Logf("Unexpected error: %v", err)
 		t.Fail()
 	}
 	if res == nil {
@@ -271,7 +283,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
+		t.Logf("Unexpected error: %v", err)
 		t.Fail()
 	}
 

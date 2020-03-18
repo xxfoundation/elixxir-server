@@ -167,7 +167,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		newRoundTimeout)
 
 	//Build the round
-	rnd := round.New(
+	rnd, err := round.New(
 		instance.GetConsensus().GetCmixGroup(),
 		instance.GetUserRegistry(),
 		roundID, phases, phaseResponses,
@@ -176,6 +176,9 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
 		instance.GetIP())
+	if err != nil {
+		return errors.WithMessage(err, "Failed to create new round")
+	}
 
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)

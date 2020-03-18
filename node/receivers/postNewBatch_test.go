@@ -56,10 +56,13 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// Well, this round needs to at least be on the precomp queue?
 	// If it's not on the precomp queue,
 	// that would let us test the error being returned.
-	r := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	instance.GetRoundManager().AddRound(r)
 
 	// Build a fake batch for the reception handler
@@ -87,7 +90,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Sender:          h,
 	}
 
-	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
+	err = ReceivePostNewBatch(instance, batch, postPhase, auth)
 	if err == nil {
 		t.Error("ReceivePostNewBatch should have errored out if the round ID was not found")
 	}
@@ -243,10 +246,13 @@ func TestReceivePostNewBatch(t *testing.T) {
 	})
 
 	// We need this round to be on the precomp queue
-	r := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	instance.GetRoundManager().AddRound(r)
 
 	// Build a fake batch for the reception handler
@@ -280,7 +286,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	// Actually, this should return an error because the batch has a malformed
 	// slot in it, so once we implement per-slot errors we can test all the
 	// realtime decrypt error cases from this reception handler if we want
-	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
+	err = ReceivePostNewBatch(instance, batch, postPhase, auth)
 	if err != nil {
 		t.Error(err)
 	}

@@ -41,9 +41,12 @@ func setup(t *testing.T, instIndex int, s current.Activity) (*server.Instance, *
 	m := state.NewTestMachine(dummyStates, s, t)
 
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
-	rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
+	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 		3, instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	instance.GetRoundManager().AddRound(rnd)
 
 	return instance, topology, grp
@@ -69,10 +72,13 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	)
 
 	// Skip first node
-	r := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhase}, responseMap, topology,
 		topology.GetNodeAtIndex(1), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(r)
 
@@ -219,10 +225,13 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	)
 
 	// Don't skip first node
-	r := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(r)
 
