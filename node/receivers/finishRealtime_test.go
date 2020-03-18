@@ -35,13 +35,14 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
 		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(rnd)
-
-	var err error
 
 	info := mixmessages.RoundInfo{
 		ID: uint64(roundID),
@@ -89,13 +90,14 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
 		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(rnd)
-
-	var err error
 
 	info := mixmessages.RoundInfo{
 		ID: uint64(roundID),
@@ -142,13 +144,14 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
 		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(rnd)
-
-	var err error
 
 	info := mixmessages.RoundInfo{
 		ID: uint64(roundID),
@@ -193,13 +196,14 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
 		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(rnd)
-
-	var err error
 
 	info := mixmessages.RoundInfo{
 		ID: uint64(roundID),

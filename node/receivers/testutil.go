@@ -249,7 +249,6 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		large.NewInt(2))
 }
 
-
 func PushNRoundUpdates(n int, instance server.Instance, key *rsa.PrivateKey, t *testing.T) {
 
 	for i := 1; i < n+1; i++ {

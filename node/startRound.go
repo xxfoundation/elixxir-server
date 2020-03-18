@@ -20,8 +20,6 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	//get the round from the instance
 	rm := instance.GetRoundManager()
 
-
-
 	r, err := rm.GetRound(rid)
 	if err != nil {
 		jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
@@ -67,7 +65,7 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	return nil
 }
 
-func doRoundTripPing(topology *connect.Circuit, nodeId *id.Node, round *round.Round,instance *server.Instance) error{
+func doRoundTripPing(topology *connect.Circuit, nodeId *id.Node, round *round.Round, instance *server.Instance) error {
 	payloadInfo := "EMPTY/ACK"
 	var payload proto.Message
 	payload = &mixmessages.Ack{}

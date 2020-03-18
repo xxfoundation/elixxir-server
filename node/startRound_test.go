@@ -42,7 +42,7 @@ func assertPanic(t *testing.T, f func()) {
 	f()
 }
 
-func setupStartNode(t *testing.T) (*server.Instance){
+func setupStartNode(t *testing.T) *server.Instance {
 	//Get a new ndf
 	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
 	if err != nil {
@@ -84,10 +84,10 @@ func setupStartNode(t *testing.T) (*server.Instance){
 		t.Fail()
 	}
 
-	return  instance
+	return instance
 }
 
-func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *round.Round{
+func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *round.Round {
 
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -103,7 +103,6 @@ func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *rou
 
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
-
 
 	mockPhase := testUtil.InitMockPhase(t)
 	mockPhase.Ptype = phase.PrecompShare
@@ -128,7 +127,6 @@ func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *rou
 
 	top := connect.NewCircuit(list)
 
-
 	r := round.New(grp, &globals.UserMap{}, roundId, []phase.Phase{mockPhase},
 		responseMap, top, top.GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
@@ -137,15 +135,14 @@ func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *rou
 }
 
 func TestStartLocalPrecomp_HappyPath(t *testing.T) {
-	instance:= setupStartNode(t)
+	instance := setupStartNode(t)
 	roundId := id.Round(0)
 	r := createRound(roundId, instance, t)
 	instance.GetRoundManager().AddRound(r)
 
-
 	err := StartLocalPrecomp(instance, roundId)
 	if err != nil {
-		t.Logf("%v",err)
+		t.Logf("%v", err)
 		t.Fail()
 	}
 }
@@ -155,10 +152,10 @@ func TestStartLocalPrecomp_NoRoundError(t *testing.T) {
 	instance := setupStartNode(t)
 	roundId := id.Round(0)
 
-	assertPanic(t, func(){
+	assertPanic(t, func() {
 		err := StartLocalPrecomp(instance, roundId)
 		if err != nil {
-			t.Logf("%v",err)
+			t.Logf("%v", err)
 			t.Fail()
 		}
 	})

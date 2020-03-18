@@ -48,12 +48,15 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(r)
-	err := instance.GetStateMachine().Start()
+	err = instance.GetStateMachine().Start()
 	if err != nil {
 		t.Errorf("Failed to run instance: %+v", err)
 		return
@@ -133,9 +136,12 @@ func TestPostPhase_NoAuth(t *testing.T) {
 
 	grp := initImplGroup()
 	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
-	rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
+	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 		3, instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	instance.GetRoundManager().AddRound(rnd)
 
 	mockPhase := testUtil.InitMockPhase(t)
@@ -330,9 +336,12 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	instance.GetRoundManager().AddRound(r)
 

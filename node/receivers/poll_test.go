@@ -139,9 +139,19 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
+	dr := round.NewDummyRound(0, 10, t)
+	instance.GetRoundManager().AddRound(dr)
+
+	recv := make(chan services.Chunk)
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		close(recv)
+	}()
+
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
+		t.Logf("Unexpected error: %v", err)
 		t.Fail()
 	}
 	if res == nil {
@@ -241,7 +251,6 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	}
 }
 
-
 // Send a round update to receive poll and test that we get the expected value back in server poll response
 func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 	instance, poll, _, privKey := setupTests(t, current.REALTIME)
@@ -250,7 +259,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
+		t.Logf("Unexpected error: %v", err)
 		t.Fail()
 	}
 
@@ -336,7 +345,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		return &s
 	}
 
-	dr := round.NewDummyRound(23, 10, nil,t)
+	dr := round.NewDummyRound(23, 10, t)
 	instance.GetRoundManager().AddRound(dr)
 	cr := round.CompletedRound{
 		RoundID:    id.Round(23),
