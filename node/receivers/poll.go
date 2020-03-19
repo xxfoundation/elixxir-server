@@ -7,7 +7,6 @@ package receivers
 
 import (
 	"github.com/pkg/errors"
-	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server"
