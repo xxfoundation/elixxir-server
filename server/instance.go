@@ -298,7 +298,7 @@ func (i *Instance) IsReadyForGateway() bool {
 }
 
 func (i *Instance) SetGatewayAsReady() {
-	atomic.StoreUint32(i.isGatewayReady, 1)
+	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
 }
 
 // GenerateId generates a random ID and returns it

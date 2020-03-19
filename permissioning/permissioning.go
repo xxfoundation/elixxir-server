@@ -113,22 +113,28 @@ func RetrieveState(permHost *connect.Host,
 //  It also parsed the message and determines where to transition given contect
 func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
-	// Update the full ndf
-	err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
-	if err != nil {
-		return errors.Errorf("Could not update full ndf: %+v", err)
+	if permissioningResponse.FullNDF != nil {
+		// Update the full ndf
+		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+		if err != nil {
+			return errors.Errorf("Could not update full ndf: %+v", err)
+		}
 	}
 
-	// Update the partial ndf
-	err = instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
-	if err != nil {
-		return errors.Errorf("Could not update partial ndf: %+v", err)
+	if permissioningResponse.PartialNDF != nil {
+		// Update the partial ndf
+		err := instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
+		if err != nil {
+			return errors.Errorf("Could not update partial ndf: %+v", err)
+		}
 	}
 
-	// Update the nodes in the network.Instance with the new ndf
-	err = instance.GetConsensus().UpdateNodeConnections()
-	if err != nil {
-		return errors.Errorf("Could not update node connections: %+v", err)
+	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
+		// Update the nodes in the network.Instance with the new ndf
+		err := instance.GetConsensus().UpdateNodeConnections()
+		if err != nil {
+			return errors.Errorf("Could not update node connections: %+v", err)
+		}
 	}
 
 	// Parse the response for updates
@@ -138,7 +144,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 	for _, roundInfo := range newUpdates {
 
 		// Add the new information to the network instance
-		err = instance.GetConsensus().RoundUpdate(roundInfo)
+		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}

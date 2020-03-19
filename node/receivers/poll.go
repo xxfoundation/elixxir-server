@@ -7,6 +7,7 @@ package receivers
 
 import (
 	"github.com/pkg/errors"
+	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server"
@@ -31,6 +32,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		if !isSame {
 			res.FullNDF = network.GetFullNdf().GetPb()
 		}
+
+		res.Id = instance.GetID().Bytes()
 
 		//Check if any updates where made and get them
 		res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))

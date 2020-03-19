@@ -13,12 +13,14 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
+	"strings"
 	"time"
 )
 
@@ -32,10 +34,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	ourDef := instance.GetDefinition()
 	jww.FATAL.Printf("beginning not started state")
 	network := instance.GetNetwork()
-	_, err := network.AddHost(id.NewTmpGateway().String(), ourDef.Gateway.Address, ourDef.Gateway.TlsCert, true, true)
-	if err != nil {
-		return errors.Errorf("Unable to add gateway host: %+v", err)
-	}
 
 	// Connect to the Permissioning Server without authentication
 	permHost, err := network.AddHost(id.PERMISSIONING,
@@ -61,12 +59,17 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
-	// Blocking call: Request ndf from permissioning
-	err = permissioning.Poll(instance)
+	// Retry polling until an ndf is returned
+	err = errors.Errorf(ndf.NO_NDF)
+	for err != nil && strings.Contains(err.Error(), ndf.NO_NDF) {
+		// Blocking call: Request ndf from permissioning
+		err = permissioning.Poll(instance)
+
+	}
+
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
-
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
