@@ -11,7 +11,6 @@ package io
 import (
 	"crypto"
 	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/nonce"
@@ -44,8 +43,6 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 		err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
 		if err != nil {
 			// Invalid signed Client public key, return an error
-			jww.ERROR.Printf("verification of public key signature "+
-				"from registration failed: %+v", err)
 			return []byte{}, []byte{},
 				errors.Errorf("verification of public key signature "+
 					"from registration failed: %+v", err)
@@ -56,7 +53,6 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(RSAPubKey))
 
 	if err != nil {
-		jww.ERROR.Printf("Unable to decode client RSA Pub Key: %+v", err)
 		return []byte{}, []byte{},
 			errors.Errorf("Unable to decode client RSA Pub Key: %+v", err)
 	}
@@ -69,7 +65,6 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 	err = rsa.Verify(userPublicKey, sha, data, DHSignedByClientRSA, nil)
 
 	if err != nil {
-		jww.ERROR.Printf("Client signature on DH key incorrect: %+v", err)
 		return []byte{}, []byte{},
 			errors.Errorf("Client signature on DH key could not be verified: %+v", err)
 	}
@@ -113,6 +108,7 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated ||
 		auth.Sender.GetId() != instance.GetGateway().String() {
+
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -121,7 +117,6 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 
 	if err != nil {
 		// Invalid nonce, return an error
-		jww.ERROR.Printf("Unable to find user: %v", UserID)
 		return make([]byte, 0),
 			errors.Errorf("Unable to confirm registration, could not "+
 				"find a user: %+v", err)
@@ -129,7 +124,6 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 
 	// Verify nonce has not expired
 	if !user.Nonce.IsValid() {
-		jww.ERROR.Printf("Unable to confirm registration, Nonce is expired: %+v", user.Nonce)
 		return make([]byte, 0),
 			errors.Errorf("Unable to confirm registration, Nonce is expired")
 	}
@@ -144,7 +138,6 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 	err = rsa.Verify(user.RsaPublicKey, sha, data, Signature, nil)
 
 	if err != nil {
-		jww.ERROR.Printf("Unable to confirm registration, signature invalid: %+v", err)
 		return make([]byte, 0),
 			errors.Errorf("Unable to confirm registration, signature invalid")
 	}
@@ -166,6 +159,6 @@ func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
 	//update the user's state to registered
 	user.IsRegistered = true
 	instance.GetUserRegistry().UpsertUser(user)
-
+	// Fixme: what is going on here?
 	return make([]byte, 0), nil
 }

@@ -6,7 +6,6 @@
 package server
 
 import (
-	"crypto/x509"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -15,7 +14,6 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
@@ -242,26 +240,9 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
 }
 
-// IsFirstNode returns if the node is first node
-func (i *Instance) IsFirstNode() bool {
-	//return i.definition.Topology.IsFirstNode(i.definition.ID)
-	return true
-}
-
-// IsLastNode returns if the node is last node
-func (i *Instance) IsLastNode() bool {
-	//return i.definition.Topology.IsLastNode(i.definition.ID)
-	return true
-}
-
 // GetIP returns the IP of the node from the instance
 func (i *Instance) GetIP() string {
-	/*fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
-	fmt.Printf("i.GetTopology(): %+v\n", i.GetTopology())
-	fmt.Printf("i.GetID(): %+v\n", i.GetID())
-	addrWithPort := i.definition.Nodes[i.GetTopology().GetNodeLocation(i.GetID())].Address
-	return strings.Split(addrWithPort, ":")[0]*/
-	return ""
+	return i.definition.Address
 }
 
 // GetResourceMonitor returns the resource monitoring object
@@ -333,41 +314,6 @@ func GenerateId(i interface{}) *id.Node {
 	nid := id.NewNodeFromBytes(nodeIdBytes)
 
 	return nid
-}
-
-// VerifyTopology checks the signed node certs and verifies that no falsely signed certs are submitted
-// it then shuts down the network so that it can be reinitialized with the new topology
-func (i *Instance) VerifyTopology() error {
-	//Load Permissioning cert into a cert object
-	permissioningCert, err := tls.LoadCertificate(string(i.definition.Permissioning.TlsCert))
-	if err != nil {
-		jww.ERROR.Printf("Could not load the permissioning server cert: %v", err)
-		return err
-	}
-
-	// FIXME: Force the permissioning cert to act as a CA
-	permissioningCert.BasicConstraintsValid = true
-	permissioningCert.IsCA = true
-	permissioningCert.KeyUsage = x509.KeyUsageCertSign
-	/*
-		//Iterate through the topology
-		for j := 0; j < i.definition.Topology.Len(); j++ {
-			//Load the node Cert from topology
-			nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
-			if err != nil {
-				errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
-				return errors.New(errorMsg)
-			}
-
-			//Check that the node's cert was signed by the permissioning server's cert
-			err = nodeCert.CheckSignatureFrom(permissioningCert)
-			if err != nil {
-				errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioning: %v", j, err)
-				return errors.New(errorMsg)
-			}
-		}
-	*/
-	return nil
 }
 
 /*

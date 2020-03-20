@@ -9,7 +9,7 @@
 package receivers
 
 import (
-	"github.com/spf13/jwalterweatherman"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -26,59 +26,93 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
 		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
-		return ReceiveGetMeasure(instance, message)
+		metrics, err := ReceiveGetMeasure(instance, message)
+		if err != nil {
+			jww.ERROR.Printf("GetMeasure error: %+v, %+v", auth, err)
+		}
+		return metrics, err
+
 	}
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
-		return ReceivePostPhase(batch, instance, auth)
+		err := ReceivePostPhase(batch, instance, auth)
+		if err != nil {
+			jww.ERROR.Printf("ReceivePostPhase error: %+v, %+v", auth, err)
+		}
+		return err
 	}
 
 	impl.Functions.StreamPostPhase = func(streamServer mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		err := ReceiveStreamPostPhase(streamServer, instance, auth)
+		if err != nil {
+			jww.ERROR.Printf("StreamPostPhase error: %+v, %+v", auth, err)
+		}
 		return err
 	}
 
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-		return ReceivePostRoundPublicKey(instance, pk, auth)
-	}
-
-	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
-		return 0, nil //io.GetRoundBufferInfo(instance.GetCompletedPrecomps(), time.Second)
-	}
-
-	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, e error) {
-		return nil, nil //io.GetCompletedBatch(instance, time.Second, auth)
+		err := ReceivePostRoundPublicKey(instance, pk, auth)
+		if err != nil {
+			jww.ERROR.Printf("ReceivePostRoundPublicKey error: %+v, %+v", auth,
+				err)
+		}
+		return err
 	}
 
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		err := ReceiveFinishRealtime(instance, message, auth)
+		if err != nil {
+			jww.ERROR.Printf("ReceiveFinishRealtime error: %+v, %+v", auth, err)
+		}
 		return err
+
 	}
 
 	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
 		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte, auth *connect.Auth) ([]byte, []byte, error) {
-		return io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
+		nonce, dhPub, err := io.RequestNonce(instance, salt, RSAPubKey, DHPubKey,
 			RSASignedByRegistration, DHSignedByClientRSA, auth)
+		if err != nil {
+			jww.ERROR.Printf("RequestNonce error: %+v, %+v", auth, err)
+		}
+		return nonce, dhPub, err
 	}
 
 	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
-		return io.ConfirmRegistration(instance, UserID, Signature, auth)
+		bytes, err := io.ConfirmRegistration(instance, UserID, Signature, auth)
+		if err != nil {
+			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
+		}
+		return bytes, err
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
-		return ReceivePostPrecompResult(instance, roundID, slots, auth)
+		err := ReceivePostPrecompResult(instance, roundID, slots, auth)
+		if err != nil {
+			jww.ERROR.Printf("ReceivePostPrecompResult error: %+v, %+v", auth, err)
+		}
+		return err
 	}
+
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
-		return ReceivePostNewBatch(instance, newBatch, io.PostPhase, auth)
+		err := ReceivePostNewBatch(instance, newBatch, io.PostPhase, auth)
+		if err != nil {
+			jww.ERROR.Printf("ReceivePostNewBatch error: %+v, %+v", auth, err)
+		}
+		return err
 	}
 
 	impl.Functions.SendRoundTripPing = func(ping *mixmessages.RoundTripPing, auth *connect.Auth) error {
-		return ReceiveRoundTripPing(instance, ping)
+		err := ReceiveRoundTripPing(instance, ping)
+		if err != nil {
+			jww.ERROR.Printf("SendRoundTripPing error: %+v, %+v", auth, err)
+		}
+		return err
 	}
 
 	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 		response, err := ReceivePoll(poll, instance)
 		if err != nil {
-			jwalterweatherman.WARN.Printf("Failure on polling receiver: %+v", err)
+			jww.ERROR.Printf("Poll error: %v, %+v", auth, err)
 		}
 		return response, err
 	}
