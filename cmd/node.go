@@ -133,15 +133,6 @@ func StartServer(vip *viper.Viper) error {
 
 	jww.INFO.Printf("Connecting to network")
 
-	// if permissioning check that the certs are valid
-	if !disablePermissioning {
-		err = instance.VerifyTopology()
-		if err != nil {
-			return errors.Errorf("Could not verify all nodes were signed by the"+
-				" permissioning server: %+v", err)
-		}
-	}
-
 	// initialize the network
 	instance.Online = true
 
