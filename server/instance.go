@@ -221,18 +221,6 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
 }
 
-// IsFirstNode returns if the node is first node
-func (i *Instance) IsFirstNode() bool {
-	//return i.definition.Topology.IsFirstNode(i.definition.ID)
-	return true
-}
-
-// IsLastNode returns if the node is last node
-func (i *Instance) IsLastNode() bool {
-	//return i.definition.Topology.IsLastNode(i.definition.ID)
-	return true
-}
-
 // GetIP returns the IP of the node from the instance
 func (i *Instance) GetIP() string {
 	/*fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)

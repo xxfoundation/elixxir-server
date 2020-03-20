@@ -131,15 +131,6 @@ func StartServer(vip *viper.Viper) error {
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	def.RoundCreationTimeout = newRoundTimeout
 
-	//if instance.IsFirstNode() {
-	//	jww.INFO.Printf("Initilizing as first node")
-	//	instance.InitFirstNode()
-	//}
-	//if instance.IsLastNode() {
-	//	jww.INFO.Printf("Initilizing as last node")
-	//	instance.InitLastNode()
-	//}
-
 	jww.INFO.Printf("Connecting to network")
 
 	// if permissioning check that the certs are valid
@@ -161,11 +152,8 @@ func StartServer(vip *viper.Viper) error {
 		return errors.Errorf("Unable to run instance: %+v", err)
 	}
 
-	//Start runners for first node
-	if instance.IsFirstNode() {
-		jww.INFO.Printf("Checking all servers are online")
-		//io.VerifyServersOnline(instance.GetNetwork(), instance.GetConsensus())
-	}
+	jww.INFO.Printf("Checking all servers are online")
+
 	return nil
 }
 
@@ -177,4 +165,5 @@ func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
 		u.IsRegistered = true
 		ur.UpsertUser(u)
 	}
+	return
 }

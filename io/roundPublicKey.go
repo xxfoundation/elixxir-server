@@ -7,7 +7,6 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -38,7 +37,7 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 	}
 
 	if len(roundPublicKeys) != 1 {
-		panic("Round public keys buffer slice contains invalid data")
+		return errors.Errorf("Round public keys buffer slice contains invalid data")
 	}
 
 	// Create the message structure to send the messages
@@ -104,8 +103,8 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 	// Pull the particular server host object from the commManager
 	recipient, ok := network.GetHost(recipientID)
 	if !ok {
-		errMsg := fmt.Sprintf("Could not find cMix server %s in comm manager", recipientID)
-		return errors.New(errMsg)
+		errMsg := errors.Errorf("Could not find cMix server %s in comm manager", recipientID)
+		return errMsg
 	}
 
 	//Send message to first node
@@ -114,8 +113,7 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 	// Make sure the comm doesn't return an Ack with an
 	// error message
 	if ack != nil && ack.Error != "" {
-		err = errors.Errorf("Remote Server Error: %s, %s",
-			recipientID, ack.Error)
+		err = errors.Errorf("Remote Server Error: %s, %s", recipientID, ack.Error)
 		return err
 	}
 
