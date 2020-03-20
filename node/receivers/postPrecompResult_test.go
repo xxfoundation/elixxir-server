@@ -68,10 +68,14 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// This is quite a bit of setup...
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.PrecompReveal
-	instance.GetRoundManager().AddRound(round.New(grp,
+	rnd, err := round.New(grp,
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), "0.0.0.0"))
+		instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
+	instance.GetRoundManager().AddRound(rnd)
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
@@ -102,7 +106,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
-	nodeIDs := buildMockNodeIDs(5)
+	nodeIDs := BuildMockNodeIDs(5)
 
 	// Set up all the instances
 	var instances []*server.Instance
@@ -119,9 +123,12 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
 		instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
-		rnd := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
+		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 			3, instance.GetRngStreamGen(), "0.0.0.0")
+		if err != nil {
+			t.Errorf("Failed to create new round: %+v", err)
+		}
 		instance.GetRoundManager().AddRound(rnd)
 		instances = append(instances, instance)
 	}
@@ -139,10 +146,14 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		// This is quite a bit of setup...
 		p := testUtil.InitMockPhase(t)
 		p.Ptype = phase.PrecompReveal
-		instances[i].GetRoundManager().AddRound(round.New(grp,
+		rnd, err := round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
-			3, instances[i].GetRngStreamGen(), "0.0.0.0"))
+			3, instances[i].GetRngStreamGen(), "0.0.0.0")
+		if err != nil {
+			t.Errorf("Failed to create new round: %+v", err)
+		}
+		instances[i].GetRoundManager().AddRound(rnd)
 	}
 
 	// Initially, there should be zero rounds on the precomp queue

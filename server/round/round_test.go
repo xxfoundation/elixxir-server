@@ -66,9 +66,12 @@ func TestNew(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	if round.GetID() != roundId {
 		t.Error("Round ID wasn't set correctly")
@@ -138,9 +141,12 @@ func TestRound_GetMeasurements(t *testing.T) {
 	nid := id.NewNodeFromUInt(uint64(123), t)
 	topology := connect.NewCircuit([]*id.Node{nid})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	timeNow := time.Now()
 	resourceMetric := measure.ResourceMetric{
@@ -183,9 +189,12 @@ func TestRound_StartRoundTrip(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	payload := "NULL/ACK"
 	unsetStart := round.rtStartTime
 	round.StartRoundTrip(payload)
@@ -211,12 +220,15 @@ func TestRound_StopRoundTrip(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	unsetStop := round.rtEndTime
 
-	err := round.StopRoundTrip()
+	err = round.StopRoundTrip()
 	if err == nil {
 		t.Errorf("StopRoundTrip should error if rtStarted not set: %+v", err)
 	}

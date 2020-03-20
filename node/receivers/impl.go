@@ -9,6 +9,7 @@
 package receivers
 
 import (
+	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -75,8 +76,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
-
-		return nil, nil //receivers.ReceivePoll()
+		response, err := ReceivePoll(poll, instance)
+		if err != nil {
+			jwalterweatherman.WARN.Printf("Failure on polling receiver: %+v", err)
+		}
+		return response, err
 	}
 
 	impl.Functions.AskOnline = func() error {

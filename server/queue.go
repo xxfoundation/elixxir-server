@@ -55,6 +55,10 @@ func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
 	return rq.phaseQueue
 }
 
+func (rq *ResourceQueue) Kill(t *testing.T) {
+	rq.kill()
+}
+
 //kill the queue
 func (rq *ResourceQueue) kill() {
 	rq.killChan <- struct{}{}

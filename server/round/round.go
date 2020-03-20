@@ -48,7 +48,11 @@ type Round struct {
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
-	rngStreamGen *fastRNG.StreamGenerator, localIP string) *Round {
+	rngStreamGen *fastRNG.StreamGenerator, localIP string) (*Round, error) {
+
+	if batchSize <= 0 {
+		return nil, errors.New("Cannot make a round with a <=0 batch size")
+	}
 
 	roundMetrics := measure.NewRoundMetrics(id, batchSize)
 	roundMetrics.IP = localIP
@@ -156,7 +160,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 
 	round.batchSize = batchSize
 
-	return &round
+	return &round, nil
 }
 
 func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
@@ -164,12 +168,14 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 		panic("Can not use NewDummyRound out side of testing")
 	}
 	list := []*id.Node{}
+
 	for i := uint64(0); i < 8; i++ {
 		node := id.NewNodeFromUInt(i, t)
 		list = append(list, node)
 	}
 
 	top := *connect.NewCircuit(list)
+
 	return &Round{id: roundId, batchSize: batchSize, topology: &top}
 }
 

@@ -56,9 +56,13 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	batchSize := uint32(11)
 
-	r := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+		return
+	}
 	r.StartRoundTrip("test")
 
 	before := r.GetRTEnd().String()
@@ -66,7 +70,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	instance.GetRoundManager().AddRound(r)
 	A := make([]byte, 150)
 	B := make([]byte, 150)
-	_, err := rand.Read(A)
+	_, err = rand.Read(A)
 	if err != nil {
 		t.Errorf("TransmitRoundTripPing: failed to generate random bytes A: %+v", err)
 	}

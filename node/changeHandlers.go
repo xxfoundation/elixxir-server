@@ -13,12 +13,14 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
+	"strings"
 	"time"
 )
 
@@ -27,24 +29,22 @@ func Dummy(from current.Activity) error {
 }
 
 // NotStarted is the beginning state of state machine. Enters waiting upon successful completion
-func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) error {
+func NotStarted(instance *server.Instance, noTls bool) error {
 	// Start comms network
+	ourDef := instance.GetDefinition()
+	jww.FATAL.Printf("beginning not started state")
 	network := instance.GetNetwork()
-	_, err := network.AddHost(id.NewTmpGateway().String(), def.Gateway.Address, def.Gateway.TlsCert, true, true)
-	if err != nil {
-		return errors.Errorf("Unable to add gateway host: %+v", err)
-	}
 
 	// Connect to the Permissioning Server without authentication
 	permHost, err := network.AddHost(id.PERMISSIONING,
 		// instance.GetPermissioningAddress,
-		def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, false)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
 	// Blocking call: Begin Node registration
-	err = permissioning.RegisterNode(def, network, permHost)
+	err = permissioning.RegisterNode(ourDef, network, permHost)
 	if err != nil {
 		return errors.Errorf("Failed to register node: %+v", err)
 	}
@@ -54,17 +54,23 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 
 	// Connect to the Permissioning Server with authentication enabled
 	permHost, err = network.AddHost(id.PERMISSIONING,
-		def.Permissioning.Address, def.Permissioning.TlsCert, true, true)
+		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
-	// Blocking call: Request ndf from permissioning
-	err = permissioning.Poll(instance)
+	// Retry polling until an ndf is returned
+	err = errors.Errorf(ndf.NO_NDF)
+	for err != nil && strings.Contains(err.Error(), ndf.NO_NDF) {
+		// Blocking call: Request ndf from permissioning
+		err = permissioning.Poll(instance)
+
+	}
+
+	jww.DEBUG.Printf("Recieved ndf for first time!")
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
-
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
@@ -75,17 +81,13 @@ func NotStarted(def *server.Definition, instance *server.Instance, noTls bool) e
 	}
 
 	// Parse the Ndf for the new signed certs from  permissioning
-	serverCert, gwCert, err := permissioning.FindSelfInNdf(def, instance.GetConsensus().GetFullNdf().Get())
+	serverCert, gwCert, err := permissioning.FindSelfInNdf(ourDef, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
 	}
 
-	// Set definition for newly signed certs
-	def.TlsCert = []byte(serverCert)
-	def.Gateway.TlsCert = []byte(gwCert)
-
 	// Restart the network with these signed certs
-	err = instance.RestartNetwork(receivers.NewImplementation, def, noTls)
+	err = instance.RestartNetwork(receivers.NewImplementation, noTls, serverCert, gwCert)
 	if err != nil {
 		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
 	}
@@ -134,8 +136,11 @@ func Waiting(from current.Activity) error {
 	return nil
 }
 
-// fixme: doc string
+// Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
+
+	jww.DEBUG.Printf("Beginning precomputing transition")
+
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()
@@ -147,11 +152,21 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
 
+	for i, node := range nodeIDs {
+		jww.FATAL.Printf("node %d in topology: %+v", i, node.String())
+	}
+
 	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
 	for i := 0; i < circuit.Len(); i++ {
-		ourHost, ok := instance.GetNetwork().GetHost(circuit.GetNodeAtIndex(i).String())
+		jww.FATAL.Printf("id %d in circuit: %+v", i, circuit.GetNodeAtIndex(i))
+	}
+
+	for i := 0; i < circuit.Len(); i++ {
+		nodeId := circuit.GetNodeAtIndex(i).String()
+		jww.ERROR.Printf("nodeId: [%s]", nodeId)
+		ourHost, ok := instance.GetNetwork().GetHost(nodeId)
 		if !ok {
 			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))
 		}
@@ -167,7 +182,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		newRoundTimeout)
 
 	//Build the round
-	rnd := round.New(
+	rnd, err := round.New(
 		instance.GetConsensus().GetCmixGroup(),
 		instance.GetUserRegistry(),
 		roundID, phases, phaseResponses,
@@ -176,6 +191,9 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
 		instance.GetIP())
+	if err != nil {
+		return errors.WithMessage(err, "Failed to create new round")
+	}
 
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
@@ -227,6 +245,18 @@ func Realtime(instance *server.Instance) error {
 // fixme: doc string
 func Completed(from current.Activity) error {
 	// start completed
+	return nil
+}
+
+// fixme: doc string
+func Error(from current.Activity) error {
+	// start error
+	return nil
+}
+
+// fixme: doc string
+func Crash(from current.Activity) error {
+	// start error
 	return nil
 }
 

@@ -74,18 +74,25 @@ func TestPrecomputing(t *testing.T) {
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
-
+	_ = instance.Run()
 	var top []string
 	for i := 0; i < topology.Len(); i++ {
-		top = append(top, topology.GetNodeAtIndex(i).String())
+		nid := topology.GetNodeAtIndex(i).String()
+		top = append(top, nid)
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		if err != nil {
+			t.Errorf("Failed to add host: %+v", err)
+		}
 	}
 	go func() {
 		time.Sleep(time.Second)
 		instance.GetCreateRoundQueue() <- &mixmessages.RoundInfo{
-			ID:       0,
-			Topology: top,
+			ID:        0,
+			Topology:  top,
+			BatchSize: 32,
 		}
 	}()
+	instance.GetResourceQueue().Kill(t)
 
 	err := Precomputing(instance, 3)
 	if err != nil {

@@ -65,6 +65,9 @@ func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb
 		t.Fail()
 	}
 
+	//Make sure instance is ready by default
+	instance.SetGatewayAsReady()
+
 	// In order for our instance to return updated ndf we need to sign it so here we extract keys
 	certPath := testkeys.GetGatewayCertPath()
 	cert := testkeys.LoadFromPath(certPath)
@@ -136,9 +139,19 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
+	dr := round.NewDummyRound(0, 10, t)
+	instance.GetRoundManager().AddRound(dr)
+
+	recv := make(chan services.Chunk)
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		close(recv)
+	}()
+
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
+		t.Logf("Unexpected error: %v", err)
 		t.Fail()
 	}
 	if res == nil {
@@ -238,40 +251,15 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	}
 }
 
-func pushNRoundUpdates(n int, instance server.Instance, key *rsa.PrivateKey, t *testing.T) {
-
-	for i := 1; i < n+1; i++ {
-		newRound := &pb.RoundInfo{
-			ID:       uint64(i),
-			UpdateID: uint64(i),
-		}
-
-		err := signature.Sign(newRound, key)
-		if err != nil {
-			t.Logf("Failed to sign: %v", err)
-			t.Fail()
-		}
-
-		//t.Logf("ROUND: %v", newRound)
-
-		err = instance.GetConsensus().RoundUpdate(newRound)
-		if err != nil {
-			t.Logf("error pushing round %v", err)
-			t.Fail()
-		}
-	}
-
-}
-
 // Send a round update to receive poll and test that we get the expected value back in server poll response
 func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 	instance, poll, _, privKey := setupTests(t, current.REALTIME)
 
-	pushNRoundUpdates(10, instance, privKey, t)
+	PushNRoundUpdates(10, instance, privKey, t)
 
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
+		t.Logf("Unexpected error: %v", err)
 		t.Fail()
 	}
 

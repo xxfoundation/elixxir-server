@@ -32,6 +32,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 			res.FullNDF = network.GetFullNdf().GetPb()
 		}
 
+		res.Id = instance.GetID().Bytes()
+
 		//Check if any updates where made and get them
 		res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
 
@@ -39,29 +41,26 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		if instance.GetStateMachine().Get() == current.REALTIME {
 			res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
 		}
-
 		res.Slots, err = GetCompletedBatch(instance)
 
 		instance.GetGatewayFirstTime().Send()
 		return &res, err
 	}
 
-	err = errors.New("Node is not ready for gateway polling")
-
 	// If node has not gotten a response from permissioning, return an empty message
-	return &res, err
+	return &res, errors.New("Node is not ready for gateway polling")
 }
 
 // todo: docstring
 func GetCompletedBatch(instance *server.Instance) ([]*mixmessages.Slot, error) {
 	// Check if a completed batch is ready to be returned, get the batch and return it if it is
 	cr, err := instance.GetCompletedBatchQueue().Receive()
-	if err != nil && strings.Contains(err.Error(), "Did not recieve a completed round") {
+	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
 		return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 	}
-
 	var Slots []*mixmessages.Slot
 	if cr != nil {
+
 		r, err := instance.GetRoundManager().GetRound(cr.RoundID)
 		if err != nil {
 			return nil, errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", cr.RoundID, err)
