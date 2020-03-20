@@ -67,6 +67,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 	}
 
+	jww.DEBUG.Printf("Recieved ndf for first time!")
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
@@ -137,6 +138,9 @@ func Waiting(from current.Activity) error {
 
 // Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
+
+	jww.DEBUG.Printf("Beginning precomputing transition")
+
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo := <-instance.GetCreateRoundQueue()
@@ -148,11 +152,21 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
 
+	for i, node := range nodeIDs {
+		jww.FATAL.Printf("node %d in topology: %+v", i, node.String())
+	}
+
 	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
 	for i := 0; i < circuit.Len(); i++ {
-		ourHost, ok := instance.GetNetwork().GetHost(circuit.GetNodeAtIndex(i).String())
+		jww.FATAL.Printf("id %d in circuit: %+v", i, circuit.GetNodeAtIndex(i))
+	}
+
+	for i := 0; i < circuit.Len(); i++ {
+		nodeId := circuit.GetNodeAtIndex(i).String()
+		jww.ERROR.Printf("nodeId: [%s]", nodeId)
+		ourHost, ok := instance.GetNetwork().GetHost(nodeId)
 		if !ok {
 			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))
 		}

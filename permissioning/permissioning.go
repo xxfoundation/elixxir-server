@@ -60,24 +60,26 @@ func Poll(instance *server.Instance) error {
 	if !ok {
 		return errors.New("Could not get permissioning host")
 	}
-
 	// Ping permissioning for updated information
-	permResponse, err := RetrieveState(permHost, instance)
+	permResponse, err := PollPermissioning(permHost, instance)
 	if err != nil {
+		jww.FATAL.Printf("err: %+v", err)
 		return err
 	}
 
+	jww.FATAL.Printf("perm's response: %+v", permResponse)
 	// Update the internal state of our instance
 	err = UpdateInternalState(permResponse, instance)
 	return err
 }
 
-// RetrieveState polls the permissioning server for updates
-func RetrieveState(permHost *connect.Host,
+// PollPermissioning polls the permissioning server for updates
+func PollPermissioning(permHost *connect.Host,
 	instance *server.Instance) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	jww.FATAL.Printf("our state is at: %+v", instance.GetStateMachine().Get())
+
 	// Get the ndf hashes for the full ndf if available
 	if instance.GetConsensus().GetFullNdf() != nil {
 		fullNdfHash = instance.GetConsensus().GetFullNdf().GetHash()
@@ -90,6 +92,11 @@ func RetrieveState(permHost *connect.Host,
 
 	// Get the update id and activity of the state machine
 	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
+	// The ring buffer returns negative none but message type doesn't support signed numbers
+	// fixme: maybe make proto have signed ints
+	if lastUpdateId == -1 {
+		lastUpdateId = 0
+	}
 	activity := instance.GetStateMachine().Get()
 
 	// Construct a message for permissioning with above information
@@ -99,7 +106,9 @@ func RetrieveState(permHost *connect.Host,
 		LastUpdate: uint64(lastUpdateId),
 		Activity:   uint32(activity),
 	}
-	jww.FATAL.Printf("polling for an update")
+
+	jww.FATAL.Printf("our poll msg: %+v", pollMsg)
+
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
@@ -113,6 +122,7 @@ func RetrieveState(permHost *connect.Host,
 //  It also parsed the message and determines where to transition given contect
 func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
+	jww.FATAL.Printf("perm's msg: %+v", permissioningResponse)
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
@@ -130,6 +140,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 	}
 
 	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
+		jww.DEBUG.Printf("Updating node connections")
 		// Update the nodes in the network.Instance with the new ndf
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
@@ -139,10 +150,9 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
-
+	jww.FATAL.Printf("new updates: %+v", newUpdates)
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
-
 		// Add the new information to the network instance
 		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
@@ -196,13 +206,16 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 				// Wait until the permissioning-instructed time to begin REALTIME
 				go func() {
+					jww.FATAL.Printf("going to be waiting until: %+v", roundInfo.Timestamps[states.REALTIME])
 					// Get the realtime start time
 					duration := time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME]))
-
+					jww.FATAL.Printf("PERM THEN: %+v", duration)
+					jww.FATAL.Printf("SERVER NOW: %+v", time.Now())
 					// Fixme: find way to calculate sleep length that doesn't lose time
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
 					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
+						jww.FATAL.Printf("time to sleep: %+v", timeDiff)
 						time.Sleep(timeDiff)
 					}
 
