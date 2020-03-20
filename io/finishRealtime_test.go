@@ -12,13 +12,15 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"testing"
 	"time"
 )
 
 var receivedFinishRealtime = make(chan *mixmessages.RoundInfo, 100)
+var getMessage = func(index uint32) *mixmessages.Slot {
+	return &mixmessages.Slot{}
+}
 
 func MockFinishRealtimeImplementation() *node.Implementation {
 	impl := node.NewImplementation()
@@ -32,6 +34,8 @@ func MockFinishRealtimeImplementation() *node.Implementation {
 // Test that TransmitFinishRealtime correctly broadcasts message
 // to all other nodes
 func TestSendFinishRealtime(t *testing.T) {
+	instance, _, _, _, _, _ := setup(t)
+
 	//Setup the network
 	numNodes := 4
 	numRecv := 0
@@ -48,9 +52,6 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	rndID := id.Round(42)
 
-	ln := server.LastNode{}
-	ln.Initialize()
-
 	chunkChan := make(chan services.Chunk, numChunks)
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
@@ -59,13 +60,13 @@ func TestSendFinishRealtime(t *testing.T) {
 		chunk, ok := <-chunkInputChan
 		return chunk, ok
 	}
-	doneCH := make(chan struct{})
+	errCH := make(chan error)
 
 	var err error
 	go func() {
-		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
-			getChunk, nil, topology, nil, &ln, chunkChan, nil)
-		doneCH <- struct{}{}
+		err = TransmitFinishRealtime(comms[0], rndID,
+			getChunk, getMessage, topology, instance, chunkChan, nil)
+		errCH <- err
 	}()
 
 	for i := 0; i < numChunks; i++ {
@@ -86,9 +87,9 @@ func TestSendFinishRealtime(t *testing.T) {
 			namReceivedChunks)
 	}
 
-	<-doneCH
+	goErr := <-errCH
 
-	if err != nil {
+	if goErr != nil {
 		t.Errorf("TransmitFinishRealtime: Unexpected error: %+v", err)
 	}
 
@@ -120,6 +121,8 @@ func MockFinishRealtimeImplementation_Error() *node.Implementation {
 }
 
 func TestTransmitFinishRealtime_Error(t *testing.T) {
+	instance, _, _, _, _, _ := setup(t)
+
 	//Setup the network
 	comms, topology := buildTestNetworkComponents(
 		[]*node.Implementation{
@@ -134,31 +137,30 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 
 	rndID := id.Round(42)
 
-	ln := server.LastNode{}
-	ln.Initialize()
+	chunkChan := make(chan services.Chunk)
 
-	chunkChan := make(chan services.Chunk, numChunks)
-
-	chunkInputChan := make(chan services.Chunk, numChunks)
+	chunkInputChan := make(chan services.Chunk)
 
 	getChunk := func() (services.Chunk, bool) {
 		chunk, ok := <-chunkInputChan
 		return chunk, ok
 	}
-	doneCH := make(chan struct{})
+	errCH := make(chan error)
 
 	var err error
 	go func() {
-		err = TransmitFinishRealtime(comms[0], 0, rndID, 0,
-			getChunk, nil, topology, nil, &ln, chunkChan, nil)
-		doneCH <- struct{}{}
+		err = TransmitFinishRealtime(comms[0], rndID,
+			getChunk, getMessage, topology, instance, chunkChan, nil)
+		errCH <- err
 	}()
 
-	for i := 0; i < numChunks; i++ {
-		chunkInputChan <- services.NewChunk(uint32(i*2), uint32(i*2+1))
-	}
+	go func() {
+		for i := 0; i < numChunks; i++ {
+			chunkInputChan <- services.NewChunk(uint32(i*2), uint32(i*2+1))
+		}
 
-	close(chunkInputChan)
+		close(chunkInputChan)
+	}()
 
 	namReceivedChunks := 0
 
@@ -172,9 +174,9 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 			namReceivedChunks)
 	}
 
-	<-doneCH
+	goErr := <-errCH
 
-	if err == nil {
+	if goErr == nil {
 		t.Error("SendFinishRealtime: error did not occur when provoked", err)
 	}
 }

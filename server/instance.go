@@ -1,23 +1,26 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package server
 
 import (
-	"crypto/x509"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
-	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -28,8 +31,17 @@ type Instance struct {
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
 	network       *node.Comms
-	firstNode
-	LastNode
+	machine       state.Machine
+
+	consensus      *network.Instance
+	isGatewayReady *uint32
+	// Channels
+	createRoundQueue    round.Queue
+	completedBatchQueue round.CompletedQueue
+	realtimeRoundQueue  round.Queue
+
+	gatewayPoll          *FirstTime
+	requestNewBatchQueue round.Queue
 }
 
 // Create a server instance. To actually kick off the server,
@@ -38,15 +50,23 @@ type Instance struct {
 // to other servers in the network
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
-func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation, noTls bool) (*Instance, error) {
-	instance := &Instance{
-		Online:        false,
-		definition:    def,
-		roundManager:  round.NewManager(),
-		resourceQueue: initQueue(),
-	}
+func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
+	machine state.Machine, noTls bool) (*Instance, error) {
+	isGwReady := uint32(0)
 
-	// Initializes the network on this server instance
+	instance := &Instance{
+		Online:               false,
+		definition:           def,
+		roundManager:         round.NewManager(),
+		resourceQueue:        initQueue(),
+		machine:              machine,
+		isGatewayReady:       &isGwReady,
+		requestNewBatchQueue: round.NewQueue(),
+		createRoundQueue:     round.NewQueue(),
+		realtimeRoundQueue:   round.NewQueue(),
+		completedBatchQueue:  round.NewCompletedQueue(),
+		gatewayPoll:          NewFirstTime(),
+	}
 
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
@@ -56,18 +76,20 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		instance.network.DisableAuth()
 	}
 
-	//Add all hosts to manager for future connections
-	for index, n := range instance.definition.Nodes {
-		nodeHost, err := instance.network.Manager.AddHost(n.ID.String(), n.Address, n.TlsCert, false, true)
-		if err != nil {
-			errMsg := fmt.Sprintf("Could not add node %s (%v/%v) as a host: %+v",
-				n.ID, index+1, len(instance.definition.Nodes), err)
-			return nil, errors.New(errMsg)
-		}
-		instance.definition.Topology.AddHost(nodeHost)
-
-		jww.INFO.Printf("Connected to node %s", n.ID)
+	// Initializes the network state tracking on this server instance
+	var err error
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
+
+	// Connect to our gateway. At this point we should only know our gateway as this should occur
+	//  BEFORE polling
+	err = instance.GetConsensus().UpdateGatewayConnections()
+	if err != nil {
+		return nil, errors.Errorf("Could not update gateway connections: %+v", err)
+	}
+
 	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
 		_, err := instance.network.AddHost(instance.definition.Gateway.ID.String(),
@@ -86,34 +108,50 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	return instance, nil
 }
 
+// RestartNetwork is intended to reset the network with newly signed certs obtained from polling
+// permissioning
+func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, definition *Definition, noTls bool) error {
+	i.network.Shutdown()
+	i.definition = definition
+	i.network = node.StartNode(definition.ID.String(), definition.Address,
+		makeImplementation(i), definition.TlsCert, definition.TlsKey)
+
+	if noTls {
+		i.network.DisableAuth()
+	}
+
+	// Connect to the Permissioning Server with authentication enabled
+	_, err := i.network.AddHost(id.PERMISSIONING,
+		i.definition.Permissioning.Address, i.definition.Permissioning.TlsCert, true, true)
+	if err != nil {
+		return err
+	}
+
+	_, err = i.network.AddHost(i.definition.Gateway.ID.String(), i.definition.Gateway.Address,
+		i.definition.Gateway.TlsCert, false, true)
+
+	return err
+}
+
 // Run starts the resource queue
-func (i *Instance) Run() {
+func (i *Instance) Run() error {
 	go i.resourceQueue.run(i)
+	return i.machine.Start()
 }
 
-// InitFirstNode initializes the first node components of the instance
-func (i *Instance) InitFirstNode() {
-	i.firstNode.Initialize()
+// GetTopology returns the consensus object
+func (i *Instance) GetConsensus() *network.Instance {
+	return i.consensus
 }
 
-// InitLastNode initializes the last node components of the instance
-func (i *Instance) InitLastNode() {
-	i.LastNode.Initialize()
-}
-
-// GetTopology returns the circuit object
-func (i *Instance) GetTopology() *connect.Circuit {
-	return i.definition.Topology
+// GetStateMachine returns the consensus object
+func (i *Instance) GetStateMachine() state.Machine {
+	return i.machine
 }
 
 // GetGateway returns the id of the node's gateway
 func (i *Instance) GetGateway() *id.Gateway {
 	return i.definition.Gateway.ID
-}
-
-//GetGroups returns the group used by the server
-func (i *Instance) GetGroup() *cyclic.Group {
-	return i.definition.CmixGroup
 }
 
 //GetUserRegistry returns the user registry used by the server
@@ -126,7 +164,7 @@ func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
 }
 
-//GetResourceQueue returns the resource queue used by the serverequals
+//GetResourceQueue returns the resource queue used by the server
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
@@ -166,11 +204,6 @@ func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
 	return i.definition.Permissioning.PublicKey
 }
 
-//GetBatchSize returns the batch size
-func (i *Instance) GetBatchSize() uint32 {
-	return i.definition.BatchSize
-}
-
 // FIXME Populate this from the YAML or something
 func (i *Instance) GetGraphGenerator() services.GraphGenerator {
 	return i.definition.GraphGenerator
@@ -186,23 +219,9 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
 }
 
-// IsFirstNode returns if the node is first node
-func (i *Instance) IsFirstNode() bool {
-	return i.definition.Topology.IsFirstNode(i.definition.ID)
-}
-
-// IsLastNode returns if the node is last node
-func (i *Instance) IsLastNode() bool {
-	return i.definition.Topology.IsLastNode(i.definition.ID)
-}
-
 // GetIP returns the IP of the node from the instance
 func (i *Instance) GetIP() string {
-	fmt.Printf("i.definition.Nodes: %+v\n", i.definition.Nodes)
-	fmt.Printf("i.GetTopology(): %+v\n", i.GetTopology())
-	fmt.Printf("i.GetID(): %+v\n", i.GetID())
-	addrWithPort := i.definition.Nodes[i.GetTopology().GetNodeLocation(i.GetID())].Address
-	return strings.Split(addrWithPort, ":")[0]
+	return i.definition.Address
 }
 
 // GetResourceMonitor returns the resource monitoring object
@@ -212,6 +231,37 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 func (i *Instance) GetRoundCreationTimeout() int {
 	return i.definition.RoundCreationTimeout
+}
+
+func (i *Instance) GetGatewayFirstTime() *FirstTime {
+	return i.gatewayPoll
+}
+
+func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
+	return i.completedBatchQueue
+}
+
+func (i *Instance) GetCreateRoundQueue() round.Queue {
+	return i.createRoundQueue
+}
+
+// todo: docstring
+func (i *Instance) GetRealtimeRoundQueue() round.Queue {
+	return i.realtimeRoundQueue
+}
+
+func (i *Instance) GetRequestNewBatchQueue() round.Queue {
+	return i.requestNewBatchQueue
+}
+
+func (i *Instance) IsReadyForGateway() bool {
+	ourVal := atomic.LoadUint32(i.isGatewayReady)
+
+	return ourVal == 1
+}
+
+func (i *Instance) SetGatewayAsReady() {
+	atomic.StoreUint32(i.isGatewayReady, 1)
 }
 
 // GenerateId generates a random ID and returns it
@@ -245,49 +295,16 @@ func GenerateId(i interface{}) *id.Node {
 	return nid
 }
 
-// VerifyTopology checks the signed node certs and verifies that no falsely signed certs are submitted
-// it then shuts down the network so that it can be reinitialized with the new topology
-func (i *Instance) VerifyTopology() error {
-	//Load Permissioning cert into a cert object
-	permissioningCert, err := tls.LoadCertificate(string(i.definition.Permissioning.TlsCert))
-	if err != nil {
-		jww.ERROR.Printf("Could not load the permissioning server cert: %v", err)
-		return err
-	}
-
-	// FIXME: Force the permissioning cert to act as a CA
-	permissioningCert.BasicConstraintsValid = true
-	permissioningCert.IsCA = true
-	permissioningCert.KeyUsage = x509.KeyUsageCertSign
-
-	//Iterate through the topology
-	for j := 0; j < i.definition.Topology.Len(); j++ {
-		//Load the node Cert from topology
-		nodeCert, err := tls.LoadCertificate(string(i.definition.Nodes[j].TlsCert))
-		if err != nil {
-			errorMsg := fmt.Sprintf("Could not load the node %v's certificate cert: %v", j, err)
-			return errors.New(errorMsg)
-		}
-
-		//Check that the node's cert was signed by the permissioning server's cert
-		err = nodeCert.CheckSignatureFrom(permissioningCert)
-		if err != nil {
-			errorMsg := fmt.Sprintf("Could not verify that a node %v's cert was signed by permissioning: %v", j, err)
-			return errors.New(errorMsg)
-		}
-	}
-
-	return nil
-}
-
+/*
 // String adheres to the stringer interface, returns unique identifying
 // information about the node
 func (i *Instance) String() string {
 	nid := i.definition.ID
-	numNodes := i.definition.Topology.Len()
-	myLoc := i.definition.Topology.GetNodeLocation(nid)
 	localServer := i.network.String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
 	return services.NameStringer(addr, myLoc, numNodes)
 }
+
+
+*/

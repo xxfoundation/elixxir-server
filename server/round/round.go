@@ -12,12 +12,14 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync/atomic"
+	"testing"
 	"time"
 )
 
 type Round struct {
-	id     id.Round
-	buffer *Buffer
+	id        id.Round
+	buffer    *Buffer
+	batchSize uint32
 
 	topology *connect.Circuit
 	state    *uint32
@@ -46,7 +48,11 @@ type Round struct {
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
-	rngStreamGen *fastRNG.StreamGenerator, localIP string) *Round {
+	rngStreamGen *fastRNG.StreamGenerator, localIP string) (*Round, error) {
+
+	if batchSize <= 0 {
+		return nil, errors.New("Cannot make a round with a <=0 batch size")
+	}
 
 	roundMetrics := measure.NewRoundMetrics(id, batchSize)
 	roundMetrics.IP = localIP
@@ -153,7 +159,25 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 
 	round.metricsReadyChan = make(chan struct{}, 1)
 
-	return &round
+	round.batchSize = batchSize
+
+	return &round, nil
+}
+
+func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
+	if t == nil {
+		panic("Can not use NewDummyRound out side of testing")
+	}
+	list := []*id.Node{}
+
+	for i := uint64(0); i < 8; i++ {
+		node := id.NewNodeFromUInt(i, t)
+		list = append(list, node)
+	}
+
+	top := *connect.NewCircuit(list)
+
+	return &Round{id: roundId, batchSize: batchSize, topology: &top}
 }
 
 //GetID return the ID
@@ -167,6 +191,10 @@ func (r *Round) GetTimeStart() time.Time {
 
 func (r *Round) GetBuffer() *Buffer {
 	return r.buffer
+}
+
+func (r *Round) GetBatchSize() uint32 {
+	return r.batchSize
 }
 
 func (r *Round) GetPhase(p phase.Type) (phase.Phase, error) {
@@ -247,6 +275,7 @@ func (r *Round) GetMeasurements(nid string, numNodes, index int,
 	for _, ph := range r.phases {
 		phaseName := ph.GetType().String()
 		phaseMeasure := ph.GetMeasure()
+		phaseMeasure.NodeId = nid
 		rm.AddPhase(phaseName, phaseMeasure)
 	}
 

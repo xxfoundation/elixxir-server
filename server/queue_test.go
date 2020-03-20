@@ -14,7 +14,9 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"runtime"
 	"testing"
 	"time"
@@ -95,18 +97,24 @@ func TestResourceQueue_DenotePhaseCompletion(t *testing.T) {
 }
 
 func TestResourceQueue_RunOne(t *testing.T) {
+	impl := func(*Instance) *node.Implementation {
+		return node.NewImplementation()
+	}
+
 	// In this case, we actually need to set up and run the queue runner
 	q := initQueue()
 	nid := GenerateId(t)
 
+	topology := connect.NewCircuit([]*id.Node{nid})
 	def := Definition{
 		ID:              nid,
-		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
-
-	instance, _ := CreateServerInstance(&def, NewImplementation, false)
+	m := state.NewMachine(dummyStates)
+	instance, _ := CreateServerInstance(&def, impl, m, false)
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase
@@ -121,9 +129,12 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	myGrp := cyclic.NewGroup(pPrime, g)
 
-	r := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
-		responseMap, instance.GetTopology(), instance.GetID(), 1,
+	r, err := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
+		responseMap, topology, instance.GetID(), 1,
 		instance.GetRngStreamGen(), "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	instance.GetRoundManager().AddRound(r)
 
 	if p.GetState() != phase.Active {

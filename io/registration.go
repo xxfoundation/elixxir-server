@@ -31,7 +31,7 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 		return nil, nil, connect.AuthError(auth.Sender.GetId())
 	}
 
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 	sha := crypto.SHA256
 
 	if !instance.IsRegistrationAuthenticated() {

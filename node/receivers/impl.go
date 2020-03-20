@@ -6,7 +6,7 @@
 
 // Package io impl.go implements server utility functions needed to work
 // with the comms library
-package node
+package receivers
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
@@ -24,14 +24,6 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 
-	impl.Functions.CreateNewRound = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		err := ReceiveCreateNewRound(instance, message, instance.GetRoundCreationTimeout(), auth)
-		if err != nil {
-			jww.ERROR.Printf("ReceiveCreateNewRound error: %+v, %+v", auth, err)
-		}
-		return err
-	}
-
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
 		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
 		metrics, err := ReceiveGetMeasure(instance, message)
@@ -45,7 +37,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
 		err := ReceivePostPhase(batch, instance, auth)
 		if err != nil {
-			jww.ERROR.Panicf("ReceivePostPhase error: %+v, %+v", auth, err)
+			jww.ERROR.Printf("ReceivePostPhase error: %+v, %+v", auth, err)
 		}
 		return err
 	}
@@ -65,23 +57,6 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 				err)
 		}
 		return err
-	}
-
-	impl.Functions.GetRoundBufferInfo = func(auth *connect.Auth) (int, error) {
-		numPrecomps, err := io.GetRoundBufferInfo(instance.
-			GetCompletedPrecomps(), time.Second)
-		if err != nil {
-			jww.ERROR.Printf("GetRoundBufferInfo error: %+v, %+v", auth, err)
-		}
-		return numPrecomps, err
-	}
-
-	impl.Functions.GetCompletedBatch = func(auth *connect.Auth) (batch *mixmessages.Batch, err error) {
-		batch, err = io.GetCompletedBatch(instance, time.Second, auth)
-		if err != nil {
-			jww.ERROR.Printf("GetCompletedBatch error: %+v, %+v", auth, err)
-		}
-		return batch, err
 	}
 
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
@@ -119,7 +94,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
-		err := ReceivePostNewBatch(instance, newBatch, auth)
+		err := ReceivePostNewBatch(instance, newBatch, io.PostPhase, auth)
 		if err != nil {
 			jww.ERROR.Printf("ReceivePostNewBatch error: %+v, %+v", auth, err)
 		}
@@ -132,6 +107,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 			jww.ERROR.Printf("SendRoundTripPing error: %+v, %+v", auth, err)
 		}
 		return err
+	}
+
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
+
+		return nil, nil //receivers.ReceivePoll()
 	}
 
 	impl.Functions.AskOnline = func() error {

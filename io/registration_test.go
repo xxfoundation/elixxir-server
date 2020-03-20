@@ -17,26 +17,33 @@ import (
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/testUtil"
 	"os"
 	"testing"
 	"time"
 )
 
 var serverInstance *server.Instance
-var serverRSAPub *rsa.PublicKey
-var serverRSAPriv *rsa.PrivateKey
 var clientRSAPub *rsa.PublicKey
 var clientRSAPriv *rsa.PrivateKey
 var clientDHPub *cyclic.Int
-var clintDHPriv *cyclic.Int
 var regPrivKey *rsa.PrivateKey
 var nodeId *id.Node
 
-func TestMain(m *testing.M) {
+func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.Node) {
+	switch v := t.(type) {
+	case *testing.T:
+	case *testing.M:
+		break
+	default:
+		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
+	}
 
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
@@ -50,60 +57,63 @@ func TestMain(m *testing.M) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nodeId = server.GenerateId(m)
+	nid := server.GenerateId(t)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
 	var err error
 
 	//make client rsa key pair
-	clientRSAPriv, err = rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	cRsaPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
 	if err != nil {
 		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
 	}
 
-	clientRSAPub = clientRSAPriv.GetPublic()
+	cRsaPub := cRsaPriv.GetPublic()
 
 	//make client DH key
-	clintDHPriv = grp.RandomCoprime(grp.NewInt(1))
-	clientDHPub = grp.ExpG(clintDHPriv, grp.NewInt(1))
+	clintDHPriv := grp.RandomCoprime(grp.NewInt(1))
+	cDhPub := grp.ExpG(clintDHPriv, grp.NewInt(1))
 
 	//make registration rsa key pair
-	regPrivKey, err = rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	regPKey, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
 	if err != nil {
 		panic(fmt.Sprintf("Could not generate registration private key: %+v", err))
 	}
 
 	//make server rsa key pair
-	serverRSAPriv, err = rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	serverRSAPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
 	if err != nil {
 		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
 	}
 
-	serverRSAPub = serverRSAPriv.GetPublic()
+	serverRSAPub := serverRSAPriv.GetPublic()
 
 	def := server.Definition{
-		CmixGroup: grp,
-		Nodes: []server.Node{
-			{
-				ID: nodeId,
-			},
-		},
-		ID:              nodeId,
+		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		PrivateKey:      serverRSAPriv,
 		PublicKey:       serverRSAPub,
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
-	def.Permissioning.PublicKey = regPrivKey.GetPublic()
+	def.Permissioning.PublicKey = regPKey.GetPublic()
 	nodeIDs := make([]*id.Node, 0)
-	nodeIDs = append(nodeIDs, nodeId)
-	def.Topology = connect.NewCircuit(nodeIDs)
+	nodeIDs = append(nodeIDs, nid)
+	_ = connect.NewCircuit(nodeIDs)
 	def.Gateway.ID = id.NewTmpGateway()
 
-	serverInstance, _ = server.CreateServerInstance(&def, NewImplementation, false)
+	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, mach, false)
+
+	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid
+}
+
+func TestMain(m *testing.M) { // TODO: TestMain is bad make this go away
+	serverInstance, clientRSAPub, clientRSAPriv, clientDHPub, regPrivKey, nodeId = setup(m)
 	os.Exit(m.Run())
 }
 
@@ -283,7 +293,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 // Test confirm nonce
 func TestConfirmRegistration(t *testing.T) {
 	//make new user
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	user.IsRegistered = false
 	user.RsaPublicKey = clientRSAPub
@@ -330,7 +340,7 @@ func TestConfirmRegistration(t *testing.T) {
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuth(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -365,7 +375,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuthId(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -401,7 +411,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 
 // Test confirm nonce that doesn't exist
 func TestConfirmRegistration_NonExistant(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -436,7 +446,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 
 // Test confirm nonce expired
 func TestConfirmRegistration_Expired(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(1)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
@@ -479,7 +489,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 
 // Test confirm nonce with invalid signature
 func TestConfirmRegistration_BadSignature(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetGroup())
+	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	serverInstance.GetUserRegistry().UpsertUser(user)
 	user.RsaPublicKey = clientRSAPub

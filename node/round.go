@@ -14,15 +14,12 @@ import (
 )
 
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32, newRoundTimeout int) ([]phase.Phase,
+	nodeID *id.Node, instance *server.Instance, batchSize uint32, newRoundTimeout time.Duration) ([]phase.Phase,
 	phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
 	generalExpectedStates := []phase.State{phase.Active}
-
-	// TODO: Expose this timeout on the command line
-	defaultTimeout := time.Duration(newRoundTimeout) * time.Second
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -31,7 +28,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitGenerateGraph(gc),
 		Type:                phase.PrecompGeneration,
 		TransmissionHandler: io.TransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 	}
 	// On every node but the first, it receives generate and executes generate,
 	// First node starts the round via its business logic so it has no
@@ -68,7 +65,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitShareGraph(gcShare),
 		Type:                phase.PrecompShare,
 		TransmissionHandler: io.TransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -109,7 +106,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 	}
 
 	// Every node except the first node handles precomp decrypt in the normal
@@ -139,7 +136,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 	}
 
 	// Every node except the first node handles precomp permute in the normal
@@ -168,7 +165,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -211,7 +208,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               realtime.InitDecryptGraph(gc),
 		Type:                phase.RealDecrypt,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 	}
 
 	decryptResponse := phase.ResponseDefinition{
@@ -237,7 +234,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               realtime.InitPermuteGraph(gc),
 		Type:                phase.RealPermute,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -265,9 +262,8 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
 				getMessage phase.GetMessage, topology *connect.Circuit,
 				nodeID *id.Node, measure phase.Measure) error {
-				return io.TransmitFinishRealtime(network, batchSize, roundID,
-					phaseTy, getChunk, getMessage, topology, nodeID, lastNode,
-					chunkChan, measure)
+				return io.TransmitFinishRealtime(network, roundID, getChunk,
+					getMessage, topology, instance, chunkChan, measure)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)
