@@ -198,6 +198,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
 				}
 
+				jww.FATAL.Printf("we are ready for realtime: %+v", roundInfo)
 				// Send info to the realtime round queue
 				err = instance.GetRealtimeRoundQueue().Send(roundInfo)
 				if err != nil {
@@ -208,7 +209,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 				go func() {
 					jww.FATAL.Printf("going to be waiting until: %+v", roundInfo.Timestamps[states.REALTIME])
 					// Get the realtime start time
-					duration := time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME]))
+					duration := time.Unix(int64(roundInfo.Timestamps[states.REALTIME]), 0)
 					jww.FATAL.Printf("PERM THEN: %+v", duration)
 					jww.FATAL.Printf("SERVER NOW: %+v", time.Now())
 					// Fixme: find way to calculate sleep length that doesn't lose time

@@ -220,11 +220,16 @@ func Standby(from current.Activity) error {
 
 // Realtime checks if we are in the correct phase
 func Realtime(instance *server.Instance) error {
-
+	jww.FATAL.Printf("realtime is happening")
 	// Get new realtime round info from queue
 	roundInfo, err := instance.GetRealtimeRoundQueue().Receive()
 	if err != nil {
 		return errors.Errorf("Unable to receive from RealtimeRoundQueue: %+v", err)
+	}
+
+	err = instance.GetRequestNewBatchQueue().Send(roundInfo)
+	if err != nil {
+		return errors.Errorf("Unable to send to RequestNewBatch queue: %+v", err)
 	}
 
 	// Get our round

@@ -7,6 +7,7 @@ package receivers
 
 import (
 	"github.com/pkg/errors"
+	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server"
@@ -32,6 +33,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 			res.FullNDF = network.GetFullNdf().GetPb()
 		}
 
+		// Populate the id field
 		res.Id = instance.GetID().Bytes()
 
 		//Check if any updates where made and get them
@@ -39,7 +41,11 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 		// Get the request for a new batch que and store it into res
 		if instance.GetStateMachine().Get() == current.REALTIME {
-			res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
+			jwalterweatherman.FATAL.Printf("Get ready bois, we ")
+			res.BatchRequest, err = instance.GetRequestNewBatchQueue().Receive()
+			if err != nil {
+				jwalterweatherman.WARN.Printf("Failed to receive round info in realtime: %+v", err)
+			}
 		}
 		res.Slots, err = GetCompletedBatch(instance)
 
@@ -51,8 +57,9 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 	return &res, errors.New("Node is not ready for gateway polling")
 }
 
-// todo: docstring
+// GetCompletedBatch is used to return completed batches
 func GetCompletedBatch(instance *server.Instance) ([]*mixmessages.Slot, error) {
+	jwalterweatherman.WARN.Printf("we are polling server for ")
 	// Check if a completed batch is ready to be returned, get the batch and return it if it is
 	cr, err := instance.GetCompletedBatchQueue().Receive()
 	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {

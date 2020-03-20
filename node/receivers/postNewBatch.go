@@ -23,6 +23,7 @@ type PostPhase func(p phase.Phase, batch *mixmessages.Batch) error
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, postPhase PostPhase, auth *connect.Auth) error {
+
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
 		jww.WARN.Printf("[%v]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
@@ -55,7 +56,9 @@ func ReceivePostNewBatch(instance *server.Instance,
 func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch, postPhase PostPhase) error {
 	// Get the roundinfo object
 	ri := newBatch.Round
+	jww.DEBUG.Printf("gateway's batck message: %+v", newBatch.Round)
 	rm := instance.GetRoundManager()
+	jww.DEBUG.Printf("roundId: %+v", ri.ID)
 	rnd, err := rm.GetRound(ri.GetRoundId())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get round object from manager")
@@ -66,7 +69,7 @@ func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch,
 
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
 		jww.FATAL.Panicf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
-			"batch with improper size", instance, newBatch.Round.ID)
+			"batch with improper size", instance, ri.GetID())
 	}
 
 	p, err := rnd.GetPhase(phase.RealDecrypt)
