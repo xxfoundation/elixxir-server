@@ -243,6 +243,8 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 gitlab.com/elixxir/comms v0.0.0-20200319001506-a38e292029ca h1:Gj1mOHXh7t4Kq+roGLliWZ/joPGOW+eWT0CmNQlAM+c=
 gitlab.com/elixxir/comms v0.0.0-20200319001506-a38e292029ca/go.mod h1:47uPmB4XqFb0azZAQElMHLRuz0EumsVOqo6hXWMkM50=
+gitlab.com/elixxir/comms v0.0.0-20200320181153-c170a69b0af1 h1:rrHe+j4SvSYcYeXrSuMIsoNjS+HEkJ6kj5MhDL8/C/o=
+gitlab.com/elixxir/comms v0.0.0-20200320181153-c170a69b0af1/go.mod h1:47uPmB4XqFb0azZAQElMHLRuz0EumsVOqo6hXWMkM50=
 gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0 h1:2oq/Y1pA3bwCdlRjhFjoOtb2somDY+wYz2vuiOQkVVA=
 gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0/go.mod h1:QPClJr3F90ejz6iHaCZuhexytd6PP97dDnt93iRCTDo=
 gitlab.com/elixxir/primitives v0.0.0-20200218211222-4193179f359c/go.mod h1:REJMcwIcyxh74VSHqy4S9yYiaEsQYObOPglRExDpk14=

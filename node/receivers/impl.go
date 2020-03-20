@@ -110,8 +110,11 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
-
-		return nil, nil //receivers.ReceivePoll()
+		response, err := ReceivePoll(poll, instance)
+		if err != nil {
+			jww.ERROR.Printf("Poll error: %v, %+v", auth, err)
+		}
+		return response, err
 	}
 
 	impl.Functions.AskOnline = func() error {

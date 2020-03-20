@@ -199,7 +199,7 @@ func TestRetrieveState(t *testing.T) {
 	permHost, _ := instance.GetNetwork().GetHost(id.PERMISSIONING)
 
 	// Ping permissioning for a state update
-	response, err := RetrieveState(permHost, instance)
+	response, err := PollPermissioning(permHost, instance)
 	if err != nil {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}
@@ -664,9 +664,7 @@ func TestRegistration(t *testing.T) {
 		}
 
 		// Restart the network with new certs
-		def.TlsCert = []byte(serverCert)
-		def.Gateway.TlsCert = []byte(gwCert)
-		instance.RestartNetwork(impl, def, true)
+		instance.RestartNetwork(impl, true, serverCert, gwCert)
 		permDone <- struct{}{}
 
 	}()

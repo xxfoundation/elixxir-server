@@ -32,6 +32,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 			res.FullNDF = network.GetFullNdf().GetPb()
 		}
 
+		res.Id = instance.GetID().Bytes()
+
 		//Check if any updates where made and get them
 		res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
 
