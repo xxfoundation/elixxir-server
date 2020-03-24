@@ -25,9 +25,14 @@ import (
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
 
-	//HACK HACK HACK
-	//hack to make precomp share wait to when the round is avalible
-	//fix-me: do this better
+	// HACK HACK HACK
+	// node sometimes gets called into generate too soon, before it has changes
+	// from completed. this will silently wait until completed has finished
+	_, _ = instance.GetStateMachine().WaitFor(current.WAITING, 250*time.Millisecond)
+
+	// HACK HACK HACK
+	// hack to make precomp share wait to when the round is avalible
+	// fix-me: do this better
 	if batch.FromPhase == int32(phase.PrecompGeneration) {
 		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
 		if err != nil {
