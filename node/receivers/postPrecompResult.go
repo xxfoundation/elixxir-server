@@ -44,12 +44,12 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	if !auth.IsAuthenticated || senderID != expectedID {
 		jww.INFO.Printf("[%v]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
+			instance.GetID(), roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	jww.INFO.Printf("[%v]: RID %d PostPrecompResult START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostPrecompResult START", instance.GetID(),
 		roundID)
 
 	tag := phase.PrecompReveal.String() + "Verification"
@@ -60,15 +60,16 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 			instance, err)
 	}
 	p.Measure(measure.TagVerification)
-
+	jww.FATAL.Printf("handling comms complete")
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetConsensus().GetCmixGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-
+	jww.FATAL.Printf("precomp res complete")
 	p.UpdateFinalStates()
 
+	jww.FATAL.Printf("updating to standby")
 	// Update the state in a gofunc
 	go func() {
 		ok, err = instance.GetStateMachine().Update(current.STANDBY)

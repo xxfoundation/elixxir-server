@@ -122,7 +122,6 @@ func PollPermissioning(permHost *connect.Host,
 //  It also parsed the message and determines where to transition given contect
 func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
-	jww.FATAL.Printf("perm's msg: %+v", permissioningResponse)
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
@@ -173,6 +172,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
+				jww.FATAL.Printf("our state: %+v", instance.GetStateMachine().Get())
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
 				if !ok || err != nil {
@@ -198,7 +198,8 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
 				}
 
-				jww.FATAL.Printf("we are ready for realtime: %+v", roundInfo)
+				jww.FATAL.Printf("round info: %+v", roundInfo)
+
 				// Send info to the realtime round queue
 				err = instance.GetRealtimeRoundQueue().Send(roundInfo)
 				if err != nil {
@@ -231,7 +232,17 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			case states.STANDBY:
 				// Don't do anything
 			case states.COMPLETED:
-				// Don't do anything
+				// Standy by until in COMPLETED state to ensure a valid transition into WAITING
+				ok, err := instance.GetStateMachine().WaitFor(current.COMPLETED, 50*time.Millisecond)
+				if !ok || err != nil {
+					return errors.Errorf("Cannot start waiting when not in completed state: %+v", err)
+				}
+
+				// Begin WAITING state
+				ok, err = instance.GetStateMachine().Update(current.WAITING)
+				if !ok || err != nil {
+					return errors.Errorf("Cannot move to precomputing state: %+v", err)
+				}
 
 			default:
 				return errors.New("Round in unknown state")

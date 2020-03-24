@@ -24,6 +24,7 @@ import (
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
+
 	nodeID := instance.GetID()
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
@@ -69,7 +70,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance.GetID(),
 		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
@@ -83,7 +84,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 		batch.Slots[0].PartialRoundPublicCypherKey =
 			instance.GetConsensus().GetCmixGroup().GetG().Bytes()
 		jww.INFO.Printf("[%v]: RID %d PostPhase PRECOMP SHARE HACK "+
-			"HACK HACK", instance, roundID)
+			"HACK HACK", instance.GetID(), roundID)
 	}
 
 	batch.FromPhase = int32(p.GetType())
@@ -101,6 +102,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
+	jww.WARN.Printf("Received stream post phase from: %v", auth.Sender.String())
+
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
@@ -155,7 +158,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance.GetID(),
 		roundID, phaseTy, p.GetType())
 
 	//queue the phase to be operated on if it is not queued yet

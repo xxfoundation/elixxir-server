@@ -35,7 +35,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
 		jww.INFO.Printf("[%v]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
+			instance.GetID(), roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
@@ -49,7 +49,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	}
 
 	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime START",
-		instance, roundID)
+		instance.GetID(), roundID)
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
@@ -67,7 +67,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 			//Delay so it can be used by post round hanlders
 			go func() {
 				jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime CLEARING "+
-					"CMIX BUFFERS", instance, roundID)
+					"CMIX BUFFERS", instance.GetID(), roundID)
 
 				time.Sleep(time.Duration(60) * time.Second)
 				r.GetBuffer().Erase()
@@ -76,16 +76,16 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 		} else {
 			jww.WARN.Printf("[%v]: RID %d ReceiveFinishRealtime MEMORY "+
-				"LEAK - Round buffers not purged ", instance,
+				"LEAK - Round buffers not purged ", instance.GetID(),
 				roundID)
 		}
 	}()
 
-	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime END", instance,
+	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime END", instance.GetID(),
 		roundID)
 
 	jww.INFO.Printf("[%v]: RID %d Round took %v seconds",
-		instance, roundID, time.Now().Sub(r.GetTimeStart()))
+		instance.GetID(), roundID, time.Now().Sub(r.GetTimeStart()))
 
 	go func() {
 		ok, err = instance.GetStateMachine().Update(current.COMPLETED)

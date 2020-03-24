@@ -10,6 +10,7 @@ package round
 
 import (
 	"github.com/pkg/errors"
+	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync"
@@ -80,7 +81,7 @@ func (rm *Manager) HandleIncomingComm(roundID id.Round, tag string) (*Round, pha
 	if err != nil {
 		return nil, nil, err
 	}
-
+	jwalterweatherman.WARN.Printf("in manager, about to fucking handle the comm")
 	//Get the correct phase from the round based upon the response table
 	p, err := r.HandleIncomingComm(tag)
 	if err != nil {

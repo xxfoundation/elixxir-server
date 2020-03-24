@@ -143,7 +143,10 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
-	roundInfo := <-instance.GetCreateRoundQueue()
+	roundInfo, err := instance.GetCreateRoundQueue().Receive()
+	if err != nil {
+		jww.FATAL.Printf("error with create round queue: %+v", err)
+	}
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
@@ -152,20 +155,11 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
 
-	for i, node := range nodeIDs {
-		jww.FATAL.Printf("node %d in topology: %+v", i, node.String())
-	}
-
 	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
 	for i := 0; i < circuit.Len(); i++ {
-		jww.FATAL.Printf("id %d in circuit: %+v", i, circuit.GetNodeAtIndex(i))
-	}
-
-	for i := 0; i < circuit.Len(); i++ {
 		nodeId := circuit.GetNodeAtIndex(i).String()
-		jww.ERROR.Printf("nodeId: [%s]", nodeId)
 		ourHost, ok := instance.GetNetwork().GetHost(nodeId)
 		if !ok {
 			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))
@@ -198,8 +192,10 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
 
-	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
+	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance.GetID(),
 		roundID)
+
+	jww.FATAL.Printf("the first node: %+v", circuit.GetNodeAtIndex(0))
 
 	if circuit.IsFirstNode(instance.GetID()) {
 		err := StartLocalPrecomp(instance, roundID)
@@ -227,21 +223,25 @@ func Realtime(instance *server.Instance) error {
 		return errors.Errorf("Unable to receive from RealtimeRoundQueue: %+v", err)
 	}
 
-	err = instance.GetRequestNewBatchQueue().Send(roundInfo)
-	if err != nil {
-		return errors.Errorf("Unable to send to RequestNewBatch queue: %+v", err)
-	}
-
 	// Get our round
 	ourRound, err := instance.GetRoundManager().GetRound(roundInfo.GetRoundId())
 	if err != nil {
 		return errors.Errorf("Unable to get round from round info: %+v", err)
 	}
 
+	jww.FATAL.Printf("our round received: %+v", ourRound)
 	// Check for correct phase in round
 	if ourRound.GetCurrentPhase().GetType() != phase.RealDecrypt {
 		return errors.Errorf("Not in correct phase. Expected phase: %+v. "+
 			"Current phase: %+v", phase.RealDecrypt, ourRound.GetCurrentPhase())
+	}
+
+	if ourRound.GetTopology().IsFirstNode(instance.GetID()) {
+		jww.DEBUG.Printf("Requesting new batch")
+		err = instance.GetRequestNewBatchQueue().Send(roundInfo)
+		if err != nil {
+			return errors.Errorf("Unable to send to RequestNewBatch queue: %+v", err)
+		}
 	}
 
 	return nil

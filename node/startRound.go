@@ -51,12 +51,13 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 
 	//get the phase
 	p := r.GetCurrentPhase()
-
+	jww.ERROR.Printf("got currPhase")
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
+	jww.ERROR.Printf("mesauring")
 	p.Measure(measure.TagReceiveOnReception)
 	//send the data to the phase
+	jww.ERROR.Printf("post phase")
 	err = io.PostPhase(p, newBatch)
 	if err != nil {
 		jww.ERROR.Panicf("Error first node generation init: "+

@@ -266,7 +266,6 @@ func (i *Instance) GetCreateRoundQueue() round.Queue {
 	return i.createRoundQueue
 }
 
-// todo: docstring
 func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 	return i.realtimeRoundQueue
 }

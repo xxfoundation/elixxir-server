@@ -18,10 +18,18 @@ import (
 
 // ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
 func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripPing) error {
+	if instance.GetStateMachine().Get() == current.COMPLETED {
+		// Ensure that round trip ping is in the correct state
+		ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 1*time.Second)
+		if !ok || err != nil {
+			jww.FATAL.Panicf("ReceiveRoundTripPing timed out in state transition to %v: %+v", current.COMPLETED, err)
+		}
+
+	}
 	// Ensure that round trip ping is in the correct state
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 1*time.Second)
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 5*time.Second)
 	if !ok || err != nil {
-		jww.FATAL.Panicf("ReceiveRoundTripPing timed out in state transition to %v: %+v", current.PRECOMPUTING, err)
+		jww.FATAL.Panicf("ReceiveRoundTripPing timed out in state transition to %v: %+v", current.COMPLETED, err)
 	}
 
 	roundID := msg.Round.ID

@@ -66,6 +66,9 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
+	if err != nil {
+		jww.FATAL.Printf("FUCK SHIT CUNT\n\tSTUPID FUCKS: %v", err)
+	}
 	return err
 }
 
