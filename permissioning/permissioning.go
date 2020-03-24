@@ -63,7 +63,6 @@ func Poll(instance *server.Instance) error {
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance)
 	if err != nil {
-		jww.FATAL.Printf("err: %+v", err)
 		return err
 	}
 
@@ -78,7 +77,7 @@ func PollPermissioning(permHost *connect.Host,
 	instance *server.Instance) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
-	jww.FATAL.Printf("our state is at: %+v", instance.GetStateMachine().Get())
+	jww.DEBUG.Printf("Our current state before polling: %+v", instance.GetStateMachine().Get())
 
 	// Get the ndf hashes for the full ndf if available
 	if instance.GetConsensus().GetFullNdf() != nil {
@@ -172,7 +171,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
-				jww.FATAL.Printf("our state: %+v", instance.GetStateMachine().Get())
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
 				if !ok || err != nil {
@@ -190,6 +188,8 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 				if !ok || err != nil {
 					return errors.Errorf("Cannot move to precomputing state: %+v", err)
 				}
+			case states.STANDBY:
+				// Don't do anything
 
 			case states.REALTIME: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
@@ -208,16 +208,14 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 				// Wait until the permissioning-instructed time to begin REALTIME
 				go func() {
-					jww.FATAL.Printf("going to be waiting until: %+v", roundInfo.Timestamps[states.REALTIME])
 					// Get the realtime start time
 					duration := time.Unix(int64(roundInfo.Timestamps[states.REALTIME]), 0)
-					jww.FATAL.Printf("PERM THEN: %+v", duration)
-					jww.FATAL.Printf("SERVER NOW: %+v", time.Now())
+
 					// Fixme: find way to calculate sleep length that doesn't lose time
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
 					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.FATAL.Printf("time to sleep: %+v", timeDiff)
+						jww.FATAL.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
 						time.Sleep(timeDiff)
 					}
 
@@ -228,8 +226,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					}
 				}()
 			case states.PENDING:
-				// Don't do anything
-			case states.STANDBY:
 				// Don't do anything
 			case states.COMPLETED:
 				// Standy by until in COMPLETED state to ensure a valid transition into WAITING

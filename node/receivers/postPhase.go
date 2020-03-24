@@ -169,10 +169,9 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.DEBUG.Printf("permute err: %+v", err)
 		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
-			instance, err)
+			instance.GetID(), err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
 

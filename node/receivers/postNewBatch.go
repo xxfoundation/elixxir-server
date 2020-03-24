@@ -34,8 +34,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	jww.FATAL.Printf("about to waitfor")
-
 	// Wait for state to be REALTIME
 	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 50*time.Millisecond)
 	if err != nil {
@@ -46,7 +44,6 @@ func ReceivePostNewBatch(instance *server.Instance,
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
-	jww.FATAL.Printf("creating topology")
 	nodeIDs, err := id.NewNodeListFromStrings(newBatch.Round.Topology)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
@@ -55,10 +52,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
-	jww.FATAL.Printf("topolgy: %+v", circuit)
-
 	if circuit.IsFirstNode(instance.GetID()) {
-		jww.FATAL.Printf("about to fucking handle realtime")
 		err = HandleRealtimeBatch(instance, newBatch, postPhase)
 		if err != nil {
 			return err
@@ -75,9 +69,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch, postPhase PostPhase) error {
 	// Get the roundinfo object
 	ri := newBatch.Round
-	jww.DEBUG.Printf("gteaway's batck message: %+v", newBatch.Round)
 	rm := instance.GetRoundManager()
-	jww.DEBUG.Printf("roundId: %+v", ri.ID)
 	rnd, err := rm.GetRound(ri.GetRoundId())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get round object from manager")

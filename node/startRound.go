@@ -25,7 +25,6 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 		jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
 			"round (%v) right after round init", rid)
 	}
-	jww.ERROR.Printf("HERE IS THE ROUND MANAGER %v", r)
 
 	// Create new batch object
 	batchSize := r.GetBatchSize()
@@ -43,7 +42,7 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	// Start a round trip ping (in a goroutine so it doesn't block)
 	topology := r.GetTopology()
 	myID := instance.GetID()
-	jww.ERROR.Printf("HERE IS THE ID %v", myID)
+
 	// Make this a non anonymous functions, that calls a new thread and test the function seperately
 	go func() {
 		_ = doRoundTripPing(topology, myID, r, instance)
@@ -51,13 +50,12 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 
 	//get the phase
 	p := r.GetCurrentPhase()
-	jww.ERROR.Printf("got currPhase")
+
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-	jww.ERROR.Printf("mesauring")
 	p.Measure(measure.TagReceiveOnReception)
+
 	//send the data to the phase
-	jww.ERROR.Printf("post phase")
 	err = io.PostPhase(p, newBatch)
 	if err != nil {
 		jww.ERROR.Panicf("Error first node generation init: "+

@@ -32,7 +32,6 @@ func Dummy(from current.Activity) error {
 func NotStarted(instance *server.Instance, noTls bool) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
-	jww.FATAL.Printf("beginning not started state")
 	network := instance.GetNetwork()
 
 	// Connect to the Permissioning Server without authentication
@@ -139,7 +138,7 @@ func Waiting(from current.Activity) error {
 // Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
 
-	jww.DEBUG.Printf("Beginning precomputing transition")
+	jww.DEBUG.Printf("Beginning precomputing transition!")
 
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
@@ -195,8 +194,6 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance.GetID(),
 		roundID)
 
-	jww.FATAL.Printf("the first node: %+v", circuit.GetNodeAtIndex(0))
-
 	if circuit.IsFirstNode(instance.GetID()) {
 		err := StartLocalPrecomp(instance, roundID)
 		if err != nil {
@@ -216,7 +213,6 @@ func Standby(from current.Activity) error {
 
 // Realtime checks if we are in the correct phase
 func Realtime(instance *server.Instance) error {
-	jww.FATAL.Printf("realtime is happening")
 	// Get new realtime round info from queue
 	roundInfo, err := instance.GetRealtimeRoundQueue().Receive()
 	if err != nil {
@@ -229,7 +225,6 @@ func Realtime(instance *server.Instance) error {
 		return errors.Errorf("Unable to get round from round info: %+v", err)
 	}
 
-	jww.FATAL.Printf("our round received: %+v", ourRound)
 	// Check for correct phase in round
 	if ourRound.GetCurrentPhase().GetType() != phase.RealDecrypt {
 		return errors.Errorf("Not in correct phase. Expected phase: %+v. "+

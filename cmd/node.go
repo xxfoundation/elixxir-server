@@ -158,7 +158,6 @@ func StartServer(vip *viper.Viper) error {
 	}
 
 	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
-	jww.FATAL.Printf("on instance creation, updateID : %+v", lastUpdateId)
 
 	jww.INFO.Printf("Instance created!")
 
