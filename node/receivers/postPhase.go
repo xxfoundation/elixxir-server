@@ -25,6 +25,20 @@ import (
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
 
+	//HACK HACK HACK
+	//hack to make precomp share wait to when the round is avalible
+	//fix-me: do this better
+	if batch.FromPhase == phase.PrecompShare{
+		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
+		if err != nil {
+			return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
+		}
+		if !ok {
+			return errors.Errorf(errCouldNotWait, phase.PrecompShare.String())
+		}
+	}
+
+
 	nodeID := instance.GetID()
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
