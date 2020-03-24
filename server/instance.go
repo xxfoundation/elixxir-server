@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -42,6 +43,8 @@ type Instance struct {
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
+
+	errChan chan *mixmessages.RoundError
 }
 
 // Create a server instance. To actually kick off the server,
@@ -66,6 +69,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		gatewayPoll:          NewFirstTime(),
+		errChan:              make(chan *mixmessages.RoundError),
 	}
 
 	//Start local node
@@ -273,6 +277,10 @@ func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
+}
+
+func (i *Instance) GetErrChan() chan *mixmessages.RoundError {
+	return i.errChan
 }
 
 func (i *Instance) IsReadyForGateway() bool {

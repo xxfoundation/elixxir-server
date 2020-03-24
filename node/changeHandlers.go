@@ -8,6 +8,7 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
+	"io/ioutil"
 	"strings"
 	"time"
 )
@@ -249,8 +251,48 @@ func Completed(from current.Activity) error {
 }
 
 // fixme: doc string
-func Error(from current.Activity) error {
+func Error(instance *server.Instance) error {
 	// start error
+	msg := <-instance.GetErrChan()
+	nid, err := id.NewNodeFromString("temp")
+	if err != nil {
+		return errors.WithMessage(err, "Failed to get node id from error")
+	}
+
+	// If the error originated with us, send broadcast to other nodes
+	if nid.Cmp(instance.GetID()) {
+		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
+		if err != nil {
+			return errors.WithMessage(err, "Failed to get round id")
+		}
+		top := r.GetTopology()
+		for i := 0; i < top.Len(); i++ {
+			n := top.GetNodeAtIndex(i)
+			// Don't need to send back to self
+			if !instance.GetID().Cmp(n) {
+				h, ok := instance.GetNetwork().GetHost(n.String())
+				if !ok {
+					jww.ERROR.Printf("Could not get host for node %s", n.String())
+				}
+				_, err := instance.GetNetwork().SendRoundErrorBroadcast(h, msg)
+				if err != nil {
+					err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
+					jww.ERROR.Printf(err.Error())
+				}
+			}
+		}
+	}
+
+	b, err := proto.Marshal(msg)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to marshal message into bytes")
+	}
+
+	err = ioutil.WriteFile("/cmix/round_error", b, 0644)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to write error to file")
+	}
+
 	return nil
 }
 
