@@ -32,7 +32,13 @@ func Test_MultiInstance_N3_B8(t *testing.T) {
 	MultiInstanceTest(3, 32, t)
 }
 
-func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
+func BenchmarkMultiInstance_N3_B8(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		MultiInstanceTest(3, 32, b)
+	}
+}
+
+func MultiInstanceTest(numNodes, batchsize int, t testing.TB) {
 
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
@@ -74,7 +80,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	t.Logf("Building instances for %v nodes", numNodes)
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
 		instance, _ := server.CreateServerInstance(defsLst[i], node.NewImplementation, true)

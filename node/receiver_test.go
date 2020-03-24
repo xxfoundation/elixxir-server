@@ -1428,7 +1428,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	def := server.Definition{
 		CmixGroup:       grp,
@@ -1515,7 +1515,7 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	def := server.Definition{
 		CmixGroup:       grp,
@@ -1586,7 +1586,7 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	def := server.Definition{
 		CmixGroup:       grp,
@@ -1654,7 +1654,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	def := server.Definition{
 		CmixGroup:       grp,
@@ -1739,7 +1739,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	// Set instance for first node
 	def := server.Definition{
@@ -1813,7 +1813,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	// Set instance for first node
 	def := server.Definition{

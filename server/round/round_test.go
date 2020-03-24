@@ -149,11 +149,11 @@ func TestRound_GetMeasurements(t *testing.T) {
 		NumThreads:    100,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&resourceMetric)
+	resourceMonitor.Set(resourceMetric)
 	numNodes := 1
 	index := 0
 	roundMetrics := round.GetMeasurements(nidStr, numNodes, index,
-		*resourceMonitor.Get())
+		resourceMonitor.Get())
 
 	if roundMetrics.NodeID != nidStr {
 		t.Errorf("Round metrics has incorrect node id expected %v got %v",
