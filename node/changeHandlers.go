@@ -118,6 +118,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 			jww.FATAL.Panicf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
 		}
 
+		jww.DEBUG.Printf("Updating to WAITING")
 		// Transition state machine into waiting state
 		ok, err = instance.GetStateMachine().Update(current.WAITING)
 		if !ok || err != nil {

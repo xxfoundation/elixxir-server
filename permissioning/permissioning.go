@@ -20,7 +20,6 @@ import (
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/state"
 	"strconv"
 	"strings"
 	"time"
@@ -61,20 +60,19 @@ func Poll(instance *server.Instance) error {
 		return errors.New("Could not get permissioning host")
 	}
 	// Ping permissioning for updated information
-	permResponse, err := PollPermissioning(permHost, instance)
+	permResponse, activity, err := PollPermissioning(permHost, instance)
 	if err != nil {
 		return err
 	}
 
-	jww.FATAL.Printf("perm's response: %+v", permResponse)
 	// Update the internal state of our instance
-	err = UpdateInternalState(permResponse, instance)
+	err = UpdateInternalState(permResponse, instance, activity)
 	return err
 }
 
 // PollPermissioning polls the permissioning server for updates
-func PollPermissioning(permHost *connect.Host,
-	instance *server.Instance) (*pb.PermissionPollResponse, error) {
+func PollPermissioning(permHost *connect.Host, instance *server.Instance) (
+	*pb.PermissionPollResponse, current.Activity, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	jww.DEBUG.Printf("Our current state before polling: %+v", instance.GetStateMachine().Get())
@@ -106,20 +104,18 @@ func PollPermissioning(permHost *connect.Host,
 		Activity:   uint32(activity),
 	}
 
-	jww.FATAL.Printf("our poll msg: %+v", pollMsg)
-
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
-		return nil, errors.Errorf("Issue polling permissioning: %+v", err)
+		return nil, 0, errors.Errorf("Issue polling permissioning: %+v", err)
 	}
 
-	return permissioningResponse, err
+	return permissioningResponse, activity, err
 }
 
 // UpdateState processes the polling response from permissioning, installing any changes if needed
 //  It also parsed the message and determines where to transition given contect
-func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
+func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance, reportedActivity current.Activity) error {
 
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
@@ -148,7 +144,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
-	jww.FATAL.Printf("new updates: %+v", newUpdates)
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
@@ -183,6 +178,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Unable to send to CreateRoundQueue: %+v", err)
 				}
 
+				jww.DEBUG.Printf("Updating to PRECOMPUTING")
 				// Begin PRECOMPUTING state
 				ok, err = instance.GetStateMachine().Update(current.PRECOMPUTING)
 				if !ok || err != nil {
@@ -219,6 +215,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 						time.Sleep(timeDiff)
 					}
 
+					jww.DEBUG.Printf("Updating to REALTIME")
 					// Update to realtime when ready
 					ok, err := instance.GetStateMachine().Update(current.REALTIME)
 					if !ok || err != nil {
@@ -228,17 +225,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			case states.PENDING:
 				// Don't do anything
 			case states.COMPLETED:
-				// Standy by until in COMPLETED state to ensure a valid transition into WAITING
-				ok, err := instance.GetStateMachine().WaitFor(current.COMPLETED, 50*time.Millisecond)
-				if !ok || err != nil {
-					return errors.Errorf("Cannot start waiting when not in completed state: %+v", err)
-				}
-
-				// Begin WAITING state
-				ok, err = instance.GetStateMachine().Update(current.WAITING)
-				if !ok || err != nil {
-					return errors.Errorf("Cannot move to precomputing state: %+v", err)
-				}
 
 			default:
 				return errors.New("Round in unknown state")
@@ -247,24 +233,16 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 		}
 	}
+
+	// Once done and in a completed state, manually switch back into waiting
+	if reportedActivity == current.COMPLETED {
+		jww.DEBUG.Printf("Updating to WAITING")
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			return errors.Errorf("Could not transition to WAITING state: %v", err)
+		}
+	}
 	return nil
-}
-
-// WaitForRealtime initiates the realtime state on the machine
-//  when ready. Readiness determined by the duration argument
-func WaitForRealtime(ourMachine state.Machine, duration time.Time) {
-	// If the timeDiff is positive, then we are not yet ready to start realtime.
-	//  We then sleep for timeDiff time
-	if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-		time.Sleep(timeDiff)
-	}
-
-	// Update to realtime when ready
-	ok, err := ourMachine.Update(current.REALTIME)
-	if !ok || err != nil {
-		jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
-	}
-
 }
 
 // InstallNdf parses the ndf for necessary information and returns that

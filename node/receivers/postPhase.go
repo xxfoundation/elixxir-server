@@ -120,7 +120,6 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
-	jww.WARN.Printf("Received stream post phase from: %v", auth.Sender.String())
 
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)

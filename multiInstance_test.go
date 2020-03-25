@@ -103,6 +103,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 				t.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
 			}
 
+			jww.DEBUG.Printf("Updating to WAITING")
 			ok, err = instance.GetStateMachine().Update(current.WAITING)
 			if !ok || err != nil {
 				t.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)

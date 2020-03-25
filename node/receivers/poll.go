@@ -20,7 +20,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 	var err error
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
-		jwalterweatherman.FATAL.Printf("we are ready for gateway and it's being sent shit")
 		network := instance.GetConsensus()
 		//Compare partial NDF hash with instance and return the new one if they do not match
 		isSame := network.GetPartialNdf().CompareHash(poll.GetPartial().Hash)
@@ -49,7 +48,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 			}
 		}
 		res.Slots, err = GetCompletedBatch(instance)
-		jwalterweatherman.FATAL.Printf("sending shit to gateway")
 		instance.GetGatewayFirstTime().Send()
 		return &res, err
 	}
@@ -60,7 +58,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 // GetCompletedBatch is used to return completed batches
 func GetCompletedBatch(instance *server.Instance) ([]*mixmessages.Slot, error) {
-	jwalterweatherman.WARN.Printf("we are polling gw for batch")
+	jwalterweatherman.DEBUG.Printf("Polling gateway for batch")
 	// Check if a completed batch is ready to be returned, get the batch and return it if it is
 	cr, err := instance.GetCompletedBatchQueue().Receive()
 	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {

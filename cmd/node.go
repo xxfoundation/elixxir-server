@@ -157,8 +157,6 @@ func StartServer(vip *viper.Viper) error {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}
 
-	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
-
 	jww.INFO.Printf("Instance created!")
 
 	// Create instance

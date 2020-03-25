@@ -88,6 +88,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		instance.GetID(), roundID, time.Now().Sub(r.GetTimeStart()))
 
 	go func() {
+		jww.DEBUG.Printf("Updating to COMPLETED")
 		ok, err = instance.GetStateMachine().Update(current.COMPLETED)
 		if err != nil {
 			jww.ERROR.Printf(errors.WithMessagef(err, errFailedToUpdate, current.COMPLETED.String()).Error())

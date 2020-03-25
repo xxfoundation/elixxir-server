@@ -60,18 +60,16 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 			instance, err)
 	}
 	p.Measure(measure.TagVerification)
-	jww.FATAL.Printf("handling comms complete")
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetConsensus().GetCmixGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-	jww.FATAL.Printf("precomp res complete")
 	p.UpdateFinalStates()
 
-	jww.FATAL.Printf("updating to standby")
 	// Update the state in a gofunc
 	go func() {
+		jww.DEBUG.Printf("Updating to STANDBY")
 		ok, err = instance.GetStateMachine().Update(current.STANDBY)
 		if err != nil {
 			jww.FATAL.Panicf("Failed to transition to state STANDBY: %+v", err)

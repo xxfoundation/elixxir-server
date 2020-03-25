@@ -43,9 +43,13 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	topology := r.GetTopology()
 	myID := instance.GetID()
 
+	ourRoundInfo, err := instance.GetConsensus().GetRound(rid)
+	if err != nil {
+		jww.CRITICAL.Panicf("Could not get round info from instance: %v", err)
+	}
 	// Make this a non anonymous functions, that calls a new thread and test the function seperately
 	go func() {
-		_ = doRoundTripPing(topology, myID, r, instance)
+		_ = doRoundTripPing(topology, myID, r, instance, ourRoundInfo)
 	}()
 
 	//get the phase
@@ -64,14 +68,14 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	return nil
 }
 
-func doRoundTripPing(topology *connect.Circuit, nodeId *id.Node, round *round.Round, instance *server.Instance) error {
+func doRoundTripPing(topology *connect.Circuit, nodeId *id.Node, round *round.Round, instance *server.Instance, ri *mixmessages.RoundInfo) error {
 	payloadInfo := "EMPTY/ACK"
 	var payload proto.Message
 	payload = &mixmessages.Ack{}
 
 	nextNode := topology.GetNextNode(nodeId)
 	err := io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
-		round, payload, payloadInfo)
+		round, payload, payloadInfo, ri)
 	if err != nil {
 		jww.WARN.Printf("Failed to transmit round trip ping: %+v", err)
 		return err
