@@ -40,7 +40,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250*time.Millisecond)
+	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 500*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
 	}

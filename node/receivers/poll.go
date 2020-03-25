@@ -41,7 +41,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 		// Get the request for a new batch que and store it into res
 		if instance.GetStateMachine().Get() == current.REALTIME {
-			jwalterweatherman.FATAL.Printf("Get ready bois, we ")
 			res.BatchRequest, err = instance.GetRequestNewBatchQueue().Receive()
 			if err != nil {
 				jwalterweatherman.WARN.Printf("Failed to receive round info in realtime: %+v", err)

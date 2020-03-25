@@ -28,13 +28,13 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	// HACK HACK HACK
 	// node sometimes gets called into generate too soon, before it has changes
 	// from completed. this will silently wait until completed has finished
-	_, _ = instance.GetStateMachine().WaitFor(current.WAITING, 250*time.Millisecond)
+	_, _ = instance.GetStateMachine().WaitFor(current.WAITING, 500*time.Millisecond)
 
 	// HACK HACK HACK
 	// hack to make precomp share wait to when the round is avalible
 	// fix-me: do this better
 	if batch.FromPhase == int32(phase.PrecompGeneration) {
-		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
+		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 500*time.Millisecond)
 		if err != nil {
 			return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
 		}
@@ -70,7 +70,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
 	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
+		ok, err := instance.GetStateMachine().WaitFor(toWait, 500*time.Millisecond)
 		if err != nil {
 			return errors.WithMessagef(err, errFailedToWait, toWait.String())
 		}
@@ -153,7 +153,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
 	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
+		ok, err := instance.GetStateMachine().WaitFor(toWait, 500*time.Millisecond)
 		if err != nil {
 			return errors.WithMessagef(err, errFailedToWait, toWait.String())
 		}
