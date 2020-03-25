@@ -172,10 +172,6 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		t.Logf("ServerPollResponse.Updates is not nil")
 		t.Fail()
 	}
-	if res.Id != nil {
-		t.Logf("ServerPollResponse.Id is not nil")
-		t.Fail()
-	}
 	if res.FullNDF != nil {
 		t.Logf("ServerPollResponse.ul is not nil")
 		t.Fail()

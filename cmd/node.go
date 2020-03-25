@@ -141,7 +141,7 @@ func StartServer(vip *viper.Viper) error {
 	}
 
 	ourChangeList[current.ERROR] = func(from current.Activity) error {
-		return node.Error(from)
+		return node.Error(instance)
 	}
 
 	ourChangeList[current.ERROR] = func(from current.Activity) error {

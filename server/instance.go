@@ -44,7 +44,8 @@ type Instance struct {
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
-	errChan chan *mixmessages.RoundError
+	errChan        chan *mixmessages.RoundError
+	recoveredError *mixmessages.RoundError
 }
 
 // Create a server instance. To actually kick off the server,
@@ -281,6 +282,10 @@ func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 
 func (i *Instance) GetErrChan() chan *mixmessages.RoundError {
 	return i.errChan
+}
+
+func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
+	return i.recoveredError
 }
 
 func (i *Instance) IsReadyForGateway() bool {

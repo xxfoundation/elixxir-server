@@ -82,7 +82,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
 	}
 
-	// Parse the Ndf for the new signed certs from  permissioning
+	// Parse the Ndf for the new signed certs from permissioning
 	serverCert, gwCert, err := permissioning.FindSelfInNdf(ourDef, instance.GetConsensus().GetFullNdf().Get())
 	if err != nil {
 		return errors.Errorf("Failed to install ndf: %+v", err)
@@ -112,6 +112,8 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 			}
 		}
 	}()
+
+	// if error passed in go to error
 
 	// Once done with notStarted transition into waiting
 	go func() {
@@ -253,7 +255,14 @@ func Completed(from current.Activity) error {
 // fixme: doc string
 func Error(instance *server.Instance) error {
 	// start error
+	//If the error state was recovered from a restart, exit.
+	if instance.GetRecoveredError() != nil {
+		return nil
+	}
+
+	// Attempt to get a message over the error channel
 	msg := <-instance.GetErrChan()
+
 	nid, err := id.NewNodeFromString("temp")
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get node id from error")
