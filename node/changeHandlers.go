@@ -100,7 +100,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 	// Periodically re-poll permissioning
 	go func() {
-		ticker := time.NewTicker(50 * time.Millisecond)
+		ticker := time.NewTicker(5 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {

@@ -26,7 +26,6 @@ type PostPhase func(p phase.Phase, batch *mixmessages.Batch) error
 func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, postPhase PostPhase, auth *connect.Auth) error {
 
-	jww.ERROR.Printf("ayo fam, getting hit by a newBatch message!")
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
 		jww.WARN.Printf("[%v]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
@@ -35,7 +34,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 	}
 
 	// Wait for state to be REALTIME
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 500*time.Millisecond)
+	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 50*time.Millisecond)
 	if err != nil {
 		jww.WARN.Printf("Failed to transfer to realtime in time: %v", err)
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())

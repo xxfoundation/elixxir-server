@@ -176,7 +176,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
-				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 500*time.Millisecond)
+				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
 				}
@@ -198,7 +198,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 			case states.REALTIME: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
-				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 500*time.Millisecond)
+				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
 				}

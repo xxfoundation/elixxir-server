@@ -24,7 +24,7 @@ import (
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 500*time.Millisecond)
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 50*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
