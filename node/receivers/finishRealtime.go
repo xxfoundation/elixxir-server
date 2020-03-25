@@ -67,7 +67,7 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 			//Delay so it can be used by post round hanlders
 			go func() {
 				jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime CLEARING "+
-					"CMIX BUFFERS", instance.GetID(), roundID)
+					"CMIX BUFFERS", instance, roundID)
 
 				time.Sleep(time.Duration(60) * time.Second)
 				r.GetBuffer().Erase()
@@ -76,12 +76,12 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 
 		} else {
 			jww.WARN.Printf("[%v]: RID %d ReceiveFinishRealtime MEMORY "+
-				"LEAK - Round buffers not purged ", instance.GetID(),
+				"LEAK - Round buffers not purged ", instance,
 				roundID)
 		}
 	}()
 
-	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime END", instance.GetID(),
+	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime END", instance,
 		roundID)
 
 	jww.INFO.Printf("[%v]: RID %d Round took %v seconds",

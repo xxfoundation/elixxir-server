@@ -191,7 +191,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
-	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance.GetID(),
+	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
 
 	if circuit.IsFirstNode(instance.GetID()) {

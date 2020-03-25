@@ -74,7 +74,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 			return
 		}
 
-		jww.INFO.Printf("[%v]: RID %d Beginning execution of Phase \"%s\"", server.GetID(),
+		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 
 		runningPhase := rq.activePhase

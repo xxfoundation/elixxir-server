@@ -50,7 +50,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey START", instance.GetID(),
+	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey START", instance,
 		roundID)
 
 	tag := phase.PrecompShare.String() + "Verification"
@@ -74,7 +74,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 	p.UpdateFinalStates()
 
-	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey END", instance.GetID(),
+	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey END", instance,
 		roundID)
 
 	if r.GetTopology().IsFirstNode(instance.GetID()) {
@@ -107,7 +107,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 				"comm, should be able to get decrypt phase: %+v", err)
 		}
 
-		jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance.GetID(),
+		jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance,
 			roundID, decrypt.GetType())
 
 		queued :=

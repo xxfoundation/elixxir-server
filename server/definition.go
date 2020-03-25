@@ -49,10 +49,10 @@ type Definition struct {
 	//Information about the node's gateway
 	Gateway GW
 
-	// todo doc string
+	// Information on permissioning server
 	Permissioning Perm
 
-	// todo doc string
+	// Our NDFs for both backend servers and front-ends
 	FullNDF    *ndf.NetworkDefinition
 	PartialNDF *ndf.NetworkDefinition
 

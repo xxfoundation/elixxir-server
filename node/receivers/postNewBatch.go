@@ -57,7 +57,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 			return err
 		}
 	}
-	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance.GetID(),
+	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
 	return nil
@@ -74,12 +74,12 @@ func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch,
 		return errors.WithMessage(err, "Failed to get round object from manager")
 	}
 
-	jww.INFO.Printf("[%v]: RID %d PostNewBatch START", instance.GetID(),
+	jww.INFO.Printf("[%v]: RID %d PostNewBatch START", instance,
 		ri.ID)
 
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
 		jww.FATAL.Panicf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
-			"batch with improper size", instance.GetID(), ri.GetID())
+			"batch with improper size", instance, ri.GetID())
 	}
 
 	p, err := rnd.GetPhase(phase.RealDecrypt)
@@ -87,14 +87,14 @@ func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch,
 	if err != nil {
 		jww.FATAL.Panicf(
 			"[%v]: RID %d Error on incoming PostNewBatch comm, could "+
-				"not find phase \"%s\": %v", instance.GetID(), newBatch.Round.ID,
+				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
 			phase.RealDecrypt, err)
 	}
 
 	if p.GetState() != phase.Active {
 		jww.FATAL.Panicf(
 			"[%v]: RID %d Error on incoming PostNewBatch comm, phase "+
-				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance.GetID(),
+				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
 	}
 
@@ -107,7 +107,7 @@ func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch,
 
 	if err != nil {
 		jww.FATAL.Panicf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
-			" io PostPhase: %+v", instance.GetID(), newBatch.Round.ID, err)
+			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
 	}
 
 	return nil

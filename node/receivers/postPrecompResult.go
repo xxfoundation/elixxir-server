@@ -49,7 +49,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	jww.INFO.Printf("[%v]: RID %d PostPrecompResult START", instance.GetID(),
+	jww.INFO.Printf("[%v]: RID %d PostPrecompResult START", instance,
 		roundID)
 
 	tag := phase.PrecompReveal.String() + "Verification"
