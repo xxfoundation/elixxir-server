@@ -2,7 +2,7 @@ package node
 
 import (
 	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/testkeys"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/server/phase"
@@ -69,8 +69,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	}
 
 	// In order for our instance to return updated ndf we need to sign it so here we extract keys
-	certPath := testkeys.GetGatewayCertPath()
-	cert := testkeys.LoadFromPath(certPath)
+	cert := testUtil.RegCert
 
 	if err != nil {
 		t.Logf("Private Key failed to generate %v", err)
@@ -78,7 +77,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, "", cert, false, false)
+	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, "", []byte(cert), false, false)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
@@ -145,7 +144,20 @@ func TestStartLocalPrecomp_HappyPath(t *testing.T) {
 	r := createRound(roundId, instance, t)
 	instance.GetRoundManager().AddRound(r)
 
-	err := StartLocalPrecomp(instance, roundId)
+	newRoundInfo := &mixmessages.RoundInfo{
+		ID:        0,
+		Topology:  []string{instance.GetID().String()},
+		BatchSize: 32,
+	}
+
+	signRoundInfo(newRoundInfo)
+
+	err := instance.GetConsensus().RoundUpdate(newRoundInfo)
+	if err != nil {
+		t.Errorf("Failed to updated network instance for new round info: %v", err)
+	}
+
+	err = StartLocalPrecomp(instance, roundId)
 	if err != nil {
 		t.Logf("%v", err)
 		t.Fail()

@@ -139,14 +139,13 @@ func Waiting(from current.Activity) error {
 // Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
 
-	jww.DEBUG.Printf("Beginning precomputing transition!")
-
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo, err := instance.GetCreateRoundQueue().Receive()
 	if err != nil {
-		jww.FATAL.Printf("error with create round queue: %+v", err)
+		jww.WARN.Printf("Error with create round queue: %+v", err)
 	}
+
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
@@ -166,6 +165,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		}
 		circuit.AddHost(ourHost)
 	}
+
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(
 		instance.GetGraphGenerator(),
@@ -191,7 +191,6 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
-
 	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance.GetID(),
 		roundID)
 
@@ -233,7 +232,6 @@ func Realtime(instance *server.Instance) error {
 	}
 
 	if ourRound.GetTopology().IsFirstNode(instance.GetID()) {
-		jww.DEBUG.Printf("Requesting new batch")
 		err = instance.GetRequestNewBatchQueue().Send(roundInfo)
 		if err != nil {
 			return errors.Errorf("Unable to send to RequestNewBatch queue: %+v", err)

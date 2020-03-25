@@ -203,8 +203,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
 				}
 
-				jww.FATAL.Printf("round info: %+v", roundInfo)
-
 				// Send info to the realtime round queue
 				err = instance.GetRealtimeRoundQueue().Send(roundInfo)
 				if err != nil {

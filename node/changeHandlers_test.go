@@ -6,8 +6,12 @@
 package node
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -18,7 +22,6 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
-	"time"
 )
 
 func TestNewStateChanges(t *testing.T) {
@@ -62,6 +65,7 @@ func TestPrecomputing(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
+	var instance *server.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{
 		func(from current.Activity) error { return nil },
 		func(from current.Activity) error { return nil },
@@ -73,7 +77,14 @@ func TestPrecomputing(t *testing.T) {
 		func(from current.Activity) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ := server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
+	instance, _ = server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
+
+	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, testUtil.NDF.Registration.Address,
+		[]byte(testUtil.RegCert), false, false)
+	if err != nil {
+		t.Errorf("Failed to add permissioning host: %v", err)
+	}
+
 	_ = instance.Run()
 	var top []string
 	for i := 0; i < topology.Len(); i++ {
@@ -84,17 +95,28 @@ func TestPrecomputing(t *testing.T) {
 			t.Errorf("Failed to add host: %+v", err)
 		}
 	}
-	go func() {
-		time.Sleep(time.Second)
-		instance.GetCreateRoundQueue() <- &mixmessages.RoundInfo{
-			ID:        0,
-			Topology:  top,
-			BatchSize: 32,
-		}
-	}()
+
+	newRoundInfo := &mixmessages.RoundInfo{
+		ID:        0,
+		Topology:  top,
+		BatchSize: 32,
+	}
+
+	signRoundInfo(newRoundInfo)
+
+	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
+	if err != nil {
+		t.Errorf("Failed to updated network instance for new round info: %v", err)
+	}
+
+	err = instance.GetCreateRoundQueue().Send(newRoundInfo)
+	if err != nil {
+		t.Errorf("Failed to send roundInfo: %v", err)
+	}
+
 	instance.GetResourceQueue().Kill(t)
 
-	err := Precomputing(instance, 3)
+	err = Precomputing(instance, 3)
 	if err != nil {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
@@ -103,4 +125,17 @@ func TestPrecomputing(t *testing.T) {
 	if err != nil {
 		t.Errorf("A round should have been added to the round manager")
 	}
+}
+
+// Utility function which signs a round info message
+func signRoundInfo(ri *mixmessages.RoundInfo) error {
+	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+	if err != nil {
+		return errors.Errorf("couldn't load privKey: %+v", err)
+	}
+
+	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
+
+	signature.Sign(ri, ourPrivKey)
+	return nil
 }
