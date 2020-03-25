@@ -94,7 +94,6 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 	}
 
 	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
-		jww.DEBUG.Printf("hit the post batch receiver")
 		err := ReceivePostNewBatch(instance, newBatch, io.PostPhase, auth)
 		if err != nil {
 			jww.ERROR.Printf("ReceivePostNewBatch error: %+v, %+v", auth, err)

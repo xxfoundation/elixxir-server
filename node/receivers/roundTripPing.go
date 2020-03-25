@@ -46,8 +46,6 @@ func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripP
 
 	// Pull the particular server host object from the commManager
 	nextNodeID := topology.GetNextNode(instance.GetID())
-	//nextNodeIndex := topology.GetNextNode(nextNodeID)
-	//nextNode := topology.GetHostAtIndex(nextNodeIndex-1)
 	nextNode, ok := instance.GetNetwork().GetHost(nextNodeID.String())
 	if !ok {
 		jwalterweatherman.ERROR.Printf("Could not find next node [%v]:", nextNode)
