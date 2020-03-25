@@ -142,6 +142,15 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 		}
 	}
 
+	// Once done and in a completed state, manually switch back into waiting
+	if reportedActivity == current.COMPLETED {
+		jww.DEBUG.Printf("Updating to WAITING")
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			return errors.Errorf("Could not transition to WAITING state: %v", err)
+		}
+	}
+
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 	// Parse the round info updates if they exist
@@ -231,15 +240,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 			}
 
-		}
-	}
-
-	// Once done and in a completed state, manually switch back into waiting
-	if reportedActivity == current.COMPLETED {
-		jww.DEBUG.Printf("Updating to WAITING")
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if err != nil || !ok {
-			return errors.Errorf("Could not transition to WAITING state: %v", err)
 		}
 	}
 	return nil
