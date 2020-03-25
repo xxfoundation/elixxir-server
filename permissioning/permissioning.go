@@ -75,8 +75,6 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance) (
 	*pb.PermissionPollResponse, current.Activity, error) {
 	var fullNdfHash, partialNdfHash []byte
 
-	jww.DEBUG.Printf("Our current state before polling: %+v", instance.GetStateMachine().Get())
-
 	// Get the ndf hashes for the full ndf if available
 	if instance.GetConsensus().GetFullNdf() != nil {
 		fullNdfHash = instance.GetConsensus().GetFullNdf().GetHash()
@@ -144,7 +142,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
-		jww.DEBUG.Printf("Updating to WAITING")
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			return errors.Errorf("Could not transition to WAITING state: %v", err)
@@ -187,7 +184,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 					return errors.Errorf("Unable to send to CreateRoundQueue: %+v", err)
 				}
 
-				jww.DEBUG.Printf("Updating to PRECOMPUTING")
 				// Begin PRECOMPUTING state
 				ok, err = instance.GetStateMachine().Update(current.PRECOMPUTING)
 				if !ok || err != nil {
@@ -222,7 +218,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 						time.Sleep(timeDiff)
 					}
 
-					jww.DEBUG.Printf("Updating to REALTIME")
 					// Update to realtime when ready
 					ok, err := instance.GetStateMachine().Update(current.REALTIME)
 					if !ok || err != nil {

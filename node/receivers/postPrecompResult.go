@@ -69,7 +69,6 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 	// Update the state in a gofunc
 	go func() {
-		jww.DEBUG.Printf("Updating to STANDBY")
 		ok, err = instance.GetStateMachine().Update(current.STANDBY)
 		if err != nil {
 			jww.FATAL.Panicf("Failed to transition to state STANDBY: %+v", err)

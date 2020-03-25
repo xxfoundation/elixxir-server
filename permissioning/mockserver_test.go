@@ -135,7 +135,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 		State:    uint32(states.PRECOMPUTING),
 		Topology: ourTopology,
 	}
+
+	// Mocking permissioning server signing message
 	signRoundInfo(precompRoundInfo)
+
 	// Increment updates id for next message
 	numUpdates++
 
@@ -146,6 +149,8 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 		State:    uint32(states.STANDBY),
 		Topology: ourTopology,
 	}
+
+	// Mocking permissioning server signing message
 	signRoundInfo(standbyRoundInfo)
 
 	// Increment updates id for next message

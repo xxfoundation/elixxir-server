@@ -57,7 +57,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 
 // GetCompletedBatch is used to return completed batches
 func GetCompletedBatch(instance *server.Instance) ([]*mixmessages.Slot, error) {
-	jwalterweatherman.DEBUG.Printf("Polling gateway for batch")
 	// Check if a completed batch is ready to be returned, get the batch and return it if it is
 	cr, err := instance.GetCompletedBatchQueue().Receive()
 	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {

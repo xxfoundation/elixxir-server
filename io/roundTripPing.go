@@ -18,6 +18,7 @@ func TransmitRoundTripPing(network *node.Comms, id *id.Node, r *round.Round,
 		err = errors.Errorf("TransmitRoundTripPing: failed attempting to marshall any type: %+v", err)
 		return err
 	}
+
 	r.StartRoundTrip(payloadInfo)
 	// Pull the particular server host object from the commManager
 	recipient, ok := network.Manager.GetHost(id.String())

@@ -5,7 +5,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/io"
@@ -39,17 +38,13 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 		newBatch.Slots[i] = &mixmessages.Slot{}
 	}
 
-	// Start a round trip ping (in a goroutine so it doesn't block)
-	topology := r.GetTopology()
-	myID := instance.GetID()
-
 	ourRoundInfo, err := instance.GetConsensus().GetRound(rid)
 	if err != nil {
 		jww.CRITICAL.Panicf("Could not get round info from instance: %v", err)
 	}
 	// Make this a non anonymous functions, that calls a new thread and test the function seperately
 	go func() {
-		_ = doRoundTripPing(topology, myID, r, instance, ourRoundInfo)
+		_ = doRoundTripPing(r, instance, ourRoundInfo)
 	}()
 
 	//get the phase
@@ -68,12 +63,17 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	return nil
 }
 
-func doRoundTripPing(topology *connect.Circuit, nodeId *id.Node, round *round.Round, instance *server.Instance, ri *mixmessages.RoundInfo) error {
+func doRoundTripPing(round *round.Round, instance *server.Instance, ri *mixmessages.RoundInfo) error {
 	payloadInfo := "EMPTY/ACK"
 	var payload proto.Message
 	payload = &mixmessages.Ack{}
 
-	nextNode := topology.GetNextNode(nodeId)
+	// Get create topology and fetch the next node
+	topology := round.GetTopology()
+	myID := instance.GetID()
+	nextNode := topology.GetNextNode(myID)
+
+	// Send rount trip ping to the next node
 	err := io.TransmitRoundTripPing(instance.GetNetwork(), nextNode,
 		round, payload, payloadInfo, ri)
 	if err != nil {

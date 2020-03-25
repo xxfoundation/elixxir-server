@@ -410,6 +410,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 
 	wg.Wait()
 
+	// Mocking permissioning server signing message
 	signRoundInfo(roundInfoMsg)
 
 	for index, nodeInstance := range nodes {

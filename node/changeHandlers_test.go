@@ -102,6 +102,7 @@ func TestPrecomputing(t *testing.T) {
 		BatchSize: 32,
 	}
 
+	// Mocking permissioning server signing message
 	signRoundInfo(newRoundInfo)
 
 	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
