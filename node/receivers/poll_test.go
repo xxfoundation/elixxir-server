@@ -325,34 +325,44 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 func TestReceivePoll_GetBatchMessage(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
+	keyPath := testkeys.GetGatewayKeyPath()
+	privKeyPem := testkeys.LoadFromPath(keyPath)
+	privKey, err := rsa.LoadPrivateKeyFromPem(privKeyPem)
+	if err != nil {
+		t.Logf("Private Key failed to generate %v", err)
+		t.Fail()
+	}
+
 	newRound := &pb.RoundInfo{
 		ID: uint64(23),
 	}
 
-	instance.GetConsensus().RoundUpdate(newRound)
+	err = signature.Sign(newRound, privKey)
+	if err != nil {
+		t.Logf("Could not sign RoundInfo: %v", err)
+		t.Fail()
+	}
 
-	counter := uint32(0)
-	// Set batch size to 10
-	gm := func(index uint32) *pb.Slot {
-		s := pb.Slot{Index: counter}
-		counter++
-		return &s
+	err = instance.GetConsensus().RoundUpdate(newRound)
+	if err!=nil{
+		t.Errorf("Round update failed: %s", err)
 	}
 
 	dr := round.NewDummyRound(23, 10, t)
 	instance.GetRoundManager().AddRound(dr)
 	cr := round.CompletedRound{
 		RoundID:    id.Round(23),
-		Receiver:   make(chan services.Chunk, 10),
-		GetMessage: gm,
+		Round:   make([]*pb.Slot, 10),
 	}
-	err := instance.GetCompletedBatchQueue().Send(&cr)
+
+	for i:=0;i<10;i++{
+		cr.Round[i] = &pb.Slot{Index: uint32(i)}
+	}
+
+	err = instance.GetCompletedBatchQueue().Send(&cr)
 	if err != nil {
 		t.Logf("We failed to send a completed batch: %v", err)
 	}
-
-	cr.Receiver <- services.NewChunk(0, 10)
-	close(cr.Receiver)
 
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
