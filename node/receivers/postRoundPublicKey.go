@@ -45,7 +45,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%v]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance.GetID(), roundID, expectedID, auth.Sender.GetId(),
+			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
@@ -70,7 +70,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	}
 
 	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey PK is: %s",
-		instance.GetID(), roundID, r.GetBuffer().CypherPublicKey.Text(16))
+		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))
 
 	p.UpdateFinalStates()
 

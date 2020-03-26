@@ -170,7 +170,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	if err != nil {
 		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
-			instance.GetID(), err)
+			instance, err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
 

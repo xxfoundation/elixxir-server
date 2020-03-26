@@ -44,7 +44,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	if !auth.IsAuthenticated || senderID != expectedID {
 		jww.INFO.Printf("[%v]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance.GetID(), roundID, expectedID, auth.Sender.GetId(),
+			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
