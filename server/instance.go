@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -266,7 +267,6 @@ func (i *Instance) GetCreateRoundQueue() round.Queue {
 	return i.createRoundQueue
 }
 
-// todo: docstring
 func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 	return i.realtimeRoundQueue
 }
@@ -316,16 +316,10 @@ func GenerateId(i interface{}) *id.Node {
 	return nid
 }
 
-/*
-// String adheres to the stringer interface, returns unique identifying
-// information about the node
 func (i *Instance) String() string {
 	nid := i.definition.ID
 	localServer := i.network.String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
-	return services.NameStringer(addr, myLoc, numNodes)
+	return addr
 }
-
-
-*/

@@ -32,7 +32,6 @@ func Dummy(from current.Activity) error {
 func NotStarted(instance *server.Instance, noTls bool) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
-	jww.FATAL.Printf("beginning not started state")
 	network := instance.GetNetwork()
 
 	// Connect to the Permissioning Server without authentication
@@ -101,7 +100,8 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 	// Periodically re-poll permissioning
 	go func() {
-		ticker := time.NewTicker(50 * time.Millisecond)
+		// fixme we need to review the performance implications and possibly make this programmable
+		ticker := time.NewTicker(5 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
@@ -139,11 +139,13 @@ func Waiting(from current.Activity) error {
 // Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
 
-	jww.DEBUG.Printf("Beginning precomputing transition")
-
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
-	roundInfo := <-instance.GetCreateRoundQueue()
+	roundInfo, err := instance.GetCreateRoundQueue().Receive()
+	if err != nil {
+		jww.WARN.Printf("Error with create round queue: %+v", err)
+	}
+
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
@@ -152,26 +154,18 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
 
-	for i, node := range nodeIDs {
-		jww.FATAL.Printf("node %d in topology: %+v", i, node.String())
-	}
-
 	// fixme: this panics on error, external comm should not be able to crash server
 	circuit := connect.NewCircuit(nodeIDs)
 
 	for i := 0; i < circuit.Len(); i++ {
-		jww.FATAL.Printf("id %d in circuit: %+v", i, circuit.GetNodeAtIndex(i))
-	}
-
-	for i := 0; i < circuit.Len(); i++ {
 		nodeId := circuit.GetNodeAtIndex(i).String()
-		jww.ERROR.Printf("nodeId: [%s]", nodeId)
 		ourHost, ok := instance.GetNetwork().GetHost(nodeId)
 		if !ok {
 			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))
 		}
 		circuit.AddHost(ourHost)
 	}
+
 	//Build the components of the round
 	phases, phaseResponses := NewRoundComponents(
 		instance.GetGraphGenerator(),
@@ -197,7 +191,6 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 
 	//Add the round to the manager
 	instance.GetRoundManager().AddRound(rnd)
-
 	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
 
@@ -220,7 +213,6 @@ func Standby(from current.Activity) error {
 
 // Realtime checks if we are in the correct phase
 func Realtime(instance *server.Instance) error {
-
 	// Get new realtime round info from queue
 	roundInfo, err := instance.GetRealtimeRoundQueue().Receive()
 	if err != nil {
@@ -237,6 +229,13 @@ func Realtime(instance *server.Instance) error {
 	if ourRound.GetCurrentPhase().GetType() != phase.RealDecrypt {
 		return errors.Errorf("Not in correct phase. Expected phase: %+v. "+
 			"Current phase: %+v", phase.RealDecrypt, ourRound.GetCurrentPhase())
+	}
+
+	if ourRound.GetTopology().IsFirstNode(instance.GetID()) {
+		err = instance.GetRequestNewBatchQueue().Send(roundInfo)
+		if err != nil {
+			return errors.Errorf("Unable to send to RequestNewBatch queue: %+v", err)
+		}
 	}
 
 	return nil

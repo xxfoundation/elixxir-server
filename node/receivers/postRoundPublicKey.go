@@ -25,7 +25,7 @@ import (
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
 	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 50*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
@@ -45,7 +45,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
 		jww.INFO.Printf("[%v]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
+			instance.GetID(), roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
@@ -70,7 +70,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 	}
 
 	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey PK is: %s",
-		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))
+		instance.GetID(), roundID, r.GetBuffer().CypherPublicKey.Text(16))
 
 	p.UpdateFinalStates()
 

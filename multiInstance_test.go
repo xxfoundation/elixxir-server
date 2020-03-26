@@ -33,6 +33,7 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -55,7 +56,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, grp)
+	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset)
 
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
@@ -103,6 +104,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 				t.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
 			}
 
+			jww.DEBUG.Printf("Updating to WAITING")
 			ok, err = instance.GetStateMachine().Update(current.WAITING)
 			if !ok || err != nil {
 				t.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
@@ -114,7 +116,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		testStates[current.WAITING] = func(from current.Activity) error { return nil }
 		// Create precomputing
 		testStates[current.PRECOMPUTING] = func(from current.Activity) error {
-			return node.Precomputing(instance, 10*time.Second)
+			return node.Precomputing(instance, 5*time.Second)
 		}
 		// Create standby
 		testStates[current.STANDBY] = func(from current.Activity) error { return nil }
@@ -137,14 +139,17 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		instances = append(instances, instance)
 	}
 
-	//firstNode := instances[0]
-	//lastNode := instances[len(instances)-1]
-
 	t.Logf("Initilizing Network for %v nodes", numNodes)
 	// initialize the network for every instance
 	for _, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
+		_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, testUtil.NDF.Registration.Address,
+			[]byte(testUtil.RegCert), false, false)
+		if err != nil {
+			t.Errorf("Failed to add permissioning host: %v", err)
+		}
+
 	}
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
@@ -188,9 +193,14 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
-	completedBatch.Slots, err = receivers.GetCompletedBatch(instances[numNodes-1])
-	if err != nil {
-		t.Errorf("Failed to get completed batch: %+v", err)
+
+	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
+	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
+	}
+
+	if cr!=nil{
+		completedBatch.Slots = cr.Round
 	}
 
 	//---BUILD PROBING TOOLS----------------------------------------------------
@@ -402,16 +412,21 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	// Parse through the nodes prepping them for rounds
 	for _, nodeInstance := range nodes {
 		asyncWaitUntil(&wg, current.WAITING, nodeInstance)
-
 	}
 
 	wg.Wait()
 
+	// Mocking permissioning server signing message
 	signRoundInfo(roundInfoMsg)
 
 	for index, nodeInstance := range nodes {
+		err := nodeInstance.GetConsensus().RoundUpdate(roundInfoMsg)
+		if err != nil {
+			t.Errorf("Failed to updated network instance for new round info: %v", err)
+		}
+
 		// Send the round info to the instance (to be handled internally later)
-		err := nodeInstance.GetCreateRoundQueue().Send(roundInfoMsg)
+		err = nodeInstance.GetCreateRoundQueue().Send(roundInfoMsg)
 		if err != nil {
 			t.Errorf("Unable to send to RealtimeRoundQueue for node %d: %+v", index, err)
 		}
@@ -471,7 +486,7 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 	return nil
 }
 
-func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
+func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
 
 	//generate IDs and addresses
 	var nidLst []*id.Node
@@ -515,11 +530,13 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 				TlsCert: nil,
 				Address: "",
 			},
-			FullNDF:        networkDef,
-			PartialNDF:     networkDef,
-			Address:        nodeLst[i].Address,
-			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
-			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
+			UserRegistry:    &globals.UserMap{},
+			ResourceMonitor: &measure.ResourceMonitor{},
+			FullNDF:         networkDef,
+			PartialNDF:      networkDef,
+			Address:         nodeLst[i].Address,
+			MetricsHandler:  func(i *server.Instance, roundID id.Round) error { return nil },
+			GraphGenerator:  services.NewGraphGenerator(4, PanicHandler, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 			RoundCreationTimeout: 2,

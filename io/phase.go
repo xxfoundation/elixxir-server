@@ -66,6 +66,7 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
+
 	return err
 }
 

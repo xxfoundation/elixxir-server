@@ -88,6 +88,7 @@ package state
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/primitives/current"
 	"sync"
 	"testing"
@@ -180,6 +181,9 @@ func (m Machine) addStateTransition(from current.Activity, to ...current.Activit
 func (m Machine) Update(nextState current.Activity) (bool, error) {
 	m.Lock()
 	defer m.Unlock()
+
+	jww.INFO.Printf("Updating to %v", nextState)
+
 	// check if the requested state change is valid
 	if !m.stateMap[*m.Activity][nextState] {
 		// return an error if state change if invalid

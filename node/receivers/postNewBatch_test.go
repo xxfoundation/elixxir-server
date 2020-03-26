@@ -65,11 +65,17 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(r)
 
+	var nodeIds []string
+	tempTopology := BuildMockNodeIDs(5)
+	for _, tempId := range tempTopology {
+		nodeIds = append(nodeIds, tempId.String())
+	}
 	// Build a fake batch for the reception handler
 	// This emulates what the gateway would send to the comm
 	batch := &mixmessages.Batch{
 		Round: &mixmessages.RoundInfo{
-			ID: roundID + 10,
+			ID:       roundID + 10,
+			Topology: nodeIds,
 		},
 		FromPhase: int32(phase.RealDecrypt),
 		Slots: []*mixmessages.Slot{
@@ -255,11 +261,18 @@ func TestReceivePostNewBatch(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(r)
 
+	var nodeIds []string
+	tempTopology := BuildMockNodeIDs(5)
+	for _, tempId := range tempTopology {
+		nodeIds = append(nodeIds, tempId.String())
+	}
+
 	// Build a fake batch for the reception handler
 	// This emulates what the gateway would send to the comm
 	batch := &mixmessages.Batch{
 		Round: &mixmessages.RoundInfo{
-			ID: roundID,
+			ID:       roundID,
+			Topology: nodeIds,
 		},
 		FromPhase: int32(phase.RealDecrypt),
 		Slots: []*mixmessages.Slot{

@@ -24,6 +24,25 @@ import (
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
+
+	// HACK HACK HACK
+	// node sometimes gets called into generate too soon, before it has changes
+	// from completed. this will silently wait until completed has finished
+	_, _ = instance.GetStateMachine().WaitFor(current.WAITING, 250*time.Millisecond)
+
+	// HACK HACK HACK
+	// hack to make precomp share wait to when the round is avalible
+	// fix-me: do this better
+	if batch.FromPhase == int32(phase.PrecompGeneration) {
+		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
+		if err != nil {
+			return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
+		}
+		if !ok {
+			return errors.Errorf(errCouldNotWait, phase.PrecompShare.String())
+		}
+	}
+
 	nodeID := instance.GetID()
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
@@ -101,6 +120,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
+
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
@@ -150,7 +170,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	if err != nil {
 		jww.FATAL.Panicf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
-			instance, err)
+			instance.GetID(), err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
 

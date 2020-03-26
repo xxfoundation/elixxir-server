@@ -12,9 +12,11 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"time"
 )
 
 type PostPhase func(p phase.Phase, batch *mixmessages.Batch) error
@@ -23,6 +25,7 @@ type PostPhase func(p phase.Phase, batch *mixmessages.Batch) error
 // This should include an entire new batch that's ready for realtime processing
 func ReceivePostNewBatch(instance *server.Instance,
 	newBatch *mixmessages.Batch, postPhase PostPhase, auth *connect.Auth) error {
+
 	// Check that authentication is good and the sender is our gateway, otherwise error
 	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
 		jww.WARN.Printf("[%v]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
@@ -31,19 +34,29 @@ func ReceivePostNewBatch(instance *server.Instance,
 	}
 
 	// Wait for state to be REALTIME
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250)
+	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 50*time.Millisecond)
 	if err != nil {
+		jww.WARN.Printf("Failed to transfer to realtime in time: %v", err)
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
 	}
 	if !ok {
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
-	err = HandleRealtimeBatch(instance, newBatch, postPhase)
+	nodeIDs, err := id.NewNodeListFromStrings(newBatch.Round.Topology)
 	if err != nil {
-		return err
+		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
 
+	// fixme: this panics on error, external comm should not be able to crash server
+	circuit := connect.NewCircuit(nodeIDs)
+
+	if circuit.IsFirstNode(instance.GetID()) {
+		err = HandleRealtimeBatch(instance, newBatch, postPhase)
+		if err != nil {
+			return err
+		}
+	}
 	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
@@ -66,7 +79,7 @@ func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch,
 
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
 		jww.FATAL.Panicf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
-			"batch with improper size", instance, newBatch.Round.ID)
+			"batch with improper size", instance, ri.GetID())
 	}
 
 	p, err := rnd.GetPhase(phase.RealDecrypt)
@@ -89,9 +102,7 @@ func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch,
 
 	// Queue the phase if it hasn't been done yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-	for i := range newBatch.Slots {
-		jww.DEBUG.Printf("new Batch: %#v", newBatch.Slots[i])
-	}
+
 	err = postPhase(p, newBatch)
 
 	if err != nil {

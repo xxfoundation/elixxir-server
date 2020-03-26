@@ -95,7 +95,6 @@ var Keygen = services.Module{
 			}
 
 			success := false
-			jww.DEBUG.Printf("kss: %v", kss.users)
 			if user.IsRegistered && len(kss.kmacs[i]) != 0 {
 				//check the KMAC
 				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], user.BaseKey, kmacHash) {

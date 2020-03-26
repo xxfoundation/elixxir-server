@@ -24,7 +24,7 @@ import (
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
+	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 50*time.Millisecond)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
@@ -44,7 +44,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	if !auth.IsAuthenticated || senderID != expectedID {
 		jww.INFO.Printf("[%v]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance, roundID, expectedID, auth.Sender.GetId(),
+			instance.GetID(), roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
@@ -60,13 +60,11 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 			instance, err)
 	}
 	p.Measure(measure.TagVerification)
-
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetConsensus().GetCmixGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-
 	p.UpdateFinalStates()
 
 	// Update the state in a gofunc
