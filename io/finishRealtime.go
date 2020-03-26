@@ -19,7 +19,6 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/services"
 	"sync"
 )
 
@@ -28,30 +27,37 @@ import (
 // while catching any errors that occurred
 func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
 	getChunk phase.GetChunk, getMessage phase.GetMessage, topology *connect.Circuit,
-	instance *server.Instance, chunkChan chan services.Chunk, measureFunc phase.Measure) error {
+	instance *server.Instance, measureFunc phase.Measure) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len())
 
-	// Form completedround object & push to gateway handler
+	//get the round so you can get its batch size
+	r, err := instance.GetRoundManager().GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+	}
+
+	// Form completed round object & push to gateway handler
 	complete := &round.CompletedRound{
 		RoundID:    roundID,
-		Receiver:   make(chan services.Chunk, 100000),
-		GetMessage: getMessage,
+		Round:      make([]*mixmessages.Slot, r.GetBatchSize()),
 	}
 
+	// For each message chunk (slot), fill the slots buffer
+	// Note that this will panic if there are more slots than batchSize
+	// (shouldn't be possible?)
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-		chunkChan <- chunk
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			msg := getMessage(i)
+			complete.Round[i] = msg
+		}
 	}
 
-	complete.Receiver = chunkChan
-
-	err := instance.GetCompletedBatchQueue().Send(complete)
+	err = instance.GetCompletedBatchQueue().Send(complete)
 	if err != nil {
 		return errors.Errorf("Failed to send to CompletedBatch: %+v", err)
 	}
-
-	close(chunkChan)
 
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)

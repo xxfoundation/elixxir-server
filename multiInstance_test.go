@@ -33,6 +33,7 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -192,9 +193,14 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
-	completedBatch.Slots, err = receivers.GetCompletedBatch(instances[numNodes-1])
-	if err != nil {
-		t.Errorf("Failed to get completed batch: %+v", err)
+
+	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
+	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
+	}
+
+	if cr!=nil{
+		completedBatch.Slots = cr.Round
 	}
 
 	//---BUILD PROBING TOOLS----------------------------------------------------

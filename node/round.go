@@ -250,9 +250,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	//TRANSITION: Last node broadcasts sends the results to the gateways and
 	//broadcasts a completed message to all other nodes as a verification step.
 	if topology.IsLastNode(nodeID) {
-		//build the channel which will be used to send the data
-		chanLen := (batchSize + gc.GetOutputSize() - 1) / gc.GetOutputSize()
-		chunkChan := make(chan services.Chunk, chanLen)
 		//assign the handler
 		realtimePermuteDefinition.TransmissionHandler =
 			// finish realtime needs access to lastNode to send out the results,
@@ -263,7 +260,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 				getMessage phase.GetMessage, topology *connect.Circuit,
 				nodeID *id.Node, measure phase.Measure) error {
 				return io.TransmitFinishRealtime(network, roundID, getChunk,
-					getMessage, topology, instance, chunkChan, measure)
+					getMessage, topology, instance, measure)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)
