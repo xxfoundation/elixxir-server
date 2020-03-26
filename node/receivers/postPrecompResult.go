@@ -24,11 +24,11 @@ import (
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 50*time.Millisecond)
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
-	if !ok {
+	if curActivity != current.PRECOMPUTING {
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
 	}
 
@@ -69,7 +69,7 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 
 	// Update the state in a gofunc
 	go func() {
-		ok, err = instance.GetStateMachine().Update(current.STANDBY)
+		ok, err := instance.GetStateMachine().Update(current.STANDBY)
 		if err != nil {
 			jww.FATAL.Panicf("Failed to transition to state STANDBY: %+v", err)
 		}

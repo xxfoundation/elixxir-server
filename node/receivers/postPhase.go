@@ -25,22 +25,10 @@ import (
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
 
-	// HACK HACK HACK
-	// node sometimes gets called into generate too soon, before it has changes
-	// from completed. this will silently wait until completed has finished
-	_, _ = instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
-
-	// HACK HACK HACK
-	// hack to make precomp share wait to when the round is avalible
-	// fix-me: do this better
-	if batch.FromPhase == int32(phase.PrecompGeneration) {
-		ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 50*time.Millisecond)
-		if err != nil {
-			return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
-		}
-		if !ok {
-			return errors.Errorf(errCouldNotWait, phase.PrecompShare.String())
-		}
+	// Wait until acceptable state to start post phase
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING, current.REALTIME)
+	if err != nil {
+		return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
 	}
 
 	nodeID := instance.GetID()
@@ -69,14 +57,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	toWait := shouldWait(ptype)
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
-	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 50*time.Millisecond)
-		if err != nil {
-			return errors.WithMessagef(err, errFailedToWait, toWait.String())
-		}
-		if !ok {
-			return errors.Errorf(errCouldNotWait, toWait.String())
-		}
+	} else if toWait != curActivity {
+		return errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
+			toWait, curActivity, phaseTy)
 	}
 
 	//Check if the operation can be done and get the correct phase if it can
@@ -121,6 +104,11 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
 
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING, current.REALTIME)
+	if err != nil {
+		return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
+	}
+
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
@@ -152,14 +140,9 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	toWait := shouldWait(ptype)
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
-	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 50*time.Millisecond)
-		if err != nil {
-			return errors.WithMessagef(err, errFailedToWait, toWait.String())
-		}
-		if !ok {
-			return errors.Errorf(errCouldNotWait, toWait.String())
-		}
+	} else if toWait != curActivity {
+		return errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
+			toWait, curActivity, ptype)
 	}
 
 	phaseTy := phase.Type(batchInfo.FromPhase).String()

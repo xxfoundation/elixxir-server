@@ -52,10 +52,9 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
-		if cr!=nil{
+		if cr != nil {
 			res.Slots = cr.Round
 		}
-
 
 		instance.GetGatewayFirstTime().Send()
 		return &res, nil

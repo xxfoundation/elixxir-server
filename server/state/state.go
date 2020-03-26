@@ -219,7 +219,7 @@ func (m Machine) Get() current.Activity {
 // if the the passed state is the next state update, waits until that update
 // happens. return true if the waited state is the current state. returns an
 // error after the timeout expires
-func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool, error) {
+func (m Machine) WaitFor(timeout time.Duration, expected ...current.Activity) (current.Activity, error) {
 	// take the read lock to ensure state does not change during intital
 	// checks
 	m.RLock()
@@ -227,6 +227,12 @@ func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool
 	// channels to control and receive from the worker thread
 	kill := make(chan struct{})
 	done := make(chan error)
+
+	// Place values in expected into a map
+	expectedMap := make(map[current.Activity]bool)
+	for _, val := range expected {
+		expectedMap[val] = true
+	}
 
 	// start a thread to reserve a spot to get a notification on state updates
 	// state updates cannot happen until the state read lock is released, so
@@ -237,7 +243,7 @@ func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool
 		// wait on a state change notification or a timeout
 		select {
 		case newState := <-m.signal:
-			if newState != expected {
+			if ok, _ := expectedMap[newState]; !ok {
 				done <- errors.Errorf("State not updated to the "+
 					"correct state: expected: %s receive: %s", expected,
 					newState)
@@ -252,25 +258,35 @@ func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool
 	}()
 
 	// if already in the state return true
-	if *m.Activity == expected {
+	if ok, _ := expectedMap[*m.Activity]; ok {
 		// kill the worker thread
 		kill <- struct{}{}
 		// release the read lock
 		m.RUnlock()
 		// return that the state is correct
-		return true, nil
+		return *m.Activity, nil
 	}
+
+	validTransition := false
 
 	// if not in the state and the expected state cannot be reached from the
 	// current one, return false and an error
-	if !m.stateMap[*m.Activity][expected] {
+	for _, activity := range expected {
+		if m.stateMap[*m.Activity][activity] {
+			validTransition = true
+		}
+
+	}
+
+	if !validTransition {
 		// kill the worker thread
 		kill <- struct{}{}
 		// release the read lock
 		m.RUnlock()
 		// return the error
-		return false, errors.Errorf("Cannot wait for state %s which "+
+		return *m.Activity, errors.Errorf("Cannot wait for state %s which "+
 			"cannot be reached from the current state %s", expected, *m.Activity)
+
 	}
 
 	// unlock the read lock, allows state changes to take effect
@@ -279,12 +295,7 @@ func (m Machine) WaitFor(expected current.Activity, timeout time.Duration) (bool
 	// wait for the state change to happen
 	err := <-done
 
-	// return the result
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return *m.Activity, err
 }
 
 // Waits until an update to the given expected state happens.

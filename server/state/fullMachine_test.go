@@ -29,8 +29,8 @@ func TestMockBusinessLoop(t *testing.T) {
 	// new go routine
 	generalUpdate := func(from, to current.Activity) {
 		//wait for calling state to be complete
-		done, err := m.WaitFor(from, 5*time.Millisecond)
-		if !done {
+		curActivity, err := m.WaitFor(5*time.Millisecond, from)
+		if curActivity != from {
 			t.Logf("State %s never came: %s", from, err)
 		}
 		//move to next state
@@ -117,8 +117,8 @@ func TestMockBusinessLoop(t *testing.T) {
 		if activityCount[current.ERROR] == expectedActivity[current.ERROR] {
 			// move to crash state
 			go func() {
-				done, err := m.WaitFor(from, 5*time.Millisecond)
-				if !done {
+				curActivity, err := m.WaitFor(5*time.Millisecond, from)
+				if curActivity != from {
 					t.Logf("State %s never came: %s", from, err)
 				}
 				b, err := m.Update(current.CRASH)

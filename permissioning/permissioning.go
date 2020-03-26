@@ -54,25 +54,36 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 // Poll is used to retrieve updated state information from permissioning
 //  and update our internal state accordingly
 func Poll(instance *server.Instance) error {
+
 	// Fetch the host information from the network
 	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
 	if !ok {
 		return errors.New("Could not get permissioning host")
 	}
+
+	reportedActivity := instance.GetStateMachine().Get()
+
+	// Once done and in a completed state, manually switch back into waiting
+	if reportedActivity == current.COMPLETED {
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			return errors.Errorf("Could not transition to WAITING state: %v", err)
+		}
+	}
+
 	// Ping permissioning for updated information
-	permResponse, activity, err := PollPermissioning(permHost, instance)
+	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
 	if err != nil {
 		return err
 	}
 
 	// Update the internal state of our instance
-	err = UpdateInternalState(permResponse, instance, activity)
+	err = UpdateInternalState(permResponse, instance, reportedActivity)
 	return err
 }
 
 // PollPermissioning polls the permissioning server for updates
-func PollPermissioning(permHost *connect.Host, instance *server.Instance) (
-	*pb.PermissionPollResponse, current.Activity, error) {
+func PollPermissioning(permHost *connect.Host, instance *server.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -87,28 +98,30 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance) (
 
 	// Get the update id and activity of the state machine
 	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
+
 	// The ring buffer returns negative none but message type doesn't support signed numbers
 	// fixme: maybe make proto have signed ints
 	if lastUpdateId == -1 {
 		lastUpdateId = 0
 	}
-	activity := instance.GetStateMachine().Get()
 
 	// Construct a message for permissioning with above information
 	pollMsg := &pb.PermissioningPoll{
 		Full:       &pb.NDFHash{Hash: fullNdfHash},
 		Partial:    &pb.NDFHash{Hash: partialNdfHash},
 		LastUpdate: uint64(lastUpdateId),
-		Activity:   uint32(activity),
+		Activity:   uint32(reportedActivity),
 	}
+
+	jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
 
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
-		return nil, 0, errors.Errorf("Issue polling permissioning: %+v", err)
+		return nil, errors.Errorf("Issue polling permissioning: %+v", err)
 	}
 
-	return permissioningResponse, activity, err
+	return permissioningResponse, err
 }
 
 // UpdateState processes the polling response from permissioning, installing any changes if needed
@@ -140,14 +153,6 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 		}
 	}
 
-	// Once done and in a completed state, manually switch back into waiting
-	if reportedActivity == current.COMPLETED {
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if err != nil || !ok {
-			return errors.Errorf("Could not transition to WAITING state: %v", err)
-		}
-	}
-
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 	// Parse the round info updates if they exist
@@ -173,8 +178,8 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
-				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
-				if !ok || err != nil {
+				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
+				if curActivity != current.WAITING || err != nil {
 					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
 				}
 
@@ -185,7 +190,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 				}
 
 				// Begin PRECOMPUTING state
-				ok, err = instance.GetStateMachine().Update(current.PRECOMPUTING)
+				ok, err := instance.GetStateMachine().Update(current.PRECOMPUTING)
 				if !ok || err != nil {
 					return errors.Errorf("Cannot move to precomputing state: %+v", err)
 				}
@@ -194,8 +199,8 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 
 			case states.REALTIME: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
-				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
-				if !ok || err != nil {
+				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
+				if curActivity != current.STANDBY || err != nil {
 					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
 				}
 

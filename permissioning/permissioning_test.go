@@ -199,7 +199,7 @@ func TestRetrieveState(t *testing.T) {
 	permHost, _ := instance.GetNetwork().GetHost(id.PERMISSIONING)
 
 	// Ping permissioning for a state update
-	response, _, err := PollPermissioning(permHost, instance)
+	response, err := PollPermissioning(permHost, instance, nil)
 	if err != nil {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}

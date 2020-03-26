@@ -99,13 +99,13 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		var testStates [current.NUM_STATES]state.Change
 		// Create not started
 		testStates[current.NOT_STARTED] = func(from current.Activity) error {
-			ok, err := instance.GetStateMachine().WaitFor(current.NOT_STARTED, 1*time.Second)
-			if !ok || err != nil {
+			curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
+			if curActivity != current.NOT_STARTED || err != nil {
 				t.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
 			}
 
 			jww.DEBUG.Printf("Updating to WAITING")
-			ok, err = instance.GetStateMachine().Update(current.WAITING)
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
 			if !ok || err != nil {
 				t.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
 			}
@@ -199,7 +199,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 	}
 
-	if cr!=nil{
+	if cr != nil {
 		completedBatch.Slots = cr.Round
 	}
 

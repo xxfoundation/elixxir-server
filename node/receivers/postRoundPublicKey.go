@@ -25,11 +25,11 @@ import (
 // batch
 func ReceivePostRoundPublicKey(instance *server.Instance,
 	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 50*time.Millisecond)
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
-	if !ok {
+	if curActivity != current.PRECOMPUTING {
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
 	}
 

@@ -32,7 +32,6 @@ func NewCompletedQueue() CompletedQueue {
 }
 
 type CompletedRound struct {
-	RoundID    id.Round
+	RoundID id.Round
 	Round   []*mixmessages.Slot
 }
-

@@ -40,8 +40,8 @@ func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
 
 	// Form completed round object & push to gateway handler
 	complete := &round.CompletedRound{
-		RoundID:    roundID,
-		Round:      make([]*mixmessages.Slot, r.GetBatchSize()),
+		RoundID: roundID,
+		Round:   make([]*mixmessages.Slot, r.GetBatchSize()),
 	}
 
 	// For each message chunk (slot), fill the slots buffer
