@@ -74,7 +74,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	instance.SetGatewayAsReady()
 
 	// Receive signal that indicates that gateway is ready for polling
-	err = instance.GetGatewayFirstTime().Receive(5 * time.Second)
+	err = instance.GetGatewayFirstTime().Receive(instance.GetGatewayConnnectionTimeout())
 	if err != nil {
 		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
 	}

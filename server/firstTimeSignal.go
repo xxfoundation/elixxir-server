@@ -34,13 +34,13 @@ func (ft *FirstTime) Send() {
 }
 
 // Receive either receives from the channel or times out
-// On timeout it errors
+// On timeout it errors.
 func (ft *FirstTime) Receive(duration time.Duration) error {
 
 	select {
 	case <-ft.c:
 		return nil
 	case <-time.After(duration):
-		return errors.New("Timed out receiving from channel")
+		return errors.New("Timed out receiving from first time channel")
 	}
 }
