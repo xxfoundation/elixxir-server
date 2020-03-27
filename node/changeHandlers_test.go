@@ -121,6 +121,7 @@ func TestError(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
 	}
+	instance.GetNetwork().Shutdown()
 }
 
 func TestPrecomputing(t *testing.T) {
@@ -154,4 +155,5 @@ func TestPrecomputing(t *testing.T) {
 	if err != nil {
 		t.Errorf("A round should have been added to the round manager")
 	}
+	instance.GetNetwork().Shutdown()
 }
