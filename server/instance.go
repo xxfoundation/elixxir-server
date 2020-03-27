@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
@@ -24,6 +25,8 @@ import (
 	"sync/atomic"
 	"testing"
 )
+
+type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
 
 // Holds long-lived server state
 type Instance struct {
@@ -46,6 +49,8 @@ type Instance struct {
 
 	errChan        chan *mixmessages.RoundError
 	recoveredError *mixmessages.RoundError
+
+	errBroadcastFunc RoundErrBroadcastFunc
 }
 
 // Create a server instance. To actually kick off the server,
@@ -76,7 +81,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
-
+	instance.errBroadcastFunc = instance.network.SendRoundErrorBroadcast
 	if noTls {
 		instance.network.DisableAuth()
 	}
@@ -288,6 +293,10 @@ func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
 	return i.recoveredError
 }
 
+func (i *Instance) ClearRecoveredError() {
+	i.recoveredError = nil
+}
+
 func (i *Instance) IsReadyForGateway() bool {
 	ourVal := atomic.LoadUint32(i.isGatewayReady)
 
@@ -296,6 +305,18 @@ func (i *Instance) IsReadyForGateway() bool {
 
 func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
+}
+
+func (i *Instance) SendRoundErrorBroadcast(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	return i.errBroadcastFunc(h, m)
+}
+
+/* TESTING FUNCTIONS */
+func (i *Instance) SetRoundErrBroadcastFunc(f RoundErrBroadcastFunc, t *testing.T) {
+	if t == nil {
+		panic("Cannot call this outside of tests")
+	}
+	i.errBroadcastFunc = f
 }
 
 // GenerateId generates a random ID and returns it

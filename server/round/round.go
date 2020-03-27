@@ -180,6 +180,13 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 	return &Round{id: roundId, batchSize: batchSize, topology: &top}
 }
 
+func NewDummyRoundWithTopology(roundId id.Round, batchSize uint32,
+	topology *connect.Circuit, t *testing.T) *Round {
+	r := NewDummyRound(roundId, batchSize, t)
+	r.topology = topology
+	return r
+}
+
 //GetID return the ID
 func (r *Round) GetID() id.Round {
 	return r.id

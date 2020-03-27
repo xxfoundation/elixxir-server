@@ -106,6 +106,16 @@ func PollPermissioning(permHost *connect.Host,
 		LastUpdate: uint64(lastUpdateId),
 		Activity:   uint32(activity),
 	}
+	if instance.GetRecoveredError() != nil && instance.GetStateMachine().Get() == current.ERROR {
+		pollMsg.Error = instance.GetRecoveredError()
+		instance.ClearRecoveredError()
+		go func() {
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if err != nil || !ok {
+				jww.FATAL.Panicf("Could not move to waiting state")
+			}
+		}()
+	}
 
 	jww.FATAL.Printf("our poll msg: %+v", pollMsg)
 
