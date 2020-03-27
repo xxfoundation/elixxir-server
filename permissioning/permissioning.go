@@ -113,7 +113,7 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 		Activity:   uint32(reportedActivity),
 	}
 
-	jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
+	//jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
 
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
