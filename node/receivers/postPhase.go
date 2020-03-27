@@ -25,6 +25,11 @@ import (
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
 
+	// HACK HACK HACK
+	// in the event not started hasn't finished, this waits for ti to finish
+	// or is ignored otherwise
+	_, _ = instance.GetStateMachine().WaitFor(5*time.Second, current.WAITING)
+
 	// Wait until acceptable state to start post phase
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING, current.REALTIME)
 	if err != nil {
