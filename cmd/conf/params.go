@@ -143,7 +143,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.SkipReg = p.SkipReg
 	def.Flags.Verbose = p.Verbose
-	def.GWConnTimeout = p.GWConnTimeout
+	def.GwConnTimeout = p.GWConnTimeout
 
 	var tlsCert, tlsKey []byte
 	var err error

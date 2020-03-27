@@ -72,7 +72,8 @@ type Definition struct {
 	// timeout for round creation
 	RoundCreationTimeout int
 
-	GWConnTimeout    time.Duration
+	//how long the server will wait for the gateway to come online
+	GwConnTimeout time.Duration
 }
 
 // Holds all input flags to the system.

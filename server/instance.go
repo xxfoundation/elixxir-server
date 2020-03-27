@@ -288,7 +288,7 @@ func (i *Instance) SetGatewayAsReady() {
 
 // GetTopology returns the consensus object
 func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
-	return i.definition.GWConnTimeout
+	return i.definition.GwConnTimeout
 }
 
 
