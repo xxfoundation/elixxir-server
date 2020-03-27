@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
@@ -52,6 +53,11 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	permHost.Disconnect()
 
 	// Connect to the Permissioning Server with authentication enabled
+	// the server does not have a signed cert, but the pemrissionign has its cert,
+	// reverse authetnication on conenctiosn just use the public key inside certs,
+	// not the entire key chain, so even through the server does have a signed
+	// cert, it can reverse auth with permissioning, allowing it to get the
+	// full NDF
 	permHost, err = network.AddHost(id.PERMISSIONING,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
@@ -61,9 +67,12 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 	for err != nil && strings.Contains(err.Error(), ndf.NO_NDF) {
+		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
-		err = permissioning.Poll(instance)
-
+		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
+		if err==nil{
+			err = permissioning.UpdateNDf(permResponse, instance)
+		}
 	}
 
 	jww.DEBUG.Printf("Recieved ndf for first time!")
