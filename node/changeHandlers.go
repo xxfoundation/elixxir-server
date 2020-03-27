@@ -151,7 +151,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	// start pre-precomputation
 	roundInfo, err := instance.GetCreateRoundQueue().Receive()
 	if err != nil {
-		jww.WARN.Printf("Error with create round queue: %+v", err)
+		jww.TRACE.Printf("Error with create round queue: %+v", err)
 	}
 
 	roundID := roundInfo.GetRoundId()
