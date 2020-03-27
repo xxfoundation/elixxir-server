@@ -319,6 +319,13 @@ func (i *Instance) SetRoundErrBroadcastFunc(f RoundErrBroadcastFunc, t *testing.
 	i.errBroadcastFunc = f
 }
 
+func (i *Instance) SetTestRecoveredError(m *mixmessages.RoundError, t *testing.T) {
+	if t == nil {
+		panic("This cannot be used outside of a test")
+	}
+	i.recoveredError = m
+}
+
 // GenerateId generates a random ID and returns it
 // FIXME: This function needs to be replaced
 func GenerateId(i interface{}) *id.Node {

@@ -179,6 +179,44 @@ func TestPoll(t *testing.T) {
 
 }
 
+func TestPoll_ErrState(t *testing.T) {
+	// Create instance
+	instance, err := createServerInstance(t)
+	if err != nil {
+		t.Errorf("Couldn't create instance: %+v", err)
+	}
+	instance.SetTestRecoveredError(&pb.RoundError{
+		Id:     0,
+		NodeId: "",
+		Error:  "",
+	}, t)
+	ok, err := instance.GetStateMachine().Update(current.ERROR)
+	if !ok || err != nil {
+		t.Errorf("Failed to update to error state: %+v", err)
+	}
+
+	// Start up permissioning server
+	permComms, err := startPermisioning()
+	if err != nil {
+		t.Errorf("Couldn't create permissioning server: %+v", err)
+	}
+	defer permComms.Shutdown()
+
+	// Poll the permissioning server for updates
+	err = Poll(instance)
+	if err != nil {
+		t.Errorf("Failed to poll for ndf: %+v", err)
+	}
+
+	if instance.GetStateMachine().Get() != current.WAITING {
+		t.Error("Failed to properly update state")
+	}
+
+	if instance.GetRecoveredError() != nil {
+		t.Error("Did not properly clear recovered error")
+	}
+}
+
 // Happy path: Pings the mock registration server for a poll response
 func TestRetrieveState(t *testing.T) {
 	// Create server instance
