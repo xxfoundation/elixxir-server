@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
+	"time"
 )
 
 // in cmd/node.go, it is filling this out
@@ -70,6 +71,8 @@ type Definition struct {
 
 	// timeout for round creation
 	RoundCreationTimeout int
+
+	GWConnTimeout    time.Duration
 }
 
 // Holds all input flags to the system.

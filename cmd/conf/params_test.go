@@ -16,7 +16,6 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	expectedParams := Params{
 		Index:            5,
-		Batch:            uint32(20),
 		SkipReg:          true,
 		Verbose:          true,
 		KeepBuffers:      true,
@@ -62,10 +61,6 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	if expectedParams.Index != 5 {
 		t.Errorf("Params index value does not match expected value")
-	}
-
-	if expectedParams.Batch != 20 {
-		t.Errorf("Params batch value does not match expected value")
 	}
 
 	if expectedParams.SkipReg != true {
