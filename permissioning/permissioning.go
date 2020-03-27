@@ -130,8 +130,9 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 	return permissioningResponse, err
 }
 
-// UpdateState processes the polling response from permissioning, installing any changes if needed
-//  It also parsed the message and determines where to transition given contect
+// Processes the polling response from permissioning for round updates,
+// installing any round changes if needed. It also parsed the message and
+// determines where to transition given context
 func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
 	// Parse the response for updates
@@ -224,6 +225,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 	return nil
 }
 
+// Processes the polling response from permissioning for ndf updates,
+// installing any ndf changes if needed and connecting to new nodes
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance)error{
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
