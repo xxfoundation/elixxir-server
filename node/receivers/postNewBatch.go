@@ -34,12 +34,12 @@ func ReceivePostNewBatch(instance *server.Instance,
 	}
 
 	// Wait for state to be REALTIME
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 50*time.Millisecond)
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.REALTIME)
 	if err != nil {
 		jww.WARN.Printf("Failed to transfer to realtime in time: %v", err)
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
 	}
-	if !ok {
+	if curActivity != current.REALTIME {
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 

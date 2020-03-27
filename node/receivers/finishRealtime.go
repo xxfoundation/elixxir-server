@@ -35,21 +35,21 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
 		jww.INFO.Printf("[%v]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
-			instance.GetID(), roundID, expectedID, auth.Sender.GetId(),
+			instance, roundID, expectedID, auth.Sender.GetId(),
 			auth.IsAuthenticated)
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 50*time.Millisecond)
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.REALTIME)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
 	}
-	if !ok {
+	if curActivity != current.REALTIME {
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
 	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime START",
-		instance.GetID(), roundID)
+		instance, roundID)
 
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
@@ -85,10 +85,10 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		roundID)
 
 	jww.INFO.Printf("[%v]: RID %d Round took %v seconds",
-		instance.GetID(), roundID, time.Now().Sub(r.GetTimeStart()))
+		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
 	go func() {
-		ok, err = instance.GetStateMachine().Update(current.COMPLETED)
+		ok, err := instance.GetStateMachine().Update(current.COMPLETED)
 		if err != nil {
 			jww.ERROR.Printf(errors.WithMessagef(err, errFailedToUpdate, current.COMPLETED.String()).Error())
 		}

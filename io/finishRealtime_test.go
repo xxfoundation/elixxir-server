@@ -50,11 +50,11 @@ func TestSendFinishRealtime(t *testing.T) {
 	defer Shutdown(comms)
 
 	const numSlots = 10
-	const numChunks = numSlots/2
+	const numChunks = numSlots / 2
 
 	rndID := id.Round(42)
 
-	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID,numSlots,t))
+	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID, numSlots, t))
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
 
@@ -79,9 +79,9 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	var cr *round.CompletedRound
 
-	for cr==nil{
-		cr,_ = instance.GetCompletedBatchQueue().Receive()
-		time.Sleep(1*time.Millisecond)
+	for cr == nil {
+		cr, _ = instance.GetCompletedBatchQueue().Receive()
+		time.Sleep(1 * time.Millisecond)
 	}
 
 	if len(cr.Round) != numSlots {
@@ -126,7 +126,6 @@ func MockFinishRealtimeImplementation_Error() *node.Implementation {
 func TestTransmitFinishRealtime_Error(t *testing.T) {
 	instance, _, _, _, _, _ := setup(t)
 
-
 	//Setup the network
 	comms, topology := buildTestNetworkComponents(
 		[]*node.Implementation{
@@ -140,9 +139,9 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	rndID := id.Round(42)
 
 	const numSlots = 10
-	const numChunks = numSlots/2
+	const numChunks = numSlots / 2
 
-	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID,numSlots,t))
+	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID, numSlots, t))
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
 
@@ -152,14 +151,13 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	}
 	errCH := make(chan error)
 
-
 	go func() {
 		err := TransmitFinishRealtime(comms[0], rndID,
 			getChunk, getMessage, topology, instance, nil)
 		errCH <- err
 	}()
 
-	go func(){
+	go func() {
 		for i := 0; i < numChunks; i++ {
 			chunkInputChan <- services.NewChunk(uint32(i*2), uint32(i*2+1))
 		}
@@ -169,9 +167,9 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 
 	var cr *round.CompletedRound
 
-	for cr==nil{
-		cr,_ = instance.GetCompletedBatchQueue().Receive()
-		time.Sleep(1*time.Millisecond)
+	for cr == nil {
+		cr, _ = instance.GetCompletedBatchQueue().Receive()
+		time.Sleep(1 * time.Millisecond)
 	}
 
 	if len(cr.Round) != numSlots {

@@ -114,13 +114,13 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	// Once done with notStarted transition into waiting
 	go func() {
 		// Ensure that instance is in not started prior to transition
-		ok, err := instance.GetStateMachine().WaitFor(current.NOT_STARTED, 1*time.Second)
-		if !ok || err != nil {
+		curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
+		if curActivity != current.NOT_STARTED || err != nil {
 			jww.FATAL.Panicf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
 		}
 
 		// Transition state machine into waiting state
-		ok, err = instance.GetStateMachine().Update(current.WAITING)
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if !ok || err != nil {
 			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.WAITING, err)
 		}

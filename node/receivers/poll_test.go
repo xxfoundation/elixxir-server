@@ -344,18 +344,18 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 	}
 
 	err = instance.GetConsensus().RoundUpdate(newRound)
-	if err!=nil{
+	if err != nil {
 		t.Errorf("Round update failed: %s", err)
 	}
 
 	dr := round.NewDummyRound(23, 10, t)
 	instance.GetRoundManager().AddRound(dr)
 	cr := round.CompletedRound{
-		RoundID:    id.Round(23),
+		RoundID: id.Round(23),
 		Round:   make([]*pb.Slot, 10),
 	}
 
-	for i:=0;i<10;i++{
+	for i := 0; i < 10; i++ {
 		cr.Round[i] = &pb.Slot{Index: uint32(i)}
 	}
 
