@@ -66,6 +66,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
+
 	for err != nil && strings.Contains(err.Error(), ndf.NO_NDF) {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
@@ -107,19 +108,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	// in practice 10 seconds works
 	time.Sleep(10 * time.Second)
 
-	// Periodically re-poll permissioning
-	go func() {
-		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(5 * time.Millisecond)
-		for range ticker.C {
-			err := permissioning.Poll(instance)
-			if err != nil {
-				// If we receive an error polling here, panic this thread
-				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
-			}
-		}
-	}()
-
 	// Once done with notStarted transition into waiting
 	go func() {
 		// Ensure that instance is in not started prior to transition
@@ -132,6 +120,17 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if !ok || err != nil {
 			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.WAITING, err)
+		}
+
+		// Periodically re-poll permissioning
+		// fixme we need to review the performance implications and possibly make this programmable
+		ticker := time.NewTicker(5 * time.Millisecond)
+		for range ticker.C {
+			err := permissioning.Poll(instance)
+			if err != nil {
+				// If we receive an error polling here, panic this thread
+				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
+			}
 		}
 
 	}()

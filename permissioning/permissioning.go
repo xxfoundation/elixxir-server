@@ -77,8 +77,14 @@ func Poll(instance *server.Instance) error {
 		return err
 	}
 
-	// Update the internal state of our instance
-	err = UpdateInternalState(permResponse, instance)
+	//updates the NDF with changes
+	err = UpdateNDf(permResponse, instance)
+	if err!=nil{
+		return errors.WithMessage(err, "Failed to update the NDFs")
+	}
+
+	// Update the internal state of rounds and the state machine
+	err = UpdateRounds(permResponse, instance)
 	return err
 }
 
@@ -126,12 +132,7 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 
 // UpdateState processes the polling response from permissioning, installing any changes if needed
 //  It also parsed the message and determines where to transition given contect
-func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
-
-	err := UpdateNDf(permissioningResponse, instance)
-	if err!=nil{
-		return errors.WithMessage(err, "Failed to update the NDFs")
-	}
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
