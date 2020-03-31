@@ -248,8 +248,8 @@ gitlab.com/elixxir/crypto v0.0.0-20200229000841-b1ee7117a1d0/go.mod h1:QPClJr3F9
 gitlab.com/elixxir/primitives v0.0.0-20200218211222-4193179f359c/go.mod h1:REJMcwIcyxh74VSHqy4S9yYiaEsQYObOPglRExDpk14=
 gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152 h1:RqT4XSphs+73DWvdKaWlTI8qY6eUdkG9LfTli+qukjU=
 gitlab.com/elixxir/primitives v0.0.0-20200306214728-35300c4b5152/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
-gitlab.com/elixxir/primitives v0.0.0-20200327215238-229fdf8fb10e h1:cA9IQncuRhOoTXn5FoWT3PGoZLdg5QPnYqt+QpDf7N0=
-gitlab.com/elixxir/primitives v0.0.0-20200327215238-229fdf8fb10e/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
+gitlab.com/elixxir/primitives v0.0.0-20200330164332-b07ab7f779a0 h1:oZuWZmWO4Zt3sl72EaogDQUEU16rXW3R/FTJtR2H2gQ=
+gitlab.com/elixxir/primitives v0.0.0-20200330164332-b07ab7f779a0/go.mod h1:vx+QS3daQGu4WrHMU6IOuddbpJQnEOhbDyhYdHm/nNQ=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=

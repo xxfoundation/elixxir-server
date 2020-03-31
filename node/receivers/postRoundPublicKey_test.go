@@ -35,6 +35,9 @@ func setup(t *testing.T, instIndex int, s current.Activity) (*server.Instance, *
 		Gateway: server.GW{
 			ID: id.NewTmpGateway(),
 		},
+		MetricsHandler: func(i *server.Instance, roundID id.Round) error {
+			return nil
+		},
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 
