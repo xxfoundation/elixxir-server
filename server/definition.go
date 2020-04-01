@@ -3,7 +3,7 @@
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
-package server
+package instance
 
 import (
 	"gitlab.com/elixxir/crypto/fastRNG"
