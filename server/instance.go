@@ -23,6 +23,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // Holds long-lived server state
@@ -284,6 +285,12 @@ func (i *Instance) IsReadyForGateway() bool {
 func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
 }
+
+// GetTopology returns the consensus object
+func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
+	return i.definition.GwConnTimeout
+}
+
 
 // GenerateId generates a random ID and returns it
 // FIXME: This function needs to be replaced

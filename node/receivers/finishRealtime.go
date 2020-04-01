@@ -87,6 +87,19 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	jww.INFO.Printf("[%v]: RID %d Round took %v seconds",
 		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
+	// If this is the first node, then start metrics collection.
+	if r.GetTopology().IsFirstNode(instance.GetID()) {
+		// The go routine that gathers all the metrics from all other nodes each
+		// round and then saves them to a file.
+		go func() {
+			err = instance.GetDefinition().MetricsHandler(instance, roundID)
+			if err != nil {
+				jww.ERROR.Printf("Failure in posting metrics for round %d: %v",
+					roundID, err)
+			}
+		}()
+	}
+
 	go func() {
 		ok, err := instance.GetStateMachine().Update(current.COMPLETED)
 		if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
 	"strings"
 )
@@ -61,5 +62,5 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 	}
 
 	// If node has not gotten a response from permissioning, return an empty message
-	return &res, errors.New("Node is not ready for gateway polling")
+	return &res, errors.New(ndf.NO_NDF)
 }

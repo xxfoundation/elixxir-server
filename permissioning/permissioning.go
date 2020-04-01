@@ -77,8 +77,14 @@ func Poll(instance *server.Instance) error {
 		return err
 	}
 
-	// Update the internal state of our instance
-	err = UpdateInternalState(permResponse, instance, reportedActivity)
+	//updates the NDF with changes
+	err = UpdateNDf(permResponse, instance)
+	if err!=nil{
+		return errors.WithMessage(err, "Failed to update the NDFs")
+	}
+
+	// Update the internal state of rounds and the state machine
+	err = UpdateRounds(permResponse, instance)
 	return err
 }
 
@@ -124,34 +130,10 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 	return permissioningResponse, err
 }
 
-// UpdateState processes the polling response from permissioning, installing any changes if needed
-//  It also parsed the message and determines where to transition given contect
-func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance, reportedActivity current.Activity) error {
-
-	if permissioningResponse.FullNDF != nil {
-		// Update the full ndf
-		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
-		if err != nil {
-			return errors.Errorf("Could not update full ndf: %+v", err)
-		}
-	}
-
-	if permissioningResponse.PartialNDF != nil {
-		// Update the partial ndf
-		err := instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
-		if err != nil {
-			return errors.Errorf("Could not update partial ndf: %+v", err)
-		}
-	}
-
-	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
-		jww.DEBUG.Printf("Updating node connections")
-		// Update the nodes in the network.Instance with the new ndf
-		err := instance.GetConsensus().UpdateNodeConnections()
-		if err != nil {
-			return errors.Errorf("Could not update node connections: %+v", err)
-		}
-	}
+// Processes the polling response from permissioning for round updates,
+// installing any round changes if needed. It also parsed the message and
+// determines where to transition given context
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
@@ -241,6 +223,38 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 		}
 	}
 	return nil
+}
+
+// Processes the polling response from permissioning for ndf updates,
+// installing any ndf changes if needed and connecting to new nodes
+func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance)error{
+	if permissioningResponse.FullNDF != nil {
+		// Update the full ndf
+		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+		if err != nil {
+			return errors.Errorf("Could not update full ndf: %+v", err)
+		}
+	}
+
+	if permissioningResponse.PartialNDF != nil {
+		// Update the partial ndf
+		err := instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
+		if err != nil {
+			return errors.Errorf("Could not update partial ndf: %+v", err)
+		}
+	}
+
+	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
+		jww.DEBUG.Printf("Updating node connections")
+		// Update the nodes in the network.Instance with the new ndf
+		err := instance.GetConsensus().UpdateNodeConnections()
+		if err != nil {
+			return errors.Errorf("Could not update node connections: %+v", err)
+		}
+	}
+
+	return nil
+
 }
 
 // InstallNdf parses the ndf for necessary information and returns that
