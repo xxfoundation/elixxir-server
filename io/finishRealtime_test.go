@@ -66,8 +66,7 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	var err error
 	go func() {
-		err = TransmitFinishRealtime(comms[0], rndID,
-			getChunk, getMessage, topology, instance, nil)
+		err = TransmitFinishRealtime(rndID, instance, getChunk)
 		errCH <- err
 	}()
 
@@ -152,8 +151,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	errCH := make(chan error)
 
 	go func() {
-		err := TransmitFinishRealtime(comms[0], rndID,
-			getChunk, getMessage, topology, instance, nil)
+		err := TransmitFinishRealtime(rndID, instance, getChunk)
 		errCH <- err
 	}()
 

@@ -10,10 +10,9 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -22,10 +21,18 @@ import (
 )
 
 // StreamTransmitPhase streams slot messages to the provided Node.
-func StreamTransmitPhase(network *node.Comms, batchSize uint32,
-	roundID id.Round, phaseTy phase.Type,
-	getChunk phase.GetChunk, getMessage phase.GetMessage,
-	topology *connect.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
+func StreamTransmitPhase(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+
+	// todo: change error log
+	//get the round so you can get its batch size
+	r, err := instance.GetRoundManager().GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+	}
+
+	topology := r.GetTopology()
+	nodeID := instance.GetID()
+
 	// Pull the particular server host object from the commManager
 	recipientID := topology.GetNextNode(nodeID)
 	recipientIndex := topology.GetNodeLocation(recipientID)
@@ -35,20 +42,22 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
-		FromPhase: int32(phaseTy),
-		BatchSize: batchSize,
+		FromPhase: int32(r.GetCurrentPhaseType()),
+		BatchSize: r.GetBatchSize(),
 	}
 
 	// This gets the streaming client which used to send slots
 	// using the recipient node id and the batch info header
 	// It's context must be canceled after receiving an ack
-	streamClient, cancel, err := network.GetPostPhaseStreamClient(recipient, header)
+	streamClient, cancel, err := instance.GetNetwork().GetPostPhaseStreamClient(
+		recipient, header)
 	if err != nil {
 		return errors.Errorf("Error on comm, unable to get streaming client: %+v",
 			err)
 	}
 
 	// For each message chunk (slot) stream it out
+	getMessage := r.GetCurrentPhase().GetGraph().GetStream().Output
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
@@ -61,16 +70,20 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 		}
 	}
 
+	measureFunc := r.GetCurrentPhase().Measure
+	if measureFunc != nil {
+		measureFunc(measure.TagTransmitLastSlot)
+	}
+
 	// Receive ack and cancel client streaming context
-	measureFunc(measure.TagTransmitLastSlot)
 	ack, err := streamClient.CloseAndRecv()
-	localServer := network.String()
+	localServer := instance.GetNetwork().String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nodeID, port)
 	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
 
 	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\" COMPLETE/SEND",
-		name, roundID, phaseTy)
+		name, roundID, r.GetCurrentPhaseType())
 
 	cancel()
 

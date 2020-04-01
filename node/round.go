@@ -255,12 +255,8 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 			// finish realtime needs access to lastNode to send out the results,
 			// an anonymous function is used to wrap the function, passing
 			// access while maintaining the transmit signature
-			func(network *node.Comms, batchSize uint32,
-				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-				getMessage phase.GetMessage, topology *connect.Circuit,
-				nodeID *id.Node, measure phase.Measure) error {
-				return io.TransmitFinishRealtime(network, roundID, getChunk,
-					getMessage, topology, instance, measure)
+			func(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+				return io.TransmitFinishRealtime(roundID, instance, getChunk)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)

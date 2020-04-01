@@ -3,7 +3,7 @@
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
-package instance
+package server
 
 import (
 	"fmt"
@@ -213,12 +213,12 @@ func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 
 //IsRegistrationAuthenticated returns the skipReg parameter
 func (i *Instance) IsRegistrationAuthenticated() bool {
-	return Flags.SkipReg
+	return i.definition.Flags.SkipReg
 }
 
 //GetKeepBuffers returns if buffers are to be held on it
 func (i *Instance) GetKeepBuffers() bool {
-	return Flags.KeepBuffers
+	return i.definition.Flags.KeepBuffers
 }
 
 //GetRegServerPubKey returns the public key of the registration server

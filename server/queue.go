@@ -4,7 +4,7 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package instance
+package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
@@ -103,19 +103,11 @@ func (rq *ResourceQueue) run(server *Instance) {
 			return chunk, ok
 		}
 
-		curRound, err := server.GetRoundManager().GetRound(
-			runningPhase.GetRoundID())
-
-		if err != nil {
-			jww.FATAL.Panicf("Round %d does not exist!",
-				runningPhase.GetRoundID())
-		}
-
 		//start the phase's transmission handler
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-			err := handler()(runningPhase.GetRoundID(), server,	getChunk)
+			err := handler()(runningPhase.GetRoundID(), server, getChunk)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",

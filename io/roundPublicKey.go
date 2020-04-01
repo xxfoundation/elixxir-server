@@ -8,11 +8,10 @@ package io
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
@@ -22,13 +21,20 @@ import (
 
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
-func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
-	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *connect.Circuit,
-	nodeID *id.Node, measureFunc phase.Measure) error {
+func TransmitRoundPublicKey(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+
+	// todo: change error log
+	//get the round so you can get its batch size
+	r, err := instance.GetRoundManager().GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+	}
+
+	topology := r.GetTopology()
 
 	var roundPublicKeys [][]byte
 
+	getMessage := r.GetCurrentPhase().GetGraph().GetStream().Output
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
@@ -53,7 +59,10 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 
 	var wg sync.WaitGroup
 
-	measureFunc(measure.TagTransmitLastSlot)
+	measureFunc := r.GetCurrentPhase().Measure
+	if measureFunc != nil {
+		measureFunc(measure.TagTransmitLastSlot)
+	}
 
 	for index := 1; index < topology.Len(); index++ {
 
@@ -64,7 +73,8 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 			recipient := topology.GetHostAtIndex(localIndex)
 
 			//Send the message to that node
-			ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+			ack, err := instance.GetNetwork().SendPostRoundPublicKey(
+				recipient, roundPubKeyMsg)
 
 			if err != nil {
 				errChan <- err
@@ -101,14 +111,14 @@ func TransmitRoundPublicKey(network *node.Comms, batchSize uint32,
 	// to the first node which is this node
 	recipientID := topology.GetNodeAtIndex(0).String()
 	// Pull the particular server host object from the commManager
-	recipient, ok := network.GetHost(recipientID)
+	recipient, ok := instance.GetNetwork().GetHost(recipientID)
 	if !ok {
 		errMsg := errors.Errorf("Could not find cMix server %s in comm manager", recipientID)
 		return errMsg
 	}
 
 	//Send message to first node
-	ack, err := network.SendPostRoundPublicKey(recipient, roundPubKeyMsg)
+	ack, err := instance.GetNetwork().SendPostRoundPublicKey(recipient, roundPubKeyMsg)
 
 	// Make sure the comm doesn't return an Ack with an
 	// error message

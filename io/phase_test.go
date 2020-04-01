@@ -95,8 +95,7 @@ func TestTransmitPhase(t *testing.T) {
 	m := func(tag string) {}
 
 	//call the transmitter
-	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
-		getMsg, topology, topology.GetNodeAtIndex(0), m)
+	err := TransmitPhase(roundID, nil, getChunk)
 
 	if err != nil {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)

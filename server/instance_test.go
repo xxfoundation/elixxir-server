@@ -1,4 +1,4 @@
-package instance
+package server
 
 import (
 	"gitlab.com/elixxir/comms/node"
@@ -160,7 +160,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 func TestInstance_GetKeepBuffers(t *testing.T) {
 	instance, def := createInstance(t)
 
-	if Flags.KeepBuffers != instance.GetKeepBuffers() {
+	if def.Flags.KeepBuffers != instance.GetKeepBuffers() {
 		t.Logf("Keep buffers is not expected Keep Buffers value")
 		t.Fail()
 	}
@@ -232,7 +232,7 @@ func TestInstance_GetUserRegistry(t *testing.T) {
 func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
 	instance, def := createInstance(t)
 
-	if Flags.SkipReg != instance.IsRegistrationAuthenticated() {
+	if def.Flags.SkipReg != instance.IsRegistrationAuthenticated() {
 		t.Logf("IsRegistrationAuthenticated() returned unexpected value")
 		t.Fail()
 	}

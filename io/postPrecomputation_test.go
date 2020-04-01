@@ -7,7 +7,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
@@ -127,9 +126,7 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 		return chunk, good
 	}
 
-	err := TransmitPrecompResult(comms[numNodes-1], batchSize,
-		rndID, phase.PrecompReveal, getchunk, getMockPostPrecompSlot,
-		topology, nil, nil)
+	err := TransmitPrecompResult(rndID, serverInstance, getchunk)
 
 	if err != nil {
 		t.Errorf("TransmitPrecompResult: Unexpected error: %+v", err)
