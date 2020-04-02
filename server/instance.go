@@ -314,7 +314,6 @@ func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
 	return i.definition.GwConnTimeout
 }
 
-
 // GenerateId generates a random ID and returns it
 // FIXME: This function needs to be replaced
 func GenerateId(i interface{}) *id.Node {

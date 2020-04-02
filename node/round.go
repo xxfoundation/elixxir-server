@@ -17,7 +17,7 @@ import (
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	nodeID *id.Node, instance *server.Instance, batchSize uint32,
 	newRoundTimeout time.Duration, pool *gpumaths.StreamPool) (
-		[]phase.Phase, phase.ResponseMap) {
+	[]phase.Phase, phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
@@ -151,7 +151,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		precompPermuteDefinition.Graph = precomputation.InitPermuteGraph(gc)
 	}
 
-// Every node except the first node handles precomp permute in the normal
+	// Every node except the first node handles precomp permute in the normal
 	// pattern
 	PermuteResponse := phase.ResponseDefinition{
 		PhaseAtSource:  phase.PrecompPermute,
