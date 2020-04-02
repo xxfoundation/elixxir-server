@@ -10,7 +10,7 @@ variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
   DOCKER_IMAGE: sydney112/cuda-go:latest
-  MIN_CODE_COVERAGE: "83.0"
+  MIN_CODE_COVERAGE: "82.0"
 
 before_script:
   ##
