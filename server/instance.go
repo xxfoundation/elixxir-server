@@ -14,7 +14,6 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"

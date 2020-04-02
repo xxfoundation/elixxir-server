@@ -64,10 +64,6 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Params index value does not match expected value")
 	}
 
-	if expectedParams.Batch != params.Batch {
-		t.Errorf("Params batch value does not match expected value")
-	}
-
 	if expectedParams.SkipReg != params.SkipReg {
 		t.Errorf("Params skipreg value does not match expected value")
 	}

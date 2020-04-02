@@ -54,7 +54,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
-	localIP string) *Round {
+	localIP string) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
