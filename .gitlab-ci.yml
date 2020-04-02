@@ -136,7 +136,7 @@ test-gpu:
     - mkdir -p testdata
 
     # Test coverage
-    - go test -v -tags cuda -coverprofile=testdata/coverage.out -covermode atomic -coverpkg ./... -race ./...
+    - go test -v -tags cuda -coverprofile=testdata/coverage.out -covermode atomic -coverpkg ./... 
     # Exclude cmd from test coverage as it is command line related tooling
     # Exclude database files from test coverage due to lack of Postgre
     # Exclude newRound because of lots of side effects
