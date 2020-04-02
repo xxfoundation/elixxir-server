@@ -66,13 +66,13 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
+
 	return err
 }
 
 // PostPhase implements the server gRPC handler for posting a
 // phase from another node
 func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
-
 	// Send a chunk per slot
 	for index, message := range batch.Slots {
 		curIdx := uint32(index)

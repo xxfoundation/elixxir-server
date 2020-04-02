@@ -8,21 +8,22 @@ package realtime
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
-	"gitlab.com/elixxir/crypto/cyclic"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"golang.org/x/crypto/blake2b"
 	"reflect"
 	"runtime"
@@ -44,7 +45,7 @@ func TestDecryptStream_GetName(t *testing.T) {
 func TestDecryptStream_Link(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 
 	stream := KeygenDecryptStream{}
 
@@ -87,7 +88,7 @@ func TestDecryptStream_Link(t *testing.T) {
 func TestDecryptStream_Input(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 	batchSize := uint32(100)
 
 	stream := &KeygenDecryptStream{}
@@ -144,7 +145,7 @@ func TestDecryptStream_Input(t *testing.T) {
 func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -211,7 +212,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -243,7 +244,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -287,7 +288,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -332,7 +333,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 func TestDecryptStream_Output(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -415,7 +416,7 @@ func TestDecryptStream_CommsInterface(t *testing.T) {
 func TestDecryptStreamInGraph(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 	registry := instance.GetUserRegistry()
 	u := registry.NewUser(grp)
 	u.IsRegistered = true
@@ -552,31 +553,45 @@ func TestDecryptStreamInGraph(t *testing.T) {
 }
 
 func mockServerInstance(i interface{}) *server.Instance {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	nid := server.GenerateId(i)
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2))
-
 	def := server.Definition{
 		ID:              nid,
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	var stateChanges [current.NUM_STATES]state.Change
+	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.WAITING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.PRECOMPUTING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.STANDBY] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.REALTIME] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.COMPLETED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.ERROR] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.CRASH] = func(from current.Activity) error {
+		return nil
+	}
+
+	sm := state.NewMachine(stateChanges)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, sm, false)
 
 	return instance
 }

@@ -7,7 +7,6 @@
 package realtime
 
 import (
-	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -122,7 +121,6 @@ func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error
 	ds.Salts[index] = slot.Salt
 
 	//link to the KMACS
-	jwalterweatherman.DEBUG.Printf("in input: kmacs recieved: %v", slot.KMACs)
 	ds.KMACS[index] = slot.KMACs
 
 	ds.Grp.SetBytes(ds.EcrPayloadA.Get(index), slot.PayloadA)

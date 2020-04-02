@@ -11,12 +11,25 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )
+
+var dummyStates = [current.NUM_STATES]state.Change{
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+	func(from current.Activity) error { return nil },
+}
 
 type MockPhase struct {
 	chunks  []services.Chunk

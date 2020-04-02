@@ -1,16 +1,29 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package server
 
 import (
-	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
+	"time"
 )
 
+// in cmd/node.go, it is filling this out
+// polling is an ongoing process, and ..
+// remove from this anything not about node
+// move removed fields into comms network instance
+// need to worry about nodes, gateways, perm
+// nodes/gw's have id's, add func in prim/ndf to get those
+// integrate usage of netwk
+// nodes/gw's as id types
 type Definition struct {
 	// Holds input flags
 	Flags
@@ -37,6 +50,13 @@ type Definition struct {
 	//Information about the node's gateway
 	Gateway GW
 
+	// Information on permissioning server
+	Permissioning Perm
+
+	// Our NDFs for both backend servers and front-ends
+	FullNDF    *ndf.NetworkDefinition
+	PartialNDF *ndf.NetworkDefinition
+
 	//Links to the database holding user keys
 	UserRegistry globals.UserRegistry
 	//Defines the properties of graphs in the node
@@ -46,25 +66,14 @@ type Definition struct {
 	// Function to handle the wrapping-up of metrics for the first node
 	MetricsHandler MetricsHandler
 
-	//Size of the batch for the network
-	BatchSize uint32
-	//Network CMIX group
-	CmixGroup *cyclic.Group
-	//Network's End to End encryption group
-	E2EGroup *cyclic.Group
-
-	//Topology of the network as a whole
-	Topology *connect.Circuit
-	//Holds information about all other nodes in the network
-	Nodes []Node
-	//Holds information about the permissioning server
-	Permissioning Perm
-
 	// Generates random numbers
 	RngStreamGen *fastRNG.StreamGenerator
 
 	// timeout for round creation
 	RoundCreationTimeout int
+
+	//how long the server will wait for the gateway to come online
+	GwConnTimeout time.Duration
 }
 
 // Holds all input flags to the system.

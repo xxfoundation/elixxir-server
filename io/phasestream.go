@@ -26,7 +26,6 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 	roundID id.Round, phaseTy phase.Type,
 	getChunk phase.GetChunk, getMessage phase.GetMessage,
 	topology *connect.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
-
 	// Pull the particular server host object from the commManager
 	recipientID := topology.GetNextNode(nodeID)
 	recipientIndex := topology.GetNodeLocation(recipientID)
@@ -51,7 +50,6 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 
 	// For each message chunk (slot) stream it out
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 
@@ -92,20 +90,17 @@ func StreamTransmitPhase(network *node.Comms, batchSize uint32,
 // phase from another node
 func StreamPostPhase(p phase.Phase, batchSize uint32,
 	stream mixmessages.Node_StreamPostPhaseServer) error {
-
 	// Send a chunk for each slot received along with
 	// its index until an error is received
 	slot, err := stream.Recv()
 	slotsReceived := uint32(0)
 	for ; err == nil; slot, err = stream.Recv() {
-
 		index := slot.Index
 
 		phaseErr := p.Input(index, slot)
 		if phaseErr != nil {
 			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
 				index, slot, phaseErr)
-			jww.ERROR.Printf("%+v", err)
 			return phaseErr
 		}
 
@@ -128,7 +123,6 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	if slotsReceived != batchSize {
 		err = errors.Errorf("Mismatch between batch size %v"+
 			"and received num slots %v", batchSize, slotsReceived)
-		jww.ERROR.Printf("%+v", err)
 		return err
 	}
 

@@ -18,36 +18,46 @@ import (
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/server/round"
 	"sync"
 )
 
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
-	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode,
-	chunkChan chan services.Chunk, measureFunc phase.Measure) error {
+func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
+	getChunk phase.GetChunk, getMessage phase.GetMessage, topology *connect.Circuit,
+	instance *server.Instance, measureFunc phase.Measure) error {
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, topology.Len())
 
-	//Send the batch to the gateway
-	complete := server.CompletedRound{
-		RoundID:    roundID,
-		Receiver:   chunkChan,
-		GetMessage: getMessage,
+	//get the round so you can get its batch size
+	r, err := instance.GetRoundManager().GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
 	}
 
-	lastNode.SendCompletedBatchQueue(complete)
+	// Form completed round object & push to gateway handler
+	complete := &round.CompletedRound{
+		RoundID: roundID,
+		Round:   make([]*mixmessages.Slot, r.GetBatchSize()),
+	}
 
+	// For each message chunk (slot), fill the slots buffer
+	// Note that this will panic if there are more slots than batchSize
+	// (shouldn't be possible?)
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-		chunkChan <- chunk
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			msg := getMessage(i)
+			complete.Round[i] = msg
+		}
 	}
 
-	close(chunkChan)
+	err = instance.GetCompletedBatchQueue().Send(complete)
+	if err != nil {
+		return errors.Errorf("Failed to send to CompletedBatch: %+v", err)
+	}
 
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
@@ -77,7 +87,6 @@ func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 			}
 			wg.Done()
 		}()
-
 	}
 
 	// Wait for all responses

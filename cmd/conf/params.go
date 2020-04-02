@@ -13,29 +13,30 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"net"
 	"runtime"
+	"time"
 )
 
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
 	Index            int
-	Batch            uint32
 	SkipReg          bool `yaml:"skipReg"`
 	Verbose          bool
 	KeepBuffers      bool
 	UseGPU           bool
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
+	GWConnTimeout    time.Duration
 
 	Node          Node
 	Database      Database
@@ -88,7 +89,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	// This (outputThreshold) already defaulted to 0.0
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
-	params.Batch = vip.GetUint32("batch")
 	params.SkipReg = vip.GetBool("skipReg")
 	params.Verbose = vip.GetBool("verbose")
 	params.KeepBuffers = vip.GetBool("keepBuffers")
@@ -98,6 +98,13 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
 		params.RngScalingFactor = 10000
+	}
+
+	gwTimeoutMs := vip.GetUint64("GatewayConnectionTimeout")
+	if gwTimeoutMs==0{
+		params.GWConnTimeout = 289*365*24*time.Hour
+	}else{
+		params.GWConnTimeout = time.Duration(gwTimeoutMs)*time.Millisecond
 	}
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
@@ -139,6 +146,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.Flags.SkipReg = p.SkipReg
 	def.Flags.Verbose = p.Verbose
 	def.Flags.UseGPU = p.UseGPU
+	def.GwConnTimeout = p.GWConnTimeout
 
 	var tlsCert, tlsKey []byte
 	var err error
@@ -219,12 +227,6 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 
 	def.Gateway.TlsCert = GwTlsCerts
 	def.Gateway.ID = def.ID.NewGateway()
-	def.BatchSize = p.Batch
-	def.CmixGroup = p.Groups.GetCMix()
-	def.E2EGroup = p.Groups.GetE2E()
-
-	def.Topology = connect.NewCircuit(nodeIDs)
-	def.Nodes = nodes
 
 	var PermTlsCert []byte
 
@@ -287,6 +289,11 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		def.Permissioning.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
 	}
 
+	//
+	ourNdf := createNdf(def, p)
+	def.FullNDF = ourNdf
+	def.PartialNDF = ourNdf
+
 	PanicHandler := func(g, m string, err error) {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))
@@ -296,4 +303,62 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
 	return def
+}
+
+// createNdf is a helper function which builds a network ndf based off of the
+//  server.Definition
+func createNdf(def *server.Definition, params *Params) *ndf.NetworkDefinition {
+	// Build our node
+	ourNode := ndf.Node{
+		ID:             def.ID.Bytes(),
+		Address:        def.Address,
+		TlsCertificate: string(def.TlsCert),
+	}
+
+	// Build our gateway
+	ourGateway := ndf.Gateway{
+		Address:        def.Gateway.Address,
+		TlsCertificate: string(def.Gateway.TlsCert),
+	}
+
+	// Build the perm server
+	ourPerm := ndf.Registration{
+		Address:        def.Permissioning.Address,
+		TlsCertificate: string(def.Permissioning.TlsCert),
+	}
+
+	// Build the group
+	cmixGrp := toNdfGroup(params.Groups.CMix)
+	e2eGrp := toNdfGroup(params.Groups.E2E)
+
+	networkDef := &ndf.NetworkDefinition{
+		Timestamp:    time.Time{},
+		Gateways:     []ndf.Gateway{ourGateway},
+		Nodes:        []ndf.Node{ourNode},
+		Registration: ourPerm,
+		Notification: ndf.Notification{},
+		UDB:          ndf.UDB{},
+		E2E:          e2eGrp,
+		CMIX:         cmixGrp,
+	}
+
+	return networkDef
+
+}
+
+// todo: docstring
+func toNdfGroup(grp map[string]string) ndf.Group {
+	pStr, pOk := grp["prime"]
+	gStr, gOk := grp["generator"]
+
+	if !gOk || !pOk {
+		jww.FATAL.Panicf("Invalid Group Config "+
+			"(prime: %v, generator: %v",
+			pOk, gOk)
+	}
+
+	return ndf.Group{
+		Prime:     pStr,
+		Generator: gStr,
+	}
 }

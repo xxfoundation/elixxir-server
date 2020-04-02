@@ -16,7 +16,6 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	expectedParams := Params{
 		Index:            5,
-		Batch:            uint32(20),
 		SkipReg:          true,
 		Verbose:          true,
 		KeepBuffers:      true,
