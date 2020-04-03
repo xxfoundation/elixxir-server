@@ -84,6 +84,8 @@ type Flags struct {
 	Verbose bool
 	// Denotes if the server is to store all round keys indefinably
 	KeepBuffers bool
+	// If true, use GPU acceleration for precomputation
+	UseGPU bool
 }
 
 //Holds information about another node in the network

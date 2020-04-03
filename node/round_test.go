@@ -21,7 +21,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 	nodeID := topology.GetNodeAtIndex(0)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second)
+		100, 2*time.Second, nil)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -48,7 +48,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 	nodeID := topology.GetNodeAtIndex(1)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second)
+		100, 2*time.Second, nil)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -74,7 +74,7 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 	nodeID := topology.GetNodeAtIndex(2)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second)
+		100, 2*time.Second, nil)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+

@@ -71,7 +71,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
-		if err==nil{
+		if err == nil {
 			err = permissioning.UpdateNDf(permResponse, instance)
 		}
 	}
@@ -181,7 +181,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout)
+		newRoundTimeout, nil)
 
 	//Build the round
 	rnd, err := round.New(
@@ -192,6 +192,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		instance.GetID(),
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
+		nil,
 		instance.GetIP())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")

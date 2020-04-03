@@ -79,7 +79,7 @@ func Poll(instance *server.Instance) error {
 
 	//updates the NDF with changes
 	err = UpdateNDf(permResponse, instance)
-	if err!=nil{
+	if err != nil {
 		return errors.WithMessage(err, "Failed to update the NDFs")
 	}
 
@@ -227,7 +227,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 
 // Processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes
-func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance)error{
+func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)

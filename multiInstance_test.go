@@ -40,10 +40,14 @@ import (
 )
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	MultiInstanceTest(3, 32, t)
+	MultiInstanceTest(3, 32, false, t)
 }
 
-func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
+func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
+	MultiInstanceTest(3, 32, true, t)
+}
+
+func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
@@ -56,7 +60,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset)
+	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, useGPU, grp)
 
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
@@ -486,7 +490,8 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 	return nil
 }
 
-func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
+func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
+	grp *cyclic.Group) []*server.Definition {
 
 	//generate IDs and addresses
 	var nidLst []*id.Node
@@ -524,6 +529,7 @@ func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
 			ID: nidLst[i],
 			Flags: server.Flags{
 				KeepBuffers: true,
+				UseGPU:      useGPU,
 			},
 			Gateway: server.GW{
 				ID:      nidLst[i].NewGateway(),

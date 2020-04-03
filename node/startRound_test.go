@@ -128,7 +128,7 @@ func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *rou
 
 	r, err := round.New(grp, &globals.UserMap{}, roundId, []phase.Phase{mockPhase},
 		responseMap, top, top.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0")
 
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
