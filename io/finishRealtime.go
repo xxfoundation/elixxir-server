@@ -23,7 +23,11 @@ import (
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func TransmitFinishRealtime(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Invalid instance passed in")
+	}
 
 	// todo: change error log
 	//get the round so you can get its batch size
@@ -45,7 +49,6 @@ func TransmitFinishRealtime(roundID id.Round, instance *server.Instance, getChun
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
-	getMessage := r.GetCurrentPhase().GetGraph().GetStream().Output
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)

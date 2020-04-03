@@ -99,10 +99,10 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	gwTimeoutMs := vip.GetUint64("GatewayConnectionTimeout")
-	if gwTimeoutMs==0{
-		params.GWConnTimeout = 289*365*24*time.Hour
-	}else{
-		params.GWConnTimeout = time.Duration(gwTimeoutMs)*time.Millisecond
+	if gwTimeoutMs == 0 {
+		params.GWConnTimeout = 289 * 365 * 24 * time.Hour
+	} else {
+		params.GWConnTimeout = time.Duration(gwTimeoutMs) * time.Millisecond
 	}
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")

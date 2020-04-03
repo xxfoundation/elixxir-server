@@ -192,10 +192,9 @@ func makeTestPhase(instance *Instance, name phase.Type,
 	//  or tell whether something was killed before calling DenotePhaseComplete.
 	//  It could be done by changing the way that GetChunk works/the GetChunk
 	//  header.
-	transmissionHandler := func(network *node.Comms, batchSize uint32,
-		roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-		getMessage phase.GetMessage, topology *connect.Circuit,
-		nodeId *id.Node, measure phase.Measure) error {
+	transmissionHandler := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk,
+		getMessage phase.GetMessage) error {
+
 		iWasCalled = true
 		return nil
 	}

@@ -21,8 +21,13 @@ import (
 )
 
 // StreamTransmitPhase streams slot messages to the provided Node.
-func StreamTransmitPhase(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
+	getMessage phase.GetMessage) error {
 
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Incompatible instance type!")
+	}
 	// todo: change error log
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
@@ -57,11 +62,9 @@ func StreamTransmitPhase(roundID id.Round, instance *server.Instance, getChunk p
 	}
 
 	// For each message chunk (slot) stream it out
-	getMessage := r.GetCurrentPhase().GetGraph().GetStream().Output
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
-
 			err := streamClient.Send(msg)
 			if err != nil {
 				return errors.Errorf("Error on comm, not able to send slot: %+v",

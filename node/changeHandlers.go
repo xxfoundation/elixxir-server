@@ -71,7 +71,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
-		if err==nil{
+		if err == nil {
 			err = permissioning.UpdateNDf(permResponse, instance)
 		}
 	}

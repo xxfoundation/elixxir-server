@@ -21,7 +21,13 @@ import (
 
 // TransmitRoundPublicKey sends the public key to every node
 // in the round
-func TransmitRoundPublicKey(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+func TransmitRoundPublicKey(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
+	getMessage phase.GetMessage) error {
+
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("")
+	}
 
 	// todo: change error log
 	//get the round so you can get its batch size
@@ -34,7 +40,6 @@ func TransmitRoundPublicKey(roundID id.Round, instance *server.Instance, getChun
 
 	var roundPublicKeys [][]byte
 
-	getMessage := r.GetCurrentPhase().GetGraph().GetStream().Output
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)

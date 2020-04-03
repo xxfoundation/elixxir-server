@@ -2,7 +2,6 @@ package node
 
 import (
 	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -255,8 +254,8 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 			// finish realtime needs access to lastNode to send out the results,
 			// an anonymous function is used to wrap the function, passing
 			// access while maintaining the transmit signature
-			func(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
-				return io.TransmitFinishRealtime(roundID, instance, getChunk)
+			func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+				return io.TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)

@@ -14,14 +14,20 @@ import (
 
 // TransmitPrecompResult: The last node transmits the precomputation to all
 // nodes but the first, then the first node, after precomp strip
-func TransmitPrecompResult(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+func TransmitPrecompResult(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
+	getMessage phase.GetMessage) error {
+
 	var wg sync.WaitGroup
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Invalid server instance passed in")
+	}
 
 	// todo: change error log
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+		return errors.Errorf("Could not retrieve round %d from manager  %s", roundID, err)
 	}
 
 	topology := r.GetTopology()
@@ -34,7 +40,6 @@ func TransmitPrecompResult(roundID id.Round, instance *server.Instance, getChunk
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
-	getMessage := r.GetCurrentPhase().GetGraph().GetStream().Output
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)

@@ -11,9 +11,13 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 	"time"
 )
@@ -35,7 +39,7 @@ func MockFinishRealtimeImplementation() *node.Implementation {
 // Test that TransmitFinishRealtime correctly broadcasts message
 // to all other nodes
 func TestSendFinishRealtime(t *testing.T) {
-	instance, _, _, _, _, _ := setup(t)
+	instance, _, _, _, _, _, _ := setup(t)
 
 	//Setup the network
 	numNodes := 4
@@ -49,12 +53,28 @@ func TestSendFinishRealtime(t *testing.T) {
 			MockFinishRealtimeImplementation()}, 0)
 	defer Shutdown(comms)
 
-	const numSlots = 10
+	const numSlots = 3
 	const numChunks = numSlots / 2
 
-	rndID := id.Round(42)
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
 
-	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID, numSlots, t))
+	roundID := id.Round(0)
+	grp := initImplGroup()
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.RealPermute
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
+	if err != nil {
+		t.Error()
+	}
+	instance.GetRoundManager().AddRound(rnd)
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
 
@@ -64,9 +84,8 @@ func TestSendFinishRealtime(t *testing.T) {
 	}
 	errCH := make(chan error)
 
-	var err error
 	go func() {
-		err = TransmitFinishRealtime(rndID, instance, getChunk)
+		err = TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 		errCH <- err
 	}()
 
@@ -99,9 +118,9 @@ Loop:
 	for {
 		select {
 		case msg := <-receivedFinishRealtime:
-			if id.Round(msg.ID) != rndID {
+			if id.Round(msg.ID) != roundID {
 				t.Errorf("TransmitFinishRealtime: Incorrect round ID"+
-					"Expected: %v, Received: %v", rndID, msg.ID)
+					"Expected: %v, Received: %v", roundID, msg.ID)
 			}
 			numRecv++
 			if numRecv == numNodes {
@@ -123,7 +142,7 @@ func MockFinishRealtimeImplementation_Error() *node.Implementation {
 }
 
 func TestTransmitFinishRealtime_Error(t *testing.T) {
-	instance, _, _, _, _, _ := setup(t)
+	instance, _, _, _, _, _, _ := setup(t)
 
 	//Setup the network
 	comms, topology := buildTestNetworkComponents(
@@ -135,12 +154,29 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 			MockFinishRealtimeImplementation_Error()}, 0)
 	defer Shutdown(comms)
 
-	rndID := id.Round(42)
-
-	const numSlots = 10
+	const numSlots = 3
 	const numChunks = numSlots / 2
 
-	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID, numSlots, t))
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
+
+	roundID := id.Round(0)
+	grp := initImplGroup()
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.RealPermute
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
+	if err != nil {
+		t.Error()
+	}
+
+	instance.GetRoundManager().AddRound(rnd)
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
 
@@ -151,7 +187,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	errCH := make(chan error)
 
 	go func() {
-		err := TransmitFinishRealtime(rndID, instance, getChunk)
+		err := TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 		errCH <- err
 	}()
 
@@ -181,4 +217,20 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	if goErr == nil {
 		t.Error("SendFinishRealtime: error did not occur when provoked")
 	}
+}
+
+func initImplGroup() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2))
+	return grp
 }

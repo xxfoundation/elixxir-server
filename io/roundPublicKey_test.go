@@ -10,12 +10,16 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )
 
@@ -31,17 +35,13 @@ const primeString = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 	"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-var receivedPks [3]*mixmessages.RoundPublicKey
+var receivedPks [1]*mixmessages.RoundPublicKey
 
 func TestPostRoundPublicKey_Transmit(t *testing.T) {
-	// Setup the network
-	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{
-			mockPostRoundPKImplementation0(),
-			mockPostRoundPKImplementation1(),
-			mockPostRoundPKImplementation2()},
-		20)
-	defer Shutdown(comms)
+	//fixme: modify test to check multiple nodes
+	// need to set up multiple instances, set topology, and add hosts to topology and to instances
+
+	instance, nodeAddr := mockInstance(t, mockPostRoundPKImplementation0)
 
 	// Build the mock functions called by the transmitter
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
@@ -49,8 +49,37 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 	roundPubKey := grp.NewIntFromUInt(42)
 
 	roundID := id.Round(5)
-	phaseTy := phase.Type(2)
+	_ = phase.Type(2)
 	chunkCnt := uint32(0)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.PrecompDecrypt,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.PrecompDecrypt})
+
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.PrecompDecrypt
+	responseMap := make(phase.ResponseMap)
+	responseMap["PrecompDecrypt"] = response
+
+	topology := connect.NewCircuit([]*id.Node{instance.GetID()})
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	nodeHost, _ := connect.NewHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	topology.AddHost(nodeHost)
+	_, err := instance.GetNetwork().AddHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	if err != nil {
+		t.Errorf("Failed to add host to instance: %v", err)
+	}
+
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		"0.0.0.0")
+	if err != nil {
+		t.Error()
+	}
+
+	instance.GetRoundManager().AddRound(rnd)
 
 	getChunk := func() (services.Chunk, bool) {
 		if chunkCnt == 0 {
@@ -65,10 +94,8 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 		return &mixmessages.Slot{PartialRoundPublicCypherKey: roundPubKey.Bytes()}
 	}
 
-	m := func(tag string) {}
-
 	//call the transmitter
-	err := TransmitRoundPublicKey(roundID, serverInstance, getChunk)
+	err = TransmitRoundPublicKey(roundID, instance, getChunk, getMsg)
 
 	if err != nil {
 		t.Errorf("TransmitRoundPublicKey: Unexpected error: %+v", err)
@@ -152,7 +179,7 @@ func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 
 }
 
-func mockPostRoundPKImplementation0() *node.Implementation {
+func mockPostRoundPKImplementation0(instance *server.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		receivedPks[0] = pk
@@ -161,20 +188,20 @@ func mockPostRoundPKImplementation0() *node.Implementation {
 	return impl
 }
 
-func mockPostRoundPKImplementation1() *node.Implementation {
-	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-		receivedPks[1] = pk
-		return nil
-	}
-	return impl
-}
-
-func mockPostRoundPKImplementation2() *node.Implementation {
-	impl := node.NewImplementation()
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-		receivedPks[2] = pk
-		return nil
-	}
-	return impl
-}
+//func mockPostRoundPKImplementation1() *node.Implementation {
+//	impl := node.NewImplementation()
+//	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
+//		receivedPks[1] = pk
+//		return nil
+//	}
+//	return impl
+//}
+//
+//func mockPostRoundPKImplementation2() *node.Implementation {
+//	impl := node.NewImplementation()
+//	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
+//		receivedPks[2] = pk
+//		return nil
+//	}
+//	return impl
+//}

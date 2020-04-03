@@ -170,7 +170,6 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	ourTopology := make([]string, 0)
 	for _, nodeInstance := range instances {
 		ourTopology = append(ourTopology, nodeInstance.GetID().String())
-
 	}
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{

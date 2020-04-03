@@ -23,7 +23,13 @@ import (
 )
 
 // TransmitPhase sends a cMix Batch of messages to the provided Node.
-func TransmitPhase(roundID id.Round, instance *server.Instance, getChunk phase.GetChunk) error {
+func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
+	getMessage phase.GetMessage) error {
+
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Invalid server instance passed")
+	}
 
 	//todo: change error log
 	//get the round so you can get its batch size
@@ -52,7 +58,6 @@ func TransmitPhase(roundID id.Round, instance *server.Instance, getChunk phase.G
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
-	getMessage := r.GetCurrentPhase().GetGraph().GetStream().Output
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)

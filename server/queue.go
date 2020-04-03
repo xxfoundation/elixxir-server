@@ -107,7 +107,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-			err := handler()(runningPhase.GetRoundID(), server, getChunk)
+			err := handler()(runningPhase.GetRoundID(), server, getChunk, runningPhase.GetGraph().GetStream().Output)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",
