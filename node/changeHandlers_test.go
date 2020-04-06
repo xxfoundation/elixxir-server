@@ -23,7 +23,6 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
-	"time"
 )
 
 func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
@@ -121,10 +120,7 @@ func TestError(t *testing.T) {
 		}
 	}
 
-	go func() {
-		time.Sleep(50 * time.Millisecond)
-		instance.SetTestRoundError(rndErr, t)
-	}()
+	instance.SetTestRoundError(rndErr, t)
 
 	err := Error(instance)
 	if err != nil {
