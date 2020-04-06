@@ -63,6 +63,7 @@ setup-gpu:
     # It's a quick and dirty way to get something that we ought to be able to check out
     - GPUMATHS_VERSION=`go list -m -f "{{.Version}}" gitlab.com/elixxir/gpumaths | awk -F- '{if ($1=="v0.0.0") {print $3} else {print $1}}'`
     - echo $GPUMATHS_VERSION
+    - rm -fr gpumaths
     - git clone git@gitlab.com:elixxir/gpumaths.git
     - cd gpumaths
     - git checkout $GPUMATHS_VERSION
