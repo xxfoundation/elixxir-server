@@ -57,16 +57,18 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagVerification)
 
 	err = io.PostRoundPublicKey(instance.GetConsensus().GetCmixGroup(), r.GetBuffer(), pk)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on posting PostRoundPublicKey "+
+		roundErr := errors.Errorf("[%v]: Error on posting PostRoundPublicKey "+
 			"to io, should be able to return: %+v", instance, err)
+		return roundErr
 	}
 
 	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey PK is: %s",
@@ -103,8 +105,9 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
 		if err != nil {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
+			roundErr := errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to get decrypt phase: %+v", err)
+			instance.ReportRoundFailure(roundErr)
 		}
 
 		jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance,
@@ -116,14 +119,16 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		decrypt.Measure(measure.TagReceiveOnReception)
 
 		if !queued {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey " +
+			roundErr := errors.Errorf("Error on first node PostRoundPublicKey " +
 				"comm, should be able to queue decrypt phase")
+			instance.ReportRoundFailure(roundErr)
 		}
 		err = io.PostPhase(decrypt, blankBatch)
 
 		if err != nil {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
+			roundErr := errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to post to decrypt phase: %+v", err)
+			instance.ReportRoundFailure(roundErr)
 		}
 	}
 	return nil
