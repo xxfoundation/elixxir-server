@@ -20,7 +20,6 @@ import (
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/state"
 	"strconv"
 	"strings"
 	"time"
@@ -55,30 +54,43 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 // Poll is used to retrieve updated state information from permissioning
 //  and update our internal state accordingly
 func Poll(instance *server.Instance) error {
+
 	// Fetch the host information from the network
 	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
 	if !ok {
 		return errors.New("Could not get permissioning host")
 	}
+
+	reportedActivity := instance.GetStateMachine().Get()
+
+	// Once done and in a completed state, manually switch back into waiting
+	if reportedActivity == current.COMPLETED {
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			return errors.Errorf("Could not transition to WAITING state: %v", err)
+		}
+	}
+
 	// Ping permissioning for updated information
-	permResponse, err := PollPermissioning(permHost, instance)
+	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
 	if err != nil {
-		jww.FATAL.Printf("err: %+v", err)
 		return err
 	}
 
-	jww.FATAL.Printf("perm's response: %+v", permResponse)
-	// Update the internal state of our instance
-	err = UpdateInternalState(permResponse, instance)
+	//updates the NDF with changes
+	err = UpdateNDf(permResponse, instance)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to update the NDFs")
+	}
+
+	// Update the internal state of rounds and the state machine
+	err = UpdateRounds(permResponse, instance)
 	return err
 }
 
 // PollPermissioning polls the permissioning server for updates
-func PollPermissioning(permHost *connect.Host,
-	instance *server.Instance) (*pb.PermissionPollResponse, error) {
+func PollPermissioning(permHost *connect.Host, instance *server.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
-
-	jww.FATAL.Printf("our state is at: %+v", instance.GetStateMachine().Get())
 
 	// Get the ndf hashes for the full ndf if available
 	if instance.GetConsensus().GetFullNdf() != nil {
@@ -92,19 +104,19 @@ func PollPermissioning(permHost *connect.Host,
 
 	// Get the update id and activity of the state machine
 	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
+
 	// The ring buffer returns negative none but message type doesn't support signed numbers
 	// fixme: maybe make proto have signed ints
 	if lastUpdateId == -1 {
 		lastUpdateId = 0
 	}
-	activity := instance.GetStateMachine().Get()
 
 	// Construct a message for permissioning with above information
 	pollMsg := &pb.PermissioningPoll{
 		Full:       &pb.NDFHash{Hash: fullNdfHash},
 		Partial:    &pb.NDFHash{Hash: partialNdfHash},
 		LastUpdate: uint64(lastUpdateId),
-		Activity:   uint32(activity),
+		Activity:   uint32(reportedActivity),
 	}
 	if instance.GetRecoveredError() != nil && instance.GetStateMachine().Get() == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
@@ -117,7 +129,7 @@ func PollPermissioning(permHost *connect.Host,
 		}()
 	}
 
-	jww.FATAL.Printf("our poll msg: %+v", pollMsg)
+	//jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
 
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
@@ -128,11 +140,104 @@ func PollPermissioning(permHost *connect.Host,
 	return permissioningResponse, err
 }
 
-// UpdateState processes the polling response from permissioning, installing any changes if needed
-//  It also parsed the message and determines where to transition given contect
-func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
+// Processes the polling response from permissioning for round updates,
+// installing any round changes if needed. It also parsed the message and
+// determines where to transition given context
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 
-	jww.FATAL.Printf("perm's msg: %+v", permissioningResponse)
+	// Parse the response for updates
+	newUpdates := permissioningResponse.Updates
+	// Parse the round info updates if they exist
+	for _, roundInfo := range newUpdates {
+		// Add the new information to the network instance
+		err := instance.GetConsensus().RoundUpdate(roundInfo)
+		if err != nil {
+			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
+		}
+
+		// Extract topology from RoundInfo
+		newNodeList, err := id.NewNodeListFromStrings(roundInfo.Topology)
+		if err != nil {
+			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
+		}
+
+		// fixme: this panics on error, external comm should not be able to crash server
+		newTopology := connect.NewCircuit(newNodeList)
+
+		// Check if our node is in this round
+		if index := newTopology.GetNodeLocation(instance.GetID()); index != -1 {
+			// Depending on the state in the roundInfo
+			switch states.Round(roundInfo.State) {
+			case states.PRECOMPUTING: // Prepare for precomputing state
+				// Standy by until in WAITING state to ensure a valid transition into precomputing
+				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
+				if curActivity != current.WAITING || err != nil {
+					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
+				}
+
+				// Send info to round queue
+				err = instance.GetCreateRoundQueue().Send(roundInfo)
+				if err != nil {
+					return errors.Errorf("Unable to send to CreateRoundQueue: %+v", err)
+				}
+
+				// Begin PRECOMPUTING state
+				ok, err := instance.GetStateMachine().Update(current.PRECOMPUTING)
+				if !ok || err != nil {
+					return errors.Errorf("Cannot move to precomputing state: %+v", err)
+				}
+			case states.STANDBY:
+				// Don't do anything
+
+			case states.REALTIME: // Prepare for realtime state
+				// Wait until in STANDBY to ensure a valid transition into precomputing
+				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
+				if curActivity != current.STANDBY || err != nil {
+					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
+				}
+
+				// Send info to the realtime round queue
+				err = instance.GetRealtimeRoundQueue().Send(roundInfo)
+				if err != nil {
+					return errors.Errorf("Unable to send to RealtimeRoundQueue: %+v", err)
+				}
+
+				// Wait until the permissioning-instructed time to begin REALTIME
+				go func() {
+					// Get the realtime start time
+					duration := time.Unix(int64(roundInfo.Timestamps[states.REALTIME]), 0)
+
+					// Fixme: find way to calculate sleep length that doesn't lose time
+					// If the timeDiff is positive, then we are not yet ready to start realtime.
+					//  We then sleep for timeDiff time
+					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
+						jww.FATAL.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
+						time.Sleep(timeDiff)
+					}
+
+					// Update to realtime when ready
+					ok, err := instance.GetStateMachine().Update(current.REALTIME)
+					if !ok || err != nil {
+						jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
+					}
+				}()
+			case states.PENDING:
+				// Don't do anything
+			case states.COMPLETED:
+
+			default:
+				return errors.New("Round in unknown state")
+
+			}
+
+		}
+	}
+	return nil
+}
+
+// Processes the polling response from permissioning for ndf updates,
+// installing any ndf changes if needed and connecting to new nodes
+func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
@@ -158,114 +263,7 @@ func UpdateInternalState(permissioningResponse *pb.PermissionPollResponse, insta
 		}
 	}
 
-	// Parse the response for updates
-	newUpdates := permissioningResponse.Updates
-	jww.FATAL.Printf("new updates: %+v", newUpdates)
-	// Parse the round info updates if they exist
-	for _, roundInfo := range newUpdates {
-		// Add the new information to the network instance
-		err := instance.GetConsensus().RoundUpdate(roundInfo)
-		if err != nil {
-			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
-		}
-
-		// Extract topology from RoundInfo
-		newNodeList, err := id.NewNodeListFromStrings(roundInfo.Topology)
-		if err != nil {
-			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
-		}
-
-		// fixme: this panics on error, external comm should not be able to crash server
-		newTopology := connect.NewCircuit(newNodeList)
-
-		// Check if our node is in this round
-		if index := newTopology.GetNodeLocation(instance.GetID()); index != -1 {
-			// Depending on the state in the roundInfo
-			switch states.Round(roundInfo.State) {
-			case states.PRECOMPUTING: // Prepare for precomputing state
-				// Standy by until in WAITING state to ensure a valid transition into precomputing
-				ok, err := instance.GetStateMachine().WaitFor(current.WAITING, 50*time.Millisecond)
-				if !ok || err != nil {
-					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
-				}
-
-				// Send info to round queue
-				err = instance.GetCreateRoundQueue().Send(roundInfo)
-				if err != nil {
-					return errors.Errorf("Unable to send to CreateRoundQueue: %+v", err)
-				}
-
-				// Begin PRECOMPUTING state
-				ok, err = instance.GetStateMachine().Update(current.PRECOMPUTING)
-				if !ok || err != nil {
-					return errors.Errorf("Cannot move to precomputing state: %+v", err)
-				}
-
-			case states.REALTIME: // Prepare for realtime state
-				// Wait until in STANDBY to ensure a valid transition into precomputing
-				ok, err := instance.GetStateMachine().WaitFor(current.STANDBY, 50*time.Millisecond)
-				if !ok || err != nil {
-					return errors.Errorf("Cannot start realtime when not in standby state: %+v", err)
-				}
-
-				// Send info to the realtime round queue
-				err = instance.GetRealtimeRoundQueue().Send(roundInfo)
-				if err != nil {
-					return errors.Errorf("Unable to send to RealtimeRoundQueue: %+v", err)
-				}
-
-				// Wait until the permissioning-instructed time to begin REALTIME
-				go func() {
-					jww.FATAL.Printf("going to be waiting until: %+v", roundInfo.Timestamps[states.REALTIME])
-					// Get the realtime start time
-					duration := time.Unix(0, int64(roundInfo.Timestamps[states.REALTIME]))
-					jww.FATAL.Printf("PERM THEN: %+v", duration)
-					jww.FATAL.Printf("SERVER NOW: %+v", time.Now())
-					// Fixme: find way to calculate sleep length that doesn't lose time
-					// If the timeDiff is positive, then we are not yet ready to start realtime.
-					//  We then sleep for timeDiff time
-					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.FATAL.Printf("time to sleep: %+v", timeDiff)
-						time.Sleep(timeDiff)
-					}
-
-					// Update to realtime when ready
-					ok, err := instance.GetStateMachine().Update(current.REALTIME)
-					if !ok || err != nil {
-						jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
-					}
-				}()
-			case states.PENDING:
-				// Don't do anything
-			case states.STANDBY:
-				// Don't do anything
-			case states.COMPLETED:
-				// Don't do anything
-
-			default:
-				return errors.New("Round in unknown state")
-
-			}
-
-		}
-	}
 	return nil
-}
-
-// WaitForRealtime initiates the realtime state on the machine
-//  when ready. Readiness determined by the duration argument
-func WaitForRealtime(ourMachine state.Machine, duration time.Time) {
-	// If the timeDiff is positive, then we are not yet ready to start realtime.
-	//  We then sleep for timeDiff time
-	if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-		time.Sleep(timeDiff)
-	}
-
-	// Update to realtime when ready
-	ok, err := ourMachine.Update(current.REALTIME)
-	if !ok || err != nil {
-		jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
-	}
 
 }
 

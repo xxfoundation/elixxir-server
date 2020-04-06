@@ -80,7 +80,6 @@ func (rm *Manager) HandleIncomingComm(roundID id.Round, tag string) (*Round, pha
 	if err != nil {
 		return nil, nil, err
 	}
-
 	//Get the correct phase from the round based upon the response table
 	p, err := r.HandleIncomingComm(tag)
 	if err != nil {

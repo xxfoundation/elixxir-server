@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 	"testing"
 	"time"
@@ -48,11 +49,12 @@ func TestSendFinishRealtime(t *testing.T) {
 			MockFinishRealtimeImplementation()}, 0)
 	defer Shutdown(comms)
 
-	const numChunks = 10
+	const numSlots = 10
+	const numChunks = numSlots / 2
 
 	rndID := id.Round(42)
 
-	chunkChan := make(chan services.Chunk, numChunks)
+	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID, numSlots, t))
 
 	chunkInputChan := make(chan services.Chunk, numChunks)
 
@@ -65,7 +67,7 @@ func TestSendFinishRealtime(t *testing.T) {
 	var err error
 	go func() {
 		err = TransmitFinishRealtime(comms[0], rndID,
-			getChunk, getMessage, topology, instance, chunkChan, nil)
+			getChunk, getMessage, topology, instance, nil)
 		errCH <- err
 	}()
 
@@ -75,16 +77,17 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	close(chunkInputChan)
 
-	namReceivedChunks := 0
+	var cr *round.CompletedRound
 
-	for range chunkChan {
-		namReceivedChunks++
+	for cr == nil {
+		cr, _ = instance.GetCompletedBatchQueue().Receive()
+		time.Sleep(1 * time.Millisecond)
 	}
 
-	if namReceivedChunks != numChunks {
+	if len(cr.Round) != numSlots {
 		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
-			"number of chunks; expected: %v, recieved: %v", numChunks,
-			namReceivedChunks)
+			"number of chunks; expected: %v, recieved: %v", numSlots,
+			len(cr.Round))
 	}
 
 	goErr := <-errCH
@@ -133,13 +136,14 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 			MockFinishRealtimeImplementation_Error()}, 0)
 	defer Shutdown(comms)
 
-	const numChunks = 10
-
 	rndID := id.Round(42)
 
-	chunkChan := make(chan services.Chunk)
+	const numSlots = 10
+	const numChunks = numSlots / 2
 
-	chunkInputChan := make(chan services.Chunk)
+	instance.GetRoundManager().AddRound(round.NewDummyRound(rndID, numSlots, t))
+
+	chunkInputChan := make(chan services.Chunk, numChunks)
 
 	getChunk := func() (services.Chunk, bool) {
 		chunk, ok := <-chunkInputChan
@@ -147,10 +151,9 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	}
 	errCH := make(chan error)
 
-	var err error
 	go func() {
-		err = TransmitFinishRealtime(comms[0], rndID,
-			getChunk, getMessage, topology, instance, chunkChan, nil)
+		err := TransmitFinishRealtime(comms[0], rndID,
+			getChunk, getMessage, topology, instance, nil)
 		errCH <- err
 	}()
 
@@ -162,21 +165,22 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 		close(chunkInputChan)
 	}()
 
-	namReceivedChunks := 0
+	var cr *round.CompletedRound
 
-	for range chunkChan {
-		namReceivedChunks++
+	for cr == nil {
+		cr, _ = instance.GetCompletedBatchQueue().Receive()
+		time.Sleep(1 * time.Millisecond)
 	}
 
-	if namReceivedChunks != numChunks {
+	if len(cr.Round) != numSlots {
 		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
-			"number of chunks; expected: %v, recieved: %v", numChunks,
-			namReceivedChunks)
+			"number of chunks; expected: %v, recieved: %v", numSlots,
+			len(cr.Round))
 	}
 
 	goErr := <-errCH
 
 	if goErr == nil {
-		t.Error("SendFinishRealtime: error did not occur when provoked", err)
+		t.Error("SendFinishRealtime: error did not occur when provoked")
 	}
 }

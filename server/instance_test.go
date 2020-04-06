@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/server/measure"
@@ -236,4 +237,16 @@ func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
 		t.Logf("IsRegistrationAuthenticated() returned unexpected value")
 		t.Fail()
 	}
+}
+
+func TestInstance_ReportCriticalError(t *testing.T) {
+	instance, _ := createInstance(t)
+
+	testErr := errors.New("Test error")
+	instance.ReportRoundFailure(testErr)
+
+	//Test happy path
+
+	//Test that if we send a different error it changes as expected
+
 }

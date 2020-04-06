@@ -3,6 +3,7 @@ package node
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -14,8 +15,9 @@ import (
 )
 
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, instance *server.Instance, batchSize uint32, newRoundTimeout time.Duration) ([]phase.Phase,
-	phase.ResponseMap) {
+	nodeID *id.Node, instance *server.Instance, batchSize uint32,
+	newRoundTimeout time.Duration, pool *gpumaths.StreamPool) (
+	[]phase.Phase, phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
@@ -108,6 +110,11 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		TransmissionHandler: io.StreamTransmitPhase,
 		Timeout:             newRoundTimeout,
 	}
+	if pool != nil {
+		precompDecryptDefinition.Graph = precomputation.InitDecryptGPUGraph(gc)
+	} else {
+		precompDecryptDefinition.Graph = precomputation.InitDecryptGraph(gc)
+	}
 
 	// Every node except the first node handles precomp decrypt in the normal
 	// pattern
@@ -137,6 +144,11 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Type:                phase.PrecompPermute,
 		TransmissionHandler: io.StreamTransmitPhase,
 		Timeout:             newRoundTimeout,
+	}
+	if pool != nil {
+		precompPermuteDefinition.Graph = precomputation.InitPermuteGPUGraph(gc)
+	} else {
+		precompPermuteDefinition.Graph = precomputation.InitPermuteGraph(gc)
 	}
 
 	// Every node except the first node handles precomp permute in the normal
@@ -250,9 +262,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	//TRANSITION: Last node broadcasts sends the results to the gateways and
 	//broadcasts a completed message to all other nodes as a verification step.
 	if topology.IsLastNode(nodeID) {
-		//build the channel which will be used to send the data
-		chanLen := (batchSize + gc.GetOutputSize() - 1) / gc.GetOutputSize()
-		chunkChan := make(chan services.Chunk, chanLen)
 		//assign the handler
 		realtimePermuteDefinition.TransmissionHandler =
 			// finish realtime needs access to lastNode to send out the results,
@@ -263,7 +272,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 				getMessage phase.GetMessage, topology *connect.Circuit,
 				nodeID *id.Node, measure phase.Measure) error {
 				return io.TransmitFinishRealtime(network, roundID, getChunk,
-					getMessage, topology, instance, chunkChan, measure)
+					getMessage, topology, instance, measure)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)

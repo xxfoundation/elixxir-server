@@ -28,7 +28,6 @@ import (
 var cfgFile string
 var verbose bool
 var serverIdx int
-var batchSize uint64
 var validConfig bool
 var keepBuffers bool
 var disablePermissioning bool
@@ -120,8 +119,6 @@ func init() {
 		"Verbose mode for debugging")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
-	rootCmd.Flags().Uint64VarP(&batchSize, "batch", "b", 1,
-		"Batch size to use for node server rounds")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at 0.0.0.0:8087 for profiling")
 	rootCmd.Flags().BoolVarP(&disablePermissioning, "disablePermissioning", "",
@@ -143,10 +140,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&newRoundTimeout, "newRoundTimeout", "t", 120,
 		"timeout for round creation in seconds")
 
-	err := viper.BindPFlag("batchSize", rootCmd.Flags().Lookup("batch"))
-	handleBindingError(err, "batchSize")
-
-	err = viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
+	err := viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 	handleBindingError(err, "nodeID")
 
 	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))

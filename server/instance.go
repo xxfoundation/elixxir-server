@@ -16,14 +16,19 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"log"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
@@ -35,6 +40,7 @@ type Instance struct {
 	roundManager  *round.Manager
 	resourceQueue *ResourceQueue
 	network       *node.Comms
+	streamPool    *gpumaths.StreamPool
 	machine       state.Machine
 
 	consensus      *network.Instance
@@ -47,10 +53,10 @@ type Instance struct {
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
-	errChan        chan *mixmessages.RoundError
-	recoveredError *mixmessages.RoundError
-
 	errBroadcastFunc RoundErrBroadcastFunc
+
+	roundError     *mixmessages.RoundError
+	recoveredError *mixmessages.RoundError
 }
 
 // Create a server instance. To actually kick off the server,
@@ -75,13 +81,33 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		gatewayPoll:          NewFirstTime(),
-		errChan:              make(chan *mixmessages.RoundError),
+		roundError:           nil,
 	}
+
+	// Create stream pool if instructed to use GPU
+	if def.UseGPU {
+		// Try to initialize the GPU
+		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
+		memSize := 268435456
+		jww.INFO.Printf("Initializing GPU maths, CUDA backend, with memory size %v", memSize)
+		var err error
+		// It could be better to configure the amount of memory used in a configuration file instead
+		instance.streamPool, err = gpumaths.NewStreamPool(2, memSize)
+		// An instance without a stream pool is still valid
+		// So, log the error here instead of returning it, because we didn't fail to create the server instance here
+		if err != nil {
+			jww.ERROR.Printf("Couldn't initialize GPU. Falling back to CPU math. Error: %v", err.Error())
+		}
+	} else {
+		jww.INFO.Printf("Using CPU maths, rather than CUDA")
+	}
+
+	// Initializes the network on this server instance
 
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
-	instance.errBroadcastFunc = instance.network.SendRoundErrorBroadcast
+	instance.errBroadcastFunc = instance.network.SendRoundError
 	if noTls {
 		instance.network.DisableAuth()
 	}
@@ -285,8 +311,8 @@ func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
 }
 
-func (i *Instance) GetErrChan() chan *mixmessages.RoundError {
-	return i.errChan
+func (i *Instance) GetRoundError() *mixmessages.RoundError {
+	return i.roundError
 }
 
 func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
@@ -305,6 +331,11 @@ func (i *Instance) IsReadyForGateway() bool {
 
 func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
+}
+
+// GetTopology returns the consensus object
+func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
+	return i.definition.GwConnTimeout
 }
 
 func (i *Instance) SendRoundErrorBroadcast(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
@@ -357,16 +388,36 @@ func GenerateId(i interface{}) *id.Node {
 	return nid
 }
 
-/*
-// String adheres to the stringer interface, returns unique identifying
-// information about the node
+// Create a round error, pass the error over the chanel and update the state to ERROR state
+// In situations that cause critical panic level errors.
+func (i *Instance) ReportRoundFailure(errIn error) {
+	roundErr := mixmessages.RoundError{
+		Error: errIn.Error()}
+	// pass the error over the chanel
+	//instance get err chan
+
+	i.roundError = &roundErr
+
+	//then call update state err
+	sm := i.GetStateMachine()
+	ok, err := sm.Update(current.ERROR)
+	if err != nil {
+		log.Panicf("Failed to change state to ERROR STATE %v", err)
+	}
+
+	if !ok {
+		log.Panicf("Failed to change state to ERROR STATE")
+	}
+}
+
 func (i *Instance) String() string {
 	nid := i.definition.ID
 	localServer := i.network.String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nid, port)
-	return services.NameStringer(addr, myLoc, numNodes)
+	return addr
 }
 
-
-*/
+func (i *Instance) GetStreamPool() *gpumaths.StreamPool {
+	return i.streamPool
+}

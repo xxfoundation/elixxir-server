@@ -100,17 +100,21 @@ func StartServer(vip *viper.Viper) error {
 		return node.GatherMetrics(instance, roundID, metricsWhitespace)
 	}
 
+	var instance *server.Instance
+
 	PanicHandler := func(g, m string, err error) {
-		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err))
+
+		roundErr := errors.Errorf("Error in module %s of graph %s: %+v", g,
+			m, err)
+		instance.ReportRoundFailure(roundErr)
 	}
+
 	def.GraphGenerator.SetErrorHandler(PanicHandler)
 
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	jww.INFO.Printf("Creating server instance")
-	var instance *server.Instance
 
 	ourChangeList := node.NewStateChanges()
 
@@ -156,9 +160,6 @@ func StartServer(vip *viper.Viper) error {
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}
-
-	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
-	jww.FATAL.Printf("on instance creation, updateID : %+v", lastUpdateId)
 
 	jww.INFO.Printf("Instance created!")
 

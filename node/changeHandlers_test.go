@@ -6,8 +6,12 @@
 package node
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -19,7 +23,6 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
-	"time"
 )
 
 func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
@@ -50,6 +53,7 @@ func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
+	var instance *server.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{
 		func(from current.Activity) error { return nil },
 		func(from current.Activity) error { return nil },
@@ -136,17 +140,29 @@ func TestPrecomputing(t *testing.T) {
 			t.Errorf("Failed to add host: %+v", err)
 		}
 	}
-	go func() {
-		time.Sleep(time.Second)
-		instance.GetCreateRoundQueue() <- &mixmessages.RoundInfo{
-			ID:        0,
-			Topology:  top,
-			BatchSize: 32,
-		}
-	}()
+
+	newRoundInfo := &mixmessages.RoundInfo{
+		ID:        0,
+		Topology:  top,
+		BatchSize: 32,
+	}
+
+	// Mocking permissioning server signing message
+	signRoundInfo(newRoundInfo)
+
+	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
+	if err != nil {
+		t.Errorf("Failed to updated network instance for new round info: %v", err)
+	}
+
+	err = instance.GetCreateRoundQueue().Send(newRoundInfo)
+	if err != nil {
+		t.Errorf("Failed to send roundInfo: %v", err)
+	}
+
 	instance.GetResourceQueue().Kill(t)
 
-	err := Precomputing(instance, 3)
+	err = Precomputing(instance, 3)
 	if err != nil {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
@@ -156,4 +172,17 @@ func TestPrecomputing(t *testing.T) {
 		t.Errorf("A round should have been added to the round manager")
 	}
 	instance.GetNetwork().Shutdown()
+}
+
+// Utility function which signs a round info message
+func signRoundInfo(ri *mixmessages.RoundInfo) error {
+	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+	if err != nil {
+		return errors.Errorf("couldn't load privKey: %+v", err)
+	}
+
+	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
+
+	signature.Sign(ri, ourPrivKey)
+	return nil
 }

@@ -237,7 +237,7 @@ func TestRetrieveState(t *testing.T) {
 	permHost, _ := instance.GetNetwork().GetHost(id.PERMISSIONING)
 
 	// Ping permissioning for a state update
-	response, err := PollPermissioning(permHost, instance)
+	response, err := PollPermissioning(permHost, instance, instance.GetStateMachine().Get())
 	if err != nil {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}
@@ -308,8 +308,13 @@ func TestUpdateInternalState(t *testing.T) {
 		Updates:    []*pb.RoundInfo{precompRoundInfo},
 	}
 
+	err = UpdateNDf(mockPollResponse, instance)
+	if err != nil {
+		t.Errorf("Failed to update internal state: %+v", err)
+	}
+
 	// Update internal state with mock response
-	err = UpdateInternalState(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -382,7 +387,7 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateInternalState(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -441,7 +446,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateInternalState(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -468,7 +473,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateInternalState(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -495,7 +500,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateInternalState(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -542,7 +547,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateInternalState(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err == nil {
 		t.Errorf("Expected error path. Attempted to transfer to an unknown state")
 	}
@@ -571,7 +576,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateInternalState(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err == nil {
 		t.Errorf("Expected error path. Should not be able to update a round in which we aren't a team" +
 			"memeber")

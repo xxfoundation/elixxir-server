@@ -40,7 +40,6 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 
 ``` yaml
 # START YAML ===
-batch: 2
 verbose: true
 node:
   id: ""
@@ -84,6 +83,8 @@ groups:
     generator: "2"
 metrics:
   log:  "~/.elixxir/metrics.log"
+#in ms, omit to wait forever
+GatewayConnectionTimeout: 5000 
 # === END YAML
 ```
 

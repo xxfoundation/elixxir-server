@@ -24,6 +24,18 @@ import (
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
+
+	// HACK HACK HACK
+	// in the event not started hasn't finished, this waits for ti to finish
+	// or is ignored otherwise
+	_, _ = instance.GetStateMachine().WaitFor(5*time.Second, current.WAITING)
+
+	// Wait until acceptable state to start post phase
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING, current.REALTIME)
+	if err != nil {
+		return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
+	}
+
 	nodeID := instance.GetID()
 	roundID := id.Round(batch.Round.ID)
 	phaseTy := phase.Type(batch.FromPhase).String()
@@ -50,22 +62,18 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	toWait := shouldWait(ptype)
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
-	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
-		if err != nil {
-			return errors.WithMessagef(err, errFailedToWait, toWait.String())
-		}
-		if !ok {
-			return errors.Errorf(errCouldNotWait, toWait.String())
-		}
+	} else if toWait != curActivity {
+		return errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
+			toWait, curActivity, phaseTy)
 	}
 
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
@@ -91,8 +99,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	err = io.PostPhase(p, batch)
 
 	if err != nil {
-		jww.FATAL.Panicf("Error on PostPhase comm, should be"+
+		roundErr := errors.Errorf("Error on PostPhase comm, should be"+
 			" able to return: %+v", err)
+		return roundErr
 	}
 	return nil
 }
@@ -101,6 +110,12 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *server.Instance, auth *connect.Auth) error {
+
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING, current.REALTIME)
+	if err != nil {
+		return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
+	}
+
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
@@ -132,14 +147,9 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	toWait := shouldWait(ptype)
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
-	} else {
-		ok, err := instance.GetStateMachine().WaitFor(toWait, 250*time.Millisecond)
-		if err != nil {
-			return errors.WithMessagef(err, errFailedToWait, toWait.String())
-		}
-		if !ok {
-			return errors.Errorf(errCouldNotWait, toWait.String())
-		}
+	} else if toWait != curActivity {
+		return errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
+			toWait, curActivity, ptype)
 	}
 
 	phaseTy := phase.Type(batchInfo.FromPhase).String()
@@ -148,9 +158,10 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
