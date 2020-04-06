@@ -36,6 +36,8 @@ type Params struct {
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
 	GWConnTimeout    time.Duration
+	ServerCertPath   string
+	GatewayCertPath  string
 
 	Node          Node
 	Database      Database
@@ -99,10 +101,10 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	gwTimeoutMs := vip.GetUint64("GatewayConnectionTimeout")
-	if gwTimeoutMs==0{
-		params.GWConnTimeout = 289*365*24*time.Hour
-	}else{
-		params.GWConnTimeout = time.Duration(gwTimeoutMs)*time.Millisecond
+	if gwTimeoutMs == 0 {
+		params.GWConnTimeout = 289 * 365 * 24 * time.Hour
+	} else {
+		params.GWConnTimeout = time.Duration(gwTimeoutMs) * time.Millisecond
 	}
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
@@ -212,6 +214,8 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
+	def.ServerCertPath = p.ServerCertPath
+	def.GatewayCertPath = p.GatewayCertPath
 	def.Gateway.Address = p.Gateways.Addresses[p.Index]
 	var GwTlsCerts []byte
 
