@@ -278,7 +278,10 @@ func Error(instance *server.Instance) error {
 	}
 
 	// Attempt to get a message over the error channel
-	msg := <-instance.GetErrChan()
+	msg := instance.GetRoundError()
+	if msg == nil {
+		return nil
+	}
 
 	nid, err := id.NewNodeFromString(msg.NodeId)
 	if err != nil {

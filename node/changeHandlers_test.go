@@ -23,6 +23,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
+	"time"
 )
 
 func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
@@ -65,7 +66,11 @@ func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
 		func(from current.Activity) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ := server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
+	instance, _ = server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
+	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, "0.0.0.0:11439", []byte(testUtil.RegCert), true, false)
+	if err != nil {
+		t.Errorf("Failed to add perm host: %+v", err)
+	}
 	r := round.NewDummyRoundWithTopology(id.Round(0), 3, topology, t)
 	instance.GetRoundManager().AddRound(r)
 	_ = instance.Run()
@@ -118,7 +123,7 @@ func TestError(t *testing.T) {
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		instance.GetErrChan() <- rndErr
+		instance.SetTestRoundError(rndErr, t)
 	}()
 
 	err := Error(instance)
@@ -129,6 +134,7 @@ func TestError(t *testing.T) {
 }
 
 func TestPrecomputing(t *testing.T) {
+	var err error
 	instance, topology := setup(t)
 
 	var top []string
@@ -148,7 +154,10 @@ func TestPrecomputing(t *testing.T) {
 	}
 
 	// Mocking permissioning server signing message
-	signRoundInfo(newRoundInfo)
+	err = signRoundInfo(newRoundInfo)
+	if err != nil {
+		t.Errorf("failed to sign round info")
+	}
 
 	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
 	if err != nil {
