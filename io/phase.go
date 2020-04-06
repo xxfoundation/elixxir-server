@@ -28,14 +28,13 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 
 	instance, ok := serverInstance.(*server.Instance)
 	if !ok {
-		return errors.Errorf("Invalid server instance passed")
+		return errors.Errorf("Invalid server instance passed in")
 	}
 
-	//todo: change error log
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+		return errors.Errorf("Received completed batch for round %v that doesn't exist: %s", roundID, err)
 	}
 
 	topology := r.GetTopology()
@@ -77,6 +76,7 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, r.GetCurrentPhaseType())
 
+	jww.INFO.Printf("batch: %v", batch)
 	// Make sure the comm doesn't return an Ack with an error message
 	ack, err := instance.GetNetwork().SendPostPhase(recipient, batch)
 	if ack != nil && ack.Error != "" {

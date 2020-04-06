@@ -23,7 +23,6 @@ func TransmitPrecompResult(roundID id.Round, serverInstance phase.GenericInstanc
 		return errors.Errorf("Invalid server instance passed in")
 	}
 
-	// todo: change error log
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {

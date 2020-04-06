@@ -524,6 +524,7 @@ func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
+			TlsCert: []byte(testUtil.RegCert),
 			Gateway: server.GW{
 				ID:      nidLst[i].NewGateway(),
 				TlsCert: nil,

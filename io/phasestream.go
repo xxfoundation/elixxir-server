@@ -26,13 +26,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	instance, ok := serverInstance.(*server.Instance)
 	if !ok {
-		return errors.Errorf("Incompatible instance type!")
+		return errors.Errorf("Invalid server instance passed in")
 	}
-	// todo: change error log
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+		return errors.Errorf("Received completed batch for round %v that doesn't exist: %s", roundID, err)
 	}
 
 	topology := r.GetTopology()

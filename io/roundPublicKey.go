@@ -26,14 +26,13 @@ func TransmitRoundPublicKey(roundID id.Round, serverInstance phase.GenericInstan
 
 	instance, ok := serverInstance.(*server.Instance)
 	if !ok {
-		return errors.Errorf("")
+		return errors.Errorf("Invalid server instance passed in")
 	}
 
-	// todo: change error log
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+		return errors.Errorf("Received completed batch for round %v that doesn't exist: %s", roundID, err)
 	}
 
 	topology := r.GetTopology()
