@@ -9,18 +9,21 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"log"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -46,6 +49,9 @@ type Instance struct {
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
+
+	roundError     *mixmessages.RoundError
+	recoveredError *mixmessages.RoundError
 }
 
 // Create a server instance. To actually kick off the server,
@@ -70,6 +76,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		gatewayPoll:          NewFirstTime(),
+		roundError:           nil,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -290,12 +297,21 @@ func (i *Instance) GetCreateRoundQueue() round.Queue {
 	return i.createRoundQueue
 }
 
+// todo: docstring
 func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 	return i.realtimeRoundQueue
 }
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
+}
+
+func (i *Instance) GetRoundError() *mixmessages.RoundError {
+	return i.roundError
+}
+
+func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
+	return i.recoveredError
 }
 
 func (i *Instance) IsReadyForGateway() bool {
@@ -342,6 +358,28 @@ func GenerateId(i interface{}) *id.Node {
 	nid := id.NewNodeFromBytes(nodeIdBytes)
 
 	return nid
+}
+
+// Create a round error, pass the error over the chanel and update the state to ERROR state
+// In situations that cause critical panic level errors.
+func (i *Instance) ReportRoundFailure(errIn error) {
+	roundErr := mixmessages.RoundError{
+		Error: errIn.Error()}
+	// pass the error over the chanel
+	//instance get err chan
+
+	i.roundError = &roundErr
+
+	//then call update state err
+	sm := i.GetStateMachine()
+	ok, err := sm.Update(current.ERROR)
+	if err != nil {
+		log.Panicf("Failed to change state to ERROR STATE %v", err)
+	}
+
+	if !ok {
+		log.Panicf("Failed to change state to ERROR STATE")
+	}
 }
 
 func (i *Instance) String() string {
