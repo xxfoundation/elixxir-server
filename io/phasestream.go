@@ -31,7 +31,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Received completed batch for round %v that doesn't exist: %s", roundID, err)
+		return errors.Errorf("Could not retrieve round %d from manager  %s", roundID, err)
 	}
 
 	topology := r.GetTopology()

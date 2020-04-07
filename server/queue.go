@@ -89,7 +89,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 			if nc == 1 {
 				runningPhase.Measure(measure.TagFinishFirstSlot)
 			}
-
+			jww.ERROR.Printf("running phase: %v", runningPhase.String())
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 
 			//Fixme: add a method to killChan this directly

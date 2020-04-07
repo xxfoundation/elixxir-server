@@ -176,7 +176,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 		ID:        0,
 		UpdateID:  0,
 		State:     uint32(current.PRECOMPUTING),
-		BatchSize: 32,
+		BatchSize: uint32(batchsize),
 		Topology:  ourTopology,
 	}
 

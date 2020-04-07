@@ -28,8 +28,6 @@ func NewManager() *Manager {
 
 // AddRound adds the round to the round manager's tracking
 func (rm *Manager) AddRound(round *Round) {
-
-	//var _ phase.Round = (&Round{})(nil
 	rm.roundMap.Store(round.id, round)
 }
 

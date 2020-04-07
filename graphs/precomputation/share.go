@@ -64,6 +64,7 @@ func (ss *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns a cmix slot message
 func (ss *ShareStream) Output(index uint32) *mixmessages.Slot {
+	jww.ERROR.Printf("in share streams")
 	return &mixmessages.Slot{
 		Index:                       index,
 		PartialRoundPublicCypherKey: ss.PartialPublicCypherKey.Bytes(),
