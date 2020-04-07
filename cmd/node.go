@@ -104,7 +104,7 @@ func StartServer(vip *viper.Viper) error {
 
 	PanicHandler := func(g, m string, err error) {
 
-		roundErr:= errors.Errorf("Error in module %s of graph %s: %+v", g,
+		roundErr := errors.Errorf("Error in module %s of graph %s: %+v", g,
 			m, err)
 		instance.ReportRoundFailure(roundErr)
 	}
@@ -115,7 +115,6 @@ func StartServer(vip *viper.Viper) error {
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	jww.INFO.Printf("Creating server instance")
-
 
 	ourChangeList := node.NewStateChanges()
 

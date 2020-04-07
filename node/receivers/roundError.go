@@ -10,7 +10,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 )
@@ -55,17 +54,8 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 		badNodeId, msg.Error)
 
 	// Update to the error state if a valid round error
-	go func() {
-		instance.GetErrChan() <- msg
-
-		ok, err := instance.GetStateMachine().Update(current.ERROR)
-		if err != nil {
-			jww.ERROR.Printf(errors.WithMessagef(err, errFailedToUpdate, current.ERROR.String()).Error())
-		}
-		if !ok {
-			jww.ERROR.Printf(errCouldNotUpdate, current.ERROR.String())
-		}
-	}()
+	roundError := errors.New(msg.Error)
+	instance.ReportRoundFailure(roundError)
 
 	return nil
 }

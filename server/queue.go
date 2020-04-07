@@ -7,11 +7,11 @@
 package server
 
 import (
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
-	"github.com/pkg/errors"
 	"sync/atomic"
 	"testing"
 	"time"

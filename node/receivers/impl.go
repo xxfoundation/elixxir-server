@@ -124,7 +124,7 @@ func NewImplementation(instance *server.Instance) *node.Implementation {
 		return nil
 	}
 
-	impl.Functions.RoundErrorBroadcast = func(error *mixmessages.RoundError, auth *connect.Auth) error {
+	impl.Functions.RoundError = func(error *mixmessages.RoundError, auth *connect.Auth) error {
 		err := ReceiveRoundError(error, auth, instance)
 		if err != nil {
 			jww.ERROR.Printf("[%v] ReceiveRoundError error: %v", instance, err.Error())
