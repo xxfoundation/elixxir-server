@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -23,6 +24,7 @@ import (
 type DecryptStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
+	StreamPool      *gpumaths.StreamPool
 
 	// Link to round object
 	R *cyclic.IntBuffer
@@ -46,8 +48,13 @@ func (ds *DecryptStream) GetName() string {
 // Link binds stream to state objects in round
 func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
 
-	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer,
+	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
@@ -56,9 +63,10 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 }
 
 func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
-	keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer) {
+	pool *gpumaths.StreamPool, keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer) {
 
 	ds.Grp = grp
+	ds.StreamPool = pool
 	ds.PublicCypherKey = roundBuffer.CypherPublicKey
 
 	ds.R = roundBuffer.R.GetSubBuffer(0, batchSize)
@@ -143,6 +151,43 @@ var DecryptElgamal = services.Module{
 	Name:       "DecryptElgamal",
 }
 
+var DecryptElgamalChunk = services.Module{
+	Adapt: func(s services.Stream, c cryptops.Cryptop, chunk services.Chunk) error {
+		dssi, ok := s.(PrecompDecryptSubstreamInterface)
+		ec, ok2 := c.(gpumaths.ElGamalChunkPrototype)
+		if !ok || !ok2 {
+			return errors.WithStack(services.InvalidTypeAssert)
+		}
+
+		// Execute elgamal on the keys for the first payload
+		ds := dssi.GetPrecompDecryptSubStream()
+		gpuStreams := ds.StreamPool
+		R := ds.R.GetSubBuffer(chunk.Begin(), chunk.End())
+		yR := ds.Y_R.GetSubBuffer(chunk.Begin(), chunk.End())
+		kpa := ds.KeysPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		cpa := ds.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		err := ec(gpuStreams, ds.Grp, R, yR, ds.PublicCypherKey, kpa, cpa)
+		if err != nil {
+			return err
+		}
+
+		// Execute elgamal on the keys for the second payload
+		U := ds.U.GetSubBuffer(chunk.Begin(), chunk.End())
+		yU := ds.Y_U.GetSubBuffer(chunk.Begin(), chunk.End())
+		kpb := ds.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		cpb := ds.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		err = ec(gpuStreams, ds.Grp, U, yU, ds.PublicCypherKey, kpb, cpb)
+		if err != nil {
+			return err
+		}
+		return nil
+	},
+	Cryptop: gpumaths.ElGamalChunk,
+	// Populate InputSize late, at runtime
+	Name:       "DecryptElgamalChunk",
+	NumThreads: 2,
+}
+
 // InitDecryptGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{})
@@ -151,6 +196,17 @@ func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 
 	g.First(decryptElgamal)
 	g.Last(decryptElgamal)
+
+	return g
+}
+
+func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
+	g := gc.NewGraph("PrecompDecryptGPU", &DecryptStream{})
+
+	decryptElgamalChunk := DecryptElgamalChunk.DeepCopy()
+
+	g.First(decryptElgamalChunk)
+	g.Last(decryptElgamalChunk)
 
 	return g
 }

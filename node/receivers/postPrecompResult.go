@@ -24,11 +24,11 @@ import (
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
-	ok, err := instance.GetStateMachine().WaitFor(current.PRECOMPUTING, 250*time.Millisecond)
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
-	if !ok {
+	if curActivity != current.PRECOMPUTING {
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
 	}
 
@@ -55,28 +55,29 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	tag := phase.PrecompReveal.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"PostPrecompResult comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagVerification)
-
 	err = io.PostPrecompResult(r.GetBuffer(), instance.GetConsensus().GetCmixGroup(), slots)
 	if err != nil {
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-
 	p.UpdateFinalStates()
 
 	// Update the state in a gofunc
 	go func() {
-		ok, err = instance.GetStateMachine().Update(current.STANDBY)
+		ok, err := instance.GetStateMachine().Update(current.STANDBY)
 		if err != nil {
-			jww.FATAL.Panicf("Failed to transition to state STANDBY: %+v", err)
+			roundErr := errors.Errorf("Failed to transition to state STANDBY: %+v", err)
+			instance.ReportRoundFailure(roundErr)
 		}
 		if !ok {
-			jww.FATAL.Panic("Could not transition to state STANDBY")
+			roundErr := errors.Errorf("Could not transition to state STANDBY")
+			instance.ReportRoundFailure(roundErr)
 		}
 	}()
 	return nil

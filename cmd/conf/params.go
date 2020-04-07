@@ -30,12 +30,13 @@ import (
 // It should be constructed using a viper object
 type Params struct {
 	Index            int
-	Batch            uint32
 	SkipReg          bool `yaml:"skipReg"`
 	Verbose          bool
 	KeepBuffers      bool
+	UseGPU           bool
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
+	GWConnTimeout    time.Duration
 
 	Node          Node
 	Database      Database
@@ -88,15 +89,22 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	// This (outputThreshold) already defaulted to 0.0
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
-	params.Batch = vip.GetUint32("batch")
 	params.SkipReg = vip.GetBool("skipReg")
 	params.Verbose = vip.GetBool("verbose")
 	params.KeepBuffers = vip.GetBool("keepBuffers")
+	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
 		params.RngScalingFactor = 10000
+	}
+
+	gwTimeoutMs := vip.GetUint64("GatewayConnectionTimeout")
+	if gwTimeoutMs == 0 {
+		params.GWConnTimeout = 289 * 365 * 24 * time.Hour
+	} else {
+		params.GWConnTimeout = time.Duration(gwTimeoutMs) * time.Millisecond
 	}
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
@@ -135,9 +143,10 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def := &server.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
-	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.SkipReg = p.SkipReg
 	def.Flags.Verbose = p.Verbose
+	def.Flags.UseGPU = p.UseGPU
+	def.GwConnTimeout = p.GWConnTimeout
 
 	var tlsCert, tlsKey []byte
 	var err error
@@ -289,6 +298,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))
 	}
+
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 

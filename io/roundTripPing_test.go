@@ -98,7 +98,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 
 	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		mockServerInstance.GetRngStreamGen(), "0.0.0.0")
+		mockServerInstance.GetRngStreamGen(), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -106,7 +106,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 	before := r.GetRTStart().String()
 
 	err = TransmitRoundTripPing(comms[0], topology.GetNodeAtIndex(1),
-		r, &mixmessages.Ack{}, "EMPTY/ACK")
+		r, &mixmessages.Ack{}, "EMPTY/ACK", nil)
 	if err != nil {
 		t.Errorf("Error transmitting rt ping: %+v", err)
 	}

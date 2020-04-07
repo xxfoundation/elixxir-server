@@ -431,9 +431,9 @@ func TestWaitFor_CorrectState(t *testing.T) {
 
 	*m.Activity = current.PRECOMPUTING
 
-	b, err := m.WaitFor(current.PRECOMPUTING, time.Millisecond)
+	curActivity, err := m.WaitFor(time.Millisecond, current.PRECOMPUTING)
 
-	if !b {
+	if curActivity != current.PRECOMPUTING {
 		t.Errorf("WaitFor() returned false when doing check on state" +
 			" which is already true")
 	}
@@ -452,9 +452,9 @@ func TestWaitFor_Unreachable(t *testing.T) {
 
 	*m.Activity = current.PRECOMPUTING
 
-	b, err := m.WaitFor(current.CRASH, time.Millisecond)
+	curActivity, err := m.WaitFor(time.Millisecond, current.CRASH)
 
-	if b {
+	if curActivity != current.PRECOMPUTING {
 		t.Errorf("WaitFor() succeded when the state cannot be reached")
 	}
 
@@ -475,9 +475,9 @@ func TestWaitFor_Timeout(t *testing.T) {
 
 	*m.Activity = current.PRECOMPUTING
 
-	b, err := m.WaitFor(current.STANDBY, time.Millisecond)
+	curActivity, err := m.WaitFor(time.Millisecond, current.STANDBY)
 
-	if b {
+	if curActivity != current.PRECOMPUTING {
 		t.Errorf("WaitFor() returned true when doing check on state" +
 			" change which never happened")
 	}
@@ -505,9 +505,9 @@ func TestWaitFor_WaitForState(t *testing.T) {
 	}()
 
 	//run wait for state with longer timeout than delay in update
-	b, err := m.WaitFor(current.STANDBY, 100*time.Millisecond)
+	_, err := m.WaitFor(100*time.Millisecond, current.STANDBY)
 
-	if !b {
+	if *m.Activity != current.PRECOMPUTING {
 		t.Errorf("WaitFor() returned true when doing check on state" +
 			" which should have happened")
 	}
@@ -532,9 +532,9 @@ func TestWaitFor_WaitForBadState(t *testing.T) {
 	}()
 
 	//run wait for state with longer timeout than delay in update
-	b, err := m.WaitFor(current.STANDBY, 100*time.Millisecond)
+	curActivity, err := m.WaitFor(100*time.Millisecond, current.STANDBY)
 
-	if b {
+	if curActivity != current.PRECOMPUTING {
 		t.Errorf("WaitFor() returned true when doing check on state" +
 			" transition which happened incorrectly")
 	}

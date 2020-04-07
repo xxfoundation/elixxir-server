@@ -40,11 +40,11 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	ok, err := instance.GetStateMachine().WaitFor(current.REALTIME, 250*time.Millisecond)
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.REALTIME)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.REALTIME.String())
 	}
-	if !ok {
+	if curActivity != current.REALTIME {
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
@@ -54,13 +54,13 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagVerification)
 	go func() {
-
 		p.UpdateFinalStates()
 		if !instance.GetKeepBuffers() {
 			//Delete the round and its data from the manager
@@ -87,8 +87,21 @@ func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo
 	jww.INFO.Printf("[%v]: RID %d Round took %v seconds",
 		instance, roundID, time.Now().Sub(r.GetTimeStart()))
 
+	// If this is the first node, then start metrics collection.
+	if r.GetTopology().IsFirstNode(instance.GetID()) {
+		// The go routine that gathers all the metrics from all other nodes each
+		// round and then saves them to a file.
+		go func() {
+			err = instance.GetDefinition().MetricsHandler(instance, roundID)
+			if err != nil {
+				jww.ERROR.Printf("Failure in posting metrics for round %d: %v",
+					roundID, err)
+			}
+		}()
+	}
+
 	go func() {
-		ok, err = instance.GetStateMachine().Update(current.COMPLETED)
+		ok, err := instance.GetStateMachine().Update(current.COMPLETED)
 		if err != nil {
 			jww.ERROR.Printf(errors.WithMessagef(err, errFailedToUpdate, current.COMPLETED.String()).Error())
 		}

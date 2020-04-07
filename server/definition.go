@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/services"
+	"time"
 )
 
 // in cmd/node.go, it is filling this out
@@ -49,10 +50,10 @@ type Definition struct {
 	//Information about the node's gateway
 	Gateway GW
 
-	// todo doc string
+	// Information on permissioning server
 	Permissioning Perm
 
-	// todo doc string
+	// Our NDFs for both backend servers and front-ends
 	FullNDF    *ndf.NetworkDefinition
 	PartialNDF *ndf.NetworkDefinition
 
@@ -70,6 +71,9 @@ type Definition struct {
 
 	// timeout for round creation
 	RoundCreationTimeout int
+
+	//how long the server will wait for the gateway to come online
+	GwConnTimeout time.Duration
 }
 
 // Holds all input flags to the system.
@@ -80,6 +84,8 @@ type Flags struct {
 	Verbose bool
 	// Denotes if the server is to store all round keys indefinably
 	KeepBuffers bool
+	// If true, use GPU acceleration for precomputation
+	UseGPU bool
 }
 
 //Holds information about another node in the network

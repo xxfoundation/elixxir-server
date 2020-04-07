@@ -32,7 +32,7 @@ func TestManager(t *testing.T) {
 	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
 		connect.NewCircuit([]*id.Node{{}}), &id.Node{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), "0.0.0.0")
+			csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -63,7 +63,7 @@ func TestManager_GetPhase(t *testing.T) {
 	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
 		connect.NewCircuit([]*id.Node{{}}), &id.Node{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), "0.0.0.0")
+			csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -97,7 +97,7 @@ func TestManager_GetPhase(t *testing.T) {
 	round, err = New(grp, &globals.UserMap{}, roundID, phases, nil,
 		connect.NewCircuit([]*id.Node{{}}), &id.Node{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), "0.0.0.0")
+			csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

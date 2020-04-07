@@ -11,6 +11,7 @@ import (
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
+	"github.com/pkg/errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -74,7 +75,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 			return
 		}
 
-		jww.INFO.Printf("[%v]: RID %d Beginning execution of Phase \"%s\"", server,
+		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 
 		runningPhase := rq.activePhase
@@ -107,8 +108,8 @@ func (rq *ResourceQueue) run(server *Instance) {
 			runningPhase.GetRoundID())
 
 		if err != nil {
-			jww.FATAL.Panicf("Round %d does not exist!",
-				runningPhase.GetRoundID())
+			roundErr := errors.Errorf("Round %d does not exist!", runningPhase.GetRoundID())
+			server.ReportRoundFailure(roundErr)
 		}
 
 		//start the phase's transmission handler
@@ -122,8 +123,10 @@ func (rq *ResourceQueue) run(server *Instance) {
 				server.GetID(), runningPhase.Measure)
 
 			if err != nil {
-				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",
+				// This error can be used to create a Byzantine Fault
+				roundErr := errors.Errorf("Transmission Handler for phase %s of round %v errored: %+v",
 					runningPhase.GetType(), runningPhase.GetRoundID(), err)
+				server.ReportRoundFailure(roundErr)
 			}
 		}()
 
@@ -146,9 +149,11 @@ func (rq *ResourceQueue) run(server *Instance) {
 		//process timeout
 		if timeout {
 			jww.ERROR.Printf("[%v]: RID %d Graph %s of phase %s has timed out",
-				server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
+				server.GetID(), rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
-			jww.ERROR.Panicf("A round has failed killing node")
+			roundErr := errors.Errorf("Round has timed out killing the round %v", curRound.GetID())
+
+			server.ReportRoundFailure(roundErr)
 			//FIXME: also killChan the transmission handler
 			/*kill := rq.activePhase.GetGraph().Kill()
 			if kill {
@@ -167,13 +172,14 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//check that the correct phase is ending
 		if !rq.activePhase.Cmp(rtnPhase) {
-			jww.FATAL.Panicf("INCORRECT PHASE RECIEVED phase %s of "+
+			roundErr := errors.Errorf("INCORRECT PHASE RECEIVED phase %s of "+
 				"round %v is currently running, a completion signal of %s "+
 				" cannot be processed", rq.activePhase.GetType(),
 				rq.activePhase.GetRoundID(), rtnPhase.GetType())
+			server.ReportRoundFailure(roundErr)
 		}
 
-		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase \"%s\"", server,
+		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase \"%s\"", server.GetID(),
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 	}
 }
