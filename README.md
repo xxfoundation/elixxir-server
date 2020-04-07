@@ -23,7 +23,7 @@ Many of these flags override the values set in the config file:
 |---|---|---|---|
 |--index|-i|Index of the server to start in the list of servers in `server.yaml`|-i 0|
 |--batch|-b|Number of messages in a batch (correlated to anonymity set, 1 is the fastest and least anonymous)|-b 64|
-|--verbose|-v|Set this to log more messages for debugging|-v|
+|--logLevel|-l|Sets the log message level to print. (0 = info, 1 = debug, >1 = trace)|-l 2|
 |--config| |Path to configuration file|--config ~/.elixxir/server.yaml|
 |--nodeID|-n|Unique integer identifier for this node. Defaults to be equal to index|-n 125048|
 |--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
@@ -40,7 +40,7 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 
 ``` yaml
 # START YAML ===
-verbose: true
+logLevel: 1
 node:
   id: ""
   paths:
