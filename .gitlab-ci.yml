@@ -68,8 +68,6 @@ setup-gpu:
     - cd gpumaths
     - git checkout $GPUMATHS_VERSION
     - cd cgbnBindings/powm
-    - apt-get update
-    - apt-get install libgmp-dev -y
     - make turing
     - make install
     - ls
@@ -86,9 +84,6 @@ test:
   except:
     - tags
   script:
-    - apt-get update
-    - apt-get install bc -y
-    
     - mkdir -p testdata
 
     # Test coverage
@@ -131,8 +126,6 @@ test-gpu:
     - cp gpumaths/cgbnBindings/powm/*.h /opt/elixxir/include
     - cat /usr/local/cuda/version.txt
     - nvidia-smi
-    - apt-get update
-    - apt-get install bc -y
     
     - mkdir -p testdata
 
