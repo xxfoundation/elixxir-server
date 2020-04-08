@@ -59,13 +59,11 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 		Slots:     make([]*mixmessages.Slot, batchSize),
 	}
 
-	jww.DEBUG.Printf("batchsize: %v", batchSize)
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
 	cnt := 0
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-		jww.ERROR.Printf("chunk length: %v", chunk.Len())
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 			batch.Slots[i] = msg
@@ -73,7 +71,6 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 		}
 	}
 
-	jww.ERROR.Printf("went through %d times", cnt)
 	localServer := instance.GetNetwork().String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nodeId, port)
@@ -86,7 +83,6 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, r.GetCurrentPhaseType())
 
-	jww.INFO.Printf("batch: %v", batch)
 	// Make sure the comm doesn't return an Ack with an error message
 	ack, err := instance.GetNetwork().SendPostPhase(recipient, batch)
 	if ack != nil && ack.Error != "" {
