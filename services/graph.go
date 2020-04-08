@@ -82,6 +82,8 @@ func (g *Graph) Build(batchSize uint32) {
 
 	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
 
+	jww.DEBUG.Printf("graph's batch size being set to: %v", batchSize)
+
 	g.batchSize = batchSize
 	g.expandBatchSize = expandBatchSize
 

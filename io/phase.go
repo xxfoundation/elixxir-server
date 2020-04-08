@@ -39,7 +39,7 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 
 	topology := r.GetTopology()
 	nodeId := instance.GetID()
-
+	batchSize := r.GetBatchSize()
 	// Pull the particular server host object from the commManager
 	recipientID := topology.GetNextNode(nodeId)
 	nextNodeIndex := topology.GetNodeLocation(recipientID)
@@ -54,12 +54,13 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 		Slots:     make([]*mixmessages.Slot, r.GetBatchSize()),
 	}
 
+	jww.DEBUG.Printf("batchsize: %v", batchSize)
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
 	cnt := 0
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-		jww.ERROR.Printf("chunk end: %v", chunk.End())
+		jww.ERROR.Printf("chunk length: %v", chunk.Len())
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 			batch.Slots[i] = msg
