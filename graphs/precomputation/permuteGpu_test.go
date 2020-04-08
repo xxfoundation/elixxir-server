@@ -155,4 +155,3 @@ func TestPermuteGpuGraph(t *testing.T) {
 		}
 	}
 }
-

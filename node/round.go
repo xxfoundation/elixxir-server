@@ -2,7 +2,6 @@ package node
 
 import (
 	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
