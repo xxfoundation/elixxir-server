@@ -24,13 +24,21 @@ import (
 // receiving the result of the precomputation
 func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
+
+	jww.DEBUG.Printf("ReceivePostPrecompResult: Currently in state: %v", instance.GetStateMachine().String())
+
+	jww.DEBUG.Printf("ReceivePostPrecompResult: Waiting for a precomp signal")
+
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
 	if curActivity != current.PRECOMPUTING {
+		jww.DEBUG.Printf("ReceivePostPrecompResult: silently errored!")
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
 	}
+
+	jww.DEBUG.Printf("ReceivePostPrecompResult: Transferred to state: %v", instance.GetStateMachine().String())
 
 	rm := instance.GetRoundManager()
 	r, err := rm.GetRound(id.Round(roundID))

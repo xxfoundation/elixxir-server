@@ -111,6 +111,9 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 		lastUpdateId = 0
 	}
 
+
+	jww.DEBUG.Printf("Polling permissioning with activity %v and update id: %v", reportedActivity, lastUpdateId)
+
 	// Construct a message for permissioning with above information
 	pollMsg := &pb.PermissioningPoll{
 		Full:       &pb.NDFHash{Hash: fullNdfHash},
@@ -118,8 +121,6 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 		LastUpdate: uint64(lastUpdateId),
 		Activity:   uint32(reportedActivity),
 	}
-
-	//jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
 
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
@@ -154,17 +155,20 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 		// fixme: this panics on error, external comm should not be able to crash server
 		newTopology := connect.NewCircuit(newNodeList)
 
+		jww.DEBUG.Printf("Permissioning's round info: %v", roundInfo)
 		// Check if our node is in this round
 		if index := newTopology.GetNodeLocation(instance.GetID()); index != -1 {
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
+
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
 					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
 				}
 
+				jww.DEBUG.Printf("Sending CreateRound signal")
 				// Send info to round queue
 				err = instance.GetCreateRoundQueue().Send(roundInfo)
 				if err != nil {
@@ -180,6 +184,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 				// Don't do anything
 
 			case states.REALTIME: // Prepare for realtime state
+			jww.DEBUG.Printf("WaitFor STANDBY for transition to REALTIME")
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
 				if curActivity != current.STANDBY || err != nil {
@@ -187,6 +192,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 				}
 
 				// Send info to the realtime round queue
+				jww.DEBUG.Printf("Sending RealtimeRound signal")
 				err = instance.GetRealtimeRoundQueue().Send(roundInfo)
 				if err != nil {
 					return errors.Errorf("Unable to send to RealtimeRoundQueue: %+v", err)
@@ -201,7 +207,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
 					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.FATAL.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
+						jww.INFO.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
 						time.Sleep(timeDiff)
 					}
 

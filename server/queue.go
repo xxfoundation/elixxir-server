@@ -145,6 +145,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//process timeout
 		if timeout {
+			jww.DEBUG.Printf("In state %v when crashed", server.machine.String())
 			jww.ERROR.Printf("[%v]: RID %d Graph %s of phase %s has timed out",
 				server.GetID(), rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
