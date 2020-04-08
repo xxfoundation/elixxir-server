@@ -175,6 +175,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 					return errors.Errorf("Unable to send to CreateRoundQueue: %+v", err)
 				}
 
+				jww.DEBUG.Printf("Updating to precomputing")
+
 				// Begin PRECOMPUTING state
 				ok, err := instance.GetStateMachine().Update(current.PRECOMPUTING)
 				if !ok || err != nil {

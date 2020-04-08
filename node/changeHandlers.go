@@ -109,6 +109,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 	// Once done with notStarted transition into waiting
 	go func() {
+		jww.DEBUG.Printf("Waiting for NOT_STARTED")
 		// Ensure that instance is in not started prior to transition
 		curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
 		if curActivity != current.NOT_STARTED || err != nil {
@@ -125,6 +126,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		// fixme we need to review the performance implications and possibly make this programmable
 		ticker := time.NewTicker(5 * time.Millisecond)
 		for range ticker.C {
+			jww.DEBUG.Printf("Polling permissioning with state %v in round %v", instance.GetStateMachine().String(), instance.GetConsensus().GetLastRoundID())
 			err := permissioning.Poll(instance)
 			if err != nil {
 				// If we receive an error polling here, panic this thread
@@ -137,7 +139,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	return nil
 }
 
-// fixme: doc string
 func Waiting(from current.Activity) error {
 	// start waiting process
 	return nil
