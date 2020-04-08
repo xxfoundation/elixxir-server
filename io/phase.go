@@ -39,7 +39,12 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 
 	topology := r.GetTopology()
 	nodeId := instance.GetID()
-	batchSize := r.GetBatchSize()
+
+	//fixme: for precompShare r.getBatchsize is not the correct value of the batch size and
+	// results in nil slots being sent out. Possibily need to update on the fly
+	//  alternatively, just use this and it works. Does the reviewer have any thoughts?
+	batchSize := r.GetCurrentPhase().GetGraph().GetBatchSize()
+
 	// Pull the particular server host object from the commManager
 	recipientID := topology.GetNextNode(nodeId)
 	nextNodeIndex := topology.GetNodeLocation(recipientID)
@@ -51,7 +56,7 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 			ID: uint64(roundID),
 		},
 		FromPhase: int32(r.GetCurrentPhaseType()),
-		Slots:     make([]*mixmessages.Slot, r.GetBatchSize()),
+		Slots:     make([]*mixmessages.Slot, batchSize),
 	}
 
 	jww.DEBUG.Printf("batchsize: %v", batchSize)
