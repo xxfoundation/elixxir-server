@@ -28,7 +28,7 @@ func (cq CompletedQueue) Receive() (*CompletedRound, error) {
 }
 
 func NewCompletedQueue() CompletedQueue {
-	return make(CompletedQueue, 1)
+	return make(CompletedQueue, 3)
 }
 
 type CompletedRound struct {
