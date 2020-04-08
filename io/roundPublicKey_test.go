@@ -49,7 +49,6 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 	roundPubKey := grp.NewIntFromUInt(42)
 
 	roundID := id.Round(5)
-	_ = phase.Type(2)
 	chunkCnt := uint32(0)
 
 	response := phase.NewResponse(phase.ResponseDefinition{

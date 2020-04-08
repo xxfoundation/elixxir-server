@@ -116,7 +116,7 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 	// Build the mock functions called by the transmitter
 	chunkCnt := uint32(0)
-	batchSize := uint32(3)
+	batchSize := uint32(5)
 	roundID := id.Round(5)
 	phaseTy := phase.Type(0)
 

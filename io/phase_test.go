@@ -215,7 +215,6 @@ func mockInstance(t interface{}, impl func(instance *server.Instance) *node.Impl
 	def.Permissioning.PublicKey = regPKey.GetPublic()
 	nodeIDs := make([]*id.Node, 0)
 	nodeIDs = append(nodeIDs, nid)
-	_ = connect.NewCircuit(nodeIDs)
 	def.Gateway.ID = id.NewTmpGateway()
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)

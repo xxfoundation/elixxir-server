@@ -53,7 +53,8 @@ func TestSendFinishRealtime(t *testing.T) {
 			MockFinishRealtimeImplementation()}, 0)
 	defer Shutdown(comms)
 
-	const numSlots = 3
+	const numSlots = 10
+
 	const numChunks = numSlots / 2
 
 	response := phase.NewResponse(phase.ResponseDefinition{
@@ -69,7 +70,7 @@ func TestSendFinishRealtime(t *testing.T) {
 	responseMap["RealPermuteVerification"] = response
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(),
 		"0.0.0.0")
 	if err != nil {
 		t.Error()
@@ -154,7 +155,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 			MockFinishRealtimeImplementation_Error()}, 0)
 	defer Shutdown(comms)
 
-	const numSlots = 3
+	const numSlots = 10
 	const numChunks = numSlots / 2
 
 	response := phase.NewResponse(phase.ResponseDefinition{
@@ -170,7 +171,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	responseMap["RealPermuteVerification"] = response
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(),
+		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(),
 		"0.0.0.0")
 	if err != nil {
 		t.Error()
