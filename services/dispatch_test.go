@@ -336,6 +336,9 @@ func TestGraphWrongEndNode(t *testing.T) {
 	}
 }
 
+// TODO(nan) Do some tests with gpu compute here
+// GPU only, CPU, GPU, CPU
+
 func TestGraph(t *testing.T) {
 
 	fmt.Println("num threads: ", runtime.NumCPU())

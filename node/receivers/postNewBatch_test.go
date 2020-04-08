@@ -58,7 +58,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -255,7 +255,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		"0.0.0.0")
+		nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

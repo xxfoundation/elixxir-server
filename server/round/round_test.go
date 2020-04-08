@@ -65,7 +65,7 @@ func TestNew(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -138,7 +138,8 @@ func TestRound_GetMeasurements(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil,
+		"0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -186,7 +187,7 @@ func TestRound_StartRoundTrip(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -217,7 +218,7 @@ func TestRound_StopRoundTrip(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

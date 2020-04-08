@@ -131,7 +131,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	r, err := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
 		responseMap, topology, instance.GetID(), 1,
-		instance.GetRngStreamGen(), "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

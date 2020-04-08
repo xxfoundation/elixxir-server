@@ -33,6 +33,7 @@ type Params struct {
 	SkipReg          bool `yaml:"skipReg"`
 	Verbose          bool
 	KeepBuffers      bool
+	UseGPU           bool
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
 	GWConnTimeout    time.Duration
@@ -91,6 +92,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.SkipReg = vip.GetBool("skipReg")
 	params.Verbose = vip.GetBool("verbose")
 	params.KeepBuffers = vip.GetBool("keepBuffers")
+	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 
 	// If RngScalingFactor is not set, then set default value
@@ -143,6 +145,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.SkipReg = p.SkipReg
 	def.Flags.Verbose = p.Verbose
+	def.Flags.UseGPU = p.UseGPU
 	def.GwConnTimeout = p.GWConnTimeout
 
 	var tlsCert, tlsKey []byte
@@ -295,6 +298,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))
 	}
+
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
