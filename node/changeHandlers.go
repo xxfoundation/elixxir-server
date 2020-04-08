@@ -137,8 +137,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		}
 	}()
 
-	// if error passed in go to error
-
 	// Once done with notStarted transition into waiting
 	go func() {
 		// Ensure that instance is in not started prior to transition
