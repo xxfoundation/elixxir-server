@@ -241,8 +241,6 @@ github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
-gitlab.com/elixxir/comms v0.0.0-20200402180939-3333f9bded97 h1:jfG4p/BDi1kqpZ4gf7bXQh5fSGJ2kK6y2tweG2GVqcw=
-gitlab.com/elixxir/comms v0.0.0-20200402180939-3333f9bded97/go.mod h1:47uPmB4XqFb0azZAQElMHLRuz0EumsVOqo6hXWMkM50=
 gitlab.com/elixxir/comms v0.0.0-20200407204710-45e8b09c39b8 h1:W0AvXYUZPLXp9vh+pauMSVJHQnKxImr84owdV6sjmOU=
 gitlab.com/elixxir/comms v0.0.0-20200407204710-45e8b09c39b8/go.mod h1:MwHh/nBO405n0ELW11tnetpDj1oh5Un+RFThxIngFJc=
 gitlab.com/elixxir/crypto v0.0.0-20200108005412-8159c60663f9/go.mod h1:+46Zj/NE6JEkXExYnzdvvDokPpDbA+fJsRszvrezK9k=
@@ -252,6 +250,8 @@ gitlab.com/elixxir/crypto v0.0.0-20200311234722-22269f6f8d2c h1:v5jAAK7o85Ru7s2I
 gitlab.com/elixxir/crypto v0.0.0-20200311234722-22269f6f8d2c/go.mod h1:wWulHuSqxiGhvasduZrtyTTqy+7y5ebe440GdORhzig=
 gitlab.com/elixxir/gpumaths v0.0.1 h1:EN3tdXjrwCVT3P34STa6J7IO0D+4O8xTeRSkxsaGjKU=
 gitlab.com/elixxir/gpumaths v0.0.1/go.mod h1:JSWodmtnI17xPojjYAZd94yolpLUeXqf5i3NBjYiVGM=
+gitlab.com/elixxir/gpumaths v0.0.2-0.20200403202558-8d463fad7eb4 h1:fqAMpT9JczDh2/4wWq2gFpExEUQGUCQgLMwzxlCDwPw=
+gitlab.com/elixxir/gpumaths v0.0.2-0.20200403202558-8d463fad7eb4/go.mod h1:vkI19O2l3yu438WwiAu1sDLcB3IPEEb6nBQP+hsjj18=
 gitlab.com/elixxir/gpumaths v0.0.2-0.20200407165512-31440c4065a8 h1:uDJUKeTYFej7KM0RULVkp1t6dCu71WgD6LXYZ6ItYZ8=
 gitlab.com/elixxir/gpumaths v0.0.2-0.20200407165512-31440c4065a8/go.mod h1:vkI19O2l3yu438WwiAu1sDLcB3IPEEb6nBQP+hsjj18=
 gitlab.com/elixxir/primitives v0.0.0-20191028233752-882c08b8f095/go.mod h1:+UiRRWzNpl/WoWUuQtJSoimfXImJAJ5lrrmg0pQKY3g=
