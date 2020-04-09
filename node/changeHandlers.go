@@ -277,10 +277,10 @@ func Error(instance *server.Instance) error {
 		return nil
 	}
 
-	// Attempt to get a message over the error channel
+	// Check for error message on server instance
 	msg := instance.GetRoundError()
 	if msg == nil {
-		return nil
+		jww.FATAL.Panic("No error found on instance")
 	}
 
 	nid, err := id.NewNodeFromString(msg.NodeId)
@@ -304,7 +304,7 @@ func Error(instance *server.Instance) error {
 					jww.ERROR.Printf("Could not get host for node %s", n.String())
 				}
 
-				_, err := instance.SendRoundErrorBroadcast(h, msg)
+				_, err := instance.SendRoundError(h, msg)
 				if err != nil {
 					err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
 					jww.ERROR.Printf(err.Error())
@@ -323,6 +323,7 @@ func Error(instance *server.Instance) error {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}
 
+	jww.FATAL.Panicf("Error encountered - closing server & writing error to file %s", "/tmp/round_error")
 	return nil
 }
 

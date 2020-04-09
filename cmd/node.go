@@ -23,6 +23,7 @@ import (
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/state"
+	"os"
 	"runtime"
 	"time"
 )
@@ -156,9 +157,20 @@ func StartServer(vip *viper.Viper) error {
 	ourMachine := state.NewMachine(ourChangeList)
 
 	// Create instance
-	instance, err = server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
+	recoveredErrorFile, err := os.Open(errorPath)
 	if err != nil {
-		return errors.Errorf("Could not create server instance: %v", err)
+		if os.IsNotExist(err) {
+			instance, err = server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
+			if err != nil {
+				return errors.Errorf("Could not create server instance: %v", err)
+			}
+		}
+		return errors.WithMessage(err, "Failed to open file")
+	} else {
+		instance, err = server.RecoverInstance(def, receivers.NewImplementation, ourMachine, noTLS, recoveredErrorFile)
+		if err != nil {
+			return errors.WithMessage(err, "Could not recover server instance")
+		}
 	}
 
 	jww.INFO.Printf("Instance created!")

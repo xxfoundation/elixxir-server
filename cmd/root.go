@@ -36,6 +36,7 @@ var metricsWhitespace bool
 var logPath = "cmix-server.log"
 var maxProcsOverride int
 var newRoundTimeout int
+var errorPath string
 
 // If true, runs pprof http server
 var profile bool
@@ -115,6 +116,8 @@ func init() {
 	// will be global for your application.
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
 		"config file (default is $HOME/.elixxir/server.yaml)")
+	rootCmd.Flags().StringVarP(&errorPath, "errorFile", "", "",
+		"Path to recovered error file") // always receive this & check for existence
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", true,
 		"Verbose mode for debugging")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,

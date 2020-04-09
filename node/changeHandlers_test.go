@@ -6,6 +6,7 @@
 package node
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -110,7 +111,16 @@ func TestError(t *testing.T) {
 	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
 		return nil, nil
 	}
-	instance.SetRoundErrBroadcastFunc(mockBroadcast, t)
+	instance.SetRoundErrFunc(mockBroadcast, t)
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in SetGroup(): ", r)
+		} else {
+			t.Errorf("SetGroup() did not panic when expected while attempting to set the group again")
+		}
+		instance.GetNetwork().Shutdown()
+	}()
 
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i).String()
@@ -126,7 +136,6 @@ func TestError(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
 	}
-	instance.GetNetwork().Shutdown()
 }
 
 func TestPrecomputing(t *testing.T) {
