@@ -213,7 +213,6 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	return nil
 }
 
-// fixme: doc string
 func Standby(from current.Activity) error {
 	// start standby process
 	return nil
@@ -250,19 +249,16 @@ func Realtime(instance *server.Instance) error {
 	return nil
 }
 
-// fixme: doc string
 func Completed(from current.Activity) error {
 	// start completed
 	return nil
 }
 
-// fixme: doc string
 func Error(from current.Activity) error {
 	// start error
 	return nil
 }
 
-// fixme: doc string
 func Crash(from current.Activity) error {
 	// start error
 	return nil

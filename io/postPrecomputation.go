@@ -2,11 +2,10 @@ package io
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
@@ -15,16 +14,27 @@ import (
 
 // TransmitPrecompResult: The last node transmits the precomputation to all
 // nodes but the first, then the first node, after precomp strip
-func TransmitPrecompResult(network *node.Comms, batchSize uint32,
-	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *connect.Circuit,
-	nodeID *id.Node, measureFunc phase.Measure) error {
+func TransmitPrecompResult(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
+	getMessage phase.GetMessage) error {
+
 	var wg sync.WaitGroup
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Invalid server instance passed in")
+	}
+
+	//get the round so you can get its batch size
+	r, err := instance.GetRoundManager().GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Could not retrieve round %d from manager  %s", roundID, err)
+	}
+
+	topology := r.GetTopology()
 
 	errChan := make(chan error, topology.Len()-1)
 	// Build the message containing the precomputations
 
-	slots := make([]*mixmessages.Slot, batchSize)
+	slots := make([]*mixmessages.Slot, r.GetBatchSize())
 
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
@@ -36,6 +46,7 @@ func TransmitPrecompResult(network *node.Comms, batchSize uint32,
 		}
 	}
 
+	measureFunc := r.GetCurrentPhase().Measure
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
 	}
@@ -49,7 +60,8 @@ func TransmitPrecompResult(network *node.Comms, batchSize uint32,
 			// Pull the particular server host object from the commManager
 			recipient := topology.GetHostAtIndex(index)
 
-			ack, err := network.SendPostPrecompResult(recipient, uint64(roundID), slots)
+			ack, err := instance.GetNetwork().SendPostPrecompResult(
+				recipient, uint64(roundID), slots)
 			if err != nil {
 				errChan <- errors.Wrapf(err, "")
 			}
@@ -82,7 +94,8 @@ func TransmitPrecompResult(network *node.Comms, batchSize uint32,
 	recipient := topology.GetHostAtIndex(0)
 
 	//Send the message to that node
-	ack, err := network.SendPostPrecompResult(recipient, uint64(roundID), slots)
+	ack, err := instance.GetNetwork().SendPostPrecompResult(
+		recipient, uint64(roundID), slots)
 	if err != nil {
 		return err
 	} else if ack != nil && ack.Error != "" {

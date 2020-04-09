@@ -236,11 +236,11 @@ var PermuteElgamalChunk = services.Module{
 
 		return nil
 	},
-	Cryptop:    gpumaths.ElGamalChunk,
+	Cryptop: gpumaths.ElGamalChunk,
 	// TODO(nan) Really, number of threads should be number of streams in the pool
 	NumThreads: 2,
 	// Populate InputSize late, at runtime
-	Name:       "PermuteElgamalChunk",
+	Name: "PermuteElgamalChunk",
 }
 
 // InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type

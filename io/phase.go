@@ -13,10 +13,9 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
@@ -24,13 +23,30 @@ import (
 )
 
 // TransmitPhase sends a cMix Batch of messages to the provided Node.
-func TransmitPhase(network *node.Comms, batchSize uint32,
-	roundID id.Round, phaseTy phase.Type,
-	getChunk phase.GetChunk, getMessage phase.GetMessage,
-	topology *connect.Circuit, nodeID *id.Node, measureFunc phase.Measure) error {
+func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
+	getMessage phase.GetMessage) error {
+
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Invalid server instance passed in")
+	}
+
+	//get the round so you can get its batch size
+	r, err := instance.GetRoundManager().GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Received completed batch for round %v that doesn't exist: %s", roundID, err)
+	}
+
+	topology := r.GetTopology()
+	nodeId := instance.GetID()
+
+	//fixme: for precompShare r.getBatchsize is not the correct value of the batch size and
+	// results in nil slots being sent out. Possibily need to update on the fly
+	//  alternatively, just use this and it works. Does the reviewer have any thoughts?
+	batchSize := r.GetCurrentPhase().GetGraph().GetBatchSize()
 
 	// Pull the particular server host object from the commManager
-	recipientID := topology.GetNextNode(nodeID)
+	recipientID := topology.GetNextNode(nodeId)
 	nextNodeIndex := topology.GetNodeLocation(recipientID)
 	recipient := topology.GetHostAtIndex(nextNodeIndex)
 
@@ -39,30 +55,36 @@ func TransmitPhase(network *node.Comms, batchSize uint32,
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
 		},
-		FromPhase: int32(phaseTy),
+		FromPhase: int32(r.GetCurrentPhaseType()),
 		Slots:     make([]*mixmessages.Slot, batchSize),
 	}
 
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
+	cnt := 0
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 			batch.Slots[i] = msg
+			cnt++
 		}
 	}
 
-	localServer := network.String()
+	localServer := instance.GetNetwork().String()
 	port := strings.Split(localServer, ":")[1]
-	addr := fmt.Sprintf("%s:%s", nodeID, port)
-	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
-	measureFunc(measure.TagTransmitLastSlot)
+	addr := fmt.Sprintf("%s:%s", nodeId, port)
+	name := services.NameStringer(addr, topology.GetNodeLocation(nodeId), topology.Len())
+
+	measureFunc := r.GetCurrentPhase().Measure
+	if measureFunc != nil {
+		measureFunc(measure.TagTransmitLastSlot)
+	}
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
-		name, roundID, phaseTy)
+		name, roundID, r.GetCurrentPhaseType())
 
 	// Make sure the comm doesn't return an Ack with an error message
-	ack, err := network.SendPostPhase(recipient, batch)
+	ack, err := instance.GetNetwork().SendPostPhase(recipient, batch)
 	if ack != nil && ack.Error != "" {
 		err = errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
