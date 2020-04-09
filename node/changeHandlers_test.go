@@ -6,6 +6,7 @@
 package node
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -18,30 +19,14 @@ import (
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )
 
-func TestNewStateChanges(t *testing.T) {
-	ourStates := NewStateChanges()
-	if len(ourStates) != int(current.NUM_STATES) {
-		t.Errorf("Length of state table is not of expected length: "+
-			"\n\tExpected: %+v"+
-			"\n\tReceived: %+v", int(current.NUM_STATES), ourStates)
-	}
-
-	for i := 0; i < int(current.NUM_STATES); i++ {
-		if ourStates[i] == nil {
-			t.Errorf("Case %d wasn't initialized, should not be nil!", i)
-		}
-
-	}
-}
-
-func TestPrecomputing(t *testing.T) {
-
+func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
 	var nodeIDs []*id.Node
 
 	//Build IDs
@@ -62,6 +47,10 @@ func TestPrecomputing(t *testing.T) {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		GraphGenerator:  gg,
+		Gateway: server.GW{
+			Address: "0.0.0.0:11420",
+		},
+		Address: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
@@ -78,14 +67,82 @@ func TestPrecomputing(t *testing.T) {
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ = server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
-
-	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, testUtil.NDF.Registration.Address,
-		[]byte(testUtil.RegCert), false, false)
+	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, "0.0.0.0:11439", []byte(testUtil.RegCert), true, false)
 	if err != nil {
-		t.Errorf("Failed to add permissioning host: %v", err)
+		t.Errorf("Failed to add perm host: %+v", err)
+	}
+	r := round.NewDummyRoundWithTopology(id.Round(0), 3, topology, t)
+	instance.GetRoundManager().AddRound(r)
+	_ = instance.Run()
+	instance.RecoveredErrorFilePath = "/tmp/recovered_error"
+	return instance, topology
+}
+
+func TestNewStateChanges(t *testing.T) {
+	ourStates := NewStateChanges()
+	if len(ourStates) != int(current.NUM_STATES) {
+		t.Errorf("Length of state table is not of expected length: "+
+			"\n\tExpected: %+v"+
+			"\n\tReceived: %+v", int(current.NUM_STATES), ourStates)
 	}
 
-	_ = instance.Run()
+	for i := 0; i < int(current.NUM_STATES); i++ {
+		if ourStates[i] == nil {
+			t.Errorf("Case %d wasn't initialized, should not be nil!", i)
+		}
+
+	}
+}
+
+/*func TestNotStarted_RoundError(t *testing.T) {
+	instance, _ := setup(t)
+	err := NotStarted(instance, true)
+	if err != nil {
+		t.Error(err)
+	}
+}*/
+
+func TestError(t *testing.T) {
+	instance, topology := setup(t)
+	rndErr := &mixmessages.RoundError{
+		Id:     0,
+		NodeId: instance.GetID().String(),
+		Error:  "",
+	}
+	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
+		return nil, nil
+	}
+	instance.SetRoundErrFunc(mockBroadcast, t)
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in SetGroup(): ", r)
+		} else {
+			t.Errorf("SetGroup() did not panic when expected while attempting to set the group again")
+		}
+		instance.GetNetwork().Shutdown()
+	}()
+
+	for i := 0; i < topology.Len(); i++ {
+		nid := topology.GetNodeAtIndex(i).String()
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		if err != nil {
+			t.Errorf("Failed to add host: %+v", err)
+		}
+	}
+
+	instance.SetTestRoundError(rndErr, t)
+
+	err := Error(instance)
+	if err != nil {
+		t.Errorf("Failed to error: %+v", err)
+	}
+}
+
+func TestPrecomputing(t *testing.T) {
+	var err error
+	instance, topology := setup(t)
+
 	var top []string
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i).String()
@@ -103,7 +160,10 @@ func TestPrecomputing(t *testing.T) {
 	}
 
 	// Mocking permissioning server signing message
-	signRoundInfo(newRoundInfo)
+	err = signRoundInfo(newRoundInfo)
+	if err != nil {
+		t.Errorf("failed to sign round info")
+	}
 
 	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
 	if err != nil {
@@ -126,6 +186,7 @@ func TestPrecomputing(t *testing.T) {
 	if err != nil {
 		t.Errorf("A round should have been added to the round manager")
 	}
+	instance.GetNetwork().Shutdown()
 }
 
 // Utility function which signs a round info message

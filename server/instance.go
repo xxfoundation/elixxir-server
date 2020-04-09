@@ -7,8 +7,10 @@ package server
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
@@ -24,11 +26,14 @@ import (
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"log"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
 
 // Holds long-lived server state
 type Instance struct {
@@ -50,8 +55,11 @@ type Instance struct {
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
-	roundError     *mixmessages.RoundError
-	recoveredError *mixmessages.RoundError
+	roundErrFunc RoundErrBroadcastFunc
+
+	roundError             *mixmessages.RoundError
+	recoveredError         *mixmessages.RoundError
+	RecoveredErrorFilePath string
 }
 
 // Create a server instance. To actually kick off the server,
@@ -102,7 +110,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
-
+	instance.roundErrFunc = instance.network.SendRoundError
 	if noTls {
 		instance.network.DisableAuth()
 	}
@@ -137,6 +145,48 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
 	return instance, nil
+}
+
+// Wrap CreateServerInstance, taking a recovered error file
+func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
+	machine state.Machine, noTls bool, recoveredErrorFile *os.File) (*Instance, error) {
+	// Create the server instance with normal constructor
+	var i *Instance
+	var err error
+	i, err = CreateServerInstance(def, makeImplementation, machine, noTls)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to create server instance")
+	}
+	i.RecoveredErrorFilePath = recoveredErrorFile.Name()
+
+	// Read recovered error file to bytes
+	var recoveredError []byte
+	_, err = recoveredErrorFile.Read(recoveredError)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to read recovered error")
+	}
+
+	// Close recovered error file
+	err = recoveredErrorFile.Close()
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to close recovered error file")
+	}
+
+	// Remove recovered error file
+	err = os.Remove(recoveredErrorFile.Name())
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to remove ")
+	}
+
+	// Unmarshal bytes to RoundError, set recoveredError field on instance
+	msg := &mixmessages.RoundError{}
+	err = proto.Unmarshal(recoveredError, msg)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to unmarshal message from file")
+	}
+	i.recoveredError = msg
+
+	return i, nil
 }
 
 // RestartNetwork is intended to reset the network with newly signed certs obtained from polling
@@ -314,6 +364,10 @@ func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
 	return i.recoveredError
 }
 
+func (i *Instance) ClearRecoveredError() {
+	i.recoveredError = nil
+}
+
 func (i *Instance) IsReadyForGateway() bool {
 	ourVal := atomic.LoadUint32(i.isGatewayReady)
 
@@ -327,6 +381,32 @@ func (i *Instance) SetGatewayAsReady() {
 // GetTopology returns the consensus object
 func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
 	return i.definition.GwConnTimeout
+}
+
+func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	return i.roundErrFunc(h, m)
+}
+
+/* TESTING FUNCTIONS */
+func (i *Instance) SetRoundErrFunc(f RoundErrBroadcastFunc, t *testing.T) {
+	if t == nil {
+		panic("Cannot call this outside of tests")
+	}
+	i.roundErrFunc = f
+}
+
+func (i *Instance) SetTestRecoveredError(m *mixmessages.RoundError, t *testing.T) {
+	if t == nil {
+		panic("This cannot be used outside of a test")
+	}
+	i.recoveredError = m
+}
+
+func (i *Instance) SetTestRoundError(m *mixmessages.RoundError, t *testing.T) {
+	if t == nil {
+		panic("This cannot be used outside of a test")
+	}
+	i.roundError = m
 }
 
 // GenerateId generates a random ID and returns it

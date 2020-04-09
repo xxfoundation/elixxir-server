@@ -113,15 +113,26 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	// Once done with notStarted transition into waiting
 	go func() {
 		// Ensure that instance is in not started prior to transition
-		curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
-		if curActivity != current.NOT_STARTED || err != nil {
-			jww.FATAL.Panicf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+		cur, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
+		if cur != current.NOT_STARTED || err != nil {
+			roundErr := errors.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+			instance.ReportRoundFailure(roundErr)
 		}
 
-		// Transition state machine into waiting state
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if !ok || err != nil {
-			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.WAITING, err)
+		// if error passed in go to error
+		if instance.GetRecoveredError() != nil {
+			ok, err := instance.GetStateMachine().Update(current.ERROR)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
+				instance.ReportRoundFailure(roundErr)
+			}
+		} else {
+			// Transition state machine into waiting state
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
+				instance.ReportRoundFailure(roundErr)
+			}
 		}
 
 		// Periodically re-poll permissioning
@@ -135,24 +146,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 				instance.ReportRoundFailure(roundErr)
 			}
 		}
-	}()
-
-	// Once done with notStarted transition into waiting
-	go func() {
-		// Ensure that instance is in not started prior to transition
-		cur, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
-		if cur != current.NOT_STARTED || err != nil {
-			roundErr := errors.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
-			instance.ReportRoundFailure(roundErr)
-		}
-
-		// Transition state machine into waiting state
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if !ok || err != nil {
-			roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
-			instance.ReportRoundFailure(roundErr)
-		}
-
 	}()
 
 	return nil
@@ -284,10 +277,13 @@ func Error(instance *server.Instance) error {
 		return nil
 	}
 
-	// Attempt to get a message over the error channel
-	msg := &mixmessages.RoundError{}
+	// Check for error message on server instance
+	msg := instance.GetRoundError()
+	if msg == nil {
+		jww.FATAL.Panic("No error found on instance")
+	}
 
-	nid, err := id.NewNodeFromString("temp")
+	nid, err := id.NewNodeFromString(msg.NodeId)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get node id from error")
 	}
@@ -307,7 +303,8 @@ func Error(instance *server.Instance) error {
 				if !ok {
 					jww.ERROR.Printf("Could not get host for node %s", n.String())
 				}
-				_, err := instance.GetNetwork().SendRoundError(h, msg)
+
+				_, err := instance.SendRoundError(h, msg)
 				if err != nil {
 					err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
 					jww.ERROR.Printf(err.Error())
@@ -321,11 +318,12 @@ func Error(instance *server.Instance) error {
 		return errors.WithMessage(err, "Failed to marshal message into bytes")
 	}
 
-	err = ioutil.WriteFile("/cmix/round_error", b, 0644)
+	err = ioutil.WriteFile(instance.RecoveredErrorFilePath, b, 0644)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}
 
+	jww.FATAL.Panicf("Error encountered - closing server & writing error to file %s", "/tmp/round_error")
 	return nil
 }
 
