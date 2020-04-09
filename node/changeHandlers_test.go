@@ -74,6 +74,7 @@ func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
 	r := round.NewDummyRoundWithTopology(id.Round(0), 3, topology, t)
 	instance.GetRoundManager().AddRound(r)
 	_ = instance.Run()
+	instance.RecoveredErrorFilePath = "/tmp/recovered_error"
 	return instance, topology
 }
 

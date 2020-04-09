@@ -318,7 +318,7 @@ func Error(instance *server.Instance) error {
 		return errors.WithMessage(err, "Failed to marshal message into bytes")
 	}
 
-	err = ioutil.WriteFile("/tmp/round_error", b, 0644)
+	err = ioutil.WriteFile(instance.RecoveredErrorFilePath, b, 0644)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}

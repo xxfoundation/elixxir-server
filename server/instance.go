@@ -57,8 +57,9 @@ type Instance struct {
 
 	roundErrFunc RoundErrBroadcastFunc
 
-	roundError     *mixmessages.RoundError
-	recoveredError *mixmessages.RoundError
+	roundError             *mixmessages.RoundError
+	recoveredError         *mixmessages.RoundError
+	RecoveredErrorFilePath string
 }
 
 // Create a server instance. To actually kick off the server,
@@ -156,6 +157,7 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
+	i.RecoveredErrorFilePath = recoveredErrorFile.Name()
 
 	// Read recovered error file to bytes
 	var recoveredError []byte
