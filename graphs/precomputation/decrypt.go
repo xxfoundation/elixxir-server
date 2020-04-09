@@ -112,7 +112,6 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns a cmix slot message
 func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
-
 	return &mixmessages.Slot{
 		Index:                     index,
 		EncryptedPayloadAKeys:     ds.KeysPayloadA.Get(index).Bytes(),
@@ -158,7 +157,6 @@ var DecryptElgamalChunk = services.Module{
 		if !ok || !ok2 {
 			return errors.WithStack(services.InvalidTypeAssert)
 		}
-
 
 		// Execute elgamal on the keys for the first payload
 		ds := dssi.GetPrecompDecryptSubStream()

@@ -10,6 +10,7 @@ import (
 	"crypto"
 	"fmt"
 	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -19,11 +20,13 @@ import (
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -36,7 +39,7 @@ var clientDHPub *cyclic.Int
 var regPrivKey *rsa.PrivateKey
 var nodeId *id.Node
 
-func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.Node) {
+func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.Node, string) {
 	switch v := t.(type) {
 	case *testing.T:
 	case *testing.M:
@@ -56,6 +59,9 @@ func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *c
 		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
 	nid := server.GenerateId(t)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
@@ -88,6 +94,7 @@ func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *c
 	}
 
 	serverRSAPub := serverRSAPriv.GetPublic()
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000))
 
 	def := server.Definition{
 		ID:              nid,
@@ -95,25 +102,27 @@ func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *c
 		ResourceMonitor: &measure.ResourceMonitor{},
 		PrivateKey:      serverRSAPriv,
 		PublicKey:       serverRSAPub,
+		TlsCert:         cert,
+		TlsKey:          key,
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Address:         nodeAddr,
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()
 	nodeIDs := make([]*id.Node, 0)
 	nodeIDs = append(nodeIDs, nid)
-	_ = connect.NewCircuit(nodeIDs)
 	def.Gateway.ID = id.NewTmpGateway()
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
 	instance, _ := server.CreateServerInstance(&def, NewImplementation, mach, false)
 
-	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid
+	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid, nodeAddr
 }
 
 func TestMain(m *testing.M) { // TODO: TestMain is bad make this go away
-	serverInstance, clientRSAPub, clientRSAPriv, clientDHPub, regPrivKey, nodeId = setup(m)
+	serverInstance, clientRSAPub, clientRSAPriv, clientDHPub, regPrivKey, nodeId, _ = setup(m)
 	os.Exit(m.Run())
 }
 

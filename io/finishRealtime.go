@@ -11,9 +11,7 @@ package io
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
@@ -25,18 +23,21 @@ import (
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
-	getChunk phase.GetChunk, getMessage phase.GetMessage, topology *connect.Circuit,
-	instance *server.Instance, measureFunc phase.Measure) error {
-
-	var wg sync.WaitGroup
-	errChan := make(chan error, topology.Len())
+func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Invalid server instance passed in")
+	}
 
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Recieved completed batch for round %v that doesn't exist: %s", roundID, err)
+		return errors.Errorf("Could not retrieve round %d from manager  %s", roundID, err)
 	}
+
+	var wg sync.WaitGroup
+	topology := r.GetTopology()
+	errChan := make(chan error, topology.Len())
 
 	// Form completed round object & push to gateway handler
 	complete := &round.CompletedRound{
@@ -59,6 +60,7 @@ func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
 		return errors.Errorf("Failed to send to CompletedBatch: %+v", err)
 	}
 
+	measureFunc := r.GetCurrentPhase().Measure
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
 	}
@@ -73,7 +75,7 @@ func TransmitFinishRealtime(network *node.Comms, roundID id.Round,
 			// Pull the particular server host object from the commManager
 			recipient := topology.GetHostAtIndex(localIndex)
 			// Send the message to that particular node
-			ack, err := network.SendFinishRealtime(recipient,
+			ack, err := instance.GetNetwork().SendFinishRealtime(recipient,
 				&mixmessages.RoundInfo{
 					ID: uint64(roundID),
 				})

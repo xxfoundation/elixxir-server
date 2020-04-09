@@ -12,9 +12,14 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"testing"
@@ -107,17 +112,44 @@ func TestStreamPostPhase(t *testing.T) {
 
 // Tests that a batch sent via transmit phase arrives correctly
 func TestStreamTransmitPhase(t *testing.T) {
-
-	// Setup the network
-	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{nil, mockStreamPostPhaseImplementation()}, 10)
-	defer Shutdown(comms)
+	instance, nodeAddr := mockInstance(t, mockStreamPostPhaseImplementation)
 
 	// Build the mock functions called by the transmitter
 	chunkCnt := uint32(0)
 	batchSize := uint32(5)
 	roundID := id.Round(5)
-	phaseTy := phase.Type(2)
+	phaseTy := phase.Type(0)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.PrecompDecrypt,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.PrecompDecrypt})
+
+	grp := initImplGroup()
+
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.PrecompDecrypt
+	responseMap := make(phase.ResponseMap)
+	responseMap["PrecompDecrypt"] = response
+
+	topology := connect.NewCircuit([]*id.Node{instance.GetID()})
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	nodeHost, _ := connect.NewHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	topology.AddHost(nodeHost)
+	_, err := instance.GetNetwork().AddHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	if err != nil {
+		t.Errorf("Failed to add host to instance: %v", err)
+	}
+
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
+		"0.0.0.0")
+	if err != nil {
+		t.Error()
+	}
+
+	instance.GetRoundManager().AddRound(rnd)
 
 	getChunk := func() (services.Chunk, bool) {
 		if chunkCnt < batchSize {
@@ -135,14 +167,12 @@ func TestStreamTransmitPhase(t *testing.T) {
 		}
 	}
 
-	m := func(tag string) {}
-
 	// call the transmitter
-	err := StreamTransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
-		getMsg, topology, topology.GetNodeAtIndex(0), m)
+	err = StreamTransmitPhase(roundID, instance, getChunk, getMsg)
 
 	if err != nil {
-		t.Errorf("StreamTransmitPhase failed %v", err)
+		t.Errorf("StreamTransmitPhase failed: %v", err)
+		t.Fail()
 	}
 
 	//Check that what was received is correct
@@ -164,7 +194,7 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 }
 
-func mockStreamPostPhaseImplementation() *node.Implementation {
+func mockStreamPostPhaseImplementation(instance *server.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		receivedBatch = &mixmessages.Batch{}
