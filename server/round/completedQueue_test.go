@@ -62,7 +62,7 @@ func TestCompletedQueue_Send_Send_Error(t *testing.T) {
 	}
 
 	// Attempt to send again without emptying queue
-	for i := 0; i < 100; i ++ {
+	for i := 0; i < maxCompletedBatches; i++ {
 		_ = ourNewQ.Send(&cr)
 	}
 	err = ourNewQ.Send(&cr)

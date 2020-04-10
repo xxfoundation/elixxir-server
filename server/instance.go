@@ -137,7 +137,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, noTls bool,
 	serverCert, gwCert string) error {
 
-	jww.TRACE.Printf("Restarting network...")
+	jww.INFO.Printf("Restarting network...")
 	// Shut down the network so we can restart
 	i.network.Shutdown()
 

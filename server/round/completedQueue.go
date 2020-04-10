@@ -8,6 +8,8 @@ import (
 
 type CompletedQueue chan *CompletedRound
 
+const maxCompletedBatches = 100
+
 func (cq CompletedQueue) Send(cr *CompletedRound) error {
 	select {
 	case cq <- cr:
@@ -28,7 +30,7 @@ func (cq CompletedQueue) Receive() (*CompletedRound, error) {
 }
 
 func NewCompletedQueue() CompletedQueue {
-	return make(CompletedQueue, 100)
+	return make(CompletedQueue, maxCompletedBatches)
 }
 
 type CompletedRound struct {
