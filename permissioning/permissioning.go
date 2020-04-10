@@ -119,8 +119,6 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 		Activity:   uint32(reportedActivity),
 	}
 
-	//jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
-
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
@@ -159,6 +157,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
+
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
@@ -201,7 +200,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
 					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.FATAL.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
+						jww.INFO.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
 						time.Sleep(timeDiff)
 					}
 

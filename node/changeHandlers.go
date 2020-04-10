@@ -37,7 +37,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 	// Connect to the Permissioning Server without authentication
 	permHost, err := network.AddHost(id.PERMISSIONING,
-		// instance.GetPermissioningAddress,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, false)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -138,7 +137,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	return nil
 }
 
-// fixme: doc string
 func Waiting(from current.Activity) error {
 	// start waiting process
 	return nil
