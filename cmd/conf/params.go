@@ -96,7 +96,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.KeepBuffers = vip.GetBool("keepBuffers")
 	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
-	params.RecoveredErrFile = vip.GetString("recovered_err_file")
+	params.RecoveredErrFile = vip.GetString("recoveredErrFile")
 
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
