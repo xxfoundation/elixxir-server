@@ -30,7 +30,6 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	// or is ignored otherwise
 	_, _ = instance.GetStateMachine().WaitFor(5*time.Second, current.WAITING)
 
-	jww.DEBUG.Printf("ReceivePostPhase: Waiting for a realtime or precomp signal")
 	// Wait until acceptable state to start post phase
 	curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, current.PRECOMPUTING, current.REALTIME)
 	if err != nil {

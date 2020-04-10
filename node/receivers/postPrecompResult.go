@@ -30,7 +30,6 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
 	if curActivity != current.PRECOMPUTING {
-		jww.DEBUG.Printf("ReceivePostPrecompResult: silently errored!")
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
 	}
 
