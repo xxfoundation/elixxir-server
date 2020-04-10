@@ -151,7 +151,7 @@ var (
 // This stream has all the variables and results needed to do exponentiation
 // It also includes a stream pool which is needed to run GPU kernels
 type ExpTestStream struct {
-	g *cyclic.Group
+	g          *cyclic.Group
 	streamPool *gpumaths.StreamPool
 	length     uint32
 	a          *cyclic.IntBuffer
@@ -179,7 +179,8 @@ func (s *ExpTestStream) Link(grp *cyclic.Group, BatchSize uint32, source ...inte
 }
 
 // Implement stream interface
-func (s *ExpTestStream) Input(index uint32, msg *mixmessages.Slot) error {return nil }
+func (s *ExpTestStream) Input(index uint32, msg *mixmessages.Slot) error { return nil }
+
 // Implement stream interface
 func (s *ExpTestStream) Output(index uint32) *mixmessages.Slot { return nil }
 

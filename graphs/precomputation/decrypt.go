@@ -159,7 +159,6 @@ var DecryptElgamalChunk = services.Module{
 			return errors.WithStack(services.InvalidTypeAssert)
 		}
 
-
 		// Execute elgamal on the keys for the first payload
 		ds := dssi.GetPrecompDecryptSubStream()
 		gpuStreams := ds.StreamPool

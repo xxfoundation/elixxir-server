@@ -25,8 +25,6 @@ import (
 // phase operation
 func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
 
-	jww.DEBUG.Printf("ReceivePostPhase: Currently in state: %v", instance.GetStateMachine().String())
-
 	// HACK HACK HACK
 	// in the event not started hasn't finished, this waits for ti to finish
 	// or is ignored otherwise
@@ -36,10 +34,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 	// Wait until acceptable state to start post phase
 	curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, current.PRECOMPUTING, current.REALTIME)
 	if err != nil {
-		return errors.WithMessagef(err, errFailedToWait, "from: " + phase.Type(batch.FromPhase).String())
+		return errors.WithMessagef(err, errFailedToWait, "from: "+phase.Type(batch.FromPhase).String())
 	}
-
-	jww.DEBUG.Printf("ReceivePostPhase: Transferred to state: %v", instance.GetStateMachine().String())
 
 	nodeID := instance.GetID()
 	roundID := id.Round(batch.Round.ID)

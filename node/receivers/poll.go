@@ -40,7 +40,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixm
 		// Get the request for a new batch que and store it into res
 		res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
 
-
 		cr, err := instance.GetCompletedBatchQueue().Receive()
 		if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
