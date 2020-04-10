@@ -44,6 +44,8 @@ type Params struct {
 	Permissioning Permissioning
 	Metrics       Metrics
 	GraphGen      GraphGen
+
+	RecoveredErrFile string
 }
 
 // NewParams gets elements of the viper object
@@ -94,6 +96,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.KeepBuffers = vip.GetBool("keepBuffers")
 	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
+	params.RecoveredErrFile = "recovered_err_file"
 
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {

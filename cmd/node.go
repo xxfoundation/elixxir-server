@@ -157,7 +157,7 @@ func StartServer(vip *viper.Viper) error {
 	ourMachine := state.NewMachine(ourChangeList)
 
 	// Create instance
-	recoveredErrorFile, err := os.Open(errorPath)
+	recoveredErrorFile, err := os.Open(params.RecoveredErrFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			instance, err = server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
