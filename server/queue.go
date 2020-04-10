@@ -89,7 +89,6 @@ func (rq *ResourceQueue) run(server *Instance) {
 			if nc == 1 {
 				runningPhase.Measure(measure.TagFinishFirstSlot)
 			}
-
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 
 			//Fixme: add a method to killChan this directly
@@ -103,23 +102,11 @@ func (rq *ResourceQueue) run(server *Instance) {
 			return chunk, ok
 		}
 
-		curRound, err := server.GetRoundManager().GetRound(
-			runningPhase.GetRoundID())
-
-		if err != nil {
-			jww.FATAL.Panicf("Round %d does not exist!",
-				runningPhase.GetRoundID())
-		}
-
 		//start the phase's transmission handler
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
-				runningPhase.GetRoundID(),
-				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetTopology(),
-				server.GetID(), runningPhase.Measure)
+			err := handler()(runningPhase.GetRoundID(), server, getChunk, runningPhase.GetGraph().GetStream().Output)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",

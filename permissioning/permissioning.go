@@ -244,7 +244,6 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *serve
 	}
 
 	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
-		jww.DEBUG.Printf("Updating node connections")
 		// Update the nodes in the network.Instance with the new ndf
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {

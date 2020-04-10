@@ -72,7 +72,6 @@ func (s *RevealStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns a cmix slot message
 func (s *RevealStream) Output(index uint32) *mixmessages.Slot {
-
 	return &mixmessages.Slot{
 		Index:                     index,
 		PartialPayloadACypherText: s.CypherPayloadA.Get(index).Bytes(),
