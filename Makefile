@@ -25,4 +25,4 @@ update_master:
 
 master: update_master update build
 
-release: update update_release build
+release: update_release update build
