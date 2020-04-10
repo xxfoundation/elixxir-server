@@ -34,9 +34,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 
 	jww.DEBUG.Printf("ReceivePostPhase: Waiting for a realtime or precomp signal")
 	// Wait until acceptable state to start post phase
-	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING, current.REALTIME)
+	curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, current.PRECOMPUTING, current.REALTIME)
 	if err != nil {
-		return errors.WithMessagef(err, errFailedToWait, phase.PrecompShare.String())
+		return errors.WithMessagef(err, errFailedToWait, "from: " + phase.Type(batch.FromPhase).String())
 	}
 
 	jww.DEBUG.Printf("ReceivePostPhase: Transferred to state: %v", instance.GetStateMachine().String())
@@ -144,7 +144,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	ptype := r.GetCurrentPhaseType()
 	toWait := shouldWait(ptype)
 
-	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, toWait)
+	curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, toWait)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, ptype)
 	}
