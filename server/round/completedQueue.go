@@ -1,20 +1,22 @@
 package round
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 )
 
 type CompletedQueue chan *CompletedRound
 
+const maxCompletedBatches = 100
+
 func (cq CompletedQueue) Send(cr *CompletedRound) error {
 	select {
 	case cq <- cr:
 		return nil
 	default:
-		return errors.New("Completed batch queue full, " +
-			"batch dropped. Check Gateway")
+		return errors.Errorf("Completed batch queue full at len %v, "+
+			"batch dropped for round %v. Check Gateway", len(cq), cr.RoundID)
 	}
 }
 
@@ -28,7 +30,7 @@ func (cq CompletedQueue) Receive() (*CompletedRound, error) {
 }
 
 func NewCompletedQueue() CompletedQueue {
-	return make(CompletedQueue, 1)
+	return make(CompletedQueue, maxCompletedBatches)
 }
 
 type CompletedRound struct {

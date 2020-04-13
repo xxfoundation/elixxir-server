@@ -7,8 +7,6 @@ package phase
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"strings"
@@ -49,9 +47,7 @@ func TestPhase_GetTimeout(t *testing.T) {
 
 func TestPhase_GetTransmissionHandler(t *testing.T) {
 	pass := false
-	handler := func(network *node.Comms, batchSize uint32,
-		roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nodes *connect.Circuit, nid *id.Node, measure Measure) error {
+	handler := func(roundID id.Round, instance GenericInstance, getChunk GetChunk, getMessage GetMessage) error {
 		pass = true
 		return nil
 	}
@@ -59,7 +55,7 @@ func TestPhase_GetTransmissionHandler(t *testing.T) {
 		transmissionHandler: handler,
 	}
 	// This call should set pass to true
-	err := p.GetTransmissionHandler()(nil, 0, 0, 0, nil, nil, nil, nil, nil)
+	err := p.GetTransmissionHandler()(0, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Transmission handler returned an error, how!? %+v", err)
@@ -204,17 +200,14 @@ func TestNew(t *testing.T) {
 		1, 1, 1))
 	pass := false
 
-	transmit := func(network *node.Comms, batchSize uint32,
-		roundId id.Round, phaseTy Type, getSlot GetChunk,
-		getMessage GetMessage, nodes *connect.Circuit, nid *id.Node, measure Measure) error {
+	transmit := func(roundID id.Round, instance GenericInstance, getChunk GetChunk, getMessage GetMessage) error {
 		pass = true
 		return nil
 	}
 
 	phase := New(Definition{g, RealPermute, transmit,
 		timeout, false})
-	err := phase.GetTransmissionHandler()(nil, 0, 0,
-		0, nil, nil, nil, nil, nil)
+	err := phase.GetTransmissionHandler()(0, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Transmission handler returned an error, how!? %+v", err)
