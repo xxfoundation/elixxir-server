@@ -95,7 +95,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 		NumThreads:    10,
 	}
 
-	rm.Set(&expectedMetric)
+	rm.Set(expectedMetric)
 
 	if !tmpInstance.GetResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
 		t.Errorf("Instance.GetResourceMonitor: Returned incorrect time")
@@ -118,7 +118,7 @@ func mockServerDef(i interface{}) *Definition {
 		NumThreads:    0,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&resourceMetric)
+	resourceMonitor.Set(resourceMetric)
 
 	def := Definition{
 		ID:              nid,
