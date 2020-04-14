@@ -3,7 +3,6 @@ package round
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -53,9 +52,7 @@ func TestNew(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []phase.Phase
 
-	handler := func(network *node.Comms, batchSize uint32,
-		roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
-		getMessage phase.GetMessage, nodes *connect.Circuit, nid *id.Node, measure phase.Measure) error {
+	handler := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 		return nil
 	}
 
@@ -66,9 +63,12 @@ func TestNew(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	if round.GetID() != roundId {
 		t.Error("Round ID wasn't set correctly")
@@ -117,9 +117,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []phase.Phase
 
-	handler := func(network *node.Comms, batchSize uint32, roundId id.Round,
-		phaseTy phase.Type, getSlot phase.GetChunk, getMessage phase.GetMessage,
-		nodes *connect.Circuit, nid *id.Node, measure phase.Measure) error {
+	handler := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 		return nil
 	}
 
@@ -138,9 +136,13 @@ func TestRound_GetMeasurements(t *testing.T) {
 	nid := id.NewNodeFromUInt(uint64(123), t)
 	topology := connect.NewCircuit([]*id.Node{nid})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil,
+		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 
 	timeNow := time.Now()
 	resourceMetric := measure.ResourceMetric{
@@ -183,9 +185,12 @@ func TestRound_StartRoundTrip(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	payload := "NULL/ACK"
 	unsetStart := round.rtStartTime
 	round.StartRoundTrip(payload)
@@ -211,12 +216,15 @@ func TestRound_StopRoundTrip(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
 
-	round := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
+	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
 	unsetStop := round.rtEndTime
 
-	err := round.StopRoundTrip()
+	err = round.StopRoundTrip()
 	if err == nil {
 		t.Errorf("StopRoundTrip should error if rtStarted not set: %+v", err)
 	}

@@ -9,18 +9,19 @@ package graphs
 import (
 	"bytes"
 	"fmt"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
-	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
 	"testing"
@@ -140,7 +141,7 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 func TestKeygenStreamInGraph(t *testing.T) {
 	instance := mockServerInstance(t)
 	registry := instance.GetUserRegistry()
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 	u := registry.NewUser(grp)
 	u.IsRegistered = true
 	registry.UpsertUser(u)
@@ -253,7 +254,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 	instance := mockServerInstance(t)
 	registry := instance.GetUserRegistry()
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 	u := registry.NewUser(grp)
 	u.IsRegistered = false
 	registry.UpsertUser(u)
@@ -358,7 +359,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	instance := mockServerInstance(t)
 	registry := instance.GetUserRegistry()
-	grp := instance.GetGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 	u := registry.NewUser(grp)
 	u.IsRegistered = true
 	registry.UpsertUser(u)
@@ -464,31 +465,46 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 }
 
 func mockServerInstance(i interface{}) *server.Instance {
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	nid := server.GenerateId(i)
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2))
 
 	def := server.Definition{
 		ID:              nid,
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
 	}
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+	var stateChanges [current.NUM_STATES]state.Change
+	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.WAITING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.PRECOMPUTING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.STANDBY] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.REALTIME] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.COMPLETED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.ERROR] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.CRASH] = func(from current.Activity) error {
+		return nil
+	}
+
+	sm := state.NewMachine(stateChanges)
+
+	instance, _ := server.CreateServerInstance(&def, NewImplementation, sm, false)
 
 	return instance
 }

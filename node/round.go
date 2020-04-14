@@ -2,7 +2,7 @@ package node
 
 import (
 	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -14,15 +14,13 @@ import (
 )
 
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32, newRoundTimeout int) ([]phase.Phase,
-	phase.ResponseMap) {
+	nodeID *id.Node, instance *server.Instance, batchSize uint32,
+	newRoundTimeout time.Duration, pool *gpumaths.StreamPool) (
+	[]phase.Phase, phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
 	generalExpectedStates := []phase.State{phase.Active}
-
-	// TODO: Expose this timeout on the command line
-	defaultTimeout := time.Duration(newRoundTimeout) * time.Second
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -31,7 +29,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitGenerateGraph(gc),
 		Type:                phase.PrecompGeneration,
 		TransmissionHandler: io.TransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 	}
 	// On every node but the first, it receives generate and executes generate,
 	// First node starts the round via its business logic so it has no
@@ -68,7 +66,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitShareGraph(gcShare),
 		Type:                phase.PrecompShare,
 		TransmissionHandler: io.TransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -109,7 +107,12 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
+	}
+	if pool != nil {
+		precompDecryptDefinition.Graph = precomputation.InitDecryptGPUGraph(gc)
+	} else {
+		precompDecryptDefinition.Graph = precomputation.InitDecryptGraph(gc)
 	}
 
 	// Every node except the first node handles precomp decrypt in the normal
@@ -139,7 +142,12 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
+	}
+	if pool != nil {
+		precompPermuteDefinition.Graph = precomputation.InitPermuteGPUGraph(gc)
+	} else {
+		precompPermuteDefinition.Graph = precomputation.InitPermuteGraph(gc)
 	}
 
 	// Every node except the first node handles precomp permute in the normal
@@ -168,7 +176,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -211,7 +219,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               realtime.InitDecryptGraph(gc),
 		Type:                phase.RealDecrypt,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 	}
 
 	decryptResponse := phase.ResponseDefinition{
@@ -237,7 +245,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               realtime.InitPermuteGraph(gc),
 		Type:                phase.RealPermute,
 		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -253,21 +261,13 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	//TRANSITION: Last node broadcasts sends the results to the gateways and
 	//broadcasts a completed message to all other nodes as a verification step.
 	if topology.IsLastNode(nodeID) {
-		//build the channel which will be used to send the data
-		chanLen := (batchSize + gc.GetOutputSize() - 1) / gc.GetOutputSize()
-		chunkChan := make(chan services.Chunk, chanLen)
 		//assign the handler
 		realtimePermuteDefinition.TransmissionHandler =
 			// finish realtime needs access to lastNode to send out the results,
 			// an anonymous function is used to wrap the function, passing
 			// access while maintaining the transmit signature
-			func(network *node.Comms, batchSize uint32,
-				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-				getMessage phase.GetMessage, topology *connect.Circuit,
-				nodeID *id.Node, measure phase.Measure) error {
-				return io.TransmitFinishRealtime(network, batchSize, roundID,
-					phaseTy, getChunk, getMessage, topology, nodeID, lastNode,
-					chunkChan, measure)
+			func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+				return io.TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)

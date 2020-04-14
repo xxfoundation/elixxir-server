@@ -9,8 +9,8 @@ cache:
 variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
-  DOCKER_IMAGE: golang:1.13.4-buster
-  MIN_CODE_COVERAGE: "85.0"
+  DOCKER_IMAGE: sydney112/cuda-go:latest
+  MIN_CODE_COVERAGE: "82.0"
 
 before_script:
   ##
@@ -20,6 +20,7 @@ before_script:
   - echo $CI_BUILD_REF
   - echo $CI_PROJECT_DIR
   - echo $PWD
+  - echo $USER
   - eval $(ssh-agent -s)
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   - mkdir -p ~/.ssh
@@ -27,6 +28,7 @@ before_script:
   - ssh-keyscan -t rsa gitlab.com > ~/.ssh/known_hosts
   - git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
   - export GOFLAGS=-mod=vendor
+  - export PATH=$HOME/go/bin:$PATH
 
 stages:
   - setup
@@ -49,16 +51,39 @@ setup:
     paths:
      - vendor/
 
+setup-gpu:
+  stage: setup
+  image: $DOCKER_IMAGE
+  tags:
+    - gpu
+  except:
+    - tags
+  script:
+    # Get specific commit hash from go mod version string if module version is v0.0.2, otherwise use go mod version string as tag
+    # It's a quick and dirty way to get something that we ought to be able to check out
+    - GPUMATHS_VERSION=`go list -m -f "{{.Version}}" gitlab.com/elixxir/gpumaths | awk -F- '{if ($1=="v0.0.2") {print $3} else {print $1}}'`
+    - echo $GPUMATHS_VERSION
+    - rm -fr gpumaths
+    - git clone git@gitlab.com:elixxir/gpumaths.git
+    - cd gpumaths
+    - git checkout $GPUMATHS_VERSION
+    - cd cgbnBindings/powm
+    - make turing
+    - make install
+    - ls
+    - ls /opt/elixxir/lib
+  artifacts:
+    # TODO  include .so result (copy to a suitable directory as well)
+    paths:
+      - gpumaths/
+
+
 test:
   stage: test
   image: $DOCKER_IMAGE
   except:
     - tags
   script:
-    - GO111MODULE=off go get -u github.com/haya14busa/goverage
-    - apt-get update
-    - apt-get install bc -y
-    
     - mkdir -p testdata
 
     # Test coverage
@@ -87,6 +112,50 @@ test:
     paths:
       - testdata/
 
+test-gpu:
+  stage: test
+  image: $DOCKER_IMAGE
+  tags:
+    - gpu
+  except:
+    - tags
+  script:
+    - mkdir -p /opt/elixxir/lib/
+    - mkdir -p /opt/elixxir/include
+    - cp gpumaths/cgbnBindings/powm/*.so /opt/elixxir/lib
+    - cp gpumaths/cgbnBindings/powm/*.h /opt/elixxir/include
+    - cat /usr/local/cuda/version.txt
+    - nvidia-smi
+    
+    - mkdir -p testdata
+
+    # Test coverage
+    - go test -v -tags cuda -coverprofile=testdata/coverage.out -covermode atomic -coverpkg ./... 
+    # Exclude cmd from test coverage as it is command line related tooling
+    # Exclude database files from test coverage due to lack of Postgre
+    # Exclude newRound because of lots of side effects
+    - grep -v -e cmd -e userDatabase.go -e newRound.go -e testUtil testdata/coverage.out > testdata/coverage-real.out
+    # Get coverage data
+    - go tool cover -func=testdata/coverage-real.out
+    - go tool cover -html=testdata/coverage-real.out -o testdata/coverage.html
+
+    # Benchmarking
+    #- go test -bench=BenchmarkPrecomp -cpuprofile=testdata/precomp.cpu -memprofile=testdata/precomp.mem -short main_benchmarks_test.go
+    #- go tool pprof -png main.test testdata/precomp.cpu > testdata/precomp-cpu.png
+    #- go tool pprof -png main.test testdata/precomp.mem > testdata/precomp-mem.png
+    #- go test -bench=BenchmarkRealtime -cpuprofile=testdata/realtime.cpu -memprofile=testdata/realtime.mem -short main_benchmarks_test.go
+    #- go tool pprof -png main.test testdata/realtime.cpu > testdata/realtime-cpu.png
+    #- go tool pprof -png main.test testdata/realtime.mem > testdata/realtime-mem.png
+
+    # Test Coverage Check
+    - go tool cover -func=testdata/coverage-real.out | grep "total:" | awk '{print $3}' | sed 's/\%//g' > testdata/coverage-percentage.txt
+    - export CODE_CHECK=$(echo "$(cat testdata/coverage-percentage.txt) >= 50" | bc -l)
+    - (if [ "$CODE_CHECK" == "1" ]; then echo "Minimum coverage of $MIN_CODE_COVERAGE succeeded"; else echo "Minimum coverage of $MIN_CODE_COVERAGE failed"; exit 1; fi);
+  artifacts:
+    paths:
+      - testdata/
+      - gpumaths/
+
 build:
   stage: build
   image: $DOCKER_IMAGE
@@ -99,9 +168,15 @@ build:
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
     - GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win32 main.go
     - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
+    - mkdir -p /opt/elixxir/lib/
+    - mkdir -p /opt/elixxir/include
+    - cp gpumaths/cgbnBindings/powm/*.so /opt/elixxir/lib
+    - cp gpumaths/cgbnBindings/powm/*.h /opt/elixxir/include
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags cuda -ldflags '-w -s -L /opt/elixxir/lib' -o release/server-cuda.linux64 main.go    
   artifacts:
     paths:
      - release/
+     - gpumaths/
 
 tag:
     stage: tag

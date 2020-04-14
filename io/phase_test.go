@@ -7,12 +7,25 @@
 package io
 
 import (
+	"fmt"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/comms/testkeys"
+	"gitlab.com/elixxir/crypto/csprng"
+	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
+	"math/rand"
 	"testing"
 )
 
@@ -67,17 +80,43 @@ var receivedBatch *mixmessages.Batch
 
 // Tests that a batch sent via transmit phase arrives correctly
 func TestTransmitPhase(t *testing.T) {
-
-	// Setup the network
-	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{nil, mockPostPhaseImplementation()}, 10)
-	defer Shutdown(comms)
+	instance, nodeAddr := mockInstance(t, mockPostPhaseImplementation)
 
 	// Build the mock functions called by the transmitter
 	chunkCnt := uint32(0)
 	batchSize := uint32(5)
 	roundID := id.Round(5)
-	phaseTy := phase.Type(2)
+	phaseTy := phase.Type(0)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.PrecompGeneration,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.PrecompGeneration})
+
+	grp := initImplGroup()
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.PrecompGeneration
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	topology := connect.NewCircuit([]*id.Node{instance.GetID()})
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	nodeHost, _ := connect.NewHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	topology.AddHost(nodeHost)
+	_, err := instance.GetNetwork().AddHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	if err != nil {
+		t.Errorf("Failed to add host to instance: %v", err)
+	}
+
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
+		"0.0.0.0")
+	if err != nil {
+		t.Error()
+	}
+
+	instance.GetRoundManager().AddRound(rnd)
 
 	getChunk := func() (services.Chunk, bool) {
 		if chunkCnt < batchSize {
@@ -87,16 +126,12 @@ func TestTransmitPhase(t *testing.T) {
 		}
 		return services.NewChunk(0, 0), false
 	}
-
 	getMsg := func(index uint32) *mixmessages.Slot {
 		return &mixmessages.Slot{PayloadA: []byte{0}}
 	}
 
-	m := func(tag string) {}
-
 	//call the transmitter
-	err := TransmitPhase(comms[0], batchSize, roundID, phaseTy, getChunk,
-		getMsg, topology, topology.GetNodeAtIndex(0), m)
+	err = TransmitPhase(roundID, instance, getChunk, getMsg)
 
 	if err != nil {
 		t.Errorf("TransmitPhase: Unexpected error: %+v", err)
@@ -120,10 +155,72 @@ func TestTransmitPhase(t *testing.T) {
 	}
 }
 
-func mockPostPhaseImplementation() *node.Implementation {
+func mockPostPhaseImplementation(instance *server.Instance) *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) {
+	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
 		receivedBatch = batch
+		return nil
 	}
 	return impl
+}
+
+var cnt = 0
+
+func mockInstance(t interface{}, impl func(instance *server.Instance) *node.Implementation) (*server.Instance, string) {
+	switch v := t.(type) {
+	case *testing.T:
+	case *testing.M:
+		break
+	default:
+		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
+	}
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+
+	nid := server.GenerateId(t)
+
+	var err error
+
+	//make registration rsa key pair
+	regPKey, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate registration private key: %+v", err))
+	}
+
+	//make server rsa key pair
+	serverRSAPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
+	}
+
+	serverRSAPub := serverRSAPriv.GetPublic()
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
+
+	cnt++
+
+	def := server.Definition{
+		ID:              nid,
+		UserRegistry:    &globals.UserMap{},
+		ResourceMonitor: &measure.ResourceMonitor{},
+		PrivateKey:      serverRSAPriv,
+		PublicKey:       serverRSAPub,
+		TlsCert:         cert,
+		TlsKey:          key,
+		FullNDF:         testUtil.NDF,
+		PartialNDF:      testUtil.NDF,
+		Address:         nodeAddr,
+	}
+
+	def.Permissioning.PublicKey = regPKey.GetPublic()
+	nodeIDs := make([]*id.Node, 0)
+	nodeIDs = append(nodeIDs, nid)
+	def.Gateway.ID = id.NewTmpGateway()
+
+	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+
+	instance, _ := server.CreateServerInstance(&def, impl, mach, false)
+
+	return instance, nodeAddr
+
 }

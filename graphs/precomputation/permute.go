@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
@@ -23,6 +24,7 @@ import (
 type PermuteStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
+	StreamPool      *gpumaths.StreamPool
 
 	// Link to round object
 	S   *cyclic.IntBuffer // Encrypted Inverse Permuted Internode Message Key
@@ -49,8 +51,13 @@ func (ps *PermuteStream) GetName() string {
 // Link binds stream to state objects in round
 func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
 
-	ps.LinkPrecompPermuteStream(grp, batchSize, roundBuffer,
+	ps.LinkPrecompPermuteStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
@@ -62,12 +69,13 @@ func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 }
 
 // Link binds stream to state objects in round
-func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
+func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, pool *gpumaths.StreamPool,
 	keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer,
 	keysPayloadAPermuted, cypherPayloadAPermuted, keysPayloadBPermuted, cypherPayloadBPermuted []*cyclic.Int) {
 
 	ps.Grp = grp
 	ps.PublicCypherKey = roundBuffer.CypherPublicKey
+	ps.StreamPool = pool
 
 	ps.S = roundBuffer.S.GetSubBuffer(0, batchSize)
 	ps.V = roundBuffer.V.GetSubBuffer(0, batchSize)
@@ -195,6 +203,46 @@ var PermuteElgamal = services.Module{
 	Name:       "PermuteElgamal",
 }
 
+// PermuteElgamalChunk performs the Elgamal cryptop on the appropriate data for precomp permute using the GPU
+var PermuteElgamalChunk = services.Module{
+	// Multiplies in own Encrypted Keys and Partial Cypher Texts
+	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		pssi, ok := streamInput.(permuteSubstreamInterface)
+		ec, ok2 := cryptop.(gpumaths.ElGamalChunkPrototype)
+
+		if !ok || !ok2 {
+			return services.InvalidTypeAssert
+		}
+
+		ps := pssi.GetPrecompPermuteSubStream()
+		gpuStreams := ps.StreamPool
+		S := ps.S.GetSubBuffer(chunk.Begin(), chunk.End())
+		yS := ps.Y_S.GetSubBuffer(chunk.Begin(), chunk.End())
+		kpa := ps.KeysPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		cpa := ps.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		err := ec(gpuStreams, ps.Grp, S, yS, ps.PublicCypherKey, kpa, cpa)
+		if err != nil {
+			return err
+		}
+
+		V := ps.V.GetSubBuffer(chunk.Begin(), chunk.End())
+		yV := ps.Y_V.GetSubBuffer(chunk.Begin(), chunk.End())
+		kpb := ps.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		cpb := ps.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		err = ec(gpuStreams, ps.Grp, V, yV, ps.PublicCypherKey, kpb, cpb)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+	Cryptop: gpumaths.ElGamalChunk,
+	// TODO(nan) Really, number of threads should be number of streams in the pool
+	NumThreads: 2,
+	// Populate InputSize late, at runtime
+	Name: "PermuteElgamalChunk",
+}
+
 // InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
@@ -204,6 +252,18 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 
 	g.First(PermuteElgamal)
 	g.Last(PermuteElgamal)
+
+	return g
+}
+
+// InitPermuteGPUGraph creates a graph that runs cryptops for Permute on the GPU
+func InitPermuteGPUGraph(gc services.GraphGenerator) *services.Graph {
+	g := gc.NewGraph("PrecompPermuteGPU", &PermuteStream{})
+
+	PermuteElgamalChunk := PermuteElgamalChunk.DeepCopy()
+
+	g.First(PermuteElgamalChunk)
+	g.Last(PermuteElgamalChunk)
 
 	return g
 }

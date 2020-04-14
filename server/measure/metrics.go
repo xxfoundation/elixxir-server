@@ -15,6 +15,7 @@ import (
 // RWMutex prevents two threads from writing to the list at the same time.
 type Metrics struct {
 	Events []Metric
+	NodeId string
 	sync.RWMutex
 }
 

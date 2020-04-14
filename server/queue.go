@@ -55,6 +55,10 @@ func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
 	return rq.phaseQueue
 }
 
+func (rq *ResourceQueue) Kill(t *testing.T) {
+	rq.kill()
+}
+
 //kill the queue
 func (rq *ResourceQueue) kill() {
 	rq.killChan <- struct{}{}
@@ -85,7 +89,6 @@ func (rq *ResourceQueue) run(server *Instance) {
 			if nc == 1 {
 				runningPhase.Measure(measure.TagFinishFirstSlot)
 			}
-
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 
 			//Fixme: add a method to killChan this directly
@@ -99,24 +102,11 @@ func (rq *ResourceQueue) run(server *Instance) {
 			return chunk, ok
 		}
 
-		curRound, err := server.GetRoundManager().GetRound(
-			runningPhase.GetRoundID())
-
-		if err != nil {
-			jww.FATAL.Panicf("Round %d does not exist!",
-				runningPhase.GetRoundID())
-		}
-
 		//start the phase's transmission handler
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-
-			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
-				runningPhase.GetRoundID(),
-				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetTopology(),
-				server.GetID(), runningPhase.Measure)
+			err := handler()(runningPhase.GetRoundID(), server, getChunk, runningPhase.GetGraph().GetStream().Output)
 
 			if err != nil {
 				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",
@@ -142,8 +132,8 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//process timeout
 		if timeout {
-			jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s has timed out",
-				server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
+			jww.ERROR.Printf("[%v]: RID %d Graph %s of phase %s has timed out",
+				server.GetID(), rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
 			jww.ERROR.Panicf("A round has failed killing node")
 			//FIXME: also killChan the transmission handler
@@ -170,7 +160,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 				rq.activePhase.GetRoundID(), rtnPhase.GetType())
 		}
 
-		jww.INFO.Printf("[%s]: RID %d Finishing execution of Phase \"%s\"", server,
+		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase \"%s\"", server.GetID(),
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 	}
 }

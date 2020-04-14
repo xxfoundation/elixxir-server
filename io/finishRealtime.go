@@ -11,44 +11,56 @@ package io
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/server/round"
 	"sync"
 )
 
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
-func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
-	roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-	getMessage phase.GetMessage, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode,
-	chunkChan chan services.Chunk, measureFunc phase.Measure) error {
+func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+	instance, ok := serverInstance.(*server.Instance)
+	if !ok {
+		return errors.Errorf("Invalid server instance passed in")
+	}
+
+	//get the round so you can get its batch size
+	r, err := instance.GetRoundManager().GetRound(roundID)
+	if err != nil {
+		return errors.Errorf("Could not retrieve round %d from manager  %s", roundID, err)
+	}
 
 	var wg sync.WaitGroup
+	topology := r.GetTopology()
 	errChan := make(chan error, topology.Len())
 
-	//Send the batch to the gateway
-	complete := server.CompletedRound{
-		RoundID:    roundID,
-		Receiver:   chunkChan,
-		GetMessage: getMessage,
+	// Form completed round object & push to gateway handler
+	complete := &round.CompletedRound{
+		RoundID: roundID,
+		Round:   make([]*mixmessages.Slot, r.GetBatchSize()),
 	}
 
-	lastNode.SendCompletedBatchQueue(complete)
-
+	// For each message chunk (slot), fill the slots buffer
+	// Note that this will panic if there are more slots than batchSize
+	// (shouldn't be possible?)
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
-		chunkChan <- chunk
+		for i := chunk.Begin(); i < chunk.End(); i++ {
+			msg := getMessage(i)
+			complete.Round[i] = msg
+		}
 	}
 
-	close(chunkChan)
+	err = instance.GetCompletedBatchQueue().Send(complete)
+	if err != nil {
+		return errors.Errorf("Failed to send to CompletedBatch: %+v", err)
+	}
 
+	measureFunc := r.GetCurrentPhase().Measure
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
 	}
@@ -63,7 +75,7 @@ func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 			// Pull the particular server host object from the commManager
 			recipient := topology.GetHostAtIndex(localIndex)
 			// Send the message to that particular node
-			ack, err := network.SendFinishRealtime(recipient,
+			ack, err := instance.GetNetwork().SendFinishRealtime(recipient,
 				&mixmessages.RoundInfo{
 					ID: uint64(roundID),
 				})
@@ -77,7 +89,6 @@ func TransmitFinishRealtime(network *node.Comms, batchSize uint32,
 			}
 			wg.Done()
 		}()
-
 	}
 
 	// Wait for all responses

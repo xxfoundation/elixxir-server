@@ -7,17 +7,20 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/phase"
 	"sync/atomic"
+	"testing"
 	"time"
 )
 
 type Round struct {
-	id     id.Round
-	buffer *Buffer
+	id        id.Round
+	buffer    *Buffer
+	batchSize uint32
 
 	topology *connect.Circuit
 	state    *uint32
@@ -35,6 +38,10 @@ type Round struct {
 	roundMetrics     measure.RoundMetrics
 	metricsReadyChan chan struct{}
 
+	// hold GPU stream references - should be populated if GPU in use,
+	// should be nil if CPU only
+	streamPool *gpumaths.StreamPool
+
 	// Round trip info
 	rtStarted   bool
 	rtStartTime time.Time
@@ -46,11 +53,16 @@ type Round struct {
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
-	rngStreamGen *fastRNG.StreamGenerator, localIP string) *Round {
+	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
+	localIP string) (*Round, error) {
+
+	if batchSize <= 0 {
+		return nil, errors.New("Cannot make a round with a <=0 batch size")
+	}
 
 	roundMetrics := measure.NewRoundMetrics(id, batchSize)
 	roundMetrics.IP = localIP
-	round := Round{id: id, roundMetrics: roundMetrics}
+	round := Round{id: id, roundMetrics: roundMetrics, streamPool: streamPool}
 
 	maxBatchSize := uint32(0)
 
@@ -74,8 +86,9 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		// Build the function this phase will use to increment its state
 		increment := func(from, to phase.State) bool {
 			if from >= to {
-				jww.FATAL.Panicf("Cannot increment backwards from %s to %s",
+				jww.ERROR.Printf("Cannot increment backwards from %s to %s",
 					from, to)
+				return false
 			}
 			// 1 is subtracted because Initialized doesnt hold a true state
 			newState := localStateOffset + uint32(to) - 1
@@ -134,7 +147,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	}
 
 	for index, p := range phases {
-		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen)
+		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
 		round.phaseMap[p.GetType()] = index
 	}
 
@@ -152,7 +165,25 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 
 	round.metricsReadyChan = make(chan struct{}, 1)
 
-	return &round
+	round.batchSize = batchSize
+
+	return &round, nil
+}
+
+func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
+	if t == nil {
+		panic("Can not use NewDummyRound out side of testing")
+	}
+	list := []*id.Node{}
+
+	for i := uint64(0); i < 8; i++ {
+		node := id.NewNodeFromUInt(i, t)
+		list = append(list, node)
+	}
+
+	top := *connect.NewCircuit(list)
+
+	return &Round{id: roundId, batchSize: batchSize, topology: &top}
 }
 
 //GetID return the ID
@@ -166,6 +197,10 @@ func (r *Round) GetTimeStart() time.Time {
 
 func (r *Round) GetBuffer() *Buffer {
 	return r.buffer
+}
+
+func (r *Round) GetBatchSize() uint32 {
+	return r.batchSize
 }
 
 func (r *Round) GetPhase(p phase.Type) (phase.Phase, error) {
@@ -246,6 +281,7 @@ func (r *Round) GetMeasurements(nid string, numNodes, index int,
 	for _, ph := range r.phases {
 		phaseName := ph.GetType().String()
 		phaseMeasure := ph.GetMeasure()
+		phaseMeasure.NodeId = nid
 		rm.AddPhase(phaseName, phaseMeasure)
 	}
 

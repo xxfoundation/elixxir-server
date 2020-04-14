@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/io"
@@ -30,8 +31,13 @@ const (
 // and writes them to a log file.
 func GatherMetrics(instance *server.Instance, roundID id.Round, whitespace bool) error {
 	// Get metrics for all nodes
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return errors.WithMessagef(err, "Failed to get round with id %+v", roundID)
+	}
 	roundMetrics, err := io.TransmitGetMeasure(instance.GetNetwork(),
-		instance.GetTopology(), roundID)
+		r.GetTopology(), roundID)
 
 	// Convert the roundMetrics array to JSON
 	jsonData, err := buildMetricJSON(roundMetrics, whitespace)
