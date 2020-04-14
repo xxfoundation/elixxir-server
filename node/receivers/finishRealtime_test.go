@@ -73,7 +73,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 	instance, topology, grp := setup(t, 0, current.REALTIME)
 
 	// Set up a round first node
@@ -126,7 +126,7 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	const numNodes = 5
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	instance, topology, grp := setup(t, 0, current.REALTIME)
 
@@ -178,7 +178,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	instance, topology, grp := setup(t, 0, current.REALTIME)
 

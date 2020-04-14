@@ -6,7 +6,7 @@ require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-pg/pg v8.0.6+incompatible
-	github.com/golang/protobuf v1.3.5
+	github.com/golang/protobuf v1.4.0
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -28,10 +28,10 @@ require (
 	gitlab.com/elixxir/crypto v0.0.0-20200410231849-90e859940f5d
 	gitlab.com/elixxir/gpumaths v0.0.2-0.20200407165512-31440c4065a8
 	gitlab.com/elixxir/primitives v0.0.0-20200410231944-a57d71d577c9
-	golang.org/x/crypto v0.0.0-20200406173513-056763e48d71
+	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
-	golang.org/x/sys v0.0.0-20200409092240-59c9f1ba88fa // indirect
-	google.golang.org/genproto v0.0.0-20200410110633-0848e9f44c36 // indirect
+	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect
+	google.golang.org/genproto v0.0.0-20200413115906-b5235f65be36 // indirect
 	google.golang.org/grpc v1.28.1
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8

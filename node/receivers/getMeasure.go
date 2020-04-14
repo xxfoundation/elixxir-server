@@ -48,7 +48,7 @@ func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*
 
 	//fmt.Printf("Resouce monitor: %v", resourceMonitor)
 	if resourceMonitor != nil {
-		resourceMetric = *resourceMonitor.Get()
+		resourceMetric = resourceMonitor.Get()
 	}
 
 	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, resourceMetric)

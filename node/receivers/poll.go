@@ -7,9 +7,7 @@ package receivers
 
 import (
 	"github.com/pkg/errors"
-	"github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/server"
 	"strings"
@@ -18,7 +16,6 @@ import (
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
 func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
 	res := mixmessages.ServerPollResponse{}
-	var err error
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
 		network := instance.GetConsensus()

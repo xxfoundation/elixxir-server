@@ -89,7 +89,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	t.Logf("Building instances for %v nodes", numNodes)
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
 		var instance *server.Instance
