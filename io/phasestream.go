@@ -50,6 +50,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		BatchSize: r.GetBatchSize(),
 	}
 
+	// get the current phase
+	// get this here to use down below to record the measurment to stop a race
+	// conditions where other nodes finish their works and get this node to
+	// iterate phase before the measure code runs
+	currentPhase := r.GetCurrentPhase()
+
 	// This gets the streaming client which used to send slots
 	// using the recipient node id and the batch info header
 	// It's context must be canceled after receiving an ack
@@ -72,7 +78,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		}
 	}
 
-	measureFunc := r.GetCurrentPhase().Measure
+	measureFunc := currentPhase.Measure
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
 	}
