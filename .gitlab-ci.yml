@@ -27,8 +27,9 @@ before_script:
   - chmod 700 ~/.ssh
   - ssh-keyscan -t rsa gitlab.com > ~/.ssh/known_hosts
   - git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
-  - export GOFLAGS=-mod=vendor
   - export PATH=$HOME/go/bin:$PATH
+  - export GOPRIVATE=gitlab.com/elixxir/*
+  - go get -u github.com/ory/go-acc
 
 stages:
   - setup
@@ -39,19 +40,6 @@ stages:
   - trigger_release_integration
 
 setup:
-  stage: setup
-  image: $DOCKER_IMAGE
-  except:
-    - tags
-  script:
-    - go mod vendor -v
-    - go build ./...
-    - go mod tidy
-  artifacts:
-    paths:
-     - vendor/
-
-setup-gpu:
   stage: setup
   image: $DOCKER_IMAGE
   tags:
@@ -72,26 +60,42 @@ setup-gpu:
     - make install
     - ls
     - ls /opt/elixxir/lib
+    - go mod vendor -v
+    - go build ./...
+    - go mod tidy
   artifacts:
     # TODO  include .so result (copy to a suitable directory as well)
     paths:
       - gpumaths/
+      - vendor/
 
 
 test:
   stage: test
   image: $DOCKER_IMAGE
+  tags:
+    - gpu
   except:
     - tags
   script:
+    - mkdir -p /opt/elixxir/lib/
+    - mkdir -p /opt/elixxir/include
+    - cp gpumaths/cgbnBindings/powm/*.so /opt/elixxir/lib
+    - cp gpumaths/cgbnBindings/powm/*.h /opt/elixxir/include
+    - cat /usr/local/cuda/version.txt
+    #- nvidia-smi
+
     - mkdir -p testdata
 
     # Test coverage
-    - goverage -coverprofile=testdata/coverage.out -v ./... 2>&1 | grep -v "no packages being tested depend on"
+    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v
+    # Test coverage with gpu extension (note that this doesn't overwrite existing coverage)
+    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v -tags cuda
     # Exclude cmd from test coverage as it is command line related tooling
     # Exclude database files from test coverage due to lack of Postgre
     # Exclude newRound because of lots of side effects
-    - grep -v -e cmd -e userDatabase.go -e newRound.go -e testUtil testdata/coverage.out > testdata/coverage-real.out
+    # Exclude testutil patterns because they are not used in binary outside tests
+    - grep -v -e cmd -e userDatabase.go -e newRound.go -e testUtil -e testutil testdata/coverage.out > testdata/coverage-real.out
     # Get coverage data
     - go tool cover -func=testdata/coverage-real.out
     - go tool cover -html=testdata/coverage-real.out -o testdata/coverage.html
@@ -107,49 +111,6 @@ test:
     # Test Coverage Check
     - go tool cover -func=testdata/coverage-real.out | grep "total:" | awk '{print $3}' | sed 's/\%//g' > testdata/coverage-percentage.txt
     - export CODE_CHECK=$(echo "$(cat testdata/coverage-percentage.txt) >= $MIN_CODE_COVERAGE" | bc -l)
-    - (if [ "$CODE_CHECK" == "1" ]; then echo "Minimum coverage of $MIN_CODE_COVERAGE succeeded"; else echo "Minimum coverage of $MIN_CODE_COVERAGE failed"; exit 1; fi);
-  artifacts:
-    paths:
-      - testdata/
-
-test-gpu:
-  stage: test
-  image: $DOCKER_IMAGE
-  tags:
-    - gpu
-  except:
-    - tags
-  script:
-    - mkdir -p /opt/elixxir/lib/
-    - mkdir -p /opt/elixxir/include
-    - cp gpumaths/cgbnBindings/powm/*.so /opt/elixxir/lib
-    - cp gpumaths/cgbnBindings/powm/*.h /opt/elixxir/include
-    - cat /usr/local/cuda/version.txt
-    - nvidia-smi
-    
-    - mkdir -p testdata
-
-    # Test coverage
-    - go test -v -tags cuda -coverprofile=testdata/coverage.out -covermode atomic -coverpkg ./... 
-    # Exclude cmd from test coverage as it is command line related tooling
-    # Exclude database files from test coverage due to lack of Postgre
-    # Exclude newRound because of lots of side effects
-    - grep -v -e cmd -e userDatabase.go -e newRound.go -e testUtil testdata/coverage.out > testdata/coverage-real.out
-    # Get coverage data
-    - go tool cover -func=testdata/coverage-real.out
-    - go tool cover -html=testdata/coverage-real.out -o testdata/coverage.html
-
-    # Benchmarking
-    #- go test -bench=BenchmarkPrecomp -cpuprofile=testdata/precomp.cpu -memprofile=testdata/precomp.mem -short main_benchmarks_test.go
-    #- go tool pprof -png main.test testdata/precomp.cpu > testdata/precomp-cpu.png
-    #- go tool pprof -png main.test testdata/precomp.mem > testdata/precomp-mem.png
-    #- go test -bench=BenchmarkRealtime -cpuprofile=testdata/realtime.cpu -memprofile=testdata/realtime.mem -short main_benchmarks_test.go
-    #- go tool pprof -png main.test testdata/realtime.cpu > testdata/realtime-cpu.png
-    #- go tool pprof -png main.test testdata/realtime.mem > testdata/realtime-mem.png
-
-    # Test Coverage Check
-    - go tool cover -func=testdata/coverage-real.out | grep "total:" | awk '{print $3}' | sed 's/\%//g' > testdata/coverage-percentage.txt
-    - export CODE_CHECK=$(echo "$(cat testdata/coverage-percentage.txt) >= 50" | bc -l)
     - (if [ "$CODE_CHECK" == "1" ]; then echo "Minimum coverage of $MIN_CODE_COVERAGE succeeded"; else echo "Minimum coverage of $MIN_CODE_COVERAGE failed"; exit 1; fi);
   artifacts:
     paths:
