@@ -24,7 +24,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	generalExpectedStates := []phase.State{phase.Active}
 
 	// Used to swap between streaming and non-streaming
-	var transmissionHandler phase.Transmit
+	transmissionHandler := io.StreamTransmitPhase
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -109,8 +109,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Swap the transmission handler if using streaming
 	if disableStreaming {
 		transmissionHandler = io.TransmitPhase
-	} else {
-		transmissionHandler = io.StreamTransmitPhase
 	}
 
 	// Build Precomputation Decrypt phase and response
@@ -150,8 +148,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Swap the transmission handler if using streaming
 	if disableStreaming {
 		transmissionHandler = io.TransmitPhase
-	} else {
-		transmissionHandler = io.StreamTransmitPhase
 	}
 
 	// Build Precomputation Permute phase and response
@@ -191,8 +187,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Swap the transmission handler if using streaming
 	if disableStreaming {
 		transmissionHandler = io.TransmitPhase
-	} else {
-		transmissionHandler = io.StreamTransmitPhase
 	}
 
 	// Build Precomputation Reveal phase and response
@@ -240,8 +234,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Swap the transmission handler if using streaming
 	if disableStreaming {
 		transmissionHandler = io.TransmitPhase
-	} else {
-		transmissionHandler = io.StreamTransmitPhase
 	}
 
 	// Build Realtime Decrypt phase and response
@@ -272,8 +264,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Swap the transmission handler if using streaming
 	if disableStreaming {
 		transmissionHandler = io.TransmitPhase
-	} else {
-		transmissionHandler = io.StreamTransmitPhase
 	}
 
 	// Build Realtime Decrypt phase and response
