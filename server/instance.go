@@ -356,3 +356,9 @@ func (i *Instance) String() string {
 func (i *Instance) GetStreamPool() *gpumaths.StreamPool {
 	return i.streamPool
 }
+
+// GetDisableStreaming returns the DisableStreaming boolean that determines if
+// streaming will be used.
+func (i *Instance) GetDisableStreaming() bool {
+	return i.definition.DisableStreaming
+}

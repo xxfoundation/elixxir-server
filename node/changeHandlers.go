@@ -179,7 +179,8 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout, nil)
+		newRoundTimeout, nil,
+		instance.GetDisableStreaming())
 
 	//Build the round
 	rnd, err := round.New(
