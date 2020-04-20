@@ -34,6 +34,7 @@ type Params struct {
 	Verbose          bool
 	KeepBuffers      bool
 	UseGPU           bool
+	DisableStreaming bool
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
 	GWConnTimeout    time.Duration
@@ -237,6 +238,8 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
 		}
 	}
+
+	def.DisableStreaming = p.DisableStreaming
 
 	//Set the node's private/public key
 	var privateKey *rsa.PrivateKey

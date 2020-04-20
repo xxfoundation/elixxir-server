@@ -237,3 +237,12 @@ func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestInstance_GetDisableStreaming(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.DisableStreaming != instance.GetDisableStreaming() {
+		t.Logf("GetDisableStreaming() returned unexpected value")
+		t.Fail()
+	}
+}

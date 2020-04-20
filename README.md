@@ -30,6 +30,7 @@ Many of these flags override the values set in the config file:
 |--version|-V|Print generated version information. To generate, run `$ go generate cmd/version.go`.|--version|
 |--help|-h|Print a help message|--help|
 |--metricsWhitespace|-w|Set to print indented metrics JSON files|-w|
+|--disableStreaming| |Disables streaming comms. By default true.| |
 
 Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go benchmark`.
 

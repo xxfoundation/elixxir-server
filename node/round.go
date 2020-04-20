@@ -15,12 +15,16 @@ import (
 
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	nodeID *id.Node, instance *server.Instance, batchSize uint32,
-	newRoundTimeout time.Duration, pool *gpumaths.StreamPool) (
+	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,
+	disableStreaming bool) (
 	[]phase.Phase, phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
 	generalExpectedStates := []phase.State{phase.Active}
+
+	// Used to swap between streaming and non-streaming
+	transmissionHandler := io.StreamTransmitPhase
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -102,11 +106,16 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	/*--PRECOMP DECRYPT-------------------------------------------------------*/
 
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
+
 	// Build Precomputation Decrypt phase and response
 	precompDecryptDefinition := phase.Definition{
 		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 	}
 	if pool != nil {
@@ -136,12 +145,16 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		phase.NewResponse(DecryptResponse)
 
 	/*--PRECOMP PERMUTE-------------------------------------------------------*/
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Precomputation Permute phase and response
 	precompPermuteDefinition := phase.Definition{
 		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 	}
 	if pool != nil {
@@ -171,11 +184,16 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	/*--PRECOMP REVEAL--------------------------------------------------------*/
 
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
+
 	// Build Precomputation Reveal phase and response
 	precompRevealDefinition := phase.Definition{
 		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
@@ -213,12 +231,16 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 			PhaseToExecute: phase.PrecompReveal})
 
 	/*--REALTIME DECRYPT------------------------------------------------------*/
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Realtime Decrypt phase and response
 	realtimeDecryptDefinition := phase.Definition{
 		Graph:               realtime.InitDecryptGraph(gc),
 		Type:                phase.RealDecrypt,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 	}
 
@@ -239,12 +261,16 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	responses[phase.RealDecrypt.String()] = decryptResponse
 
 	/*--REALTIME PERMUTE------------------------------------------------------*/
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Realtime Decrypt phase and response
 	realtimePermuteDefinition := phase.Definition{
 		Graph:               realtime.InitPermuteGraph(gc),
 		Type:                phase.RealPermute,
-		TransmissionHandler: io.StreamTransmitPhase,
+		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
