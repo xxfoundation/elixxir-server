@@ -160,7 +160,16 @@ func (rq *ResourceQueue) run(server *Instance) {
 				rq.activePhase.GetRoundID(), rtnPhase.GetType())
 		}
 
-		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase \"%s\"", server.GetID(),
-			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
+		// Aggregate the runtimes of the individual threads
+		adaptDur, outModsDur := runningPhase.GetGraph().GetMetrics()
+		// Add this to the round dispatch duration metric
+		r, _ := server.GetRoundManager().GetRound(
+			rq.activePhase.GetRoundID())
+		r.AddToDispatchDuration(adaptDur + outModsDur)
+
+		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase "+
+			"\"%s\" -- Adapt: %s, outMod: %s", server.GetID(),
+			rq.activePhase.GetRoundID(), rq.activePhase.GetType(),
+			adaptDur, outModsDur)
 	}
 }
