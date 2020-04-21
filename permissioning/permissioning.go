@@ -195,7 +195,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 				go func() {
 					// Get the realtime start time
 					duration := time.Unix(int64(roundInfo.Timestamps[states.REALTIME]), 0)
-
+					jww.INFO.Printf("told to sleep for duration: %v", durationqq)
 					// Fixme: find way to calculate sleep length that doesn't lose time
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
