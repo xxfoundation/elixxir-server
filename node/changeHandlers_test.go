@@ -24,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
+	"time"
 )
 
 func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
@@ -175,7 +176,10 @@ func TestPrecomputing(t *testing.T) {
 		t.Errorf("Failed to send roundInfo: %v", err)
 	}
 
-	instance.GetResourceQueue().Kill(t)
+	err = instance.GetResourceQueue().Kill(time.Millisecond * 10)
+	if err != nil {
+		t.Errorf("Failed to kill resource queue: %+v", err)
+	}
 
 	err = Precomputing(instance, 3)
 	if err != nil {

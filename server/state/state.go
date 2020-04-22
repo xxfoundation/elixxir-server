@@ -368,15 +368,13 @@ func (m Machine) WaitForUnsafe(expected current.Activity, timeout time.Duration,
 
 // Internal function used to change states in NewMachine() and Machine.Update()
 func (m Machine) stateChange(nextState current.Activity) (bool, error) {
-	err := m.changeList[nextState](*m.Activity)
+	oldState := *m.Activity
+	*m.Activity = nextState
+	err := m.changeList[*m.Activity](oldState)
 
 	if err != nil {
-		err = errors.Wrap(err,
-			fmt.Sprintf("Error occured on error state change from %s to %s,"+
-				" moving to %s state", *m.Activity, nextState, current.ERROR))
 		return false, err
 	}
 
-	*m.Activity = nextState
 	return true, nil
 }
