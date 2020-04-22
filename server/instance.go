@@ -22,6 +22,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
@@ -60,6 +61,9 @@ type Instance struct {
 	roundError             *mixmessages.RoundError
 	recoveredError         *mixmessages.RoundError
 	RecoveredErrorFilePath string
+
+	phaseOverrides map[int]phase.Phase
+	panicWrapper   func(s string)
 }
 
 // Create a server instance. To actually kick off the server,
@@ -85,6 +89,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		completedBatchQueue:  round.NewCompletedQueue(),
 		gatewayPoll:          NewFirstTime(),
 		roundError:           nil,
+		panicWrapper: func(s string) {
+			panic(s)
+		},
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -387,7 +394,22 @@ func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*
 	return i.roundErrFunc(h, m)
 }
 
+func (i *Instance) GetPhaseOverrides() map[int]phase.Phase {
+	return i.phaseOverrides
+}
+
+func (i *Instance) GetPanicWrapper() func(s string) {
+	return i.panicWrapper
+}
+
 /* TESTING FUNCTIONS */
+func (i *Instance) OverridePhases(overrides map[int]phase.Phase, t *testing.T) {
+	if t == nil {
+		panic("Cannot call this outside of tests")
+	}
+	i.phaseOverrides = overrides
+}
+
 func (i *Instance) SetRoundErrFunc(f RoundErrBroadcastFunc, t *testing.T) {
 	if t == nil {
 		panic("Cannot call this outside of tests")
@@ -407,6 +429,13 @@ func (i *Instance) SetTestRoundError(m *mixmessages.RoundError, t *testing.T) {
 		panic("This cannot be used outside of a test")
 	}
 	i.roundError = m
+}
+
+func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
+	if t == nil {
+		panic("OverridePanicWrapper cannot be used outside of a test")
+	}
+	i.panicWrapper = f
 }
 
 // GenerateId generates a random ID and returns it
@@ -447,7 +476,6 @@ func (i *Instance) ReportRoundFailure(errIn error) {
 		Error: errIn.Error()}
 	// pass the error over the chanel
 	//instance get err chan
-
 	i.roundError = &roundErr
 
 	//then call update state err

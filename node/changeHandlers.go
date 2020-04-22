@@ -8,6 +8,7 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -159,7 +160,6 @@ func Waiting(from current.Activity) error {
 
 // Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
-
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo, err := instance.GetCreateRoundQueue().Receive()
@@ -195,6 +195,11 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		instance,
 		roundInfo.GetBatchSize(),
 		newRoundTimeout, nil)
+
+	phaseOverrides := instance.GetPhaseOverrides()
+	for toOverride, override := range phaseOverrides {
+		phases[toOverride] = override
+	}
 
 	//Build the round
 	rnd, err := round.New(
@@ -323,7 +328,8 @@ func Error(instance *server.Instance) error {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}
 
-	jww.FATAL.Panicf("Error encountered - closing server & writing error to file %s", "/tmp/round_error")
+	instance.GetPanicWrapper()(fmt.Sprintf("Error encountered - closing server & writing error to file %s",
+		instance.RecoveredErrorFilePath))
 	return nil
 }
 

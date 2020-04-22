@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	nodeComms "gitlab.com/elixxir/comms/node"
@@ -22,11 +23,13 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
@@ -39,16 +42,28 @@ import (
 	"time"
 )
 
+var errwg sync.WaitGroup
+
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	MultiInstanceTest(3, 32, false, t)
+	MultiInstanceTest(3, 32, false, false, t)
 }
 
 func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
-	MultiInstanceTest(3, 32, true, t)
+	MultiInstanceTest(3, 32, true, false, t)
 }
 
-func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
+func Test_MultiInstance_PhaseErr(t *testing.T) {
+	MultiInstanceTest(3, 32, false, true, t)
+}
 
+func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *testing.T) {
+	if errorPhase {
+		defer func() {
+			if r := recover(); r != nil {
+				return
+			}
+		}()
+	}
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	if numNodes < 3 {
@@ -60,7 +75,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 	//get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, useGPU, grp)
+	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, useGPU)
 
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
@@ -130,7 +145,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 		}
 		testStates[current.COMPLETED] = func(from current.Activity) error { return nil }
 		testStates[current.ERROR] = func(from current.Activity) error {
-			return nil
+			return node.Error(instance)
 		}
 
 		sm := state.NewMachine(testStates)
@@ -140,6 +155,34 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
+
+		if errorPhase {
+			gc := services.NewGraphGenerator(4, graphs.GetDefaultPanicHanlder(instance),
+				uint8(runtime.NumCPU()), 1, 0)
+			g := graphs.InitErrorGraph(gc)
+			th := func(network *nodeComms.Comms, batchSize uint32,
+				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
+				getMessage phase.GetMessage, topology *connect.Circuit, nodeId *id.Node, measure phase.Measure) error {
+				return errors.New("Failed intentionally")
+			}
+			overrides := map[int]phase.Phase{}
+			p := phase.New(phase.Definition{
+				Graph:               g,
+				Type:                phase.PrecompGeneration,
+				TransmissionHandler: th,
+				Timeout:             500,
+				DoVerification:      false,
+			})
+			overrides[0] = p
+			instance.OverridePhases(overrides, t)
+			errwg.Add(1)
+			f := func(s string) {
+				errwg.Done()
+			}
+			instance.OverridePanicWrapper(f, t)
+		}
+		instance.RecoveredErrorFilePath = fmt.Sprintf("/tmp/err_%d", i)
+
 		instances = append(instances, instance)
 	}
 
@@ -157,7 +200,6 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	}
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
-
 	//begin every instance
 	wg := sync.WaitGroup{}
 	for _, instance := range instances {
@@ -174,8 +216,8 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	ourTopology := make([]string, 0)
 	for _, nodeInstance := range instances {
 		ourTopology = append(ourTopology, nodeInstance.GetID().String())
-
 	}
+
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
 		ID:        0,
@@ -192,9 +234,8 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 	done := make(chan struct{})
 
-	go iterate(done, instances, t, ecrbatch, roundInfoMsg)
+	go iterate(done, instances, t, ecrbatch, roundInfoMsg, errorPhase)
 	<-done
-
 	//wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 
@@ -202,11 +243,9 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
 		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 	}
-
 	if cr != nil {
 		completedBatch.Slots = cr.Round
 	}
-
 	//---BUILD PROBING TOOLS----------------------------------------------------
 
 	//get round buffers for probing
@@ -227,7 +266,6 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	}
 
 	//---CHECK OUTPUTS----------------------------------------------------------
-
 	found := 0
 
 	for i := 0; i < batchsize; i++ {
@@ -393,8 +431,8 @@ func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 
 //
 func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
-	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo) {
-
+	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo, errorPhase bool) {
+	fmt.Println(1)
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
 		wg.Add(1)
@@ -402,7 +440,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
 			//			t.Logf("success: %+v\nerr: %+v\n stateMachine: %+v", success, err, node.GetStateMachine())
 			if !success {
-				jww.FATAL.Printf("Wait for node to enter state %s failed: %s", node.GetID(), err)
+				jww.FATAL.Printf("Wait for node %s to enter state %s failed: %s", node.GetID(), until.String(), err)
 			} else {
 				wg.Done()
 			}
@@ -419,7 +457,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-
+	fmt.Println(2)
 	// Mocking permissioning server signing message
 	signRoundInfo(roundInfoMsg)
 
@@ -442,6 +480,14 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 		}
 
 	}
+	fmt.Println(3)
+
+	if errorPhase {
+		errwg.Wait()
+		fmt.Println(4)
+		done <- struct{}{}
+		return
+	}
 
 	// need to look in permissioning, manually do steps
 	// Parse through the nodes prepping them for rounds
@@ -450,7 +496,6 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-
 	for _, nodeInstance := range nodes {
 		// Send info to the realtime round queue
 		err := nodeInstance.GetRealtimeRoundQueue().Send(roundInfoMsg)
@@ -490,8 +535,7 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 	return nil
 }
 
-func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
-	grp *cyclic.Group) []*server.Definition {
+func makeMultiInstanceParams(numNodes, portstart int, useGPU bool) []*server.Definition {
 
 	//generate IDs and addresses
 	var nidLst []*id.Node

@@ -113,10 +113,10 @@ func (rq *ResourceQueue) run(server *Instance) {
 		}
 
 		//start the phase's transmission handler
-		handler := rq.activePhase.GetTransmissionHandler
+		handler := rq.activePhase.GetTransmissionHandler()
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
+			err := handler(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
 				runningPhase.GetRoundID(),
 				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
 				curRound.GetTopology(),

@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
@@ -103,12 +104,7 @@ func StartServer(vip *viper.Viper) error {
 
 	var instance *server.Instance
 
-	PanicHandler := func(g, m string, err error) {
-
-		roundErr := errors.Errorf("Error in module %s of graph %s: %+v", g,
-			m, err)
-		instance.ReportRoundFailure(roundErr)
-	}
+	PanicHandler := graphs.GetDefaultPanicHanlder(instance)
 
 	def.GraphGenerator.SetErrorHandler(PanicHandler)
 
@@ -149,7 +145,7 @@ func StartServer(vip *viper.Viper) error {
 		return node.Error(instance)
 	}
 
-	ourChangeList[current.ERROR] = func(from current.Activity) error {
+	ourChangeList[current.CRASH] = func(from current.Activity) error {
 		return node.Crash(from)
 	}
 
