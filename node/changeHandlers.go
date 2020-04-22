@@ -328,6 +328,11 @@ func Error(instance *server.Instance) error {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}
 
+	err = instance.GetResourceQueue().Kill(time.Second)
+	if err != nil {
+		return errors.WithMessage(err, "Resource queue kill timed out")
+	}
+
 	instance.GetPanicWrapper()(fmt.Sprintf("Error encountered - closing server & writing error to file %s",
 		instance.RecoveredErrorFilePath))
 	return nil

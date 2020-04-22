@@ -181,6 +181,8 @@ func (p *phase) GetTimeout() time.Duration {
 /*Utility*/
 // Cmp checks if two phases are the same
 func (p *phase) Cmp(p2 Phase) bool {
+	fmt.Printf("p: %+v\n", p)
+	fmt.Printf("p2 %+v", p2)
 	return p.roundID == p2.GetRoundID() && p.tYpe == p2.GetType()
 }
 

@@ -23,10 +23,12 @@ type ResourceQueue struct {
 	finishChan  chan phase.Phase
 	timer       *time.Timer
 	killChan    chan struct{}
+	running     *uint32
 }
 
 //initQueue begins a queue with default channel buffer sizes
 func initQueue() *ResourceQueue {
+	running := uint32(0)
 	return &ResourceQueue{
 		// these are the phases
 		phaseQueue: make(chan phase.Phase, 5000),
@@ -34,6 +36,7 @@ func initQueue() *ResourceQueue {
 		finishChan: make(chan phase.Phase, 1),
 		// this channel will be used to killChan the queue
 		killChan: make(chan struct{}),
+		running:  &running,
 	}
 }
 
@@ -56,16 +59,28 @@ func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
 	return rq.phaseQueue
 }
 
-func (rq *ResourceQueue) Kill(t *testing.T) {
-	rq.kill()
-}
+func (rq *ResourceQueue) Kill(t time.Duration) error {
+	wasRunning := atomic.SwapUint32(rq.running, 0)
+	if wasRunning == 1 {
+		timer := time.NewTimer(t)
+		select {
+		case rq.killChan <- struct{}{}:
+			return nil
+		case <-timer.C:
+			return errors.New("Timed out")
 
-//kill the queue
-func (rq *ResourceQueue) kill() {
-	rq.killChan <- struct{}{}
+		}
+	}
+	return nil
 }
 
 func (rq *ResourceQueue) run(server *Instance) {
+	atomic.StoreUint32(rq.running, 1)
+	rq.internalRunner(server)
+	atomic.StoreUint32(rq.running, 0)
+}
+
+func (rq *ResourceQueue) internalRunner(server *Instance) {
 	for true {
 		//get the next phase to execute
 		select {

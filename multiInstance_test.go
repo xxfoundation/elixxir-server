@@ -177,6 +177,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			instance.OverridePhases(overrides, t)
 			errwg.Add(1)
 			f := func(s string) {
+				fmt.Println("REPLACED PANIC RUNNING")
 				errwg.Done()
 			}
 			instance.OverridePanicWrapper(f, t)
