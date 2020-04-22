@@ -112,7 +112,6 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns a cmix slot message
 func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
-
 	return &mixmessages.Slot{
 		Index:                     index,
 		EncryptedPayloadAKeys:     ds.KeysPayloadA.Get(index).Bytes(),

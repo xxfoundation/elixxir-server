@@ -7,6 +7,7 @@
 package measure
 
 import (
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
@@ -15,17 +16,20 @@ import (
 // Tests that Get() retrieves the correct ResourceMetric from a ResourceMonitor.
 func TestResourceMonitor_Get(t *testing.T) {
 	expectedResourceMetric := ResourceMetric{
-		Time:          time.Unix(1, 2),
-		MemAllocBytes: 1,
-		NumThreads:    3,
+		SystemStartTime: time.Now(),
+		Time:            time.Now().Add(time.Minute),
+		MemAllocBytes:   uint64(rand.Int63n(100)),
+		MemAvailable:    uint64(rand.Int63n(100)),
+		NumThreads:      rand.Intn(100),
+		CPUPercentage:   rand.Float64() * 100,
 	}
 
-	resourceMonitor := ResourceMonitor{lastMetric: &expectedResourceMetric}
+	resourceMonitor := ResourceMonitor{lastMetric: expectedResourceMetric}
 
-	if !reflect.DeepEqual(expectedResourceMetric, *resourceMonitor.Get()) {
+	if !reflect.DeepEqual(expectedResourceMetric, resourceMonitor.Get()) {
 		t.Errorf("Get() returned an incorrect ResourceMetric"+
 			"\n\texpected: %v\n\treceived: %v",
-			expectedResourceMetric, *resourceMonitor.Get())
+			expectedResourceMetric, resourceMonitor.Get())
 	}
 }
 
@@ -34,15 +38,18 @@ func TestResourceMonitor_Get(t *testing.T) {
 // Tests that Set() sets the correct ResourceMetric to a ResourceMonitor.
 func TestResourceMonitor_Set(t *testing.T) {
 	expectedResourceMetric := ResourceMetric{
-		Time:          time.Unix(1, 2),
-		MemAllocBytes: 1,
-		NumThreads:    3,
+		SystemStartTime: time.Now(),
+		Time:            time.Now().Add(time.Minute),
+		MemAllocBytes:   uint64(rand.Int63n(100)),
+		MemAvailable:    uint64(rand.Int63n(100)),
+		NumThreads:      rand.Intn(100),
+		CPUPercentage:   rand.Float64() * 100,
 	}
 
 	resourceMonitor := ResourceMonitor{}
-	resourceMonitor.Set(&expectedResourceMetric)
+	resourceMonitor.Set(expectedResourceMetric)
 
-	if !reflect.DeepEqual(expectedResourceMetric, *resourceMonitor.lastMetric) {
+	if !reflect.DeepEqual(expectedResourceMetric, resourceMonitor.lastMetric) {
 		t.Errorf("Set() set an incorrect ResourceMetric"+
 			"\n\texpected: %v\n\treceived: %v",
 			expectedResourceMetric, resourceMonitor.lastMetric)
@@ -54,9 +61,12 @@ func TestResourceMonitor_Set(t *testing.T) {
 func TestResourceMonitor_Set_Lock(t *testing.T) {
 	// Make and lock the ResourceMonitor
 	expectedResourceMetric := ResourceMetric{
-		Time:          time.Unix(1, 2),
-		MemAllocBytes: 1,
-		NumThreads:    3,
+		SystemStartTime: time.Now(),
+		Time:            time.Now().Add(time.Minute),
+		MemAllocBytes:   uint64(rand.Int63n(100)),
+		MemAvailable:    uint64(rand.Int63n(100)),
+		NumThreads:      rand.Intn(100),
+		CPUPercentage:   rand.Float64() * 100,
 	}
 
 	resourceMonitor := ResourceMonitor{}
@@ -69,7 +79,7 @@ func TestResourceMonitor_Set_Lock(t *testing.T) {
 	// Run Set() with the expectation that it crashes; if it does not, then
 	// the result becomes true
 	go func() {
-		resourceMonitor.Set(&expectedResourceMetric)
+		resourceMonitor.Set(expectedResourceMetric)
 		result <- true
 	}()
 
@@ -80,5 +90,31 @@ func TestResourceMonitor_Set_Lock(t *testing.T) {
 		t.Error("Set() did not correctly lock the thread when expected")
 	case <-time.After(1 * time.Second):
 		return
+	}
+}
+
+// Test that a copy is created.
+func TestResourceMetric_Copy(t *testing.T) {
+	expectedResourceMetric := ResourceMetric{
+		SystemStartTime: time.Now(),
+		Time:            time.Now().Add(time.Minute),
+		MemAllocBytes:   uint64(rand.Int63n(100)),
+		MemAvailable:    uint64(rand.Int63n(100)),
+		NumThreads:      rand.Intn(100),
+		CPUPercentage:   rand.Float64() * 100,
+	}
+
+	copyResourceMetric := expectedResourceMetric
+
+	if !reflect.DeepEqual(expectedResourceMetric, copyResourceMetric) {
+		t.Errorf("copy() did not copy the correct values"+
+			"\n\texpected: %v\n\treceived: %v",
+			expectedResourceMetric, copyResourceMetric)
+	}
+
+	if &expectedResourceMetric == &copyResourceMetric {
+		t.Errorf("copy() did not make a copy; the pointers are the same"+
+			"\n\texpected: %p\n\treceived: %p",
+			&expectedResourceMetric, &copyResourceMetric)
 	}
 }

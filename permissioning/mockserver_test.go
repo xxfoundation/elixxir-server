@@ -257,7 +257,7 @@ func mockServerDef(i interface{}) *server.Definition {
 		NumThreads:    0,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&resourceMetric)
+	resourceMonitor.Set(resourceMetric)
 
 	def := server.Definition{
 		ID:              nid,

@@ -30,7 +30,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	var err error
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 	topology := connect.NewCircuit(BuildMockNodeIDs(numNodes))
 	// Set instance for first node
 
@@ -46,7 +46,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	}
 
 	monitor := measure.ResourceMonitor{RWMutex: sync.RWMutex{}}
-	monitor.Set(&metric)
+	monitor.Set(metric)
 	//nid := server.GenerateId(t)
 	def := server.Definition{
 		ID:              topology.GetNodeAtIndex(0),

@@ -130,7 +130,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 		NumThreads:    10,
 	}
 
-	rm.Set(&expectedMetric)
+	rm.Set(expectedMetric)
 
 	if !tmpInstance.GetResourceMonitor().Get().Time.Equal(expectedMetric.Time) {
 		t.Errorf("Instance.GetResourceMonitor: Returned incorrect time")
@@ -153,7 +153,7 @@ func mockServerDef(i interface{}) *Definition {
 		NumThreads:    0,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&resourceMetric)
+	resourceMonitor.Set(resourceMetric)
 
 	def := Definition{
 		ID:              nid,
@@ -283,4 +283,13 @@ func TestInstance_ReportCriticalError(t *testing.T) {
 
 	//Test that if we send a different error it changes as expected
 
+}
+
+func TestInstance_GetDisableStreaming(t *testing.T) {
+	instance, def := createInstance(t)
+
+	if def.DisableStreaming != instance.GetDisableStreaming() {
+		t.Logf("GetDisableStreaming() returned unexpected value")
+		t.Fail()
+	}
 }

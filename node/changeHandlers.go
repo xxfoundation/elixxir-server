@@ -39,7 +39,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 	// Connect to the Permissioning Server without authentication
 	permHost, err := network.AddHost(id.PERMISSIONING,
-		// instance.GetPermissioningAddress,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, false)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -137,7 +136,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 		// Periodically re-poll permissioning
 		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(5 * time.Millisecond)
+		ticker := time.NewTicker(50 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
@@ -151,7 +150,6 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	return nil
 }
 
-// fixme: doc string
 func Waiting(from current.Activity) error {
 	// start waiting process
 	return nil
@@ -194,7 +192,8 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout, nil)
+		newRoundTimeout, nil,
+		instance.GetDisableStreaming())
 
 	//Build the round
 	rnd, err := round.New(
@@ -226,7 +225,6 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	return nil
 }
 
-// fixme: doc string
 func Standby(from current.Activity) error {
 	// start standby process
 	return nil
@@ -263,15 +261,12 @@ func Realtime(instance *server.Instance) error {
 	return nil
 }
 
-// fixme: doc string
 func Completed(from current.Activity) error {
 	// start completed
 	return nil
 }
 
-// fixme: doc string
 func Error(instance *server.Instance) error {
-	// start error
 	//If the error state was recovered from a restart, exit.
 	if instance.GetRecoveredError() != nil {
 		return nil
@@ -327,7 +322,6 @@ func Error(instance *server.Instance) error {
 	return nil
 }
 
-// fixme: doc string
 func Crash(from current.Activity) error {
 	// start error
 	return nil

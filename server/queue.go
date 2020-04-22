@@ -90,7 +90,6 @@ func (rq *ResourceQueue) run(server *Instance) {
 			if nc == 1 {
 				runningPhase.Measure(measure.TagFinishFirstSlot)
 			}
-
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 
 			//Fixme: add a method to killChan this directly
@@ -116,11 +115,7 @@ func (rq *ResourceQueue) run(server *Instance) {
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-			err := handler()(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
-				runningPhase.GetRoundID(),
-				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetTopology(),
-				server.GetID(), runningPhase.Measure)
+			err := handler()(runningPhase.GetRoundID(), server, getChunk, runningPhase.GetGraph().GetStream().Output)
 
 			if err != nil {
 				// This error can be used to create a Byzantine Fault
@@ -179,7 +174,16 @@ func (rq *ResourceQueue) run(server *Instance) {
 			server.ReportRoundFailure(roundErr)
 		}
 
-		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase \"%s\"", server.GetID(),
-			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
+		// Aggregate the runtimes of the individual threads
+		adaptDur, outModsDur := runningPhase.GetGraph().GetMetrics()
+		// Add this to the round dispatch duration metric
+		r, _ := server.GetRoundManager().GetRound(
+			rq.activePhase.GetRoundID())
+		r.AddToDispatchDuration(adaptDur + outModsDur)
+
+		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase "+
+			"\"%s\" -- Adapt: %s, outMod: %s", server.GetID(),
+			rq.activePhase.GetRoundID(), rq.activePhase.GetType(),
+			adaptDur, outModsDur)
 	}
 }

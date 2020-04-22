@@ -89,7 +89,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	t.Logf("Building instances for %v nodes", numNodes)
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
 		var instance *server.Instance
@@ -174,14 +174,13 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	ourTopology := make([]string, 0)
 	for _, nodeInstance := range instances {
 		ourTopology = append(ourTopology, nodeInstance.GetID().String())
-
 	}
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
 		ID:        0,
 		UpdateID:  0,
 		State:     uint32(current.PRECOMPUTING),
-		BatchSize: 32,
+		BatchSize: uint32(batchsize),
 		Topology:  ourTopology,
 	}
 
@@ -531,6 +530,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
 				KeepBuffers: true,
 				UseGPU:      useGPU,
 			},
+			TlsCert: []byte(testUtil.RegCert),
 			Gateway: server.GW{
 				ID:      nidLst[i].NewGateway(),
 				TlsCert: nil,
