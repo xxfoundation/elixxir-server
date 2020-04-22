@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	nodeComms "gitlab.com/elixxir/comms/node"
@@ -42,7 +41,7 @@ import (
 	"time"
 )
 
-var errwg sync.WaitGroup
+var errChan = make(chan bool)
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
 	MultiInstanceTest(3, 32, false, false, t)
@@ -104,7 +103,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	t.Logf("Building instances for %v nodes", numNodes)
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
 		var instance *server.Instance
@@ -160,9 +159,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			gc := services.NewGraphGenerator(4, graphs.GetDefaultPanicHanlder(instance),
 				uint8(runtime.NumCPU()), 1, 0)
 			g := graphs.InitErrorGraph(gc)
-			th := func(network *nodeComms.Comms, batchSize uint32,
-				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-				getMessage phase.GetMessage, topology *connect.Circuit, nodeId *id.Node, measure phase.Measure) error {
+			th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 				return errors.New("Failed intentionally")
 			}
 			overrides := map[int]phase.Phase{}
@@ -175,10 +172,9 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			})
 			overrides[0] = p
 			instance.OverridePhases(overrides, t)
-			errwg.Add(1)
 			f := func(s string) {
 				fmt.Println("REPLACED PANIC RUNNING")
-				errwg.Done()
+				errChan <- true
 			}
 			instance.OverridePanicWrapper(f, t)
 		}
@@ -207,7 +203,11 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		wg.Add(1)
 		localInstance := instance
 		go func() {
-			localInstance.Run()
+			time.Sleep(2 * time.Second)
+			err := localInstance.Run()
+			if err != nil {
+				t.Errorf("uh-oh spaghetti-O's: %+v", err)
+			}
 			wg.Done()
 		}()
 	}
@@ -224,7 +224,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		ID:        0,
 		UpdateID:  0,
 		State:     uint32(current.PRECOMPUTING),
-		BatchSize: 32,
+		BatchSize: uint32(batchsize),
 		Topology:  ourTopology,
 	}
 
@@ -484,7 +484,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	fmt.Println(3)
 
 	if errorPhase {
-		errwg.Wait()
+		<-errChan
 		fmt.Println(4)
 		done <- struct{}{}
 		return
@@ -576,6 +576,7 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool) []*server.Def
 				KeepBuffers: true,
 				UseGPU:      useGPU,
 			},
+			TlsCert: []byte(testUtil.RegCert),
 			Gateway: server.GW{
 				ID:      nidLst[i].NewGateway(),
 				TlsCert: nil,

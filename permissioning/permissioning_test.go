@@ -35,7 +35,7 @@ func TestRegisterNode(t *testing.T) {
 
 	// Set up id's and address
 	nodeId = id.NewNodeFromUInt(uint64(0), t)
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 17000+rand.Intn(1000)+cnt)
 	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
 
 	cnt++

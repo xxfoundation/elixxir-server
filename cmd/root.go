@@ -26,7 +26,7 @@ import (
 )
 
 var cfgFile string
-var verbose bool
+var logLevel uint // 0 = info, 1 = debug, >1 = trace
 var serverIdx int
 var validConfig bool
 var keepBuffers bool
@@ -36,6 +36,7 @@ var metricsWhitespace bool
 var logPath = "cmix-server.log"
 var maxProcsOverride int
 var newRoundTimeout int
+var disableStreaming bool
 
 // If true, runs pprof http server
 var profile bool
@@ -65,18 +66,6 @@ communications.`,
 				jww.FATAL.Println(http.ListenAndServe(
 					"0.0.0.0:8087", nil))
 			}()
-		}
-
-		if verbose {
-			err := os.Setenv("GRPC_GO_LOG_SEVERITY_LEVEL", "info")
-			if err != nil {
-				jww.ERROR.Printf("Could not set GRPC_GO_LOG_SEVERITY_LEVEL: %+v", err)
-			}
-
-			err = os.Setenv("GRPC_GO_LOG_VERBOSITY_LEVEL", "2")
-			if err != nil {
-				jww.ERROR.Printf("Could not set GRPC_GO_LOG_VERBOSITY_LEVEL: %+v", err)
-			}
 		}
 
 		err := StartServer(viper.GetViper())
@@ -115,8 +104,8 @@ func init() {
 	// will be global for your application.
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
 		"config file (default is $HOME/.elixxir/server.yaml)")
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", true,
-		"Verbose mode for debugging")
+	rootCmd.Flags().UintVarP(&logLevel, "logLevel", "l", 1,
+		"Level of debugging to display. 0 = info, 1 = debug, >1 = trace")
 	rootCmd.Flags().IntVarP(&serverIdx, "index", "i", 0,
 		"Config index to use for local server")
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
@@ -139,6 +128,8 @@ func init() {
 			"Defaults at the number of logical cores on the device")
 	rootCmd.Flags().IntVarP(&newRoundTimeout, "newRoundTimeout", "t", 120,
 		"timeout for round creation in seconds")
+	rootCmd.Flags().BoolVarP(&disableStreaming, "disableStreaming", "",
+		false, "Disables streaming comms.")
 
 	err := viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 	handleBindingError(err, "nodeID")
@@ -152,9 +143,8 @@ func init() {
 	err = viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
 	handleBindingError(err, "roundBufferTimeout")
 
-	err = viper.BindPFlag("verbose", rootCmd.Flags().Lookup(
-		"verbose"))
-	handleBindingError(err, "verbose")
+	err = viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
+	handleBindingError(err, "logLevel")
 }
 
 func handleBindingError(err error, flag string) {
@@ -211,15 +201,36 @@ func initConfig() {
 
 // initLog initializes logging thresholds and the log path.
 func initLog() {
-	// If verbose flag set then log more info for debugging
-	if viper.GetBool("verbose") {
+	vipLogLevel := viper.GetUint("logLevel")
+
+	// Check the level of logs to display
+	if vipLogLevel > 1 {
+		// Set the GRPC log level
+		err := os.Setenv("GRPC_GO_LOG_SEVERITY_LEVEL", "info")
+		if err != nil {
+			jww.ERROR.Printf("Could not set GRPC_GO_LOG_SEVERITY_LEVEL: %+v", err)
+		}
+
+		err = os.Setenv("GRPC_GO_LOG_VERBOSITY_LEVEL", "99")
+		if err != nil {
+			jww.ERROR.Printf("Could not set GRPC_GO_LOG_VERBOSITY_LEVEL: %+v", err)
+		}
+
+		// Turn on trace logs
+		jww.SetLogThreshold(jww.LevelTrace)
+		jww.SetStdoutThreshold(jww.LevelTrace)
+		mixmessages.TraceMode()
+	} else if vipLogLevel == 1 {
+		// Turn on debugging logs
 		jww.SetLogThreshold(jww.LevelDebug)
 		jww.SetStdoutThreshold(jww.LevelDebug)
 		mixmessages.DebugMode()
 	} else {
+		// Turn on info logs
 		jww.SetLogThreshold(jww.LevelInfo)
 		jww.SetStdoutThreshold(jww.LevelInfo)
 	}
+
 	if viper.Get("node.paths.log") != nil {
 		// Create log file, overwrites if existing
 		logPath = viper.GetString("node.paths.log")
@@ -227,6 +238,7 @@ func initLog() {
 		fmt.Printf("Invalid or missing log path %s, "+
 			"default path used.\n", logPath)
 	}
+
 	fullLogPath, _ := utils.ExpandPath(logPath)
 	logFile, err := os.OpenFile(fullLogPath,
 		os.O_CREATE|os.O_WRONLY|os.O_APPEND,

@@ -23,13 +23,14 @@ Many of these flags override the values set in the config file:
 |---|---|---|---|
 |--index|-i|Index of the server to start in the list of servers in `server.yaml`|-i 0|
 |--batch|-b|Number of messages in a batch (correlated to anonymity set, 1 is the fastest and least anonymous)|-b 64|
-|--verbose|-v|Set this to log more messages for debugging|-v|
+|--logLevel|-l|Sets the log message level to print. (0 = info, 1 = debug, >1 = trace)|-l 2|
 |--config| |Path to configuration file|--config ~/.elixxir/server.yaml|
 |--nodeID|-n|Unique integer identifier for this node. Defaults to be equal to index|-n 125048|
 |--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
 |--version|-V|Print generated version information. To generate, run `$ go generate cmd/version.go`.|--version|
 |--help|-h|Print a help message|--help|
 |--metricsWhitespace|-w|Set to print indented metrics JSON files|-w|
+|--disableStreaming| |Disables streaming comms. By default true.| |
 
 Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go benchmark`.
 
@@ -42,6 +43,7 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 # START YAML ===
 verbose: true
 recoveredErrFile: "/tmp/recovered_error"
+logLevel: 1
 node:
   id: ""
   paths:

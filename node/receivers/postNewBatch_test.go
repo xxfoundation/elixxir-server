@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -236,7 +235,8 @@ func TestReceivePostNewBatch(t *testing.T) {
 	realDecrypt := phase.New(phase.Definition{
 		Graph: realtime.InitDecryptGraph(gg),
 		Type:  phase.RealDecrypt,
-		TransmissionHandler: func(network *node.Comms, batchSize uint32, roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk, getMessage phase.GetMessage, topology *connect.Circuit, nodeId *id.Node, measure phase.Measure) error {
+		TransmissionHandler: func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk,
+			getMessage phase.GetMessage) error {
 			return nil
 		},
 		Timeout:        5 * time.Second,

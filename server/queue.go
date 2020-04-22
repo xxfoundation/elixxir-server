@@ -22,7 +22,7 @@ type ResourceQueue struct {
 	phaseQueue  chan phase.Phase
 	finishChan  chan phase.Phase
 	timer       *time.Timer
-	killChan    chan struct{}
+	killChan    chan chan bool
 	running     *uint32
 }
 
@@ -35,7 +35,7 @@ func initQueue() *ResourceQueue {
 		// there will only active phase, and this channel is used to killChan it
 		finishChan: make(chan phase.Phase, 1),
 		// this channel will be used to killChan the queue
-		killChan: make(chan struct{}),
+		killChan: make(chan chan bool, 1),
 		running:  &running,
 	}
 }
@@ -62,13 +62,19 @@ func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
 func (rq *ResourceQueue) Kill(t time.Duration) error {
 	wasRunning := atomic.SwapUint32(rq.running, 0)
 	if wasRunning == 1 {
+		why := make(chan bool)
+		select {
+		case rq.killChan <- why:
+		default:
+			return errors.New("Shoudl always be able to send")
+		}
+
 		timer := time.NewTimer(t)
 		select {
-		case rq.killChan <- struct{}{}:
+		case <-why:
 			return nil
 		case <-timer.C:
-			return errors.New("Timed out")
-
+			return errors.New("Something timed out where am i")
 		}
 	}
 	return nil
@@ -84,10 +90,11 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 	for true {
 		//get the next phase to execute
 		select {
+		case why := <-rq.killChan:
+			go func() { why <- true }()
+			return
 		case rq.activePhase = <-rq.phaseQueue:
 			rq.activePhase.Measure(measure.TagActive)
-		case <-rq.killChan:
-			return
 		}
 
 		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
@@ -105,7 +112,6 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			if nc == 1 {
 				runningPhase.Measure(measure.TagFinishFirstSlot)
 			}
-
 			chunk, ok := runningPhase.GetGraph().GetOutput()
 
 			//Fixme: add a method to killChan this directly
@@ -128,14 +134,10 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 		}
 
 		//start the phase's transmission handler
-		handler := rq.activePhase.GetTransmissionHandler()
+		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
 			rq.activePhase.Measure(measure.TagTransmitter)
-			err := handler(server.GetNetwork(), runningPhase.GetGraph().GetBatchSize(),
-				runningPhase.GetRoundID(),
-				runningPhase.GetType(), getChunk, runningPhase.GetGraph().GetStream().Output,
-				curRound.GetTopology(),
-				server.GetID(), runningPhase.Measure)
+			err := handler()(runningPhase.GetRoundID(), server, getChunk, runningPhase.GetGraph().GetStream().Output)
 
 			if err != nil {
 				// This error can be used to create a Byzantine Fault
@@ -154,11 +156,10 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 		timeout := false
 
 		select {
-		case rtnPhase = <-rq.finishChan:
-		case <-rq.timer.C:
-			timeout = true
-		case <-rq.killChan:
+		case why := <-rq.killChan:
+			go func() { why <- true }()
 			return
+		case rtnPhase = <-rq.finishChan:
 		}
 
 		//process timeout
@@ -194,7 +195,16 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			server.ReportRoundFailure(roundErr)
 		}
 
-		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase \"%s\"", server.GetID(),
-			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
+		// Aggregate the runtimes of the individual threads
+		adaptDur, outModsDur := runningPhase.GetGraph().GetMetrics()
+		// Add this to the round dispatch duration metric
+		r, _ := server.GetRoundManager().GetRound(
+			rq.activePhase.GetRoundID())
+		r.AddToDispatchDuration(adaptDur + outModsDur)
+
+		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase "+
+			"\"%s\" -- Adapt: %s, outMod: %s", server.GetID(),
+			rq.activePhase.GetRoundID(), rq.activePhase.GetType(),
+			adaptDur, outModsDur)
 	}
 }

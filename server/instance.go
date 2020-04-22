@@ -201,6 +201,7 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, noTls bool,
 	serverCert, gwCert string) error {
 
+	jww.INFO.Printf("Restarting network...")
 	// Shut down the network so we can restart
 	i.network.Shutdown()
 
@@ -500,4 +501,10 @@ func (i *Instance) String() string {
 
 func (i *Instance) GetStreamPool() *gpumaths.StreamPool {
 	return i.streamPool
+}
+
+// GetDisableStreaming returns the DisableStreaming boolean that determines if
+// streaming will be used.
+func (i *Instance) GetDisableStreaming() bool {
+	return i.definition.DisableStreaming
 }

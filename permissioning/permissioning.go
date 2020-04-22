@@ -129,8 +129,6 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 		}()
 	}
 
-	//jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
-
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
@@ -169,6 +167,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
+
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
@@ -211,7 +210,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
 					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.FATAL.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
+						jww.INFO.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
 						time.Sleep(timeDiff)
 					}
 
@@ -255,7 +254,6 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *serve
 	}
 
 	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
-		jww.DEBUG.Printf("Updating node connections")
 		// Update the nodes in the network.Instance with the new ndf
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {

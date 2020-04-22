@@ -296,11 +296,6 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Fail()
 	}
 
-	if res.GetBatchRequest() != nil {
-		t.Logf("Batch request should be nill")
-		t.Fail()
-	}
-
 	//show if its in real time it gets the request
 	instance, poll, _, _ = setupTests(t, current.REALTIME)
 	newRound = &pb.RoundInfo{

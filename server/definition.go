@@ -74,6 +74,9 @@ type Definition struct {
 
 	//how long the server will wait for the gateway to come online
 	GwConnTimeout time.Duration
+
+	// Toggles comm streaming
+	DisableStreaming bool
 }
 
 // Holds all input flags to the system.

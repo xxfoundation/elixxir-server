@@ -4,12 +4,16 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"reflect"
 	"testing"
 	"time"
@@ -69,9 +73,7 @@ func TestPostPrecompResult(t *testing.T) {
 	}
 }
 
-func MockPostPrecompResultImplementation(
-	precompReceiver chan []*mixmessages.Slot,
-	roundReceiver chan uint64) *node.Implementation {
+func MockPostPrecompResultImplementation(instance *server.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		roundReceiver <- roundID
@@ -89,28 +91,70 @@ func getMockPostPrecompSlot(i uint32) *mixmessages.Slot {
 	}
 }
 
+func postPrecompInstance() {
+
+}
+
+var roundReceiver chan uint64
+var precompReceiver chan []*mixmessages.Slot
+
 // Tests happy path of the PostPrecompResult transmission handler
 func TestTransmitPostPrecompResult(t *testing.T) {
+	//fixme: modify test to check multiple nodes
+	// need to set up multiple instances, set topology, and add hosts to topology and to instances
+
 	//Setup the network
-	const numNodes = 5
+	const numNodes = 1
+	var instances []*server.Instance
+	var nodeAddr string
+	var instance *server.Instance
+	for i := 0; i < numNodes; i++ {
+		instance, nodeAddr = mockInstance(t, MockPostPrecompResultImplementation)
+		instances = append(instances, instance)
+	}
+
+	instance = instances[0]
+
 	numReceivedRounds := 0
 	numReceivedPrecomps := 0
-	roundReceiver := make(chan uint64, numNodes)
-	precompReceiver := make(chan []*mixmessages.Slot, numNodes)
-	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{
-			// All five nodes should receive the same message
-			MockPostPrecompResultImplementation(precompReceiver, roundReceiver),
-			MockPostPrecompResultImplementation(precompReceiver, roundReceiver),
-			MockPostPrecompResultImplementation(precompReceiver, roundReceiver),
-			MockPostPrecompResultImplementation(precompReceiver, roundReceiver),
-			MockPostPrecompResultImplementation(precompReceiver, roundReceiver)}, 50)
-	defer Shutdown(comms)
+	roundReceiver = make(chan uint64, numNodes)
+	precompReceiver = make(chan []*mixmessages.Slot, numNodes)
 
-	rndID := id.Round(42)
-	batchSize := uint32(5)
+	rndID := id.Round(1)
+	batchSize := uint32(1)
 
 	slotCount := uint32(0)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.PrecompDecrypt,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.PrecompDecrypt})
+
+	grp := initImplGroup()
+
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.PrecompDecrypt
+	responseMap := make(phase.ResponseMap)
+	responseMap["PrecompDecrypt"] = response
+
+	topology := connect.NewCircuit([]*id.Node{instance.GetID()})
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	nodeHost, _ := connect.NewHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	topology.AddHost(nodeHost)
+	_, err := instance.GetNetwork().AddHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	if err != nil {
+		t.Errorf("Failed to add host to instance: %v", err)
+	}
+
+	rnd, err := round.New(grp, nil, rndID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
+		"0.0.0.0")
+	if err != nil {
+		t.Errorf("Failed to create round: %v", err)
+	}
+
+	instance.GetRoundManager().AddRound(rnd)
 
 	getchunk := func() (services.Chunk, bool) {
 
@@ -127,9 +171,7 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 		return chunk, good
 	}
 
-	err := TransmitPrecompResult(comms[numNodes-1], batchSize,
-		rndID, phase.PrecompReveal, getchunk, getMockPostPrecompSlot,
-		topology, nil, nil)
+	err = TransmitPrecompResult(rndID, instance, getchunk, getMockPostPrecompSlot)
 
 	if err != nil {
 		t.Errorf("TransmitPrecompResult: Unexpected error: %+v", err)
@@ -154,7 +196,7 @@ Loop:
 				expectedPrecompResults[i] = getMockPostPrecompSlot(i)
 			}
 			if !reflect.DeepEqual(receivedPrecomp, expectedPrecompResults) {
-				t.Error("Precomps differed")
+				t.Errorf("Precomps differed: Expected: %v\n\tRecieved: %v", expectedPrecompResults, receivedPrecomp)
 			}
 			numReceivedPrecomps++
 		case <-time.After(5 * time.Second):

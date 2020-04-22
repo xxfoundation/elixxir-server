@@ -3,7 +3,6 @@ package round
 import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -53,9 +52,7 @@ func TestNew(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []phase.Phase
 
-	handler := func(network *node.Comms, batchSize uint32,
-		roundId id.Round, phaseTy phase.Type, getSlot phase.GetChunk,
-		getMessage phase.GetMessage, nodes *connect.Circuit, nid *id.Node, measure phase.Measure) error {
+	handler := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 		return nil
 	}
 
@@ -120,9 +117,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 	roundId := id.Round(58)
 	var phases []phase.Phase
 
-	handler := func(network *node.Comms, batchSize uint32, roundId id.Round,
-		phaseTy phase.Type, getSlot phase.GetChunk, getMessage phase.GetMessage,
-		nodes *connect.Circuit, nid *id.Node, measure phase.Measure) error {
+	handler := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 		return nil
 	}
 
@@ -156,11 +151,11 @@ func TestRound_GetMeasurements(t *testing.T) {
 		NumThreads:    100,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&resourceMetric)
+	resourceMonitor.Set(resourceMetric)
 	numNodes := 1
 	index := 0
 	roundMetrics := round.GetMeasurements(nidStr, numNodes, index,
-		*resourceMonitor.Get())
+		resourceMonitor.Get())
 
 	if roundMetrics.NodeID != nidStr {
 		t.Errorf("Round metrics has incorrect node id expected %v got %v",

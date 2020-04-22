@@ -26,7 +26,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	const numNodes = 5
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 	//Dummy round object
 	newRound := round.NewDummyRound(id.Round(1), 10, t)
 

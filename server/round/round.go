@@ -298,6 +298,10 @@ func (r *Round) GetMeasurements(nid string, numNodes, index int,
 	return rm
 }
 
+func (r *Round) AddToDispatchDuration(delta time.Duration) {
+	r.roundMetrics.DispatchDuration += delta
+}
+
 func (r *Round) GetMeasurementsReadyChan() chan struct{} {
 	return r.metricsReadyChan
 }
