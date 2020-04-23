@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internals"
+	"gitlab.com/elixxir/server/internals/measure"
 	"time"
 )
 

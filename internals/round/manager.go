@@ -11,7 +11,7 @@ package round
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/internals/phase"
 	"sync"
 )
 

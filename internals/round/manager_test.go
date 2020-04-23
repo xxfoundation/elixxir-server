@@ -12,7 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/internals/phase"
 	"gitlab.com/elixxir/server/services"
 	"os"
 	"runtime"

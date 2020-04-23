@@ -7,7 +7,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/internals/round"
 )
 
 // TransmitRoundTripPing sends a round trip ping and starts

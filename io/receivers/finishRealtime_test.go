@@ -11,9 +11,9 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/internals/measure"
+	"gitlab.com/elixxir/server/internals/phase"
+	"gitlab.com/elixxir/server/internals/round"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )

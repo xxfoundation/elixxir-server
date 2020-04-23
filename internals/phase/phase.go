@@ -12,7 +12,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internals/measure"
 	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"time"

@@ -19,7 +19,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internals"
 	"strconv"
 	"strings"
 	"time"

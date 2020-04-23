@@ -12,11 +12,11 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/internals"
+	"gitlab.com/elixxir/server/internals/measure"
+	"gitlab.com/elixxir/server/internals/phase"
+	"gitlab.com/elixxir/server/internals/round"
 	"gitlab.com/elixxir/server/io/transmitters"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
 	insecureRand "math/rand"
 )
 

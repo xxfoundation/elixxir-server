@@ -13,10 +13,10 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/internals"
+	"gitlab.com/elixxir/server/internals/measure"
+	"gitlab.com/elixxir/server/internals/phase"
 	"gitlab.com/elixxir/server/io/transmitters"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
 	"time"
 )
 

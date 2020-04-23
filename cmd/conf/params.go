@@ -18,7 +18,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internals"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"net"

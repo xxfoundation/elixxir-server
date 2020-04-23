@@ -11,9 +11,9 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
+	"gitlab.com/elixxir/server/internals"
+	"gitlab.com/elixxir/server/internals/phase"
 	"gitlab.com/elixxir/server/io/transmitters"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )

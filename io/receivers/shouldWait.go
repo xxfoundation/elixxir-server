@@ -8,7 +8,7 @@ package receivers
 
 import (
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/internals/phase"
 )
 
 func shouldWait(p phase.Type) current.Activity {

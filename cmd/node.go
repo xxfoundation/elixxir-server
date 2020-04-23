@@ -19,10 +19,10 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/internals"
+	"gitlab.com/elixxir/server/internals/node"
+	"gitlab.com/elixxir/server/internals/state"
 	"gitlab.com/elixxir/server/io/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/node/node"
-	"gitlab.com/elixxir/server/server/state/state"
 	"runtime"
 	"time"
 )

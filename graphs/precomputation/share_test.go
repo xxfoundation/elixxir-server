@@ -12,7 +12,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/internals/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"

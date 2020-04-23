@@ -17,7 +17,7 @@ import (
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internals"
 )
 
 // Handles a client request for a nonce during the client registration process

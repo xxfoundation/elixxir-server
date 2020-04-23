@@ -3,8 +3,8 @@ package server
 import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internals/measure"
+	"gitlab.com/elixxir/server/internals/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"os"
 	"reflect"

@@ -11,7 +11,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internals/measure"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )

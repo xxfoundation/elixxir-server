@@ -8,8 +8,8 @@ package server
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/internals/measure"
+	"gitlab.com/elixxir/server/internals/phase"
 	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"testing"

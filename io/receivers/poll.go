@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/ndf"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internals"
 	"strings"
 )
 

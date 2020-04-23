@@ -17,7 +17,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internals/measure"
 	"strings"
 )
 
