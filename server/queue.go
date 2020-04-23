@@ -22,18 +22,21 @@ type ResourceQueue struct {
 	phaseQueue  chan phase.Phase
 	finishChan  chan phase.Phase
 	timer       *time.Timer
-	killChan    chan struct{}
+	killChan    chan chan bool
+	running     *uint32
 }
 
 //initQueue begins a queue with default channel buffer sizes
 func initQueue() *ResourceQueue {
+	running := uint32(0)
 	return &ResourceQueue{
 		// these are the phases
 		phaseQueue: make(chan phase.Phase, 5000),
 		// there will only active phase, and this channel is used to killChan it
 		finishChan: make(chan phase.Phase, 1),
 		// this channel will be used to killChan the queue
-		killChan: make(chan struct{}),
+		killChan: make(chan chan bool, 1),
+		running:  &running,
 	}
 }
 
@@ -56,23 +59,42 @@ func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
 	return rq.phaseQueue
 }
 
-func (rq *ResourceQueue) Kill(t *testing.T) {
-	rq.kill()
-}
+func (rq *ResourceQueue) Kill(t time.Duration) error {
+	wasRunning := atomic.SwapUint32(rq.running, 0)
+	if wasRunning == 1 {
+		why := make(chan bool)
+		select {
+		case rq.killChan <- why:
+		default:
+			return errors.New("Shoudl always be able to send")
+		}
 
-//kill the queue
-func (rq *ResourceQueue) kill() {
-	rq.killChan <- struct{}{}
+		timer := time.NewTimer(t)
+		select {
+		case <-why:
+			return nil
+		case <-timer.C:
+			return errors.New("Something timed out where am i")
+		}
+	}
+	return nil
 }
 
 func (rq *ResourceQueue) run(server *Instance) {
+	atomic.StoreUint32(rq.running, 1)
+	rq.internalRunner(server)
+	atomic.StoreUint32(rq.running, 0)
+}
+
+func (rq *ResourceQueue) internalRunner(server *Instance) {
 	for true {
 		//get the next phase to execute
 		select {
+		case why := <-rq.killChan:
+			go func() { why <- true }()
+			return
 		case rq.activePhase = <-rq.phaseQueue:
 			rq.activePhase.Measure(measure.TagActive)
-		case <-rq.killChan:
-			return
 		}
 
 		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
@@ -134,11 +156,10 @@ func (rq *ResourceQueue) run(server *Instance) {
 		timeout := false
 
 		select {
-		case rtnPhase = <-rq.finishChan:
-		case <-rq.timer.C:
-			timeout = true
-		case <-rq.killChan:
+		case why := <-rq.killChan:
+			go func() { why <- true }()
 			return
+		case rtnPhase = <-rq.finishChan:
 		}
 
 		//process timeout

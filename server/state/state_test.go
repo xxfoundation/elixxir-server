@@ -101,11 +101,10 @@ func TestNewMachine_Error(t *testing.T) {
 		t.Errorf("Failed to start state machine: %+v", err)
 	}
 
-	_, _ = m.Update(current.WAITING)
+	_, err = m.Update(current.WAITING)
 
-	if *m.Activity != current.ERROR {
-		t.Errorf("NewMachine() did not enter %s state, entered %s",
-			current.ERROR, *m.Activity)
+	if err == nil {
+		t.Error("Should have received an error")
 	}
 
 }
@@ -271,34 +270,6 @@ func TestUpdate_TransitionError(t *testing.T) {
 	if err == nil {
 		t.Errorf("Update should have returned an error, did not")
 	} else if !strings.Contains(err.Error(), "mock error") {
-		t.Errorf("Update returned wrong error, returned: %s", err.Error())
-	}
-
-}
-
-//test state transition when the logic loop returns an error
-func TestUpdate_TransitionDoubleError(t *testing.T) {
-	dummyStatesErr := dummyStates
-
-	dummyStatesErr[current.STANDBY] =
-		func(from current.Activity) error { return errors.New("mock error STANDBY") }
-	dummyStatesErr[current.ERROR] =
-		func(from current.Activity) error { return errors.New("mock error ERROR") }
-
-	m := NewMachine(dummyStatesErr)
-
-	*m.Activity = current.PRECOMPUTING
-
-	//try to update the state
-	success, err := m.Update(current.STANDBY)
-	if success {
-		t.Errorf("Update succeded when it should have failed")
-	}
-
-	if err == nil {
-		t.Errorf("Update should have returned an error, did not")
-	} else if !strings.Contains(err.Error(), "mock error STANDBY") ||
-		!strings.Contains(err.Error(), "mock error ERROR") {
 		t.Errorf("Update returned wrong error, returned: %s", err.Error())
 	}
 
