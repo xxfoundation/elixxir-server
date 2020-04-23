@@ -16,9 +16,9 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/internals"
-	"gitlab.com/elixxir/server/internals/state"
-	"gitlab.com/elixxir/server/io/receivers"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
@@ -84,7 +84,7 @@ func TestRegisterNode(t *testing.T) {
 
 	// Add handler for instance
 	impl := func(i *server.Instance) *node.Implementation {
-		return receivers.NewImplementation(i)
+		return io.NewImplementation(i)
 	}
 
 	// Generate instance
@@ -603,7 +603,7 @@ func TestRegistration(t *testing.T) {
 
 	// Add handler for instance
 	impl := func(i *server.Instance) *node.Implementation {
-		return receivers.NewImplementation(i)
+		return io.NewImplementation(i)
 	}
 
 	// Generate instance

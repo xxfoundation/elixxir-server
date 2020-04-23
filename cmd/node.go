@@ -19,10 +19,10 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/internals"
-	"gitlab.com/elixxir/server/internals/node"
-	"gitlab.com/elixxir/server/internals/state"
-	"gitlab.com/elixxir/server/io/receivers"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/node"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"runtime"
 	"time"
 )
@@ -152,7 +152,7 @@ func StartServer(vip *viper.Viper) error {
 	ourMachine := state.NewMachine(ourChangeList)
 
 	// Create instance
-	instance, err = server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
+	instance, err = server.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}

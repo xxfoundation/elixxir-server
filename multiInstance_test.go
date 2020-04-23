@@ -22,13 +22,12 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/internals"
-	"gitlab.com/elixxir/server/internals/measure"
-	"gitlab.com/elixxir/server/internals/node"
-	"gitlab.com/elixxir/server/internals/round"
-	"gitlab.com/elixxir/server/internals/state"
-	"gitlab.com/elixxir/server/io/receivers"
-	"gitlab.com/elixxir/server/io/transmitters"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/node"
+	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
@@ -96,7 +95,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 		// Add handler for instance
 		impl := func(i *server.Instance) *nodeComms.Implementation {
-			return receivers.NewImplementation(i)
+			return io.NewImplementation(i)
 		}
 
 		// Construct the state machine
@@ -463,7 +462,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 		}
 	}
 
-	err := receivers.HandleRealtimeBatch(nodes[0], ecrBatch, io.PostPhase)
+	err := io.HandleRealtimeBatch(nodes[0], ecrBatch, io.PostPhase)
 	if err != nil {
 		t.Errorf("Unable to handle realtime batch: %+v", err)
 	}
