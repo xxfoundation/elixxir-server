@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -20,7 +21,8 @@ import (
 
 // RevealStream holds data containing private key from encrypt and inputs used by strip
 type RevealStream struct {
-	Grp *cyclic.Group
+	Grp        *cyclic.Group
+	StreamPool *gpumaths.StreamPool
 
 	//Link to round object
 	Z *cyclic.Int
@@ -39,14 +41,21 @@ func (s *RevealStream) GetName() string {
 func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
-	s.LinkStream(grp, batchSize, roundBuffer,
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
+
+	s.LinkStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 }
 
 // LinkStream is called by Link other stream objects from round
-func (s *RevealStream) LinkStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, CypherPayloadA, CypherPayloadB *cyclic.IntBuffer) {
+func (s *RevealStream) LinkStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, streamPool *gpumaths.StreamPool, CypherPayloadA, CypherPayloadB *cyclic.IntBuffer) {
 	s.Grp = grp
+	s.StreamPool = streamPool
 
 	s.Z = roundBuffer.Z
 
@@ -124,6 +133,34 @@ var RevealRootCoprime = services.Module{
 	Name:       "RevealRootCoprime",
 }
 
+var RevealRootCoprimeChunk = services.Module{
+	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		rssi, ok := streamInput.(revealSubstreamInterface)
+		rc, ok2 := cryptop.(gpumaths.RevealChunkPrototype)
+		if !ok || !ok2 {
+			return services.InvalidTypeAssert
+		}
+		rs := rssi.getSubStream()
+		gpuStreams := rs.StreamPool
+		cpa := rs.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		err := rc(gpuStreams, rs.Grp, rs.Z, cpa)
+		if err != nil {
+			return err
+		}
+
+		cpb := rs.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		err = rc(gpuStreams, rs.Grp, rs.Z, cpb)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+	Cryptop:    gpumaths.RevealChunk,
+	Name:       "RevealRootCoprimeGPU",
+	NumThreads: 2,
+}
+
 // InitRevealGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 	graph := gc.NewGraph("PrecompReveal", &RevealStream{})
@@ -134,4 +171,15 @@ func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 	graph.Last(revealRootCoprime)
 
 	return graph
+}
+
+func InitRevealGPUGraph(gc services.GraphGenerator) *services.Graph {
+	g := gc.NewGraph("PrecompRevealGPU", &RevealStream{})
+
+	RevealRootCoprimeChunk := RevealRootCoprimeChunk.DeepCopy()
+
+	g.First(RevealRootCoprimeChunk)
+	g.Last(RevealRootCoprimeChunk)
+
+	return g
 }

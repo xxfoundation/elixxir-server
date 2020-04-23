@@ -10,6 +10,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -47,14 +48,20 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 	source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
-	ss.LinkPrecompStripStream(grp, batchSize, roundBuffer,
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
+
+	ss.LinkPrecompStripStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 
 }
 
 func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
-	batchSize uint32, roundBuf *round.Buffer,
+	batchSize uint32, roundBuf *round.Buffer, pool *gpumaths.StreamPool,
 	cypherPayloadA, keysPayloadB *cyclic.IntBuffer) {
 
 	ss.Grp = grp
@@ -70,7 +77,7 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	ss.CypherPayloadA = cypherPayloadA
 	ss.CypherPayloadB = keysPayloadB
 
-	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, ss.CypherPayloadA,
+	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, pool, ss.CypherPayloadA,
 		ss.CypherPayloadB)
 }
 

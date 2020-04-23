@@ -199,11 +199,15 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Precomputation Reveal phase and response
 	precompRevealDefinition := phase.Definition{
-		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
+	}
+	if pool != nil {
+		precompRevealDefinition.Graph = precomputation.InitRevealGPUGraph(gc)
+	} else {
+		precompRevealDefinition.Graph = precomputation.InitRevealGraph(gc)
 	}
 
 	// Every node except the first node handles precomp permute in the normal
