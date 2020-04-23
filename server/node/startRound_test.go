@@ -12,7 +12,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	ndf2 "gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node/receivers"
+	"gitlab.com/elixxir/server/io/receivers"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/measure"
 	"gitlab.com/elixxir/server/server/round"

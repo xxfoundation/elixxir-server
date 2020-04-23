@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package phase
 
+// phase.go contains the interface for a phase and implementations of said interface
+
 import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"

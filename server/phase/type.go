@@ -6,6 +6,8 @@
 
 package phase
 
+// type.go contains the type a phase can be in
+
 //The Name of a phase
 type Type uint32
 

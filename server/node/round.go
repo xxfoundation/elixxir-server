@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package node
 
 import (
@@ -6,13 +11,16 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
-	"gitlab.com/elixxir/server/node/transmitters"
+	"gitlab.com/elixxir/server/io/transmitters"
 	"gitlab.com/elixxir/server/server"
 	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )
 
+// round.go creates the components for a phase
+
+// NewRoundComponents sets up the transitions of different phases in the round
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	nodeID *id.Node, instance *server.Instance, batchSize uint32,
 	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,

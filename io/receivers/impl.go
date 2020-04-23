@@ -13,7 +13,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/server/node/transmitters"
+	"gitlab.com/elixxir/server/io/transmitters"
 	"gitlab.com/elixxir/server/server"
 	"time"
 )

@@ -1,4 +1,11 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package phase
+
+// transmission contains the interface for transmission functions
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"

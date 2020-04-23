@@ -12,7 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internal"
 )
 
 // ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
