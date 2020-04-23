@@ -173,7 +173,6 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			overrides[0] = p
 			instance.OverridePhases(overrides, t)
 			f := func(s string) {
-				fmt.Println("REPLACED PANIC RUNNING")
 				errChan <- true
 			}
 			instance.OverridePanicWrapper(f, t)
@@ -433,7 +432,6 @@ func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 //
 func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo, errorPhase bool) {
-	fmt.Println(1)
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
 		wg.Add(1)
@@ -458,7 +456,6 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-	fmt.Println(2)
 	// Mocking permissioning server signing message
 	signRoundInfo(roundInfoMsg)
 
@@ -481,11 +478,9 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 		}
 
 	}
-	fmt.Println(3)
 
 	if errorPhase {
 		<-errChan
-		fmt.Println(4)
 		done <- struct{}{}
 		return
 	}
