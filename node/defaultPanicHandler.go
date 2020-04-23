@@ -1,4 +1,4 @@
-package graphs
+package node
 
 import (
 	"github.com/pkg/errors"

@@ -156,7 +156,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		}
 
 		if errorPhase {
-			gc := services.NewGraphGenerator(4, graphs.GetDefaultPanicHanlder(instance),
+			gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
 				uint8(runtime.NumCPU()), 1, 0)
 			g := graphs.InitErrorGraph(gc)
 			th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {

@@ -19,7 +19,6 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
@@ -104,7 +103,7 @@ func StartServer(vip *viper.Viper) error {
 
 	var instance *server.Instance
 
-	PanicHandler := graphs.GetDefaultPanicHanlder(instance)
+	PanicHandler := node.GetDefaultPanicHanlder(instance)
 
 	def.GraphGenerator.SetErrorHandler(PanicHandler)
 
