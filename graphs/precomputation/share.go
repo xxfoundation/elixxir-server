@@ -11,7 +11,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 )
 

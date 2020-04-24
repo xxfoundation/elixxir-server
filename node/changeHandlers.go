@@ -15,12 +15,12 @@ import (
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
-	"gitlab.com/elixxir/server/node/receivers"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/server/state"
 	"strings"
 	"time"
 )
@@ -30,7 +30,7 @@ func Dummy(from current.Activity) error {
 }
 
 // NotStarted is the beginning state of state machine. Enters waiting upon successful completion
-func NotStarted(instance *server.Instance, noTls bool) error {
+func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
@@ -95,7 +95,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	}
 
 	// Restart the network with these signed certs
-	err = instance.RestartNetwork(receivers.NewImplementation, noTls, serverCert, gwCert)
+	err = instance.RestartNetwork(io.NewImplementation, noTls, serverCert, gwCert)
 	if err != nil {
 		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
 	}
@@ -143,7 +143,7 @@ func Waiting(from current.Activity) error {
 }
 
 // Precomputing does various business logic to prep for the start of a new round
-func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
+func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) error {
 
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
@@ -219,7 +219,7 @@ func Standby(from current.Activity) error {
 }
 
 // Realtime checks if we are in the correct phase
-func Realtime(instance *server.Instance) error {
+func Realtime(instance *internal.Instance) error {
 	// Get new realtime round info from queue
 	roundInfo, err := instance.GetRealtimeRoundQueue().Receive()
 	if err != nil {

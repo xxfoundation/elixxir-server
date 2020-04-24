@@ -16,9 +16,9 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
@@ -46,8 +46,8 @@ func TestRegisterNode(t *testing.T) {
 	emptyNdf := builEmptydMockNdf()
 
 	// Initialize definition
-	def := &server.Definition{
-		Flags:         server.Flags{},
+	def := &internal.Definition{
+		Flags:         internal.Flags{},
 		ID:            nodeId,
 		PublicKey:     nil,
 		PrivateKey:    nil,
@@ -56,14 +56,14 @@ func TestRegisterNode(t *testing.T) {
 		Address:       nodeAddr,
 		LogPath:       "",
 		MetricLogPath: "",
-		Gateway: server.GW{
+		Gateway: internal.GW{
 			ID:      nodeId.NewGateway(),
 			Address: gAddr,
 			TlsCert: cert,
 		},
 
 		UserRegistry: nil,
-		Permissioning: server.Perm{
+		Permissioning: internal.Perm{
 			TlsCert:          []byte(testUtil.RegCert),
 			Address:          pAddr,
 			RegistrationCode: "",
@@ -83,12 +83,12 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Add handler for instance
-	impl := func(i *server.Instance) *node.Implementation {
-		return receivers.NewImplementation(i)
+	impl := func(i *internal.Instance) *node.Implementation {
+		return io.NewImplementation(i)
 	}
 
 	// Generate instance
-	instance, err := server.CreateServerInstance(def, impl, sm, true)
+	instance, err := internal.CreateServerInstance(def, impl, sm, true)
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -567,8 +567,8 @@ func TestRegistration(t *testing.T) {
 	emptyNdf := builEmptydMockNdf()
 
 	// Initialize definition
-	def := &server.Definition{
-		Flags:         server.Flags{},
+	def := &internal.Definition{
+		Flags:         internal.Flags{},
 		ID:            nodeId,
 		PublicKey:     nil,
 		PrivateKey:    nil,
@@ -577,13 +577,13 @@ func TestRegistration(t *testing.T) {
 		Address:       nodeAddr,
 		LogPath:       "",
 		MetricLogPath: "",
-		Gateway: server.GW{
+		Gateway: internal.GW{
 			ID:      nodeId.NewGateway(),
 			Address: gAddr,
 			TlsCert: cert,
 		},
 		UserRegistry: nil,
-		Permissioning: server.Perm{
+		Permissioning: internal.Perm{
 			TlsCert:          []byte(testUtil.RegCert),
 			Address:          pAddr,
 			RegistrationCode: "",
@@ -602,12 +602,12 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Add handler for instance
-	impl := func(i *server.Instance) *node.Implementation {
-		return receivers.NewImplementation(i)
+	impl := func(i *internal.Instance) *node.Implementation {
+		return io.NewImplementation(i)
 	}
 
 	// Generate instance
-	instance, err := server.CreateServerInstance(def, impl, sm, true)
+	instance, err := internal.CreateServerInstance(def, impl, sm, true)
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}

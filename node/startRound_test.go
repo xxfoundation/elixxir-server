@@ -5,18 +5,18 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/server/server/phase"
+	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/io"
 
 	//"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	ndf2 "gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )
@@ -42,7 +42,7 @@ func assertPanic(t *testing.T, f func()) {
 	f()
 }
 
-func setupStartNode(t *testing.T) *server.Instance {
+func setupStartNode(t *testing.T) *internal.Instance {
 	//Get a new ndf
 	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
 	if err != nil {
@@ -51,7 +51,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	}
 
 	// We need to create a server.Definition so we can create a server instance.
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              id.NewNodeFromUInt(0, t),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
@@ -62,7 +62,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, err := server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
+	instance, err := internal.CreateServerInstance(&def, io.NewImplementation, m, false)
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()
@@ -86,7 +86,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	return instance
 }
 
-func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *round.Round {
+func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *round.Round {
 
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +

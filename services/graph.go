@@ -11,7 +11,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internal/measure"
 	"math"
 	"sync"
 	"sync/atomic"

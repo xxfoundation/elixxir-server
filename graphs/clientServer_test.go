@@ -16,9 +16,9 @@ import (
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"golang.org/x/crypto/blake2b"
@@ -61,8 +61,8 @@ func TestClientServer(t *testing.T) {
 		large.NewInt(2))
 
 	//Generate everything needed to make a user
-	nid := server.GenerateId(t)
-	def := server.Definition{
+	nid := internal.GenerateId(t)
+	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
@@ -98,7 +98,7 @@ func TestClientServer(t *testing.T) {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, sm, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
@@ -175,7 +175,7 @@ func TestClientServer(t *testing.T) {
 
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
-func NewImplementation(instance *server.Instance) *node.Implementation {
+func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 
