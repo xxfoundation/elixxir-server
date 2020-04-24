@@ -311,24 +311,14 @@ func TestStrip_Graph(t *testing.T) {
 			cryptops.Mul2(s.Grp, s.CypherPayloadB.Get(i), PayloadBPrecomputationExpected.Get(i))
 
 			// Verify payloads match the expected values
-			if CypherPayloadAExpected.Get(i).Cmp(s.CypherPayloadA.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompStrip: PayloadA Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherPayloadAExpected.Get(i).Text(16), s.CypherPayloadA.Get(i).Text(16)))
-			}
-
-			if CypherPayloadBExpected.Get(i).Cmp(s.CypherPayloadB.Get(i)) != 0 {
-				t.Error(fmt.Sprintf("PrecompStrip: PayloadB Keys Cypher not equal on slot %v expected %v received %v",
-					i, CypherPayloadBExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
-			}
-
 			if PayloadAPrecomputationExpected.Get(i).Cmp(s.PayloadAPrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: PayloadA Keys Cypher not equal on slot %v expected %v received %v",
-					i, PayloadAPrecomputationExpected.Get(i).Text(16), s.CypherPayloadA.Get(i).Text(16)))
+					i, PayloadAPrecomputationExpected.Get(i).Text(16), s.PayloadAPrecomputation.Get(i).Text(16)))
 			}
 
 			if PayloadBPrecomputationExpected.Get(i).Cmp(s.PayloadBPrecomputation.Get(i)) != 0 {
 				t.Error(fmt.Sprintf("PrecompStrip: PayloadB Keys Cypher not equal on slot %v expected %v received %v",
-					i, PayloadBPrecomputationExpected.Get(i).Text(16), s.CypherPayloadB.Get(i).Text(16)))
+					i, PayloadBPrecomputationExpected.Get(i).Text(16), s.PayloadBPrecomputation.Get(i).Text(16)))
 			}
 		}
 	}

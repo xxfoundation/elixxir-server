@@ -24,6 +24,7 @@ import (
 // inputs used by strip
 type StripStream struct {
 	Grp *cyclic.Group
+	StreamPool *gpumaths.StreamPool
 
 	// Link to round object
 	PayloadAPrecomputation          *cyclic.IntBuffer
@@ -65,6 +66,7 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	cypherPayloadA, keysPayloadB *cyclic.IntBuffer) {
 
 	ss.Grp = grp
+	ss.StreamPool = pool
 
 	ss.PayloadAPrecomputation = roundBuf.PayloadAPrecomputation.GetSubBuffer(
 		0, batchSize)
@@ -187,6 +189,40 @@ var StripMul2 = services.Module{
 	Name:       "StripMul2",
 }
 
+var StripChunk = services.Module{
+	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		sssi, ok := streamInput.(stripSubstreamInterface)
+		sc, ok2 := cryptop.(gpumaths.StripChunkPrototype)
+		if !ok || !ok2 {
+			return services.InvalidTypeAssert
+		}
+		ss := sssi.GetStripSubStream()
+		gpuStreams := ss.StreamPool
+		cpa := ss.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		ppa := ss.EncryptedPayloadAPrecomputation[chunk.Begin():chunk.End()]
+		ppaResults := ss.PayloadAPrecomputation.GetSubBuffer(chunk.Begin(), chunk.End())
+		err := sc(gpuStreams, ss.Grp,  ppaResults, ss.Z, ppa, cpa)
+		if err != nil {
+			return err
+		}
+
+		cpb := ss.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		ppb := ss.EncryptedPayloadBPrecomputation[chunk.Begin():chunk.End()]
+		ppbResults := ss.PayloadBPrecomputation.GetSubBuffer(chunk.Begin(), chunk.End())
+		err = sc(gpuStreams, ss.Grp, ppbResults, ss.Z, ppb, cpb)
+		if err != nil {
+			return err
+		}
+
+
+		return nil
+	},
+	Cryptop:    gpumaths.StripChunk,
+	Name:       "PrecompStripGPU",
+	NumThreads: 2,
+}
+
+
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
@@ -199,6 +235,22 @@ func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	graph.Connect(reveal, stripInverse)
 	graph.Connect(stripInverse, stripMul2)
 	graph.Last(stripMul2)
+
+	return graph
+}
+
+// InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
+func InitStripGPUGraph(gc services.GraphGenerator) *services.Graph {
+	graph := gc.NewGraph("PrecompStripGPU", &StripStream{})
+
+	// GPU library does all operations for Strip in one kernel,
+	// to avoid uploading and downloading excessively
+	// or having to build an abstraction over bindings
+	// between dispatcher graphs and CUDA graphs
+	strip := StripChunk.DeepCopy()
+
+	graph.First(strip)
+	graph.Last(strip)
 
 	return graph
 }
