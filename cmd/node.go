@@ -20,9 +20,9 @@ import (
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/elixxir/server/internal/node"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/node"
 	"runtime"
 	"time"
 )
