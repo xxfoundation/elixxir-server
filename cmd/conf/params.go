@@ -75,6 +75,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Permissioning.Address = vip.GetString("permissioning.address")
 	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
 
+	params.ServerCertPath = vip.GetString("node.paths.cert")
+	params.GatewayCertPath = vip.GetString("gateways.paths.cert")
+
 	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
 	if params.GraphGen.defaultNumTh == 0 {
 		params.GraphGen.defaultNumTh = uint8(runtime.NumCPU())
