@@ -73,7 +73,7 @@ func TestPostPrecompResult(t *testing.T) {
 	}
 }
 
-func MockPostPrecompResultImplementation(instance *server.Instance) *node.Implementation {
+func MockPostPrecompResultImplementation(instance *internal.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		roundReceiver <- roundID
@@ -105,9 +105,9 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 
 	//Setup the network
 	const numNodes = 1
-	var instances []*server.Instance
+	var instances []*internal.Instance
 	var nodeAddr string
-	var instance *server.Instance
+	var instance *internal.Instance
 	for i := 0; i < numNodes; i++ {
 		instance, nodeAddr = mockInstance(t, MockPostPrecompResultImplementation)
 		instances = append(instances, instance)

@@ -1,4 +1,4 @@
-package server
+package internal
 
 import (
 	"gitlab.com/elixxir/comms/node"

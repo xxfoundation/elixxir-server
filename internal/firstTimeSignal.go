@@ -3,9 +3,10 @@
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
-package server
+package internal
 
-// todo file description
+// firstTimeSignal.go contains the logic for a channel
+// that can only be sent to once
 
 import (
 	"errors"

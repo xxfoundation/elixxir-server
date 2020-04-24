@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package io
 
+// receivePoll contains the handler for the gateway <-> server poll comm
+
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -14,7 +16,7 @@ import (
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *server.Instance) (*mixmessages.ServerPollResponse, error) {
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance) (*mixmessages.ServerPollResponse, error) {
 	res := mixmessages.ServerPollResponse{}
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {

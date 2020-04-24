@@ -23,19 +23,19 @@ import (
 	"testing"
 )
 
-func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*server.Instance, *connect.Circuit, *cyclic.Group) {
+func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5))
-	def := server.Definition{
+	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Gateway: server.GW{
+		Gateway: internal.GW{
 			ID: id.NewTmpGateway(),
 		},
-		MetricsHandler: func(i *server.Instance, roundID id.Round) error {
+		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
 		},
 	}
@@ -43,7 +43,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*serve
 
 	m := state.NewTestMachine(dummyStates, s, t)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
 	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 		3, instance.GetRngStreamGen(), nil, "0.0.0.0")

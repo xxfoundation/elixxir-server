@@ -5,6 +5,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 package round
 
+// queue.go contains the queue type and its method. A round.Queue is a
+// channeled buffer that sends round info across threads
+
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"

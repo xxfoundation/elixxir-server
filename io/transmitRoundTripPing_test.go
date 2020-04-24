@@ -60,11 +60,11 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	nid := server.GenerateId(t)
+	nid := internal.GenerateId(t)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
@@ -76,8 +76,8 @@ func TestTransmitRoundTripPing(t *testing.T) {
 	nodeIDs := make([]*id.Node, 0)
 	nodeIDs = append(nodeIDs, nid)
 
-	m := state.NewTestMachine(DummyStates, current.PRECOMPUTING, t)
-	mockServerInstance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	mockServerInstance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
 	mockServerInstance.GetNetwork()
 
 	roundID := id.Round(0)

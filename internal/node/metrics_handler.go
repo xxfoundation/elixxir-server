@@ -34,7 +34,7 @@ const (
 
 // GatherMetrics retrieves the roundMetrics for each node, converts it to JSON,
 // and writes them to a log file.
-func GatherMetrics(instance *server.Instance, roundID id.Round, whitespace bool) error {
+func GatherMetrics(instance *internal.Instance, roundID id.Round, whitespace bool) error {
 	// Get metrics for all nodes
 	rm := instance.GetRoundManager()
 	r, err := rm.GetRound(roundID)

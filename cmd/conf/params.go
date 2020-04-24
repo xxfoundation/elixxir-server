@@ -139,9 +139,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 }
 
 // Create a new Definition object from the Params object
-func (p *Params) ConvertToDefinition() *server.Definition {
+func (p *Params) ConvertToDefinition() *internal.Definition {
 
-	def := &server.Definition{}
+	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.SkipReg = p.SkipReg
@@ -169,7 +169,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	}
 
 	ids := p.Node.Ids
-	var nodes []server.Node
+	var nodes []internal.Node
 	var nodeIDs []*id.Node
 
 	var nodeIDDecodeErrorHappened bool
@@ -183,7 +183,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 			jww.ERROR.Print(err)
 			nodeIDDecodeErrorHappened = true
 		}
-		n := server.Node{
+		n := internal.Node{
 			ID:      id.NewNodeFromBytes(nodeID),
 			TlsCert: tlsCert,
 			Address: p.Node.Addresses[i],
@@ -310,7 +310,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 
 // createNdf is a helper function which builds a network ndf based off of the
 //  server.Definition
-func createNdf(def *server.Definition, params *Params) *ndf.NetworkDefinition {
+func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition {
 	// Build our node
 	ourNode := ndf.Node{
 		ID:             def.ID.Bytes(),

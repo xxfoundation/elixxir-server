@@ -155,7 +155,7 @@ func TestTransmitPhase(t *testing.T) {
 	}
 }
 
-func mockPostPhaseImplementation(instance *server.Instance) *node.Implementation {
+func mockPostPhaseImplementation(instance *internal.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
 		receivedBatch = batch
@@ -166,7 +166,7 @@ func mockPostPhaseImplementation(instance *server.Instance) *node.Implementation
 
 var cnt = 0
 
-func mockInstance(t interface{}, impl func(instance *server.Instance) *node.Implementation) (*server.Instance, string) {
+func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Implementation) (*internal.Instance, string) {
 	switch v := t.(type) {
 	case *testing.T:
 	case *testing.M:
@@ -178,7 +178,7 @@ func mockInstance(t interface{}, impl func(instance *server.Instance) *node.Impl
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
-	nid := server.GenerateId(t)
+	nid := internal.GenerateId(t)
 
 	var err error
 
@@ -199,7 +199,7 @@ func mockInstance(t interface{}, impl func(instance *server.Instance) *node.Impl
 
 	cnt++
 
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
@@ -217,9 +217,9 @@ func mockInstance(t interface{}, impl func(instance *server.Instance) *node.Impl
 	nodeIDs = append(nodeIDs, nid)
 	def.Gateway.ID = id.NewTmpGateway()
 
-	mach := state.NewTestMachine(DummyStates, current.PRECOMPUTING, t)
+	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, _ := server.CreateServerInstance(&def, impl, mach, false)
+	instance, _ := internal.CreateServerInstance(&def, impl, mach, false)
 
 	return instance, nodeAddr
 

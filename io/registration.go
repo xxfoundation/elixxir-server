@@ -21,7 +21,7 @@ import (
 )
 
 // Handles a client request for a nonce during the client registration process
-func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
+func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte,
 	auth *connect.Auth) ([]byte, []byte, error) {
 
@@ -102,7 +102,7 @@ func RequestNonce(instance *server.Instance, salt []byte, RSAPubKey string,
 }
 
 // Handles nonce confirmation during the client registration process
-func ConfirmRegistration(instance *server.Instance, UserID, Signature []byte,
+func ConfirmRegistration(instance *internal.Instance, UserID, Signature []byte,
 	auth *connect.Auth) ([]byte, error) {
 
 	// Verify the sender is the authenticated gateway for this node

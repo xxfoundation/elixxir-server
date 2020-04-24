@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package io
 
+// transmitAskOnline.go contains the logic for transmitting an askOnline comm
+
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"

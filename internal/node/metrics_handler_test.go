@@ -16,7 +16,7 @@ import (
 )
 
 // This will error when the type does not match the function
-var _ server.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+var _ internal.MetricsHandler = func(instance *internal.Instance, roundID id.Round) error {
 	return GatherMetrics(instance, roundID, false)
 }
 

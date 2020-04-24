@@ -26,7 +26,7 @@ import (
 func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
 	getMessage phase.GetMessage) error {
 
-	instance, ok := serverInstance.(*server.Instance)
+	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
 		return errors.Errorf("Invalid server instance passed in")
 	}

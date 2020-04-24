@@ -18,11 +18,11 @@ import (
 	"time"
 )
 
-// round.go creates the components for a phase
+// round.go creates the components for a round
 
 // NewRoundComponents sets up the transitions of different phases in the round
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, instance *server.Instance, batchSize uint32,
+	nodeID *id.Node, instance *internal.Instance, batchSize uint32,
 	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,
 	disableStreaming bool) (
 	[]phase.Phase, phase.ResponseMap) {

@@ -42,7 +42,7 @@ func assertPanic(t *testing.T, f func()) {
 	f()
 }
 
-func setupStartNode(t *testing.T) *server.Instance {
+func setupStartNode(t *testing.T) *internal.Instance {
 	//Get a new ndf
 	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
 	if err != nil {
@@ -51,7 +51,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	}
 
 	// We need to create a server.Definition so we can create a server instance.
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              id.NewNodeFromUInt(0, t),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
@@ -62,7 +62,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, err := server.CreateServerInstance(&def, io.NewImplementation, m, false)
+	instance, err := internal.CreateServerInstance(&def, io.NewImplementation, m, false)
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()
@@ -86,7 +86,7 @@ func setupStartNode(t *testing.T) *server.Instance {
 	return instance
 }
 
-func createRound(roundId id.Round, instance *server.Instance, t *testing.T) *round.Round {
+func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *round.Round {
 
 	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +

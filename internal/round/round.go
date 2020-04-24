@@ -5,6 +5,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 package round
 
+// round.go contains the round.Round object and its methods A round.Round indicates
+// the round in a cMix network
+
 import (
 	"fmt"
 	"github.com/pkg/errors"

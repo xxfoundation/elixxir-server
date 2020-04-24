@@ -6,6 +6,8 @@
 
 package io
 
+// receiveFinishRealtime.go contains handler for finishRealtime.
+
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -21,7 +23,7 @@ import (
 
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
-func ReceiveFinishRealtime(instance *server.Instance, msg *mixmessages.RoundInfo,
+func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundInfo,
 	auth *connect.Auth) error {
 	// Get round from round manager
 	roundID := id.Round(msg.ID)

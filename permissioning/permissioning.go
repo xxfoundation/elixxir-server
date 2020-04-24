@@ -26,7 +26,7 @@ import (
 )
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect.Host) error {
+func RegisterNode(def *internal.Definition, network *node.Comms, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
 	gw := strings.Split(def.Gateway.Address, ":")
 	gwPort, _ := strconv.ParseUint(gw[1], 10, 32)
@@ -53,7 +53,7 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 
 // Poll is used to retrieve updated state information from permissioning
 //  and update our internal state accordingly
-func Poll(instance *server.Instance) error {
+func Poll(instance *internal.Instance) error {
 
 	// Fetch the host information from the network
 	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
@@ -89,7 +89,7 @@ func Poll(instance *server.Instance) error {
 }
 
 // PollPermissioning polls the permissioning server for updates
-func PollPermissioning(permHost *connect.Host, instance *server.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
+func PollPermissioning(permHost *connect.Host, instance *internal.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -131,7 +131,7 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 // Processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
-func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
@@ -226,7 +226,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 
 // Processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes
-func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
+func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
@@ -256,7 +256,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *serve
 }
 
 // InstallNdf parses the ndf for necessary information and returns that
-func FindSelfInNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
+func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
 
 	jww.INFO.Println("Installing FullNDF now...")
 

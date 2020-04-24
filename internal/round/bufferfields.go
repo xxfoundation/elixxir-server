@@ -6,6 +6,8 @@
 
 package round
 
+// bufferFields.go contains the round.Buffer's InitCryptoFields method
+
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/shuffle"

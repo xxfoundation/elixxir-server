@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb.ServerPoll,
+func setupTests(t *testing.T, test_state current.Activity) (internal.Instance, *pb.ServerPoll,
 	[]byte, *rsa.PrivateKey) {
 	//Get a new ndf
 	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
@@ -47,8 +47,8 @@ func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb
 	test2Ndf.Timestamp = time.Now()
 
 	// We need to create a server.Definition so we can create a server instance.
-	nid := server.GenerateId(t)
-	def := server.Definition{
+	nid := internal.GenerateId(t)
+	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
@@ -59,7 +59,7 @@ func setupTests(t *testing.T, test_state current.Activity) (server.Instance, *pb
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, test_state, t)
 
-	instance, err := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, err := internal.CreateServerInstance(&def, NewImplementation, m, false)
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()

@@ -6,6 +6,8 @@
 
 package io
 
+// receiveMetrics.go contains the handler for receiveGetMeasure
+
 import (
 	"encoding/json"
 	"github.com/pkg/errors"
@@ -17,7 +19,7 @@ import (
 )
 
 // ReceiveGetMeasure finds the round in msg and response with a RoundMetrics message
-func ReceiveGetMeasure(instance *server.Instance, msg *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
+func ReceiveGetMeasure(instance *internal.Instance, msg *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
 	roundID := id.Round(msg.ID)
 
 	rm := instance.GetRoundManager()

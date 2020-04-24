@@ -6,6 +6,9 @@
 
 package round
 
+// buffer.go contains the round.Buffer object. It also contains it's methods
+// and constructors
+
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
 )

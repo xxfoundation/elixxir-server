@@ -6,6 +6,8 @@
 
 package io
 
+// receivePostPrecompResult.go contains the handler for PostPrecompResult comm
+
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -21,7 +23,7 @@ import (
 
 // ReceivePostPrecompResult handles the state checks and edge checks of
 // receiving the result of the precomputation
-func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
+func ReceivePostPrecompResult(instance *internal.Instance, roundID uint64,
 	slots []*mixmessages.Slot, auth *connect.Auth) error {
 
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)

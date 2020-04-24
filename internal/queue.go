@@ -4,7 +4,10 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-package server
+package internal
+
+// queue.go contains the logic for the resourceQueue object
+// and its interface
 
 import (
 	jww "github.com/spf13/jwalterweatherman"

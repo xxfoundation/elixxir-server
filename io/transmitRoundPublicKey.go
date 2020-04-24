@@ -6,6 +6,9 @@
 
 package io
 
+// transmitRoundPublicKey.go contains the logic for transmitting a
+//  roundPublicKey comm
+
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -24,7 +27,7 @@ import (
 func TransmitRoundPublicKey(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
 	getMessage phase.GetMessage) error {
 
-	instance, ok := serverInstance.(*server.Instance)
+	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
 		return errors.Errorf("Invalid server instance passed in")
 	}

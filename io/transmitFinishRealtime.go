@@ -24,7 +24,7 @@ import (
 // It sends all messages concurrently, then waits for all to be done,
 // while catching any errors that occurred
 func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
-	instance, ok := serverInstance.(*server.Instance)
+	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
 		return errors.Errorf("Invalid server instance passed in")
 	}

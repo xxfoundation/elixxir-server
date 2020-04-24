@@ -83,7 +83,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	}
 
 	// build the instances
-	var instances []*server.Instance
+	var instances []*internal.Instance
 
 	t.Logf("Building instances for %v nodes", numNodes)
 
@@ -91,10 +91,10 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	resourceMonitor.Set(measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
-		var instance *server.Instance
+		var instance *internal.Instance
 
 		// Add handler for instance
-		impl := func(i *server.Instance) *nodeComms.Implementation {
+		impl := func(i *internal.Instance) *nodeComms.Implementation {
 			return io.NewImplementation(i)
 		}
 
@@ -134,7 +134,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 		sm := state.NewMachine(testStates)
 
-		instance, _ = server.CreateServerInstance(defsLst[i], impl, sm, true)
+		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, true)
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
@@ -390,11 +390,11 @@ func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 }
 
 //
-func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
+func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo) {
 
 	// Define a mechanism to wait until the next state
-	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
+	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *internal.Instance) {
 		wg.Add(1)
 		go func() {
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
@@ -489,11 +489,11 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 }
 
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
-	grp *cyclic.Group) []*server.Definition {
+	grp *cyclic.Group) []*internal.Definition {
 
 	//generate IDs and addresses
 	var nidLst []*id.Node
-	var nodeLst []server.Node
+	var nodeLst []internal.Node
 	addrFmt := "localhost:%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
@@ -504,7 +504,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
 		//generate address
 		addr := fmt.Sprintf(addrFmt, i+portstart)
 
-		n := server.Node{
+		n := internal.Node{
 			ID:      nodeID,
 			Address: addr,
 		}
@@ -515,7 +515,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
 	networkDef := buildNdf(nodeLst)
 
 	//generate parameters list
-	var defLst []*server.Definition
+	var defLst []*internal.Definition
 
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
@@ -523,14 +523,14 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
 
 	for i := 0; i < numNodes; i++ {
 
-		def := server.Definition{
+		def := internal.Definition{
 			ID: nidLst[i],
-			Flags: server.Flags{
+			Flags: internal.Flags{
 				KeepBuffers: true,
 				UseGPU:      useGPU,
 			},
 			TlsCert: []byte(testUtil.RegCert),
-			Gateway: server.GW{
+			Gateway: internal.GW{
 				ID:      nidLst[i].NewGateway(),
 				TlsCert: nil,
 				Address: "",
@@ -540,7 +540,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
 			FullNDF:         networkDef,
 			PartialNDF:      networkDef,
 			Address:         nodeLst[i].Address,
-			MetricsHandler:  func(i *server.Instance, roundID id.Round) error { return nil },
+			MetricsHandler:  func(i *internal.Instance, roundID id.Round) error { return nil },
 			GraphGenerator:  services.NewGraphGenerator(4, PanicHandler, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
@@ -570,7 +570,7 @@ func makeMultiInstanceGroup() *cyclic.Group {
 }
 
 // buildNdf builds the ndf used for definitions
-func buildNdf(nodeLst []server.Node) *ndf.NetworkDefinition {
+func buildNdf(nodeLst []internal.Node) *ndf.NetworkDefinition {
 	// Pull the node id's out of nodeList
 	ndfNodes := make([]ndf.Node, 0)
 	for _, ourNode := range nodeLst {

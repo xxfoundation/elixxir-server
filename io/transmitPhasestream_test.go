@@ -194,7 +194,7 @@ func TestStreamTransmitPhase(t *testing.T) {
 
 }
 
-func mockStreamPostPhaseImplementation(instance *server.Instance) *node.Implementation {
+func mockStreamPostPhaseImplementation(instance *internal.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.StreamPostPhase = func(stream mixmessages.Node_StreamPostPhaseServer, auth *connect.Auth) error {
 		receivedBatch = &mixmessages.Batch{}

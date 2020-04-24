@@ -1,4 +1,11 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2019 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package io
+
+// transmitPostPrecompResult.go contains the logic for transmitting a precompResult comm
 
 import (
 	"github.com/pkg/errors"
@@ -18,7 +25,7 @@ func TransmitPrecompResult(roundID id.Round, serverInstance phase.GenericInstanc
 	getMessage phase.GetMessage) error {
 
 	var wg sync.WaitGroup
-	instance, ok := serverInstance.(*server.Instance)
+	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
 		return errors.Errorf("Invalid server instance passed in")
 	}

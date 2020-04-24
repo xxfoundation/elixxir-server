@@ -29,7 +29,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(2))
 
-	def := server.Definition{
+	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
@@ -39,7 +39,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	def.ID = topology.GetNodeAtIndex(0)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
 
 	mockPhase := testUtil.InitMockPhase(t)
 

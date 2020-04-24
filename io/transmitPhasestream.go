@@ -6,6 +6,8 @@
 
 package io
 
+// transmitPhasestream.go contains the logic for streaming a phase comm
+
 import (
 	"fmt"
 	"github.com/pkg/errors"
@@ -24,7 +26,7 @@ import (
 func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
 	getMessage phase.GetMessage) error {
 
-	instance, ok := serverInstance.(*server.Instance)
+	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
 		return errors.Errorf("Invalid server instance passed in")
 	}

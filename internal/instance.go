@@ -3,7 +3,10 @@
 //                                                                             /
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
-package server
+package internal
+
+// instance.go contains the logic for the internal.Instance object along with
+// constructors and it's methods
 
 import (
 	"fmt"

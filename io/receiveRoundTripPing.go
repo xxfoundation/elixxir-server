@@ -6,6 +6,8 @@
 
 package io
 
+// ReceiveRoundTripPing.go contains the handler for RoundTripPing
+
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/jwalterweatherman"
@@ -16,7 +18,7 @@ import (
 )
 
 // ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
-func ReceiveRoundTripPing(instance *server.Instance, msg *mixmessages.RoundTripPing) error {
+func ReceiveRoundTripPing(instance *internal.Instance, msg *mixmessages.RoundTripPing) error {
 
 	nodeIDs, err := id.NewNodeListFromStrings(msg.Round.Topology)
 	if err != nil {

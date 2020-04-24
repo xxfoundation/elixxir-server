@@ -5,6 +5,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 package round
 
+// completedQueue.go contains the round.CompletedQueue logic and its methods.
+// CompletedQueue is a channel which sends a signal indicating a completed round
+
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"

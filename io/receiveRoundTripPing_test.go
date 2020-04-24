@@ -31,7 +31,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 	newRound := round.NewDummyRound(id.Round(1), 10, t)
 
 	// Set instance for first node
-	def := server.Definition{
+	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}

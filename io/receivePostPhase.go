@@ -6,6 +6,8 @@
 
 package io
 
+// receivePostPhase.go contains the handler for server <-> server postPhase comm
+
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -22,7 +24,7 @@ import (
 
 // ReceivePostPhase handles the state checks and edge checks of receiving a
 // phase operation
-func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth *connect.Auth) error {
+func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, auth *connect.Auth) error {
 
 	// HACK HACK HACK
 	// in the event not started hasn't finished, this waits for ti to finish
@@ -106,7 +108,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *server.Instance, auth 
 // ReceiveStreamPostPhase handles the state checks and edge checks of
 // receiving a phase operation
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
-	instance *server.Instance, auth *connect.Auth) error {
+	instance *internal.Instance, auth *connect.Auth) error {
 
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)

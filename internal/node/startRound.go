@@ -20,7 +20,7 @@ import (
 	insecureRand "math/rand"
 )
 
-func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
+func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 	//get the round from the instance
 	rm := instance.GetRoundManager()
 
@@ -68,7 +68,7 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	return nil
 }
 
-func doRoundTripPing(round *round.Round, instance *server.Instance, ri *mixmessages.RoundInfo) error {
+func doRoundTripPing(round *round.Round, instance *internal.Instance, ri *mixmessages.RoundInfo) error {
 	payloadInfo := "EMPTY/ACK"
 	var payload proto.Message
 	payload = &mixmessages.Ack{}

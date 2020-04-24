@@ -552,10 +552,10 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	}
 }
 
-func mockServerInstance(i interface{}) *server.Instance {
+func mockServerInstance(i interface{}) *internal.Instance {
 
-	nid := server.GenerateId(i)
-	def := server.Definition{
+	nid := internal.GenerateId(i)
+	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
@@ -591,14 +591,14 @@ func mockServerInstance(i interface{}) *server.Instance {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, sm, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
 
 	return instance
 }
 
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
-func NewImplementation(instance *server.Instance) *node.Implementation {
+func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 

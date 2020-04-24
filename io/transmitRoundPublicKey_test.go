@@ -178,7 +178,7 @@ func TestPostRoundPublicKey_OutOfGroup(t *testing.T) {
 
 }
 
-func mockPostRoundPKImplementation0(instance *server.Instance) *node.Implementation {
+func mockPostRoundPKImplementation0(instance *internal.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 		receivedPks[0] = pk

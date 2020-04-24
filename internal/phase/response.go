@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package phase
 
+// response.go contains the logic for a response from an incoming comm
+
 import (
 	"fmt"
 )

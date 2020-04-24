@@ -6,6 +6,8 @@
 
 package io
 
+// ReceivePostRoundPublicKey.go contains the handler for PostRoundPublicKey
+
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -22,7 +24,7 @@ import (
 // ReceivePostRoundPublicKey from last node and sets it for the round
 // for each node. Also starts precomputation decrypt phase with a
 // batch
-func ReceivePostRoundPublicKey(instance *server.Instance,
+func ReceivePostRoundPublicKey(instance *internal.Instance,
 	pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {

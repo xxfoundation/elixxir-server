@@ -48,7 +48,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	monitor := measure.ResourceMonitor{RWMutex: sync.RWMutex{}}
 	monitor.Set(metric)
 	//nid := server.GenerateId(t)
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              topology.GetNodeAtIndex(0),
 		ResourceMonitor: &monitor,
 		UserRegistry:    &globals.UserMap{},
@@ -56,7 +56,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 		PartialNDF:      testUtil.NDF,
 	}
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
 
 	// Set up a round first node
 	roundID := id.Round(45)

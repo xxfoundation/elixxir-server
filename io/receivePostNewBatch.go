@@ -6,6 +6,8 @@
 
 package io
 
+// receivePostNewBatch.go contains the handler for the gateway <-> server postNewBatch comm
+
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -23,7 +25,7 @@ type GenericPostPhase func(p phase.Phase, batch *mixmessages.Batch) error
 
 // Receive PostNewBatch comm from the gateway
 // This should include an entire new batch that's ready for realtime processing
-func ReceivePostNewBatch(instance *server.Instance,
+func ReceivePostNewBatch(instance *internal.Instance,
 	newBatch *mixmessages.Batch, postPhase GenericPostPhase, auth *connect.Auth) error {
 
 	// Check that authentication is good and the sender is our gateway, otherwise error
@@ -65,7 +67,7 @@ func ReceivePostNewBatch(instance *server.Instance,
 
 // HandleRealtimeBatch is a helper function which handles phase and state operations
 //  as well as calling postPhase for starting REALTIME
-func HandleRealtimeBatch(instance *server.Instance, newBatch *mixmessages.Batch, postPhase GenericPostPhase) error {
+func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batch, postPhase GenericPostPhase) error {
 	// Get the roundinfo object
 	ri := newBatch.Round
 	rm := instance.GetRoundManager()

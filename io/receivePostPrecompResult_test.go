@@ -109,10 +109,10 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	nodeIDs := BuildMockNodeIDs(5)
 
 	// Set up all the instances
-	var instances []*server.Instance
+	var instances []*internal.Instance
 	topology := connect.NewCircuit(nodeIDs)
 	for i := 0; i < numNodes; i++ {
-		def := server.Definition{
+		def := internal.Definition{
 			UserRegistry:    &globals.UserMap{},
 			ResourceMonitor: &measure.ResourceMonitor{},
 			FullNDF:         testUtil.NDF,
@@ -122,7 +122,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 
 		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-		instance, _ := server.CreateServerInstance(&def, NewImplementation, m, false)
+		instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
 		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 			3, instance.GetRngStreamGen(), nil, "0.0.0.0")
