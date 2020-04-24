@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestRevealGpuGraph(t *testing.T) {
@@ -64,7 +65,7 @@ func TestRevealGpuGraph(t *testing.T) {
 	stream := g.GetStream().(*RevealStream)
 
 	//fill the fields of the stream object for testing
-	grp.Random(stream.Z)
+	grp.FindSmallCoprimeInverse(stream.Z, 256)
 
 	for i := uint32(0); i < g.GetExpandedBatchSize(); i++ {
 		grp.RandomCoprime(stream.CypherPayloadA.Get(i))
@@ -117,4 +118,7 @@ func TestRevealGpuGraph(t *testing.T) {
 
 		}
 	}
+
+	// Wait for panics from cgbn to occur, in case the modular inverse doesn't exist
+	time.Sleep(time.Second)
 }

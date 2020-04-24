@@ -224,7 +224,11 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		precompRevealDefinition.TransmissionHandler = io.TransmitPrecompResult
 		// Last node also computes the strip operation along with reveal, so its
 		// graph is replaced with the composed reveal-strip graph
-		precompRevealDefinition.Graph = precomputation.InitStripGraph(gc)
+		if pool != nil {
+			precompRevealDefinition.Graph = precomputation.InitStripGPUGraph(gc)
+		} else {
+			precompRevealDefinition.Graph = precomputation.InitStripGraph(gc)
+		}
 	}
 
 	//All nodes process the verification step
