@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package phase
 
+// definition.go contains the phase.Definition object
+
 import (
 	"gitlab.com/elixxir/server/services"
 	"time"

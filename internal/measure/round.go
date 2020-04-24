@@ -6,6 +6,8 @@
 
 package measure
 
+// measure/round.go contains the roundMetrics object, constructors and its methods
+
 import (
 	"gitlab.com/elixxir/primitives/id"
 	"time"

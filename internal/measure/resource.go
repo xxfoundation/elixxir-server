@@ -6,6 +6,9 @@
 
 package measure
 
+// measure/resource.go contains the resourceMetric object, the resourceMonitor object.
+// These keep track of computational resources while server is running
+
 import (
 	"sync"
 	"time"

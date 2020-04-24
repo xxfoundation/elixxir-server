@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package phase
 
+// state.go contains the states for a phase
+
 //The state a phase is in
 type State uint32
 

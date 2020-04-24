@@ -6,6 +6,8 @@
 
 package measure
 
+// metrics.go contains the metrics object and its methods
+
 import (
 	"sync"
 	"time"

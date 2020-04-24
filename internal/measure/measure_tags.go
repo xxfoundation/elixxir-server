@@ -5,6 +5,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 package measure
 
+// measure_Tags.go contains the string constants for our measure tags
+
 // Constants for Tag strings used by Measure()
 const (
 	TagReceiveOnReception = "Receive Header/Edge Checks"

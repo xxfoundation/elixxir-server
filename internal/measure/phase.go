@@ -6,6 +6,8 @@
 
 package measure
 
+// measure phase.go contains the phaseMetrics object and interface
+
 // phaseMetric structure stores Metrics with an associated phase name.
 type phaseMetric struct {
 	PhaseName string
