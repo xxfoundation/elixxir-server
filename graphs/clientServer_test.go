@@ -7,18 +7,20 @@ package graphs
 
 /**/
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/testUtil"
 	"golang.org/x/crypto/blake2b"
 	"math/rand"
 	"reflect"
@@ -59,15 +61,44 @@ func TestClientServer(t *testing.T) {
 		large.NewInt(2))
 
 	//Generate everything needed to make a user
-	nid := server.GenerateId(t)
-	def := server.Definition{
+	nid := internal.GenerateId(t)
+	def := internal.Definition{
 		ID:              nid,
-		CmixGroup:       grp,
-		Topology:        connect.NewCircuit([]*id.Node{nid}),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
+		PartialNDF:      testUtil.NDF,
+		FullNDF:         testUtil.NDF,
 	}
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, false)
+
+	var stateChanges [current.NUM_STATES]state.Change
+	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.WAITING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.PRECOMPUTING] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.STANDBY] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.REALTIME] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.COMPLETED] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.ERROR] = func(from current.Activity) error {
+		return nil
+	}
+	stateChanges[current.CRASH] = func(from current.Activity) error {
+		return nil
+	}
+
+	sm := state.NewMachine(stateChanges)
+
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
@@ -144,7 +175,7 @@ func TestClientServer(t *testing.T) {
 
 // NewImplementation creates a new implementation of the server.
 // When a function is added to comms, you'll need to point to it here.
-func NewImplementation(instance *server.Instance) *node.Implementation {
+func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl := node.NewImplementation()
 

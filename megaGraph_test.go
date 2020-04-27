@@ -15,7 +15,7 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"math/rand"
 	"runtime"
@@ -772,12 +772,12 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	//Link precomputation
 	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngStreamGen)
-	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, keysPayloadA,
+	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB)
-	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, keysPayloadA,
+	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB, keysPayloadAPermuted, cypherPayloadAPermuted,
 		keysPayloadBPermuted, cypherPayloadBPermuted)
-	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, cypherPayloadA,
+	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, nil, cypherPayloadA,
 		cypherPayloadB)
 
 	//Generate Passthroughs for realtime

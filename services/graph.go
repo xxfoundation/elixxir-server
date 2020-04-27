@@ -11,7 +11,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internal/measure"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -51,6 +51,8 @@ type Graph struct {
 	outputThreshold float32
 
 	overrideBatchSize uint32
+
+	metrics measure.Metrics
 }
 
 // This is too long of a function
@@ -223,10 +225,10 @@ func (g *Graph) Run() {
 		jww.FATAL.Panicf("stream not linked and built")
 	}
 
-	for _, m := range g.modules {
-
-		for i := uint8(0); i < m.NumThreads; i++ {
-			go dispatch(g, m, uint8(i))
+	for i, m := range g.modules {
+		i = i << 8 // high part of int
+		for j := uint8(0); j < m.NumThreads; j++ {
+			go dispatch(g, m, i+uint64(j))
 		}
 	}
 }

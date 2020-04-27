@@ -20,9 +20,10 @@ type PermuteIO struct {
 // PrecanPermute connects the input intBuffers to the output int slices.
 // for use inside of a link function
 func PrecanPermute(permutations []uint32, IOs ...PermuteIO) {
-	for index, permutation := range permutations {
-		for _, io := range IOs {
-			io.Output[permutation] = io.Input.Get(uint32(index))
+	// Ignore extra permutations if there are more of them than slots for input/output
+	for _, io := range IOs {
+		for i := range io.Output {
+			io.Output[permutations[i]] = io.Input.Get(uint32(i))
 		}
 	}
 }

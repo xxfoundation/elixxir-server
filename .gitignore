@@ -13,3 +13,5 @@ localdev_*
 # Ignore generated version file
 cmd/version_vars.go
 *.out
+# Ignore obsolete dependency management software
+glide.lock
