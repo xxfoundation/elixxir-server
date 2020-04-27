@@ -1,28 +1,38 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package node
 
 import (
 	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )
 
+// round.go creates the components for a round
+
+// NewRoundComponents sets up the transitions of different phases in the round
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, lastNode *server.LastNode, batchSize uint32, newRoundTimeout int) ([]phase.Phase,
-	phase.ResponseMap) {
+	nodeID *id.Node, instance *internal.Instance, batchSize uint32,
+	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,
+	disableStreaming bool) (
+	[]phase.Phase, phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
 	generalExpectedStates := []phase.State{phase.Active}
 
-	// TODO: Expose this timeout on the command line
-	defaultTimeout := time.Duration(newRoundTimeout) * time.Second
+	// Used to swap between streaming and non-streaming
+	transmissionHandler := io.StreamTransmitPhase
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -31,7 +41,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitGenerateGraph(gc),
 		Type:                phase.PrecompGeneration,
 		TransmissionHandler: io.TransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 	}
 	// On every node but the first, it receives generate and executes generate,
 	// First node starts the round via its business logic so it has no
@@ -68,7 +78,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Graph:               precomputation.InitShareGraph(gcShare),
 		Type:                phase.PrecompShare,
 		TransmissionHandler: io.TransmitPhase,
-		Timeout:             defaultTimeout,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -104,12 +114,22 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	/*--PRECOMP DECRYPT-------------------------------------------------------*/
 
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
+
 	// Build Precomputation Decrypt phase and response
 	precompDecryptDefinition := phase.Definition{
 		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
-		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		TransmissionHandler: transmissionHandler,
+		Timeout:             newRoundTimeout,
+	}
+	if pool != nil {
+		precompDecryptDefinition.Graph = precomputation.InitDecryptGPUGraph(gc)
+	} else {
+		precompDecryptDefinition.Graph = precomputation.InitDecryptGraph(gc)
 	}
 
 	// Every node except the first node handles precomp decrypt in the normal
@@ -133,13 +153,22 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		phase.NewResponse(DecryptResponse)
 
 	/*--PRECOMP PERMUTE-------------------------------------------------------*/
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Precomputation Permute phase and response
 	precompPermuteDefinition := phase.Definition{
 		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
-		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		TransmissionHandler: transmissionHandler,
+		Timeout:             newRoundTimeout,
+	}
+	if pool != nil {
+		precompPermuteDefinition.Graph = precomputation.InitPermuteGPUGraph(gc)
+	} else {
+		precompPermuteDefinition.Graph = precomputation.InitPermuteGraph(gc)
 	}
 
 	// Every node except the first node handles precomp permute in the normal
@@ -163,13 +192,22 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	/*--PRECOMP REVEAL--------------------------------------------------------*/
 
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
+
 	// Build Precomputation Reveal phase and response
 	precompRevealDefinition := phase.Definition{
-		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
-		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		TransmissionHandler: transmissionHandler,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
+	}
+	if pool != nil {
+		precompRevealDefinition.Graph = precomputation.InitRevealGPUGraph(gc)
+	} else {
+		precompRevealDefinition.Graph = precomputation.InitRevealGraph(gc)
 	}
 
 	// Every node except the first node handles precomp permute in the normal
@@ -194,7 +232,11 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		precompRevealDefinition.TransmissionHandler = io.TransmitPrecompResult
 		// Last node also computes the strip operation along with reveal, so its
 		// graph is replaced with the composed reveal-strip graph
-		precompRevealDefinition.Graph = precomputation.InitStripGraph(gc)
+		if pool != nil {
+			precompRevealDefinition.Graph = precomputation.InitStripGPUGraph(gc)
+		} else {
+			precompRevealDefinition.Graph = precomputation.InitStripGraph(gc)
+		}
 	}
 
 	//All nodes process the verification step
@@ -205,13 +247,17 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 			PhaseToExecute: phase.PrecompReveal})
 
 	/*--REALTIME DECRYPT------------------------------------------------------*/
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Realtime Decrypt phase and response
 	realtimeDecryptDefinition := phase.Definition{
 		Graph:               realtime.InitDecryptGraph(gc),
 		Type:                phase.RealDecrypt,
-		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		TransmissionHandler: transmissionHandler,
+		Timeout:             newRoundTimeout,
 	}
 
 	decryptResponse := phase.ResponseDefinition{
@@ -231,13 +277,17 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	responses[phase.RealDecrypt.String()] = decryptResponse
 
 	/*--REALTIME PERMUTE------------------------------------------------------*/
+	// Swap the transmission handler if using streaming
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Realtime Decrypt phase and response
 	realtimePermuteDefinition := phase.Definition{
 		Graph:               realtime.InitPermuteGraph(gc),
 		Type:                phase.RealPermute,
-		TransmissionHandler: io.StreamTransmitPhase,
-		Timeout:             defaultTimeout,
+		TransmissionHandler: transmissionHandler,
+		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
 
@@ -253,21 +303,13 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	//TRANSITION: Last node broadcasts sends the results to the gateways and
 	//broadcasts a completed message to all other nodes as a verification step.
 	if topology.IsLastNode(nodeID) {
-		//build the channel which will be used to send the data
-		chanLen := (batchSize + gc.GetOutputSize() - 1) / gc.GetOutputSize()
-		chunkChan := make(chan services.Chunk, chanLen)
 		//assign the handler
 		realtimePermuteDefinition.TransmissionHandler =
 			// finish realtime needs access to lastNode to send out the results,
 			// an anonymous function is used to wrap the function, passing
 			// access while maintaining the transmit signature
-			func(network *node.Comms, batchSize uint32,
-				roundID id.Round, phaseTy phase.Type, getChunk phase.GetChunk,
-				getMessage phase.GetMessage, topology *connect.Circuit,
-				nodeID *id.Node, measure phase.Measure) error {
-				return io.TransmitFinishRealtime(network, batchSize, roundID,
-					phaseTy, getChunk, getMessage, topology, nodeID, lastNode,
-					chunkChan, measure)
+			func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+				return io.TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 			}
 		//Last node also executes the combined permute-identify graph
 		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)

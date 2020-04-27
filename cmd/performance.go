@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internal/measure"
 	"os"
 	"runtime"
 	"strconv"
@@ -38,8 +38,8 @@ const (
 	cpuUsageBitSize = 64
 )
 
-// MonitorMemoryUsage checks and prints a warning every time thread or memory
-// usage fo the system jumps a designated amount.
+// MonitorMemoryUsage checks and prints a warning every time thread usage or
+// memory usage for the system jumps a designated amount.
 func monitorMemoryUsage(perfCheck time.Duration, deltaMem,
 	minMem uint64) *measure.ResourceMonitor {
 
@@ -55,12 +55,12 @@ func monitorMemoryUsage(perfCheck time.Duration, deltaMem,
 		CPUPercentage:   0.0,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&resourceMetric)
+	resourceMonitor.Set(resourceMetric)
 
 	cpu := cpuMeasure{}
 	_, _ = cpu.getCPUUsage()
 
-	go func() {
+	go func(resourceMonitor *measure.ResourceMonitor, cpu *cpuMeasure) {
 		var pastMemoryAllocated uint64
 
 		for {
@@ -92,7 +92,7 @@ func monitorMemoryUsage(perfCheck time.Duration, deltaMem,
 				NumThreads:      currentThreads,
 				CPUPercentage:   cpuPercentage,
 			}
-			resourceMonitor.Set(&resourceMetric)
+			resourceMonitor.Set(resourceMetric)
 
 			// Calculate information on when to trigger prints
 			deltaTriggerTime := triggerTime.Sub(lastTrigger)
@@ -117,7 +117,7 @@ func monitorMemoryUsage(perfCheck time.Duration, deltaMem,
 			// Only trigger periodically
 			time.Sleep(perfCheck)
 		}
-	}()
+	}(&resourceMonitor, &cpu)
 
 	return &resourceMonitor
 }

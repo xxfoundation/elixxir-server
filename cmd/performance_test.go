@@ -7,7 +7,6 @@
 package cmd
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -29,7 +28,6 @@ func TestMonitorMemoryUsage(t *testing.T) {
 
 	resourceMetric = rm.Get()
 	t1 := resourceMetric.Time
-	fmt.Printf("resourceMetric: %#v\n", resourceMetric)
 
 	if !t1.After(t0) {
 		t.Errorf("Resource metric not being updated in MonitorMemoryUsage")
