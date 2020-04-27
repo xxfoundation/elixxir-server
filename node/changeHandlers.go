@@ -37,29 +37,32 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	network := instance.GetNetwork()
 
 	// Get the Server and Gateway certificates from file, if they exist
-	_, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
+	certsExist, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
 		ourDef.GatewayCertPath)
 
-	jww.INFO.Printf("Registering with permissioning!")
-	// Connect to the Permissioning Server without authentication
-	permHost, err := network.AddHost(id.PERMISSIONING,
-		// instance.GetPermissioningAddress,
-		ourDef.Permissioning.Address,
-		ourDef.Permissioning.TlsCert,
-		true,
-		false)
-	if err != nil {
-		return errors.Errorf("Unable to connect to registration server: %+v", err)
-	}
+	// If the certificates were retrieved from file, so do not need to register
+	if certsExist {
+		jww.INFO.Printf("Registering with permissioning!")
+		// Connect to the Permissioning Server without authentication
+		permHost, err := network.AddHost(id.PERMISSIONING,
+			// instance.GetPermissioningAddress,
+			ourDef.Permissioning.Address,
+			ourDef.Permissioning.TlsCert,
+			true,
+			false)
+		if err != nil {
+			return errors.Errorf("Unable to connect to registration server: %+v", err)
+		}
 
-	// Blocking call: begin Node registration
-	err = permissioning.RegisterNode(ourDef, network, permHost)
-	if err != nil {
-		return errors.Errorf("Failed to register node: %+v", err)
-	}
+		// Blocking call: begin Node registration
+		err = permissioning.RegisterNode(ourDef, network, permHost)
+		if err != nil {
+			return errors.Errorf("Failed to register node: %+v", err)
+		}
 
-	// Disconnect the old Permissioning server to enable authentication
-	permHost.Disconnect()
+		// Disconnect the old Permissioning server to enable authentication
+		permHost.Disconnect()
+	}
 
 	// Connect to the Permissioning Server with authentication enabled
 	// the server does not have a signed cert, but the pemrissionign has its cert,
@@ -67,7 +70,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
-	permHost, err = network.AddHost(id.PERMISSIONING,
+	permHost, err := network.AddHost(id.PERMISSIONING,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -98,15 +101,19 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
 	}
 
-	// Parse the NDF for the new signed certificate from Permissioning
-	serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
-		instance.GetConsensus().GetFullNdf().Get())
-	if err != nil {
-		return errors.Errorf("Failed to install NDF: %+v", err)
-	}
+	// Do not need to get the Server and Gateway certificates if they were
+	// already retrieved from file
+	if !certsExist {
+		// Parse the NDF for the new signed certificate from Permissioning
+		serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
+			instance.GetConsensus().GetFullNdf().Get())
+		if err != nil {
+			return errors.Errorf("Failed to install NDF: %+v", err)
+		}
 
-	// Save the retrieved certificates to file
-	writeCertificates(ourDef, serverCert, gwCert)
+		// Save the retrieved certificates to file
+		writeCertificates(ourDef, serverCert, gwCert)
+	}
 
 	// Restart the network with these signed certs
 	err = instance.RestartNetwork(receivers.NewImplementation, noTls, serverCert, gwCert)

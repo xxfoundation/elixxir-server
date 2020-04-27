@@ -37,6 +37,7 @@ var logPath = "cmix-server.log"
 var maxProcsOverride int
 var newRoundTimeout int
 
+
 // If true, runs pprof http server
 var profile bool
 
@@ -139,6 +140,7 @@ func init() {
 			"Defaults at the number of logical cores on the device")
 	rootCmd.Flags().IntVarP(&newRoundTimeout, "newRoundTimeout", "t", 120,
 		"timeout for round creation in seconds")
+
 
 	err := viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
 	handleBindingError(err, "nodeID")
