@@ -41,7 +41,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		ourDef.GatewayCertPath)
 
 	// If the certificates were retrieved from file, so do not need to register
-	if certsExist {
+	if !certsExist {
 		jww.INFO.Printf("Registering with permissioning!")
 		// Connect to the Permissioning Server without authentication
 		permHost, err := network.AddHost(id.PERMISSIONING,
