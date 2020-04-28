@@ -19,14 +19,14 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internal"
 	"strconv"
 	"strings"
 	"time"
 )
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect.Host) error {
+func RegisterNode(def *internal.Definition, network *node.Comms, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
 	gw := strings.Split(def.Gateway.Address, ":")
 	gwPort, _ := strconv.ParseUint(gw[1], 10, 32)
@@ -53,7 +53,7 @@ func RegisterNode(def *server.Definition, network *node.Comms, permHost *connect
 
 // Poll is used to retrieve updated state information from permissioning
 //  and update our internal state accordingly
-func Poll(instance *server.Instance) error {
+func Poll(instance *internal.Instance) error {
 
 	// Fetch the host information from the network
 	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
@@ -89,7 +89,7 @@ func Poll(instance *server.Instance) error {
 }
 
 // PollPermissioning polls the permissioning server for updates
-func PollPermissioning(permHost *connect.Host, instance *server.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
+func PollPermissioning(permHost *connect.Host, instance *internal.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -119,8 +119,6 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 		Activity:   uint32(reportedActivity),
 	}
 
-	//jww.DEBUG.Printf("State prior to polling: %v", reportedActivity)
-
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
 	if err != nil {
@@ -133,7 +131,7 @@ func PollPermissioning(permHost *connect.Host, instance *server.Instance, report
 // Processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
-func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
@@ -159,6 +157,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PRECOMPUTING: // Prepare for precomputing state
+
 				// Standy by until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
@@ -196,12 +195,12 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 				go func() {
 					// Get the realtime start time
 					duration := time.Unix(int64(roundInfo.Timestamps[states.REALTIME]), 0)
-
+					jww.INFO.Printf("told to sleep for duration: %v", duration)
 					// Fixme: find way to calculate sleep length that doesn't lose time
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
 					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.FATAL.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
+						jww.INFO.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
 						time.Sleep(timeDiff)
 					}
 
@@ -227,7 +226,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *se
 
 // Processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes
-func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *server.Instance) error {
+func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
@@ -245,7 +244,6 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *serve
 	}
 
 	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
-		jww.DEBUG.Printf("Updating node connections")
 		// Update the nodes in the network.Instance with the new ndf
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
@@ -258,7 +256,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *serve
 }
 
 // InstallNdf parses the ndf for necessary information and returns that
-func FindSelfInNdf(def *server.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
+func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
 
 	jww.INFO.Println("Installing FullNDF now...")
 

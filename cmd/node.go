@@ -19,10 +19,10 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/state"
 	"runtime"
 	"time"
 )
@@ -96,7 +96,7 @@ func StartServer(vip *viper.Viper) error {
 		jww.ERROR.Printf("Error deleting old metric log files: %v", err)
 	}
 
-	def.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+	def.MetricsHandler = func(instance *internal.Instance, roundID id.Round) error {
 		return node.GatherMetrics(instance, roundID, metricsWhitespace)
 	}
 
@@ -110,7 +110,7 @@ func StartServer(vip *viper.Viper) error {
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	jww.INFO.Printf("Creating server instance")
-	var instance *server.Instance
+	var instance *internal.Instance
 
 	ourChangeList := node.NewStateChanges()
 
@@ -152,7 +152,7 @@ func StartServer(vip *viper.Viper) error {
 	ourMachine := state.NewMachine(ourChangeList)
 
 	// Create instance
-	instance, err = server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
+	instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
 	if err != nil {
 		return errors.Errorf("Could not create server instance: %v", err)
 	}

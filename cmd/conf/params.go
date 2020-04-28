@@ -18,7 +18,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"net"
@@ -33,6 +33,8 @@ type Params struct {
 	SkipReg          bool `yaml:"skipReg"`
 	Verbose          bool
 	KeepBuffers      bool
+	UseGPU           bool
+	DisableStreaming bool
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
 	GWConnTimeout    time.Duration
@@ -96,6 +98,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.SkipReg = vip.GetBool("skipReg")
 	params.Verbose = vip.GetBool("verbose")
 	params.KeepBuffers = vip.GetBool("keepBuffers")
+	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 
 	// If RngScalingFactor is not set, then set default value
@@ -141,13 +144,14 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 }
 
 // Create a new Definition object from the Params object
-func (p *Params) ConvertToDefinition() *server.Definition {
+func (p *Params) ConvertToDefinition() *internal.Definition {
 
-	def := &server.Definition{}
+	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.SkipReg = p.SkipReg
 	def.Flags.Verbose = p.Verbose
+	def.Flags.UseGPU = p.UseGPU
 	def.GwConnTimeout = p.GWConnTimeout
 
 	var tlsCert, tlsKey []byte
@@ -170,7 +174,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	}
 
 	ids := p.Node.Ids
-	var nodes []server.Node
+	var nodes []internal.Node
 	var nodeIDs []*id.Node
 
 	var nodeIDDecodeErrorHappened bool
@@ -184,7 +188,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 			jww.ERROR.Print(err)
 			nodeIDDecodeErrorHappened = true
 		}
-		n := server.Node{
+		n := internal.Node{
 			ID:      id.NewNodeFromBytes(nodeID),
 			TlsCert: tlsCert,
 			Address: p.Node.Addresses[i],
@@ -241,6 +245,8 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
 		}
 	}
+
+	def.DisableStreaming = p.DisableStreaming
 
 	//Set the node's private/public key
 	var privateKey *rsa.PrivateKey
@@ -300,6 +306,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
 			m, err))
 	}
+
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
@@ -308,7 +315,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 
 // createNdf is a helper function which builds a network ndf based off of the
 //  server.Definition
-func createNdf(def *server.Definition, params *Params) *ndf.NetworkDefinition {
+func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition {
 	// Build our node
 	ourNode := ndf.Node{
 		ID:             def.ID.Bytes(),

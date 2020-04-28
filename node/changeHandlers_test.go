@@ -16,10 +16,10 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"os"
@@ -58,7 +58,7 @@ func TestPrecomputing(t *testing.T) {
 	topology := connect.NewCircuit(nodeIDs)
 	gg := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
-	def := server.Definition{
+	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
@@ -67,7 +67,7 @@ func TestPrecomputing(t *testing.T) {
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	var instance *server.Instance
+	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{
 		func(from current.Activity) error { return nil },
 		func(from current.Activity) error { return nil },
@@ -79,7 +79,7 @@ func TestPrecomputing(t *testing.T) {
 		func(from current.Activity) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ = server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
+	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation, m, false)
 
 	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, testUtil.NDF.Registration.Address,
 		[]byte(testUtil.RegCert), false, false)

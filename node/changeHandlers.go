@@ -31,7 +31,7 @@ func Dummy(from current.Activity) error {
 }
 
 // NotStarted is the beginning state of state machine. Enters waiting upon successful completion
-func NotStarted(instance *server.Instance, noTls bool) error {
+func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
@@ -116,7 +116,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	}
 
 	// Restart the network with these signed certs
-	err = instance.RestartNetwork(receivers.NewImplementation, noTls, serverCert, gwCert)
+	err = instance.RestartNetwork(io.NewImplementation, noTls, serverCert, gwCert)
 	if err != nil {
 		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
 	}
@@ -144,7 +144,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 
 		// Periodically re-poll permissioning
 		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(5 * time.Millisecond)
+		ticker := time.NewTicker(50 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
@@ -158,14 +158,13 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 	return nil
 }
 
-// fixme: doc string
 func Waiting(from current.Activity) error {
 	// start waiting process
 	return nil
 }
 
 // Precomputing does various business logic to prep for the start of a new round
-func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) error {
+func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) error {
 
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
@@ -201,7 +200,8 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout)
+		newRoundTimeout, nil,
+		instance.GetDisableStreaming())
 
 	//Build the round
 	rnd, err := round.New(
@@ -212,6 +212,7 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 		instance.GetID(),
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
+		nil,
 		instance.GetIP())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
@@ -232,7 +233,6 @@ func Precomputing(instance *server.Instance, newRoundTimeout time.Duration) erro
 	return nil
 }
 
-// fixme: doc string
 func Standby(from current.Activity) error {
 	// start standby process
 	return nil
@@ -240,7 +240,7 @@ func Standby(from current.Activity) error {
 }
 
 // Realtime checks if we are in the correct phase
-func Realtime(instance *server.Instance) error {
+func Realtime(instance *internal.Instance) error {
 	// Get new realtime round info from queue
 	roundInfo, err := instance.GetRealtimeRoundQueue().Receive()
 	if err != nil {
@@ -269,19 +269,16 @@ func Realtime(instance *server.Instance) error {
 	return nil
 }
 
-// fixme: doc string
 func Completed(from current.Activity) error {
 	// start completed
 	return nil
 }
 
-// fixme: doc string
 func Error(from current.Activity) error {
 	// start error
 	return nil
 }
 
-// fixme: doc string
 func Crash(from current.Activity) error {
 	// start error
 	return nil

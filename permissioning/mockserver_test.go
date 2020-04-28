@@ -19,10 +19,10 @@ import (
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
@@ -248,8 +248,8 @@ var dummyStates = [current.NUM_STATES]state.Change{
 	func(from current.Activity) error { return nil },
 }
 
-func mockServerDef(i interface{}) *server.Definition {
-	nid := server.GenerateId(i)
+func mockServerDef(i interface{}) *internal.Definition {
+	nid := internal.GenerateId(i)
 
 	resourceMetric := measure.ResourceMetric{
 		Time:          time.Now(),
@@ -257,9 +257,9 @@ func mockServerDef(i interface{}) *server.Definition {
 		NumThreads:    0,
 	}
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&resourceMetric)
+	resourceMonitor.Set(resourceMetric)
 
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &resourceMonitor,
 		FullNDF:         testUtil.NDF,
@@ -397,7 +397,7 @@ func setupPartialNdf() (*pb.NDF, error) {
 }
 
 // Utility function which creates an instance
-func createServerInstance(t *testing.T) (*server.Instance, error) {
+func createServerInstance(t *testing.T) (*internal.Instance, error) {
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
@@ -408,8 +408,8 @@ func createServerInstance(t *testing.T) (*server.Instance, error) {
 	// Build the node
 	emptyNdf := builEmptydMockNdf()
 	// Initialize definition
-	def := &server.Definition{
-		Flags:         server.Flags{},
+	def := &internal.Definition{
+		Flags:         internal.Flags{},
 		ID:            nodeId,
 		PublicKey:     nil,
 		PrivateKey:    nil,
@@ -419,7 +419,7 @@ func createServerInstance(t *testing.T) (*server.Instance, error) {
 		LogPath:       "",
 		MetricLogPath: "",
 		UserRegistry:  nil,
-		Permissioning: server.Perm{
+		Permissioning: internal.Perm{
 			TlsCert:          []byte(testUtil.RegCert),
 			Address:          pAddr,
 			RegistrationCode: "",
@@ -439,12 +439,12 @@ func createServerInstance(t *testing.T) (*server.Instance, error) {
 	}
 
 	// Add handler for instance
-	impl := func(i *server.Instance) *node.Implementation {
-		return receivers.NewImplementation(i)
+	impl := func(i *internal.Instance) *node.Implementation {
+		return io.NewImplementation(i)
 	}
 
 	// Generate instance
-	instance, err := server.CreateServerInstance(def, impl, sm, true)
+	instance, err := internal.CreateServerInstance(def, impl, sm, true)
 	if err != nil {
 		return nil, errors.Errorf("Unable to create instance: %+v", err)
 	}

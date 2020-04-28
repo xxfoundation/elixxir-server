@@ -22,13 +22,12 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
@@ -40,10 +39,14 @@ import (
 )
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	MultiInstanceTest(3, 32, t)
+	MultiInstanceTest(3, 32, false, t)
 }
 
-func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
+func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
+	MultiInstanceTest(3, 32, true, t)
+}
+
+func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
@@ -56,7 +59,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 	//get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset)
+	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, useGPU, grp)
 
 	//make user for sending messages
 	userID := id.NewUserFromUint(42, t)
@@ -80,19 +83,19 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	}
 
 	// build the instances
-	var instances []*server.Instance
+	var instances []*internal.Instance
 
 	t.Logf("Building instances for %v nodes", numNodes)
 
 	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(&measure.ResourceMetric{})
+	resourceMonitor.Set(measure.ResourceMetric{})
 
 	for i := 0; i < numNodes; i++ {
-		var instance *server.Instance
+		var instance *internal.Instance
 
 		// Add handler for instance
-		impl := func(i *server.Instance) *nodeComms.Implementation {
-			return receivers.NewImplementation(i)
+		impl := func(i *internal.Instance) *nodeComms.Implementation {
+			return io.NewImplementation(i)
 		}
 
 		// Construct the state machine
@@ -131,7 +134,7 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 
 		sm := state.NewMachine(testStates)
 
-		instance, _ = server.CreateServerInstance(defsLst[i], impl, sm, true)
+		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, true)
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
@@ -170,14 +173,13 @@ func MultiInstanceTest(numNodes, batchsize int, t *testing.T) {
 	ourTopology := make([]string, 0)
 	for _, nodeInstance := range instances {
 		ourTopology = append(ourTopology, nodeInstance.GetID().String())
-
 	}
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
 		ID:        0,
 		UpdateID:  0,
 		State:     uint32(current.PRECOMPUTING),
-		BatchSize: 32,
+		BatchSize: uint32(batchsize),
 		Topology:  ourTopology,
 	}
 
@@ -388,11 +390,11 @@ func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 }
 
 //
-func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
+func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo) {
 
 	// Define a mechanism to wait until the next state
-	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *server.Instance) {
+	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *internal.Instance) {
 		wg.Add(1)
 		go func() {
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
@@ -460,7 +462,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 		}
 	}
 
-	err := receivers.HandleRealtimeBatch(nodes[0], ecrBatch, io.PostPhase)
+	err := io.HandleRealtimeBatch(nodes[0], ecrBatch, io.PostPhase)
 	if err != nil {
 		t.Errorf("Unable to handle realtime batch: %+v", err)
 	}
@@ -486,11 +488,12 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 	return nil
 }
 
-func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
+func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
+	grp *cyclic.Group) []*internal.Definition {
 
 	//generate IDs and addresses
 	var nidLst []*id.Node
-	var nodeLst []server.Node
+	var nodeLst []internal.Node
 	addrFmt := "localhost:%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
@@ -501,7 +504,7 @@ func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
 		//generate address
 		addr := fmt.Sprintf(addrFmt, i+portstart)
 
-		n := server.Node{
+		n := internal.Node{
 			ID:      nodeID,
 			Address: addr,
 		}
@@ -512,7 +515,7 @@ func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
 	networkDef := buildNdf(nodeLst)
 
 	//generate parameters list
-	var defLst []*server.Definition
+	var defLst []*internal.Definition
 
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
@@ -520,12 +523,14 @@ func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
 
 	for i := 0; i < numNodes; i++ {
 
-		def := server.Definition{
+		def := internal.Definition{
 			ID: nidLst[i],
-			Flags: server.Flags{
+			Flags: internal.Flags{
 				KeepBuffers: true,
+				UseGPU:      useGPU,
 			},
-			Gateway: server.GW{
+			TlsCert: []byte(testUtil.RegCert),
+			Gateway: internal.GW{
 				ID:      nidLst[i].NewGateway(),
 				TlsCert: nil,
 				Address: "",
@@ -535,7 +540,7 @@ func makeMultiInstanceParams(numNodes, portstart int) []*server.Definition {
 			FullNDF:         networkDef,
 			PartialNDF:      networkDef,
 			Address:         nodeLst[i].Address,
-			MetricsHandler:  func(i *server.Instance, roundID id.Round) error { return nil },
+			MetricsHandler:  func(i *internal.Instance, roundID id.Round) error { return nil },
 			GraphGenerator:  services.NewGraphGenerator(4, PanicHandler, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
@@ -565,7 +570,7 @@ func makeMultiInstanceGroup() *cyclic.Group {
 }
 
 // buildNdf builds the ndf used for definitions
-func buildNdf(nodeLst []server.Node) *ndf.NetworkDefinition {
+func buildNdf(nodeLst []internal.Node) *ndf.NetworkDefinition {
 	// Pull the node id's out of nodeList
 	ndfNodes := make([]ndf.Node, 0)
 	for _, ourNode := range nodeLst {

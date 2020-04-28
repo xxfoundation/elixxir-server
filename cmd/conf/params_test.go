@@ -19,6 +19,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		SkipReg:          true,
 		Verbose:          true,
 		KeepBuffers:      true,
+		UseGPU:           true,
 		Groups:           ExpectedGroups,
 		RngScalingFactor: 10000,
 
@@ -59,20 +60,24 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Params group value does not match expected value")
 	}
 
-	if expectedParams.Index != 5 {
+	if expectedParams.Index != params.Index {
 		t.Errorf("Params index value does not match expected value")
 	}
 
-	if expectedParams.SkipReg != true {
+	if expectedParams.SkipReg != params.SkipReg {
 		t.Errorf("Params skipreg value does not match expected value")
 	}
 
-	if expectedParams.KeepBuffers != true {
+	if expectedParams.KeepBuffers != params.KeepBuffers {
 		t.Errorf("Params keepbuffers value does not match expected value")
 	}
 
-	if expectedParams.Verbose != true {
+	if expectedParams.Verbose != params.Verbose {
 		t.Errorf("Params verbose value does not match expected value")
+	}
+
+	if expectedParams.UseGPU != params.UseGPU {
+		t.Error("Unexpected Params UseGPU value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {

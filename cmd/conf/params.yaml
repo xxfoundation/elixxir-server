@@ -45,9 +45,11 @@ groups:
     smallprime: "0x0B"
     generator: "0x04"
 batch: 20
+index: 5
 verbose: true
 skipReg: true
 keepBuffers: true
+useGpu: true
 metrics:
   log:  "~/.elixxir/metrics.log"
 ...
