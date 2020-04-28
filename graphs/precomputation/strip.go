@@ -23,7 +23,7 @@ import (
 // StripStream holds data containing private key from encrypt and
 // inputs used by strip
 type StripStream struct {
-	Grp *cyclic.Group
+	Grp        *cyclic.Group
 	StreamPool *gpumaths.StreamPool
 
 	// Link to round object
@@ -201,7 +201,7 @@ var StripChunk = services.Module{
 		cpa := ss.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
 		ppa := ss.EncryptedPayloadAPrecomputation[chunk.Begin():chunk.End()]
 		ppaResults := ss.PayloadAPrecomputation.GetSubBuffer(chunk.Begin(), chunk.End())
-		err := sc(gpuStreams, ss.Grp,  ppaResults, ss.Z, ppa, cpa)
+		err := sc(gpuStreams, ss.Grp, ppaResults, ss.Z, ppa, cpa)
 		if err != nil {
 			return err
 		}
@@ -214,14 +214,12 @@ var StripChunk = services.Module{
 			return err
 		}
 
-
 		return nil
 	},
 	Cryptop:    gpumaths.StripChunk,
 	Name:       "PrecompStripGPU",
 	NumThreads: 2,
 }
-
 
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {

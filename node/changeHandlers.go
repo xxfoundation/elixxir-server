@@ -5,7 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package node
 
-// ChangeHandlers contains the logic for every state within the state machine
+// ChangeHandlers contains the logic for every state within the state machine.
 
 import (
 	"github.com/pkg/errors"
@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
@@ -35,21 +36,33 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
 
-	// Connect to the Permissioning Server without authentication
-	permHost, err := network.AddHost(id.PERMISSIONING,
-		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, false)
-	if err != nil {
-		return errors.Errorf("Unable to connect to registration server: %+v", err)
-	}
+	// Get the Server and Gateway certificates from file, if they exist
+	certsExist, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
+		ourDef.GatewayCertPath)
 
-	// Blocking call: Begin Node registration
-	err = permissioning.RegisterNode(ourDef, network, permHost)
-	if err != nil {
-		return errors.Errorf("Failed to register node: %+v", err)
-	}
+	// If the certificates were retrieved from file, so do not need to register
+	if !certsExist {
+		jww.INFO.Printf("Registering with permissioning!")
+		// Connect to the Permissioning Server without authentication
+		permHost, err := network.AddHost(id.PERMISSIONING,
+			// instance.GetPermissioningAddress,
+			ourDef.Permissioning.Address,
+			ourDef.Permissioning.TlsCert,
+			true,
+			false)
+		if err != nil {
+			return errors.Errorf("Unable to connect to registration server: %+v", err)
+		}
 
-	// Disconnect the old permissioning server to enable authentication
-	permHost.Disconnect()
+		// Blocking call: begin Node registration
+		err = permissioning.RegisterNode(ourDef, network, permHost)
+		if err != nil {
+			return errors.Errorf("Failed to register node: %+v", err)
+		}
+
+		// Disconnect the old Permissioning server to enable authentication
+		permHost.Disconnect()
+	}
 
 	// Connect to the Permissioning Server with authentication enabled
 	// the server does not have a signed cert, but the pemrissionign has its cert,
@@ -57,7 +70,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
-	permHost, err = network.AddHost(id.PERMISSIONING,
+	permHost, err := network.AddHost(id.PERMISSIONING,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -88,10 +101,18 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
 	}
 
-	// Parse the Ndf for the new signed certs from  permissioning
-	serverCert, gwCert, err := permissioning.FindSelfInNdf(ourDef, instance.GetConsensus().GetFullNdf().Get())
-	if err != nil {
-		return errors.Errorf("Failed to install ndf: %+v", err)
+	// Do not need to get the Server and Gateway certificates if they were
+	// already retrieved from file
+	if !certsExist {
+		// Parse the NDF for the new signed certificate from Permissioning
+		serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
+			instance.GetConsensus().GetFullNdf().Get())
+		if err != nil {
+			return errors.Errorf("Failed to install NDF: %+v", err)
+		}
+
+		// Save the retrieved certificates to file
+		writeCertificates(ourDef, serverCert, gwCert)
 	}
 
 	// Restart the network with these signed certs
@@ -278,4 +299,61 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	stateChanges[current.CRASH] = Dummy
 
 	return stateChanges
+}
+
+// getCertificates retrieves the Server and Gateway certificates from the path
+// in the definition. If one ore more certificate is not found, then that
+// certificate is returned as an empty string and the function returns false.
+func getCertificates(serverPath, gatewayPath string) (bool, string, string) {
+	var serverCert, gatewayCert []byte
+	var err error
+
+	// Check if the Server certificate files exist
+	serverCertExists := utils.FileExists(serverPath)
+
+	if serverCertExists {
+		// Load the Server certificate from file
+		serverCert, err = utils.ReadFile(serverPath)
+		if err != nil {
+			jww.DEBUG.Printf("Received Server's certificate from file %s: %v",
+				serverPath, err)
+		}
+	}
+
+	// Check if the Gateway certificate files exist
+	gatewayCertExists := utils.FileExists(gatewayPath)
+
+	if gatewayCertExists {
+		// Load the Gateway certificate from file
+		gatewayCert, err = utils.ReadFile(gatewayPath)
+		if err != nil {
+			jww.DEBUG.Printf("Received Gateway's certificate from file: %s: %v",
+				gatewayPath, err)
+		}
+	}
+
+	return serverCertExists && gatewayCertExists,
+		string(serverCert),
+		string(gatewayCert)
+}
+
+// writeCertificates writes the Server and Gateway certificates to the paths
+// in the definition. If either file fails to save, then it panics.
+func writeCertificates(def *internal.Definition, serverCert, gatewayCert string) {
+
+	// Write the Server certificate to specified path
+	err := utils.WriteFile(def.ServerCertPath, []byte(serverCert),
+		utils.FilePerms, utils.DirPerms)
+	if err != nil {
+		jww.FATAL.Panicf("Error writing Server certificate to path "+
+			"%s: %v", def.ServerCertPath, err)
+	}
+
+	// Write the Gateway certificate to specified path
+	err = utils.WriteFile(def.GatewayCertPath, []byte(gatewayCert),
+		utils.FilePerms, utils.DirPerms)
+	if err != nil {
+		jww.FATAL.Panicf("Error writing Gateway certificate to path "+
+			"%s: %v", def.GatewayCertPath, err)
+	}
 }

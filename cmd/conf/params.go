@@ -38,6 +38,8 @@ type Params struct {
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
 	GWConnTimeout    time.Duration
+	ServerCertPath   string
+	GatewayCertPath  string
 
 	Node          Node
 	Database      Database
@@ -74,6 +76,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
 	params.Permissioning.Address = vip.GetString("permissioning.address")
 	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
+
+	params.ServerCertPath = vip.GetString("node.paths.cert")
+	params.GatewayCertPath = vip.GetString("gateways.paths.cert")
 
 	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
 	if params.GraphGen.defaultNumTh == 0 {
@@ -216,6 +221,8 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
+	def.ServerCertPath = p.ServerCertPath + "-definition"
+	def.GatewayCertPath = p.GatewayCertPath + "-definition"
 	def.Gateway.Address = p.Gateways.Addresses[p.Index]
 	var GwTlsCerts []byte
 
@@ -245,9 +252,7 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	var privateKey *rsa.PrivateKey
 	var publicKey *rsa.PublicKey
 
-	if p.Node.Paths.Cert == "" || p.Node.Paths.Key == "" {
-		jww.FATAL.Panicf("Could not generate RSA key: %+v", err)
-	} else {
+	if p.Node.Paths.Cert != "" || p.Node.Paths.Key != "" {
 		// Get the node's TLS cert
 		tlsCertPEM, err := utils.ReadFile(p.Node.Paths.Cert)
 		if err != nil {
