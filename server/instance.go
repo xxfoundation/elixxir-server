@@ -473,10 +473,13 @@ func GenerateId(i interface{}) *id.Node {
 
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
-func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.Node) {
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.Node, roundId *id.Round) {
 	roundErr := mixmessages.RoundError{
 		Error:  errIn.Error(),
 		NodeId: nodeId.String(),
+	}
+	if roundId != nil {
+		roundErr.Id = uint64(*roundId)
 	}
 	// pass the error over the chanel
 	//instance get err chan

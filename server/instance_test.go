@@ -277,7 +277,7 @@ func TestInstance_ReportCriticalError(t *testing.T) {
 	instance, _ := createInstance(t)
 
 	testErr := errors.New("Test error")
-	instance.ReportRoundFailure(testErr, id.NewNodeFromUInt(uint64(1), t))
+	instance.ReportRoundFailure(testErr, id.NewNodeFromUInt(uint64(1), t), nil)
 
 	//Test happy path
 

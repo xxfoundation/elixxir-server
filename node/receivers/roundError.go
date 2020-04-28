@@ -53,9 +53,9 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 	jww.ERROR.Printf("ReceiveRoundError received error from [%v]: %+v. Transitioning to ERROR...",
 		badNodeId, msg.Error)
 
-	// Update to the error state if a valid round error
 	roundError := errors.New(msg.Error)
-	instance.ReportRoundFailure(roundError, badNodeId)
+	rid := id.Round(roundId)
+	instance.ReportRoundFailure(roundError, badNodeId, &rid)
 
 	return nil
 }
