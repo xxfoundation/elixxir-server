@@ -217,8 +217,8 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
-	def.ServerCertPath = "definition-" + p.ServerCertPath
-	def.GatewayCertPath = "definition-" + p.GatewayCertPath
+	def.ServerCertPath =  p.ServerCertPath + "-definition"
+	def.GatewayCertPath =  p.GatewayCertPath + "-definition"
 	def.Gateway.Address = p.Gateways.Addresses[p.Index]
 	var GwTlsCerts []byte
 
