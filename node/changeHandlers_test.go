@@ -147,7 +147,7 @@ func signRoundInfo(ri *mixmessages.RoundInfo) error {
 // certificates from file.
 func Test_getCertificates(t *testing.T) {
 	// Set up server definition with Server and Gateway certificate paths
-	def := &server.Definition{
+	def := &internal.Definition{
 		ServerCertPath:  "server-temp.cert",
 		GatewayCertPath: "gateway-temp.cert",
 	}
@@ -204,7 +204,7 @@ func Test_getCertificates(t *testing.T) {
 func Test_getCertificates_PanicGateway(t *testing.T) {
 	// Set up server definition with Server and Gateway certificate paths; the
 	// Gateway path is invalid.
-	def := &server.Definition{
+	def := &internal.Definition{
 		ServerCertPath:  "server-temp.cert",
 		GatewayCertPath: "~a/gateway-temp.cert",
 	}
@@ -231,7 +231,7 @@ func Test_getCertificates_PanicGateway(t *testing.T) {
 // certificates to file.
 func Test_writeCertificates(t *testing.T) {
 	// Set up server definition with Server and Gateway certificate paths
-	def := &server.Definition{
+	def := &internal.Definition{
 		ServerCertPath:  "server-temp.cert",
 		GatewayCertPath: "gateway-temp.cert",
 	}
@@ -276,7 +276,7 @@ func Test_writeCertificates(t *testing.T) {
 func Test_writeCertificates_PanicServer(t *testing.T) {
 	// Set up server definition with Server and Gateway certificate paths; the
 	// Server path is invalid.
-	def := &server.Definition{
+	def := &internal.Definition{
 		ServerCertPath:  "~a/server-temp.cert",
 		GatewayCertPath: "gateway-temp.cert",
 	}
@@ -304,7 +304,7 @@ func Test_writeCertificates_PanicServer(t *testing.T) {
 func Test_writeCertificates_PanicGateway(t *testing.T) {
 	// Set up server definition with Server and Gateway certificate paths; the
 	// Gateway path is invalid.
-	def := &server.Definition{
+	def := &internal.Definition{
 		ServerCertPath:  "server-temp.cert",
 		GatewayCertPath: "~a/gateway-temp.cert",
 	}

@@ -16,12 +16,12 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/node/receivers"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/server/state"
 	"strings"
 	"time"
 )
@@ -339,7 +339,7 @@ func getCertificates(serverPath, gatewayPath string) (bool, string, string) {
 
 // writeCertificates writes the Server and Gateway certificates to the paths
 // in the definition. If either file fails to save, then it panics.
-func writeCertificates(def *server.Definition, serverCert, gatewayCert string) {
+func writeCertificates(def *internal.Definition, serverCert, gatewayCert string) {
 
 	// Write the Server certificate to specified path
 	err := utils.WriteFile(def.ServerCertPath, []byte(serverCert),
