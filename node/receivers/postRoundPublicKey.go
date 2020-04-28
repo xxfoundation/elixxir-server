@@ -107,7 +107,7 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		if err != nil {
 			roundErr := errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to get decrypt phase: %+v", err)
-			instance.ReportRoundFailure(roundErr)
+			instance.ReportRoundFailure(roundErr, instance.GetID())
 		}
 
 		jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance,
@@ -121,14 +121,14 @@ func ReceivePostRoundPublicKey(instance *server.Instance,
 		if !queued {
 			roundErr := errors.Errorf("Error on first node PostRoundPublicKey " +
 				"comm, should be able to queue decrypt phase")
-			instance.ReportRoundFailure(roundErr)
+			instance.ReportRoundFailure(roundErr, instance.GetID())
 		}
 		err = io.PostPhase(decrypt, blankBatch)
 
 		if err != nil {
 			roundErr := errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to post to decrypt phase: %+v", err)
-			instance.ReportRoundFailure(roundErr)
+			instance.ReportRoundFailure(roundErr, instance.GetID())
 		}
 	}
 	return nil

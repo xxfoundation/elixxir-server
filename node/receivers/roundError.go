@@ -55,7 +55,7 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 
 	// Update to the error state if a valid round error
 	roundError := errors.New(msg.Error)
-	instance.ReportRoundFailure(roundError)
+	instance.ReportRoundFailure(roundError, badNodeId)
 
 	return nil
 }

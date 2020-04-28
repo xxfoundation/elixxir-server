@@ -392,6 +392,7 @@ func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
 }
 
 func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	jww.FATAL.Printf("Sending round error to %+v\n", h)
 	return i.roundErrFunc(h, m)
 }
 
@@ -472,9 +473,11 @@ func GenerateId(i interface{}) *id.Node {
 
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
-func (i *Instance) ReportRoundFailure(errIn error) {
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.Node) {
 	roundErr := mixmessages.RoundError{
-		Error: errIn.Error()}
+		Error:  errIn.Error(),
+		NodeId: nodeId.String(),
+	}
 	// pass the error over the chanel
 	//instance get err chan
 	i.roundError = &roundErr

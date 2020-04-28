@@ -130,7 +130,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 
 		if err != nil {
 			roundErr := errors.Errorf("Round %d does not exist!", runningPhase.GetRoundID())
-			server.ReportRoundFailure(roundErr)
+			server.ReportRoundFailure(roundErr, server.GetID())
 		}
 
 		//start the phase's transmission handler
@@ -143,7 +143,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 				// This error can be used to create a Byzantine Fault
 				roundErr := errors.Errorf("Transmission Handler for phase %s of round %v errored: %+v",
 					runningPhase.GetType(), runningPhase.GetRoundID(), err)
-				server.ReportRoundFailure(roundErr)
+				server.ReportRoundFailure(roundErr, server.GetID())
 			}
 		}()
 
@@ -169,7 +169,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 				rq.activePhase.GetType().String())
 			roundErr := errors.Errorf("Round has timed out killing the round %v", curRound.GetID())
 
-			server.ReportRoundFailure(roundErr)
+			server.ReportRoundFailure(roundErr, server.GetID())
 			//FIXME: also killChan the transmission handler
 			/*kill := rq.activePhase.GetGraph().Kill()
 			if kill {
@@ -192,7 +192,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 				"round %v is currently running, a completion signal of %s "+
 				" cannot be processed", rq.activePhase.GetType(),
 				rq.activePhase.GetRoundID(), rtnPhase.GetType())
-			server.ReportRoundFailure(roundErr)
+			server.ReportRoundFailure(roundErr, server.GetID())
 		}
 
 		// Aggregate the runtimes of the individual threads

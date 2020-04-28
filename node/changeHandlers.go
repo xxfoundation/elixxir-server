@@ -116,7 +116,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 		cur, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
 		if cur != current.NOT_STARTED || err != nil {
 			roundErr := errors.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
-			instance.ReportRoundFailure(roundErr)
+			instance.ReportRoundFailure(roundErr, instance.GetID())
 		}
 
 		// if error passed in go to error
@@ -124,14 +124,14 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 			ok, err := instance.GetStateMachine().Update(current.ERROR)
 			if !ok || err != nil {
 				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
-				instance.ReportRoundFailure(roundErr)
+				instance.ReportRoundFailure(roundErr, instance.GetID())
 			}
 		} else {
 			// Transition state machine into waiting state
 			ok, err := instance.GetStateMachine().Update(current.WAITING)
 			if !ok || err != nil {
 				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
-				instance.ReportRoundFailure(roundErr)
+				instance.ReportRoundFailure(roundErr, instance.GetID())
 			}
 		}
 
@@ -143,7 +143,7 @@ func NotStarted(instance *server.Instance, noTls bool) error {
 			if err != nil {
 				// If we receive an error polling here, panic this thread
 				roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
-				instance.ReportRoundFailure(roundErr)
+				instance.ReportRoundFailure(roundErr, instance.GetID())
 			}
 		}
 	}()
@@ -297,19 +297,21 @@ func Error(instance *server.Instance) error {
 		top := r.GetTopology()
 		for i := 0; i < top.Len(); i++ {
 			n := top.GetNodeAtIndex(i)
-			// Don't need to send back to self
-			if !instance.GetID().Cmp(n) {
-				h, ok := instance.GetNetwork().GetHost(n.String())
-				if !ok {
-					jww.ERROR.Printf("Could not get host for node %s", n.String())
-				}
+			go func() {
+				// Don't need to send back to self
+				if !instance.GetID().Cmp(n) {
+					h, ok := instance.GetNetwork().GetHost(n.String())
+					if !ok {
+						jww.ERROR.Printf("Could not get host for node %s", n.String())
+					}
 
-				_, err := instance.SendRoundError(h, msg)
-				if err != nil {
-					err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
-					jww.ERROR.Printf(err.Error())
+					_, err := instance.SendRoundError(h, msg)
+					if err != nil {
+						err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
+						jww.ERROR.Printf(err.Error())
+					}
 				}
-			}
+			}()
 		}
 	}
 
