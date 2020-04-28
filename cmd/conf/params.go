@@ -217,8 +217,8 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
-	def.ServerCertPath = p.ServerCertPath
-	def.GatewayCertPath = p.GatewayCertPath
+	def.ServerCertPath = "definition-" + p.ServerCertPath
+	def.GatewayCertPath = "definition-" + p.GatewayCertPath
 	def.Gateway.Address = p.Gateways.Addresses[p.Index]
 	var GwTlsCerts []byte
 
@@ -246,9 +246,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	var privateKey *rsa.PrivateKey
 	var publicKey *rsa.PublicKey
 
-	if p.Node.Paths.Cert == "" || p.Node.Paths.Key == "" {
-		jww.FATAL.Panicf("Could not generate RSA key: %+v", err)
-	} else {
+	if p.Node.Paths.Cert != "" || p.Node.Paths.Key != "" {
 		// Get the node's TLS cert
 		tlsCertPEM, err := utils.ReadFile(p.Node.Paths.Cert)
 		if err != nil {
