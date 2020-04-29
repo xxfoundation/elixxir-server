@@ -41,7 +41,6 @@ import (
 	"time"
 )
 
-var errChan = make(chan bool)
 var errWg = sync.WaitGroup{}
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
@@ -59,7 +58,6 @@ func Test_MultiInstance_PhaseErr(t *testing.T) {
 func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *testing.T) {
 	if errorPhase {
 		defer func() {
-			errWg.Wait()
 			if r := recover(); r != nil {
 				return
 			}
@@ -179,7 +177,6 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			errWg.Add(1)
 			f := func(s string) {
 				errWg.Done()
-				errChan <- true
 			}
 			instance.OverridePanicWrapper(f, t)
 		}
@@ -486,7 +483,7 @@ func iterate(done chan struct{}, nodes []*server.Instance, t *testing.T,
 	}
 
 	if errorPhase {
-		<-errChan
+		errWg.Wait()
 		done <- struct{}{}
 		return
 	}
