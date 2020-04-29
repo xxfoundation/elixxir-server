@@ -34,7 +34,8 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 	}
 
 	rm := instance.GetRoundManager()
-	r, err := rm.GetRound(id.Round(roundID))
+	rid := id.Round(roundID)
+	r, err := rm.GetRound(rid)
 	if err != nil {
 		return errors.WithMessagef(err, "Failed to retrieve round %+v", roundID)
 	}
@@ -74,11 +75,11 @@ func ReceivePostPrecompResult(instance *server.Instance, roundID uint64,
 		ok, err := instance.GetStateMachine().Update(current.STANDBY)
 		if err != nil {
 			roundErr := errors.Errorf("Failed to transition to state STANDBY: %+v", err)
-			instance.ReportRoundFailure(roundErr)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 		}
 		if !ok {
 			roundErr := errors.Errorf("Could not transition to state STANDBY")
-			instance.ReportRoundFailure(roundErr)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 		}
 	}()
 	return nil

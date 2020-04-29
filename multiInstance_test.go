@@ -42,6 +42,7 @@ import (
 )
 
 var errChan = make(chan bool)
+var errWg = sync.WaitGroup{}
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
 	MultiInstanceTest(3, 32, false, false, t)
@@ -58,6 +59,7 @@ func Test_MultiInstance_PhaseErr(t *testing.T) {
 func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *testing.T) {
 	if errorPhase {
 		defer func() {
+			errWg.Wait()
 			if r := recover(); r != nil {
 				return
 			}
@@ -156,23 +158,27 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		}
 
 		if errorPhase {
-			gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
-				uint8(runtime.NumCPU()), 1, 0)
-			g := graphs.InitErrorGraph(gc)
-			th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
-				return errors.New("Failed intentionally")
+			if i == 0 {
+				gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
+					uint8(runtime.NumCPU()), 1, 0)
+				g := graphs.InitErrorGraph(gc)
+				th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+					return errors.New("Failed intentionally")
+				}
+				overrides := map[int]phase.Phase{}
+				p := phase.New(phase.Definition{
+					Graph:               g,
+					Type:                phase.PrecompGeneration,
+					TransmissionHandler: th,
+					Timeout:             500,
+					DoVerification:      false,
+				})
+				overrides[0] = p
+				instance.OverridePhases(overrides, t)
 			}
-			overrides := map[int]phase.Phase{}
-			p := phase.New(phase.Definition{
-				Graph:               g,
-				Type:                phase.PrecompGeneration,
-				TransmissionHandler: th,
-				Timeout:             500,
-				DoVerification:      false,
-			})
-			overrides[0] = p
-			instance.OverridePhases(overrides, t)
+			errWg.Add(1)
 			f := func(s string) {
+				errWg.Done()
 				errChan <- true
 			}
 			instance.OverridePanicWrapper(f, t)

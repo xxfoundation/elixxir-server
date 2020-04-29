@@ -9,6 +9,6 @@ func GetDefaultPanicHanlder(i *server.Instance) func(g, m string, err error) {
 	return func(g, m string, err error) {
 		roundErr := errors.Errorf("Error in module %s of graph %s: %+v", g,
 			m, err)
-		i.ReportRoundFailure(roundErr)
+		i.ReportRoundFailure(roundErr, i.GetID(), nil)
 	}
 }
