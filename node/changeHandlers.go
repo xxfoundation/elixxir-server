@@ -79,11 +79,18 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 
-	for err != nil && strings.Contains(err.Error(), ndf.NO_NDF) {
+	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(),"Failed to find node in ndf")) {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
+			//find certs in NDF
+			serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
+				instance.GetConsensus().GetFullNdf().Get())
+			if err != nil {
+				//if certs are not in NDF, redo the poll
+				continue
+			}
 			err = permissioning.UpdateNDf(permResponse, instance)
 		}
 	}
@@ -104,13 +111,6 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Do not need to get the Server and Gateway certificates if they were
 	// already retrieved from file
 	if !certsExist {
-		// Parse the NDF for the new signed certificate from Permissioning
-		serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
-			instance.GetConsensus().GetFullNdf().Get())
-		if err != nil {
-			return errors.Errorf("Failed to install NDF: %+v", err)
-		}
-
 		// Save the retrieved certificates to file
 		writeCertificates(ourDef, serverCert, gwCert)
 	}

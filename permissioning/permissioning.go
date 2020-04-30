@@ -61,7 +61,12 @@ func Poll(instance *internal.Instance) error {
 		return errors.New("Could not get permissioning host")
 	}
 
-	reportedActivity := instance.GetStateMachine().Get()
+	var reportedActivity current.Activity
+	select{
+	case reportedActivity = <- instance.GetStateMachine().GetBuffer():
+	default:
+		reportedActivity = instance.GetStateMachine().Get()
+	}
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
