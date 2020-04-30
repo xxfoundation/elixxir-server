@@ -79,7 +79,18 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 
+	waitUntil := 3 *time.Minute
+	reportTicker := time.NewTicker(waitUntil)
+
+	jww.INFO.Printf("our id: %v", instance.GetID())
 	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(),"Failed to find node in ndf")) {
+		select {
+		case <-reportTicker.C:
+			return errors.Errorf("Failed to get the ndf within %v", waitUntil)
+		default:
+
+		}
+
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
@@ -110,7 +121,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 
 	// Do not need to get the Server and Gateway certificates if they were
 	// already retrieved from file
-	if !certsExist {
+	if !certsExist && ourDef.WriteToFile {
 		// Save the retrieved certificates to file
 		writeCertificates(ourDef, serverCert, gwCert)
 	}
@@ -144,7 +155,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 
 		// Periodically re-poll permissioning
 		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(50 * time.Millisecond)
+		ticker := time.NewTicker(25 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
