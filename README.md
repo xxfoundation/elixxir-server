@@ -36,8 +36,8 @@ Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go be
 
 ## Updating Version Info
 ```
-$ rm cmd/version_vars.go 
 $ go run main.go generate 
+$ rm cmd/version_vars.go 
 $ mv version_vars.go cmd
 ```
 
