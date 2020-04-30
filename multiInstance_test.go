@@ -172,7 +172,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 					DoVerification:      false,
 				})
 				overrides[0] = p
-				instance.OverridePhases(overrides, t)
+				instance.OverridePhases(overrides)
 			}
 			errWg.Add(1)
 			f := func(s string) {

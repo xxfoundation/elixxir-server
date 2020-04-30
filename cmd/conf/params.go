@@ -46,6 +46,7 @@ type Params struct {
 	Metrics       Metrics
 	GraphGen      GraphGen
 
+	PhaseOverrides   []int
 	RecoveredErrFile string
 }
 
@@ -98,6 +99,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	params.RecoveredErrFile = vip.GetString("recoveredErrFile")
+	params.PhaseOverrides = vip.GetIntSlice("phaseOverrides")
 
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {

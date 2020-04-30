@@ -405,10 +405,7 @@ func (i *Instance) GetPanicWrapper() func(s string) {
 }
 
 /* TESTING FUNCTIONS */
-func (i *Instance) OverridePhases(overrides map[int]phase.Phase, t *testing.T) {
-	if t == nil {
-		panic("Cannot call this outside of tests")
-	}
+func (i *Instance) OverridePhases(overrides map[int]phase.Phase) {
 	i.phaseOverrides = overrides
 }
 

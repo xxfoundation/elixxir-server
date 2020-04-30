@@ -19,10 +19,13 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/node/receivers"
 	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/services"
 	"os"
 	"runtime"
 	"time"
@@ -166,6 +169,28 @@ func StartServer(vip *viper.Viper) error {
 		if err != nil {
 			return errors.WithMessage(err, "Could not recover server instance")
 		}
+	}
+
+	if params.PhaseOverrides != nil {
+		overrides := map[int]phase.Phase{}
+		gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
+			uint8(runtime.NumCPU()), 1, 0)
+		g := graphs.InitErrorGraph(gc)
+		th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+			return errors.New("Failed intentionally")
+		}
+		for _, i := range params.PhaseOverrides {
+			p := phase.New(phase.Definition{
+				Graph:               g,
+				Type:                phase.PrecompGeneration,
+				TransmissionHandler: th,
+				Timeout:             500,
+				DoVerification:      false,
+			})
+			overrides[i] = p
+		}
+
+		instance.OverridePhases(overrides)
 	}
 
 	jww.INFO.Printf("Instance created!")
