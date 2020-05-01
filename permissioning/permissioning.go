@@ -234,7 +234,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 
 	if permissioningResponse.FullNDF != nil {
-
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {

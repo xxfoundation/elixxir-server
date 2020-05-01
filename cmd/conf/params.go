@@ -66,7 +66,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
 	params.Node.Addresses = vip.GetStringSlice("node.addresses")
 
-
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
@@ -226,10 +225,10 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
 
-	//
+	// Only def values if params is set
 	if p.SignedCertPath != "" {
 		def.WriteToFile = true
-		def.ServerCertPath = p.ServerCertPath + "-definition"
+		def.ServerCertPath = p.SignedCertPath
 		def.GatewayCertPath = p.GatewayCertPath + "-definition"
 	}
 

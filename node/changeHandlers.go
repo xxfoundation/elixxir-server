@@ -109,9 +109,6 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
-
-	jww.DEBUG.Printf("Recieved ndf for first time!")
-
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
