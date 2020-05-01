@@ -80,12 +80,11 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	err = errors.Errorf(ndf.NO_NDF)
 
 	waitUntil := 3 *time.Minute
-	reportTicker := time.NewTicker(waitUntil)
+	pollingTicker := time.NewTicker(waitUntil)
 
-	jww.INFO.Printf("our id: %v", instance.GetID())
-	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(),"Failed to find node in ndf")) {
+	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
 		select {
-		case <-reportTicker.C:
+		case <-pollingTicker.C:
 			return errors.Errorf("Failed to get the ndf within %v", waitUntil)
 		default:
 
@@ -106,10 +105,13 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		}
 	}
 
-	jww.DEBUG.Printf("Recieved ndf for first time!")
+	// Check for unexpected errors (ie errors from polling other than NO_NDF)
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
+
+	jww.DEBUG.Printf("Recieved ndf for first time!")
+
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
