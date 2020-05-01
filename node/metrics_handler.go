@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package node
 
 import (
@@ -6,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -29,7 +34,7 @@ const (
 
 // GatherMetrics retrieves the roundMetrics for each node, converts it to JSON,
 // and writes them to a log file.
-func GatherMetrics(instance *server.Instance, roundID id.Round, whitespace bool) error {
+func GatherMetrics(instance *internal.Instance, roundID id.Round, whitespace bool) error {
 	// Get metrics for all nodes
 	rm := instance.GetRoundManager()
 	r, err := rm.GetRound(roundID)

@@ -2,10 +2,10 @@ package node
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internal"
 )
 
-func GetDefaultPanicHanlder(i *server.Instance) func(g, m string, err error) {
+func GetDefaultPanicHanlder(i *internal.Instance) func(g, m string, err error) {
 	return func(g, m string, err error) {
 		roundErr := errors.Errorf("Error in module %s of graph %s: %+v", g,
 			m, err)

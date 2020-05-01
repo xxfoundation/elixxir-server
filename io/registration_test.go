@@ -22,9 +22,9 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"math/rand"
 	"os"
@@ -32,14 +32,14 @@ import (
 	"time"
 )
 
-var serverInstance *server.Instance
+var serverInstance *internal.Instance
 var clientRSAPub *rsa.PublicKey
 var clientRSAPriv *rsa.PrivateKey
 var clientDHPub *cyclic.Int
 var regPrivKey *rsa.PrivateKey
 var nodeId *id.Node
 
-func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.Node, string) {
+func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.Node, string) {
 	switch v := t.(type) {
 	case *testing.T:
 	case *testing.M:
@@ -63,7 +63,7 @@ func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *c
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
-	nid := server.GenerateId(t)
+	nid := internal.GenerateId(t)
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
@@ -96,7 +96,7 @@ func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *c
 	serverRSAPub := serverRSAPriv.GetPublic()
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000))
 
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
@@ -116,7 +116,7 @@ func setup(t interface{}) (*server.Instance, *rsa.PublicKey, *rsa.PrivateKey, *c
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, mach, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, mach, false)
 
 	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid, nodeAddr
 }

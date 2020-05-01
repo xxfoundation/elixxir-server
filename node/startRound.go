@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package node
 
 import (
@@ -7,15 +12,15 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/round"
 	insecureRand "math/rand"
 )
 
-func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
+func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 	//get the round from the instance
 	rm := instance.GetRoundManager()
 
@@ -65,7 +70,7 @@ func StartLocalPrecomp(instance *server.Instance, rid id.Round) error {
 	return nil
 }
 
-func doRoundTripPing(round *round.Round, instance *server.Instance, ri *mixmessages.RoundInfo) error {
+func doRoundTripPing(round *round.Round, instance *internal.Instance, ri *mixmessages.RoundInfo) error {
 	payloadInfo := "EMPTY/ACK"
 	var payload proto.Message
 	payload = &mixmessages.Ack{}

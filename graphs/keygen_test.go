@@ -17,9 +17,9 @@ import (
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"golang.org/x/crypto/blake2b"
@@ -41,7 +41,7 @@ func (*KeygenTestStream) GetName() string {
 }
 
 func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
-	instance := source[0].(*server.Instance)
+	instance := source[0].(*internal.Instance)
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
@@ -464,11 +464,11 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	}
 }
 
-func mockServerInstance(i interface{}) *server.Instance {
+func mockServerInstance(i interface{}) *internal.Instance {
 
-	nid := server.GenerateId(i)
+	nid := internal.GenerateId(i)
 
-	def := server.Definition{
+	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
@@ -504,7 +504,7 @@ func mockServerInstance(i interface{}) *server.Instance {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := server.CreateServerInstance(&def, NewImplementation, sm, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
 
 	return instance
 }

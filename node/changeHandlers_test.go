@@ -15,19 +15,21 @@ import (
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
-	"gitlab.com/elixxir/server/server/round"
-	"gitlab.com/elixxir/server/server/state"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"os"
 	"testing"
 	"time"
 )
 
-func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
+func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	var nodeIDs []*id.Node
 
 	//Build IDs
@@ -42,20 +44,20 @@ func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
 	topology := connect.NewCircuit(nodeIDs)
 	gg := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
-	def := server.Definition{
+	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		GraphGenerator:  gg,
-		Gateway: server.GW{
+		Gateway: internal.GW{
 			Address: "0.0.0.0:11420",
 		},
 		Address: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 
-	var instance *server.Instance
+	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{
 		func(from current.Activity) error { return nil },
 		func(from current.Activity) error { return nil },
@@ -67,7 +69,7 @@ func setup(t *testing.T) (*server.Instance, *connect.Circuit) {
 		func(from current.Activity) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ = server.CreateServerInstance(&def, receivers.NewImplementation, m, false)
+	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation, m, false)
 	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, "0.0.0.0:11439", []byte(testUtil.RegCert), true, false)
 	if err != nil {
 		t.Errorf("Failed to add perm host: %+v", err)
@@ -204,4 +206,188 @@ func signRoundInfo(ri *mixmessages.RoundInfo) error {
 
 	signature.Sign(ri, ourPrivKey)
 	return nil
+}
+
+// Tests that getCertificates() correctly finds and retrieves Server and Gateway
+// certificates from file.
+func Test_getCertificates(t *testing.T) {
+	// Set up server definition with Server and Gateway certificate paths
+	def := &internal.Definition{
+		ServerCertPath:  "server-temp.cert",
+		GatewayCertPath: "gateway-temp.cert",
+	}
+
+	serverCertData := []byte("Test Server string.")
+	gatewayCertData := []byte("Test Gateway string.")
+
+	// Create temporary certificate files for testing
+	err := utils.WriteFile(def.ServerCertPath, serverCertData, utils.FilePerms,
+		utils.FilePerms)
+	if err != nil {
+		t.Errorf("WriteFile() produced an unexpected error creating "+
+			"%v:\n\t%v", def.ServerCertPath, err)
+	}
+
+	err = utils.WriteFile(def.GatewayCertPath, gatewayCertData, utils.FilePerms,
+		utils.FilePerms)
+	if err != nil {
+		t.Errorf("WriteFile() produced an unexpected error creating "+
+			"%v:\n\t%v", def.GatewayCertPath, err)
+	}
+
+	// Attempt to get certificates
+	certsExist, serverCert, gatewayCert := getCertificates(def.ServerCertPath,
+		def.GatewayCertPath)
+
+	// Check that the certificates were found
+	if !certsExist {
+		t.Errorf("getCertificates() did not find one or both certificates " +
+			"that should exist.")
+	}
+
+	// Check that the retrieved Server certificate has the correct contents
+	if serverCert != string(serverCertData) {
+		t.Errorf("getCertificates() returned an unexpected Server certificate."+
+			"\n\texpected: %s\n\treceived: %s",
+			string(serverCertData), serverCert)
+	}
+
+	// Check that the retrieved Gateway certificate has the correct contents
+	if gatewayCert != string(gatewayCertData) {
+		t.Errorf("getCertificates() returned an unexpected Gateway certificate."+
+			"\n\texpected: %s\n\treceived: %s",
+			string(gatewayCertData), gatewayCert)
+	}
+
+	// Clean up test files
+	_ = os.RemoveAll(def.ServerCertPath)
+	_ = os.RemoveAll(def.GatewayCertPath)
+}
+
+// Tests that writeCertificates() panics when the Gateway certificate cannot be
+// written to file.
+func Test_getCertificates_PanicGateway(t *testing.T) {
+	// Set up server definition with Server and Gateway certificate paths; the
+	// Gateway path is invalid.
+	def := &internal.Definition{
+		ServerCertPath:  "server-temp.cert",
+		GatewayCertPath: "~a/gateway-temp.cert",
+	}
+
+	serverCertData := "Test Server string."
+	gatewayCertData := "Test Gateway string."
+
+	// Defer to an error when writeCertificates() does not panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("writeCertificates() did not panic when expected")
+		}
+
+		// Clean up test files
+		_ = os.RemoveAll(def.ServerCertPath)
+		_ = os.RemoveAll(def.GatewayCertPath)
+	}()
+
+	// Attempt to write certificates
+	writeCertificates(def, serverCertData, gatewayCertData)
+}
+
+// Tests that writeCertificates() correctly saves the Server and Gateway
+// certificates to file.
+func Test_writeCertificates(t *testing.T) {
+	// Set up server definition with Server and Gateway certificate paths
+	def := &internal.Definition{
+		ServerCertPath:  "server-temp.cert",
+		GatewayCertPath: "gateway-temp.cert",
+	}
+
+	serverCertData := "Test Server string."
+	gatewayCertData := "Test Gateway string."
+
+	// Attempt to write certificates
+	writeCertificates(def, serverCertData, gatewayCertData)
+
+	// Attempt to get certificates
+	certsExist, serverCert, gatewayCert := getCertificates(def.ServerCertPath,
+		def.GatewayCertPath)
+
+	// Check that the certificates were both written
+	if !certsExist {
+		t.Errorf("writeCertificates() did not write one or both " +
+			"certificates to file.")
+	}
+
+	// Check that the Server certificate was correctly written to file
+	if serverCert != serverCertData {
+		t.Errorf("writeCertificates() wrote the wrong Server certificate "+
+			"data to file.\n\texpected: %s\n\treceived: %s",
+			serverCertData, serverCert)
+	}
+
+	// Check that the Gateway certificate was correctly written to file
+	if gatewayCert != gatewayCertData {
+		t.Errorf("writeCertificates() wrote the wrong Gateway certificate "+
+			"data to file.\n\texpected: %s\n\treceived: %s",
+			gatewayCertData, gatewayCert)
+	}
+
+	// Clean up test files
+	_ = os.RemoveAll(def.ServerCertPath)
+	_ = os.RemoveAll(def.GatewayCertPath)
+}
+
+// Tests that writeCertificates() panics when the Server certificate cannot be
+// written to file.
+func Test_writeCertificates_PanicServer(t *testing.T) {
+	// Set up server definition with Server and Gateway certificate paths; the
+	// Server path is invalid.
+	def := &internal.Definition{
+		ServerCertPath:  "~a/server-temp.cert",
+		GatewayCertPath: "gateway-temp.cert",
+	}
+
+	serverCertData := "Test Server string."
+	gatewayCertData := "Test Gateway string."
+
+	// Defer to an error when writeCertificates() does not panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("writeCertificates() did not panic when expected")
+		}
+
+		// Clean up test files
+		_ = os.RemoveAll(def.ServerCertPath)
+		_ = os.RemoveAll(def.GatewayCertPath)
+	}()
+
+	// Attempt to write certificates
+	writeCertificates(def, serverCertData, gatewayCertData)
+}
+
+// Tests that writeCertificates() panics when the Gateway certificate cannot be
+// written to file.
+func Test_writeCertificates_PanicGateway(t *testing.T) {
+	// Set up server definition with Server and Gateway certificate paths; the
+	// Gateway path is invalid.
+	def := &internal.Definition{
+		ServerCertPath:  "server-temp.cert",
+		GatewayCertPath: "~a/gateway-temp.cert",
+	}
+
+	serverCertData := "Test Server string."
+	gatewayCertData := "Test Gateway string."
+
+	// Defer to an error when writeCertificates() does not panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("writeCertificates() did not panic when expected")
+		}
+
+		// Clean up test files
+		_ = os.RemoveAll(def.ServerCertPath)
+		_ = os.RemoveAll(def.GatewayCertPath)
+	}()
+
+	// Attempt to write certificates
+	writeCertificates(def, serverCertData, gatewayCertData)
 }

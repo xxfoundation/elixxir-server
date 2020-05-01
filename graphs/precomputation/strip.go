@@ -10,7 +10,8 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 )
 
@@ -22,7 +23,8 @@ import (
 // StripStream holds data containing private key from encrypt and
 // inputs used by strip
 type StripStream struct {
-	Grp *cyclic.Group
+	Grp        *cyclic.Group
+	StreamPool *gpumaths.StreamPool
 
 	// Link to round object
 	PayloadAPrecomputation          *cyclic.IntBuffer
@@ -47,17 +49,24 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 	source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
-	ss.LinkPrecompStripStream(grp, batchSize, roundBuffer,
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
+
+	ss.LinkPrecompStripStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 
 }
 
 func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
-	batchSize uint32, roundBuf *round.Buffer,
+	batchSize uint32, roundBuf *round.Buffer, pool *gpumaths.StreamPool,
 	cypherPayloadA, keysPayloadB *cyclic.IntBuffer) {
 
 	ss.Grp = grp
+	ss.StreamPool = pool
 
 	ss.PayloadAPrecomputation = roundBuf.PayloadAPrecomputation.GetSubBuffer(
 		0, batchSize)
@@ -70,7 +79,7 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	ss.CypherPayloadA = cypherPayloadA
 	ss.CypherPayloadB = keysPayloadB
 
-	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, ss.CypherPayloadA,
+	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, pool, ss.CypherPayloadA,
 		ss.CypherPayloadB)
 }
 
@@ -180,6 +189,38 @@ var StripMul2 = services.Module{
 	Name:       "StripMul2",
 }
 
+var StripChunk = services.Module{
+	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		sssi, ok := streamInput.(stripSubstreamInterface)
+		sc, ok2 := cryptop.(gpumaths.StripChunkPrototype)
+		if !ok || !ok2 {
+			return services.InvalidTypeAssert
+		}
+		ss := sssi.GetStripSubStream()
+		gpuStreams := ss.StreamPool
+		cpa := ss.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		ppa := ss.EncryptedPayloadAPrecomputation[chunk.Begin():chunk.End()]
+		ppaResults := ss.PayloadAPrecomputation.GetSubBuffer(chunk.Begin(), chunk.End())
+		err := sc(gpuStreams, ss.Grp, ppaResults, ss.Z, ppa, cpa)
+		if err != nil {
+			return err
+		}
+
+		cpb := ss.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		ppb := ss.EncryptedPayloadBPrecomputation[chunk.Begin():chunk.End()]
+		ppbResults := ss.PayloadBPrecomputation.GetSubBuffer(chunk.Begin(), chunk.End())
+		err = sc(gpuStreams, ss.Grp, ppbResults, ss.Z, ppb, cpb)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+	Cryptop:    gpumaths.StripChunk,
+	Name:       "PrecompStripGPU",
+	NumThreads: 2,
+}
+
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
@@ -192,6 +233,22 @@ func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	graph.Connect(reveal, stripInverse)
 	graph.Connect(stripInverse, stripMul2)
 	graph.Last(stripMul2)
+
+	return graph
+}
+
+// InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
+func InitStripGPUGraph(gc services.GraphGenerator) *services.Graph {
+	graph := gc.NewGraph("PrecompStripGPU", &StripStream{})
+
+	// GPU library does all operations for Strip in one kernel,
+	// to avoid uploading and downloading excessively
+	// or having to build an abstraction over bindings
+	// between dispatcher graphs and CUDA graphs
+	strip := StripChunk.DeepCopy()
+
+	graph.First(strip)
+	graph.Last(strip)
 
 	return graph
 }

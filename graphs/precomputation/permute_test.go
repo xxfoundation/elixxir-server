@@ -14,7 +14,7 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"reflect"
 	"runtime"

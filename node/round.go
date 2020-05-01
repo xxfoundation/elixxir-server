@@ -1,3 +1,8 @@
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 Privategrity Corporation                                   /
+//                                                                             /
+// All rights reserved.                                                        /
+////////////////////////////////////////////////////////////////////////////////
 package node
 
 import (
@@ -6,15 +11,18 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/phase"
 	"gitlab.com/elixxir/server/services"
 	"time"
 )
 
+// round.go creates the components for a round
+
+// NewRoundComponents sets up the transitions of different phases in the round
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, instance *server.Instance, batchSize uint32,
+	nodeID *id.Node, instance *internal.Instance, batchSize uint32,
 	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,
 	disableStreaming bool) (
 	[]phase.Phase, phase.ResponseMap) {
@@ -191,11 +199,15 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Precomputation Reveal phase and response
 	precompRevealDefinition := phase.Definition{
-		Graph:               precomputation.InitRevealGraph(gc),
 		Type:                phase.PrecompReveal,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
+	}
+	if pool != nil {
+		precompRevealDefinition.Graph = precomputation.InitRevealGPUGraph(gc)
+	} else {
+		precompRevealDefinition.Graph = precomputation.InitRevealGraph(gc)
 	}
 
 	// Every node except the first node handles precomp permute in the normal
@@ -220,7 +232,11 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		precompRevealDefinition.TransmissionHandler = io.TransmitPrecompResult
 		// Last node also computes the strip operation along with reveal, so its
 		// graph is replaced with the composed reveal-strip graph
-		precompRevealDefinition.Graph = precomputation.InitStripGraph(gc)
+		if pool != nil {
+			precompRevealDefinition.Graph = precomputation.InitStripGPUGraph(gc)
+		} else {
+			precompRevealDefinition.Graph = precomputation.InitStripGraph(gc)
+		}
 	}
 
 	//All nodes process the verification step
