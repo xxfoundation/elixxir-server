@@ -114,6 +114,8 @@ type Machine struct {
 	signal chan current.Activity
 	//holds valid state transitions
 	stateMap [][]bool
+	//changeChan
+	changebuffer chan current.Activity
 }
 
 func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t interface{}) Machine {
@@ -141,6 +143,7 @@ func NewMachine(changeList [current.NUM_STATES]Change) Machine {
 		changeList,
 		make(chan current.Activity),
 		make([][]bool, current.NUM_STATES),
+		make(chan current.Activity, 100),
 	}
 
 	//finish populating the stateMap
@@ -215,6 +218,14 @@ func (m Machine) Get() current.Activity {
 	defer m.RUnlock()
 	return *m.Activity
 }
+
+// gets the current state under a read lock
+func (m Machine) GetBuffer() <-chan current.Activity {
+	m.RLock()
+	defer m.RUnlock()
+	return m.changebuffer
+}
+
 
 // if the the passed state is the next state update, waits until that update
 // happens. return true if the waited state is the current state. returns an
@@ -365,6 +376,13 @@ func (m Machine) WaitForUnsafe(expected current.Activity, timeout time.Duration,
 func (m Machine) stateChange(nextState current.Activity) (bool, error) {
 	oldState := *m.Activity
 	*m.Activity = nextState
+
+	select{
+	case m.changebuffer<-nextState:
+	default:
+		return false, errors.New("State change buffer full")
+	}
+
 	err := m.changeList[*m.Activity](oldState)
 
 	if err != nil {

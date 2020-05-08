@@ -61,7 +61,12 @@ func Poll(instance *internal.Instance) error {
 		return errors.New("Could not get permissioning host")
 	}
 
-	reportedActivity := instance.GetStateMachine().Get()
+	var reportedActivity current.Activity
+	select{
+	case reportedActivity = <- instance.GetStateMachine().GetBuffer():
+	default:
+		reportedActivity = instance.GetStateMachine().Get()
+	}
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
@@ -227,6 +232,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 // Processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
+
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
