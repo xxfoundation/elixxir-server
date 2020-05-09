@@ -20,7 +20,7 @@ import (
 // ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
 func ReceiveRoundTripPing(instance *internal.Instance, msg *mixmessages.RoundTripPing) error {
 
-	nodeIDs, err := id.NewNodeListFromStrings(msg.Round.Topology)
+	nodeIDs, err := id.NewIDListFromBytes(msg.Round.Topology)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
@@ -48,7 +48,7 @@ func ReceiveRoundTripPing(instance *internal.Instance, msg *mixmessages.RoundTri
 
 	// Pull the particular server host object from the commManager
 	nextNodeID := topology.GetNextNode(instance.GetID())
-	nextNode, ok := instance.GetNetwork().GetHost(nextNodeID.String())
+	nextNode, ok := instance.GetNetwork().GetHost(nextNodeID)
 	if !ok {
 		jwalterweatherman.ERROR.Printf("Could not find next node [%v]:", nextNode)
 		return errors.Errorf("Could not find next node [%v]:", nextNode)

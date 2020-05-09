@@ -16,7 +16,7 @@ import (
 // RoundMetrics structure holds metrics for the life-cycle of a round. It
 // includes the events within a phase and resource metrics.
 type RoundMetrics struct {
-	NodeID         string
+	NodeID         id.ID
 	NumNodes       int
 	Index          int
 	IP             string
@@ -33,7 +33,7 @@ type RoundMetrics struct {
 	RTDurationMilli float64
 	RTPayload       string
 
-	// Total dispatch durection
+	// Total dispatch Duration
 	DispatchDuration time.Duration
 }
 
@@ -50,15 +50,15 @@ func NewRoundMetrics(roundId id.Round, batchSize uint32) RoundMetrics {
 
 // AddPhase adds a phase and its metrics to the RoundMetrics object.
 func (rm *RoundMetrics) AddPhase(name string, metrics Metrics) {
-	metrics.NodeId = rm.NodeID
+	metrics.NodeId = &rm.NodeID
 	newPhaseMetric := phaseMetric{name, metrics}
 
 	rm.PhaseMetrics = append(rm.PhaseMetrics, newPhaseMetric)
 }
 
 // SetNodeID sets the node ID for the round metrics.
-func (rm *RoundMetrics) SetNodeID(nodeID string) {
-	rm.NodeID = nodeID
+func (rm *RoundMetrics) SetNodeID(nodeID *id.ID) {
+	rm.NodeID = *nodeID.DeepCopy()
 }
 
 // SetNumNodes sets the number of nodes for the round metrics.

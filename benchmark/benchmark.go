@@ -219,7 +219,7 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 		// extraction of RID from associated data
 		// HOWEVER, this will significantly change the main test using this
 		// benchmark function, as was commented in: TestEndToEndCryptops
-		rID := new(id.User).SetBytes(esTmp.AssociatedData.
+		rID := new(id.ID).SetBytes(esTmp.AssociatedData.
 			LeftpadBytes(id.UserLen))
 
 		inputMsgPostID := services.Slot(&realtime.Slot{

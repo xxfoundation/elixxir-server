@@ -48,7 +48,7 @@ func TestSendFinishRealtime(t *testing.T) {
 			MockFinishRealtimeImplementation(),
 			MockFinishRealtimeImplementation(),
 			MockFinishRealtimeImplementation(),
-			MockFinishRealtimeImplementation()}, 0)
+			MockFinishRealtimeImplementation()}, 0, t)
 	defer Shutdown(comms)
 
 	const numSlots = 10
@@ -150,7 +150,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 			MockFinishRealtimeImplementation_Error(),
 			MockFinishRealtimeImplementation_Error(),
 			MockFinishRealtimeImplementation_Error(),
-			MockFinishRealtimeImplementation_Error()}, 0)
+			MockFinishRealtimeImplementation_Error()}, 0, t)
 	defer Shutdown(comms)
 
 	const numSlots = 10

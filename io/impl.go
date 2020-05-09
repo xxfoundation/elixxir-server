@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 	"time"
 )
@@ -77,7 +78,7 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return nonce, dhPub, err
 	}
 
-	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
+	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, error) {
 		bytes, err := ConfirmRegistration(instance, UserID, Signature, auth)
 		if err != nil {
 			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)

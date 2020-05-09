@@ -9,6 +9,7 @@ package measure
 // metrics.go contains the metrics object and its methods
 
 import (
+	"gitlab.com/elixxir/primitives/id"
 	"sync"
 	"time"
 )
@@ -17,7 +18,7 @@ import (
 // RWMutex prevents two threads from writing to the list at the same time.
 type Metrics struct {
 	Events []Metric
-	NodeId string
+	NodeId *id.ID
 	sync.RWMutex
 }
 

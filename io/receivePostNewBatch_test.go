@@ -64,10 +64,10 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(r)
 
-	var nodeIds []string
-	tempTopology := BuildMockNodeIDs(5)
+	var nodeIds [][]byte
+	tempTopology := BuildMockNodeIDs(5, t)
 	for _, tempId := range tempTopology {
-		nodeIds = append(nodeIds, tempId.String())
+		nodeIds = append(nodeIds, tempId.Marshal())
 	}
 	// Build a fake batch for the reception handler
 	// This emulates what the gateway would send to the comm
@@ -89,7 +89,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -121,7 +121,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Slots:     []*mixmessages.Slot{},
 	}
 
-	h, _ = connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ = connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -152,7 +152,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
@@ -193,7 +193,9 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost("test", "test", nil, false, false)
+	newID := id.NewIdFromString("test", id.Node, t)
+
+	h, _ := connect.NewHost(newID, "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -261,10 +263,10 @@ func TestReceivePostNewBatch(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(r)
 
-	var nodeIds []string
-	tempTopology := BuildMockNodeIDs(5)
+	var nodeIds [][]byte
+	tempTopology := BuildMockNodeIDs(5, t)
 	for _, tempId := range tempTopology {
-		nodeIds = append(nodeIds, tempId.String())
+		nodeIds = append(nodeIds, tempId.Marshal())
 	}
 
 	// Build a fake batch for the reception handler
@@ -290,7 +292,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
