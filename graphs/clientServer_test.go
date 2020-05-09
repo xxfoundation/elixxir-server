@@ -113,7 +113,7 @@ func TestClientServer(t *testing.T) {
 	testSalts := make([][]byte, 0)
 	testSalts = append(testSalts, testSalt)
 	//Generate an array of users for linking
-	usrs := make([]*id.User, 0)
+	usrs := make([]*id.ID, 0)
 	usrs = append(usrs, usr.ID)
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, usr.BaseKey)

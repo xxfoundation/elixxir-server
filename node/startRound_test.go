@@ -52,7 +52,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 
 	// We need to create a server.Definition so we can create a server instance.
 	def := internal.Definition{
-		ID:              id.NewNodeFromUInt(0, t),
+		ID:              id.NewIdFromUInt(0, id.Node, t),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
@@ -77,7 +77,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, "", []byte(cert), false, false)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", []byte(cert), false, false)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
@@ -117,10 +117,10 @@ func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *r
 
 	batchSize := uint32(10)
 
-	list := []*id.Node{}
+	list := []*id.ID{}
 
 	for i := uint64(0); i < 8; i++ {
-		node := id.NewNodeFromUInt(i, t)
+		node := id.NewIdFromUInt(i, id.Node, t)
 		list = append(list, node)
 	}
 
@@ -146,7 +146,7 @@ func TestStartLocalPrecomp_HappyPath(t *testing.T) {
 
 	newRoundInfo := &mixmessages.RoundInfo{
 		ID:        0,
-		Topology:  []string{instance.GetID().String()},
+		Topology:  [][]byte{instance.GetID().Marshal()},
 		BatchSize: 32,
 	}
 

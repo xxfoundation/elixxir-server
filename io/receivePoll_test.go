@@ -80,7 +80,7 @@ func setupTests(t *testing.T, test_state current.Activity) (internal.Instance, *
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, "", cert, false, false)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", cert, false, false)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
@@ -115,13 +115,10 @@ func setupTests(t *testing.T, test_state current.Activity) (internal.Instance, *
 
 	//Push a round update that can be used for the test:
 	poll := pb.ServerPoll{
-		Full:                 &pb.NDFHash{Hash: fullHash1},
-		Partial:              &pb.NDFHash{Hash: fullHash1},
-		LastUpdate:           0,
-		Error:                "",
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+		Full:       &pb.NDFHash{Hash: fullHash1},
+		Partial:    &pb.NDFHash{Hash: fullHash1},
+		LastUpdate: 0,
+		Error:      "",
 	}
 
 	fullHash2, err := dataStructures.GenerateNDFHash(test2Ndf)

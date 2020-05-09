@@ -53,7 +53,7 @@ func ReceiveGetMeasure(instance *internal.Instance, msg *mixmessages.RoundInfo) 
 		resourceMetric = resourceMonitor.Get()
 	}
 
-	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, resourceMetric)
+	metrics := r.GetMeasurements(nodeId, numNodes, index, resourceMetric)
 
 	s, err := json.Marshal(metrics)
 

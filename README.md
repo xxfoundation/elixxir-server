@@ -49,8 +49,8 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 # START YAML ===
 logLevel: 1
 node:
-  id: ""
   paths:
+    idf:  ""
     cert: ""
     key:  ""
     log:  "server.log"

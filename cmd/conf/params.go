@@ -8,7 +8,6 @@ package conf
 
 import (
 	gorsa "crypto/rsa"
-	"encoding/base64"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -20,7 +19,6 @@ import (
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
-	"golang.org/x/crypto/blake2b"
 	"net"
 	"runtime"
 	"time"
@@ -58,8 +56,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Index = vip.GetInt("index")
 
-	params.Node.Id = vip.GetString("node.id")
-	params.Node.Ids = vip.GetStringSlice("node.ids")
+	params.Node.Paths.Idf = vip.GetString("node.paths.Idf")
 	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
 	params.Node.Paths.Key = vip.GetString("node.paths.key")
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
@@ -118,28 +115,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Metrics.Log = vip.GetString("metrics.log")
 
-	// In the event IDs are not able to be provided,
-	// we can hash the node addresses as a workaround
-	if len(params.Node.Ids) == 0 {
-		hash, err := blake2b.New256(nil)
-		if err != nil {
-			jww.FATAL.Panicf("Unable to create ID hash %v", err)
-		}
-
-		jww.WARN.Printf("No Node IDs found, " +
-			"generating from hash of Node address...")
-
-		for i, addr := range params.Node.Addresses {
-			hash.Reset()
-			hash.Write([]byte(addr))
-			fakeId := base64.StdEncoding.EncodeToString(hash.Sum(nil))
-			params.Node.Ids = append(params.Node.Ids, fakeId)
-			if params.Index == i && len(params.Node.Id) == 0 {
-				params.Node.Id = fakeId
-			}
-		}
-	}
-
 	return &params, nil
 }
 
@@ -173,44 +148,6 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 		}
 	}
 
-	ids := p.Node.Ids
-	var nodes []internal.Node
-	var nodeIDs []*id.Node
-
-	var nodeIDDecodeErrorHappened bool
-	for i, currId := range ids {
-		nodeID, err := base64.StdEncoding.DecodeString(currId)
-		jww.INFO.Printf("Creating Def for Node ID: %s", currId)
-		if err != nil {
-			// This indicates a server misconfiguration which needs fixing for
-			// the server to function properly
-			err = errors.Wrapf(err, "Node ID at index %v failed to decode", i)
-			jww.ERROR.Print(err)
-			nodeIDDecodeErrorHappened = true
-		}
-		n := internal.Node{
-			ID:      id.NewNodeFromBytes(nodeID),
-			TlsCert: tlsCert,
-			Address: p.Node.Addresses[i],
-		}
-		nodes = append(nodes, n)
-		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
-	}
-
-	if nodeIDDecodeErrorHappened {
-		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
-	}
-
-	nodeID, err := base64.StdEncoding.DecodeString(p.Node.Id)
-	if err != nil {
-		// This indicates a server misconfiguration which needs fixing for
-		// the server to function properly
-		err = errors.Wrapf(err, "Node ID failed to decode")
-		jww.ERROR.Print(err)
-		nodeIDDecodeErrorHappened = true
-	}
-	def.ID = id.NewNodeFromBytes(nodeID)
-
 	_, port, err := net.SplitHostPort(p.Node.Addresses[p.Index])
 	if err != nil {
 		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
@@ -234,7 +171,8 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	}
 
 	def.Gateway.TlsCert = GwTlsCerts
-	def.Gateway.ID = def.ID.NewGateway()
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	var PermTlsCert []byte
 

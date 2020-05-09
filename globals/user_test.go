@@ -35,7 +35,7 @@ func TestUserRegistry(t *testing.T) {
 			"Expected: %v Actual: %v", numTestDemoUsers, numUsers)
 	}
 
-	id9 := id.NewUserFromUint(9, t)
+	id9 := id.NewIdFromUInt(9, id.User, t)
 	usr9, err := users.GetUser(id9)
 
 	if err != nil {
@@ -52,8 +52,8 @@ func TestUserRegistry(t *testing.T) {
 		t.Errorf("GetUser: Returned unexpected result for user lookup!")
 	}
 
-	usr3, _ := users.GetUser(id.NewUserFromUint(3, t))
-	usr5, _ := users.GetUser(id.NewUserFromUint(5, t))
+	usr3, _ := users.GetUser(id.NewIdFromUInt(3, id.User, t))
+	usr5, _ := users.GetUser(id.NewIdFromUInt(5, id.User, t))
 
 	if usr3.BaseKey == usr5.BaseKey {
 		t.Errorf("Transmissions keys are the same and they should be different!")
@@ -100,7 +100,7 @@ func TestUserMap_InsertSalt(t *testing.T) {
 
 	users := UserRegistry(&UserMap{})
 	u9 := users.NewUser(grp)
-	u9.ID = id.NewUserFromUint(1, t)
+	u9.ID = id.NewIdFromUInt(1, id.User, t)
 	users.UpsertUser(u9)
 
 	// Insert like 300 salts, expect success
