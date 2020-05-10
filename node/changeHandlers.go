@@ -349,7 +349,20 @@ func Error(instance *internal.Instance) error {
 			}()
 		}
 	}
-	wg.Wait()
+
+	// Wait until the error messages are sent, or timeout after 3 minutes
+	timeoutCh := make(chan struct{})
+	timeout := time.NewTimer(3 * time.Minute)
+
+	go func() {
+		wg.Wait()
+		timeoutCh <- struct{}{}
+	}()
+
+	select {
+	case <-timeoutCh:
+	case <-timeout.C:
+	}
 
 	b, err := proto.Marshal(msg)
 	if err != nil {
