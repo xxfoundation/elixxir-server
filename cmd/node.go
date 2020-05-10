@@ -181,6 +181,7 @@ func StartServer(vip *viper.Viper) error {
 			return errors.New("Failed intentionally")
 		}
 		for _, i := range params.PhaseOverrides {
+			jww.ERROR.Println(fmt.Sprintf("Overriding phase %d", i))
 			p := phase.New(phase.Definition{
 				Graph:               g,
 				Type:                phase.PrecompGeneration,
