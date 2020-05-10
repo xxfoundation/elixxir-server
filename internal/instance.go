@@ -93,7 +93,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayPoll:          NewFirstTime(),
 		roundError:           nil,
 		panicWrapper: func(s string) {
-			panic(s)
+			jww.FATAL.Panic(s)
 		},
 	}
 

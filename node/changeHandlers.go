@@ -26,6 +26,7 @@ import (
 	"gitlab.com/elixxir/server/permissioning"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -319,6 +320,7 @@ func Error(instance *internal.Instance) error {
 		return errors.WithMessage(err, "Failed to get node id from error")
 	}
 
+	wg := sync.WaitGroup{}
 	// If the error originated with us, send broadcast to other nodes
 	if nid.Cmp(instance.GetID()) {
 		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
@@ -328,6 +330,7 @@ func Error(instance *internal.Instance) error {
 		top := r.GetTopology()
 		for i := 0; i < top.Len(); i++ {
 			n := top.GetNodeAtIndex(i)
+			wg.Add(1)
 			go func() {
 				// Don't need to send back to self
 				if !instance.GetID().Cmp(n) {
@@ -342,8 +345,23 @@ func Error(instance *internal.Instance) error {
 						jww.ERROR.Printf(err.Error())
 					}
 				}
+				wg.Done()
 			}()
 		}
+	}
+
+	// Wait until the error messages are sent, or timeout after 3 minutes
+	timeoutCh := make(chan struct{})
+	timeout := time.NewTimer(3 * time.Minute)
+
+	go func() {
+		wg.Wait()
+		timeoutCh <- struct{}{}
+	}()
+
+	select {
+	case <-timeoutCh:
+	case <-timeout.C:
 	}
 
 	b, err := proto.Marshal(msg)
