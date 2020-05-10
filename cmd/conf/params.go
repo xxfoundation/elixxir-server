@@ -18,7 +18,7 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/server"
+	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
 	"golang.org/x/crypto/blake2b"
 	"net"
@@ -38,6 +38,9 @@ type Params struct {
 	Groups           Groups
 	RngScalingFactor uint `yaml:"rngScalingFactor"`
 	GWConnTimeout    time.Duration
+	ServerCertPath   string
+	GatewayCertPath  string
+	SignedCertPath   string
 
 	Node          Node
 	Database      Database
@@ -78,6 +81,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Permissioning.Address = vip.GetString("permissioning.address")
 	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
 
+	params.ServerCertPath = vip.GetString("node.paths.cert")
+	params.GatewayCertPath = vip.GetString("gateways.paths.cert")
+
 	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
 	if params.GraphGen.defaultNumTh == 0 {
 		params.GraphGen.defaultNumTh = uint8(runtime.NumCPU())
@@ -100,6 +106,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	params.RecoveredErrFile = vip.GetString("recoveredErrFile")
 	params.PhaseOverrides = vip.GetIntSlice("phaseOverrides")
+
+	params.SignedCertPath = vip.GetString("signedCertPath")
 
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
@@ -144,9 +152,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 }
 
 // Create a new Definition object from the Params object
-func (p *Params) ConvertToDefinition() *server.Definition {
+func (p *Params) ConvertToDefinition() *internal.Definition {
 
-	def := &server.Definition{}
+	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.SkipReg = p.SkipReg
@@ -174,7 +182,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	}
 
 	ids := p.Node.Ids
-	var nodes []server.Node
+	var nodes []internal.Node
 	var nodeIDs []*id.Node
 
 	var nodeIDDecodeErrorHappened bool
@@ -188,7 +196,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 			jww.ERROR.Print(err)
 			nodeIDDecodeErrorHappened = true
 		}
-		n := server.Node{
+		n := internal.Node{
 			ID:      id.NewNodeFromBytes(nodeID),
 			TlsCert: tlsCert,
 			Address: p.Node.Addresses[i],
@@ -221,6 +229,14 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
+
+	// Only def values if params is set
+	if p.SignedCertPath != "" {
+		def.WriteToFile = true
+		def.ServerCertPath = p.SignedCertPath
+		def.GatewayCertPath = p.GatewayCertPath + "-definition"
+	}
+
 	def.Gateway.Address = p.Gateways.Addresses[p.Index]
 	var GwTlsCerts []byte
 
@@ -250,9 +266,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 	var privateKey *rsa.PrivateKey
 	var publicKey *rsa.PublicKey
 
-	if p.Node.Paths.Cert == "" || p.Node.Paths.Key == "" {
-		jww.FATAL.Panicf("Could not generate RSA key: %+v", err)
-	} else {
+	if p.Node.Paths.Cert != "" || p.Node.Paths.Key != "" {
 		// Get the node's TLS cert
 		tlsCertPEM, err := utils.ReadFile(p.Node.Paths.Cert)
 		if err != nil {
@@ -315,7 +329,7 @@ func (p *Params) ConvertToDefinition() *server.Definition {
 
 // createNdf is a helper function which builds a network ndf based off of the
 //  server.Definition
-func createNdf(def *server.Definition, params *Params) *ndf.NetworkDefinition {
+func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition {
 	// Build our node
 	ourNode := ndf.Node{
 		ID:             def.ID.Bytes(),

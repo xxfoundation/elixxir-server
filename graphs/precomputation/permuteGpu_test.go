@@ -14,7 +14,7 @@ import (
 	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/server/round"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"testing"
@@ -90,19 +90,6 @@ func TestPermuteGpuGraph(t *testing.T) {
 	CypherPayloadBExpected := grp.NewIntBuffer(g.GetExpandedBatchSize(), grp.NewInt(1))
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.SetUint64(stream.KeysPayloadA.Get(i), uint64(i+1))
-		grp.SetUint64(stream.CypherPayloadA.Get(i), uint64(i+11))
-		grp.SetUint64(stream.KeysPayloadB.Get(i), uint64(i+111))
-		grp.SetUint64(stream.CypherPayloadB.Get(i), uint64(i+1111))
-	}
-
-	for i := uint32(0); i < batchSize; i++ {
-
-		grp.Set(KeysPayloadAExpected.Get(i), stream.KeysPayloadA.Get(i))
-		grp.Set(CypherPayloadAExpected.Get(i), stream.CypherPayloadA.Get(i))
-		grp.Set(KeysPayloadBExpected.Get(i), stream.KeysPayloadB.Get(i))
-		grp.Set(CypherPayloadBExpected.Get(i), stream.CypherPayloadB.Get(i))
-
 		s := stream
 
 		// Compute expected result for this slot

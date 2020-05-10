@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/measure"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/measure"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,7 +16,7 @@ import (
 )
 
 // This will error when the type does not match the function
-var _ server.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+var _ internal.MetricsHandler = func(instance *internal.Instance, roundID id.Round) error {
 	return GatherMetrics(instance, roundID, false)
 }
 

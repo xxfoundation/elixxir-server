@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
-  DOCKER_IMAGE: sydney112/cuda-go:latest
+  DOCKER_IMAGE: elixxirlabs/cuda-go:latest
   MIN_CODE_COVERAGE: "82.0"
 
 before_script:
@@ -29,7 +29,6 @@ before_script:
   - git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
   - export PATH=$HOME/go/bin:$PATH
   - export GOPRIVATE=gitlab.com/elixxir/*
-  - go get -u github.com/ory/go-acc
 
 stages:
   - setup
@@ -90,7 +89,7 @@ test:
     # Test coverage
     - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v
     # Test coverage with gpu extension (note that this doesn't overwrite existing coverage)
-    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v -tags cuda
+    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v -tags gpu
     # Exclude cmd from test coverage as it is command line related tooling
     # Exclude database files from test coverage due to lack of Postgre
     # Exclude newRound because of lots of side effects
@@ -123,6 +122,9 @@ build:
   except:
     - tags
   script:
+    - go run main.go generate
+    - rm cmd/version_vars.go
+    - mv version_vars.go cmd
     - mkdir -p release
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
@@ -133,7 +135,7 @@ build:
     - mkdir -p /opt/elixxir/include
     - cp gpumaths/cgbnBindings/powm/*.so /opt/elixxir/lib
     - cp gpumaths/cgbnBindings/powm/*.h /opt/elixxir/include
-    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags cuda -ldflags '-w -s -L /opt/elixxir/lib' -o release/server-cuda.linux64 main.go    
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/elixxir/lib' -o release/server-cuda.linux64 main.go
   artifacts:
     paths:
      - release/

@@ -20,11 +20,11 @@ import (
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
+	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
-	"gitlab.com/elixxir/server/node/receivers"
-	"gitlab.com/elixxir/server/server"
-	"gitlab.com/elixxir/server/server/phase"
-	"gitlab.com/elixxir/server/server/state"
 	"gitlab.com/elixxir/server/services"
 	"os"
 	"runtime"
@@ -100,11 +100,11 @@ func StartServer(vip *viper.Viper) error {
 		jww.ERROR.Printf("Error deleting old metric log files: %v", err)
 	}
 
-	def.MetricsHandler = func(instance *server.Instance, roundID id.Round) error {
+	def.MetricsHandler = func(instance *internal.Instance, roundID id.Round) error {
 		return node.GatherMetrics(instance, roundID, metricsWhitespace)
 	}
 
-	var instance *server.Instance
+	var instance *internal.Instance
 
 	PanicHandler := node.GetDefaultPanicHanlder(instance)
 
@@ -158,14 +158,14 @@ func StartServer(vip *viper.Viper) error {
 	recoveredErrorFile, err := os.Open(params.RecoveredErrFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			instance, err = server.CreateServerInstance(def, receivers.NewImplementation, ourMachine, noTLS)
+			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
 			if err != nil {
 				return errors.Errorf("Could not create server instance: %v", err)
 			}
 		}
 		return errors.WithMessage(err, "Failed to open file")
 	} else {
-		instance, err = server.RecoverInstance(def, receivers.NewImplementation, ourMachine, noTLS, recoveredErrorFile)
+		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, noTLS, recoveredErrorFile)
 		if err != nil {
 			return errors.WithMessage(err, "Could not recover server instance")
 		}

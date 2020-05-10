@@ -27,12 +27,18 @@ Many of these flags override the values set in the config file:
 |--config| |Path to configuration file|--config ~/.elixxir/server.yaml|
 |--nodeID|-n|Unique integer identifier for this node. Defaults to be equal to index|-n 125048|
 |--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
-|--version|-V|Print generated version information. To generate, run `$ go generate cmd/version.go`.|--version|
+|--version|-V|Print generated version information. To generate, run the steps in Updating Version Info.|--version|
 |--help|-h|Print a help message|--help|
 |--metricsWhitespace|-w|Set to print indented metrics JSON files|-w|
 |--disableStreaming| |Disables streaming comms. By default true.| |
 
 Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go benchmark`.
+
+## Updating Version Info
+```
+$ go run main.go generate 
+$ mv version_vars.go cmd
+```
 
 ## Config File
 
@@ -86,6 +92,8 @@ groups:
     generator: "2"
 metrics:
   log:  "~/.elixxir/metrics.log"
+signedCertPath: ""  
+ 
 #in ms, omit to wait forever
 GatewayConnectionTimeout: 5000 
 # === END YAML
