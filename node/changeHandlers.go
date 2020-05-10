@@ -82,7 +82,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 
-	waitUntil := 3 *time.Minute
+	waitUntil := 3 * time.Minute
 	pollingTicker := time.NewTicker(waitUntil)
 
 	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {

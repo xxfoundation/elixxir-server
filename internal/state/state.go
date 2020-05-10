@@ -231,7 +231,6 @@ func (m Machine) GetBuffer() <-chan current.Activity {
 	return m.changebuffer
 }
 
-
 // if the the passed state is the next state update, waits until that update
 // happens. return true if the waited state is the current state. returns an
 // error after the timeout expires
@@ -382,8 +381,8 @@ func (m Machine) stateChange(nextState current.Activity) (bool, error) {
 	oldState := *m.Activity
 	*m.Activity = nextState
 
-	select{
-	case m.changebuffer<-nextState:
+	select {
+	case m.changebuffer <- nextState:
 	default:
 		return false, errors.New("State change buffer full")
 	}
