@@ -162,8 +162,9 @@ func StartServer(vip *viper.Viper) error {
 			if err != nil {
 				return errors.Errorf("Could not create server instance: %v", err)
 			}
+		} else {
+			return errors.WithMessage(err, "Failed to open file")
 		}
-		return errors.WithMessage(err, "Failed to open file")
 	} else {
 		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, noTLS, recoveredErrorFile)
 		if err != nil {
