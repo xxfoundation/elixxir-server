@@ -12,16 +12,11 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/xx"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/id/idf"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
@@ -91,51 +86,12 @@ func StartServer(vip *viper.Viper) error {
 	userDatabase.UpsertUser(dummy)
 
 	jww.INFO.Printf("Converting params to server definition")
-	def := params.ConvertToDefinition()
+	def, err := params.ConvertToDefinition()
+	if err != nil {
+		return errors.Errorf("Failed to convert params to definition: %+v", err)
+	}
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
-
-	// Check if the IDF exists
-	if params.Node.Paths.Idf != "" && utils.Exists(params.Node.Paths.Idf) {
-		// If the IDF exists, then get the ID and save it
-		_, newID, err2 := idf.UnloadIDF(params.Node.Paths.Idf)
-		if err2 != nil {
-			return errors.Errorf("Could not unload IDF: %+v", err2)
-		}
-
-		def.ID = newID
-	} else {
-		// If the IDF does not exist, then generate a new ID, save it to an IDF,
-		// and save the ID to the definition
-
-		// Generate a random 256-bit number for the salt
-		salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
-
-		// Generate public key from cert
-		publicKey, err2 := rsa.LoadPublicKeyFromPem(def.TlsCert)
-		if err2 != nil {
-			return errors.Errorf("Could not load public key from certificate: "+
-				"%+v", err2)
-		}
-
-		// Generate new ID
-		newID, err2 := xx.NewID(publicKey, salt[:32], id.Node)
-		if err2 != nil {
-			return errors.Errorf("Failed to create new ID: %+v", err2)
-		}
-
-		// Save new ID to file
-		err2 = idf.LoadIDF(params.Node.Paths.Idf, salt, newID)
-		if err2 != nil {
-			return errors.Errorf("Failed to save new ID to file: %+v",
-				err2)
-		}
-
-		def.ID = newID
-	}
-
-	def.Gateway.ID = def.ID.DeepCopy()
-	def.Gateway.ID.SetType(id.Gateway)
 
 	err = node.ClearMetricsLogs(def.MetricLogPath)
 	if err != nil {

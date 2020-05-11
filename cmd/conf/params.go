@@ -12,8 +12,13 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
+	"gitlab.com/elixxir/crypto/xx"
+	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/id/idf"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
@@ -118,7 +123,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 }
 
 // Create a new Definition object from the Params object
-func (p *Params) ConvertToDefinition() *internal.Definition {
+func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def := &internal.Definition{}
 
@@ -168,6 +173,48 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
 	}
+
+	// Check if the IDF exists
+	if p.Node.Paths.Idf != "" && utils.Exists(p.Node.Paths.Idf) {
+		// If the IDF exists, then get the ID and save it
+		_, newID, err2 := idf.UnloadIDF(p.Node.Paths.Idf)
+		if err2 != nil {
+			return nil, errors.Errorf("Could not unload IDF: %+v", err2)
+		}
+
+		def.ID = newID
+	} else {
+		// If the IDF does not exist, then generate a new ID, save it to an IDF,
+		// and save the ID to the definition
+
+		// Generate a random 256-bit number for the salt
+		salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
+
+		// Generate public key from cert
+		publicKey, err2 := rsa.LoadPublicKeyFromPem(def.TlsCert)
+		if err2 != nil {
+			return nil, errors.Errorf("Could not load public key from certificate: "+
+				"%+v", err2)
+		}
+
+		// Generate new ID
+		newID, err2 := xx.NewID(publicKey, salt[:32], id.Node)
+		if err2 != nil {
+			return nil, errors.Errorf("Failed to create new ID: %+v", err2)
+		}
+
+		// Save new ID to file
+		err2 = idf.LoadIDF(p.Node.Paths.Idf, salt, newID)
+		if err2 != nil {
+			return nil, errors.Errorf("Failed to save new ID to file: %+v",
+				err2)
+		}
+
+		def.ID = newID
+	}
+
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	def.Gateway.TlsCert = GwTlsCerts
 
@@ -245,7 +292,7 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
-	return def
+	return def, nil
 }
 
 // createNdf is a helper function which builds a network ndf based off of the
