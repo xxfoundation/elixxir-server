@@ -293,13 +293,14 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition {
 	// Build our node
 	ourNode := ndf.Node{
-		ID:             def.ID.Bytes(),
+		ID:             def.ID.Marshal(),
 		Address:        def.Address,
 		TlsCertificate: string(def.TlsCert),
 	}
 
 	// Build our gateway
 	ourGateway := ndf.Gateway{
+		ID:             def.Gateway.ID.Marshal(),
 		Address:        def.Gateway.Address,
 		TlsCertificate: string(def.Gateway.TlsCert),
 	}
