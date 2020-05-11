@@ -134,6 +134,9 @@ func StartServer(vip *viper.Viper) error {
 		def.ID = newID
 	}
 
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
+
 	err = node.ClearMetricsLogs(def.MetricLogPath)
 	if err != nil {
 		jww.ERROR.Printf("Error deleting old metric log files: %v", err)

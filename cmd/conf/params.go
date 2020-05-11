@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
@@ -171,8 +170,6 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	}
 
 	def.Gateway.TlsCert = GwTlsCerts
-	def.Gateway.ID = def.ID.DeepCopy()
-	def.Gateway.ID.SetType(id.Gateway)
 
 	var PermTlsCert []byte
 
