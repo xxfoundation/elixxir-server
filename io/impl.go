@@ -13,6 +13,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
 	"time"
 )
@@ -110,7 +111,7 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 		response, err := ReceivePoll(poll, instance)
-		if err != nil {
+		if err != nil && err.Error() != ndf.NO_NDF {
 			jww.ERROR.Printf("Poll error: %v, %+v", auth, err)
 		}
 		return response, err
