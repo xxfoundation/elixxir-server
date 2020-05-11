@@ -321,7 +321,7 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 		Nodes:        []ndf.Node{ourNode},
 		Registration: ourPerm,
 		Notification: ndf.Notification{},
-		UDB:          ndf.UDB{},
+		UDB:          ndf.UDB{ID: id.UDB.Marshal()},
 		E2E:          e2eGrp,
 		CMIX:         cmixGrp,
 	}
