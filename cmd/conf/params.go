@@ -174,48 +174,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 	}
 
-	// Check if the IDF exists
-	if p.Node.Paths.Idf != "" && utils.Exists(p.Node.Paths.Idf) {
-		// If the IDF exists, then get the ID and save it
-		_, newID, err2 := idf.UnloadIDF(p.Node.Paths.Idf)
-		if err2 != nil {
-			return nil, errors.Errorf("Could not unload IDF: %+v", err2)
-		}
-
-		def.ID = newID
-	} else {
-		// If the IDF does not exist, then generate a new ID, save it to an IDF,
-		// and save the ID to the definition
-
-		// Generate a random 256-bit number for the salt
-		salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
-
-		// Generate public key from cert
-		publicKey, err2 := rsa.LoadPublicKeyFromPem(def.TlsCert)
-		if err2 != nil {
-			return nil, errors.Errorf("Could not load public key from certificate: "+
-				"%+v", err2)
-		}
-
-		// Generate new ID
-		newID, err2 := xx.NewID(publicKey, salt[:32], id.Node)
-		if err2 != nil {
-			return nil, errors.Errorf("Failed to create new ID: %+v", err2)
-		}
-
-		// Save new ID to file
-		err2 = idf.LoadIDF(p.Node.Paths.Idf, salt, newID)
-		if err2 != nil {
-			return nil, errors.Errorf("Failed to save new ID to file: %+v",
-				err2)
-		}
-
-		def.ID = newID
-	}
-
-	def.Gateway.ID = def.ID.DeepCopy()
-	def.Gateway.ID.SetType(id.Gateway)
-
 	def.Gateway.TlsCert = GwTlsCerts
 
 	var PermTlsCert []byte
@@ -265,6 +223,41 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.PublicKey = publicKey
 	def.PrivateKey = privateKey
+
+	// Check if the IDF exists
+	if p.Node.Paths.Idf != "" && utils.Exists(p.Node.Paths.Idf) {
+		// If the IDF exists, then get the ID and save it
+		_, newID, err2 := idf.UnloadIDF(p.Node.Paths.Idf)
+		if err2 != nil {
+			return nil, errors.Errorf("Could not unload IDF: %+v", err2)
+		}
+
+		def.ID = newID
+	} else {
+		// If the IDF does not exist, then generate a new ID, save it to an IDF,
+		// and save the ID to the definition
+
+		// Generate a random 256-bit number for the salt
+		salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
+
+		// Generate new ID
+		newID, err2 := xx.NewID(def.PublicKey, salt[:32], id.Node)
+		if err2 != nil {
+			return nil, errors.Errorf("Failed to create new ID: %+v", err2)
+		}
+
+		// Save new ID to file
+		err2 = idf.LoadIDF(p.Node.Paths.Idf, salt, newID)
+		if err2 != nil {
+			return nil, errors.Errorf("Failed to save new ID to file: %+v",
+				err2)
+		}
+
+		def.ID = newID
+	}
+
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
