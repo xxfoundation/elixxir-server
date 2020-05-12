@@ -14,7 +14,10 @@ import (
 	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+<<<<<<< HEAD
 	"gitlab.com/elixxir/primitives/utils"
+=======
+>>>>>>> origin/master
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -22,7 +25,10 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+<<<<<<< HEAD
 	"os"
+=======
+>>>>>>> origin/master
 	"testing"
 )
 
@@ -142,6 +148,7 @@ func signRoundInfo(ri *mixmessages.RoundInfo) error {
 	signature.Sign(ri, ourPrivKey)
 	return nil
 }
+<<<<<<< HEAD
 
 // Tests that getCertificates() correctly finds and retrieves Server and Gateway
 // certificates from file.
@@ -326,3 +333,5 @@ func Test_writeCertificates_PanicGateway(t *testing.T) {
 	// Attempt to write certificates
 	writeCertificates(def, serverCertData, gatewayCertData)
 }
+=======
+>>>>>>> origin/master

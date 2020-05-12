@@ -4,7 +4,11 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
+<<<<<<< HEAD
 // +build linux,gpu,cgo
+=======
+// +build linux,cuda,cgo
+>>>>>>> origin/master
 
 package services
 

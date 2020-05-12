@@ -232,7 +232,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 // Processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
-
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
