@@ -5,11 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package node
 
-<<<<<<< HEAD
-// ChangeHandlers contains the logic for every state within the state machine.
-=======
 // ChangeHandlers contains the logic for every state within the state machine
->>>>>>> origin/master
 
 import (
 	"github.com/pkg/errors"
@@ -19,10 +15,7 @@ import (
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
-<<<<<<< HEAD
 	"gitlab.com/elixxir/primitives/utils"
-=======
->>>>>>> origin/master
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
@@ -43,7 +36,6 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
 
-<<<<<<< HEAD
 	// Get the Server and Gateway certificates from file, if they exist
 	certsExist, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
 		ourDef.GatewayCertPath)
@@ -72,35 +64,13 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		permHost.Disconnect()
 	}
 
-=======
-	// Connect to the Permissioning Server without authentication
-	permHost, err := network.AddHost(id.PERMISSIONING,
-		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, false)
-	if err != nil {
-		return errors.Errorf("Unable to connect to registration server: %+v", err)
-	}
-
-	// Blocking call: Begin Node registration
-	err = permissioning.RegisterNode(ourDef, network, permHost)
-	if err != nil {
-		return errors.Errorf("Failed to register node: %+v", err)
-	}
-
-	// Disconnect the old permissioning server to enable authentication
-	permHost.Disconnect()
-
->>>>>>> origin/master
 	// Connect to the Permissioning Server with authentication enabled
 	// the server does not have a signed cert, but the pemrissionign has its cert,
 	// reverse authetnication on conenctiosn just use the public key inside certs,
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
-<<<<<<< HEAD
 	permHost, err := network.AddHost(id.PERMISSIONING,
-=======
-	permHost, err = network.AddHost(id.PERMISSIONING,
->>>>>>> origin/master
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -109,8 +79,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 
-<<<<<<< HEAD
-	waitUntil := 3 *time.Minute
+	waitUntil := 3 * time.Minute
 	pollingTicker := time.NewTicker(waitUntil)
 
 	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
@@ -121,14 +90,10 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 
 		}
 
-=======
-	for err != nil && strings.Contains(err.Error(), ndf.NO_NDF) {
->>>>>>> origin/master
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-<<<<<<< HEAD
 			//find certs in NDF
 			serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
 				instance.GetConsensus().GetFullNdf().Get())
@@ -136,17 +101,11 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 				//if certs are not in NDF, redo the poll
 				continue
 			}
-=======
->>>>>>> origin/master
 			err = permissioning.UpdateNDf(permResponse, instance)
 		}
 	}
 
-<<<<<<< HEAD
 	// Check for unexpected errors (ie errors from polling other than NO_NDF)
-=======
-	jww.DEBUG.Printf("Recieved ndf for first time!")
->>>>>>> origin/master
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
@@ -159,18 +118,11 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
 	}
 
-<<<<<<< HEAD
 	// Do not need to get the Server and Gateway certificates if they were
 	// already retrieved from file
 	if !certsExist && ourDef.WriteToFile {
 		// Save the retrieved certificates to file
 		writeCertificates(ourDef, serverCert, gwCert)
-=======
-	// Parse the Ndf for the new signed certs from  permissioning
-	serverCert, gwCert, err := permissioning.FindSelfInNdf(ourDef, instance.GetConsensus().GetFullNdf().Get())
-	if err != nil {
-		return errors.Errorf("Failed to install ndf: %+v", err)
->>>>>>> origin/master
 	}
 
 	// Restart the network with these signed certs
@@ -358,7 +310,6 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 
 	return stateChanges
 }
-<<<<<<< HEAD
 
 // getCertificates retrieves the Server and Gateway certificates from the path
 // in the definition. If one ore more certificate is not found, then that
@@ -416,5 +367,3 @@ func writeCertificates(def *internal.Definition, serverCert, gatewayCert string)
 			"%s: %v", def.GatewayCertPath, err)
 	}
 }
-=======
->>>>>>> origin/master

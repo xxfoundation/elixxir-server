@@ -62,8 +62,8 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	var reportedActivity current.Activity
-	select{
-	case reportedActivity = <- instance.GetStateMachine().GetBuffer():
+	select {
+	case reportedActivity = <-instance.GetStateMachine().GetBuffer():
 	default:
 		reportedActivity = instance.GetStateMachine().Get()
 	}

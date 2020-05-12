@@ -13,11 +13,7 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/server/graphs"
-<<<<<<< HEAD
 	"gitlab.com/elixxir/server/internal/round"
-=======
-	"gitlab.com/elixxir/server/server/round"
->>>>>>> origin/master
 	"gitlab.com/elixxir/server/services"
 	"runtime"
 	"testing"
