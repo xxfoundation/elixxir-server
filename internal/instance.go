@@ -263,6 +263,16 @@ func (i *Instance) GetMetricsLog() string {
 	return i.definition.MetricLogPath
 }
 
+// GetServerCertPath returns the path for Server certificate
+func (i *Instance) GetServerCertPath() string {
+	return i.definition.ServerCertPath
+}
+
+// GetGatewayCertPath returns the path for Gateway certificate
+func (i *Instance) GetGatewayCertPath() string {
+	return i.definition.GatewayCertPath
+}
+
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen

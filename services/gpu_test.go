@@ -4,7 +4,7 @@
 // All rights reserved.                                                        /
 ////////////////////////////////////////////////////////////////////////////////
 
-// +build linux,cuda,cgo
+// +build linux,gpu,cgo
 
 package services
 

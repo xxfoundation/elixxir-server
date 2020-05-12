@@ -47,6 +47,10 @@ type Definition struct {
 	//Path which system metrics are stored for first node
 	MetricLogPath string
 
+	// Path where the Server and Gateway certificates will be stored
+	ServerCertPath  string
+	GatewayCertPath string
+	WriteToFile     bool
 	//Information about the node's gateway
 	Gateway GW
 
