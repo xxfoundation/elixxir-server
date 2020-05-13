@@ -113,7 +113,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "Could not get post phase stream header")
 	}
 	roundID := id.Round(batchInfo.Round.ID)
 	rm := instance.GetRoundManager()
