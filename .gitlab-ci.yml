@@ -63,7 +63,7 @@ build:
     - go mod tidy
 
     - cat /usr/local/cuda/version.txt
-    #- nvidia-smi
+    - nvidia-smi
 
     - mkdir -p testdata
 
