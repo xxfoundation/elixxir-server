@@ -38,8 +38,8 @@ stages:
 build:
   stage: build
   image: $DOCKER_IMAGE
-  except:
-    - tags
+  tags:
+    - gpu
   script:
     - git clean -ffdx
     # Get specific commit hash from go mod version string if module version is v0.0.2, otherwise use go mod version string as tag
