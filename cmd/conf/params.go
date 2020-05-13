@@ -42,6 +42,7 @@ type Params struct {
 	GWConnTimeout    time.Duration
 	ServerCertPath   string
 	GatewayCertPath  string
+	SignedCertPath   string
 
 	Node          Node
 	Database      Database
@@ -101,6 +102,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.KeepBuffers = vip.GetBool("keepBuffers")
 	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
+
+	params.SignedCertPath = vip.GetString("signedCertPath")
 
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
@@ -162,8 +165,14 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
-	def.ServerCertPath = p.ServerCertPath + "-definition"
-	def.GatewayCertPath = p.GatewayCertPath + "-definition"
+
+	// Only def values if params is set
+	if p.SignedCertPath != "" {
+		def.WriteToFile = true
+		def.ServerCertPath = p.SignedCertPath
+		def.GatewayCertPath = p.GatewayCertPath + "-definition"
+	}
+
 	def.Gateway.Address = p.Gateways.Addresses[p.Index]
 	var GwTlsCerts []byte
 

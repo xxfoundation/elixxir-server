@@ -8,6 +8,7 @@ package io
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
@@ -380,7 +381,7 @@ func (stream MockStreamPostPhaseServer) Context() context.Context {
 	ctx, _ := context.WithCancel(context.Background())
 
 	m := make(map[string]string)
-	m["batchinfo"] = mockBatchInfo.String()
+	m["batchinfo"] = base64.StdEncoding.EncodeToString([]byte(mockBatchInfo.String()))
 
 	md := metadata.New(m)
 	ctx = metadata.NewIncomingContext(ctx, md)
