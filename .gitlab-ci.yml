@@ -48,13 +48,16 @@ build:
     - echo $GPUMATHS_VERSION
     - rm -fr gpumaths
     - git clone git@gitlab.com:elixxir/gpumaths.git
-    - cd gpumaths
+    - pushd gpumaths
+    - git clean -ffdx
     - git checkout $GPUMATHS_VERSION
-    - cd cgbnBindings/powm
+    - pushd cgbnBindings/powm
     - make turing
     - make install
     - ls
     - ls /opt/elixxir/lib
+    - popd
+    - popd
     - go mod vendor -v
     - go build ./...
     - go mod tidy
