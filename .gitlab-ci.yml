@@ -31,21 +31,17 @@ before_script:
   - export GOPRIVATE=gitlab.com/elixxir/*
 
 stages:
-  - setup
-  - test
   - build
-  - tag
   - trigger_integration
   - trigger_release_integration
 
-setup:
-  stage: setup
+build:
+  stage: build
   image: $DOCKER_IMAGE
-  tags:
-    - gpu
   except:
     - tags
   script:
+    - git clean -ffdx
     # Get specific commit hash from go mod version string if module version is v0.0.2, otherwise use go mod version string as tag
     # It's a quick and dirty way to get something that we ought to be able to check out
     - GPUMATHS_VERSION=`go list -m -f "{{.Version}}" gitlab.com/elixxir/gpumaths | awk -F- '{if ($1=="v0.0.2") {print $3} else {print $1}}'`
@@ -62,21 +58,7 @@ setup:
     - go mod vendor -v
     - go build ./...
     - go mod tidy
-  artifacts:
-    # TODO  include .so result (copy to a suitable directory as well)
-    paths:
-      - gpumaths/
-      - vendor/
 
-
-test:
-  stage: test
-  image: $DOCKER_IMAGE
-  tags:
-    - gpu
-  except:
-    - tags
-  script:
     - mkdir -p /opt/elixxir/lib/
     - mkdir -p /opt/elixxir/include
     - cp gpumaths/cgbnBindings/powm/*.so /opt/elixxir/lib
@@ -111,17 +93,7 @@ test:
     - go tool cover -func=testdata/coverage-real.out | grep "total:" | awk '{print $3}' | sed 's/\%//g' > testdata/coverage-percentage.txt
     - export CODE_CHECK=$(echo "$(cat testdata/coverage-percentage.txt) >= $MIN_CODE_COVERAGE" | bc -l)
     - (if [ "$CODE_CHECK" == "1" ]; then echo "Minimum coverage of $MIN_CODE_COVERAGE succeeded"; else echo "Minimum coverage of $MIN_CODE_COVERAGE failed"; exit 1; fi);
-  artifacts:
-    paths:
-      - testdata/
-      - gpumaths/
 
-build:
-  stage: build
-  image: $DOCKER_IMAGE
-  except:
-    - tags
-  script:
     - go run main.go generate
     - rm cmd/version_vars.go
     - mv version_vars.go cmd
@@ -138,27 +110,22 @@ build:
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/elixxir/lib' -o release/server-cuda.linux64 main.go
   artifacts:
     paths:
-     - release/
-     - gpumaths/
+      - vendor/
+      - testdata/
+      - gpumaths/
+      - release/
 
-tag:
-    stage: tag
-    only:
-        - master
-    image: $DOCKER_IMAGE
-    script:
-        - git remote add origin_tags git@gitlab.com:elixxir/server.git || true
-        - git remote set-url origin_tags git@gitlab.com:elixxir/server.git || true
-        - git tag $(./release/server.linux64 version | grep "Elixxir Server v"| cut -d ' ' -f3) -f
-        - git push origin_tags -f --tags
-
-
-trigger_integration:
+tag_and_trigger:
   stage: trigger_integration
-  script:
-    - "curl -X POST -F token=3cd593ad56ec017e30254c9ec6c0ab -F ref=master https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
   only:
     - master
+  image: $DOCKER_IMAGE
+  script:
+    - git remote add origin_tags git@gitlab.com:elixxir/server.git || true
+    - git remote set-url origin_tags git@gitlab.com:elixxir/server.git || true
+    - git tag $(./release/server.linux64 version | grep "Elixxir Server v"| cut -d ' ' -f3) -f
+    - git push origin_tags -f --tags
+    - "curl -X POST -F token=3cd593ad56ec017e30254c9ec6c0ab -F ref=master https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
 
 trigger_release_integration:
   stage: trigger_release_integration
