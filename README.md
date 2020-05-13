@@ -90,6 +90,8 @@ groups:
     generator: "2"
 metrics:
   log:  "~/.elixxir/metrics.log"
+signedCertPath: ""
+
 #in ms, omit to wait forever
 GatewayConnectionTimeout: 5000 
 # === END YAML

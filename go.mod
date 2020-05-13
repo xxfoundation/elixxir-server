@@ -4,17 +4,15 @@ go 1.13
 
 require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
-	github.com/envoyproxy/go-control-plane v0.9.4 // indirect
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-pg/pg v8.0.6+incompatible
-	github.com/golang/protobuf v1.4.0
+	github.com/golang/protobuf v1.4.1
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
-	github.com/onsi/gomega v1.10.0 // indirect
+	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pelletier/go-toml v1.7.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
@@ -24,14 +22,14 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.7.0
-	gitlab.com/elixxir/comms v0.0.0-20200511185810-6ae4720e2e67
-	gitlab.com/elixxir/crypto v0.0.0-20200504184505-e210a219cbd9
+	github.com/spf13/viper v1.6.3
+	gitlab.com/elixxir/comms v0.0.0-20200513205425-e2f1a300e61b
+	gitlab.com/elixxir/crypto v0.0.0-20200513205206-8be446a9ccbe
 	gitlab.com/elixxir/gpumaths v0.0.2-0.20200501011915-4ba556d76bed
-	gitlab.com/elixxir/primitives v0.0.0-20200510221418-b069d509885c
+	gitlab.com/elixxir/primitives v0.0.0-20200513204643-8f8798f26218
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	google.golang.org/grpc v1.27.1
-	gopkg.in/ini.v1 v1.56.0 // indirect
+	google.golang.org/grpc v1.29.1
+	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
 )
