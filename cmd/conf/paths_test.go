@@ -7,6 +7,7 @@
 package conf
 
 var ExpectedPaths = Paths{
+	Idf:  "nodeID.json",
 	Cert: "~/.elixxir/cert.crt",
 	Key:  "~/.elixxir/key.pem",
 	Log:  "~/.elixxir/server.log",

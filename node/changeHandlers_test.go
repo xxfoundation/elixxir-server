@@ -30,13 +30,13 @@ import (
 )
 
 func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
-	var nodeIDs []*id.Node
+	var nodeIDs []*id.ID
 
 	//Build IDs
 	for i := 0; i < 5; i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 
@@ -70,9 +70,11 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation, m, false)
-	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, "0.0.0.0:11439", []byte(testUtil.RegCert), true, false)
+
+	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
+		[]byte(testUtil.RegCert), false, false)
 	if err != nil {
-		t.Errorf("Failed to add perm host: %+v", err)
+		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 	r := round.NewDummyRoundWithTopology(id.Round(0), 3, topology, t)
 	instance.GetRoundManager().AddRound(r)
@@ -109,7 +111,7 @@ func TestError(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
 		Id:     0,
-		NodeId: instance.GetID().String(),
+		NodeId: instance.GetID().Marshal(),
 		Error:  "",
 	}
 	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
@@ -127,7 +129,7 @@ func TestError(t *testing.T) {
 	}()
 
 	for i := 0; i < topology.Len(); i++ {
-		nid := topology.GetNodeAtIndex(i).String()
+		nid := topology.GetNodeAtIndex(i)
 		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
@@ -146,11 +148,11 @@ func TestPrecomputing(t *testing.T) {
 	var err error
 	instance, topology := setup(t)
 
-	var top []string
+	var top [][]byte
 	for i := 0; i < topology.Len(); i++ {
-		nid := topology.GetNodeAtIndex(i).String()
-		top = append(top, nid)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		nid := topology.GetNodeAtIndex(i)
+		top = append(top, nid.Marshal())
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}

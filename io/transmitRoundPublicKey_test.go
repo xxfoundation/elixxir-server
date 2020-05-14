@@ -61,12 +61,12 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["PrecompDecrypt"] = response
 
-	topology := connect.NewCircuit([]*id.Node{instance.GetID()})
+	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}

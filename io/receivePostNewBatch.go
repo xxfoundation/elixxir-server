@@ -29,7 +29,7 @@ func ReceivePostNewBatch(instance *internal.Instance,
 	newBatch *mixmessages.Batch, postPhase GenericPostPhase, auth *connect.Auth) error {
 
 	// Check that authentication is good and the sender is our gateway, otherwise error
-	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
 		jww.WARN.Printf("[%v]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
 		return connect.AuthError(auth.Sender.GetId())
@@ -45,7 +45,7 @@ func ReceivePostNewBatch(instance *internal.Instance,
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
-	nodeIDs, err := id.NewNodeListFromStrings(newBatch.Round.Topology)
+	nodeIDs, err := id.NewIDListFromBytes(newBatch.Round.Topology)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}

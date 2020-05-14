@@ -54,13 +54,11 @@ func TestReceiveRoundError(t *testing.T) {
 	errMsg := &mixmessages.RoundError{
 		Id:     uint64(roundID),
 		Error:  expectedError,
-		NodeId: instance.GetID().String(),
+		NodeId: instance.GetID().Marshal(),
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(
-		topology.GetLastNode().String(),
-		"", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -124,17 +122,15 @@ func TestReceiveRoundError_Auth(t *testing.T) {
 	expectedError := "test failed"
 
 	// Pass in an unknown node id to the message
-	unknownNode := id.NewNodeFromBytes([]byte("unknown"))
+	unknownNode := id.NewIdFromBytes([]byte("unknown"), t)
 	errMsg := &mixmessages.RoundError{
 		Id:     uint64(roundID),
 		Error:  expectedError,
-		NodeId: unknownNode.String(),
+		NodeId: unknownNode.Marshal(),
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(
-		topology.GetLastNode().String(),
-		"", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -184,12 +180,11 @@ func TestReceiveRoundError_BadNodeId(t *testing.T) {
 	errMsg := &mixmessages.RoundError{
 		Id:     uint64(roundID),
 		Error:  expectedError,
-		NodeId: "unknown",
+		NodeId: id.NewIdFromString("unknown", id.Node, t).Marshal(),
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(
-		topology.GetLastNode().String(),
+	fakeHost, err := connect.NewHost(topology.GetLastNode(),
 		"", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -240,13 +235,11 @@ func TestReceiveRoundError_BadRound(t *testing.T) {
 	errMsg := &mixmessages.RoundError{
 		Id:     uint64(1),
 		Error:  expectedError,
-		NodeId: "unknown",
+		NodeId: id.NewIdFromString("unknown", id.Node, t).Marshal(),
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(
-		topology.GetLastNode().String(),
-		"", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -266,14 +259,14 @@ func TestReceiveRoundError_BadRound(t *testing.T) {
 func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
-	topology := connect.NewCircuit(BuildMockNodeIDs(5))
+	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Gateway: internal.GW{
-			ID: id.NewTmpGateway(),
+			ID: &id.TempGateway,
 		},
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil

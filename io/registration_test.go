@@ -16,8 +16,8 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/crypto/xx"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
@@ -37,9 +37,9 @@ var clientRSAPub *rsa.PublicKey
 var clientRSAPriv *rsa.PrivateKey
 var clientDHPub *cyclic.Int
 var regPrivKey *rsa.PrivateKey
-var nodeId *id.Node
+var nodeId *id.ID
 
-func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.Node, string) {
+func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.ID, string) {
 	switch v := t.(type) {
 	case *testing.T:
 	case *testing.M:
@@ -110,9 +110,9 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()
-	nodeIDs := make([]*id.Node, 0)
+	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)
-	def.Gateway.ID = id.NewTmpGateway()
+	def.Gateway.ID = &id.TempGateway
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
@@ -128,9 +128,10 @@ func TestMain(m *testing.M) { // TODO: TestMain is bad make this go away
 
 // Test request nonce with good auth boolean but bad ID
 func TestRequestNonceFailAuthId(t *testing.T) {
+	newID := id.NewIdFromString("420blazeit", id.Node, t)
+
 	// The incorrect ID here is the crux of the test
-	gwHost, err := connect.NewHost("420blazeit",
-		"", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(newID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -149,8 +150,10 @@ func TestRequestNonceFailAuthId(t *testing.T) {
 
 // Test request nonce with bad auth boolean but good ID
 func TestRequestNonceFailAuth(t *testing.T) {
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
-		"", make([]byte, 0), false, true)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -198,15 +201,15 @@ func TestRequestNonce(t *testing.T) {
 		t.Errorf("COuld not sign client's DH key with client RSA "+
 			"key: %+v", err)
 	}
-	gwHost, err := connect.NewHost(id.NewTmpGateway().String(),
-		"", make([]byte, 0), false, true)
+
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	result, _, err2 := RequestNonce(serverInstance,
-		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg,
-		sigClient, &connect.Auth{
+	result, _, err2 := RequestNonce(serverInstance, salt,
+		string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient,
+		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
 		})
@@ -240,14 +243,17 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 		t.Errorf("COuld not sign client's DH key with client RSA "+
 			"key: %+v", err)
 	}
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
-		"", make([]byte, 0), false, true)
+
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
-	_, _, err2 := RequestNonce(serverInstance,
-		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg,
-		sigClient, &connect.Auth{
+	_, _, err2 := RequestNonce(serverInstance, salt, string(clientRSAPubKeyPEM),
+		clientDHPub.Bytes(), sigReg, sigClient,
+		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
 		})
@@ -281,14 +287,16 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	//dont sign the client's DH key with client's RSA key pair
 	sigClient := make([]byte, 42)
 
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
-		"", make([]byte, 0), false, true)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
-	_, _, err2 := RequestNonce(serverInstance,
-		salt, string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg,
-		sigClient, &connect.Auth{
+	_, _, err2 := RequestNonce(serverInstance, salt, string(clientRSAPubKeyPEM),
+		clientDHPub.Bytes(), sigReg, sigClient,
+		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
 		})
@@ -306,7 +314,14 @@ func TestConfirmRegistration(t *testing.T) {
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	user.IsRegistered = false
 	user.RsaPublicKey = clientRSAPub
-	user.ID = registration.GenUserID(clientRSAPub, []byte{69})
+	salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
+
+	userID, err := xx.NewID(clientRSAPub, salt, id.User)
+	if err != nil {
+		t.Errorf("Error creating new user ID: %+v", err)
+	}
+	user.ID = userID
+
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
 	//hash and sign nonce
@@ -320,14 +335,14 @@ func TestConfirmRegistration(t *testing.T) {
 	if sign == nil || err != nil {
 		t.Errorf("Error signing data")
 	}
-	gwHost, err := connect.NewHost(id.NewTmpGateway().String(),
-		"", make([]byte, 0), false, true)
+
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
 	//call confirm
-	_, err2 := ConfirmRegistration(serverInstance, user.ID.Bytes(), sign,
+	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -366,14 +381,16 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 		t.Errorf("Error signing data")
 	}
 
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
-		"", make([]byte, 0), false, true)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance,
-		user.ID.Bytes(), sign, &connect.Auth{
+	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+		&connect.Auth{
 			IsAuthenticated: false, // This is the crux of the test
 			Sender:          gwHost,
 		})
@@ -401,15 +418,16 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 		t.Errorf("Error signing data")
 	}
 
+	newID := id.NewIdFromString("420blzit", id.Node, t)
+
 	// The incorrect ID here is the crux of the test
-	gwHost, err := connect.NewHost("420blzit",
-		"", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(newID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance,
-		user.ID.Bytes(), sign, &connect.Auth{
+	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+		&connect.Auth{
 			IsAuthenticated: true, // True for this test, we want bad sender ID
 			Sender:          gwHost,
 		})
@@ -437,14 +455,16 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 		t.Errorf("Error signing data")
 	}
 
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
-		"", make([]byte, 0), false, true)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance,
-		user.ID.Bytes(), sign, &connect.Auth{
+	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
 		})
@@ -479,14 +499,15 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	case <-wait:
 	}
 
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
-		"", make([]byte, 0), false, true)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance,
-		user.ID.Bytes(), sign,
+	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -503,14 +524,15 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 	serverInstance.GetUserRegistry().UpsertUser(user)
 	user.RsaPublicKey = clientRSAPub
 
-	gwHost, err := connect.NewHost(nodeId.NewGateway().String(),
-		"", make([]byte, 0), false, true)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err = ConfirmRegistration(serverInstance,
-		user.ID.Bytes(), []byte("test"),
+	_, err = ConfirmRegistration(serverInstance, user.ID, []byte("test"),
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,

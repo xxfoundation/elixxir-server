@@ -29,7 +29,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -79,7 +79,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -106,7 +106,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Smoke tests the management part of PostPrecompResult
 	grp := initImplGroup()
 	const numNodes = 5
-	nodeIDs := BuildMockNodeIDs(5)
+	nodeIDs := BuildMockNodeIDs(5, t)
 
 	// Set up all the instances
 	var instances []*internal.Instance
@@ -163,7 +163,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -205,7 +205,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 
-	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0).String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -225,7 +225,8 @@ func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 func TestPostPrecompResult_WrongSender(t *testing.T) {
 	instance, _ := mockServerInstance(t, current.PRECOMPUTING)
 
-	fakeHost, err := connect.NewHost("bad", "", nil, true, true)
+	newID := id.NewIdFromString("bad", id.Node, t)
+	fakeHost, err := connect.NewHost(newID, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

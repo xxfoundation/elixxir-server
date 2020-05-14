@@ -60,7 +60,7 @@ type Round struct {
 // and batchsize
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
-	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
+	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
 	localIP string) (*Round, error) {
 
@@ -182,10 +182,10 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 	if t == nil {
 		panic("Can not use NewDummyRound out side of testing")
 	}
-	list := []*id.Node{}
+	list := []*id.ID{}
 
 	for i := uint64(0); i < 8; i++ {
-		node := id.NewNodeFromUInt(i, t)
+		node := id.NewIdFromUInt(i, id.Node, t)
 		list = append(list, node)
 	}
 
@@ -283,7 +283,7 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 }
 
 // Return a RoundMetrics objects for this round
-func (r *Round) GetMeasurements(nid string, numNodes, index int,
+func (r *Round) GetMeasurements(nid *id.ID, numNodes, index int,
 	resourceMetric measure.ResourceMetric) measure.RoundMetrics {
 
 	rm := r.roundMetrics

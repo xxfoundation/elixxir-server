@@ -61,7 +61,7 @@ func TestRecoverInstance(t *testing.T) {
 
 	msg := &mixmessages.RoundError{
 		Id:     0,
-		NodeId: id.NewNodeFromUInt(uint64(0), t).String(),
+		NodeId: id.NewIdFromUInt(uint64(0), id.Node, t).Marshal(),
 		Error:  "test",
 	}
 	b, err := proto.Marshal(msg)
@@ -277,8 +277,7 @@ func TestInstance_ReportCriticalError(t *testing.T) {
 	instance, _ := createInstance(t)
 
 	testErr := errors.New("Test error")
-	instance.ReportRoundFailure(testErr, id.NewNodeFromUInt(uint64(1), t), nil)
-
+	instance.ReportRoundFailure(testErr, id.NewIdFromUInt(uint64(1), id.Node, t), nil)
 	//Test happy path
 
 	//Test that if we send a different error it changes as expected

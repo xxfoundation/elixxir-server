@@ -28,7 +28,7 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 	}
 
 	// Pull the erroring node id from message and check if it's valid
-	badNodeId, err := id.NewNodeFromString(msg.GetNodeId())
+	badNodeId, err := id.Unmarshal(msg.GetNodeId())
 	if err != nil {
 		return errors.Errorf("Received unrecognizable node id: %v",
 			err.Error())

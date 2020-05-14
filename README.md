@@ -51,8 +51,8 @@ verbose: true
 recoveredErrFile: "/tmp/recovered_error"
 logLevel: 1
 node:
-  id: ""
   paths:
+    idf:  ""
     cert: ""
     key:  ""
     log:  "server.log"
@@ -92,8 +92,8 @@ groups:
     generator: "2"
 metrics:
   log:  "~/.elixxir/metrics.log"
-signedCertPath: ""  
- 
+signedCertPath: ""
+
 #in ms, omit to wait forever
 GatewayConnectionTimeout: 5000 
 # === END YAML

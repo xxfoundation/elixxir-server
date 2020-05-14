@@ -26,14 +26,14 @@ import (
 func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
-	topology := connect.NewCircuit(BuildMockNodeIDs(5))
+	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Gateway: internal.GW{
-			ID: id.NewTmpGateway(),
+			ID: &id.TempGateway,
 		},
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
@@ -101,7 +101,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		return nil
 	}
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -132,7 +132,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	instance, topology, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
-	fakeHost, _ := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
+	fakeHost, _ := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          fakeHost,
@@ -140,15 +140,9 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 
 	pk := &mixmessages.RoundPublicKey{
 		Round: &mixmessages.RoundInfo{
-			ID:                   0,
-			XXX_NoUnkeyedLiteral: struct{}{},
-			XXX_unrecognized:     nil,
-			XXX_sizecache:        0,
+			ID: 0,
 		},
-		Key:                  nil,
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+		Key: nil,
 	}
 
 	err := ReceivePostRoundPublicKey(instance, pk, auth)
@@ -166,7 +160,8 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 	instance, _, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
-	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
+	newID := id.NewIdFromString("beep beep i'm a host", id.Node, t)
+	fakeHost, _ := connect.NewHost(newID, "", nil, true, true)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          fakeHost,
@@ -174,15 +169,9 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 
 	pk := &mixmessages.RoundPublicKey{
 		Round: &mixmessages.RoundInfo{
-			ID:                   0,
-			XXX_NoUnkeyedLiteral: struct{}{},
-			XXX_unrecognized:     nil,
-			XXX_sizecache:        0,
+			ID: 0,
 		},
-		Key:                  nil,
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+		Key: nil,
 	}
 
 	err := ReceivePostRoundPublicKey(instance, pk, auth)
@@ -247,7 +236,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

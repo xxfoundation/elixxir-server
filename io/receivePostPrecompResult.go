@@ -42,9 +42,9 @@ func ReceivePostPrecompResult(instance *internal.Instance, roundID uint64,
 	}
 
 	// Check for proper authentication and expected sender
-	expectedID := r.GetTopology().GetLastNode().String()
+	expectedID := r.GetTopology().GetLastNode()
 	senderID := auth.Sender.GetId()
-	if !auth.IsAuthenticated || senderID != expectedID {
+	if !auth.IsAuthenticated || !senderID.Cmp(expectedID) {
 		jww.INFO.Printf("[%v]: RID %d PostPrecompResult failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),

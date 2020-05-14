@@ -118,7 +118,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
+	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
 	if noTls {
@@ -141,7 +141,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Add gateways to host object
 	if instance.definition.Gateway.Address != "" {
-		_, err := instance.network.AddHost(id.NewTmpGateway().String(),
+		_, err := instance.network.AddHost(&id.TempGateway,
 			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
 		if err != nil {
 			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
@@ -213,7 +213,7 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Imple
 	i.definition.Gateway.TlsCert = []byte(gwCert)
 
 	// Get the id and cert
-	ourId := i.GetID().String()
+	ourId := i.GetID()
 	ourDef := i.GetDefinition()
 
 	// Reset the network with the newly signed certs
@@ -226,13 +226,13 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Imple
 	}
 
 	// Connect to the Permissioning Server with authentication enabled
-	_, err := i.network.AddHost(id.PERMISSIONING,
+	_, err := i.network.AddHost(&id.Permissioning,
 		i.definition.Permissioning.Address, i.definition.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return err
 	}
 
-	_, err = i.network.AddHost(i.definition.Gateway.ID.String(), i.definition.Gateway.Address,
+	_, err = i.network.AddHost(i.definition.Gateway.ID, i.definition.Gateway.Address,
 		i.definition.Gateway.TlsCert, false, true)
 
 	i.consensus.SetProtoComms(i.network.ProtoComms)
@@ -263,7 +263,7 @@ func (i *Instance) GetStateMachine() state.Machine {
 }
 
 // GetGateway returns the id of the node's gateway
-func (i *Instance) GetGateway() *id.Gateway {
+func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
@@ -288,7 +288,7 @@ func (i *Instance) GetNetwork() *node.Comms {
 }
 
 //GetID returns this node's ID
-func (i *Instance) GetID() *id.Node {
+func (i *Instance) GetID() *id.ID {
 	return i.definition.ID
 }
 
@@ -451,7 +451,7 @@ func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
 
 // GenerateId generates a random ID and returns it
 // FIXME: This function needs to be replaced
-func GenerateId(i interface{}) *id.Node {
+func GenerateId(i interface{}) *id.ID {
 	switch i.(type) {
 	case *testing.T:
 		break
@@ -465,27 +465,31 @@ func GenerateId(i interface{}) *id.Node {
 	jww.WARN.Printf("GenerateId needs to be replaced")
 
 	// Create node id buffer
-	nodeIdBytes := make([]byte, id.NodeIdLen)
+	nodeIdBytes := make([]byte, id.ArrIDLen)
 	rng := csprng.NewSystemRNG()
 
 	// Generate random bytes and store in buffer
 	_, err := rng.Read(nodeIdBytes)
 	if err != nil {
-		err := errors.New(err.Error())
+		err = errors.New(err.Error())
 		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
 	}
 
-	nid := id.NewNodeFromBytes(nodeIdBytes)
+	nid, err := id.Unmarshal(nodeIdBytes)
+	if err != nil {
+		err = errors.New(err.Error())
+		jww.FATAL.Panicf("Could not unmarshal nodeID: %+v", err)
+	}
 
 	return nid
 }
 
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
-func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.Node, roundId *id.Round) {
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Round) {
 	roundErr := mixmessages.RoundError{
 		Error:  errIn.Error(),
-		NodeId: nodeId.String(),
+		NodeId: nodeId.Marshal(),
 	}
 	if roundId != nil {
 		roundErr.Id = uint64(*roundId)

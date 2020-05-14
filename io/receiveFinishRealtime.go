@@ -34,7 +34,7 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 	}
 
 	expectedID := r.GetTopology().GetLastNode()
-	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(expectedID) {
 		jww.INFO.Printf("[%v]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
