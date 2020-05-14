@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-var nodeId *id.Node
+var nodeId *id.ID
 var permComms *registration.Comms
 var gwComms *gateway.Comms
 var testNdf *ndf.NetworkDefinition
@@ -49,7 +49,7 @@ func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byt
 	return nil, nil
 }
 
-func (i *mockPermission) RegisterNode([]byte, string, string, string, string, string) error {
+func (i *mockPermission) RegisterNode(*id.ID, string, string, string, string, string) error {
 	return nil
 }
 
@@ -89,7 +89,7 @@ func (i *mockPermissionMultipleRounds) RegisterUser(registrationCode, test strin
 	return nil, nil
 }
 
-func (i *mockPermissionMultipleRounds) RegisterNode([]byte, string, string, string, string, string) error {
+func (i *mockPermissionMultipleRounds) RegisterNode(*id.ID, string, string, string, string, string) error {
 	return nil
 }
 
@@ -116,17 +116,14 @@ func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth
 func buildRoundInfoMessages() []*pb.RoundInfo {
 	numUpdates := uint64(0)
 
-	node1 := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	node2 := []byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	node3 := []byte{3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	node4 := []byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	node1 := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
+	node2 := []byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
+	node3 := []byte{3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
+	node4 := []byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
 
 	// Create a topology for round info
-	nodeOne := id.NewNodeFromBytes(node1).String()
-	jww.FATAL.Println(nodeOne)
-	nodeTwo := id.NewNodeFromBytes(node2).String()
-	nodeThree := id.NewNodeFromBytes(node3).String()
-	ourTopology := []string{nodeOne, nodeTwo, nodeThree}
+	jww.FATAL.Println(node1)
+	ourTopology := [][]byte{node1, node2, node3}
 
 	// Construct round info message indicating PRECOMP starting
 	precompRoundInfo := &pb.RoundInfo{
@@ -157,8 +154,7 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	numUpdates++
 
 	// Construct message which adds node to team
-	nodeFour := id.NewNodeFromBytes(node4).String()
-	ourTopology = append(ourTopology, nodeFour)
+	ourTopology = append(ourTopology, node4)
 
 	// Add new round in standby stage
 	newNodeRoundInfo := &pb.RoundInfo{
@@ -208,11 +204,11 @@ func (i *mockPermissionMultipleRounds) GetUpdatedNDF(clientNDFHash []byte) ([]by
 // --------------------------Dummy implementation of gateway server --------------------------------------
 type mockGateway struct{}
 
-func (*mockGateway) CheckMessages(userID *id.User, messageID string, ipAddress string) ([]string, error) {
+func (*mockGateway) CheckMessages(userID *id.ID, messageID string, ipAddress string) ([]string, error) {
 	return nil, nil
 }
 
-func (*mockGateway) GetMessage(userID *id.User, msgID string, ipAddress string) (*pb.Slot, error) {
+func (*mockGateway) GetMessage(userID *id.ID, msgID string, ipAddress string) (*pb.Slot, error) {
 	return nil, nil
 }
 
@@ -229,7 +225,7 @@ func (*mockGateway) ConfirmNonce(message *pb.RequestRegistrationConfirmation, ip
 	return nil, nil
 }
 
-func (*mockGateway) PollForNotifications(auth *connect.Auth) ([]string, error) {
+func (*mockGateway) PollForNotifications(auth *connect.Auth) ([]*id.ID, error) {
 	return nil, nil
 }
 
@@ -296,7 +292,7 @@ func builEmptydMockNdf() *ndf.NetworkDefinition {
 	return ourMockNdf
 }
 
-func buildMockNdf(nodeId *id.Node, nodeAddress, gwAddress string, cert, key []byte) {
+func buildMockNdf(nodeId *id.ID, nodeAddress, gwAddress string, cert, key []byte) {
 	node := ndf.Node{
 		ID:             nodeId.Bytes(),
 		TlsCertificate: string(cert),
@@ -401,7 +397,7 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
-	nodeId = id.NewNodeFromUInt(uint64(0), t)
+	nodeId = id.NewIdFromUInt(uint64(0), id.Node, t)
 	nodeAddr = fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
 	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
 	cnt++
@@ -450,7 +446,7 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 	}
 
 	// Add permissioning as a host
-	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, def.Permissioning.Address,
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
 		def.Permissioning.TlsCert, false, false)
 	if err != nil {
 		return nil, errors.Errorf("Failed to add permissioning host: %+v", err)
@@ -460,14 +456,14 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 }
 
 // Utility function which starts up a permissioning server
-func startPermisioning() (*registration.Comms, error) {
+func startPermissioning() (*registration.Comms, error) {
 
 	cert := []byte(testUtil.RegCert)
 	key := []byte(testUtil.RegPrivKey)
 	// Initialize permissioning server
 	pHandler := registration.Handler(&mockPermission{})
-	permComms = registration.StartRegistrationServer(id.PERMISSIONING, pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId.String(), pAddr, cert, false, false)
+	permComms = registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	_, err := permComms.AddHost(nodeId, pAddr, cert, false, false)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
 	}
@@ -481,8 +477,10 @@ func startGateway() (*gateway.Comms, error) {
 
 	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
 	gHandler := gateway.Handler(&mockGateway{})
-	gwComms = gateway.StartGateway(nodeId.NewGateway().String(), gAddr, gHandler, cert, key)
-	_, err := gwComms.AddHost(nodeId.String(), nodeAddr, cert, false, false)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+	gwComms = gateway.StartGateway(gwID, gAddr, gHandler, cert, key)
+	_, err := gwComms.AddHost(nodeId, nodeAddr, cert, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -495,8 +493,8 @@ func startMultipleRoundUpdatesPermissioning() (*registration.Comms, error) {
 	key := []byte(testUtil.RegPrivKey)
 	// Initialize permissioning server
 	pHandler := registration.Handler(&mockPermissionMultipleRounds{})
-	permComms = registration.StartRegistrationServer(id.PERMISSIONING, pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId.String(), pAddr, cert, false, false)
+	permComms = registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	_, err := permComms.AddHost(nodeId, pAddr, cert, false, false)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
 	}

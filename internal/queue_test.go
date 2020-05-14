@@ -105,7 +105,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	q := initQueue()
 	nid := GenerateId(t)
 
-	topology := connect.NewCircuit([]*id.Node{nid})
+	topology := connect.NewCircuit([]*id.ID{nid})
 	def := Definition{
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},

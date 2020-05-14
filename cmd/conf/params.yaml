@@ -2,12 +2,8 @@
 # Example yaml params file used for testing
 # the params object and its dependencies
 node:
-  id: "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
-  ids:
-    - "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
-    - "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
-    - "Fb9JgRlv4AeF6EzgDNITvtK4dQRLc29nh3XtsLF86PE="
   paths:
+    idf:  "nodeID.json"
     cert: "~/.elixxir/cert.crt"
     key:  "~/.elixxir/key.pem"
     log:  "~/.elixxir/server.log"

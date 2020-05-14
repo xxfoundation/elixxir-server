@@ -29,7 +29,7 @@ type Definition struct {
 	Flags
 
 	//The ID of the node in the correct format
-	ID *id.Node
+	ID *id.ID
 
 	//DSA Keys defining the node's ownership
 	PublicKey  *rsa.PublicKey
@@ -98,7 +98,7 @@ type Flags struct {
 //Holds information about another node in the network
 type Node struct {
 	// ID of the other node
-	ID *id.Node
+	ID *id.ID
 	// PEM file containing the TLS cert
 	TlsCert []byte
 	// IP of the []byte node
@@ -119,7 +119,7 @@ type Perm struct {
 
 type GW struct {
 	// ID of the gateway
-	ID *id.Gateway
+	ID *id.ID
 	// PEM file containing the TLS cert
 	TlsCert []byte
 	// IP address of the gateway

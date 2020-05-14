@@ -44,7 +44,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	if !certsExist {
 		jww.INFO.Printf("Registering with permissioning!")
 		// Connect to the Permissioning Server without authentication
-		permHost, err := network.AddHost(id.PERMISSIONING,
+		permHost, err := network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
 			ourDef.Permissioning.Address,
 			ourDef.Permissioning.TlsCert,
@@ -70,7 +70,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
-	permHost, err := network.AddHost(id.PERMISSIONING,
+	permHost, err := network.AddHost(&id.Permissioning,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -186,7 +186,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
-	nodeIDs, err := id.NewNodeListFromStrings(topology)
+	nodeIDs, err := id.NewIDListFromBytes(topology)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
@@ -195,7 +195,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	circuit := connect.NewCircuit(nodeIDs)
 
 	for i := 0; i < circuit.Len(); i++ {
-		nodeId := circuit.GetNodeAtIndex(i).String()
+		nodeId := circuit.GetNodeAtIndex(i)
 		ourHost, ok := instance.GetNetwork().GetHost(nodeId)
 		if !ok {
 			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))

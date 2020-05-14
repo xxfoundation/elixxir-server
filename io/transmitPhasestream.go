@@ -43,7 +43,8 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	recipientID := topology.GetNextNode(nodeID)
 	recipientIndex := topology.GetNodeLocation(recipientID)
 	recipient := topology.GetHostAtIndex(recipientIndex)
-
+	fmt.Printf("***recipient: %+v\n", recipient.String())
+	fmt.Printf("***instance ID: %+v\n", instance.GetID())
 	header := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
@@ -72,7 +73,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
-			err := streamClient.Send(msg)
+			err = streamClient.Send(msg)
 			if err != nil {
 				return errors.Errorf("Error on comm, not able to send slot: %+v",
 					err)

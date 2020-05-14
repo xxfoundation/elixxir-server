@@ -34,13 +34,15 @@ func TestRegisterNode(t *testing.T) {
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
 	// Set up id's and address
-	nodeId = id.NewNodeFromUInt(uint64(0), t)
+	nodeId = id.NewIdFromUInt(0, id.Node, t)
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 17000+rand.Intn(1000)+cnt)
 	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
 
 	cnt++
 
 	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
 
 	// Build the node
 	emptyNdf := builEmptydMockNdf()
@@ -57,7 +59,7 @@ func TestRegisterNode(t *testing.T) {
 		LogPath:       "",
 		MetricLogPath: "",
 		Gateway: internal.GW{
-			ID:      nodeId.NewGateway(),
+			ID:      gwID,
 			Address: gAddr,
 			TlsCert: cert,
 		},
@@ -94,21 +96,21 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Add permissioning as a host
-	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, def.Permissioning.Address,
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
 		def.Permissioning.TlsCert, false, false)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
 	// Start up permissioning server
-	permComms, err := startPermisioning()
+	permComms, err := startPermissioning()
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
 	defer permComms.Shutdown()
 
 	// Fetch permissioning host
-	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
+	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
 	if !ok {
 		t.Errorf("Could not get permissioning host. Was it added?")
 	}
@@ -130,7 +132,7 @@ func TestPoll(t *testing.T) {
 	}
 
 	// Start up permissioning server
-	permComms, err := startPermisioning()
+	permComms, err := startPermissioning()
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
@@ -189,14 +191,14 @@ func TestRetrieveState(t *testing.T) {
 	defer instance.GetNetwork().Shutdown()
 
 	// Create permissioning server
-	permComms, err := startPermisioning()
+	permComms, err := startPermissioning()
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server")
 	}
 	defer permComms.Shutdown()
 
 	// Add retrieve permissioning host from instance
-	permHost, _ := instance.GetNetwork().GetHost(id.PERMISSIONING)
+	permHost, _ := instance.GetNetwork().GetHost(&id.Permissioning)
 
 	// Ping permissioning for a state update
 	response, err := PollPermissioning(permHost, instance, instance.GetStateMachine().Get())
@@ -238,10 +240,10 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 
 	// Create a topology for round info
-	nodeOne := id.NewNodeFromUInt(uint64(0), t).String()
-	nodeTwo := id.NewNodeFromUInt(uint64(1), t).String()
-	nodeThree := id.NewNodeFromUInt(uint64(2), t).String()
-	ourTopology := []string{nodeOne, nodeTwo, nodeThree}
+	nodeOne := id.NewIdFromUInt(0, id.Node, t).Marshal()
+	nodeTwo := id.NewIdFromUInt(1, id.Node, t).Marshal()
+	nodeThree := id.NewIdFromUInt(2, id.Node, t).Marshal()
+	ourTopology := [][]byte{nodeOne, nodeTwo, nodeThree}
 
 	// Construct round info message
 	precompRoundInfo := &pb.RoundInfo{
@@ -377,10 +379,10 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Create a topology for round info
-	nodeOne := id.NewNodeFromUInt(uint64(0), t).String()
-	nodeTwo := id.NewNodeFromUInt(uint64(1), t).String()
-	nodeThree := id.NewNodeFromUInt(uint64(2), t).String()
-	ourTopology := []string{nodeOne, nodeTwo, nodeThree}
+	nodeOne := id.NewIdFromUInt(0, id.Node, t).Marshal()
+	nodeTwo := id.NewIdFromUInt(1, id.Node, t).Marshal()
+	nodeThree := id.NewIdFromUInt(2, id.Node, t).Marshal()
+	ourTopology := [][]byte{nodeOne, nodeTwo, nodeThree}
 
 	// ------------------------------- PENDING TEST ------------------------------------------------------------
 	pendingRoundInfo := &pb.RoundInfo{
@@ -478,10 +480,10 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Create a topology for round info
-	nodeOne := id.NewNodeFromUInt(uint64(0), t).String()
-	nodeTwo := id.NewNodeFromUInt(uint64(1), t).String()
-	nodeThree := id.NewNodeFromUInt(uint64(2), t).String()
-	ourTopology := []string{nodeOne, nodeTwo, nodeThree}
+	nodeOne := id.NewIdFromUInt(0, id.Node, t).Marshal()
+	nodeTwo := id.NewIdFromUInt(1, id.Node, t).Marshal()
+	nodeThree := id.NewIdFromUInt(2, id.Node, t).Marshal()
+	ourTopology := [][]byte{nodeOne, nodeTwo, nodeThree}
 
 	// ------------------- Enter an unexpected state -------------------------------------
 
@@ -517,7 +519,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	//  --------------- Non team member test case -----------------------------------------
 
 	// Exclude our node from the topology
-	badTopology := []string{nodeTwo, nodeThree}
+	badTopology := [][]byte{nodeTwo, nodeThree}
 
 	// Construct round info message
 	theirRoundInfo := &pb.RoundInfo{
@@ -557,11 +559,13 @@ func TestRegistration(t *testing.T) {
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
 	// Generate id's and addresses
-	nodeId = id.NewNodeFromUInt(uint64(0), t)
+	nodeId = id.NewIdFromUInt(0, id.Node, t)
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
 	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
 	cnt++
 	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
 
 	// Build the node
 	emptyNdf := builEmptydMockNdf()
@@ -578,7 +582,7 @@ func TestRegistration(t *testing.T) {
 		LogPath:       "",
 		MetricLogPath: "",
 		Gateway: internal.GW{
-			ID:      nodeId.NewGateway(),
+			ID:      gwID,
 			Address: gAddr,
 			TlsCert: cert,
 		},
@@ -613,14 +617,14 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Add permissioning as a host
-	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, def.Permissioning.Address,
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
 		def.Permissioning.TlsCert, false, false)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
 	// Boot up permissioning server
-	permComms, err := startPermisioning()
+	permComms, err := startPermissioning()
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
@@ -646,7 +650,7 @@ func TestRegistration(t *testing.T) {
 	// Register the node in a separate thread and notify when finished
 	go func() {
 		// Fetch permissioning host
-		permHost, err := instance.GetNetwork().AddHost(id.PERMISSIONING, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
@@ -694,7 +698,7 @@ func TestRegistration(t *testing.T) {
 	//	msg, err := gwComms.SendPoll(nodeHost, serverPoll)
 	//	if err != nil {
 	//		t.Errorf("Error on polling signed certs: %+v", err)
-	//	} else if bytes.Compare(msg.Id, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {
+	//	} else if bytes.Compare(msg.IdfPath, make([]byte, 0)) != 0 { //&& msg.Ndf.Ndf !=  {
 	//		break
 	//	}
 	//}

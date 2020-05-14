@@ -97,7 +97,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 		Payload: any,
 		Round: &pb.RoundInfo{
 			ID:       45,
-			Topology: []string{instance.GetID().String()},
+			Topology: [][]byte{instance.GetID().Marshal()},
 		},
 	}
 

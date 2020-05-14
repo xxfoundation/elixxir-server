@@ -74,20 +74,22 @@ func StartServer(vip *viper.Viper) error {
 		params.Database.Name,
 		dbAddress,
 	)
-
 	//populate the dummy precanned users
 	jww.INFO.Printf("Adding dummy users to registry")
 	PopulateDummyUsers(userDatabase, cmixGrp)
 
 	//Add a dummy user for gateway
 	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = id.MakeDummyUserID()
+	dummy.ID = &id.DummyUser
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
 	dummy.IsRegistered = true
 	userDatabase.UpsertUser(dummy)
 
 	jww.INFO.Printf("Converting params to server definition")
-	def := params.ConvertToDefinition()
+	def, err := params.ConvertToDefinition()
+	if err != nil {
+		return errors.Errorf("Failed to convert params to definition: %+v", err)
+	}
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 

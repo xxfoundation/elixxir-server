@@ -16,7 +16,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(0)
 
@@ -43,7 +43,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(1)
 
@@ -69,7 +69,7 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(2)
 
@@ -95,7 +95,7 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(0)
 
@@ -122,7 +122,7 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(1)
 
@@ -148,7 +148,7 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 	gc := services.NewGraphGenerator(4, nil, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(2)
 
@@ -169,14 +169,14 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 }
 
 // Builds a list of node IDs for testing
-func buildMockTopology(numNodes int) *connect.Circuit {
-	var nodeIDs []*id.Node
+func buildMockTopology(numNodes int, t *testing.T) *connect.Circuit {
+	var nodeIDs []*id.ID
 
 	// Build IDs
 	for i := 0; i < numNodes; i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 

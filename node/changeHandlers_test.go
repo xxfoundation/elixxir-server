@@ -44,13 +44,13 @@ func TestNewStateChanges(t *testing.T) {
 
 func TestPrecomputing(t *testing.T) {
 
-	var nodeIDs []*id.Node
+	var nodeIDs []*id.ID
 
 	//Build IDs
 	for i := 0; i < 5; i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 
@@ -81,18 +81,18 @@ func TestPrecomputing(t *testing.T) {
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation, m, false)
 
-	_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, testUtil.NDF.Registration.Address,
+	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
 		[]byte(testUtil.RegCert), false, false)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %v", err)
 	}
 
 	_ = instance.Run()
-	var top []string
+	var top [][]byte
 	for i := 0; i < topology.Len(); i++ {
-		nid := topology.GetNodeAtIndex(i).String()
-		top = append(top, nid)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		nid := topology.GetNodeAtIndex(i)
+		top = append(top, nid.Marshal())
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}

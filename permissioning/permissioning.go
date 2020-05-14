@@ -56,7 +56,7 @@ func RegisterNode(def *internal.Definition, network *node.Comms, permHost *conne
 func Poll(instance *internal.Instance) error {
 
 	// Fetch the host information from the network
-	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
+	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
 	if !ok {
 		return errors.New("Could not get permissioning host")
 	}
@@ -149,7 +149,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 		}
 
 		// Extract topology from RoundInfo
-		newNodeList, err := id.NewNodeListFromStrings(roundInfo.Topology)
+		newNodeList, err := id.NewIDListFromBytes(roundInfo.Topology)
 		if err != nil {
 			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 		}
@@ -265,7 +265,7 @@ func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) (str
 
 	jww.INFO.Println("Installing FullNDF now...")
 
-	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
+	index, err := findOurNode(def.ID, newNdf.Nodes)
 	if err != nil {
 		return "", "", err
 	}
@@ -278,11 +278,11 @@ func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) (str
 
 //findOurNode is a helper function which finds our node's index in the ndf
 // it returns the index of our node if found or an error if not found
-func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
+func findOurNode(nodeId *id.ID, nodes []ndf.Node) (int, error) {
 	//Find this node's place in the newNDF
 	for i, newNode := range nodes {
 		//Use that index bookkeeping purposes when later parsing ndf
-		if bytes.Compare(newNode.ID, nodeId) == 0 {
+		if bytes.Compare(newNode.ID, nodeId.Bytes()) == 0 {
 			return i, nil
 		}
 	}

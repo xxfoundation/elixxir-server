@@ -42,8 +42,8 @@ func ReceivePostRoundPublicKey(instance *internal.Instance,
 	}
 
 	// Verify that auth is good and sender is last node
-	expectedID := r.GetTopology().GetLastNode().String()
-	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+	expectedID := r.GetTopology().GetLastNode()
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(expectedID) {
 		jww.INFO.Printf("[%v]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),

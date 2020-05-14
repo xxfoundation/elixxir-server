@@ -116,7 +116,7 @@ func TransmitRoundPublicKey(roundID id.Round, serverInstance phase.GenericInstan
 
 	// When all responses are receivedFinishRealtime we 'send'
 	// to the first node which is this node
-	recipientID := topology.GetNodeAtIndex(0).String()
+	recipientID := topology.GetNodeAtIndex(0)
 	// Pull the particular server host object from the commManager
 	recipient, ok := instance.GetNetwork().GetHost(recipientID)
 	if !ok {
