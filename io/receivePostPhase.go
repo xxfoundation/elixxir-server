@@ -71,9 +71,10 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
@@ -99,8 +100,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	err = PostPhase(p, batch)
 
 	if err != nil {
-		jww.FATAL.Panicf("Error on PostPhase comm, should be"+
+		roundErr := errors.Errorf("Error on PostPhase comm, should be"+
 			" able to return: %+v", err)
+		return roundErr
 	}
 	return nil
 }
@@ -158,9 +160,10 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagReceiveOnReception)
 

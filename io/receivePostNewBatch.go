@@ -59,6 +59,7 @@ func ReceivePostNewBatch(instance *internal.Instance,
 			return err
 		}
 	}
+
 	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
@@ -71,7 +72,8 @@ func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batc
 	// Get the roundinfo object
 	ri := newBatch.Round
 	rm := instance.GetRoundManager()
-	rnd, err := rm.GetRound(ri.GetRoundId())
+	rid := ri.GetRoundId()
+	rnd, err := rm.GetRound(rid)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get round object from manager")
 	}
@@ -80,24 +82,24 @@ func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batc
 		ri.ID)
 
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
-		jww.FATAL.Panicf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
-			"batch with improper size", instance, ri.GetID())
+		roundErr := errors.Errorf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
+			"batch with improper size", instance, newBatch.Round.ID)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 	}
 
 	p, err := rnd.GetPhase(phase.RealDecrypt)
-
 	if err != nil {
-		jww.FATAL.Panicf(
-			"[%v]: RID %d Error on incoming PostNewBatch comm, could "+
-				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
+		roundErr := errors.Errorf("[%v]: RID %d Error on incoming PostNewBatch comm, could "+
+			"not find phase \"%s\": %v", instance, newBatch.Round.ID,
 			phase.RealDecrypt, err)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 	}
 
 	if p.GetState() != phase.Active {
-		jww.FATAL.Panicf(
-			"[%v]: RID %d Error on incoming PostNewBatch comm, phase "+
-				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
+		roundErr := errors.Errorf("[%v]: RID %d Error on incoming PostNewBatch comm, phase "+
+			"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
+		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 	}
 
 	p.Measure(measure.TagReceiveOnReception)
@@ -108,8 +110,9 @@ func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batc
 	err = postPhase(p, newBatch)
 
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
+		roundErr := errors.Errorf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 	}
 
 	return nil

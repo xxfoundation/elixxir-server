@@ -26,8 +26,9 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 
 	r, err := rm.GetRound(rid)
 	if err != nil {
-		jww.CRITICAL.Panicf("First Node Round Init: Could not get "+
+		roundErr := errors.Errorf("First Node Round Init: Could not get "+
 			"round (%v) right after round init", rid)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 	}
 
 	// Create new batch object
@@ -45,7 +46,8 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 
 	ourRoundInfo, err := instance.GetConsensus().GetRound(rid)
 	if err != nil {
-		jww.CRITICAL.Panicf("Could not get round info from instance: %v", err)
+		roundErr := errors.Errorf("Could not get round info from instance: %v", err)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 	}
 	// Make this a non anonymous functions, that calls a new thread and test the function seperately
 	go func() {
@@ -62,8 +64,8 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 	//send the data to the phase
 	err = io.PostPhase(p, newBatch)
 	if err != nil {
-		jww.ERROR.Panicf("Error first node generation init: "+
-			"should be able to return: %+v", err)
+		roundErr := errors.Errorf("Error on processing new batch in phase %s of round %v: %s", p.GetType(), rid, err)
+		return roundErr
 	}
 	return nil
 }

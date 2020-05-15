@@ -19,10 +19,14 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/services"
+	"os"
 	"runtime"
 	"time"
 )
@@ -102,17 +106,16 @@ func StartServer(vip *viper.Viper) error {
 		return node.GatherMetrics(instance, roundID, metricsWhitespace)
 	}
 
-	PanicHandler := func(g, m string, err error) {
-		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err))
-	}
+	var instance *internal.Instance
+
+	PanicHandler := node.GetDefaultPanicHanlder(instance)
+
 	def.GraphGenerator.SetErrorHandler(PanicHandler)
 
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	jww.INFO.Printf("Creating server instance")
-	var instance *internal.Instance
 
 	ourChangeList := node.NewStateChanges()
 
@@ -143,10 +146,10 @@ func StartServer(vip *viper.Viper) error {
 	}
 
 	ourChangeList[current.ERROR] = func(from current.Activity) error {
-		return node.Error(from)
+		return node.Error(instance)
 	}
 
-	ourChangeList[current.ERROR] = func(from current.Activity) error {
+	ourChangeList[current.CRASH] = func(from current.Activity) error {
 		return node.Crash(from)
 	}
 
@@ -154,9 +157,44 @@ func StartServer(vip *viper.Viper) error {
 	ourMachine := state.NewMachine(ourChangeList)
 
 	// Create instance
-	instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
+	recoveredErrorFile, err := os.Open(params.RecoveredErrFile)
 	if err != nil {
-		return errors.Errorf("Could not create server instance: %v", err)
+		if os.IsNotExist(err) {
+			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
+			if err != nil {
+				return errors.Errorf("Could not create server instance: %v", err)
+			}
+		} else {
+			return errors.WithMessage(err, "Failed to open file")
+		}
+	} else {
+		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, noTLS, recoveredErrorFile)
+		if err != nil {
+			return errors.WithMessage(err, "Could not recover server instance")
+		}
+	}
+
+	if params.PhaseOverrides != nil {
+		overrides := map[int]phase.Phase{}
+		gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
+			uint8(runtime.NumCPU()), 1, 0)
+		g := graphs.InitErrorGraph(gc)
+		th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+			return errors.New("Failed intentionally")
+		}
+		for _, i := range params.PhaseOverrides {
+			jww.ERROR.Println(fmt.Sprintf("Overriding phase %d", i))
+			p := phase.New(phase.Definition{
+				Graph:               g,
+				Type:                phase.PrecompGeneration,
+				TransmissionHandler: th,
+				Timeout:             500,
+				DoVerification:      false,
+			})
+			overrides[i] = p
+		}
+
+		instance.OverridePhases(overrides)
 	}
 
 	jww.INFO.Printf("Instance created!")

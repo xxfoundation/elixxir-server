@@ -10,6 +10,7 @@ package internal
 // and its interface
 
 import (
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -24,18 +25,21 @@ type ResourceQueue struct {
 	phaseQueue  chan phase.Phase
 	finishChan  chan phase.Phase
 	timer       *time.Timer
-	killChan    chan struct{}
+	killChan    chan chan bool
+	running     *uint32
 }
 
 //initQueue begins a queue with default channel buffer sizes
 func initQueue() *ResourceQueue {
+	running := uint32(0)
 	return &ResourceQueue{
 		// these are the phases
 		phaseQueue: make(chan phase.Phase, 5000),
 		// there will only active phase, and this channel is used to killChan it
 		finishChan: make(chan phase.Phase, 1),
 		// this channel will be used to killChan the queue
-		killChan: make(chan struct{}),
+		killChan: make(chan chan bool, 1),
+		running:  &running,
 	}
 }
 
@@ -58,23 +62,42 @@ func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
 	return rq.phaseQueue
 }
 
-func (rq *ResourceQueue) Kill(t *testing.T) {
-	rq.kill()
-}
+func (rq *ResourceQueue) Kill(t time.Duration) error {
+	wasRunning := atomic.SwapUint32(rq.running, 0)
+	if wasRunning == 1 {
+		why := make(chan bool)
+		select {
+		case rq.killChan <- why:
+		default:
+			return errors.New("Shoudl always be able to send")
+		}
 
-//kill the queue
-func (rq *ResourceQueue) kill() {
-	rq.killChan <- struct{}{}
+		timer := time.NewTimer(t)
+		select {
+		case <-why:
+			return nil
+		case <-timer.C:
+			return errors.New("Something timed out where am i")
+		}
+	}
+	return nil
 }
 
 func (rq *ResourceQueue) run(server *Instance) {
+	atomic.StoreUint32(rq.running, 1)
+	rq.internalRunner(server)
+	atomic.StoreUint32(rq.running, 0)
+}
+
+func (rq *ResourceQueue) internalRunner(server *Instance) {
 	for true {
 		//get the next phase to execute
 		select {
+		case why := <-rq.killChan:
+			go func() { why <- true }()
+			return
 		case rq.activePhase = <-rq.phaseQueue:
 			rq.activePhase.Measure(measure.TagActive)
-		case <-rq.killChan:
-			return
 		}
 
 		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
@@ -105,6 +128,15 @@ func (rq *ResourceQueue) run(server *Instance) {
 			return chunk, ok
 		}
 
+		curRound, err := server.GetRoundManager().GetRound(
+			runningPhase.GetRoundID())
+
+		if err != nil {
+			rid := runningPhase.GetRoundID()
+			roundErr := errors.Errorf("Round %d does not exist!", rid)
+			server.ReportRoundFailure(roundErr, server.GetID(), &rid)
+		}
+
 		//start the phase's transmission handler
 		handler := rq.activePhase.GetTransmissionHandler
 		go func() {
@@ -112,8 +144,11 @@ func (rq *ResourceQueue) run(server *Instance) {
 			err := handler()(runningPhase.GetRoundID(), server, getChunk, runningPhase.GetGraph().GetStream().Output)
 
 			if err != nil {
-				jww.FATAL.Panicf("Transmission Handler for phase %s of round %v errored: %+v",
-					runningPhase.GetType(), runningPhase.GetRoundID(), err)
+				// This error can be used to create a Byzantine Fault
+				rid := runningPhase.GetRoundID()
+				roundErr := errors.Errorf("Transmission Handler for phase %s of round %v errored: %+v",
+					runningPhase.GetType(), rid, err)
+				server.ReportRoundFailure(roundErr, server.GetID(), &rid)
 			}
 		}()
 
@@ -126,11 +161,10 @@ func (rq *ResourceQueue) run(server *Instance) {
 		timeout := false
 
 		select {
-		case rtnPhase = <-rq.finishChan:
-		case <-rq.timer.C:
-			timeout = true
-		case <-rq.killChan:
+		case why := <-rq.killChan:
+			go func() { why <- true }()
 			return
+		case rtnPhase = <-rq.finishChan:
 		}
 
 		//process timeout
@@ -138,7 +172,10 @@ func (rq *ResourceQueue) run(server *Instance) {
 			jww.ERROR.Printf("[%v]: RID %d Graph %s of phase %s has timed out",
 				server.GetID(), rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
-			jww.ERROR.Panicf("A round has failed killing node")
+			rid := curRound.GetID()
+			roundErr := errors.Errorf("Round has timed out killing the round %v", rid)
+
+			server.ReportRoundFailure(roundErr, server.GetID(), &rid)
 			//FIXME: also killChan the transmission handler
 			/*kill := rq.activePhase.GetGraph().Kill()
 			if kill {
@@ -157,10 +194,12 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 		//check that the correct phase is ending
 		if !rq.activePhase.Cmp(rtnPhase) {
-			jww.FATAL.Panicf("INCORRECT PHASE RECIEVED phase %s of "+
+			rid := rq.activePhase.GetRoundID()
+			roundErr := errors.Errorf("INCORRECT PHASE RECEIVED phase %s of "+
 				"round %v is currently running, a completion signal of %s "+
 				" cannot be processed", rq.activePhase.GetType(),
-				rq.activePhase.GetRoundID(), rtnPhase.GetType())
+				rid, rtnPhase.GetType())
+			server.ReportRoundFailure(roundErr, server.GetID(), &rid)
 		}
 
 		// Aggregate the runtimes of the individual threads

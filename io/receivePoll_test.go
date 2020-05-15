@@ -149,6 +149,7 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 	res, err := ReceivePoll(poll, &instance)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+		t.Fail()
 	}
 	if res == nil {
 		t.Errorf("Response was nil")
@@ -161,6 +162,7 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 	}
 	if res.BatchRequest != nil {
 		t.Errorf("ServerPollResponse.BatchRequest is not nil")
+		t.Fail()
 	}
 
 	if len(res.Updates) > 0 {
@@ -170,6 +172,7 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 
 	if res.FullNDF != nil {
 		t.Errorf("ServerPollResponse.ul is not nil")
+		t.Fail()
 	}
 }
 

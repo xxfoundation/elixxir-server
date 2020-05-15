@@ -123,6 +123,16 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		LastUpdate: uint64(lastUpdateId),
 		Activity:   uint32(reportedActivity),
 	}
+	if instance.GetRecoveredError() != nil && instance.GetStateMachine().Get() == current.ERROR {
+		pollMsg.Error = instance.GetRecoveredError()
+		instance.ClearRecoveredError()
+		go func() {
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if err != nil || !ok {
+				jww.FATAL.Panicf("Could not move to waiting state")
+			}
+		}()
+	}
 
 	// Send the message to permissioning
 	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)

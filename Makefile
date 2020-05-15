@@ -12,17 +12,11 @@ build:
 	go build ./...
 	go mod tidy
 
-update_project:
-	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@Iroh/NewID
-	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@Iroh/NewID
-	GOFLAGS="" go get -u gitlab.com/elixxir/comms@Iroh/NewID
-	GOFLAGS="" go get -u gitlab.com/elixxir/gpumaths@release
-
 update_release:
 	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@release
-	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/comms@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/gpumaths@release
+	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@release
 
 update_master:
 	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@master
@@ -32,5 +26,3 @@ update_master:
 master: update_master update build
 
 release: update_release update build
-
-project: update_project update build

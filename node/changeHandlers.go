@@ -8,6 +8,8 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -22,7 +24,9 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
+	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -141,15 +145,26 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Once done with notStarted transition into waiting
 	go func() {
 		// Ensure that instance is in not started prior to transition
-		curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
-		if curActivity != current.NOT_STARTED || err != nil {
-			jww.FATAL.Panicf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+		cur, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
+		if cur != current.NOT_STARTED || err != nil {
+			roundErr := errors.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
 		}
 
-		// Transition state machine into waiting state
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if !ok || err != nil {
-			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.WAITING, err)
+		// if error passed in go to error
+		if instance.GetRecoveredError() != nil {
+			ok, err := instance.GetStateMachine().Update(current.ERROR)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
+			}
+		} else {
+			// Transition state machine into waiting state
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
+			}
 		}
 
 		// Periodically re-poll permissioning
@@ -159,10 +174,10 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 			err := permissioning.Poll(instance)
 			if err != nil {
 				// If we receive an error polling here, panic this thread
-				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
+				roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
 			}
 		}
-
 	}()
 
 	return nil
@@ -175,7 +190,6 @@ func Waiting(from current.Activity) error {
 
 // Precomputing does various business logic to prep for the start of a new round
 func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) error {
-
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo, err := instance.GetCreateRoundQueue().Receive()
@@ -212,6 +226,11 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		roundInfo.GetBatchSize(),
 		newRoundTimeout, nil,
 		instance.GetDisableStreaming())
+
+	phaseOverrides := instance.GetPhaseOverrides()
+	for toOverride, override := range phaseOverrides {
+		phases[toOverride] = override
+	}
 
 	//Build the round
 	rnd, err := round.New(
@@ -284,8 +303,84 @@ func Completed(from current.Activity) error {
 	return nil
 }
 
-func Error(from current.Activity) error {
-	// start error
+func Error(instance *internal.Instance) error {
+	//If the error state was recovered from a restart, exit.
+	if instance.GetRecoveredError() != nil {
+		return nil
+	}
+
+	// Check for error message on server instance
+	msg := instance.GetRoundError()
+	if msg == nil {
+		jww.FATAL.Panic("No error found on instance")
+	}
+
+	nid, err := id.Unmarshal(msg.NodeId)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to get node id from error")
+	}
+
+	wg := sync.WaitGroup{}
+	// If the error originated with us, send broadcast to other nodes
+	if nid.Cmp(instance.GetID()) {
+		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
+		if err != nil {
+			return errors.WithMessage(err, "Failed to get round id")
+		}
+		top := r.GetTopology()
+		for i := 0; i < top.Len(); i++ {
+			n := top.GetNodeAtIndex(i)
+			wg.Add(1)
+			go func() {
+				// Don't need to send back to self
+				if !instance.GetID().Cmp(n) {
+					h, ok := instance.GetNetwork().GetHost(n)
+					if !ok {
+						jww.ERROR.Printf("Could not get host for node %s", n.String())
+					}
+
+					_, err := instance.SendRoundError(h, msg)
+					if err != nil {
+						err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
+						jww.ERROR.Printf(err.Error())
+					}
+				}
+				wg.Done()
+			}()
+		}
+	}
+
+	// Wait until the error messages are sent, or timeout after 3 minutes
+	timeoutCh := make(chan struct{})
+	timeout := time.NewTimer(3 * time.Minute)
+
+	go func() {
+		wg.Wait()
+		timeoutCh <- struct{}{}
+	}()
+
+	select {
+	case <-timeoutCh:
+	case <-timeout.C:
+	}
+
+	b, err := proto.Marshal(msg)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to marshal message into bytes")
+	}
+
+	err = ioutil.WriteFile(instance.RecoveredErrorFilePath, b, 0644)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to write error to file")
+	}
+
+	err = instance.GetResourceQueue().Kill(5 * time.Second)
+	if err != nil {
+		return errors.WithMessage(err, "Resource queue kill timed out")
+	}
+
+	instance.GetPanicWrapper()(fmt.Sprintf("Error encountered - closing server & writing error to file %s",
+		instance.RecoveredErrorFilePath))
 	return nil
 }
 

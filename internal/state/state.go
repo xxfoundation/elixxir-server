@@ -185,6 +185,11 @@ func (m Machine) Update(nextState current.Activity) (bool, error) {
 	m.Lock()
 	defer m.Unlock()
 
+	// Errors tend to cascade, so we should ignore attempts to transition into error from error
+	if nextState == current.ERROR && *m.Activity == current.ERROR {
+		return true, nil
+	}
+
 	jww.INFO.Printf("Updating to %v", nextState)
 
 	// check if the requested state change is valid
@@ -385,27 +390,6 @@ func (m Machine) stateChange(nextState current.Activity) (bool, error) {
 	err := m.changeList[*m.Activity](oldState)
 
 	if err != nil {
-		*m.Activity = current.ERROR
-		var errState error
-
-		//move to the error state if that was not the intention of the update call
-		if nextState != current.ERROR {
-
-			//wait for the error state to return
-			errState = m.changeList[current.ERROR](oldState)
-		}
-
-		//return the error from the error state if it exists
-		if errState == nil {
-			err = errors.Wrap(err,
-				fmt.Sprintf("Error occured on error state change from %s to %s,"+
-					" moving to %s state", *m.Activity, nextState, current.ERROR))
-		} else {
-			err = errors.Wrap(err,
-				fmt.Sprintf("Error occured on state change from %s to %s,"+
-					" moving to %s state, error state returned: %s", *m.Activity,
-					nextState, current.ERROR, errState.Error()))
-		}
 		return false, err
 	}
 

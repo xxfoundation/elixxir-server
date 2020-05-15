@@ -1,11 +1,16 @@
 package internal
 
 import (
+	"errors"
+	"github.com/golang/protobuf/proto"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -45,6 +50,36 @@ func TestMain(m *testing.M) {
 	sm := state.NewMachine(dummyStates)
 	instance, _ = CreateServerInstance(def, impl, sm, false)
 	os.Exit(m.Run())
+}
+
+func TestRecoverInstance(t *testing.T) {
+	impl := func(*Instance) *node.Implementation {
+		return node.NewImplementation()
+	}
+	def := mockServerDef(t)
+	sm := state.NewMachine(dummyStates)
+
+	msg := &mixmessages.RoundError{
+		Id:     0,
+		NodeId: id.NewIdFromUInt(uint64(0), id.Node, t).Marshal(),
+		Error:  "test",
+	}
+	b, err := proto.Marshal(msg)
+	if err != nil {
+		t.Errorf("Failed to marshal test proto: %+v", err)
+	}
+
+	err = ioutil.WriteFile("/tmp/test_err", b, 0644)
+	if err != nil {
+		t.Errorf("Failed to write to test file: %+v", err)
+	}
+
+	f, err := os.Open("/tmp/test_err")
+	if err != nil {
+		t.Errorf("Failed to reopen test error file: %+v", err)
+	}
+
+	instance, _ = RecoverInstance(def, impl, sm, false, f)
 }
 
 func TestInstance_GetResourceQueue(t *testing.T) {
@@ -236,6 +271,17 @@ func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
 		t.Logf("IsRegistrationAuthenticated() returned unexpected value")
 		t.Fail()
 	}
+}
+
+func TestInstance_ReportCriticalError(t *testing.T) {
+	instance, _ := createInstance(t)
+
+	testErr := errors.New("Test error")
+	instance.ReportRoundFailure(testErr, id.NewIdFromUInt(uint64(1), id.Node, t), nil)
+	//Test happy path
+
+	//Test that if we send a different error it changes as expected
+
 }
 
 func TestInstance_GetDisableStreaming(t *testing.T) {

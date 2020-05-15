@@ -10,25 +10,34 @@ package internal
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"log"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
 
 // Holds long-lived server state
 type Instance struct {
@@ -49,6 +58,15 @@ type Instance struct {
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
+
+	roundErrFunc RoundErrBroadcastFunc
+
+	roundError             *mixmessages.RoundError
+	recoveredError         *mixmessages.RoundError
+	RecoveredErrorFilePath string
+
+	phaseOverrides map[int]phase.Phase
+	panicWrapper   func(s string)
 }
 
 // Create a server instance. To actually kick off the server,
@@ -73,6 +91,10 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		gatewayPoll:          NewFirstTime(),
+		roundError:           nil,
+		panicWrapper: func(s string) {
+			jww.FATAL.Panic(s)
+		},
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -98,7 +120,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	//Start local node
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
-
+	instance.roundErrFunc = instance.network.SendRoundError
 	if noTls {
 		instance.network.DisableAuth()
 	}
@@ -133,6 +155,48 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
 	return instance, nil
+}
+
+// Wrap CreateServerInstance, taking a recovered error file
+func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
+	machine state.Machine, noTls bool, recoveredErrorFile *os.File) (*Instance, error) {
+	// Create the server instance with normal constructor
+	var i *Instance
+	var err error
+	i, err = CreateServerInstance(def, makeImplementation, machine, noTls)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to create server instance")
+	}
+	i.RecoveredErrorFilePath = recoveredErrorFile.Name()
+
+	// Read recovered error file to bytes
+	var recoveredError []byte
+	_, err = recoveredErrorFile.Read(recoveredError)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to read recovered error")
+	}
+
+	// Close recovered error file
+	err = recoveredErrorFile.Close()
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to close recovered error file")
+	}
+
+	// Remove recovered error file
+	err = os.Remove(recoveredErrorFile.Name())
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to remove ")
+	}
+
+	// Unmarshal bytes to RoundError, set recoveredError field on instance
+	msg := &mixmessages.RoundError{}
+	err = proto.Unmarshal(recoveredError, msg)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to unmarshal message from file")
+	}
+	i.recoveredError = msg
+
+	return i, nil
 }
 
 // RestartNetwork is intended to reset the network with newly signed certs obtained from polling
@@ -312,6 +376,18 @@ func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
 }
 
+func (i *Instance) GetRoundError() *mixmessages.RoundError {
+	return i.roundError
+}
+
+func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
+	return i.recoveredError
+}
+
+func (i *Instance) ClearRecoveredError() {
+	i.recoveredError = nil
+}
+
 func (i *Instance) IsReadyForGateway() bool {
 	ourVal := atomic.LoadUint32(i.isGatewayReady)
 
@@ -325,6 +401,52 @@ func (i *Instance) SetGatewayAsReady() {
 // GetTopology returns the consensus object
 func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
 	return i.definition.GwConnTimeout
+}
+
+func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	jww.FATAL.Printf("Sending round error to %+v\n", h)
+	return i.roundErrFunc(h, m)
+}
+
+func (i *Instance) GetPhaseOverrides() map[int]phase.Phase {
+	return i.phaseOverrides
+}
+
+func (i *Instance) GetPanicWrapper() func(s string) {
+	return i.panicWrapper
+}
+
+/* TESTING FUNCTIONS */
+func (i *Instance) OverridePhases(overrides map[int]phase.Phase) {
+	i.phaseOverrides = overrides
+}
+
+func (i *Instance) SetRoundErrFunc(f RoundErrBroadcastFunc, t *testing.T) {
+	if t == nil {
+		panic("Cannot call this outside of tests")
+	}
+	i.roundErrFunc = f
+}
+
+func (i *Instance) SetTestRecoveredError(m *mixmessages.RoundError, t *testing.T) {
+	if t == nil {
+		panic("This cannot be used outside of a test")
+	}
+	i.recoveredError = m
+}
+
+func (i *Instance) SetTestRoundError(m *mixmessages.RoundError, t *testing.T) {
+	if t == nil {
+		panic("This cannot be used outside of a test")
+	}
+	i.roundError = m
+}
+
+func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
+	if t == nil {
+		panic("OverridePanicWrapper cannot be used outside of a test")
+	}
+	i.panicWrapper = f
 }
 
 // GenerateId generates a random ID and returns it
@@ -360,6 +482,32 @@ func GenerateId(i interface{}) *id.ID {
 	}
 
 	return nid
+}
+
+// Create a round error, pass the error over the chanel and update the state to ERROR state
+// In situations that cause critical panic level errors.
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Round) {
+	roundErr := mixmessages.RoundError{
+		Error:  errIn.Error(),
+		NodeId: nodeId.Marshal(),
+	}
+	if roundId != nil {
+		roundErr.Id = uint64(*roundId)
+	}
+	// pass the error over the chanel
+	//instance get err chan
+	i.roundError = &roundErr
+
+	//then call update state err
+	sm := i.GetStateMachine()
+	ok, err := sm.Update(current.ERROR)
+	if err != nil {
+		log.Panicf("Failed to change state to ERROR STATE %v", err)
+	}
+
+	if !ok {
+		log.Panicf("Failed to change state to ERROR STATE")
+	}
 }
 
 func (i *Instance) String() string {
