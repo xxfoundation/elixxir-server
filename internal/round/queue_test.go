@@ -77,7 +77,7 @@ func TestQueue_Receive(t *testing.T) {
 	ourRoundInfo := &mixmessages.RoundInfo{
 		ID:       uint64(25),
 		State:    uint32(52),
-		Topology: []string{"te", "est", "testtest"},
+		Topology: [][]byte{[]byte("te"), []byte("est"), []byte("testtest")},
 	}
 
 	// Send to queue

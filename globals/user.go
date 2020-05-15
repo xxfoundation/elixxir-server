@@ -8,6 +8,7 @@ package globals
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -31,11 +32,11 @@ var idCounter = uint64(1)
 // Interface for User Registry operations
 type UserRegistry interface {
 	NewUser(grp *cyclic.Group) *User
-	DeleteUser(id *id.User)
-	GetUser(id *id.User) (user *User, err error)
+	DeleteUser(id *id.ID)
+	GetUser(id *id.ID) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
-	InsertSalt(user *id.User, salt []byte) error
+	InsertSalt(user *id.ID, salt []byte) error
 }
 
 // Structure implementing the UserRegistry Interface with an underlying sync.Map
@@ -43,7 +44,7 @@ type UserMap sync.Map
 
 // Structure representing a User in the system
 type User struct {
-	ID           *id.User
+	ID           *id.ID
 	HUID         []byte
 	BaseKey      *cyclic.Int
 	RsaPublicKey *rsa.PublicKey
@@ -96,7 +97,9 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	i := idCounter - 1
 
 	// Generate user parameters
-	usr.ID = id.NewUserFromUints(&[4]uint64{0, 0, 0, i})
+	usr.ID = new(id.ID)
+	binary.BigEndian.PutUint64(usr.ID[:], i)
+	usr.ID.SetType(id.User)
 
 	h.Reset()
 	h.Write([]byte(string(40000 + i)))
@@ -110,7 +113,7 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserMap) InsertSalt(id *id.User, salt []byte) error {
+func (m *UserMap) InsertSalt(id *id.ID, salt []byte) error {
 	// If the number of salts for the given UserId
 	// is greater than the maximum allowed, then reject
 
@@ -135,13 +138,13 @@ func (m *UserMap) InsertSalt(id *id.User, salt []byte) error {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserMap) DeleteUser(id *id.User) {
+func (m *UserMap) DeleteUser(id *id.ID) {
 	// If key does not exist, do nothing
 	(*sync.Map)(m).Delete(*id)
 }
 
 // GetUser returns a user with the given ID from userCollection
-func (m *UserMap) GetUser(id *id.User) (*User, error) {
+func (m *UserMap) GetUser(id *id.ID) (*User, error) {
 	var err error
 	var userCopy *User
 

@@ -57,11 +57,11 @@ type SaltDB struct {
 	UserId string
 }
 
-func encodeUser(userId *id.User) string {
-	return base64.StdEncoding.EncodeToString(userId.Bytes())
+func encodeUser(userId *id.ID) string {
+	return base64.StdEncoding.EncodeToString(userId.Marshal())
 }
 
-func decodeUser(userIdDB string) *id.User {
+func decodeUser(userIdDB string) *id.ID {
 	userIdBytes, err := base64.StdEncoding.DecodeString(userIdDB)
 	// This should only happen if you intentionally put invalid user ID
 	// information in the database, which should never happen
@@ -69,10 +69,19 @@ func decodeUser(userIdDB string) *id.User {
 		err = errors.New(err.Error())
 		jww.ERROR.Printf("decodeUser: Got error decoding user ID: %+v,"+
 			" Returning zero ID instead", err)
-		return id.ZeroID
+		return &id.ZeroUser
 	}
 
-	return id.NewUserFromBytes(userIdBytes)
+	// Unmarshal user ID from bytes into id.ID
+	userID, err := id.Unmarshal(userIdBytes)
+	if err != nil {
+		err = errors.New(err.Error())
+		jww.ERROR.Printf("decodeUser: Got error unmarshalling user ID: %+v,"+
+			" Returning zero ID instead", err)
+		return &id.ZeroUser
+	}
+
+	return userID
 }
 
 // Initialize the UserRegistry interface with appropriate backend
@@ -107,8 +116,8 @@ func NewUserRegistry(username, password,
 
 // Inserts a unique salt into the salt table
 // Returns true if successful, else false
-func (m *UserDatabase) InsertSalt(userId *id.User, salt []byte) error {
-	// Convert id.User to string for database lookup
+func (m *UserDatabase) InsertSalt(userId *id.ID, salt []byte) error {
+	// Convert id.ID to string for database lookup
 	userIdDB := encodeUser(userId)
 	// Create a salt object with the given User
 	s := SaltDB{UserId: userIdDB}
@@ -142,7 +151,7 @@ func (m *UserDatabase) NewUser(grp *cyclic.Group) *User {
 }
 
 // DeleteUser deletes a user with the given ID from userCollection.
-func (m *UserDatabase) DeleteUser(userId *id.User) {
+func (m *UserDatabase) DeleteUser(userId *id.ID) {
 	// Convert user ID to string for database lookup
 	userIdDB := encodeUser(userId)
 	// Perform the delete for the given ID
@@ -157,7 +166,7 @@ func (m *UserDatabase) DeleteUser(userId *id.User) {
 }
 
 // GetUser returns a user with the given ID from user database
-func (m *UserDatabase) GetUser(id *id.User) (user *User, err error) {
+func (m *UserDatabase) GetUser(id *id.ID) (user *User, err error) {
 	// Perform the select for the given ID
 	userIdDB := encodeUser(id)
 	u := UserDB{Id: userIdDB}

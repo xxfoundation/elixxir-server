@@ -5,7 +5,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package node
 
-// ChangeHandlers contains the logic for every state within the state machine.
+// ChangeHandlers contains the logic for every state within the state machine
 
 import (
 	"github.com/pkg/errors"
@@ -44,7 +44,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	if !certsExist {
 		jww.INFO.Printf("Registering with permissioning!")
 		// Connect to the Permissioning Server without authentication
-		permHost, err := network.AddHost(id.PERMISSIONING,
+		permHost, err := network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
 			ourDef.Permissioning.Address,
 			ourDef.Permissioning.TlsCert,
@@ -70,7 +70,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
-	permHost, err := network.AddHost(id.PERMISSIONING,
+	permHost, err := network.AddHost(&id.Permissioning,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -79,7 +79,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 
-	waitUntil := 3 *time.Minute
+	waitUntil := 3 * time.Minute
 	pollingTicker := time.NewTicker(waitUntil)
 
 	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
@@ -186,7 +186,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	roundID := roundInfo.GetRoundId()
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
-	nodeIDs, err := id.NewNodeListFromStrings(topology)
+	nodeIDs, err := id.NewIDListFromBytes(topology)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
@@ -195,7 +195,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	circuit := connect.NewCircuit(nodeIDs)
 
 	for i := 0; i < circuit.Len(); i++ {
-		nodeId := circuit.GetNodeAtIndex(i).String()
+		nodeId := circuit.GetNodeAtIndex(i)
 		ourHost, ok := instance.GetNetwork().GetHost(nodeId)
 		if !ok {
 			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))

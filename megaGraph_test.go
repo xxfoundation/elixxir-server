@@ -297,7 +297,7 @@ func createDummyUserList(grp *cyclic.Group,
 	var userList []*globals.User
 	u := new(globals.User)
 	t := testing.T{}
-	u.ID = id.NewUserFromUint(uint64(123), &t)
+	u.ID = id.NewIdFromUInt(uint64(123), id.User, &t)
 
 	baseKeyBytes := []byte{1}
 	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
@@ -382,7 +382,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	batchSize := uint32(1)
 
 	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
+	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t))
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
@@ -577,7 +577,7 @@ func TestBatchSize3(t *testing.T) {
 	batchSize := uint32(4)
 
 	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
+	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t))
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
@@ -785,10 +785,10 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	ecrPayloadB := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 	ecrPayloadAPermuted := make([]*cyclic.Int, batchSize)
 	ecrPayloadBPermuted := make([]*cyclic.Int, batchSize)
-	users := make([]*id.User, batchSize)
+	users := make([]*id.ID, batchSize)
 
 	for i := uint32(0); i < batchSize; i++ {
-		users[i] = &id.User{}
+		users[i] = &id.ID{}
 	}
 
 	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
@@ -1043,7 +1043,7 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 	//make the user IDs and their base keys and the salts
 	for i := uint32(0); i < batchSize; i++ {
 		u := registry.NewUser(grp)
-		u.ID = id.NewUserFromUint(uint64(i), t)
+		u.ID = id.NewIdFromUInt(uint64(i), id.User, t)
 
 		u.BaseKey = grp.NewInt(1)
 		registry.UpsertUser(u)
@@ -1250,7 +1250,7 @@ func Test3NodeE2E(t *testing.T) {
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewUserFromUint(uint64(123), t))
+	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t))
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)

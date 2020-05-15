@@ -11,7 +11,7 @@ import (
 )
 
 // TransmitRoundTripPing sends a round trip ping and starts
-func TransmitRoundTripPing(network *node.Comms, id *id.Node, r *round.Round,
+func TransmitRoundTripPing(network *node.Comms, id *id.ID, r *round.Round,
 	payload proto.Message, payloadInfo string, ri *mixmessages.RoundInfo) error {
 	any, err := ptypes.MarshalAny(payload)
 	if err != nil {
@@ -21,7 +21,7 @@ func TransmitRoundTripPing(network *node.Comms, id *id.Node, r *round.Round,
 
 	r.StartRoundTrip(payloadInfo)
 	// Pull the particular server host object from the commManager
-	recipient, ok := network.Manager.GetHost(id.String())
+	recipient, ok := network.Manager.GetHost(id)
 	if !ok {
 		errMsg := errors.Errorf("Could not find cMix server %s in comm manager", id)
 		return errMsg

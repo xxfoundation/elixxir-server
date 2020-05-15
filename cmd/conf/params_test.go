@@ -44,7 +44,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	params, err := NewParams(vip)
 
 	if err != nil {
-		t.Fatalf("Failed in unmarshaling from viper object")
+		t.Fatalf("Failed in unmarshaling from viper object: %+v", err)
 	}
 
 	if !reflect.DeepEqual(expectedParams.Node, params.Node) {

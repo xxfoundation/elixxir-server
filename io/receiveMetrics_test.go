@@ -31,7 +31,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(measure.ResourceMetric{})
-	topology := connect.NewCircuit(BuildMockNodeIDs(numNodes))
+	topology := connect.NewCircuit(BuildMockNodeIDs(numNodes, t))
 	// Set instance for first node
 
 	m := state.NewMachine(dummyStates)

@@ -17,7 +17,7 @@ func TestVerifyServersOnline(t *testing.T) {
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
 		[]*node.Implementation{mockPostPhaseImplementation(nil),
-			mockPostPhaseImplementation(nil)}, 10)
+			mockPostPhaseImplementation(nil)}, 10, t)
 	defer Shutdown(comms)
 
 	done := 0

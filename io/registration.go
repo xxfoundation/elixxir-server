@@ -10,12 +10,14 @@ package io
 
 import (
 	"crypto"
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/crypto/xx"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 )
@@ -25,9 +27,11 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte,
 	auth *connect.Auth) ([]byte, []byte, error) {
 
+	fmt.Printf("Sender ID:  %#v\n", auth.Sender.GetId())
+	fmt.Printf("Gateway ID: %#v\n", instance.GetGateway())
+
 	// Verify the sender is the authenticated gateway for this node
-	if !auth.IsAuthenticated ||
-		auth.Sender.GetId() != instance.GetGateway().String() {
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
 		return nil, nil, connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -70,7 +74,12 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	}
 
 	// Generate UserID
-	userId := registration.GenUserID(userPublicKey, salt)
+	userId, err := xx.NewID(userPublicKey, salt, id.User)
+
+	if err != nil {
+		return []byte{}, []byte{},
+			errors.Errorf("Failed to generate new ID: %+v", err)
+	}
 
 	// Generate a nonce with a timestamp
 	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
@@ -102,18 +111,16 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 }
 
 // Handles nonce confirmation during the client registration process
-func ConfirmRegistration(instance *internal.Instance, UserID, Signature []byte,
+func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature []byte,
 	auth *connect.Auth) ([]byte, error) {
 
 	// Verify the sender is the authenticated gateway for this node
-	if !auth.IsAuthenticated ||
-		auth.Sender.GetId() != instance.GetGateway().String() {
-
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
 	// Obtain the user from the database
-	user, err := instance.GetUserRegistry().GetUser(id.NewUserFromBytes(UserID))
+	user, err := instance.GetUserRegistry().GetUser(UserID)
 
 	if err != nil {
 		// Invalid nonce, return an error

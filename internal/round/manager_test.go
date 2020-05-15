@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 func TestManager(t *testing.T) {
 	roundID := id.Round(58)
 	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
-		connect.NewCircuit([]*id.Node{{}}), &id.Node{}, 1,
+		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
 			csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
@@ -61,7 +61,7 @@ func TestManager_GetPhase(t *testing.T) {
 
 	// Test round w/ nil phases
 	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
-		connect.NewCircuit([]*id.Node{{}}), &id.Node{}, 1,
+		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
 			csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {
@@ -95,7 +95,7 @@ func TestManager_GetPhase(t *testing.T) {
 		phases[i] = phase.New(definition)
 	}
 	round, err = New(grp, &globals.UserMap{}, roundID, phases, nil,
-		connect.NewCircuit([]*id.Node{{}}), &id.Node{}, 1,
+		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
 			csprng.NewSystemRNG), nil, "0.0.0.0")
 	if err != nil {

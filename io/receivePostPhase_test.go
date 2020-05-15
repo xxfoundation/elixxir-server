@@ -27,7 +27,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	roundID := id.Round(0)
 	grp := initImplGroup()
 
-	topology := connect.NewCircuit(BuildMockNodeIDs(2))
+	topology := connect.NewCircuit(BuildMockNodeIDs(2, t))
 
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
@@ -79,7 +79,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -162,7 +162,7 @@ func TestPostPhase_NoAuth(t *testing.T) {
 
 	// Make an auth object around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -209,7 +209,7 @@ func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPh
 
 	// Make an auth object around a node that is not the previous node
 	lastNodeIndex := topology.Len() - 2
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -254,7 +254,7 @@ func TestStreamPostPhase_NoAuth(t *testing.T) {
 
 	// Make an auth object around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -302,7 +302,7 @@ func TestStreamPostPhase_WrongSender(t *testing.T) {
 
 	// Make an auth object around a non previous node
 	lastNodeIndex := topology.Len() - 2
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -367,7 +367,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 
 	// Make an auth object around the last node
-	lastNodeId := topology.GetPrevNode(instance.GetID()).String()
+	lastNodeId := topology.GetPrevNode(instance.GetID())
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)

@@ -59,10 +59,10 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 	//get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, useGPU, grp)
+	defsLst := makeMultiInstanceParams(numNodes, batchsize, 20000+portOffset, useGPU, grp, t)
 
 	//make user for sending messages
-	userID := id.NewUserFromUint(42, t)
+	userID := id.NewIdFromUInt(42, id.User, t)
 	var baseKeys []*cyclic.Int
 	for i := 0; i < numNodes; i++ {
 		baseKey := grp.NewIntFromUInt(uint64(1000 + 5*i))
@@ -147,7 +147,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	for _, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
-		_, err := instance.GetNetwork().AddHost(id.PERMISSIONING, testUtil.NDF.Registration.Address,
+		_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
 			[]byte(testUtil.RegCert), false, false)
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
@@ -170,9 +170,9 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 	wg.Wait()
 
 	// Build topology
-	ourTopology := make([]string, 0)
+	ourTopology := make([][]byte, 0)
 	for _, nodeInstance := range instances {
-		ourTopology = append(ourTopology, nodeInstance.GetID().String())
+		ourTopology = append(ourTopology, nodeInstance.GetID().Marshal())
 	}
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
@@ -340,7 +340,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU bool, t *testing.T) {
 
 // buildMockBatch
 func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
-	userID *id.User, ri *mixmessages.RoundInfo) (*pb.Batch, *pb.Batch, error) {
+	userID *id.ID, ri *mixmessages.RoundInfo) (*pb.Batch, *pb.Batch, error) {
 	//build a batch to send to first node
 	expectedbatch := &mixmessages.Batch{}
 	ecrbatch := &mixmessages.Batch{}
@@ -489,17 +489,17 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 }
 
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
-	grp *cyclic.Group) []*internal.Definition {
+	grp *cyclic.Group, t *testing.T) []*internal.Definition {
 
 	//generate IDs and addresses
-	var nidLst []*id.Node
+	var nidLst []*id.ID
 	var nodeLst []internal.Node
 	addrFmt := "localhost:%03d"
 	for i := 0; i < numNodes; i++ {
 		//generate id
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nidLst = append(nidLst, nodeID)
 		//generate address
 		addr := fmt.Sprintf(addrFmt, i+portstart)
@@ -522,6 +522,8 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
 	}
 
 	for i := 0; i < numNodes; i++ {
+		gatewayID := nidLst[i].DeepCopy()
+		gatewayID.SetType(id.Gateway)
 
 		def := internal.Definition{
 			ID: nidLst[i],
@@ -531,7 +533,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, useGPU bool,
 			},
 			TlsCert: []byte(testUtil.RegCert),
 			Gateway: internal.GW{
-				ID:      nidLst[i].NewGateway(),
+				ID:      gatewayID,
 				TlsCert: nil,
 				Address: "",
 			},
