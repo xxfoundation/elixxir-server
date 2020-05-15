@@ -122,9 +122,6 @@ build:
   except:
     - tags
   script:
-    - go run main.go generate
-    - rm cmd/version_vars.go
-    - mv version_vars.go cmd
     - mkdir -p release
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
