@@ -7,10 +7,10 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -69,7 +69,7 @@ func TestRecoverInstance(t *testing.T) {
 		t.Errorf("Failed to marshal test proto: %+v", err)
 	}
 
-	err = ioutil.WriteFile("/tmp/test_err", b, 0644)
+	err = utils.WriteFile("/tmp/test_err", b, utils.FilePerms, utils.DirPerms)
 	if err != nil {
 		t.Errorf("Failed to write to test file: %+v", err)
 	}
