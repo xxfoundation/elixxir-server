@@ -87,7 +87,7 @@ type Definition struct {
 type Flags struct {
 	// Starts a server without client registration
 	SkipReg bool
-	// Prints all logs
+	// Prints all logsnode.ad
 	Verbose bool
 	// Denotes if the server is to store all round keys indefinably
 	KeepBuffers bool

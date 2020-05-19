@@ -8,6 +8,6 @@ package conf
 
 // Contains Node config params
 type Node struct {
-	Paths     Paths
-	Addresses []string
+	Paths   Paths
+	Address string
 }

@@ -7,25 +7,16 @@ node:
     cert: "~/.elixxir/cert.crt"
     key:  "~/.elixxir/key.pem"
     log:  "~/.elixxir/server.log"
-  addresses:
-    - "127.0.0.1:80"
-    - "127.0.0.1:80"
-    - "127.0.0.1:80"
+  address: "127.0.0.1:80"
 database:
   name: "name"
   username: "username"
   password: "password"
-  addresses:
-    - "127.0.0.1:80"
-    - "127.0.0.1:80"
-    - "127.0.0.1:80"
-gateways:
+  address: "127.0.0.1:80"
+gateway:
   paths:
     cert: "~/.elixxir/gateway.crt"
-  addresses:
-    - "127.0.0.1:80"
-    - "127.0.0.1:80"
-    - "127.0.0.1:80"
+  address: "127.0.0.1:80"
 permissioning:
   paths:
     cert: "~/.elixxir/permissioning.crt"

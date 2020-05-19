@@ -17,11 +17,7 @@ var ExpectedDatabase = Database{
 	Name:     "name",
 	Username: "username",
 	Password: "password",
-	Addresses: []string{
-		"127.0.0.1:80",
-		"127.0.0.1:80",
-		"127.0.0.1:80",
-	},
+	Address:  "127.0.0.1:80",
 }
 
 // This test checks that unmarshalling the params.yaml file

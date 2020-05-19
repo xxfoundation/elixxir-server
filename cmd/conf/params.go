@@ -31,7 +31,6 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
-	Index            int
 	SkipReg          bool `yaml:"skipReg"`
 	Verbose          bool
 	KeepBuffers      bool
@@ -46,7 +45,7 @@ type Params struct {
 
 	Node          Node
 	Database      Database
-	Gateways      Gateways
+	Gateway       Gateway
 	Permissioning Permissioning
 	Metrics       Metrics
 	GraphGen      GraphGen
@@ -62,21 +61,19 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params := Params{}
 
-	params.Index = vip.GetInt("index")
-
 	params.Node.Paths.Idf = vip.GetString("node.paths.Idf")
 	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
 	params.Node.Paths.Key = vip.GetString("node.paths.key")
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
-	params.Node.Addresses = vip.GetStringSlice("node.addresses")
+	params.Node.Address = vip.GetString("node.address")
 
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
-	params.Database.Addresses = vip.GetStringSlice("database.addresses")
+	params.Database.Address = vip.GetString("database.address")
 
-	params.Gateways.Paths.Cert = vip.GetString("gateways.paths.cert")
-	params.Gateways.Addresses = vip.GetStringSlice("gateways.addresses")
+	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
+	params.Gateway.Address = vip.GetString("gateway.address")
 
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
 	params.Permissioning.Address = vip.GetString("permissioning.address")
@@ -160,7 +157,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 	}
 
-	_, port, err := net.SplitHostPort(p.Node.Addresses[p.Index])
+	_, port, err := net.SplitHostPort(p.Node.Address)
 	if err != nil {
 		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
 			errors.New(err.Error()))
@@ -178,11 +175,11 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		def.GatewayCertPath = p.GatewayCertPath + "-definition"
 	}
 
-	def.Gateway.Address = p.Gateways.Addresses[p.Index]
+	def.Gateway.Address = p.Gateway.Address
 	var GwTlsCerts []byte
 
-	if p.Gateways.Paths.Cert != "" {
-		GwTlsCerts, err = utils.ReadFile(p.Gateways.Paths.Cert)
+	if p.Gateway.Paths.Cert != "" {
+		GwTlsCerts, err = utils.ReadFile(p.Gateway.Paths.Cert)
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}

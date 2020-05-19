@@ -15,7 +15,6 @@ import (
 func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	expectedParams := Params{
-		Index:            5,
 		SkipReg:          true,
 		Verbose:          true,
 		KeepBuffers:      true,
@@ -25,7 +24,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 		Node:          ExpectedNode,
 		Database:      ExpectedDatabase,
-		Gateways:      ExpectedGateways,
+		Gateway:       ExpectedGateway,
 		Permissioning: ExpectedPermissioning,
 		Metrics:       ExpectedMetrics,
 		GraphGen:      ExpectedGraphGen,
@@ -60,10 +59,6 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Params group value does not match expected value")
 	}
 
-	if expectedParams.Index != params.Index {
-		t.Errorf("Params index value does not match expected value")
-	}
-
 	if expectedParams.SkipReg != params.SkipReg {
 		t.Errorf("Params skipreg value does not match expected value")
 	}
@@ -80,7 +75,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Error("Unexpected Params UseGPU value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
+	if !reflect.DeepEqual(expectedParams.Gateway, params.Gateway) {
 		t.Errorf("Params gateways value does not match expected value")
 	}
 
