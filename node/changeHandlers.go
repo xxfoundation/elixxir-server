@@ -224,7 +224,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout, nil,
+		newRoundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming())
 
 	phaseOverrides := instance.GetPhaseOverrides()
@@ -241,7 +241,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetID(),
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
-		nil,
+		instance.GetStreamPool(),
 		instance.GetIP())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
