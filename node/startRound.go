@@ -50,9 +50,22 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
 	}
 	// Make this a non anonymous functions, that calls a new thread and test the function seperately
-	go func() {
-		_ = doRoundTripPing(r, instance, ourRoundInfo)
-	}()
+	pingMsg := &mixmessages.RoundInfo{
+		ID:        ourRoundInfo.GetID(),
+		UpdateID:  ourRoundInfo.GetUpdateID(),
+		State:     ourRoundInfo.GetState(),
+		BatchSize: ourRoundInfo.GetBatchSize(),
+	}
+	oldtop := ourRoundInfo.GetTopology()
+	newtop := make([][]byte, len(oldtop))
+	for i := 0; i < len(oldtop); i++ {
+		newtop[i] = make([]byte, len(oldtop[i]))
+		copy(newtop[i], oldtop[i])
+	}
+	pingMsg.Topology = newtop
+	go func(ri *mixmessages.RoundInfo) {
+		_ = doRoundTripPing(r, instance, ri)
+	}(pingMsg)
 
 	//get the phase
 	p := r.GetCurrentPhase()

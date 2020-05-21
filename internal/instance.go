@@ -32,6 +32,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -61,6 +62,7 @@ type Instance struct {
 
 	roundErrFunc RoundErrBroadcastFunc
 
+	errLck                 sync.Mutex
 	roundError             *mixmessages.RoundError
 	recoveredError         *mixmessages.RoundError
 	RecoveredErrorFilePath string
@@ -194,6 +196,9 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to unmarshal message from file")
 	}
+
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
 	i.recoveredError = msg
 
 	return i, nil
@@ -385,6 +390,8 @@ func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
 }
 
 func (i *Instance) ClearRecoveredError() {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
 	i.recoveredError = nil
 }
 
@@ -432,6 +439,8 @@ func (i *Instance) SetTestRecoveredError(m *mixmessages.RoundError, t *testing.T
 	if t == nil {
 		panic("This cannot be used outside of a test")
 	}
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
 	i.recoveredError = m
 }
 
@@ -439,6 +448,8 @@ func (i *Instance) SetTestRoundError(m *mixmessages.RoundError, t *testing.T) {
 	if t == nil {
 		panic("This cannot be used outside of a test")
 	}
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
 	i.roundError = m
 }
 
@@ -487,6 +498,8 @@ func GenerateId(i interface{}) *id.ID {
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Round) {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
 	roundErr := mixmessages.RoundError{
 		Error:  errIn.Error(),
 		NodeId: nodeId.Marshal(),
