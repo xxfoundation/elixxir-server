@@ -52,6 +52,8 @@ type Graph struct {
 
 	overrideBatchSize uint32
 
+	// NOTE: This mutex is only used for metrics
+	sync.Mutex
 	metrics measure.Metrics
 }
 

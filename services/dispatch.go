@@ -66,7 +66,9 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 				om.closeInput()
 			}
 		}
+		g.Lock()
 		g.metrics.Measure(omID)
+		g.Unlock()
 
 	}
 }
@@ -75,7 +77,9 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 // spent inside the adapt function and inside the output modules processing loop
 func (g *Graph) GetMetrics() (time.Duration, time.Duration) {
 	// Get every event and generate the time deltas
+	g.Lock()
 	events := g.metrics.GetEvents()
+	g.Unlock()
 	times := make(map[string]time.Time)
 	deltas := make(map[string]time.Duration)
 	for _, e := range events {
