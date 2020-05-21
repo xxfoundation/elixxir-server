@@ -32,20 +32,28 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 	omID := fmt.Sprintf("%s%d", OutModsMeasureName, threadID)
 
 	for chunk, cont := <-m.input; cont; chunk, cont = <-m.input {
+		g.Lock()
 		g.metrics.Measure(atID)
+		g.Unlock()
 		err := m.Adapt(s, m.Cryptop, chunk)
+		g.Lock()
 		g.metrics.Measure(atID)
+		g.Unlock()
 
 		if err != nil {
 			go g.generator.errorHandler(g.name, m.Name, err)
 		}
 
+		g.Lock()
 		g.metrics.Measure(omID)
+		g.Unlock()
 		for _, om := range m.outputModules {
 			chunkList, err := om.assignmentList.PrimeOutputs(chunk)
 			if err != nil {
 				go g.generator.errorHandler(g.name, m.Name, err)
+				g.Lock()
 				g.metrics.Measure(omID)
+				g.Unlock()
 				return
 			}
 
@@ -59,7 +67,9 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 
 			if err != nil {
 				go g.generator.errorHandler(g.name, m.Name, err)
+				g.Lock()
 				g.metrics.Measure(omID)
+				g.Unlock()
 				return
 			}
 			if fin {
