@@ -19,7 +19,7 @@ import (
 type Metrics struct {
 	Events []Metric
 	NodeId *id.ID
-	sync.RWMutex
+	sync.Mutex
 }
 
 // Metric structure holds a single measurement, which contains a phase tag and a
