@@ -49,6 +49,8 @@ func (ms *Metrics) Measure(tag string) time.Time {
 
 // GetEvents returns a copy of the Events array.
 func (ms Metrics) GetEvents() []Metric {
+	ms.Lock()
+	defer ms.Unlock()
 	metricsEvents := make([]Metric, len(ms.Events))
 
 	copy(metricsEvents, ms.Events)
