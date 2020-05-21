@@ -60,7 +60,7 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 	newtop := make([][]byte, len(oldtop))
 	for i := 0; i < len(oldtop); i++ {
 		newtop[i] = make([]byte, len(oldtop[i]))
-		copy(oldtop[i], newtop[i])
+		copy(newtop[i], oldtop[i])
 	}
 	pingMsg.Topology = newtop
 	go func(ri *mixmessages.RoundInfo) {
