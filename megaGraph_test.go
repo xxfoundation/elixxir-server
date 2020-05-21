@@ -651,13 +651,14 @@ func TestBatchSize3(t *testing.T) {
 	for i := uint32(0); i < batchSize; i++ {
 		// Verify precomputation
 		if ss.PayloadAPrecomputation.Get(i).Cmp(PayloadA) != 0 {
-			t.Errorf("%v != %v",
+			t.Errorf("PRECOMP %d: %v != %v", i,
 				ss.PayloadAPrecomputation.Get(i).Bytes(),
 				PayloadA.Bytes())
 		}
 		if ss.PayloadBPrecomputation.Get(i).Cmp(PayloadB) != 0 {
-			t.Errorf("%v != %v",
-				ss.PayloadBPrecomputation.Get(i).Bytes(), PayloadB.Bytes())
+			t.Errorf("PRECOMP %d: %v != %v", i,
+				ss.PayloadBPrecomputation.Get(i).Bytes(),
+				PayloadB.Bytes())
 		}
 
 		// Verify Realtime
@@ -665,11 +666,13 @@ func TestBatchSize3(t *testing.T) {
 			expPayloadA := grp.NewInt(int64(30 + (3+i)%batchSize + 1))
 			expPayloadB := grp.NewInt(int64((3+i)%batchSize + 1))
 			if is.EcrPayloadAPermuted[i].Cmp(expPayloadA) != 0 {
-				t.Errorf("%v != %v", expPayloadA.Bytes(),
+				t.Errorf("RT %d: %v != %v", i,
+					expPayloadA.Bytes(),
 					is.EcrPayloadAPermuted[i].Bytes())
 			}
 			if is.EcrPayloadBPermuted[i].Cmp(expPayloadB) != 0 {
-				t.Errorf("%v != %v", expPayloadB.Bytes(),
+				t.Errorf("RT %d: %v != %v", i,
+					expPayloadB.Bytes(),
 					is.EcrPayloadBPermuted[i].Bytes())
 			}
 		}
