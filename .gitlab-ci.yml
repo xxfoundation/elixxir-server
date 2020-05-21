@@ -68,9 +68,9 @@ build:
     - mkdir -p testdata
 
     # Test coverage
-    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v
+    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -parallel 1 -v
     # Test coverage with gpu extension (note that this doesn't overwrite existing coverage)
-    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v -tags gpu
+    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -parallel 1 -v -tags gpu
     # Exclude cmd from test coverage as it is command line related tooling
     # Exclude database files from test coverage due to lack of Postgre
     # Exclude newRound because of lots of side effects
