@@ -20,7 +20,13 @@ import (
 // ReceiveRoundTripPing handles incoming round trip pings, stopping the ping when back at the first node
 func ReceiveRoundTripPing(instance *internal.Instance, msg *mixmessages.RoundTripPing) error {
 
-	nodeIDs, err := id.NewIDListFromBytes(msg.Round.Topology)
+	// Copy out the topology to prevent any data races
+	topologyBytes := make([][]byte, len(msg.Round.Topology))
+	for i := 0; i < len(topologyBytes); i++ {
+		topologyBytes[i] = make([]byte, len(msg.Round.Topology[i]))
+		copy(topologyBytes[i], msg.Round.Topology[i])
+	}
+	nodeIDs, err := id.NewIDListFromBytes(topologyBytes)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
