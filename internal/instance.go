@@ -69,6 +69,12 @@ type Instance struct {
 
 	phaseOverrides map[int]phase.Phase
 	panicWrapper   func(s string)
+
+	gatewayAddess  string
+	gatewayVersion string
+	gatewayMutex   sync.RWMutex
+
+	serverVersion string
 }
 
 // Create a server instance. To actually kick off the server,
@@ -78,7 +84,7 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, noTls bool) (*Instance, error) {
+	machine state.Machine, noTls bool, version string) (*Instance, error) {
 	isGwReady := uint32(0)
 
 	instance := &Instance{
@@ -97,6 +103,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
+		serverVersion: version,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -389,6 +396,10 @@ func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
 	return i.recoveredError
 }
 
+func (i *Instance) GetServerVersion() string {
+	return i.serverVersion
+}
+
 func (i *Instance) ClearRecoveredError() {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
@@ -421,6 +432,25 @@ func (i *Instance) GetPhaseOverrides() map[int]phase.Phase {
 
 func (i *Instance) GetPanicWrapper() func(s string) {
 	return i.panicWrapper
+}
+
+func (i *Instance) GetGatewayData() (addr string, ver string) {
+	i.gatewayMutex.RLock()
+	defer i.gatewayMutex.RUnlock()
+	return i.gatewayAddess, i.gatewayVersion
+}
+
+func (i *Instance) UpsertGatewayData(addr string, ver string) {
+	i.gatewayMutex.RLock()
+	if i.gatewayAddess != addr || i.gatewayVersion != ver {
+		i.gatewayMutex.RUnlock()
+		i.gatewayMutex.Lock()
+		i.gatewayVersion = addr
+		i.gatewayVersion = ver
+		i.gatewayMutex.Unlock()
+		return
+	}
+	i.gatewayMutex.RUnlock()
 }
 
 /* TESTING FUNCTIONS */

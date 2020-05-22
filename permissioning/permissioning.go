@@ -116,13 +116,29 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		lastUpdateId = 0
 	}
 
+	port, err := strconv.Atoi(strings.Split(instance.GetNetwork().ListeningAddr, ":")[1])
+	if err != nil {
+		jww.ERROR.Printf("Could not get port number out of server's address. " +
+			"Likely this is because the address is an IPv6 address")
+		return nil, err
+	}
+
+	gatewayAddr, gatewayVer := instance.GetGatewayData()
+
 	// Construct a message for permissioning with above information
 	pollMsg := &pb.PermissioningPoll{
 		Full:       &pb.NDFHash{Hash: fullNdfHash},
 		Partial:    &pb.NDFHash{Hash: partialNdfHash},
 		LastUpdate: uint64(lastUpdateId),
 		Activity:   uint32(reportedActivity),
+
+		GatewayVersion: gatewayAddr,
+		GatewayAddress: gatewayVer,
+
+		ServerPort:    uint32(port),
+		ServerVersion: instance.GetServerVersion(),
 	}
+
 	if instance.GetRecoveredError() != nil && instance.GetStateMachine().Get() == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
 		instance.ClearRecoveredError()

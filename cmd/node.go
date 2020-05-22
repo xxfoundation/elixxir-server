@@ -160,7 +160,7 @@ func StartServer(vip *viper.Viper) error {
 	recoveredErrorFile, err := os.Open(params.RecoveredErrFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
+			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS, currentVersion)
 			if err != nil {
 				return errors.Errorf("Could not create server instance: %v", err)
 			}
