@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 	}
 	def := mockServerDef(m)
 	sm := state.NewMachine(dummyStates)
-	instance, _ = CreateServerInstance(def, impl, sm, false)
+	instance, _ = CreateServerInstance(def, impl, sm, false, "1.1.0")
 	os.Exit(m.Run())
 }
 
@@ -79,7 +79,7 @@ func TestRecoverInstance(t *testing.T) {
 		t.Errorf("Failed to reopen test error file: %+v", err)
 	}
 
-	instance, _ = RecoverInstance(def, impl, sm, false, f)
+	instance, _ = RecoverInstance(def, impl, sm, false, "1.1.0", f)
 }
 
 func TestInstance_GetResourceQueue(t *testing.T) {
@@ -120,7 +120,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	tmpInstance, _ := CreateServerInstance(def, impl, m, false)
+	tmpInstance, _ := CreateServerInstance(def, impl, m, false, "1.1.0")
 
 	rm := tmpInstance.GetResourceMonitor()
 
@@ -171,7 +171,7 @@ func TestCreateServerInstance(t *testing.T) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	_, err := CreateServerInstance(def, impl, m, true)
+	_, err := CreateServerInstance(def, impl, m, true, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -184,7 +184,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	instance, err := CreateServerInstance(def, impl, m, true)
+	instance, err := CreateServerInstance(def, impl, m, true, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()

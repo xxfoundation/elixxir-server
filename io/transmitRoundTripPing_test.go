@@ -77,7 +77,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 	nodeIDs = append(nodeIDs, nid)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	mockServerInstance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	mockServerInstance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false, "1.1.0")
 	mockServerInstance.GetNetwork()
 
 	roundID := id.Round(0)

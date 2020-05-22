@@ -504,7 +504,7 @@ func mockServerInstance(i interface{}) *internal.Instance {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false, "1.1.0")
 
 	return instance
 }

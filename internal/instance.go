@@ -168,11 +168,11 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // Wrap CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, noTls bool, recoveredErrorFile *os.File) (*Instance, error) {
+	machine state.Machine, noTls bool, version string, recoveredErrorFile *os.File) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine, noTls)
+	i, err = CreateServerInstance(def, makeImplementation, machine, noTls, version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}

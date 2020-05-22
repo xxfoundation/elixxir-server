@@ -53,7 +53,7 @@ func (i *mockPermission) RegisterNode(*id.ID, string, string, string, string, st
 	return nil
 }
 
-func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
+func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb.PermissionPollResponse, error) {
 	ourNdf := testUtil.NDF
 	fullNdf, _ := ourNdf.Marshal()
 	stripNdf, _ := ourNdf.StripNdf().Marshal()
@@ -93,7 +93,7 @@ func (i *mockPermissionMultipleRounds) RegisterNode(*id.ID, string, string, stri
 	return nil
 }
 
-func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
+func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb.PermissionPollResponse, error) {
 	ourNdf := testUtil.NDF
 	fullNdf, _ := ourNdf.Marshal()
 	stripNdf, _ := ourNdf.StripNdf().Marshal()
@@ -440,7 +440,7 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, true)
+	instance, err := internal.CreateServerInstance(def, impl, sm, true, "1.1.0")
 	if err != nil {
 		return nil, errors.Errorf("Unable to create instance: %+v", err)
 	}

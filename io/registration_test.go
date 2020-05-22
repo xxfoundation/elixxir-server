@@ -116,7 +116,7 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, mach, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, mach, false, "1.1.0")
 
 	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid, nodeAddr
 }
