@@ -13,17 +13,13 @@ import (
 	"testing"
 )
 
-var ExpectedGateways = Gateways{
+var ExpectedGateway = Gateway{
 	Paths: Paths{
 		Cert: "~/.elixxir/gateway.crt",
 		Key:  "",
 		Log:  "",
 	},
-	Addresses: []string{
-		"127.0.0.1:80",
-		"127.0.0.1:80",
-		"127.0.0.1:80",
-	},
+	Address: "127.0.0.1:80",
 }
 
 // This test checks that unmarshalling the params.yaml file
@@ -39,7 +35,7 @@ func TestGateways_UnmarshallingFileEqualsExpected(t *testing.T) {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
-	if !reflect.DeepEqual(ExpectedGateways, actual.Gateways) {
+	if !reflect.DeepEqual(ExpectedGateway, actual.Gateway) {
 		t.Errorf("Node object did not match expected value")
 	}
 

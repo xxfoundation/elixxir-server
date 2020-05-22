@@ -7,7 +7,7 @@
 package conf
 
 // Contains Gateways config params
-type Gateways struct {
-	Paths     Paths
-	Addresses []string
+type Gateway struct {
+	Paths   Paths
+	Address string
 }
