@@ -160,7 +160,7 @@ func StartServer(vip *viper.Viper) error {
 	recoveredErrorFile, err := os.Open(params.RecoveredErrFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
+			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS, currentVersion)
 			if err != nil {
 				return errors.Errorf("Could not create server instance: %v", err)
 			}
@@ -168,7 +168,7 @@ func StartServer(vip *viper.Viper) error {
 			return errors.WithMessage(err, "Failed to open file")
 		}
 	} else {
-		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, noTLS, recoveredErrorFile)
+		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, noTLS, currentVersion, recoveredErrorFile)
 		if err != nil {
 			return errors.WithMessage(err, "Could not recover server instance")
 		}

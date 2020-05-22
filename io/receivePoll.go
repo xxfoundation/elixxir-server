@@ -12,15 +12,22 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
+	"strconv"
 	"strings"
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance) (*mixmessages.ServerPollResponse, error) {
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string) (*mixmessages.ServerPollResponse, error) {
 	res := mixmessages.ServerPollResponse{}
+
+	// Form gateway address and put it into gateway data in instance
+	gatewayAddress = strings.Join([]string{gatewayAddress, strconv.Itoa(int(poll.GatewayPort))}, ":")
+	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
+
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
 		network := instance.GetConsensus()
+
 		//Compare partial NDF hash with instance and return the new one if they do not match
 		isSame := network.GetPartialNdf().CompareHash(poll.GetPartial().Hash)
 		if !isSame {

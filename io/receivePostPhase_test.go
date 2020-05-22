@@ -39,7 +39,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	def.ID = topology.GetNodeAtIndex(0)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false, "1.1.0")
 
 	mockPhase := testUtil.InitMockPhase(t)
 

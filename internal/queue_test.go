@@ -115,7 +115,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		PartialNDF:      testUtil.NDF,
 	}
 	m := state.NewMachine(dummyStates)
-	instance, _ := CreateServerInstance(&def, impl, m, false)
+	instance, _ := CreateServerInstance(&def, impl, m, false, "1.1.0")
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase

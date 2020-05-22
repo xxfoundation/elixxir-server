@@ -59,7 +59,7 @@ func setupTests(t *testing.T, test_state current.Activity) (internal.Instance, *
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, test_state, t)
 
-	instance, err := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, err := internal.CreateServerInstance(&def, NewImplementation, m, false, "1.1.0")
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()
@@ -146,7 +146,7 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		close(recv)
 	}()
 
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		t.Fail()
@@ -183,7 +183,7 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 	//Change the full hash so we get a the new ndf returned to us
 	poll.Full.Hash = fullHash2
 
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -199,7 +199,7 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 // incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -217,7 +217,7 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 	instance, poll, fullHash2, _ := setupTests(t, current.REALTIME)
 	poll.Partial.Hash = fullHash2
 
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -233,7 +233,7 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 // incoming ndf hash the ndf returned in the server poll is the same ndf we started out with
 func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -251,7 +251,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	PushNRoundUpdates(10, instance, privKey, t)
 
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error: %v", err)
 		t.Fail()
@@ -287,7 +287,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -303,7 +303,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
-	res, err = ReceivePoll(poll, &instance)
+	res, err = ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -359,7 +359,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		t.Logf("We failed to send a completed batch: %v", err)
 	}
 
-	res, err := ReceivePoll(poll, &instance)
+	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()

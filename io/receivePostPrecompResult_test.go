@@ -122,7 +122,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 
 		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-		instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+		instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false, "1.1.0")
 		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 			3, instance.GetRngStreamGen(), nil, "0.0.0.0")
