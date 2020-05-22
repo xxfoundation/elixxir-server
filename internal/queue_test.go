@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )
@@ -152,9 +153,11 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	go q.run(instance)
 	time.Sleep(20 * time.Millisecond)
 	// Verify state while the queue is running
+	iWasCalledLck.Lock()
 	if !iWasCalled {
 		t.Error("Transmission handler never got called")
 	}
+	iWasCalledLck.Unlock()
 	//log := io.Writer()
 	//log
 	if len(q.phaseQueue) != 0 {
@@ -184,6 +187,7 @@ func (*mockCryptop) GetInputSize() uint32 {
 }
 
 var iWasCalled bool
+var iWasCalledLck sync.Mutex
 
 func makeTestPhase(instance *Instance, name phase.Type,
 	roundID id.Round) phase.Phase {
@@ -194,7 +198,8 @@ func makeTestPhase(instance *Instance, name phase.Type,
 	//  header.
 	transmissionHandler := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk,
 		getMessage phase.GetMessage) error {
-
+		iWasCalledLck.Lock()
+		defer iWasCalledLck.Unlock()
 		iWasCalled = true
 		return nil
 	}
