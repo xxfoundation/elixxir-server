@@ -48,10 +48,10 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 ``` yaml
 # START YAML ===
 verbose: true
-recoveredErrFile: "/tmp/recovered_error"
 logLevel: 1
 node:
   paths:
+    errOutput: ""
     idf:  ""
     cert: ""
     key:  ""
