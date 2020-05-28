@@ -292,3 +292,13 @@ func TestInstance_GetDisableStreaming(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestInstance_ClearRecoveredError(t *testing.T) {
+	instance := Instance{
+		recoveredError: &mixmessages.RoundError{Id: 3},
+	}
+	instance.ClearRecoveredError()
+	if instance.recoveredError != nil {
+		t.Error("Did not clear recovered error properly")
+	}
+}

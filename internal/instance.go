@@ -68,6 +68,7 @@ type Instance struct {
 	RecoveredErrorFilePath string
 
 	phaseOverrides map[int]phase.Phase
+	overrideRound  int
 	panicWrapper   func(s string)
 
 	gatewayAddess  string
@@ -430,6 +431,10 @@ func (i *Instance) GetPhaseOverrides() map[int]phase.Phase {
 	return i.phaseOverrides
 }
 
+func (i *Instance) GetOverrideRound() int {
+	return i.overrideRound
+}
+
 func (i *Instance) GetPanicWrapper() func(s string) {
 	return i.panicWrapper
 }
@@ -456,6 +461,11 @@ func (i *Instance) UpsertGatewayData(addr string, ver string) {
 /* TESTING FUNCTIONS */
 func (i *Instance) OverridePhases(overrides map[int]phase.Phase) {
 	i.phaseOverrides = overrides
+}
+
+func (i *Instance) OverridePhasesAtRound(overrides map[int]phase.Phase, round int) {
+	i.phaseOverrides = overrides
+	i.overrideRound = round
 }
 
 func (i *Instance) SetRoundErrFunc(f RoundErrBroadcastFunc, t *testing.T) {

@@ -227,9 +227,18 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		newRoundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming())
 
-	phaseOverrides := instance.GetPhaseOverrides()
-	for toOverride, override := range phaseOverrides {
-		phases[toOverride] = override
+	var override = func() {
+		phaseOverrides := instance.GetPhaseOverrides()
+		for toOverride, override := range phaseOverrides {
+			phases[toOverride] = override
+		}
+	}
+	if instance.GetOverrideRound() != -1 {
+		if instance.GetOverrideRound() == int(roundID) {
+			override()
+		}
+	} else {
+		override()
 	}
 
 	//Build the round
