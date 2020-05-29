@@ -97,7 +97,7 @@ signedCertPath: ""
 #in ms, omit to wait forever
 GatewayConnectionTimeout: 5000 
 
-phaseOverrides: [0[
+phaseOverrides: [0]
 overrideRound: 3
 # === END YAML
 ```
