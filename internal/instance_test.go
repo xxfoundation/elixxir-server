@@ -8,11 +8,15 @@ import (
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -300,5 +304,97 @@ func TestInstance_ClearRecoveredError(t *testing.T) {
 	instance.ClearRecoveredError()
 	if instance.recoveredError != nil {
 		t.Error("Did not clear recovered error properly")
+	}
+}
+
+func panicHandler(g, m string, err error) {
+	panic(g)
+}
+
+func TestInstance_OverridePhases(t *testing.T) {
+
+	instance, _ := createInstance(t)
+	gc := services.NewGraphGenerator(4, panicHandler,
+		uint8(runtime.NumCPU()), 1, 0)
+	g := graphs.InitErrorGraph(gc)
+	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		return errors.New("Failed intentionally")
+	}
+	p := phase.New(phase.Definition{
+		Graph:               g,
+		Type:                phase.Type(0),
+		TransmissionHandler: th,
+		Timeout:             3399921,
+		DoVerification:      false,
+	})
+	overrides := map[int]phase.Phase{}
+	overrides[0] = p
+	instance.OverridePhases(overrides)
+	if len(instance.phaseOverrides) != len(overrides) || instance.phaseOverrides[0].GetTimeout() != 3399921 {
+		t.Error("failed to set overrides properly")
+	}
+}
+
+func TestInstance_OverridePhasesAtRound(t *testing.T) {
+	instance, _ := createInstance(t)
+	gc := services.NewGraphGenerator(4, panicHandler,
+		uint8(runtime.NumCPU()), 1, 0)
+	g := graphs.InitErrorGraph(gc)
+	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		return errors.New("Failed intentionally")
+	}
+	p := phase.New(phase.Definition{
+		Graph:               g,
+		Type:                phase.Type(0),
+		TransmissionHandler: th,
+		Timeout:             3399921,
+		DoVerification:      false,
+	})
+	overrides := map[int]phase.Phase{}
+	overrides[0] = p
+	instance.OverridePhasesAtRound(overrides, 3)
+	if len(instance.phaseOverrides) != len(overrides) || instance.phaseOverrides[0].GetTimeout() != 3399921 {
+		t.Error("failed to set overrides properly")
+	}
+	if instance.overrideRound != 3 {
+		t.Errorf("Failed to set override round, expected: %d, got: %d", 3, instance.overrideRound)
+	}
+}
+
+func TestInstance_GetOverrideRound(t *testing.T) {
+	instance := Instance{
+		overrideRound: 3,
+	}
+	if instance.GetOverrideRound() != 3 {
+		t.Errorf("GetOverrideRound is broken; should have returned %d, instead got %d",
+			3, instance.GetOverrideRound())
+	}
+}
+
+func TestInstance_GetPhaseOverrides(t *testing.T) {
+	gc := services.NewGraphGenerator(4, panicHandler,
+		uint8(runtime.NumCPU()), 1, 0)
+	g := graphs.InitErrorGraph(gc)
+	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		return errors.New("Failed intentionally")
+	}
+	p := phase.New(phase.Definition{
+		Graph:               g,
+		Type:                phase.Type(0),
+		TransmissionHandler: th,
+		Timeout:             83721,
+		DoVerification:      false,
+	})
+	overrides := map[int]phase.Phase{}
+	overrides[0] = p
+
+	instance := Instance{
+		phaseOverrides: overrides,
+	}
+
+	instanceOverrides := instance.GetPhaseOverrides()
+
+	if len(instanceOverrides) != len(overrides) || instanceOverrides[0].GetTimeout() != 83721 {
+		t.Error("Failed to get phase overrides set in instance")
 	}
 }
