@@ -209,7 +209,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			case states.STANDBY:
 				// Don't do anything
 
-			case states.REALTIME: // Prepare for realtime state
+			case states.QUEUED: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
 				if curActivity != current.STANDBY || err != nil {
@@ -241,6 +241,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 						jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
 					}
 				}()
+			case states.REALTIME:
+				// Don't do anything
 			case states.PENDING:
 				// Don't do anything
 			case states.COMPLETED:
