@@ -368,9 +368,10 @@ func TestUpdateInternalState(t *testing.T) {
 
 	// Construct round info message
 	realtimeRoundInfo := &pb.RoundInfo{
-		ID:         0,
-		UpdateID:   numUpdates,
-		State:      uint32(states.REALTIME),
+		ID:       0,
+		UpdateID: numUpdates,
+		// Queue it into starting realtime
+		State:      uint32(states.QUEUED),
 		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
@@ -397,7 +398,7 @@ func TestUpdateInternalState(t *testing.T) {
 	// Wait for the WaitForRealtime go routine to update the state
 	time.Sleep(500 * time.Millisecond)
 
-	// Check that the state was changed
+	// Check that the state was not changed
 	if instance.GetStateMachine().Get() != current.REALTIME {
 		t.Errorf("Unexpected state after updating internally. "+
 			"\n\tExpected state: %+v"+
