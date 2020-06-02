@@ -187,9 +187,11 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 		if index := newTopology.GetNodeLocation(instance.GetID()); index != -1 {
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
+			case states.PENDING:
+				// Don't do anything
 			case states.PRECOMPUTING: // Prepare for precomputing state
 
-				// Standy by until in WAITING state to ensure a valid transition into precomputing
+				// Standby until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
 					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
@@ -210,6 +212,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Don't do anything
 
 			case states.QUEUED: // Prepare for realtime state
+
+				jww.TRACE.Printf("In queue state")
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
 				if curActivity != current.STANDBY || err != nil {
@@ -225,8 +229,9 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Wait until the permissioning-instructed time to begin REALTIME
 				go func() {
 					// Get the realtime start time
-					duration := time.Unix(int64(roundInfo.Timestamps[states.REALTIME]), 0)
-					jww.INFO.Printf("told to sleep for duration: %v", duration)
+					jww.DEBUG.Printf("round info received: %v", roundInfo.Timestamps)
+					//duration := time.Duration(roundInfo.Timestamps[states.REALTIME])
+					duration := time.Unix(0, int64(roundInfo.Timestamps[states.QUEUED]))
 					// Fixme: find way to calculate sleep length that doesn't lose time
 					// If the timeDiff is positive, then we are not yet ready to start realtime.
 					//  We then sleep for timeDiff time
@@ -243,8 +248,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				}()
 			case states.REALTIME:
 				// Don't do anything
-			case states.PENDING:
-				// Don't do anything
+
 			case states.COMPLETED:
 
 			default:

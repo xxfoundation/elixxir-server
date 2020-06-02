@@ -103,6 +103,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
+	jww.INFO.Printf("Recovered err file set to: %v", params.RecoveredErrFile)
 	params.PhaseOverrides = vip.GetIntSlice("phaseOverrides")
 
 	params.SignedCertPath = vip.GetString("signedCertPath")
