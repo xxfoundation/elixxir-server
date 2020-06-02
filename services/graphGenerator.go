@@ -15,13 +15,12 @@ type ErrorCallback func(graph, module string, err error)
 
 type GraphGenerator struct {
 	minInputSize    uint32
-	errorHandler    ErrorCallback
 	defaultNumTh    uint8
 	outputSize      uint32
 	outputThreshold float32
 }
 
-func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultNumTh uint8, outputSize uint32, outputThreshold float32) GraphGenerator {
+func NewGraphGenerator(minInputSize uint32, defaultNumTh uint8, outputSize uint32, outputThreshold float32) GraphGenerator {
 	if defaultNumTh == 0 {
 		jww.FATAL.Panicf("Cannot default to zero threads")
 	}
@@ -41,7 +40,6 @@ func NewGraphGenerator(minInputSize uint32, errorHandler ErrorCallback, defaultN
 
 	return GraphGenerator{
 		minInputSize:    minInputSize,
-		errorHandler:    errorHandler,
 		defaultNumTh:    defaultNumTh,
 		outputSize:      outputSize,
 		outputThreshold: outputThreshold,
@@ -56,13 +54,6 @@ func (gc *GraphGenerator) GetDefaultNumTh() uint8 {
 	return gc.defaultNumTh
 }
 
-func (gc *GraphGenerator) GetErrorHandler() ErrorCallback {
-	return gc.errorHandler
-}
-
-func (gc *GraphGenerator) SetErrorHandler(ec ErrorCallback) {
-	gc.errorHandler = ec
-}
 
 func (gc *GraphGenerator) GetOutputSize() uint32 {
 	return gc.outputSize

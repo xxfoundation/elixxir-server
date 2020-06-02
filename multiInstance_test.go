@@ -156,7 +156,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 
 		if errorPhase {
 			if i == 0 {
-				gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
+				gc := services.NewGraphGenerator(4,
 					uint8(runtime.NumCPU()), 1, 0)
 				g := graphs.InitErrorGraph(gc)
 				th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
@@ -561,10 +561,6 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T)
 	//generate parameters list
 	var defLst []*internal.Definition
 
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
-	}
-
 	for i := 0; i < numNodes; i++ {
 		gatewayID := nidLst[i].DeepCopy()
 		gatewayID.SetType(id.Gateway)
@@ -587,7 +583,7 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T)
 			PartialNDF:      networkDef,
 			Address:         nodeLst[i].Address,
 			MetricsHandler:  func(i *internal.Instance, roundID id.Round) error { return nil },
-			GraphGenerator:  services.NewGraphGenerator(4, PanicHandler, 1, 4, 1.0),
+			GraphGenerator:  services.NewGraphGenerator(4, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 			RoundCreationTimeout: 2,

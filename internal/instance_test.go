@@ -276,8 +276,9 @@ func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
 func TestInstance_ReportCriticalError(t *testing.T) {
 	instance, _ := createInstance(t)
 
+	roundID := id.Round(987432)
 	testErr := errors.New("Test error")
-	instance.ReportRoundFailure(testErr, id.NewIdFromUInt(uint64(1), id.Node, t), nil)
+	instance.ReportRoundFailure(testErr, id.NewIdFromUInt(uint64(1), id.Node, t), &roundID)
 	//Test happy path
 
 	//Test that if we send a different error it changes as expected

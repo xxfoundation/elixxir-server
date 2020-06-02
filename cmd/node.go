@@ -108,10 +108,6 @@ func StartServer(vip *viper.Viper) error {
 
 	var instance *internal.Instance
 
-	PanicHandler := node.GetDefaultPanicHanlder(instance)
-
-	def.GraphGenerator.SetErrorHandler(PanicHandler)
-
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
@@ -176,7 +172,7 @@ func StartServer(vip *viper.Viper) error {
 
 	if params.PhaseOverrides != nil {
 		overrides := map[int]phase.Phase{}
-		gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
+		gc := services.NewGraphGenerator(4,
 			uint8(runtime.NumCPU()), 1, 0)
 		g := graphs.InitErrorGraph(gc)
 		th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {

@@ -242,7 +242,8 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
 		instance.GetStreamPool(),
-		instance.GetIP())
+		instance.GetIP(),
+		GetDefaultPanicHanlder(instance,&roundID))
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}

@@ -530,12 +530,13 @@ func GenerateId(i interface{}) *id.ID {
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Round) {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
+	if roundId == nil {
+		jww.FATAL.Panicf("Encountered an unrecoverable error: " + errIn.Error())
+	}
 	roundErr := mixmessages.RoundError{
+		Id:     uint64(*roundId),
 		Error:  errIn.Error(),
 		NodeId: nodeId.Marshal(),
-	}
-	if roundId != nil {
-		roundErr.Id = uint64(*roundId)
 	}
 	// pass the error over the chanel
 	//instance get err chan

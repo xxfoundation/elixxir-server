@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -62,7 +63,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
-	localIP string) (*Round, error) {
+	localIP string, errorHandler services.ErrorCallback) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
@@ -80,7 +81,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	round.phaseStateUpdateSignal = make(chan struct{}, 1)
 
 	for index, p := range phases {
-		p.GetGraph().Build(batchSize)
+		p.GetGraph().Build(batchSize, errorHandler)
 		if p.GetGraph().GetExpandedBatchSize() > maxBatchSize {
 			maxBatchSize = p.GetGraph().GetExpandedBatchSize()
 		}

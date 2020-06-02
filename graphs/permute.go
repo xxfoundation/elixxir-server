@@ -33,7 +33,6 @@ func PrecanPermute(permutations []uint32, IOs ...PermuteIO) {
 func ModifyGraphGeneratorForPermute(gc services.GraphGenerator) services.GraphGenerator {
 	return services.NewGraphGenerator(
 		gc.GetMinInputSize(),
-		gc.GetErrorHandler(),
 		gc.GetDefaultNumTh(),
 		gc.GetOutputSize(),
 		1.0,
