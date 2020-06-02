@@ -172,7 +172,7 @@ var ModuleD = Module{
 
 // TestGraphBacktrack checks error checking to see if a graph path goes back on itself
 func TestGraphBacktrack(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
@@ -197,7 +197,7 @@ func TestGraphBacktrack(t *testing.T) {
 
 // TestGraphNoModules checks error happens when graph has no modules
 func TestGraphNoModules(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	err := g.checkGraph()
@@ -209,7 +209,7 @@ func TestGraphNoModules(t *testing.T) {
 // TestGraphNodeNoFirstModule checks an error is thrown when no first module is
 // specified
 func TestGraphNodeNoFirstModule(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
@@ -231,7 +231,7 @@ func TestGraphNodeNoFirstModule(t *testing.T) {
 // TestGraphNodeNoLastModule checks an error is thrown when no last module is
 // specified
 func TestGraphNodeNoLastModule(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
@@ -252,7 +252,7 @@ func TestGraphNodeNoLastModule(t *testing.T) {
 
 // TestGraphNodeNoOneModule checks that a correct graph with one node works
 func TestGraphNodeOneModule(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
@@ -268,7 +268,7 @@ func TestGraphNodeOneModule(t *testing.T) {
 
 // TestGraphNodeNoVisit checks error checking to see if all graph nodes are visited
 func TestGraphNodeNoVisit(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
@@ -291,7 +291,7 @@ func TestGraphNodeNoVisit(t *testing.T) {
 
 // TestGraphNodeAllVisited checks that no error is reported when all graph nodes are visited
 func TestGraphNodeAllVisited(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
@@ -315,7 +315,7 @@ func TestGraphNodeAllVisited(t *testing.T) {
 
 // TestGraphWrongEndNode checks error checking to see if a graph path ends on a node other than g.Last
 func TestGraphWrongEndNode(t *testing.T) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", &Stream1{})
 
 	moduleA := ModuleA.DeepCopy()
@@ -347,7 +347,7 @@ func TestGraph(t *testing.T) {
 
 	batchSize := uint32(1000)
 
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 
 	g := gc.NewGraph("test", &Stream1{})
 
@@ -363,7 +363,7 @@ func TestGraph(t *testing.T) {
 	g.Connect(moduleC, moduleD)
 	g.Last(moduleD)
 
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 
 	roundSize := uint32(math.Ceil(1.2 * float64(g.GetExpandedBatchSize())))
 	roundBuf := RoundBuffer{}

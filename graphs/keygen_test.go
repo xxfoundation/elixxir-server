@@ -184,7 +184,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	kmac := cmix.GenerateKMAC(testSalt, u.BaseKey, cmixHash)
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -193,7 +193,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 	//rb := round.NewBuffer(grp, batchSize, batchSize)
 	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
@@ -295,7 +295,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -304,7 +304,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 	//rb := round.NewBuffer(grp, batchSize, batchSize)
 	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
@@ -396,7 +396,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 
 	kmac := make([]byte, 32)
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -405,7 +405,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 	//rb := round.NewBuffer(grp, batchSize, batchSize)
 	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy

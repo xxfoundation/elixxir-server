@@ -253,7 +253,7 @@ func TestPermuteGraph(t *testing.T) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// Initialize graph
 	g := graphInit(gc)
@@ -263,7 +263,7 @@ func TestPermuteGraph(t *testing.T) {
 	}
 
 	// Build the graph
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 
 	var done *uint32
 	done = new(uint32)

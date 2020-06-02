@@ -42,7 +42,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 
 	//Build the topology
 	topology := connect.NewCircuit(nodeIDs)
-	gg := services.NewGraphGenerator(4, nil, 1,
+	gg := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},

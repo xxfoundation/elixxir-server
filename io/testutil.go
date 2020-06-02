@@ -162,11 +162,6 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 		nodeIDs = append(nodeIDs, id.NewIdFromUInt(i, id.Node, t))
 	}
 
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err))
-	}
-
 	// Generate IDs and addresses
 	var nodeLst []internal.Node
 	for i := 0; i < len(nodeIDs); i++ {
@@ -189,7 +184,7 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
-		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
+		GraphGenerator: services.NewGraphGenerator(2,
 			2, 2, 0),
 		RngStreamGen: fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),

@@ -292,12 +292,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.FullNDF = ourNdf
 	def.PartialNDF = ourNdf
 
-	PanicHandler := func(g, m string, err error) {
-		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err))
-	}
-
-	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
+	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
 	return def, nil

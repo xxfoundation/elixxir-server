@@ -55,14 +55,18 @@ type Graph struct {
 	// NOTE: This mutex is only used for metrics
 	sync.Mutex
 	metrics measure.Metrics
+
+	errorHandler    ErrorCallback
 }
 
 // This is too long of a function
-func (g *Graph) Build(batchSize uint32) {
+func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 
 	if g.overrideBatchSize != 0 {
 		batchSize = g.overrideBatchSize
 	}
+
+	g.errorHandler = errorHandler
 
 	//Checks graph is properly formatted
 	err := g.checkGraph()
@@ -291,7 +295,7 @@ func (g *Graph) Send(chunk Chunk, measureObj Measure) {
 	//fmt.Println(g.name,"sending", chunk, "srList", srList)
 
 	if err != nil {
-		g.generator.errorHandler(g.name, "input", err)
+		g.errorHandler(g.name, "input", err)
 	}
 
 	for _, r := range srList {
@@ -306,7 +310,7 @@ func (g *Graph) Send(chunk Chunk, measureObj Measure) {
 		srList, err = g.firstModule.assignmentList.PrimeOutputs(endChunk)
 
 		if err != nil {
-			g.generator.errorHandler(g.name, "input", err)
+			g.errorHandler(g.name, "input", err)
 		}
 
 		for _, r := range srList {
@@ -317,7 +321,7 @@ func (g *Graph) Send(chunk Chunk, measureObj Measure) {
 	done, err := g.firstModule.assignmentList.DenoteCompleted(len(srList))
 
 	if err != nil {
-		g.generator.errorHandler(g.name, "input", err)
+		g.errorHandler(g.name, "input", err)
 	}
 
 	if done {
