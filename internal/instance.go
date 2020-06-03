@@ -35,7 +35,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
@@ -415,11 +414,6 @@ func (i *Instance) IsReadyForGateway() bool {
 
 func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
-}
-
-// GetTopology returns the consensus object
-func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
-	return i.definition.GwConnTimeout
 }
 
 func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {

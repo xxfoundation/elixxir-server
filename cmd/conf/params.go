@@ -38,7 +38,6 @@ type Params struct {
 	DisableStreaming      bool
 	Groups                Groups
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
-	GWConnTimeout         time.Duration
 	ServerCertPath        string
 	GatewayCertPath       string
 	SignedCertPath        string
@@ -117,13 +116,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 		params.RngScalingFactor = 10000
 	}
 
-	gwTimeoutMs := vip.GetUint64("GatewayConnectionTimeout")
-	if gwTimeoutMs == 0 {
-		params.GWConnTimeout = 289 * 365 * 24 * time.Hour
-	} else {
-		params.GWConnTimeout = time.Duration(gwTimeoutMs) * time.Millisecond
-	}
-
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
 	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
 
@@ -141,7 +133,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.Flags.SkipReg = p.SkipReg
 	def.Flags.Verbose = p.Verbose
 	def.Flags.UseGPU = p.UseGPU
-	def.GwConnTimeout = p.GWConnTimeout
 
 	var tlsCert, tlsKey []byte
 	var err error
