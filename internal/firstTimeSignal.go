@@ -9,7 +9,8 @@ package internal
 // that can only be sent to once
 
 import (
-	"errors"
+	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"sync"
 	"time"
 )
@@ -34,14 +35,19 @@ func (ft *FirstTime) Send() {
 	})
 }
 
-// Receive either receives from the channel or times out
-// On timeout it errors.
-func (ft *FirstTime) Receive(duration time.Duration) error {
-
-	select {
-	case <-ft.c:
-		return nil
-	case <-time.After(duration):
-		return errors.New("Timed out receiving from first time channel")
+// Receive either receives from the channel. Prints a log ever `duration` to
+// notify it is still waiting
+func (ft *FirstTime) Receive(duration time.Duration, reason string)  {
+	logMessage := fmt.Sprintf("Waiting on %s to continue", reason)
+	jww.INFO.Printf(logMessage)
+	ticker := time.NewTicker(duration)
+	for true{
+		select {
+		case <-ft.c:
+			return
+		case <-ticker.C:
+			jww.WARN.Printf(logMessage)
+		}
 	}
+
 }

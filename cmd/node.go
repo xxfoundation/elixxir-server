@@ -188,7 +188,7 @@ func StartServer(vip *viper.Viper) error {
 				Graph:               g,
 				Type:                phase.PrecompGeneration,
 				TransmissionHandler: th,
-				Timeout:             500,
+				Timeout:             1*time.Minute,
 				DoVerification:      false,
 			})
 			overrides[i] = p

@@ -113,14 +113,6 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
-	// Atomically denote that gateway is ready for polling
-	instance.SetGatewayAsReady()
-
-	// Receive signal that indicates that gateway is ready for polling
-	err = instance.GetGatewayFirstTime().Receive(instance.GetGatewayConnnectionTimeout())
-	if err != nil {
-		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
-	}
 
 	// Do not need to get the Server and Gateway certificates if they were
 	// already retrieved from file
@@ -128,6 +120,12 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		// Save the retrieved certificates to file
 		writeCertificates(ourDef, serverCert, gwCert)
 	}
+
+	// Atomically denote that gateway is ready for polling
+	instance.SetGatewayAsReady()
+
+	// Receive signal that indicates that gateway is ready for polling
+	instance.GetGatewayFirstTime().Receive(30*time.Second, "gateway")
 
 	// Restart the network with these signed certs
 	err = instance.RestartNetwork(io.NewImplementation, noTls, serverCert, gwCert)
