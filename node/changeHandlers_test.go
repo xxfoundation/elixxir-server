@@ -17,14 +17,17 @@ import (
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -195,6 +198,74 @@ func TestPrecomputing(t *testing.T) {
 		t.Errorf("A round should have been added to the round manager")
 	}
 	instance.GetNetwork().Shutdown()
+}
+
+func TestPrecomputing_override(t *testing.T) {
+	var err error
+	instance, topology := setup(t)
+	gc := services.NewGraphGenerator(4, GetDefaultPanicHanlder(instance),
+		uint8(runtime.NumCPU()), 1, 0)
+	g := graphs.InitErrorGraph(gc)
+	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		return errors.New("Failed intentionally")
+	}
+	overrides := map[int]phase.Phase{}
+	p := phase.New(phase.Definition{
+		Graph:               g,
+		Type:                phase.PrecompGeneration,
+		TransmissionHandler: th,
+		Timeout:             30127,
+		DoVerification:      false,
+	})
+	overrides[0] = p
+	instance.OverridePhasesAtRound(overrides, 1)
+
+	var top [][]byte
+	for i := 0; i < topology.Len(); i++ {
+		nid := topology.GetNodeAtIndex(i)
+		top = append(top, nid.Marshal())
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		if err != nil {
+			t.Errorf("Failed to add host: %+v", err)
+		}
+	}
+
+	newRoundInfo := &mixmessages.RoundInfo{
+		ID:        1,
+		Topology:  top,
+		BatchSize: 32,
+	}
+	// Mocking permissioning server signing message
+	err = signRoundInfo(newRoundInfo)
+	if err != nil {
+		t.Errorf("failed to sign round info")
+	}
+
+	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
+	if err != nil {
+		t.Errorf("Failed to updated network instance for new round info: %v", err)
+	}
+
+	err = instance.GetCreateRoundQueue().Send(newRoundInfo)
+	if err != nil {
+		t.Errorf("Failed to send roundInfo: %v", err)
+	}
+
+	err = instance.GetResourceQueue().Kill(time.Millisecond * 10)
+	if err != nil {
+		t.Errorf("Failed to kill resource queue: %+v", err)
+	}
+
+	err = Precomputing(instance, 3)
+	if err != nil {
+		t.Errorf("Failed to precompute: %+v", err)
+	}
+
+	rnd, _ := instance.GetRoundManager().GetRound(id.Round(1))
+	phase, _ := rnd.GetPhase(phase.PrecompGeneration)
+	if phase.GetTimeout() != 30127 {
+		t.Error("Failed to override phase")
+	}
 }
 
 // Utility function which signs a round info message

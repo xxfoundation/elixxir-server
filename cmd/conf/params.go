@@ -52,6 +52,7 @@ type Params struct {
 	GraphGen      GraphGen
 
 	PhaseOverrides   []int
+	OverrideRound    int
 	RecoveredErrFile string
 }
 
@@ -107,6 +108,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
 	params.PhaseOverrides = vip.GetIntSlice("phaseOverrides")
+	overrideRoundKey := "overrideRound"
+	vip.SetDefault(overrideRoundKey, -1)
+	params.OverrideRound = vip.GetInt(overrideRoundKey)
 
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
