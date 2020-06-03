@@ -36,7 +36,7 @@ func TestFirstTime_Receive(t *testing.T) {
 	received:= make(chan bool)
 
 	go func(){
-		ft.Receive(10*time.Millisecond, "test")
+		ft.Receive()
 		received<-true
 	}()
 

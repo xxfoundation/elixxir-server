@@ -9,10 +9,7 @@ package internal
 // that can only be sent to once
 
 import (
-	"fmt"
-	jww "github.com/spf13/jwalterweatherman"
 	"sync"
-	"time"
 )
 
 type FirstTime struct {
@@ -35,19 +32,7 @@ func (ft *FirstTime) Send() {
 	})
 }
 
-// Receive either receives from the channel. Prints a log ever `duration` to
-// notify it is still waiting
-func (ft *FirstTime) Receive(duration time.Duration, reason string)  {
-	logMessage := fmt.Sprintf("Waiting on %s to continue", reason)
-	jww.INFO.Printf(logMessage)
-	ticker := time.NewTicker(duration)
-	for true{
-		select {
-		case <-ft.c:
-			return
-		case <-ticker.C:
-			jww.WARN.Printf(logMessage)
-		}
-	}
-
+// Receive either receives from the channel.
+func (ft *FirstTime) Receive()  {
+	<-ft.c
 }
