@@ -203,7 +203,7 @@ func TestPrecomputing(t *testing.T) {
 func TestPrecomputing_override(t *testing.T) {
 	var err error
 	instance, topology := setup(t)
-	gc := services.NewGraphGenerator(4, GetDefaultPanicHanlder(instance),
+	gc := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 0)
 	g := graphs.InitErrorGraph(gc)
 	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {

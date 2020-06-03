@@ -315,7 +315,7 @@ func panicHandler(g, m string, err error) {
 func TestInstance_OverridePhases(t *testing.T) {
 
 	instance, _ := createInstance(t)
-	gc := services.NewGraphGenerator(4, panicHandler,
+	gc := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 0)
 	g := graphs.InitErrorGraph(gc)
 	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
@@ -338,7 +338,7 @@ func TestInstance_OverridePhases(t *testing.T) {
 
 func TestInstance_OverridePhasesAtRound(t *testing.T) {
 	instance, _ := createInstance(t)
-	gc := services.NewGraphGenerator(4, panicHandler,
+	gc := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 0)
 	g := graphs.InitErrorGraph(gc)
 	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
@@ -373,7 +373,7 @@ func TestInstance_GetOverrideRound(t *testing.T) {
 }
 
 func TestInstance_GetPhaseOverrides(t *testing.T) {
-	gc := services.NewGraphGenerator(4, panicHandler,
+	gc := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 0)
 	g := graphs.InitErrorGraph(gc)
 	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
