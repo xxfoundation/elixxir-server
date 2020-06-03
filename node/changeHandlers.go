@@ -40,7 +40,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
 
-	jww.INFO.Printf("Loading certificates from dish")
+	jww.INFO.Printf("Loading certificates from disk")
 	// Get the Server and Gateway certificates from file, if they exist
 	certsExist, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
 		ourDef.GatewayCertPath)
@@ -65,7 +65,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		err = permissioning.RegisterNode(ourDef, network, permHost)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
-				jww.WARN.Println("Node is already registered, continuing to retrieve the signed cert from the NDF")
+				jww.WARN.Println("Node is already registered, continuing to retrieve the signed cert from the NDF. Attempting re-registration is NOT secure")
 			} else {
 				return errors.Errorf("Failed to register node: %+v", err)
 			}
@@ -93,7 +93,6 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	err = errors.Errorf(ndf.NO_NDF)
 
 	pollDelay := 1 * time.Second
-
 
 	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
 		time.After(pollDelay)
