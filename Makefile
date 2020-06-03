@@ -19,7 +19,7 @@ build:
 	go mod tidy
 
 update_release:
-	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@release
+	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@hotfix/AddQueueState
 	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/comms@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/gpumaths@release

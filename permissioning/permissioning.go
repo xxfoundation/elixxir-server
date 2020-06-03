@@ -10,6 +10,7 @@ package permissioning
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -212,8 +213,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Don't do anything
 
 			case states.QUEUED: // Prepare for realtime state
-
-				jww.TRACE.Printf("In queue state")
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
 				if curActivity != current.STANDBY || err != nil {
@@ -237,6 +236,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 					//  We then sleep for timeDiff time
 					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
 						jww.INFO.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
+						fmt.Println("sleeping for ", timeDiff.String())
 						time.Sleep(timeDiff)
 					}
 
@@ -273,6 +273,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 	}
 
 	if permissioningResponse.PartialNDF != nil {
+		jww.INFO.Printf("partial ndf: %v", permissioningResponse.PartialNDF)
 		// Update the partial ndf
 		err := instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 		if err != nil {
@@ -281,6 +282,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 	}
 
 	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
+
 		// Update the nodes in the network.Instance with the new ndf
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {

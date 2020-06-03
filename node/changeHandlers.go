@@ -130,8 +130,6 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
 	}
 
-
-
 	// Restart the network with these signed certs
 	err = instance.RestartNetwork(io.NewImplementation, noTls, serverCert, gwCert)
 	if err != nil {
