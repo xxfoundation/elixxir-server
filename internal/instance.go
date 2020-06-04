@@ -422,13 +422,12 @@ func (i *Instance) SetGatewayAsReady() {
 
 func (i *Instance) AfterFirstPoll() bool {
 	ourVal := atomic.LoadUint32(i.afterFirstPoll)
-
 	return ourVal == 1
 }
 
 func (i *Instance) DeclareFirstPoll() {
 	i.markFirstPoll.Do(func() {
-		atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
+		atomic.CompareAndSwapUint32(i.afterFirstPoll, 0, 1)
 	})
 
 }

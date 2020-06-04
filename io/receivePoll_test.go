@@ -518,3 +518,51 @@ func TestReceivePoll_Auth_BadAddress(t *testing.T) {
 			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
 	}
 }
+
+// Test multiple poll calls. First call is to set up a happy path
+// Second call uses the same parameters, and is expected to fail due to new expectations for auth object
+// Third call uses new auth object with expected parameters, expected happy path
+func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
+	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Happy path of 1st receive poll for auth
+	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err != nil {
+		t.Errorf("Did not receive expected error!"+
+			"\n\tExpected: %v"+
+			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
+	}
+
+	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
+
+	// Attempt the same poll, with parameters that should now be invalid
+	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err.Error() != expectedError {
+		t.Errorf("Expected happy path, received error: %v", err)
+	}
+
+	// Get a copy of the server id and transfer to a gateway id
+	newGatewayId := instance.GetID().DeepCopy()
+	newGatewayId.SetType(id.Gateway)
+
+	// Create host and auth with new parameters, namely a gateway id based off of the server id
+	h, _ = connect.NewHost(newGatewayId, testGatewayAddress, nil, false, false)
+	auth = &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Attempt second poll with new, expected parameters
+	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err != nil {
+		t.Errorf("Expected happy path, received error: %v", err)
+	}
+
+}

@@ -8,6 +8,7 @@ package io
 // receivePoll contains the handler for the gateway <-> server poll comm
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -98,8 +99,13 @@ func isValidAuth(instance *internal.Instance, auth *connect.Auth, gatewayAddress
 	//  the sender sends from the address specified in our configuration
 	if !instance.AfterFirstPoll() {
 		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) || gatewayAddress != ourGatewayAddress {
+			fmt.Println(senderId.String())
+			fmt.Println(id.TempGateway.String())
+
 			return false
 		}
+
+		return true
 
 	}
 
