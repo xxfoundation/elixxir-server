@@ -22,22 +22,8 @@ import (
 func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
-	// Get sender id
-	senderId := auth.Sender.GetId()
-
-	// Get a copy of the server id and transfer to a gateway id
-	expectedGatewayID := instance.GetID().DeepCopy()
-	expectedGatewayID.SetType(id.Gateway)
-
-	// Get the gateway address
-	ourGatewayAddress := instance.GetDefinition().Gateway.Address
-
-	// Check if sender is authenticated, the sender sends from the address
-	// specified in our configuration, and if the sender's id is either:
-	//  a) a temporary gateway id or
-	//  b) the gateway version of the server id
-	if !auth.IsAuthenticated || !senderId.Cmp(instance.GetGateway()) ||
-		!senderId.Cmp(&id.TempGateway) || gatewayAddress != ourGatewayAddress {
+	// If we have an invalid, we deny communication
+	if !isValidAuth(instance, auth, gatewayAddress) {
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -82,6 +68,9 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 			res.Slots = cr.Round
 		}
 
+		// Denote that the gateway has polled once
+		instance.DeclareFirstPoll()
+
 		//denote that gateway has received info, only operates ont eh first time
 		instance.GetGatewayFirstTime().Send()
 		return &res, nil
@@ -89,4 +78,35 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	// If node has not gotten a response from permissioning, return an empty message
 	return &res, errors.New(ndf.NO_NDF)
+}
+
+// Helper function to check the auth for the specialized case needed for
+// the ReceivePoll handler
+func isValidAuth(instance *internal.Instance, auth *connect.Auth, gatewayAddress string) bool {
+	// Get sender id
+	senderId := auth.Sender.GetId()
+
+	// Get a copy of the server id and transfer to a gateway id
+	expectedGatewayID := instance.GetID().DeepCopy()
+	expectedGatewayID.SetType(id.Gateway)
+
+	// Get the gateway address
+	ourGatewayAddress := instance.GetDefinition().Gateway.Address
+
+	// If this is the first poll received, check that the message is authenticated and
+	//  that the sender has a temporary gateway ID and that
+	//  the sender sends from the address specified in our configuration
+	if !instance.AfterFirstPoll() {
+		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) || gatewayAddress != ourGatewayAddress {
+			return false
+		}
+
+	}
+
+	// Else if the first poll has occurred, check that the gateway's id is expected
+	if !auth.IsAuthenticated || !senderId.Cmp(expectedGatewayID) {
+		return false
+	}
+
+	return true
 }

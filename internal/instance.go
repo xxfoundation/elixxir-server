@@ -51,6 +51,9 @@ type Instance struct {
 
 	consensus      *network.Instance
 	isGatewayReady *uint32
+	afterFirstPoll *uint32
+	markFirstPoll  sync.Once
+
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
@@ -86,7 +89,7 @@ type Instance struct {
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, noTls bool, version string) (*Instance, error) {
 	isGwReady := uint32(0)
-
+	firstPoll := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -94,6 +97,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		resourceQueue:        initQueue(),
 		machine:              machine,
 		isGatewayReady:       &isGwReady,
+		afterFirstPoll:       &firstPoll,
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
@@ -414,6 +418,19 @@ func (i *Instance) IsReadyForGateway() bool {
 
 func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
+}
+
+func (i *Instance) AfterFirstPoll() bool {
+	ourVal := atomic.LoadUint32(i.afterFirstPoll)
+
+	return ourVal == 1
+}
+
+func (i *Instance) DeclareFirstPoll() {
+	i.markFirstPoll.Do(func() {
+		atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
+	})
+
 }
 
 func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
