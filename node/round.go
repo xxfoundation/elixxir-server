@@ -71,7 +71,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Build Precomputation Share phase and response
 
 	// share needs a copy of the graph constructor with an input size of 1
-	gcShare := services.NewGraphGenerator(1, gc.GetErrorHandler(),
+	gcShare := services.NewGraphGenerator(1,
 		1, 1, 0.0)
 
 	precompShareDefinition := phase.Definition{

@@ -57,7 +57,7 @@ func TestNew(t *testing.T) {
 	}
 
 	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
-		NewGraphGenerator(1, nil, 1,
+		NewGraphGenerator(1, 1,
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: handler, Timeout: time.Minute}))
 
@@ -65,7 +65,7 @@ func TestNew(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -121,7 +121,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 		return nil
 	}
 
-	newGraph := services.NewGraphGenerator(1, nil, 1, 1, 1)
+	newGraph := services.NewGraphGenerator(1, 1, 1, 1)
 
 	newPhaseDef := phase.Definition{
 		Graph:               initMockGraph(newGraph),
@@ -139,7 +139,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil,
-		"0.0.0.0")
+		"0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -179,7 +179,7 @@ func TestRound_StartRoundTrip(t *testing.T) {
 	var phases []phase.Phase
 	roundId := id.Round(58)
 	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
-		NewGraphGenerator(1, nil, 1,
+		NewGraphGenerator(1, 1,
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
 
@@ -187,7 +187,7 @@ func TestRound_StartRoundTrip(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -210,7 +210,7 @@ func TestRound_StopRoundTrip(t *testing.T) {
 	var phases []phase.Phase
 	roundId := id.Round(58)
 	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
-		NewGraphGenerator(1, nil, 1,
+		NewGraphGenerator(1, 1,
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
 
@@ -218,7 +218,7 @@ func TestRound_StopRoundTrip(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

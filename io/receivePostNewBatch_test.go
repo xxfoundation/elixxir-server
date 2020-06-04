@@ -7,7 +7,6 @@
 package io
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
@@ -58,7 +57,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0")
+		nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -228,10 +227,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	const batchSize = 1
 	const roundID = 2
 
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
-	}
-	gg := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()),
+	gg := services.NewGraphGenerator(4, uint8(runtime.NumCPU()),
 		1, 1.0)
 
 	realDecrypt := phase.New(phase.Definition{
@@ -257,7 +253,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0")
+		nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

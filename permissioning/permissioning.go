@@ -228,8 +228,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Wait until the permissioning-instructed time to begin REALTIME
 				go func() {
 					// Get the realtime start time
-					jww.DEBUG.Printf("round info received: %v", roundInfo.Timestamps)
-					//duration := time.Duration(roundInfo.Timestamps[states.REALTIME])
 					duration := time.Unix(0, int64(roundInfo.Timestamps[states.QUEUED]))
 					// Fixme: find way to calculate sleep length that doesn't lose time
 					// If the timeDiff is positive, then we are not yet ready to start realtime.

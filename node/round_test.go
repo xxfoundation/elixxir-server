@@ -13,7 +13,7 @@ const expectedNumPhases = 7
 func TestNewRoundComponents_FirstNode(t *testing.T) {
 	expectedFirstNodeResponses := 7
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
 	topology := buildMockTopology(3, t)
@@ -40,7 +40,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 func TestNewRoundComponents_MiddleNode(t *testing.T) {
 	expectedMiddleNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
 	topology := buildMockTopology(3, t)
@@ -66,7 +66,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 func TestNewRoundComponents_LastNode(t *testing.T) {
 	expectedLastNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
 	topology := buildMockTopology(3, t)
@@ -92,7 +92,7 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 	expectedFirstNodeResponses := 7
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
 	topology := buildMockTopology(3, t)
@@ -119,7 +119,7 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 	expectedMiddleNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
 	topology := buildMockTopology(3, t)
@@ -145,7 +145,7 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 	expectedLastNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
 	topology := buildMockTopology(3, t)

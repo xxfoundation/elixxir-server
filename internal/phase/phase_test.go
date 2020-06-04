@@ -196,7 +196,7 @@ func TestNew(t *testing.T) {
 	timeout := 50 * time.Second
 	// Testing whether the graph error handler is reachable is outside of the
 	// scope of this test
-	g := initMockGraph(services.NewGraphGenerator(1, nil,
+	g := initMockGraph(services.NewGraphGenerator(1,
 		1, 1, 1))
 	pass := false
 

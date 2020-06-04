@@ -35,7 +35,7 @@ func TestDecryptGPUGraph(t *testing.T) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), services.AutoOutputSize, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), services.AutoOutputSize, 1.0)
 
 	//Initialize graph
 	g := graphInit(gc)
@@ -45,7 +45,7 @@ func TestDecryptGPUGraph(t *testing.T) {
 	}
 
 	//Build the graph
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 
 	//Build the round
 	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())

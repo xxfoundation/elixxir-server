@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -132,7 +131,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	r, err := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
 		responseMap, topology, instance.GetID(), 1,
-		instance.GetRngStreamGen(), nil, "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -210,10 +209,7 @@ func makeTestPhase(instance *Instance, name phase.Type,
 }
 
 func makeTestGraph(instance *Instance, batchSize uint32) *services.Graph {
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
-	}
-	graphGen := services.NewGraphGenerator(4, PanicHandler,
+	graphGen := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 1)
 	graph := graphGen.NewGraph("TestGraph", &mockStream{})
 

@@ -40,13 +40,16 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
 
+	jww.INFO.Printf("Loading certificates from disk")
 	// Get the Server and Gateway certificates from file, if they exist
 	certsExist, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
 		ourDef.GatewayCertPath)
 
 	// If the certificates were retrieved from file, so do not need to register
-	if !certsExist {
-		jww.INFO.Printf("Registering with permissioning!")
+	if certsExist{
+		jww.INFO.Printf("Certificates found!")
+	}else {
+		jww.INFO.Printf("Certificates not found, registering with permissioning!")
 		// Connect to the Permissioning Server without authentication
 		permHost, err := network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
@@ -61,9 +64,13 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		// Blocking call: begin Node registration
 		err = permissioning.RegisterNode(ourDef, network, permHost)
 		if err != nil {
-			return errors.Errorf("Failed to register node: %+v", err)
-		}
+			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
+				jww.WARN.Println("Node is already registered, continuing to retrieve the signed cert from the NDF. Attempting re-registration is NOT secure")
+			} else {
+				return errors.Errorf("Failed to register node: %+v", err)
+			}
 
+		}
 		// Disconnect the old Permissioning server to enable authentication
 		permHost.Disconnect()
 	}
@@ -74,6 +81,8 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
+	// do this even if you have the certs to ensure the permissioning server is
+	// ready for servers to connect to it
 	permHost, err := network.AddHost(&id.Permissioning,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
@@ -83,34 +92,23 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 
-	waitUntil := 3 * time.Minute
-	pollingTicker := time.NewTicker(waitUntil)
+	pollDelay := 1 * time.Second
 
 	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
-		select {
-		case <-pollingTicker.C:
-			return errors.Errorf("Failed to get the ndf within %v", waitUntil)
-		default:
-
-		}
+		time.After(pollDelay)
 
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			//find certs in NDF
-			serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
-				instance.GetConsensus().GetFullNdf().Get())
-			if err != nil {
-				//if certs are not in NDF, redo the poll
-				continue
-			}
-
-			// Do not need to get the Server and Gateway certificates if they were
-			// already retrieved from file
-			if !certsExist && ourDef.WriteToFile {
-				// Save the retrieved certificates to file
-				writeCertificates(ourDef, serverCert, gwCert)
+			//find certs in NDF if they are nto already had
+			if !certsExist{
+				serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
+					instance.GetConsensus().GetFullNdf().Get())
+				if err != nil {
+					//if certs are not in NDF, redo the poll
+					continue
+				}
 			}
 
 			err = permissioning.UpdateNDf(permResponse, instance)
@@ -121,15 +119,27 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
+
+	// Do not need to get the Server and Gateway certificates if they were
+	// already retrieved from file
+	if ourDef.WriteToFile && !certsExist {
+		jww.INFO.Printf("Writing certificates to disk")
+		// Save the retrieved certificates to file
+		writeCertificates(ourDef, serverCert, gwCert)
+		jww.INFO.Printf("Certificates written to disk")
+	}else if !certsExist && !ourDef.WriteToFile{
+		jww.WARN.Printf("Not writing certs to file because no file found")
+	}
+
+	jww.INFO.Printf("Waiting on communication from gateway to continue")
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
 	// Receive signal that indicates that gateway is ready for polling
-	err = instance.GetGatewayFirstTime().Receive(instance.GetGatewayConnnectionTimeout())
-	if err != nil {
-		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
-	}
+	instance.GetGatewayFirstTime().Receive()
 
+	jww.INFO.Printf("Communication form gateway recieved")
+	jww.INFO.Printf("Restarting network interface to begin operation")
 	// Restart the network with these signed certs
 	err = instance.RestartNetwork(io.NewImplementation, noTls, serverCert, gwCert)
 	if err != nil {
@@ -228,9 +238,18 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		newRoundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming())
 
-	phaseOverrides := instance.GetPhaseOverrides()
-	for toOverride, override := range phaseOverrides {
-		phases[toOverride] = override
+	var override = func() {
+		phaseOverrides := instance.GetPhaseOverrides()
+		for toOverride, or := range phaseOverrides {
+			phases[toOverride] = or
+		}
+	}
+	if instance.GetOverrideRound() != -1 {
+		if instance.GetOverrideRound() == int(roundID) {
+			override()
+		}
+	} else {
+		override()
 	}
 
 	//Build the round
@@ -243,7 +262,8 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
 		instance.GetStreamPool(),
-		instance.GetIP())
+		instance.GetIP(),
+		GetDefaultPanicHanlder(instance,&roundID))
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}

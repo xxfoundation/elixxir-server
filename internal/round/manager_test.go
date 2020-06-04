@@ -32,7 +32,7 @@ func TestManager(t *testing.T) {
 	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
 		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), nil, "0.0.0.0")
+			csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -63,7 +63,7 @@ func TestManager_GetPhase(t *testing.T) {
 	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
 		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), nil, "0.0.0.0")
+			csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -84,7 +84,7 @@ func TestManager_GetPhase(t *testing.T) {
 	// We have to make phases with fake graphs...
 	phases := make([]phase.Phase, int(phase.NUM_PHASES))
 	for i := 0; i < len(phases); i++ {
-		gc := services.NewGraphGenerator(1, nil,
+		gc := services.NewGraphGenerator(1,
 			1, 1, 1)
 
 		definition := phase.Definition{
@@ -97,7 +97,7 @@ func TestManager_GetPhase(t *testing.T) {
 	round, err = New(grp, &globals.UserMap{}, roundID, phases, nil,
 		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), nil, "0.0.0.0")
+			csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

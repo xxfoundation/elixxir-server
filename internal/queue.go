@@ -135,6 +135,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			rid := runningPhase.GetRoundID()
 			roundErr := errors.Errorf("Round %d does not exist!", rid)
 			server.ReportRoundFailure(roundErr, server.GetID(), &rid)
+			break
 		}
 
 		//start the phase's transmission handler
@@ -176,6 +177,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			roundErr := errors.Errorf("Round has timed out killing the round %v", rid)
 
 			server.ReportRoundFailure(roundErr, server.GetID(), &rid)
+			break
 			//FIXME: also killChan the transmission handler
 			/*kill := rq.activePhase.GetGraph().Kill()
 			if kill {

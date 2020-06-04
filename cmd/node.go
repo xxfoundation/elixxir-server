@@ -108,10 +108,6 @@ func StartServer(vip *viper.Viper) error {
 
 	var instance *internal.Instance
 
-	PanicHandler := node.GetDefaultPanicHanlder(instance)
-
-	def.GraphGenerator.SetErrorHandler(PanicHandler)
-
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
@@ -168,6 +164,7 @@ func StartServer(vip *viper.Viper) error {
 			return errors.WithMessage(err, "Failed to open file")
 		}
 	} else {
+		jww.INFO.Println("Server has recovered from an error")
 		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, noTLS, currentVersion, recoveredErrorFile)
 		if err != nil {
 			return errors.WithMessage(err, "Could not recover server instance")
@@ -176,7 +173,7 @@ func StartServer(vip *viper.Viper) error {
 
 	if params.PhaseOverrides != nil {
 		overrides := map[int]phase.Phase{}
-		gc := services.NewGraphGenerator(4, node.GetDefaultPanicHanlder(instance),
+		gc := services.NewGraphGenerator(4,
 			uint8(runtime.NumCPU()), 1, 0)
 		g := graphs.InitErrorGraph(gc)
 		th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
@@ -186,15 +183,18 @@ func StartServer(vip *viper.Viper) error {
 			jww.ERROR.Println(fmt.Sprintf("Overriding phase %d", i))
 			p := phase.New(phase.Definition{
 				Graph:               g,
-				Type:                phase.PrecompGeneration,
+				Type:                phase.Type(i),
 				TransmissionHandler: th,
-				Timeout:             500,
+				Timeout:             1*time.Minute,
 				DoVerification:      false,
 			})
 			overrides[i] = p
 		}
-
-		instance.OverridePhases(overrides)
+		if params.OverrideRound != -1 {
+			instance.OverridePhasesAtRound(overrides, params.OverrideRound)
+		} else {
+			instance.OverridePhases(overrides)
+		}
 	}
 
 	jww.INFO.Printf("Instance created!")

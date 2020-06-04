@@ -324,10 +324,10 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	}
 	// NOTE: input size greater than 1 would necessarily cause a hang here
 	// since we never send more than 1 message through.
-	gc := services.NewGraphGenerator(1, PanicHandler,
+	gc := services.NewGraphGenerator(1,
 		1, 1, 0)
 	dGrph := InitDbgGraph(gc, streams, t, batchSize)
-	dGrph.Build(batchSize)
+	dGrph.Build(batchSize, PanicHandler)
 
 	dGrph.Link(grp, roundBuf, registry, &rngStreamGen)
 	dGrph.Run()
@@ -345,11 +345,11 @@ func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
 	}
 	// NOTE: input size greater than 1 would necessarily cause a hang here
 	// since we never send more than 1 message through.
-	gc := services.NewGraphGenerator(1, PanicHandler,
+	gc := services.NewGraphGenerator(1,
 		1, 1, 0)
 	dGrph := InitDbgGraph3(gc, streams, grp, batchSize, roundBuf, registry,
 		rngStreamGen, t)
-	dGrph.Build(batchSize)
+	dGrph.Build(batchSize, PanicHandler)
 
 	dGrph.Link(grp, roundBuf, registry, rngStreamGen)
 	dGrph.Run()
@@ -1097,12 +1097,12 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 			g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(1, PanicHandler,
+	gc := services.NewGraphGenerator(1,
 		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
 	streams := make(map[string]*DebugStream)
 	dGrph := InitDbgGraph(gc, streams, t, batchSize)
 
-	dGrph.Build(batchSize)
+	dGrph.Build(batchSize, PanicHandler)
 
 	//make the round buffer
 	roundBuf := round.NewBuffer(grp, batchSize,
@@ -1185,12 +1185,12 @@ func Test_DebugStream(t *testing.T) {
 			g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(1, PanicHandler,
+	gc := services.NewGraphGenerator(1,
 		uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
 	streams := make(map[string]*DebugStream)
 	dGrph := InitDbgGraph(gc, streams, t, batchSize)
 
-	dGrph.Build(batchSize)
+	dGrph.Build(batchSize, PanicHandler)
 
 	//make the round buffer
 	roundBuf := round.NewBuffer(grp, batchSize,

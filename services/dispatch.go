@@ -41,7 +41,7 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 		g.Unlock()
 
 		if err != nil {
-			go g.generator.errorHandler(g.name, m.Name, err)
+			go g.errorHandler(g.name, m.Name, err)
 		}
 
 		g.Lock()
@@ -50,7 +50,7 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 		for _, om := range m.outputModules {
 			chunkList, err := om.assignmentList.PrimeOutputs(chunk)
 			if err != nil {
-				go g.generator.errorHandler(g.name, m.Name, err)
+				go g.errorHandler(g.name, m.Name, err)
 				g.Lock()
 				g.metrics.Measure(omID)
 				g.Unlock()
@@ -66,7 +66,7 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 			fin, err := om.assignmentList.DenoteCompleted(len(chunkList))
 
 			if err != nil {
-				go g.generator.errorHandler(g.name, m.Name, err)
+				go g.errorHandler(g.name, m.Name, err)
 				g.Lock()
 				g.metrics.Measure(omID)
 				g.Unlock()

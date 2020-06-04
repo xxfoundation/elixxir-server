@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/services"
-	"time"
 )
 
 // in cmd/node.go, it is filling this out
@@ -75,9 +74,6 @@ type Definition struct {
 
 	// timeout for round creation
 	RoundCreationTimeout int
-
-	//how long the server will wait for the gateway to come online
-	GwConnTimeout time.Duration
 
 	// Toggles comm streaming
 	DisableStreaming bool

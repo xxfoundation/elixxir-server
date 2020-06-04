@@ -111,7 +111,7 @@ func TestTransmitPhase(t *testing.T) {
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
-		"0.0.0.0")
+		"0.0.0.0", nil)
 	if err != nil {
 		t.Error()
 	}
