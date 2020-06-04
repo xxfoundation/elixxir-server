@@ -154,7 +154,14 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		close(recv)
 	}()
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		t.Fail()
@@ -191,7 +198,14 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 	//Change the full hash so we get a the new ndf returned to us
 	poll.Full.Hash = fullHash2
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -207,7 +221,15 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 // incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -225,7 +247,14 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 	instance, poll, fullHash2, _ := setupTests(t, current.REALTIME)
 	poll.Partial.Hash = fullHash2
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -241,7 +270,15 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 // incoming ndf hash the ndf returned in the server poll is the same ndf we started out with
 func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -259,7 +296,14 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	PushNRoundUpdates(10, instance, privKey, t)
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error: %v", err)
 		t.Fail()
@@ -295,7 +339,14 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -311,7 +362,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
-	res, err = ReceivePoll(poll, &instance, "0.0.0.0", nil)
+	res, err = ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -367,7 +418,14 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		t.Logf("We failed to send a completed batch: %v", err)
 	}
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0", nil)
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
