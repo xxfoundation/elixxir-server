@@ -494,31 +494,6 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 
 }
 
-// Test error case in which sender of ReceivePoll has an unexpected address
-func TestReceivePoll_Auth_BadAddress(t *testing.T) {
-	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
-
-	// Set auth with unexpected address
-	badGatewayAddress := "0.0.0.0:1234"
-
-	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), badGatewayAddress, nil, false, false)
-	auth := &connect.Auth{
-		IsAuthenticated: true,
-		Sender:          h,
-	}
-
-	// Reset auth error
-	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
-
-	_, err := ReceivePoll(pollMsg, &instance, badGatewayAddress, auth)
-	if err.Error() != expectedError {
-		t.Errorf("Did not receive expected error!"+
-			"\n\tExpected: %v"+
-			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
-	}
-}
-
 // Test multiple poll calls. First call is to set up a happy path
 // Second call uses the same parameters, and is expected to fail due to new expectations for auth object
 // Third call uses new auth object with expected parameters, expected happy path
@@ -565,4 +540,29 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 		t.Errorf("Expected happy path, received error: %v", err)
 	}
 
+}
+
+// Test error case in which sender of ReceivePoll has an unexpected address
+func TestReceivePoll_Auth_BadAddress(t *testing.T) {
+	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
+
+	// Set auth with unexpected address
+	badGatewayAddress := "0.0.0.0:1234"
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), badGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Reset auth error
+	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
+
+	_, err := ReceivePoll(pollMsg, &instance, badGatewayAddress, auth)
+	if err.Error() != expectedError {
+		t.Errorf("Did not receive expected error!"+
+			"\n\tExpected: %v"+
+			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
+	}
 }

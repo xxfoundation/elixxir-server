@@ -8,14 +8,12 @@ package io
 // receivePoll contains the handler for the gateway <-> server poll comm
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
-	"strconv"
 	"strings"
 )
 
@@ -24,14 +22,13 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
 	// If we have an invalid, we deny communication
-	if !isValidAuth(instance, auth, gatewayAddress) {
+	if !isValidAuth(instance, auth) {
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
 	res := mixmessages.ServerPollResponse{}
 
 	// Form gateway address and put it into gateway data in instance
-	gatewayAddress = strings.Join([]string{gatewayAddress, strconv.Itoa(int(poll.GatewayPort))}, ":")
 	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
 
 	// Node is only ready for a response once it has polled permissioning
@@ -83,7 +80,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 // Helper function to check the auth for the specialized cases needed for
 // the ReceivePoll handler
-func isValidAuth(instance *internal.Instance, auth *connect.Auth, gatewayAddress string) bool {
+func isValidAuth(instance *internal.Instance, auth *connect.Auth) bool {
 	// Get sender id
 	senderId := auth.Sender.GetId()
 
@@ -98,10 +95,8 @@ func isValidAuth(instance *internal.Instance, auth *connect.Auth, gatewayAddress
 	//  that the sender has a temporary gateway ID and that
 	//  the sender sends from the address specified in our configuration
 	if !instance.IsAfterFirstPoll() {
-		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) || gatewayAddress != ourGatewayAddress {
-			fmt.Println(senderId.String())
-			fmt.Println(id.TempGateway.String())
-
+		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) ||
+			auth.Sender.GetAddress() != ourGatewayAddress {
 			return false
 		}
 
