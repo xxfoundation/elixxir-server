@@ -51,8 +51,14 @@ type Instance struct {
 
 	consensus      *network.Instance
 	isGatewayReady *uint32
-	afterFirstPoll *uint32
-	markFirstPoll  sync.Once
+
+	// isAfterFirstPoll is a flag indicating that the gateway
+	//  has polled successfully for the first time.
+	//  It is set atomically.
+	isAfterFirstPoll *uint32
+
+	// markFirstPoll is used to set isAfterFirstPoll once and only once
+	markFirstPoll sync.Once
 
 	// Channels
 	createRoundQueue    round.Queue
@@ -97,7 +103,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		resourceQueue:        initQueue(),
 		machine:              machine,
 		isGatewayReady:       &isGwReady,
-		afterFirstPoll:       &firstPoll,
+		isAfterFirstPoll:     &firstPoll,
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
@@ -420,14 +426,20 @@ func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
 }
 
-func (i *Instance) AfterFirstPoll() bool {
-	ourVal := atomic.LoadUint32(i.afterFirstPoll)
+// IsAfterFirstPoll checks if the isAfterFirstPoll has been set
+// The default instance value is 0, indicating gateway
+//  has not polled yet
+// The set value is 1, indicating gateway has successfully polled
+func (i *Instance) IsAfterFirstPoll() bool {
+	ourVal := atomic.LoadUint32(i.isAfterFirstPoll)
 	return ourVal == 1
 }
 
+// DeclareFirstPoll sets the isAfterFirstPoll variable.
+//  This uses a sync.Once variable to ensure the variable is only set once
 func (i *Instance) DeclareFirstPoll() {
 	i.markFirstPoll.Do(func() {
-		atomic.CompareAndSwapUint32(i.afterFirstPoll, 0, 1)
+		atomic.CompareAndSwapUint32(i.isAfterFirstPoll, 0, 1)
 	})
 
 }

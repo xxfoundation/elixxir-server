@@ -81,7 +81,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	return &res, errors.New(ndf.NO_NDF)
 }
 
-// Helper function to check the auth for the specialized case needed for
+// Helper function to check the auth for the specialized cases needed for
 // the ReceivePoll handler
 func isValidAuth(instance *internal.Instance, auth *connect.Auth, gatewayAddress string) bool {
 	// Get sender id
@@ -97,7 +97,7 @@ func isValidAuth(instance *internal.Instance, auth *connect.Auth, gatewayAddress
 	// If this is the first poll received, check that the message is authenticated and
 	//  that the sender has a temporary gateway ID and that
 	//  the sender sends from the address specified in our configuration
-	if !instance.AfterFirstPoll() {
+	if !instance.IsAfterFirstPoll() {
 		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) || gatewayAddress != ourGatewayAddress {
 			fmt.Println(senderId.String())
 			fmt.Println(id.TempGateway.String())
@@ -109,7 +109,8 @@ func isValidAuth(instance *internal.Instance, auth *connect.Auth, gatewayAddress
 
 	}
 
-	// Else if the first poll has occurred, check that the gateway's id is expected
+	// Else if the first poll has occurred, check that the gateway has a new ID
+	//  based off of our nodeID
 	if !auth.IsAuthenticated || !senderId.Cmp(expectedGatewayID) {
 		return false
 	}
