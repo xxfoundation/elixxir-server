@@ -46,9 +46,9 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		ourDef.GatewayCertPath)
 
 	// If the certificates were retrieved from file, so do not need to register
-	if certsExist{
+	if certsExist {
 		jww.INFO.Printf("Certificates found!")
-	}else {
+	} else {
 		jww.INFO.Printf("Certificates not found, registering with permissioning!")
 		// Connect to the Permissioning Server without authentication
 		permHost, err := network.AddHost(&id.Permissioning,
@@ -102,7 +102,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
 			//find certs in NDF if they are nto already had
-			if !certsExist{
+			if !certsExist {
 				serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
 					instance.GetConsensus().GetFullNdf().Get())
 				if err != nil {
@@ -127,7 +127,7 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 		// Save the retrieved certificates to file
 		writeCertificates(ourDef, serverCert, gwCert)
 		jww.INFO.Printf("Certificates written to disk")
-	}else if !certsExist && !ourDef.WriteToFile{
+	} else if !certsExist && !ourDef.WriteToFile {
 		jww.WARN.Printf("Not writing certs to file because no file found")
 	}
 
@@ -263,7 +263,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetRngStreamGen(),
 		instance.GetStreamPool(),
 		instance.GetIP(),
-		GetDefaultPanicHanlder(instance,&roundID))
+		GetDefaultPanicHanlder(instance, &roundID))
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}

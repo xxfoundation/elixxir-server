@@ -9,7 +9,9 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
 	"strconv"
@@ -17,7 +19,28 @@ import (
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string) (*mixmessages.ServerPollResponse, error) {
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
+	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
+
+	// Get sender id
+	senderId := auth.Sender.GetId()
+
+	// Get a copy of the server id and transfer to a gateway id
+	expectedGatewayID := instance.GetID().DeepCopy()
+	expectedGatewayID.SetType(id.Gateway)
+
+	// Get the gateway address
+	ourGatewayAddress := instance.GetDefinition().Gateway.Address
+
+	// Check if sender is authenticated, the sender sends from the address
+	// specified in our configuration, and if the sender's id is either:
+	//  a) a temporary gateway id or
+	//  b) the gateway version of the server id
+	if !auth.IsAuthenticated || !senderId.Cmp(instance.GetGateway()) ||
+		!senderId.Cmp(&id.TempGateway) || gatewayAddress != ourGatewayAddress {
+		return nil, connect.AuthError(auth.Sender.GetId())
+	}
+
 	res := mixmessages.ServerPollResponse{}
 
 	// Form gateway address and put it into gateway data in instance
