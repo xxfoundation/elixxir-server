@@ -7,6 +7,7 @@
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -163,6 +164,7 @@ var RevealRootCoprimeChunk = services.Module{
 
 // InitRevealGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
+	jww.WARN.Printf("Using reveal graph running on CPU instead of equivalent GPU graph")
 	graph := gc.NewGraph("PrecompReveal", &RevealStream{})
 
 	revealRootCoprime := RevealRootCoprime.DeepCopy()

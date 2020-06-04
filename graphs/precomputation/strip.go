@@ -7,6 +7,7 @@
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -224,6 +225,7 @@ var StripChunk = services.Module{
 
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
+	jww.WARN.Printf("Using strip graph running on CPU instead of equivalent GPU graph")
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
 
 	reveal := RevealRootCoprime.DeepCopy()
