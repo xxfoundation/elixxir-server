@@ -7,6 +7,8 @@
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -245,6 +247,9 @@ var PermuteElgamalChunk = services.Module{
 
 // InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
+	if viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using permute graph running on CPU instead of equivalent GPU graph")
+	}
 	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
 	g := gcPermute.NewGraph("PrecompPermute", &PermuteStream{})
 
@@ -258,7 +263,11 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 
 // InitPermuteGPUGraph creates a graph that runs cryptops for Permute on the GPU
 func InitPermuteGPUGraph(gc services.GraphGenerator) *services.Graph {
-	g := gc.NewGraph("PrecompPermuteGPU", &PermuteStream{})
+	if !viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using permute graph running on GPU instead of equivalent CPU graph")
+	}
+	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
+	g := gcPermute.NewGraph("PrecompPermuteGPU", &PermuteStream{})
 
 	PermuteElgamalChunk := PermuteElgamalChunk.DeepCopy()
 

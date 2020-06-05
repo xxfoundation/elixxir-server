@@ -7,6 +7,8 @@
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -163,6 +165,9 @@ var RevealRootCoprimeChunk = services.Module{
 
 // InitRevealGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
+	if viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using reveal graph running on CPU instead of equivalent GPU graph")
+	}
 	graph := gc.NewGraph("PrecompReveal", &RevealStream{})
 
 	revealRootCoprime := RevealRootCoprime.DeepCopy()
@@ -174,6 +179,9 @@ func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 }
 
 func InitRevealGPUGraph(gc services.GraphGenerator) *services.Graph {
+	if !viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using reveal graph running on GPU instead of equivalent CPU graph")
+	}
 	g := gc.NewGraph("PrecompRevealGPU", &RevealStream{})
 
 	RevealRootCoprimeChunk := RevealRootCoprimeChunk.DeepCopy()
