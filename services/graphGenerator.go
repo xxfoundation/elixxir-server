@@ -54,7 +54,6 @@ func (gc *GraphGenerator) GetDefaultNumTh() uint8 {
 	return gc.defaultNumTh
 }
 
-
 func (gc *GraphGenerator) GetOutputSize() uint32 {
 	return gc.outputSize
 }

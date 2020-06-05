@@ -51,6 +51,15 @@ type Instance struct {
 
 	consensus      *network.Instance
 	isGatewayReady *uint32
+
+	// isAfterFirstPoll is a flag indicating that the gateway
+	//  has polled successfully for the first time.
+	//  It is set atomically.
+	isAfterFirstPoll *uint32
+
+	// markFirstPoll is used to set isAfterFirstPoll once and only once
+	markFirstPoll sync.Once
+
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
@@ -86,7 +95,7 @@ type Instance struct {
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, noTls bool, version string) (*Instance, error) {
 	isGwReady := uint32(0)
-
+	firstPoll := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -94,6 +103,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		resourceQueue:        initQueue(),
 		machine:              machine,
 		isGatewayReady:       &isGwReady,
+		isAfterFirstPoll:     &firstPoll,
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
@@ -414,6 +424,24 @@ func (i *Instance) IsReadyForGateway() bool {
 
 func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
+}
+
+// IsAfterFirstPoll checks if the isAfterFirstPoll has been set
+// The default instance value is 0, indicating gateway
+//  has not polled yet
+// The set value is 1, indicating gateway has successfully polled
+func (i *Instance) IsAfterFirstPoll() bool {
+	ourVal := atomic.LoadUint32(i.isAfterFirstPoll)
+	return ourVal == 1
+}
+
+// DeclareFirstPoll sets the isAfterFirstPoll variable.
+//  This uses a sync.Once variable to ensure the variable is only set once
+func (i *Instance) DeclareFirstPoll() {
+	i.markFirstPoll.Do(func() {
+		atomic.CompareAndSwapUint32(i.isAfterFirstPoll, 0, 1)
+	})
+
 }
 
 func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {

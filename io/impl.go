@@ -111,7 +111,7 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 	}
 
 	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth, gatewayAddress string) (*mixmessages.ServerPollResponse, error) {
-		response, err := ReceivePoll(poll, instance, gatewayAddress)
+		response, err := ReceivePoll(poll, instance, gatewayAddress, auth)
 		if err != nil && err.Error() != ndf.NO_NDF {
 			jww.ERROR.Printf("Poll error: %v, %+v", auth, err)
 		}
