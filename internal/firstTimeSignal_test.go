@@ -12,7 +12,7 @@ func TestFirstTime_Send(t *testing.T) {
 	//send the first time
 	ft.Send()
 
-	select{
+	select {
 	case <-ft.c:
 	case <-time.After(time.Millisecond):
 		t.Errorf("First time send did not occur")
@@ -21,7 +21,7 @@ func TestFirstTime_Send(t *testing.T) {
 	// send the second time
 	ft.Send()
 
-	select{
+	select {
 	case <-ft.c:
 		t.Errorf("send should not occur on second use")
 	case <-time.After(time.Millisecond):
@@ -33,23 +33,23 @@ func TestFirstTime_Send(t *testing.T) {
 func TestFirstTime_Receive(t *testing.T) {
 	ft := NewFirstTime()
 
-	received:= make(chan bool)
+	received := make(chan bool)
 
-	go func(){
+	go func() {
 		ft.Receive()
-		received<-true
+		received <- true
 	}()
 
-	select{
-		case <-time.After(50*time.Millisecond):
-		case <-received:
-			t.Errorf("receive should not have happened, send has not called")
+	select {
+	case <-time.After(50 * time.Millisecond):
+	case <-received:
+		t.Errorf("receive should not have happened, send has not called")
 	}
 
-	ft.c<- struct{}{}
+	ft.c <- struct{}{}
 
-	select{
-	case <-time.After(50*time.Millisecond):
+	select {
+	case <-time.After(50 * time.Millisecond):
 		t.Errorf("receive after send timed out")
 	case <-received:
 	}

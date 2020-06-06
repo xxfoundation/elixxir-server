@@ -7,6 +7,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network/dataStructures"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -26,7 +27,7 @@ import (
 	"time"
 )
 
-func setupTests(t *testing.T, test_state current.Activity) (internal.Instance, *pb.ServerPoll,
+func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *pb.ServerPoll,
 	[]byte, *rsa.PrivateKey) {
 	//Get a new ndf
 	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
@@ -46,6 +47,12 @@ func setupTests(t *testing.T, test_state current.Activity) (internal.Instance, *
 	// Change the time of the ndf so we can generate a different hash for use in comparisons
 	test2Ndf.Timestamp = time.Now()
 
+	ourGateway := internal.GW{
+		ID:      &id.TempGateway,
+		TlsCert: nil,
+		Address: testGatewayAddress,
+	}
+
 	// We need to create a server.Definition so we can create a server instance.
 	nid := internal.GenerateId(t)
 	def := internal.Definition{
@@ -54,10 +61,11 @@ func setupTests(t *testing.T, test_state current.Activity) (internal.Instance, *
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
+		Gateway:         ourGateway,
 	}
 
 	// Here we create a server instance so that we can test the poll ndf.
-	m := state.NewTestMachine(dummyStates, test_state, t)
+	m := state.NewTestMachine(dummyStates, testState, t)
 
 	instance, err := internal.CreateServerInstance(&def, NewImplementation, m, false, "1.1.0")
 	if err != nil {
@@ -146,7 +154,14 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		close(recv)
 	}()
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		t.Fail()
@@ -183,7 +198,14 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 	//Change the full hash so we get a the new ndf returned to us
 	poll.Full.Hash = fullHash2
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -199,7 +221,15 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 // incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -217,7 +247,14 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 	instance, poll, fullHash2, _ := setupTests(t, current.REALTIME)
 	poll.Partial.Hash = fullHash2
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -233,7 +270,15 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 // incoming ndf hash the ndf returned in the server poll is the same ndf we started out with
 func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -251,7 +296,14 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	PushNRoundUpdates(10, instance, privKey, t)
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error: %v", err)
 		t.Fail()
@@ -287,7 +339,14 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -303,7 +362,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
-	res, err = ReceivePoll(poll, &instance, "0.0.0.0")
+	res, err = ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -359,7 +418,14 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		t.Logf("We failed to send a completed batch: %v", err)
 	}
 
-	res, err := ReceivePoll(poll, &instance, "0.0.0.0")
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -376,4 +442,127 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		}
 	}
 
+}
+
+// ----------------------- Auth Errors ------------------------------------
+
+// Test error case in which sender of ReceivePoll is not authenticated
+func TestReceivePoll_Unauthenticated(t *testing.T) {
+	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: false,
+		Sender:          h,
+	}
+
+	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
+
+	// Call ReceivePoll with bad auth
+	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err.Error() != expectedError {
+		t.Errorf("Did not receive expected error!"+
+			"\n\tExpected: %v"+
+			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
+	}
+}
+
+// Test error case in which sender of ReceivePoll has an unexpected ID
+func TestReceivePoll_Auth_BadId(t *testing.T) {
+	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
+
+	// Set auth with unexpected id
+	badGatewayId := id.NewIdFromString("bad", id.Gateway, t)
+
+	// Create host and auth
+	h, _ := connect.NewHost(badGatewayId, testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Reset auth error
+	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
+
+	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err.Error() != expectedError {
+		t.Errorf("Did not receive expected error!"+
+			"\n\tExpected: %v"+
+			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
+	}
+
+}
+
+// Test multiple poll calls. First call is to set up a happy path
+// Second call uses the same parameters, and is expected to fail due to new expectations for auth object
+// Third call uses new auth object with expected parameters, expected happy path
+func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
+	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Happy path of 1st receive poll for auth
+	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err != nil {
+		t.Errorf("Did not receive expected error!"+
+			"\n\tExpected: %v"+
+			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
+	}
+
+	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
+
+	// Attempt the same poll, with parameters that should now be invalid
+	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err.Error() != expectedError {
+		t.Errorf("Expected happy path, received error: %v", err)
+	}
+
+	// Get a copy of the server id and transfer to a gateway id
+	newGatewayId := instance.GetID().DeepCopy()
+	newGatewayId.SetType(id.Gateway)
+
+	// Create host and auth with new parameters, namely a gateway id based off of the server id
+	h, _ = connect.NewHost(newGatewayId, testGatewayAddress, nil, false, false)
+	auth = &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Attempt second poll with new, expected parameters
+	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	if err != nil {
+		t.Errorf("Expected happy path, received error: %v", err)
+	}
+
+}
+
+// Test error case in which sender of ReceivePoll has an unexpected address
+func TestReceivePoll_Auth_BadAddress(t *testing.T) {
+	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
+
+	// Set auth with unexpected address
+	badGatewayAddress := "0.0.0.0:1234"
+
+	// Create host and auth
+	h, _ := connect.NewHost(instance.GetGateway(), badGatewayAddress, nil, false, false)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Reset auth error
+	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
+
+	_, err := ReceivePoll(pollMsg, &instance, badGatewayAddress, auth)
+	if err.Error() != expectedError {
+		t.Errorf("Did not receive expected error!"+
+			"\n\tExpected: %v"+
+			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
+	}
 }

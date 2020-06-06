@@ -7,6 +7,8 @@
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -224,6 +226,9 @@ var StripChunk = services.Module{
 
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
+	if viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using strip graph running on CPU instead of equivalent GPU graph")
+	}
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
 
 	reveal := RevealRootCoprime.DeepCopy()
@@ -240,6 +245,9 @@ func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGPUGraph(gc services.GraphGenerator) *services.Graph {
+	if !viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using strip graph running on GPU instead of equivalent CPU graph")
+	}
 	graph := gc.NewGraph("PrecompStripGPU", &StripStream{})
 
 	// GPU library can do all operations for Strip in one kernel,

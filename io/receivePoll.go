@@ -9,19 +9,26 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
-	"strconv"
 	"strings"
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string) (*mixmessages.ServerPollResponse, error) {
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
+	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
+
+	// If we have an invalid, we deny communication
+	if !isValidAuth(instance, auth) {
+		return nil, connect.AuthError(auth.Sender.GetId())
+	}
+
 	res := mixmessages.ServerPollResponse{}
 
 	// Form gateway address and put it into gateway data in instance
-	gatewayAddress = strings.Join([]string{gatewayAddress, strconv.Itoa(int(poll.GatewayPort))}, ":")
 	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
 
 	// Node is only ready for a response once it has polled permissioning
@@ -59,6 +66,9 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 			res.Slots = cr.Round
 		}
 
+		// Denote that the gateway has polled once
+		instance.DeclareFirstPoll()
+
 		//denote that gateway has received info, only operates ont eh first time
 		instance.GetGatewayFirstTime().Send()
 		return &res, nil
@@ -66,4 +76,39 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	// If node has not gotten a response from permissioning, return an empty message
 	return &res, errors.New(ndf.NO_NDF)
+}
+
+// Helper function to check the auth for the specialized cases needed for
+// the ReceivePoll handler
+func isValidAuth(instance *internal.Instance, auth *connect.Auth) bool {
+	// Get sender id
+	senderId := auth.Sender.GetId()
+
+	// Get a copy of the server id and transfer to a gateway id
+	expectedGatewayID := instance.GetID().DeepCopy()
+	expectedGatewayID.SetType(id.Gateway)
+
+	// Get the gateway address
+	ourGatewayAddress := instance.GetDefinition().Gateway.Address
+
+	// If this is the first poll received, check that the message is authenticated and
+	//  that the sender has a temporary gateway ID and that
+	//  the sender sends from the address specified in our configuration
+	if !instance.IsAfterFirstPoll() {
+		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) ||
+			auth.Sender.GetAddress() != ourGatewayAddress {
+			return false
+		}
+
+		return true
+
+	}
+
+	// Else if the first poll has occurred, check that the gateway has a new ID
+	//  based off of our nodeID
+	if !auth.IsAuthenticated || !senderId.Cmp(expectedGatewayID) {
+		return false
+	}
+
+	return true
 }

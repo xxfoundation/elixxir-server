@@ -38,6 +38,8 @@ import (
 	"time"
 )
 
+const testGatewayAddress = "0.0.0.0:8201"
+
 var dummyStates = [current.NUM_STATES]state.Change{
 	func(from current.Activity) error { return nil },
 	func(from current.Activity) error { return nil },
@@ -193,6 +195,7 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = &id.TempGateway
+	def.Gateway.Address = testGatewayAddress
 	m := state.NewTestMachine(dummyStates, s, t)
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false, "1.1.0")
 

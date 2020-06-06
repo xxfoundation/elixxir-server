@@ -33,6 +33,6 @@ func (ft *FirstTime) Send() {
 }
 
 // Receive either receives from the channel.
-func (ft *FirstTime) Receive()  {
+func (ft *FirstTime) Receive() {
 	<-ft.c
 }

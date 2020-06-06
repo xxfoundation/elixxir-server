@@ -56,7 +56,7 @@ type Graph struct {
 	sync.Mutex
 	metrics measure.Metrics
 
-	errorHandler    ErrorCallback
+	errorHandler ErrorCallback
 }
 
 // This is too long of a function
