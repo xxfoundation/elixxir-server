@@ -226,8 +226,6 @@ func StartServer(vip *viper.Viper) error {
 		return errors.Errorf("Unable to run instance: %+v", err)
 	}
 
-	jww.INFO.Printf("Checking all servers are online")
-
 	return nil
 }
 

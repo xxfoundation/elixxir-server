@@ -246,7 +246,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			case states.COMPLETED:
 
 			default:
-				return errors.New("Round in unknown state")
+				return errors.Errorf("Round in unknown state: %v", states.Round(roundInfo.State))
 
 			}
 
