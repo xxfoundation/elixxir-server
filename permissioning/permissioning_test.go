@@ -778,6 +778,10 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 
 }
 
+// TestQueueUntilRealtime tests that the queueUntilRealtime function waits the
+// specified amount of time before transitioning an instance object from QUEUED
+// (or STANDBY) to REALTIME states. It also checks the case when the time
+// requested to wait until is after the current time.
 func TestQueueUntilRealtime(t *testing.T) {
 	// Test that it happens after ~100ms
 	instance, _ := createServerInstance(t)

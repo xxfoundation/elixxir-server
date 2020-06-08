@@ -159,7 +159,12 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 	return permissioningResponse, err
 }
 
+// queueUntilRealtime is an internal function that transitions the instance
+// state from QUEUED/STANDBY to REALTIME at the provided start time.
+// If the start time is BEFORE the current time, it starts immediately and
+// prints a warning regarding possible clock skew.
 func queueUntilRealtime(instance *internal.Instance, start time.Time) {
+	// Check if the start time has already past
 	now := time.Now()
 	if now.After(start) {
 		jww.WARN.Printf("Possible clock skew detected when queuing "+
@@ -167,10 +172,12 @@ func queueUntilRealtime(instance *internal.Instance, start time.Time) {
 		now = start
 	}
 
+	// Sleep until start time
 	until := start.Sub(now)
 	jww.INFO.Printf("Sleeping for %dms for realtime start",
 		until.Milliseconds())
 	time.Sleep(until)
+
 	// Update to realtime when ready
 	ok, err := instance.GetStateMachine().Update(current.REALTIME)
 	if !ok || err != nil {
