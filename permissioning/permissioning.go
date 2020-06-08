@@ -43,7 +43,7 @@ func RegisterNode(def *internal.Definition, network *node.Comms, permHost *conne
 			GatewayPort:      uint32(gwPort),
 			ServerAddress:    node[0],
 			ServerPort:       uint32(nodePort),
-			RegistrationCode: def.Permissioning.RegistrationCode,
+			RegistrationCode: def.RegistrationCode,
 		})
 	if err != nil {
 		return errors.Errorf("Unable to send Node registration: %+v", err)

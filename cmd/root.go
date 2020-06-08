@@ -31,6 +31,7 @@ var logPath = "cmix-server.log"
 var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
+var registrationCode string
 
 // If true, runs pprof http server
 var profile bool
@@ -95,22 +96,33 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
-		"config file (default is $HOME/.elixxir/server.yaml)")
+		"Required.  config file (default is $HOME/.elixxir/server.yaml)")
 	err := rootCmd.MarkFlagRequired("config")
 	handleBindingError(err, "config")
 
 	rootCmd.Flags().UintVarP(&logLevel, "logLevel", "l", 1,
 		"Level of debugging to display. 0 = info, 1 = debug, >1 = trace")
+	err = viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
+	handleBindingError(err, "logLevel")
 
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
 		"Runs a pprof server at 0.0.0.0:8087 for profiling")
 	err = rootCmd.Flags().MarkHidden("profile")
 	handleBindingError(err, "profile")
+	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
+	handleBindingError(err, "profile")
+
+	rootCmd.Flags().StringVarP(&registrationCode, "registrationCode", "", "",
+		"Required.  Registration code to give to permissioning")
+	err = rootCmd.MarkFlagRequired("registrationCode")
+	handleBindingError(err, "registrationCode")
 
 	rootCmd.Flags().BoolVarP(&keepBuffers, "keepBuffers", "k", false,
 		"maintains all old round information forever, will eventually "+
 			"run out of memory")
 	err = rootCmd.Flags().MarkHidden("keepBuffers")
+	handleBindingError(err, "keepBuffers")
+	err = viper.BindPFlag("keepBuffers", rootCmd.Flags().Lookup("keepBuffers"))
 	handleBindingError(err, "keepBuffers")
 
 	rootCmd.Flags().IntVar(&maxProcsOverride, "MaxProcsOverride", runtime.NumCPU(),
@@ -125,20 +137,9 @@ func init() {
 	rootCmd.Flags().BoolVarP(&useGPU, "useGPU", "", false,
 		"Toggle on GPU")
 
-	err = viper.BindPFlag("nodeID", rootCmd.Flags().Lookup("nodeID"))
-	handleBindingError(err, "nodeID")
+	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
+	handleBindingError(err, "useGPU")
 
-	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
-	handleBindingError(err, "profile")
-
-	err = viper.BindPFlag("index", rootCmd.Flags().Lookup("index"))
-	handleBindingError(err, "index")
-
-	err = viper.BindPFlag("roundBufferTimeout", rootCmd.Flags().Lookup("roundBufferTimeout"))
-	handleBindingError(err, "roundBufferTimeout")
-
-	err = viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
-	handleBindingError(err, "logLevel")
 }
 
 func handleBindingError(err error, flag string) {

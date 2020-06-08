@@ -416,10 +416,10 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 		MetricLogPath: "",
 		UserRegistry:  nil,
 		Permissioning: internal.Perm{
-			TlsCert:          []byte(testUtil.RegCert),
-			Address:          pAddr,
-			RegistrationCode: "",
+			TlsCert: []byte(testUtil.RegCert),
+			Address: pAddr,
 		},
+		RegistrationCode: "",
 
 		GraphGenerator:  services.GraphGenerator{},
 		ResourceMonitor: nil,

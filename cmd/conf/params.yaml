@@ -7,7 +7,9 @@ node:
     cert: "~/.elixxir/cert.crt"
     key:  "~/.elixxir/key.pem"
     log:  "~/.elixxir/server.log"
-  address: "127.0.0.1:80"
+    errOutput: "~/.elixxir/error.out"
+  address: "127.0.0.1"
+  port: 80
 database:
   name: "name"
   username: "username"

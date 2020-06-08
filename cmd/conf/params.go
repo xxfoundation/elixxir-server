@@ -23,7 +23,6 @@ import (
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
-	"net"
 	"runtime"
 	"time"
 )
@@ -33,8 +32,6 @@ import (
 type Params struct {
 	KeepBuffers           bool
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
-	ServerCertPath        string
-	GatewayCertPath       string
 	SignedCertPath        string
 	SignedGatewayCertPath string
 
@@ -55,16 +52,30 @@ type Params struct {
 // unless it fails to parse in which it case returns error
 func NewParams(vip *viper.Viper) (*Params, error) {
 
+	var require = func(s string, key string) {
+		if s == "" {
+			jww.FATAL.Panicf("%s must be set in params", key)
+		}
+	}
+
 	params := Params{}
 
-	params.Node.Address = vip.GetString("node.Address")
+	params.Node.Address = vip.GetString("node.address")
 	params.Node.Port = vip.GetInt("node.Port")
 
-	params.Node.Paths.Idf = vip.GetString("node.paths.Idf")
+	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
+	require(params.Node.Paths.Idf, "node.paths.idf")
+
 	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
+	require(params.Node.Paths.Cert, "node.paths.cert")
+
 	params.Node.Paths.Key = vip.GetString("node.paths.key")
+	require(params.Node.Paths.Key, "node.paths.key")
+
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
 	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
+	require(params.RecoveredErrFile, "node.paths.errOutput")
+
 	params.SignedCertPath = vip.GetString("node.paths.signedCert")
 
 	params.Database.Name = vip.GetString("database.name")
@@ -73,15 +84,16 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Database.Address = vip.GetString("database.address")
 
 	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
+	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
+
 	params.SignedGatewayCertPath = vip.GetString("gateway.paths.signedCert")
 	params.Gateway.Address = vip.GetString("gateway.address")
 
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
-	params.Permissioning.Address = vip.GetString("permissioning.address")
-	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
+	require(params.Permissioning.Paths.Cert, "permissioning.paths.cert")
 
-	params.ServerCertPath = vip.GetString("node.paths.cert")
-	params.GatewayCertPath = vip.GetString("gateways.paths.cert")
+	params.Permissioning.Address = vip.GetString("permissioning.address")
+	require(params.Permissioning.Address, "permissioning.address")
 
 	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
 	if params.GraphGen.defaultNumTh == 0 {
@@ -98,7 +110,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	// This (outputThreshold) already defaulted to 0.0
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
-	vip.SetDefault("keepBuffers", false)
 	params.KeepBuffers = vip.GetBool("keepBuffers")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	// If RngScalingFactor is not set, then set default value
@@ -142,12 +153,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 	}
 
-	_, port, err := net.SplitHostPort(p.Node.Address)
-	if err != nil {
-		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
-			errors.New(err.Error()))
-	}
-	def.Address = fmt.Sprintf("0.0.0.0:%s", port)
+	def.Address = fmt.Sprintf("%s:%d", p.Node.Address, p.Node.Port)
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
@@ -258,7 +264,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
-	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
 	if len(def.Permissioning.TlsCert) > 0 {
 		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
 		if err != nil {

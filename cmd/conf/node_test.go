@@ -20,7 +20,8 @@ var nodeID = id.ID([33]byte{82, 253, 252, 7, 33, 130, 101, 79, 22, 63, 95, 15,
 
 var ExpectedNode = Node{
 	Paths:   ExpectedPaths,
-	Address: "127.0.0.1:80",
+	Address: "127.0.0.1",
+	Port:    80,
 }
 
 // This test checks that unmarshalling the params.yaml file

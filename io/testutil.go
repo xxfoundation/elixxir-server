@@ -292,7 +292,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 		n := server.Node{
 			ID:      nodeID,
-			Address: addr,
+			ListeningAddress: addr,
 		}
 		nodeLst = append(nodeLst, n)
 
@@ -316,7 +316,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
-			Address:        nodeLst[i].Address,
+			ListeningAddress:        nodeLst[i].ListeningAddress,
 			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
 			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,

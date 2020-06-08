@@ -54,7 +54,8 @@ type Definition struct {
 	Gateway GW
 
 	// Information on permissioning server
-	Permissioning Perm
+	Permissioning    Perm
+	RegistrationCode string
 
 	// Our NDFs for both backend servers and front-ends
 	FullNDF    *ndf.NetworkDefinition
@@ -105,8 +106,6 @@ type Perm struct {
 	PublicKey *rsa.PublicKey
 	// IP address of the permissioning server
 	Address string
-	// Node Registration Code
-	RegistrationCode string
 }
 
 type GW struct {

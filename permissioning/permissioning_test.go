@@ -66,10 +66,10 @@ func TestRegisterNode(t *testing.T) {
 
 		UserRegistry: nil,
 		Permissioning: internal.Perm{
-			TlsCert:          []byte(testUtil.RegCert),
-			Address:          pAddr,
-			RegistrationCode: "",
+			TlsCert: []byte(testUtil.RegCert),
+			Address: pAddr,
 		},
+		RegistrationCode: "",
 
 		GraphGenerator:  services.GraphGenerator{},
 		ResourceMonitor: nil,
@@ -626,14 +626,14 @@ func TestRegistration(t *testing.T) {
 		},
 		UserRegistry: nil,
 		Permissioning: internal.Perm{
-			TlsCert:          []byte(testUtil.RegCert),
-			Address:          pAddr,
-			RegistrationCode: "",
+			TlsCert: []byte(testUtil.RegCert),
+			Address: pAddr,
 		},
-		GraphGenerator:  services.GraphGenerator{},
-		ResourceMonitor: nil,
-		FullNDF:         emptyNdf,
-		PartialNDF:      emptyNdf,
+		RegistrationCode: "",
+		GraphGenerator:   services.GraphGenerator{},
+		ResourceMonitor:  nil,
+		FullNDF:          emptyNdf,
+		PartialNDF:       emptyNdf,
 	}
 
 	// Create state machine
