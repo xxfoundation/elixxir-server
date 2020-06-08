@@ -777,3 +777,31 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 	// todo: check internal state for changes appropriate to permissioning response
 
 }
+
+func TestQueueUntilRealtime(t *testing.T) {
+	// Test that it happens after ~100ms
+	instance, _ := createServerInstance(t)
+	now := time.Now()
+	after := now.Add(100 * time.Millisecond)
+	before := now.Add(-100 * time.Millisecond)
+	instance.GetStateMachine().Update(current.PRECOMPUTING)
+	instance.GetStateMachine().Update(current.STANDBY)
+	go queueUntilRealtime(instance, after)
+	if instance.GetStateMachine().Get() == current.REALTIME {
+		t.Errorf("State transitioned too quickly!\n")
+	}
+	time.Sleep(150 * time.Millisecond)
+	if instance.GetStateMachine().Get() != current.REALTIME {
+		t.Errorf("State transitioned too slowly!\n")
+	}
+
+	// Test the case where time.Now() is after the start time
+	instance, _ = createServerInstance(t)
+	instance.GetStateMachine().Update(current.PRECOMPUTING)
+	instance.GetStateMachine().Update(current.STANDBY)
+	go queueUntilRealtime(instance, before)
+	time.Sleep(50 * time.Millisecond)
+	if instance.GetStateMachine().Get() != current.REALTIME {
+		t.Errorf("State transitioned too slowly!\n")
+	}
+}
