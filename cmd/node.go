@@ -79,6 +79,7 @@ func StartServer(vip *viper.Viper) error {
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 	def.DisableStreaming = disableStreaming
+	def.RegistrationCode = registrationCode
 
 	err = node.ClearMetricsLogs(def.MetricLogPath)
 	if err != nil {
