@@ -126,7 +126,7 @@ func StartServer(vip *viper.Viper) error {
 
 	ourChangeList[current.PRECOMPUTING] = func(from current.Activity) error {
 		// todo: ask reviewer about this magic number
-		return node.Precomputing(instance, 5*time.Second)
+		return node.Precomputing(instance, 5*time.Minute)
 	}
 
 	ourChangeList[current.STANDBY] = func(from current.Activity) error {
