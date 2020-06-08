@@ -394,14 +394,23 @@ func TestUpdateInternalState(t *testing.T) {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
 
-	// Wait for the WaitForRealtime go routine to update the state
-	time.Sleep(1 * time.Second)
-
 	// Check that the state was not changed
 	if instance.GetStateMachine().Get() != current.STANDBY {
 		t.Errorf("Unexpected state after updating internally. "+
 			"\n\tExpected state: %+v"+
-			"\n\tReceived state: %+v", current.STANDBY, instance.GetStateMachine().Get())
+			"\n\tReceived state: %+v", current.STANDBY,
+			instance.GetStateMachine().Get())
+	}
+
+	// Wait for the WaitForRealtime go routine to update the state
+	time.Sleep(1 * time.Second)
+
+	// Check that the state was not changed
+	if instance.GetStateMachine().Get() != current.REALTIME {
+		t.Errorf("Unexpected state after updating internally. "+
+			"\n\tExpected state: %+v"+
+			"\n\tReceived state: %+v", current.REALTIME,
+			instance.GetStateMachine().Get())
 	}
 
 }
@@ -767,4 +776,36 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 
 	// todo: check internal state for changes appropriate to permissioning response
 
+}
+
+// TestQueueUntilRealtime tests that the queueUntilRealtime function waits the
+// specified amount of time before transitioning an instance object from QUEUED
+// (or STANDBY) to REALTIME states. It also checks the case when the time
+// requested to wait until is after the current time.
+func TestQueueUntilRealtime(t *testing.T) {
+	// Test that it happens after ~100ms
+	instance, _ := createServerInstance(t)
+	now := time.Now()
+	after := now.Add(100 * time.Millisecond)
+	before := now.Add(-100 * time.Millisecond)
+	instance.GetStateMachine().Update(current.PRECOMPUTING)
+	instance.GetStateMachine().Update(current.STANDBY)
+	go queueUntilRealtime(instance, after)
+	if instance.GetStateMachine().Get() == current.REALTIME {
+		t.Errorf("State transitioned too quickly!\n")
+	}
+	time.Sleep(150 * time.Millisecond)
+	if instance.GetStateMachine().Get() != current.REALTIME {
+		t.Errorf("State transitioned too slowly!\n")
+	}
+
+	// Test the case where time.Now() is after the start time
+	instance, _ = createServerInstance(t)
+	instance.GetStateMachine().Update(current.PRECOMPUTING)
+	instance.GetStateMachine().Update(current.STANDBY)
+	go queueUntilRealtime(instance, before)
+	time.Sleep(50 * time.Millisecond)
+	if instance.GetStateMachine().Get() != current.REALTIME {
+		t.Errorf("State transitioned too slowly!\n")
+	}
 }
