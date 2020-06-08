@@ -88,15 +88,11 @@ func isValidAuth(instance *internal.Instance, auth *connect.Auth) bool {
 	expectedGatewayID := instance.GetID().DeepCopy()
 	expectedGatewayID.SetType(id.Gateway)
 
-	// Get the gateway address
-	ourGatewayAddress := instance.GetDefinition().Gateway.Address
-
 	// If this is the first poll received, check that the message is authenticated and
 	//  that the sender has a temporary gateway ID and that
 	//  the sender sends from the address specified in our configuration
 	if !instance.IsAfterFirstPoll() {
-		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) ||
-			auth.Sender.GetAddress() != ourGatewayAddress {
+		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) {
 			return false
 		}
 

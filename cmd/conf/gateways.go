@@ -8,6 +8,5 @@ package conf
 
 // Contains Gateways config params
 type Gateway struct {
-	Paths   Paths
-	Address string
+	Paths Paths
 }

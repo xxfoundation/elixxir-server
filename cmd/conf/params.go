@@ -60,8 +60,12 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params := Params{}
 
-	params.Node.Address = vip.GetString("node.address")
+	vip.SetDefault("node.listeningAddress", "0.0.0.0")
+	params.Node.ListeningAddress = vip.GetString("node.listeningAddress")
 	params.Node.Port = vip.GetInt("node.Port")
+	if params.Node.Port == 0 {
+		jww.FATAL.Panic("Must specify a port to run on")
+	}
 
 	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
 	require(params.Node.Paths.Idf, "node.paths.idf")
@@ -87,7 +91,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
 
 	params.SignedGatewayCertPath = vip.GetString("gateway.paths.signedCert")
-	params.Gateway.Address = vip.GetString("gateway.address")
 
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
 	require(params.Permissioning.Paths.Cert, "permissioning.paths.cert")
@@ -153,7 +156,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 	}
 
-	def.Address = fmt.Sprintf("%s:%d", p.Node.Address, p.Node.Port)
+	def.Address = fmt.Sprintf("%s:%d", p.Node.ListeningAddress, p.Node.Port)
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
@@ -169,7 +172,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		jww.INFO.Printf("Using unsigned certificates for first start...")
 	}
 
-	def.Gateway.Address = p.Gateway.Address
 	var GwTlsCerts []byte
 
 	if p.Gateway.Paths.Cert != "" {
@@ -298,7 +300,7 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 	// Build our gateway
 	ourGateway := ndf.Gateway{
 		ID:             def.Gateway.ID.Marshal(),
-		Address:        def.Gateway.Address,
+		Address:        "0.0.0.0",
 		TlsCertificate: string(def.Gateway.TlsCert),
 	}
 

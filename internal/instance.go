@@ -156,17 +156,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Add gateways to host object
-	if instance.definition.Gateway.Address != "" {
-		_, err := instance.network.AddHost(&id.TempGateway,
-			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
-		if err != nil {
-			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
-				instance.definition.Gateway.ID, err)
-			return nil, errors.New(errMsg)
-
-		}
-	} else {
-		jww.WARN.Printf("No Gateway avalible, starting without gateway")
+	_, err = instance.network.AddHost(&id.TempGateway,
+		"", instance.definition.Gateway.TlsCert, false, true)
+	if err != nil {
+		errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
+			instance.definition.Gateway.ID, err)
+		return nil, errors.New(errMsg)
 	}
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
@@ -246,7 +241,7 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Imple
 		return err
 	}
 
-	_, err = i.network.AddHost(i.definition.Gateway.ID, i.definition.Gateway.Address,
+	_, err = i.network.AddHost(i.definition.Gateway.ID, "",
 		i.definition.Gateway.TlsCert, false, true)
 
 	i.consensus.SetProtoComms(i.network.ProtoComms)

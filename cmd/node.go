@@ -52,13 +52,6 @@ func StartServer(vip *viper.Viper) error {
 
 	jww.INFO.Printf("Loaded params: %+v", params)
 
-	//Check that there is a gateway
-	if len(params.Gateway.Address) < 1 {
-		// No gateways in config file or passed via command line
-		return errors.New("Error: No gateway specified! Add to" +
-			" configuration file!")
-	}
-
 	// Initialize the backend
 	jww.INFO.Printf("Initalizing the backend")
 	dbAddress := params.Database.Address

@@ -8,7 +8,7 @@ package conf
 
 // Contains Node config params
 type Node struct {
-	Paths   Paths
-	Address string
-	Port    int
+	Paths            Paths
+	ListeningAddress string
+	Port             int
 }
