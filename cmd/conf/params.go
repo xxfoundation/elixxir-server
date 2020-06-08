@@ -62,11 +62,13 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params := Params{}
 
+	params.Node.Address = vip.GetString("node.Address")
+
 	params.Node.Paths.Idf = vip.GetString("node.paths.Idf")
 	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
 	params.Node.Paths.Key = vip.GetString("node.paths.key")
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
-	params.Node.Address = vip.GetString("node.address")
+	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
 	params.SignedCertPath = vip.GetString("node.paths.signedCert")
 
 	params.Database.Name = vip.GetString("database.name")
@@ -105,16 +107,17 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.KeepBuffers = vip.GetBool("keepBuffers")
 	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
-	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
+	// If RngScalingFactor is not set, then set default value
+	if params.RngScalingFactor == 0 {
+		params.RngScalingFactor = 10000
+	}
+
+
 	params.PhaseOverrides = vip.GetIntSlice("phaseOverrides")
 	overrideRoundKey := "overrideRound"
 	vip.SetDefault(overrideRoundKey, -1)
 	params.OverrideRound = vip.GetInt(overrideRoundKey)
 
-	// If RngScalingFactor is not set, then set default value
-	if params.RngScalingFactor == 0 {
-		params.RngScalingFactor = 10000
-	}
 
 	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
 	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
