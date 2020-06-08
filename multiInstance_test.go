@@ -148,7 +148,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 
 		sm := state.NewMachine(testStates)
 
-		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, true, "1.1.0")
+		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, false, "1.1.0")
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
@@ -586,7 +586,6 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T)
 			GraphGenerator:  services.NewGraphGenerator(4, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
-			RoundCreationTimeout: 2,
 		}
 
 		defLst = append(defLst, &def)

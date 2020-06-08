@@ -81,10 +81,6 @@ type Definition struct {
 
 // Holds all input flags to the system.
 type Flags struct {
-	// Starts a server without client registration
-	SkipReg bool
-	// Prints all logsnode.ad
-	Verbose bool
 	// Denotes if the server is to store all round keys indefinably
 	KeepBuffers bool
 	// If true, use GPU acceleration for precomputation

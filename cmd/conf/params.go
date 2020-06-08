@@ -31,12 +31,7 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
-	SkipReg               bool `yaml:"skipReg"`
-	Verbose               bool
 	KeepBuffers           bool
-	UseGPU                bool
-	DisableStreaming      bool
-	Groups                Groups
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	ServerCertPath        string
 	GatewayCertPath       string
@@ -63,6 +58,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params := Params{}
 
 	params.Node.Address = vip.GetString("node.Address")
+	params.Node.Port = vip.GetInt("node.Port")
 
 	params.Node.Paths.Idf = vip.GetString("node.paths.Idf")
 	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
@@ -102,25 +98,18 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	// This (outputThreshold) already defaulted to 0.0
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
-	params.SkipReg = vip.GetBool("skipReg")
-	params.Verbose = vip.GetBool("verbose")
+	vip.SetDefault("keepBuffers", false)
 	params.KeepBuffers = vip.GetBool("keepBuffers")
-	params.UseGPU = vip.GetBool("useGpu")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
 		params.RngScalingFactor = 10000
 	}
 
-
 	params.PhaseOverrides = vip.GetIntSlice("phaseOverrides")
 	overrideRoundKey := "overrideRound"
 	vip.SetDefault(overrideRoundKey, -1)
 	params.OverrideRound = vip.GetInt(overrideRoundKey)
-
-
-	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
-	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
 
 	params.Metrics.Log = vip.GetString("metrics.log")
 
@@ -133,9 +122,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
-	def.Flags.SkipReg = p.SkipReg
-	def.Flags.Verbose = p.Verbose
-	def.Flags.UseGPU = p.UseGPU
 
 	var tlsCert, tlsKey []byte
 	var err error
@@ -198,8 +184,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
 		}
 	}
-
-	def.DisableStreaming = p.DisableStreaming
 
 	//Set the node's private/public key
 	var privateKey *rsa.PrivateKey
@@ -319,10 +303,6 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 		TlsCertificate: string(def.Permissioning.TlsCert),
 	}
 
-	// Build the group
-	cmixGrp := toNdfGroup(params.Groups.CMix)
-	e2eGrp := toNdfGroup(params.Groups.E2E)
-
 	networkDef := &ndf.NetworkDefinition{
 		Timestamp:    time.Time{},
 		Gateways:     []ndf.Gateway{ourGateway},
@@ -330,8 +310,6 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 		Registration: ourPerm,
 		Notification: ndf.Notification{},
 		UDB:          ndf.UDB{ID: id.UDB.Marshal()},
-		E2E:          e2eGrp,
-		CMIX:         cmixGrp,
 	}
 
 	return networkDef

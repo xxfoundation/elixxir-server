@@ -351,7 +351,7 @@ func TestConfirmRegistration(t *testing.T) {
 		t.Errorf("Error in ConfirmRegistration: %+v", err2)
 	}
 
-	regUser, err := serverInstance.GetUserRegistry().GetUser(user.ID)
+	regUser, err := serverInstance.GetUserRegistry().GetUser(user.ID, serverInstance.GetConsensus().GetCmixGroup())
 
 	if err != nil {
 		t.Errorf("User could not be found: %+v", err)

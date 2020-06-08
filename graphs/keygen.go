@@ -81,7 +81,7 @@ var Keygen = services.Module{
 		}
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			user, err := kss.userReg.GetUser(kss.users[i])
+			user, err := kss.userReg.GetUser(kss.users[i], kss.Grp)
 
 			if err != nil {
 				if err.Error() == "pg: no rows in result set" ||

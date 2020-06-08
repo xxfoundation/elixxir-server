@@ -166,7 +166,7 @@ func (m *UserDatabase) DeleteUser(userId *id.ID) {
 }
 
 // GetUser returns a user with the given ID from user database
-func (m *UserDatabase) GetUser(id *id.ID) (user *User, err error) {
+func (m *UserDatabase) GetUser(id *id.ID, grp *cyclic.Group) (user *User, err error) {
 	// Perform the select for the given ID
 	userIdDB := encodeUser(id)
 	u := UserDB{Id: userIdDB}
@@ -178,7 +178,7 @@ func (m *UserDatabase) GetUser(id *id.ID) (user *User, err error) {
 		return nil, errors.New(err.Error())
 	}
 	// If we found a user for the given ID, return it
-	return m.convertDbToUser(&u), nil
+	return m.convertDbToUser(&u, grp), nil
 }
 
 // UpsertUser inserts given user into the database or update the user if it
@@ -284,7 +284,7 @@ func convertUserToDb(user *User) (newUser *UserDB) {
 }
 
 // Convert UserDB type to User type
-func (m *UserDatabase) convertDbToUser(user *UserDB) (newUser *User) {
+func (m *UserDatabase) convertDbToUser(user *UserDB, grp *cyclic.Group) (newUser *User) {
 	if user == nil {
 		return nil
 	}

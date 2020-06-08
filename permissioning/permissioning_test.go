@@ -90,7 +90,7 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, true, "1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, false, "1.1.0")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -649,7 +649,7 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, true, "1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, false, "1.1.0")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -711,7 +711,7 @@ func TestRegistration(t *testing.T) {
 		}
 
 		// Restart the network with new certs
-		instance.RestartNetwork(impl, true, serverCert, gwCert)
+		instance.RestartNetwork(impl, serverCert, gwCert)
 		permDone <- struct{}{}
 
 	}()

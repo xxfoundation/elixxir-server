@@ -33,7 +33,7 @@ var idCounter = uint64(1)
 type UserRegistry interface {
 	NewUser(grp *cyclic.Group) *User
 	DeleteUser(id *id.ID)
-	GetUser(id *id.ID) (user *User, err error)
+	GetUser(id *id.ID, grp *cyclic.Group) (user *User, err error)
 	UpsertUser(user *User)
 	CountUsers() int
 	InsertSalt(user *id.ID, salt []byte) error
@@ -144,7 +144,7 @@ func (m *UserMap) DeleteUser(id *id.ID) {
 }
 
 // GetUser returns a user with the given ID from userCollection
-func (m *UserMap) GetUser(id *id.ID) (*User, error) {
+func (m *UserMap) GetUser(id *id.ID, grp *cyclic.Group) (*User, error) {
 	var err error
 	var userCopy *User
 

@@ -175,7 +175,7 @@ func TestCreateServerInstance(t *testing.T) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	_, err := CreateServerInstance(def, impl, m, true, "1.1.0")
+	_, err := CreateServerInstance(def, impl, m, false, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -188,7 +188,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	instance, err := CreateServerInstance(def, impl, m, true, "1.1.0")
+	instance, err := CreateServerInstance(def, impl, m, false, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -264,15 +264,6 @@ func TestInstance_GetUserRegistry(t *testing.T) {
 
 	if def.UserRegistry != instance.GetUserRegistry() {
 		t.Logf("GetTopology returned unexpected value")
-		t.Fail()
-	}
-}
-
-func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
-	instance, def := createInstance(t)
-
-	if def.Flags.SkipReg != instance.IsRegistrationAuthenticated() {
-		t.Logf("IsRegistrationAuthenticated() returned unexpected value")
 		t.Fail()
 	}
 }

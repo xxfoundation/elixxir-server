@@ -515,7 +515,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 			keyA := grp.NewInt(1)
 			keyB := grp.NewInt(1)
 
-			user, _ := registry.GetUser(stream.Users[i])
+			user, _ := registry.GetUser(stream.Users[i], grp)
 
 			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, keyA)
 

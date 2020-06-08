@@ -10,4 +10,5 @@ package conf
 type Node struct {
 	Paths   Paths
 	Address string
+	Port    int
 }
