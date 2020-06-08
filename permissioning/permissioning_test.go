@@ -394,14 +394,23 @@ func TestUpdateInternalState(t *testing.T) {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
 
-	// Wait for the WaitForRealtime go routine to update the state
-	time.Sleep(1 * time.Second)
-
 	// Check that the state was not changed
 	if instance.GetStateMachine().Get() != current.STANDBY {
 		t.Errorf("Unexpected state after updating internally. "+
 			"\n\tExpected state: %+v"+
-			"\n\tReceived state: %+v", current.STANDBY, instance.GetStateMachine().Get())
+			"\n\tReceived state: %+v", current.STANDBY,
+			instance.GetStateMachine().Get())
+	}
+
+	// Wait for the WaitForRealtime go routine to update the state
+	time.Sleep(1 * time.Second)
+
+	// Check that the state was not changed
+	if instance.GetStateMachine().Get() != current.REALTIME {
+		t.Errorf("Unexpected state after updating internally. "+
+			"\n\tExpected state: %+v"+
+			"\n\tReceived state: %+v", current.REALTIME,
+			instance.GetStateMachine().Get())
 	}
 
 }

@@ -10,7 +10,6 @@ package permissioning
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -160,6 +159,25 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 	return permissioningResponse, err
 }
 
+func queueUntilRealtime(instance *internal.Instance, start time.Time) {
+	now := time.Now()
+	if now.After(start) {
+		jww.WARN.Printf("Possible clock skew detected when queuing "+
+			"for realtime , %s is after %s", now, start)
+		now = start
+	}
+
+	until := start.Sub(now)
+	jww.INFO.Printf("Sleeping for %dms for realtime start",
+		until.Milliseconds())
+	time.Sleep(until)
+	// Update to realtime when ready
+	ok, err := instance.GetStateMachine().Update(current.REALTIME)
+	if !ok || err != nil {
+		jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
+	}
+}
+
 // Processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
@@ -226,24 +244,9 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				}
 
 				// Wait until the permissioning-instructed time to begin REALTIME
-				go func() {
-					// Get the realtime start time
-					duration := time.Unix(0, int64(roundInfo.Timestamps[states.QUEUED]))
-					// Fixme: find way to calculate sleep length that doesn't lose time
-					// If the timeDiff is positive, then we are not yet ready to start realtime.
-					//  We then sleep for timeDiff time
-					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.INFO.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
-						fmt.Println("sleeping for ", timeDiff.String())
-						time.Sleep(timeDiff)
-					}
+				duration := time.Unix(0, int64(roundInfo.Timestamps[states.QUEUED]))
+				go queueUntilRealtime(instance, duration)
 
-					// Update to realtime when ready
-					ok, err := instance.GetStateMachine().Update(current.REALTIME)
-					if !ok || err != nil {
-						jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
-					}
-				}()
 			case states.REALTIME:
 				// Don't do anything
 
