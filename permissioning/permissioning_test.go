@@ -57,7 +57,6 @@ func TestRegisterNode(t *testing.T) {
 		TlsKey:        key,
 		Address:       nodeAddr,
 		LogPath:       "",
-		MetricLogPath: "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,

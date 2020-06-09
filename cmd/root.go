@@ -9,7 +9,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -116,6 +115,8 @@ func init() {
 		"Required.  Registration code to give to permissioning")
 	err = rootCmd.MarkFlagRequired("registrationCode")
 	handleBindingError(err, "registrationCode")
+	err = viper.BindPFlag("registrationCode", rootCmd.Flags().Lookup("registrationCode"))
+	handleBindingError(err, "registrationCode")
 
 	rootCmd.Flags().BoolVarP(&keepBuffers, "keepBuffers", "k", false,
 		"maintains all old round information forever, will eventually "+
@@ -152,14 +153,12 @@ func handleBindingError(err error, flag string) {
 func initConfig() {
 	//Use default config location if none is passed
 	if cfgFile == "" {
+		var err error
+		cfgFile, err = utils.SearchDefaultLocations("server.yaml","xxnetwork")
 		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			jww.ERROR.Println(err)
-			os.Exit(1)
+		if err!=nil{
+			jww.FATAL.Panicf("No config provided and non found at default paths")
 		}
-
-		cfgFile = home + "/.elixxir/server.yaml"
 
 	}
 

@@ -44,29 +44,44 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 
 ``` yaml
 # START YAML ===
+# registration code used for first time registration. Unique. Provided by xx network
+registrationCode: "abc123"
 node:
   paths:
+    # Path where an error file will be placed in the event of a fatal error
+    # used by the wrapper script
     errOutput: ""
+    # Path where the ID will be stored after the ID is created on first run
+    # used by the wrapper script
     idf:  ""
+    # Path to the self signed TLS cert that the node uses for identification
     cert: ""
+    # Path to the private key for the self signed TLS cert 
     key:  ""
+    # Path to where the log will be stored
     log:  "server.log"
-  port: 80
+  # port the node will communicate on
+  port: 42069
 database:
-  name: "cmix_server"
-  username: "cmix"
+  # information to conenct to the POSTGRESS database storing keys
+  name: "node_dbr"
+  username: "privacy"
   password: ""
   address: "0.0.0.0:3800"
 gateways:
   paths:
+    # Path to the self signed TLS cert used by the gateway
     cert: ""
 permissioning:
   paths:
+    # Path to the self signed TLS cert used by the permissioning. Provided by xx network
     cert: ""
+  # IP Address of the permissioning server, provided by xx network
   address: ""
 metrics:
-  log:  "~/.elixxir/metrics.log"
-registrationCode: ""
+  # location of stored metrics data. Modification to set to permissioning
+  # server instead of saving will be made at a later date
+  log:  "~/.xxnetwork/metrics.log"
 # === END YAML
 ```
 

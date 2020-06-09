@@ -7,6 +7,7 @@
 package conf
 
 import (
+	"fmt"
 	"github.com/spf13/viper"
 	"reflect"
 	"testing"
@@ -22,8 +23,10 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		Database:      ExpectedDatabase,
 		Gateway:       ExpectedGateway,
 		Permissioning: ExpectedPermissioning,
-		Metrics:       ExpectedMetrics,
 		GraphGen:      ExpectedGraphGen,
+		RegistrationCode: "123abc",
+
+		Metrics: Metrics{Log:"~/.elixxir/metrics.log"},
 	}
 
 	vip := viper.New()
@@ -61,6 +64,8 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	if !reflect.DeepEqual(expectedParams.Metrics, params.Metrics) {
 		t.Errorf("Params metrics value does not match expected value")
+		fmt.Println(expectedParams.Metrics)
+		fmt.Println(params.Metrics)
 	}
 
 	if expectedParams.RngScalingFactor != params.RngScalingFactor {

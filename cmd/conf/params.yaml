@@ -1,6 +1,7 @@
 ---
 # Example yaml params file used for testing
 # the params object and its dependencies
+registrationCode: "123abc"
 node:
   paths:
     idf:  "nodeID.json"

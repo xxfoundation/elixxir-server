@@ -34,6 +34,7 @@ type Params struct {
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
+	RegistrationCode	  string
 
 	Node          Node
 	Database      Database
@@ -59,6 +60,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	params := Params{}
+
+	params.RegistrationCode = vip.GetString("registrationCode")
+	require(params.RegistrationCode,"registrationCode")
 
 	vip.SetDefault("node.listeningAddress", "0.0.0.0")
 	params.Node.ListeningAddress = vip.GetString("node.listeningAddress")
@@ -136,6 +140,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
+	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
 	var err error
@@ -161,6 +166,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
+
 
 	// Only def values if params is set
 	if p.SignedCertPath != "" && p.SignedGatewayCertPath != "" {
