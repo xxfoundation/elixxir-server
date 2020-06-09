@@ -383,7 +383,7 @@ func TestEndToEndCryptops(t *testing.T) {
 	batchSize := uint32(1)
 
 	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t))
+	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t), grp)
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
@@ -578,7 +578,7 @@ func TestBatchSize3(t *testing.T) {
 	batchSize := uint32(4)
 
 	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t))
+	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t), grp)
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
@@ -1258,7 +1258,7 @@ func Test3NodeE2E(t *testing.T) {
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t))
+	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t), grp)
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)

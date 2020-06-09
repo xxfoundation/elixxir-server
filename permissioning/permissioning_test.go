@@ -57,7 +57,6 @@ func TestRegisterNode(t *testing.T) {
 		TlsKey:        key,
 		Address:       nodeAddr,
 		LogPath:       "",
-		MetricLogPath: "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
@@ -66,10 +65,10 @@ func TestRegisterNode(t *testing.T) {
 
 		UserRegistry: nil,
 		Permissioning: internal.Perm{
-			TlsCert:          []byte(testUtil.RegCert),
-			Address:          pAddr,
-			RegistrationCode: "",
+			TlsCert: []byte(testUtil.RegCert),
+			Address: pAddr,
 		},
+		RegistrationCode: "",
 
 		GraphGenerator:  services.GraphGenerator{},
 		ResourceMonitor: nil,
@@ -90,7 +89,7 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, true, "1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, false, "1.1.0")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -635,14 +634,14 @@ func TestRegistration(t *testing.T) {
 		},
 		UserRegistry: nil,
 		Permissioning: internal.Perm{
-			TlsCert:          []byte(testUtil.RegCert),
-			Address:          pAddr,
-			RegistrationCode: "",
+			TlsCert: []byte(testUtil.RegCert),
+			Address: pAddr,
 		},
-		GraphGenerator:  services.GraphGenerator{},
-		ResourceMonitor: nil,
-		FullNDF:         emptyNdf,
-		PartialNDF:      emptyNdf,
+		RegistrationCode: "",
+		GraphGenerator:   services.GraphGenerator{},
+		ResourceMonitor:  nil,
+		FullNDF:          emptyNdf,
+		PartialNDF:       emptyNdf,
 	}
 
 	// Create state machine
@@ -658,7 +657,7 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, true, "1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, false, "1.1.0")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -720,7 +719,7 @@ func TestRegistration(t *testing.T) {
 		}
 
 		// Restart the network with new certs
-		instance.RestartNetwork(impl, true, serverCert, gwCert)
+		instance.RestartNetwork(impl, serverCert, gwCert)
 		permDone <- struct{}{}
 
 	}()

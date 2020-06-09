@@ -208,6 +208,8 @@ gitlab.com/elixxir/gpumaths v0.0.2-0.20200501011915-4ba556d76bed/go.mod h1:leMhA
 gitlab.com/elixxir/primitives v0.0.0-20200218211222-4193179f359c/go.mod h1:REJMcwIcyxh74VSHqy4S9yYiaEsQYObOPglRExDpk14=
 gitlab.com/elixxir/primitives v0.0.0-20200605200100-cc0169bdd7e3 h1:fADObrBimfp4VNFGwNgRoBnFT4dFMVb6f0+VtYyI4nc=
 gitlab.com/elixxir/primitives v0.0.0-20200605200100-cc0169bdd7e3/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
+gitlab.com/elixxir/primitives v0.0.0-20200608222556-604c99d97e02 h1:9PwnQVpDt094Hn3nyHK78cImf2IzFw2KIs59tQpq2hw=
+gitlab.com/elixxir/primitives v0.0.0-20200608222556-604c99d97e02/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=

@@ -13,7 +13,6 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
@@ -30,9 +29,6 @@ import (
 	"runtime"
 	"time"
 )
-
-// Number of hard-coded users to create
-var numDemoUsers = int(256)
 
 // StartServer reads configuration options and starts the cMix server
 func StartServer(vip *viper.Viper) error {
@@ -51,25 +47,14 @@ func StartServer(vip *viper.Viper) error {
 	// Load params object from viper conf
 	params, err := conf.NewParams(vip)
 	if err != nil {
-		jww.FATAL.Println("Unable to load params from viper")
+		jww.FATAL.Panicf("Unable to load params from viper: %+v", err)
 	}
 
 	jww.INFO.Printf("Loaded params: %+v", params)
 
-	//Check that there is a gateway
-	if len(params.Gateway.Address) < 1 {
-		// No gateways in config file or passed via command line
-		return errors.New("Error: No gateway specified! Add to" +
-			" configuration file!")
-	}
-
 	// Initialize the backend
 	jww.INFO.Printf("Initalizing the backend")
 	dbAddress := params.Database.Address
-	cmixGrp := params.Groups.GetCMix()
-
-	// Initialize the global group
-	globals.SetGroup(cmixGrp)
 
 	//Initialize the user database
 	userDatabase := globals.NewUserRegistry(
@@ -78,16 +63,6 @@ func StartServer(vip *viper.Viper) error {
 		params.Database.Name,
 		dbAddress,
 	)
-	//populate the dummy precanned users
-	jww.INFO.Printf("Adding dummy users to registry")
-	PopulateDummyUsers(userDatabase, cmixGrp)
-
-	//Add a dummy user for gateway
-	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = &id.DummyUser
-	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
-	dummy.IsRegistered = true
-	userDatabase.UpsertUser(dummy)
 
 	jww.INFO.Printf("Converting params to server definition")
 	def, err := params.ConvertToDefinition()
@@ -97,13 +72,16 @@ func StartServer(vip *viper.Viper) error {
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
+
+	def.DisableStreaming = disableStreaming
+
 	err = node.ClearMetricsLogs(def.MetricLogPath)
 	if err != nil {
 		jww.ERROR.Printf("Error deleting old metric log files: %v", err)
 	}
 
 	def.MetricsHandler = func(instance *internal.Instance, roundID id.Round) error {
-		return node.GatherMetrics(instance, roundID, metricsWhitespace)
+		return node.GatherMetrics(instance, roundID)
 	}
 
 	var instance *internal.Instance
@@ -117,7 +95,7 @@ func StartServer(vip *viper.Viper) error {
 
 	// Update the changelist to contain state functions
 	ourChangeList[current.NOT_STARTED] = func(from current.Activity) error {
-		return node.NotStarted(instance, noTLS)
+		return node.NotStarted(instance)
 	}
 
 	ourChangeList[current.WAITING] = func(from current.Activity) error {
@@ -156,7 +134,7 @@ func StartServer(vip *viper.Viper) error {
 	recoveredErrorFile, err := os.Open(params.RecoveredErrFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS, currentVersion)
+			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, useGPU, currentVersion)
 			if err != nil {
 				return errors.Errorf("Could not create server instance: %v", err)
 			}
@@ -165,7 +143,7 @@ func StartServer(vip *viper.Viper) error {
 		}
 	} else {
 		jww.INFO.Println("Server has recovered from an error")
-		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, noTLS, currentVersion, recoveredErrorFile)
+		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, useGPU, currentVersion, recoveredErrorFile)
 		if err != nil {
 			return errors.WithMessage(err, "Could not recover server instance")
 		}
@@ -199,20 +177,9 @@ func StartServer(vip *viper.Viper) error {
 
 	jww.INFO.Printf("Instance created!")
 
-	// Create instance
-	if noTLS {
-		jww.INFO.Println("Blanking TLS certs for non use")
-		def.TlsKey = nil
-		def.TlsCert = nil
-		def.Gateway.TlsCert = nil
-		//for i := 0; i < def.Topology.Len(); i++ {
-		//	def.Nodes[i].TlsCert = nil
-		//}
-	}
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	def.RoundCreationTimeout = newRoundTimeout
 
 	jww.INFO.Printf("Connecting to network")
 
@@ -227,15 +194,4 @@ func StartServer(vip *viper.Viper) error {
 	}
 
 	return nil
-}
-
-// Create dummy users to be manually inserted into the database
-func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
-	// Deterministically create named users for demo
-	for i := 1; i < numDemoUsers; i++ {
-		u := ur.NewUser(grp)
-		u.IsRegistered = true
-		ur.UpsertUser(u)
-	}
-	return
 }

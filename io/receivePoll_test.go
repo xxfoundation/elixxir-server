@@ -541,28 +541,3 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	}
 
 }
-
-// Test error case in which sender of ReceivePoll has an unexpected address
-func TestReceivePoll_Auth_BadAddress(t *testing.T) {
-	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
-
-	// Set auth with unexpected address
-	badGatewayAddress := "0.0.0.0:1234"
-
-	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), badGatewayAddress, nil, false, false)
-	auth := &connect.Auth{
-		IsAuthenticated: true,
-		Sender:          h,
-	}
-
-	// Reset auth error
-	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
-
-	_, err := ReceivePoll(pollMsg, &instance, badGatewayAddress, auth)
-	if err.Error() != expectedError {
-		t.Errorf("Did not receive expected error!"+
-			"\n\tExpected: %v"+
-			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
-	}
-}
