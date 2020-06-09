@@ -43,6 +43,8 @@ var rootCmd = &cobra.Command{
 communications.`,
 	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		initConfig()
+		initLog()
 		if !validConfig {
 			jww.FATAL.Panic("Invalid Config File")
 		}
@@ -89,7 +91,6 @@ func init() {
 	// declarations here, and ensure all the Flags are of the *P
 	// variety, unless there's a very good reason not to have them
 	// as local params to sub command."
-	cobra.OnInitialize(initConfig, initLog)
 
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -154,9 +155,9 @@ func initConfig() {
 	//Use default config location if none is passed
 	if cfgFile == "" {
 		var err error
-		cfgFile, err = utils.SearchDefaultLocations("server.yaml","xxnetwork")
+		cfgFile, err = utils.SearchDefaultLocations("server.yaml", "xxnetwork")
 		// Find home directory.
-		if err!=nil{
+		if err != nil {
 			jww.FATAL.Panicf("No config provided and non found at default paths")
 		}
 
