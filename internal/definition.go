@@ -53,7 +53,8 @@ type Definition struct {
 	Gateway GW
 
 	// Information on permissioning server
-	Permissioning Perm
+	Permissioning    Perm
+	RegistrationCode string
 
 	// Our NDFs for both backend servers and front-ends
 	FullNDF    *ndf.NetworkDefinition
@@ -80,10 +81,6 @@ type Definition struct {
 
 // Holds all input flags to the system.
 type Flags struct {
-	// Starts a server without client registration
-	SkipReg bool
-	// Prints all logsnode.ad
-	Verbose bool
 	// Denotes if the server is to store all round keys indefinably
 	KeepBuffers bool
 	// If true, use GPU acceleration for precomputation
@@ -108,8 +105,6 @@ type Perm struct {
 	PublicKey *rsa.PublicKey
 	// IP address of the permissioning server
 	Address string
-	// Node Registration Code
-	RegistrationCode string
 }
 
 type GW struct {

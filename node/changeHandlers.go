@@ -14,9 +14,12 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
+	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
@@ -28,12 +31,15 @@ import (
 	"time"
 )
 
+// Number of hard-coded users to create
+var numDemoUsers = int(256)
+
 func Dummy(from current.Activity) error {
 	return nil
 }
 
 // NotStarted is the beginning state of state machine. Enters waiting upon successful completion
-func NotStarted(instance *internal.Instance, noTls bool) error {
+func NotStarted(instance *internal.Instance) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
@@ -118,6 +124,18 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
+	cmixGrp := instance.GetConsensus().GetCmixGroup()
+	//populate the dummy precanned users
+	jww.INFO.Printf("Adding dummy users to registry")
+	userDatabase := instance.GetUserRegistry()
+	PopulateDummyUsers(userDatabase, cmixGrp)
+
+	//Add a dummy user for gateway
+	dummy := userDatabase.NewUser(cmixGrp)
+	dummy.ID = &id.DummyUser
+	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
+	dummy.IsRegistered = true
+	userDatabase.UpsertUser(dummy)
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 	// Atomically denote that gateway is ready for polling
@@ -429,4 +447,15 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	}
 
 	return true
+}
+
+// Create dummy users to be manually inserted into the database
+func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
+	// Deterministically create named users for demo
+	for i := 1; i < numDemoUsers; i++ {
+		u := ur.NewUser(grp)
+		u.IsRegistered = true
+		ur.UpsertUser(u)
+	}
+	return
 }

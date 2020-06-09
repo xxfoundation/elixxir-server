@@ -38,19 +38,17 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	grp := instance.GetConsensus().GetCmixGroup()
 	sha := crypto.SHA256
 
-	if !instance.IsRegistrationAuthenticated() {
-		regPubKey := instance.GetRegServerPubKey()
-		h := sha.New()
-		h.Write([]byte(RSAPubKey))
-		data := h.Sum(nil)
+	regPubKey := instance.GetRegServerPubKey()
+	h := sha.New()
+	h.Write([]byte(RSAPubKey))
+	data := h.Sum(nil)
 
-		err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
-		if err != nil {
-			// Invalid signed Client public key, return an error
-			return []byte{}, []byte{},
-				errors.Errorf("verification of public key signature "+
-					"from registration failed: %+v", err)
-		}
+	err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
+	if err != nil {
+		// Invalid signed Client public key, return an error
+		return []byte{}, []byte{},
+			errors.Errorf("verification of public key signature "+
+				"from registration failed: %+v", err)
 	}
 
 	// Assemble Client public key
@@ -62,9 +60,9 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	}
 
 	//Check that the Client DH public key is signed correctly
-	h := sha.New()
+	h = sha.New()
 	h.Write(DHPubKey)
-	data := h.Sum(nil)
+	data = h.Sum(nil)
 
 	err = rsa.Verify(userPublicKey, sha, data, DHSignedByClientRSA, nil)
 
@@ -120,7 +118,7 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 	}
 
 	// Obtain the user from the database
-	user, err := instance.GetUserRegistry().GetUser(UserID)
+	user, err := instance.GetUserRegistry().GetUser(UserID, instance.GetConsensus().GetCmixGroup())
 
 	if err != nil {
 		// Invalid nonce, return an error

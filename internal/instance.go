@@ -93,7 +93,7 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, noTls bool, version string) (*Instance, error) {
+	machine state.Machine, useGPU bool, version string) (*Instance, error) {
 	isGwReady := uint32(0)
 	firstPoll := uint32(0)
 	instance := &Instance{
@@ -117,7 +117,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Create stream pool if instructed to use GPU
-	if def.UseGPU {
+	if useGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
 		memSize := 268435456
@@ -140,9 +140,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
-	if noTls {
-		instance.network.DisableAuth()
-	}
 
 	// Initializes the network state tracking on this server instance
 	var err error
@@ -159,17 +156,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Add gateways to host object
-	if instance.definition.Gateway.Address != "" {
-		_, err := instance.network.AddHost(&id.TempGateway,
-			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
-		if err != nil {
-			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
-				instance.definition.Gateway.ID, err)
-			return nil, errors.New(errMsg)
-
-		}
-	} else {
-		jww.WARN.Printf("No Gateway avalible, starting without gateway")
+	_, err = instance.network.AddHost(&id.TempGateway,
+		"", instance.definition.Gateway.TlsCert, false, true)
+	if err != nil {
+		errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
+			instance.definition.Gateway.ID, err)
+		return nil, errors.New(errMsg)
 	}
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
@@ -178,11 +170,11 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // Wrap CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, noTls bool, version string, recoveredErrorFile *os.File) (*Instance, error) {
+	machine state.Machine, useGPU bool, version string, recoveredErrorFile *os.File) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine, noTls, version)
+	i, err = CreateServerInstance(def, makeImplementation, machine, useGPU, version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
@@ -282,11 +274,6 @@ func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }
 
-//IsRegistrationAuthenticated returns the skipReg parameter
-func (i *Instance) IsRegistrationAuthenticated() bool {
-	return i.definition.Flags.SkipReg
-}
-
 //GetKeepBuffers returns if buffers are to be held on it
 func (i *Instance) GetKeepBuffers() bool {
 	return i.definition.Flags.KeepBuffers
@@ -330,10 +317,6 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
-}
-
-func (i *Instance) GetRoundCreationTimeout() int {
-	return i.definition.RoundCreationTimeout
 }
 
 func (i *Instance) GetGatewayFirstTime() *FirstTime {
