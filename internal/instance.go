@@ -468,16 +468,12 @@ func (i *Instance) GetGatewayData() (addr string, ver string) {
 }
 
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
-	i.gatewayMutex.RLock()
+	i.gatewayMutex.Lock()
+	defer i.gatewayMutex.Unlock()
 	if i.gatewayAddess != addr || i.gatewayVersion != ver {
-		i.gatewayMutex.RUnlock()
-		i.gatewayMutex.Lock()
 		i.gatewayVersion = addr
 		i.gatewayVersion = ver
-		i.gatewayMutex.Unlock()
-		return
 	}
-	i.gatewayMutex.RUnlock()
 }
 
 /* TESTING FUNCTIONS */
