@@ -34,7 +34,7 @@ type Params struct {
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
-	RegistrationCode	  string
+	RegistrationCode      string
 
 	Node          Node
 	Database      Database
@@ -62,7 +62,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params := Params{}
 
 	params.RegistrationCode = vip.GetString("registrationCode")
-	require(params.RegistrationCode,"registrationCode")
+	require(params.RegistrationCode, "registrationCode")
 
 	vip.SetDefault("node.listeningAddress", "0.0.0.0")
 	params.Node.ListeningAddress = vip.GetString("node.listeningAddress")
@@ -81,7 +81,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	require(params.Node.Paths.Key, "node.paths.key")
 
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
-	params.Node.Address = vip.GetString("node.address")
 	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
 	require(params.RecoveredErrFile, "node.paths.errOutput")
 
@@ -91,7 +90,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Database.Address = vip.GetString("database.address")
 
 	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
-	params.Gateway.Address = vip.GetString("gateway.address")
 	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
 
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
@@ -165,7 +163,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
 
-	def.Gateway.Address = p.Gateway.Address
 	var GwTlsCerts []byte
 
 	if p.Gateway.Paths.Cert != "" {

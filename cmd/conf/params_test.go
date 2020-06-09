@@ -19,14 +19,14 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		KeepBuffers:      true,
 		RngScalingFactor: 10000,
 
-		Node:          ExpectedNode,
-		Database:      ExpectedDatabase,
-		Gateway:       ExpectedGateway,
-		Permissioning: ExpectedPermissioning,
-		GraphGen:      ExpectedGraphGen,
+		Node:             ExpectedNode,
+		Database:         ExpectedDatabase,
+		Gateway:          ExpectedGateway,
+		Permissioning:    ExpectedPermissioning,
+		GraphGen:         ExpectedGraphGen,
 		RegistrationCode: "123abc",
 
-		Metrics: Metrics{Log:"~/.elixxir/metrics.log"},
+		Metrics: Metrics{Log: "~/.elixxir/metrics.log"},
 	}
 
 	vip := viper.New()

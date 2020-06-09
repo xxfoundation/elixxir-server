@@ -72,7 +72,6 @@ func StartServer(vip *viper.Viper) error {
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
-
 	def.DisableStreaming = disableStreaming
 
 	err = node.ClearMetricsLogs(def.MetricLogPath)

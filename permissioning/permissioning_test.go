@@ -49,14 +49,14 @@ func TestRegisterNode(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:         internal.Flags{},
-		ID:            nodeId,
-		PublicKey:     nil,
-		PrivateKey:    nil,
-		TlsCert:       cert,
-		TlsKey:        key,
-		Address:       nodeAddr,
-		LogPath:       "",
+		Flags:      internal.Flags{},
+		ID:         nodeId,
+		PublicKey:  nil,
+		PrivateKey: nil,
+		TlsCert:    cert,
+		TlsKey:     key,
+		Address:    nodeAddr,
+		LogPath:    "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,

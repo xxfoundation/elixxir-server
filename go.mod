@@ -9,7 +9,6 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
@@ -23,10 +22,10 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.3
-	gitlab.com/elixxir/comms v0.0.0-20200606003810-73f559eeb3bc
+	gitlab.com/elixxir/comms v0.0.0-20200609202231-c40b8aee243c
 	gitlab.com/elixxir/crypto v0.0.0-20200605212708-94b815c48c34
-	gitlab.com/elixxir/gpumaths v0.0.2-0.20200501011915-4ba556d76bed
-	gitlab.com/elixxir/primitives v0.0.0-20200605200100-cc0169bdd7e3
+	gitlab.com/elixxir/gpumaths v0.0.2-0.20200609184421-f727f604adcd
+	gitlab.com/elixxir/primitives v0.0.0-20200608222556-604c99d97e02
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	google.golang.org/grpc v1.29.1
 	gopkg.in/ini.v1 v1.55.0 // indirect
