@@ -30,7 +30,6 @@ var logPath = "cmix-server.log"
 var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
-var registrationCode string
 
 // If true, runs pprof http server
 var profile bool
@@ -112,10 +111,8 @@ func init() {
 	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
 	handleBindingError(err, "profile")
 
-	rootCmd.Flags().StringVarP(&registrationCode, "registrationCode", "", "",
+	rootCmd.Flags().StringP("registrationCode", "", "",
 		"Required.  Registration code to give to permissioning")
-	err = rootCmd.MarkFlagRequired("registrationCode")
-	handleBindingError(err, "registrationCode")
 	err = viper.BindPFlag("registrationCode", rootCmd.Flags().Lookup("registrationCode"))
 	handleBindingError(err, "registrationCode")
 
