@@ -19,7 +19,6 @@ var ExpectedGateway = Gateway{
 		Key:  "",
 		Log:  "",
 	},
-	Address: "127.0.0.1:80",
 }
 
 // This test checks that unmarshalling the params.yaml file

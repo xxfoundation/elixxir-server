@@ -28,8 +28,6 @@ import (
 // Perform the Node registration process with the Permissioning Server
 func RegisterNode(def *internal.Definition, network *node.Comms, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
-	gw := strings.Split(def.Gateway.Address, ":")
-	gwPort, _ := strconv.ParseUint(gw[1], 10, 32)
 	node := strings.Split(def.Address, ":")
 	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
 	// Attempt Node registration
@@ -38,11 +36,11 @@ func RegisterNode(def *internal.Definition, network *node.Comms, permHost *conne
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   gw[0],
-			GatewayPort:      uint32(gwPort),
+			GatewayAddress:   "0.0.0.0", // FIXME (Jonah): this is inefficient, but will work for now
+			GatewayPort:      80,
 			ServerAddress:    node[0],
 			ServerPort:       uint32(nodePort),
-			RegistrationCode: def.Permissioning.RegistrationCode,
+			RegistrationCode: def.RegistrationCode,
 		})
 	if err != nil {
 		return errors.Errorf("Unable to send Node registration: %+v", err)

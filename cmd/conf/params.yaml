@@ -1,13 +1,16 @@
 ---
 # Example yaml params file used for testing
 # the params object and its dependencies
+registrationCode: "123abc"
 node:
   paths:
     idf:  "nodeID.json"
     cert: "~/.elixxir/cert.crt"
     key:  "~/.elixxir/key.pem"
     log:  "~/.elixxir/server.log"
-  address: "127.0.0.1:80"
+    errOutput: "~/.elixxir/error.out"
+  listeningAddress: "127.0.0.1"
+  port: 80
 database:
   name: "name"
   username: "username"
