@@ -46,6 +46,7 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 # START YAML ===
 # registration code used for first time registration. Unique. Provided by xx network
 registrationCode: "abc123"
+useGPU: false
 node:
   paths:
     # Path where an error file will be placed in the event of a fatal error
