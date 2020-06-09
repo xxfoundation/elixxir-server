@@ -49,7 +49,6 @@ type Definition struct {
 	// Path where the Server and Gateway certificates will be stored
 	ServerCertPath  string
 	GatewayCertPath string
-	WriteToFile     bool
 	//Information about the node's gateway
 	Gateway GW
 

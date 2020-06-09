@@ -221,48 +221,6 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	return i, nil
 }
 
-// RestartNetwork is intended to reset the network with newly signed certs obtained from polling
-// permissioning
-func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, noTls bool,
-	serverCert, gwCert string) error {
-
-	jww.INFO.Printf("Restarting network...")
-	// Shut down the network so we can restart
-	i.network.Shutdown()
-
-	// Set definition for newly signed certs
-	i.definition.TlsCert = []byte(serverCert)
-	i.definition.Gateway.TlsCert = []byte(gwCert)
-
-	// Get the id and cert
-	ourId := i.GetID()
-	ourDef := i.GetDefinition()
-
-	// Reset the network with the newly signed certs
-	i.network = node.StartNode(ourId, ourDef.Address,
-		makeImplementation(i), ourDef.TlsCert, ourDef.TlsKey)
-
-	// Disable auth if running in a noTLS environment [TESTING ONLY]
-	if noTls {
-		i.network.DisableAuth()
-	}
-
-	// Connect to the Permissioning Server with authentication enabled
-	_, err := i.network.AddHost(&id.Permissioning,
-		i.definition.Permissioning.Address, i.definition.Permissioning.TlsCert, true, true)
-	if err != nil {
-		return err
-	}
-
-	_, err = i.network.AddHost(i.definition.Gateway.ID, i.definition.Gateway.Address,
-		i.definition.Gateway.TlsCert, false, true)
-
-	i.consensus.SetProtoComms(i.network.ProtoComms)
-	err = i.consensus.UpdateNodeConnections()
-
-	return err
-}
-
 // Run starts the resource queue
 func (i *Instance) Run() error {
 	go i.resourceQueue.run(i)

@@ -31,17 +31,15 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
-	SkipReg               bool `yaml:"skipReg"`
-	Verbose               bool
-	KeepBuffers           bool
-	UseGPU                bool
-	DisableStreaming      bool
-	Groups                Groups
-	RngScalingFactor      uint `yaml:"rngScalingFactor"`
-	ServerCertPath        string
-	GatewayCertPath       string
-	SignedCertPath        string
-	SignedGatewayCertPath string
+	SkipReg          bool `yaml:"skipReg"`
+	Verbose          bool
+	KeepBuffers      bool
+	UseGPU           bool
+	DisableStreaming bool
+	Groups           Groups
+	RngScalingFactor uint `yaml:"rngScalingFactor"`
+	ServerCertPath   string
+	GatewayCertPath  string
 
 	Node          Node
 	Database      Database
@@ -67,7 +65,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Node.Paths.Key = vip.GetString("node.paths.key")
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
 	params.Node.Address = vip.GetString("node.address")
-	params.SignedCertPath = vip.GetString("node.paths.signedCert")
 
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
@@ -75,7 +72,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Database.Address = vip.GetString("database.address")
 
 	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
-	params.SignedGatewayCertPath = vip.GetString("gateway.paths.signedCert")
 	params.Gateway.Address = vip.GetString("gateway.address")
 
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
@@ -163,16 +159,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
-
-	// Only def values if params is set
-	if p.SignedCertPath != "" && p.SignedGatewayCertPath != "" {
-		def.WriteToFile = true
-		def.ServerCertPath = p.SignedCertPath
-		def.GatewayCertPath = p.SignedGatewayCertPath
-		jww.INFO.Printf("Loaded signed certificates...")
-	} else {
-		jww.INFO.Printf("Using unsigned certificates for first start...")
-	}
 
 	def.Gateway.Address = p.Gateway.Address
 	var GwTlsCerts []byte

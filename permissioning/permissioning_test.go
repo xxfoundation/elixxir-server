@@ -704,14 +704,6 @@ func TestRegistration(t *testing.T) {
 			t.Errorf("Failed to get ndf: %+v", err)
 		}
 
-		// Parse the Ndf
-		serverCert, gwCert, err := FindSelfInNdf(def, instance.GetConsensus().GetFullNdf().Get())
-		if err != nil {
-			t.Errorf("Failed to install ndf: %+v", err)
-		}
-
-		// Restart the network with new certs
-		instance.RestartNetwork(impl, true, serverCert, gwCert)
 		permDone <- struct{}{}
 
 	}()

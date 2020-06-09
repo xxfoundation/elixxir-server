@@ -293,31 +293,14 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 
 }
 
-// InstallNdf parses the ndf for necessary information and returns that
-func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
-
-	jww.INFO.Println("Installing FullNDF now...")
-	index, err := findOurNode(def.ID, newNdf.Nodes)
-	if err != nil {
-		return "", "", err
-	}
-
-	//Fixme: at some point soon we will not be able to assume the node & corresponding gateway share the same index
-	// will need to add logic to find the corresponding gateway..
-	return newNdf.Nodes[index].TlsCertificate, // it also holds the callback which handles gateway requesting an ndf from its server
-		newNdf.Gateways[index].TlsCertificate, nil
-}
-
-//findOurNode is a helper function which finds our node's index in the ndf
-// it returns the index of our node if found or an error if not found
-func findOurNode(nodeId *id.ID, nodes []ndf.Node) (int, error) {
-	//Find this node's place in the newNDF
-	for i, newNode := range nodes {
-		//Use that index bookkeeping purposes when later parsing ndf
-		if bytes.Compare(newNode.ID, nodeId.Bytes()) == 0 {
-			return i, nil
+// FindSelfInNdf parses the ndf to determine if we exist in the ndf.
+func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) error {
+	// Find this node's place in the newNDF
+	for _, newNode := range newNdf.Nodes {
+		// If we exist in the ndf, return no error
+		if bytes.Compare(newNode.ID, def.ID.Bytes()) == 0 {
+			return nil
 		}
 	}
-	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
-
+	return errors.New("Failed to find node in ndf, maybe node registration failed?")
 }
