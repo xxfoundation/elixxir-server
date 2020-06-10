@@ -91,7 +91,7 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, useGPU bool, version string) (*Instance, error) {
+	machine state.Machine, version string) (*Instance, error) {
 	isGwReady := uint32(0)
 	firstPoll := uint32(0)
 	instance := &Instance{
@@ -115,7 +115,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Create stream pool if instructed to use GPU
-	if useGPU {
+	if def.UseGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
 		memSize := 268435456
@@ -168,11 +168,11 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // Wrap CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, useGPU bool, version string) (*Instance, error) {
+	machine state.Machine, version string) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine, useGPU,
+	i, err = CreateServerInstance(def, makeImplementation, machine,
 		version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")

@@ -57,7 +57,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	}
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		false, "1.1.0")
+		"1.1.0")
 
 	// Set up a round first node
 	roundID := id.Round(45)

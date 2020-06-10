@@ -198,7 +198,7 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 	def.Gateway.Address = testGatewayAddress
 	m := state.NewTestMachine(dummyStates, s, t)
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		false, "1.1.0")
+		"1.1.0")
 
 	return instance, topology
 }

@@ -74,7 +74,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
-		m, false, "1.1.0")
+		m, "1.1.0")
 
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
 		[]byte(testUtil.RegCert), false, false)
