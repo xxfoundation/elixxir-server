@@ -561,7 +561,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 	sm := i.GetStateMachine()
 
 	currentActivity := sm.Get()
-	if currentActivity == current.ERROR {
+	if currentActivity == current.ERROR || currentActivity == current.CRASH {
 		// There's already an error, so there's no need to change to error state
 		jww.FATAL.Printf("Round failure reported, but the node is already in ERROR state. RoundID %v; nodeID %v; error text %v",
 			roundErr.Id, nodeId, roundErr.Error)
