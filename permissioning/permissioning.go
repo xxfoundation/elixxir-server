@@ -282,7 +282,6 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 	}
 
 	if permissioningResponse.PartialNDF != nil {
-		jww.INFO.Printf("partial ndf: %v", permissioningResponse.PartialNDF)
 		// Update the partial ndf
 		err := instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 		if err != nil {
