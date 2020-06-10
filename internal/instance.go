@@ -554,6 +554,9 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 		NodeId: nodeId.Marshal(),
 	}
 
+	// put the new error in the instance
+	i.roundError = &roundErr
+
 	//then call update state err
 	sm := i.GetStateMachine()
 
@@ -574,9 +577,6 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 	if !ok {
 		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
-
-	// ...and put the new error in the instance
-	i.roundError = &roundErr
 }
 
 func (i *Instance) String() string {
