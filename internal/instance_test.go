@@ -73,17 +73,14 @@ func TestRecoverInstance(t *testing.T) {
 		t.Errorf("Failed to marshal test proto: %+v", err)
 	}
 
-	err = utils.WriteFile("/tmp/test_err", b, utils.FilePerms, utils.DirPerms)
+	def.RecoveredErrorPath = "/tmp/test_err"
+
+	err = utils.WriteFile(def.RecoveredErrorPath, b, utils.FilePerms, utils.DirPerms)
 	if err != nil {
 		t.Errorf("Failed to write to test file: %+v", err)
 	}
 
-	f, err := os.Open("/tmp/test_err")
-	if err != nil {
-		t.Errorf("Failed to reopen test error file: %+v", err)
-	}
-
-	instance, _ = RecoverInstance(def, impl, sm, false, "1.1.0", f)
+	instance, _ = RecoverInstance(def, impl, sm, false, "1.1.0")
 }
 
 func TestInstance_GetResourceQueue(t *testing.T) {

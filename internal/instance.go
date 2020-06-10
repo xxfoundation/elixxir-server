@@ -29,7 +29,6 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
-	"log"
 	"os"
 	"strings"
 	"sync"
@@ -70,10 +69,9 @@ type Instance struct {
 
 	roundErrFunc RoundErrBroadcastFunc
 
-	errLck                 sync.Mutex
-	roundError             *mixmessages.RoundError
-	recoveredError         *mixmessages.RoundError
-	RecoveredErrorFilePath string
+	errLck         sync.Mutex
+	roundError     *mixmessages.RoundError
+	recoveredError *mixmessages.RoundError
 
 	phaseOverrides map[int]phase.Phase
 	overrideRound  int
@@ -170,41 +168,49 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // Wrap CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, useGPU bool, version string, recoveredErrorFile *os.File) (*Instance, error) {
+	machine state.Machine, useGPU bool, version string) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine, useGPU, version)
+	i, err = CreateServerInstance(def, makeImplementation, machine, useGPU,
+		version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
-	i.RecoveredErrorFilePath = recoveredErrorFile.Name()
+	file, err := os.Open(i.definition.RecoveredErrorPath)
+	if err != nil {
+		return nil, errors.WithMessage(err,
+			"Failed to open recovered error file")
+	}
 
 	// Read recovered error file to bytes
 	var recoveredError []byte
-	_, err = recoveredErrorFile.Read(recoveredError)
+	_, err = file.Read(recoveredError)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to read recovered error")
 	}
 
 	// Close recovered error file
-	err = recoveredErrorFile.Close()
+	err = file.Close()
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to close recovered error file")
 	}
 
-	// Remove recovered error file
-	err = os.Remove(recoveredErrorFile.Name())
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to remove ")
-	}
-
-	// Unmarshal bytes to RoundError, set recoveredError field on instance
+	// Unmarshal bytes to RoundError
 	msg := &mixmessages.RoundError{}
 	err = proto.Unmarshal(recoveredError, msg)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to unmarshal message from file")
 	}
+
+	// Remove recovered error file
+	err = os.Remove(i.definition.RecoveredErrorPath)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to remove ")
+	}
+
+	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
+		" file at %s", msg.Error, i.definition.RecoveredErrorPath)
 
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
@@ -555,11 +561,11 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 	sm := i.GetStateMachine()
 	ok, err := sm.Update(current.ERROR)
 	if err != nil {
-		log.Panicf("Failed to change state to ERROR STATE %v", err)
+		jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
 	}
 
 	if !ok {
-		log.Panicf("Failed to change state to ERROR STATE")
+		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
 }
 

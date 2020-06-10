@@ -98,7 +98,8 @@ func TestClientServer(t *testing.T) {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false, "1.1.0")
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
+		false, "1.1.0")
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
