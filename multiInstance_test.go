@@ -149,7 +149,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		sm := state.NewMachine(testStates)
 
 		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm,
-			false, "1.1.0", fmt.Sprintf("/tmp/err_%d", i))
+			false, "1.1.0")
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
@@ -577,13 +577,14 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T)
 				TlsCert: nil,
 				Address: "",
 			},
-			UserRegistry:    &globals.UserMap{},
-			ResourceMonitor: &measure.ResourceMonitor{},
-			FullNDF:         networkDef,
-			PartialNDF:      networkDef,
-			Address:         nodeLst[i].Address,
-			MetricsHandler:  func(i *internal.Instance, roundID id.Round) error { return nil },
-			GraphGenerator:  services.NewGraphGenerator(4, 1, 4, 1.0),
+			UserRegistry:       &globals.UserMap{},
+			ResourceMonitor:    &measure.ResourceMonitor{},
+			FullNDF:            networkDef,
+			PartialNDF:         networkDef,
+			Address:            nodeLst[i].Address,
+			MetricsHandler:     func(i *internal.Instance, roundID id.Round) error { return nil },
+			RecoveredErrorPath: fmt.Sprintf("/tmp/err_%d", i),
+			GraphGenerator:     services.NewGraphGenerator(4, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}

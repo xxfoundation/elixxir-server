@@ -48,11 +48,12 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	gg := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-		FullNDF:         testUtil.NDF,
-		PartialNDF:      testUtil.NDF,
-		GraphGenerator:  gg,
+		UserRegistry:       &globals.UserMap{},
+		ResourceMonitor:    &measure.ResourceMonitor{},
+		FullNDF:            testUtil.NDF,
+		PartialNDF:         testUtil.NDF,
+		GraphGenerator:     gg,
+		RecoveredErrorPath: "/tmp/recovered_error",
 		Gateway: internal.GW{
 			Address: "0.0.0.0:11420",
 		},
@@ -73,7 +74,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
-		m, false, "1.1.0", "/tmp/recovered_error")
+		m, false, "1.1.0")
 
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
 		[]byte(testUtil.RegCert), false, false)

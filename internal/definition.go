@@ -78,6 +78,9 @@ type Definition struct {
 
 	// Toggles comm streaming
 	DisableStreaming bool
+
+	// Path for outputting errors to file for recovery
+	RecoveredErrorPath string
 }
 
 // Holds all input flags to the system.

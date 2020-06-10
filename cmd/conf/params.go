@@ -34,7 +34,7 @@ type Params struct {
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
-	RegistrationCode	  string
+	RegistrationCode      string
 
 	Node          Node
 	Database      Database
@@ -45,7 +45,7 @@ type Params struct {
 
 	PhaseOverrides   []int
 	OverrideRound    int
-	RecoveredErrFile string
+	RecoveredErrPath string
 }
 
 // NewParams gets elements of the viper object
@@ -62,7 +62,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params := Params{}
 
 	params.RegistrationCode = vip.GetString("registrationCode")
-	require(params.RegistrationCode,"registrationCode")
+	require(params.RegistrationCode, "registrationCode")
 
 	vip.SetDefault("node.listeningAddress", "0.0.0.0")
 	params.Node.ListeningAddress = vip.GetString("node.listeningAddress")
@@ -81,8 +81,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	require(params.Node.Paths.Key, "node.paths.key")
 
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
-	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
-	require(params.RecoveredErrFile, "node.paths.errOutput")
+	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
+	require(params.RecoveredErrPath, "node.paths.errOutput")
 
 	params.SignedCertPath = vip.GetString("node.paths.signedCert")
 
@@ -166,7 +166,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
-
+	def.RecoveredErrorPath = p.RecoveredErrPath
 
 	// Only def values if params is set
 	if p.SignedCertPath != "" && p.SignedGatewayCertPath != "" {

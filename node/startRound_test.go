@@ -63,7 +63,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
 	instance, err := internal.CreateServerInstance(&def,
-		io.NewImplementation, m, false, "1.1.0", "")
+		io.NewImplementation, m, false, "1.1.0")
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()

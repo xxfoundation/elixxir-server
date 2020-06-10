@@ -407,7 +407,7 @@ func Error(instance *internal.Instance) error {
 		return errors.WithMessage(err, "Failed to marshal message into bytes")
 	}
 
-	err = utils.WriteFile(instance.GetRecoveredErrorFilePath(), b, 0644, 0644)
+	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, b, 0644, 0644)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}
@@ -418,7 +418,7 @@ func Error(instance *internal.Instance) error {
 	}
 
 	instance.GetPanicWrapper()(fmt.Sprintf("Error encountered - closing server & writing error to file %s",
-		instance.GetRecoveredErrorFilePath()))
+		instance.GetDefinition().RecoveredErrorPath))
 	return nil
 }
 

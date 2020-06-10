@@ -441,7 +441,7 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 
 	// Generate instance
 	instance, err := internal.CreateServerInstance(def, impl, sm, false,
-		"1.1.0", "")
+		"1.1.0")
 	if err != nil {
 		return nil, errors.Errorf("Unable to create instance: %+v", err)
 	}

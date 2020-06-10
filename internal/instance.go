@@ -69,10 +69,9 @@ type Instance struct {
 
 	roundErrFunc RoundErrBroadcastFunc
 
-	errLck                 sync.Mutex
-	roundError             *mixmessages.RoundError
-	recoveredError         *mixmessages.RoundError
-	recoveredErrorFilePath string
+	errLck         sync.Mutex
+	roundError     *mixmessages.RoundError
+	recoveredError *mixmessages.RoundError
 
 	phaseOverrides map[int]phase.Phase
 	overrideRound  int
@@ -92,24 +91,23 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, useGPU bool, version, recoveredErrPath string) (*Instance, error) {
+	machine state.Machine, useGPU bool, version string) (*Instance, error) {
 	isGwReady := uint32(0)
 	firstPoll := uint32(0)
 	instance := &Instance{
-		Online:                 false,
-		definition:             def,
-		roundManager:           round.NewManager(),
-		resourceQueue:          initQueue(),
-		machine:                machine,
-		isGatewayReady:         &isGwReady,
-		isAfterFirstPoll:       &firstPoll,
-		recoveredErrorFilePath: recoveredErrPath,
-		requestNewBatchQueue:   round.NewQueue(),
-		createRoundQueue:       round.NewQueue(),
-		realtimeRoundQueue:     round.NewQueue(),
-		completedBatchQueue:    round.NewCompletedQueue(),
-		gatewayPoll:            NewFirstTime(),
-		roundError:             nil,
+		Online:               false,
+		definition:           def,
+		roundManager:         round.NewManager(),
+		resourceQueue:        initQueue(),
+		machine:              machine,
+		isGatewayReady:       &isGwReady,
+		isAfterFirstPoll:     &firstPoll,
+		requestNewBatchQueue: round.NewQueue(),
+		createRoundQueue:     round.NewQueue(),
+		realtimeRoundQueue:   round.NewQueue(),
+		completedBatchQueue:  round.NewCompletedQueue(),
+		gatewayPoll:          NewFirstTime(),
+		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
@@ -170,17 +168,16 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // Wrap CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, useGPU bool, version,
-	recoveredErrPath string) (*Instance, error) {
+	machine state.Machine, useGPU bool, version string) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
 	i, err = CreateServerInstance(def, makeImplementation, machine, useGPU,
-		version, recoveredErrPath)
+		version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
-	file, err := os.Open(i.recoveredErrorFilePath)
+	file, err := os.Open(i.definition.RecoveredErrorPath)
 	if err != nil {
 		return nil, errors.WithMessage(err,
 			"Failed to open recovered error file")
@@ -199,18 +196,21 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 		return nil, errors.WithMessage(err, "Failed to close recovered error file")
 	}
 
-	// Remove recovered error file
-	err = os.Remove(i.recoveredErrorFilePath)
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to remove ")
-	}
-
-	// Unmarshal bytes to RoundError, set recoveredError field on instance
+	// Unmarshal bytes to RoundError
 	msg := &mixmessages.RoundError{}
 	err = proto.Unmarshal(recoveredError, msg)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to unmarshal message from file")
 	}
+
+	// Remove recovered error file
+	err = os.Remove(i.definition.RecoveredErrorPath)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to remove ")
+	}
+
+	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
+		" file at %s", msg.Error, i.definition.RecoveredErrorPath)
 
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
@@ -260,10 +260,6 @@ func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Imple
 func (i *Instance) Run() error {
 	go i.resourceQueue.run(i)
 	return i.machine.Start()
-}
-
-func (i *Instance) GetRecoveredErrorFilePath() string {
-	return i.recoveredErrorFilePath
 }
 
 // GetDefinition returns the server.Definition object
