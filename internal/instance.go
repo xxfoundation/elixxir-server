@@ -554,9 +554,6 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 		NodeId: nodeId.Marshal(),
 	}
 
-	// put the new error in the instance
-	i.roundError = &roundErr
-
 	//then call update state err
 	sm := i.GetStateMachine()
 
@@ -567,6 +564,10 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 			roundErr.Id, nodeId, roundErr.Error)
 		return
 	}
+
+	// put the new error in the instance, since the node isn't currently in
+	// an error or crash state
+	i.roundError = &roundErr
 
 	// Otherwise, change instance's state to ERROR
 	ok, err := sm.Update(current.ERROR)
