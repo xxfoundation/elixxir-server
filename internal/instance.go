@@ -442,15 +442,18 @@ func (i *Instance) GetPanicWrapper() func(s string) {
 func (i *Instance) GetGatewayData() (addr string, ver string) {
 	i.gatewayMutex.RLock()
 	defer i.gatewayMutex.RUnlock()
+	jww.TRACE.Printf("Returning Gateway: %s, %s", i.gatewayAddess,
+		i.gatewayVersion)
 	return i.gatewayAddess, i.gatewayVersion
 }
 
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
 	i.gatewayMutex.Lock()
 	defer i.gatewayMutex.Unlock()
+	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
 	if i.gatewayAddess != addr || i.gatewayVersion != ver {
-		i.gatewayVersion = addr
-		i.gatewayVersion = ver
+		(*i).gatewayAddess = addr
+		(*i).gatewayVersion = ver
 	}
 }
 
