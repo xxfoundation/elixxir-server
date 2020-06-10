@@ -220,7 +220,7 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, _ := internal.CreateServerInstance(&def, impl, mach, false, "1.1.0")
+	instance, _ := internal.CreateServerInstance(&def, impl, mach, "1.1.0")
 
 	return instance, nodeAddr
 
