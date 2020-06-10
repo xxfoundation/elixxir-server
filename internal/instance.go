@@ -85,10 +85,6 @@ type Instance struct {
 	serverVersion string
 }
 
-func (i *Instance) SetRecoveredErrorFilePath(recoveredErrorFilePath string) {
-	i.recoveredErrorFilePath = recoveredErrorFilePath
-}
-
 // Create a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 // After the network object is created, you still need to use it to connect
