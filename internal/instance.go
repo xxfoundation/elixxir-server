@@ -558,6 +558,9 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 	sm := i.GetStateMachine()
 
 	currentActivity := sm.Get()
+	// TODO In the future, we should write code to clean up an in-progress round
+	//  that has an error. In that case, we should also reevaluate this logic,
+	//  as it probably won't work as intended anymore.
 	if currentActivity == current.ERROR || currentActivity == current.CRASH {
 		// There's already an error, so there's no need to change to error state
 		jww.FATAL.Printf("Round failure reported, but the node is already in ERROR state. RoundID %v; nodeID %v; error text %v",
