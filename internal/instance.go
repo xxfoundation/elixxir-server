@@ -553,12 +553,19 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 		Error:  errIn.Error(),
 		NodeId: nodeId.Marshal(),
 	}
-	// pass the error over the chanel
-	//instance get err chan
-	i.roundError = &roundErr
 
 	//then call update state err
 	sm := i.GetStateMachine()
+
+	currentActivity := sm.Get()
+	if currentActivity == current.ERROR {
+		// There's already an error, so there's no need to change to error state
+		jww.FATAL.Printf("Round failure reported, but the node is already in ERROR state. RoundID %v; nodeID %v; error text %v",
+			roundErr.Id, nodeId, roundErr.Error)
+		return
+	}
+
+	// Otherwise, change instance's state to ERROR
 	ok, err := sm.Update(current.ERROR)
 	if err != nil {
 		jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
@@ -567,6 +574,9 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 	if !ok {
 		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
+
+	// ...and put the new error in the instance
+	i.roundError = &roundErr
 }
 
 func (i *Instance) String() string {
