@@ -137,6 +137,8 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		ServerVersion: instance.GetServerVersion(),
 	}
 
+	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr, uint32(port))
+
 	if instance.GetRecoveredError() != nil && instance.GetStateMachine().Get() == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
 		instance.ClearRecoveredError()
