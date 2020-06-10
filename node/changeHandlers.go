@@ -419,33 +419,20 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
-// Polls permissioning for a client ndf. Parses that ndf to determine if it exists within
-//  the ndf.
-// If it exists within the ndf, then this returns true
-// If it does not exist or it encounters any errors, it return false
+// Pings permissioning server to see if our registration code has already been registered
 func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
 
 	// Request a client ndf from the permissioning server
-	partialNdfMsg, err := serverInstance.GetNetwork().RequestNdf(permHost, &mixmessages.NDFHash{Hash: nil})
+	response, err := serverInstance.GetNetwork().SendRegistrationCheck(permHost,
+		&mixmessages.RegisteredNodeCheck{
+			RegCode: serverInstance.GetDefinition().RegistrationCode,
+		})
 	if err != nil {
 		return false
 	}
 
-	// Convert the message type ndf to an ndf.NetworkDefinition objection
-	partialNdf, _, err := ndf.DecodeNDF(string(partialNdfMsg.Ndf))
-	if err != nil {
-		return false
-	}
+	return response.IsRegistered
 
-	jww.DEBUG.Printf("partial ndf: %v", err)
-
-	// Determine if we are in the partial ndf
-	err = permissioning.FindSelfInNdf(serverInstance.GetDefinition(), partialNdf)
-	if err != nil {
-		return false
-	}
-
-	return true
 }
 
 // Create dummy users to be manually inserted into the database

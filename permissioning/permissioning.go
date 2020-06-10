@@ -271,7 +271,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 // installing any ndf changes if needed and connecting to new nodes
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
-		jww.INFO.Printf("full ndf: %v", permissioningResponse.FullNDF)
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {
