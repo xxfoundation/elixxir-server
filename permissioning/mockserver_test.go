@@ -70,6 +70,10 @@ func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb
 	}, nil
 }
 
+func (i *mockPermission) CheckRegistration(msg *pb.RegisteredNodeCheck) (confirmation *pb.RegisteredNodeConfirmation, e error) {
+	return nil, nil
+}
+
 func (i *mockPermission) GetCurrentClientVersion() (string, error) {
 	return "0.0.0", nil
 }
@@ -91,6 +95,10 @@ func (i *mockPermissionMultipleRounds) RegisterUser(registrationCode, test strin
 
 func (i *mockPermissionMultipleRounds) RegisterNode(*id.ID, string, string, string, string, string) error {
 	return nil
+}
+
+func (i *mockPermissionMultipleRounds) CheckRegistration(msg *pb.RegisteredNodeCheck) (confirmation *pb.RegisteredNodeConfirmation, e error) {
+	return nil, nil
 }
 
 func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb.PermissionPollResponse, error) {
