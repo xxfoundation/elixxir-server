@@ -49,14 +49,14 @@ func TestRegisterNode(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:         internal.Flags{},
-		ID:            nodeId,
-		PublicKey:     nil,
-		PrivateKey:    nil,
-		TlsCert:       cert,
-		TlsKey:        key,
-		Address:       nodeAddr,
-		LogPath:       "",
+		Flags:      internal.Flags{},
+		ID:         nodeId,
+		PublicKey:  nil,
+		PrivateKey: nil,
+		TlsCert:    cert,
+		TlsKey:     key,
+		Address:    nodeAddr,
+		LogPath:    "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
@@ -89,7 +89,8 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, false, "1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, false,
+		"1.1.0", "")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -657,7 +658,8 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, false, "1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, false,
+		"1.1.0", "")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}

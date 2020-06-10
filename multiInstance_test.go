@@ -148,7 +148,8 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 
 		sm := state.NewMachine(testStates)
 
-		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, false, "1.1.0")
+		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm,
+			false, "1.1.0", fmt.Sprintf("/tmp/err_%d", i))
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
@@ -179,7 +180,6 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			}
 			instance.OverridePanicWrapper(f, t)
 		}
-		instance.RecoveredErrorFilePath = fmt.Sprintf("/tmp/err_%d", i)
 
 		instances = append(instances, instance)
 	}

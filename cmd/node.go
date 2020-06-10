@@ -72,7 +72,6 @@ func StartServer(vip *viper.Viper) error {
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
-
 	def.DisableStreaming = disableStreaming
 
 	err = node.ClearMetricsLogs(def.MetricLogPath)
@@ -130,20 +129,19 @@ func StartServer(vip *viper.Viper) error {
 	// Create the machine with these state functions
 	ourMachine := state.NewMachine(ourChangeList)
 
-	// Create instance
-	recoveredErrorFile, err := os.Open(params.RecoveredErrFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, useGPU, currentVersion)
-			if err != nil {
-				return errors.Errorf("Could not create server instance: %v", err)
-			}
-		} else {
-			return errors.WithMessage(err, "Failed to open file")
+	// Check if the error recovery file exists
+	if _, err := os.Stat(params.RecoveredErrFile); os.IsNotExist(err) {
+		// If not, start normally
+		instance, err = internal.CreateServerInstance(def,
+			io.NewImplementation, ourMachine, useGPU, currentVersion, params.RecoveredErrFile)
+		if err != nil {
+			return errors.Errorf("Could not create server instance: %v", err)
 		}
 	} else {
+		// Otherwise, start in recovery mode
 		jww.INFO.Println("Server has recovered from an error")
-		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, useGPU, currentVersion, recoveredErrorFile)
+		instance, err = internal.RecoverInstance(def, io.NewImplementation,
+			ourMachine, useGPU, currentVersion, params.RecoveredErrFile)
 		if err != nil {
 			return errors.WithMessage(err, "Could not recover server instance")
 		}

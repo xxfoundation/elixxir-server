@@ -72,7 +72,8 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		func(from current.Activity) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation, m, false, "1.1.0")
+	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
+		m, false, "1.1.0", "/tmp/recovered_error")
 
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
 		[]byte(testUtil.RegCert), false, false)
@@ -82,7 +83,6 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	r := round.NewDummyRoundWithTopology(id.Round(0), 3, topology, t)
 	instance.GetRoundManager().AddRound(r)
 	_ = instance.Run()
-	instance.RecoveredErrorFilePath = "/tmp/recovered_error"
 	return instance, topology
 }
 
