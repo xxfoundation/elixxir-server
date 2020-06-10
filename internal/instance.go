@@ -466,6 +466,7 @@ func (i *Instance) UpsertGatewayData(addr string, ver string) {
 /* TESTING FUNCTIONS */
 func (i *Instance) OverridePhases(overrides map[int]phase.Phase) {
 	i.phaseOverrides = overrides
+	i.overrideRound = -1
 }
 
 func (i *Instance) OverridePhasesAtRound(overrides map[int]phase.Phase, round int) {
