@@ -46,7 +46,11 @@ called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 # START YAML ===
 # registration code used for first time registration. Unique. Provided by xx network
 registrationCode: "abc123"
+# sets if computation will be on the GPU or the CPU
 useGPU: false
+# Level of debugging to print. 0 = info, 1 = debug, >1 = trace
+logLevel: 1
+
 node:
   paths:
     # Path where an error file will be placed in the event of a fatal error
@@ -63,22 +67,26 @@ node:
     log:  "server.log"
   # port the node will communicate on
   port: 42069
+
 database:
   # information to conenct to the POSTGRESS database storing keys
   name: "node_dbr"
   username: "privacy"
   password: ""
   address: "0.0.0.0:3800"
+
 gateways:
   paths:
     # Path to the self signed TLS cert used by the gateway
     cert: ""
+
 permissioning:
   paths:
     # Path to the self signed TLS cert used by the permissioning. Provided by xx network
     cert: ""
   # IP Address of the permissioning server, provided by xx network
   address: ""
+
 metrics:
   # location of stored metrics data. Modification to set to permissioning
   # server instead of saving will be made at a later date
