@@ -90,4 +90,3 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	// If node has not gotten a response from permissioning, return an empty message
 	return &res, errors.New(ndf.NO_NDF)
 }
-

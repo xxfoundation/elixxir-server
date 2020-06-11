@@ -168,7 +168,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 					Graph:               g,
 					Type:                phase.PrecompGeneration,
 					TransmissionHandler: th,
-					Timeout:             5*time.Second,
+					Timeout:             5 * time.Second,
 					DoVerification:      false,
 				})
 				overrides[0] = p
@@ -484,8 +484,8 @@ func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 	if errorPhase {
 		errWg.Wait()
 		for _, nodeInstance := range nodes {
-			err := nodeInstance.GetResourceQueue().Kill(1*time.Second)
-			if err!=nil{
+			err := nodeInstance.GetResourceQueue().Kill(1 * time.Second)
+			if err != nil {
 				t.Errorf("Node failed to kill: %s", err)
 			}
 		}
