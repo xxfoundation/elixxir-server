@@ -5,41 +5,82 @@
 
 ## Running the Server
 
-First, make sure dependencies are installed into the vendor folder by running
-`glide up`. Then, in the project directory, run `go run main.go` with the
-appropriate arguments.
+To run the server in cpu development mode:
 
-If what you're working on requires you to change other repos, you can remove
-the other repo from the vendor folder and Go's build tools will look for those
-packages in your Go path instead. Knowing which dependencies to remove can be
-really helpful if you're changing a lot of repos at once.
+```
+go run main.go --config [configuration-filename]
+```
 
-If glide isn't working and you don't know why, try removing glide.lock and
-~/.glide to brutally cleanse the cache.
+To enable the GPU, you need to install the gpumaths library into
+`/opt/xxnetwork/lib` (done via make install per it's README), then
+run with the gpu tag:
 
-Many of these flags override the values set in the config file:
+```
+go run -tags gpu main.go --config [configuration filename]
+```
 
-|Long flag|Short flag|Description|Example|
-|---|---|---|---|
-|--config| |Path to configuration file|--config ~/.elixxir/server.yaml|
-|--logLevel|-l|Sets the log message level to print. (0 = info, 1 = debug, >1 = trace)|-l 2|
-|--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
-|--registrationCode| |Required.  Registration code to give to permissioning.| |
-|--disableStreaming| |Disables streaming comms. By default true.| |
-|--useGPU| |Enables GPU processing| |
-|--help|-h|Print a help message|--help|
+[See gpumaths for more information.](https://gitlab.com/elixxir/gpumaths)
 
-Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go benchmark`.
+The command line flags for the server can be generated `--help` as follows:
+
+```
+$ go run main.go
+Error: required flag(s) "config" not set
+Usage:
+  server [flags]
+  server [command]
+
+Available Commands:
+  benchmark   Server benchmarking tests
+  generate    Generates version and dependency information for the Elixxir binary
+  help        Help about any command
+  version     Print the version and dependency information for the Elixxir binary
+
+Flags:
+      --config string             Required.  config file (default is $HOME/.elixxir/server.yaml)
+      --disableStreaming          Disables streaming comms.
+  -h, --help                      help for server
+  -l, --logLevel uint             Level of debugging to display. 0 = info, 1 = debug, >1 = trace (default 1)
+      --registrationCode string   Required.  Registration code to give to permissioning
+      --useGPU                    Toggle on GPU
+
+Use "server [command] --help" for more information about a command.
+```
+
+All of those flags, except `--config`, override values in the configuration
+file.
+
+The `version` subcommand prints the version:
+
+```
+$ go run main.go version
+Elixxir Server v1.1.0 -- fac1a93d fix version cmd
+
+Dependencies:
+
+module gitlab.com/elixxir/server
+...
+```
+
+The `benchmark` subcommand is currently unsupported, but you can run (CPU)
+server benchmarks with it:
+
+```
+$ go run main.go benchmark
+```
+
+The `generate` subcommand is used for updating version information (see the
+next section).
 
 ## Updating Version Info
 ```
-$ go run main.go generate 
+$ go run main.go generate
 $ mv version_vars.go cmd
 ```
 
 ## Config File
 
-Create a directory named `.elixxir` in your home directory with a file 
+Create a directory named `.xxnetwork` in your home directory with a file
 called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 
 ``` yaml
@@ -88,27 +129,37 @@ metrics:
 
 ## Project Structure
 
-`benchmark` is for all benchmarks that estimate the performance of the whole 
-server. Benchmarks that only test a small subset of the functionality should 
-use go test -bench for running and should exist in the package
+`benchmark` is for all benchmarks that estimate the performance of the
+whole server. Benchmarks that only test a small subset of the
+functionality should use go test -bench for running and should exist
+in the package. It is currently limited to CPU-only benchmarks.
 
-`cmd` handles command-line flags, configuration options, commands and 
-subcommands. This is where the functions that actually start a node are.
+`cmd` handles command-line flags, configuration options, commands and
+subcommands. This is where the functions that actually start a node
+are.
 
-`cryptops` contains the code that runs each phase of the mix network. 
-Precomputation phases are in `precomputation` and realtime phases are in 
-`realtime`.
+`cryptops` contains the code that runs each phase of the mix network.
+Precomputation phases are in `precomputation` and realtime phases are
+in `realtime`.
 
-`globals` contains libraries and variables that many other packages need to 
-import, but that don't need to import any packages from `server` itself. In 
-general, you shouldn't put things here, and you should redesign things that 
-are here so that it makes sense for them to have their own packages.
+`globals` contains libraries and variables that many other packages
+need to import, but that don't need to import any packages from
+`server` itself. In general, you shouldn't put things here, and you
+should redesign things that are here so that it makes sense for them
+to have their own packages.
 
-`io` sets up individual cryptops, phase transitions, and new rounds, and 
-handles communication between servers.
+`internal` contains internal server data structures.
 
-`services` contains utilities for the cryptops, including the dispatcher that
-allocates cryptop work to different goroutines.
+`io` sets up individual cryptops, phase transitions, and new rounds,
+and handles communication between servers.
+
+`services` contains utilities for the cryptops, including the
+dispatcher that allocates cryptop work to different goroutines.
+
+`node` contains node business logic.
+
+`permissioning` contins logic for dealing with the permissioning server
+(the current source of consensus).
 
 ## Compiling the Binary
 
@@ -117,11 +168,15 @@ you will need to run one of the commands in the following sections.
 The `.gitlab-ci.yml` file also contains cross build instructions
 for all of these platforms.
 
+Note: GPU support is only provided on Linux.
+
 ### Linux
 
 ```
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
+
+To build with GPU support, add `-tags gpu` after installing gpumaths.
 
 ### Windows
 
@@ -142,13 +197,3 @@ for a 32 bit version.
 ```
 GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
-
-## Godoc Generation
-
-
-- Open terminal and change current directory to your `go/src` directory
-- Run the command: `godoc -http=localhost:8000 -goroot=./gitlab.com/`
-  - This starts a local webserver with the godocs
-- Run the command: `open http://localhost:8000/pkg/`
-  - Alternatively open a browser and insert the url manually
-
