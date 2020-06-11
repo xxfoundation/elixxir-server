@@ -85,8 +85,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
 	require(params.RecoveredErrPath, "node.paths.errOutput")
 
-	params.SignedCertPath = vip.GetString("node.paths.signedCert")
-
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
@@ -94,8 +92,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
 	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
-
-	params.SignedGatewayCertPath = vip.GetString("gateway.paths.signedCert")
 
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
 	require(params.Permissioning.Paths.Cert, "permissioning.paths.cert")
@@ -170,16 +166,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
 	def.RecoveredErrorPath = p.RecoveredErrPath
-
-	// Only def values if params is set
-	if p.SignedCertPath != "" && p.SignedGatewayCertPath != "" {
-		def.WriteToFile = true
-		def.ServerCertPath = p.SignedCertPath
-		def.GatewayCertPath = p.SignedGatewayCertPath
-		jww.INFO.Printf("Loaded signed certificates...")
-	} else {
-		jww.INFO.Printf("Using unsigned certificates for first start...")
-	}
 
 	var GwTlsCerts []byte
 

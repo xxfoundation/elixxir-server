@@ -24,7 +24,6 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"strings"
 	"sync"
@@ -46,24 +45,25 @@ func NotStarted(instance *internal.Instance) error {
 
 	jww.INFO.Printf("Loading certificates from disk")
 	// Get the Server and Gateway certificates from file, if they exist
-	certsExist, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
-		ourDef.GatewayCertPath)
+
+	// Connect to the Permissioning Server without authentication
+	permHost, err := network.AddHost(&id.Permissioning,
+		// instance.GetPermissioningAddress,
+		ourDef.Permissioning.Address,
+		ourDef.Permissioning.TlsCert,
+		true,
+		false)
+
+	if err != nil {
+		return errors.Errorf("Unable to connect to registration server: %+v", err)
+	}
+
+	// Determine if the node has registered already
+	isRegistered := isRegistered(instance, permHost)
 
 	// If the certificates were retrieved from file, so do not need to register
-	if certsExist {
-		jww.INFO.Printf("Certificates found!")
-	} else {
-		jww.INFO.Printf("Certificates not found, registering with permissioning!")
-		// Connect to the Permissioning Server without authentication
-		permHost, err := network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
-			ourDef.Permissioning.Address,
-			ourDef.Permissioning.TlsCert,
-			true,
-			false)
-		if err != nil {
-			return errors.Errorf("Unable to connect to registration server: %+v", err)
-		}
+	if !isRegistered {
+		jww.INFO.Printf("Did not find self in NDF, registering with permissioning!")
 
 		// Blocking call: begin Node registration
 		err = permissioning.RegisterNode(ourDef, network, permHost)
@@ -87,7 +87,7 @@ func NotStarted(instance *internal.Instance) error {
 	// full NDF
 	// do this even if you have the certs to ensure the permissioning server is
 	// ready for servers to connect to it
-	permHost, err := network.AddHost(&id.Permissioning,
+	permHost, err = network.AddHost(&id.Permissioning,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -106,8 +106,8 @@ func NotStarted(instance *internal.Instance) error {
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
 			//find certs in NDF if they are nto already had
-			if !certsExist {
-				serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
+			if !isRegistered {
+				err = permissioning.FindSelfInNdf(ourDef,
 					instance.GetConsensus().GetFullNdf().Get())
 				if err != nil {
 					//if certs are not in NDF, redo the poll
@@ -123,18 +123,6 @@ func NotStarted(instance *internal.Instance) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
-
-	// Do not need to get the Server and Gateway certificates if they were
-	// already retrieved from file
-	if ourDef.WriteToFile && !certsExist {
-		jww.INFO.Printf("Writing certificates to disk")
-		// Save the retrieved certificates to file
-		writeCertificates(ourDef, serverCert, gwCert)
-		jww.INFO.Printf("Certificates written to disk")
-	} else if !certsExist && !ourDef.WriteToFile {
-		jww.WARN.Printf("Not writing certs to file because no file found")
-	}
-
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 	//populate the dummy precanned users
 	jww.INFO.Printf("Adding dummy users to registry")
@@ -156,19 +144,6 @@ func NotStarted(instance *internal.Instance) error {
 	instance.GetGatewayFirstTime().Receive()
 
 	jww.INFO.Printf("Communication form gateway recieved")
-	jww.INFO.Printf("Restarting network interface to begin operation")
-	// Restart the network with these signed certs
-	err = instance.RestartNetwork(io.NewImplementation, serverCert, gwCert)
-	if err != nil {
-		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
-	}
-
-	// HACK HACK HACK
-	// FIXME: we should not be coupling connections and server objects
-	// Technically the servers can fail to bind for up to
-	// a couple minutes (depending on operating system), but
-	// in practice 10 seconds works
-	time.Sleep(10 * time.Second)
 
 	// Once done with notStarted transition into waiting
 	go func() {
@@ -444,61 +419,20 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
-// getCertificates retrieves the Server and Gateway certificates from the path
-// in the definition. If one ore more certificate is not found, then that
-// certificate is returned as an empty string and the function returns false.
-func getCertificates(serverPath, gatewayPath string) (bool, string, string) {
-	var serverCert, gatewayCert []byte
-	var err error
+// Pings permissioning server to see if our registration code has already been registered
+func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
 
-	// Check if the Server certificate files exist
-	serverCertExists := utils.FileExists(serverPath)
-
-	if serverCertExists {
-		// Load the Server certificate from file
-		serverCert, err = utils.ReadFile(serverPath)
-		if err != nil {
-			jww.DEBUG.Printf("Received Server's certificate from file %s: %v",
-				serverPath, err)
-		}
-	}
-
-	// Check if the Gateway certificate files exist
-	gatewayCertExists := utils.FileExists(gatewayPath)
-
-	if gatewayCertExists {
-		// Load the Gateway certificate from file
-		gatewayCert, err = utils.ReadFile(gatewayPath)
-		if err != nil {
-			jww.DEBUG.Printf("Received Gateway's certificate from file: %s: %v",
-				gatewayPath, err)
-		}
-	}
-
-	return serverCertExists && gatewayCertExists,
-		string(serverCert),
-		string(gatewayCert)
-}
-
-// writeCertificates writes the Server and Gateway certificates to the paths
-// in the definition. If either file fails to save, then it panics.
-func writeCertificates(def *internal.Definition, serverCert, gatewayCert string) {
-
-	// Write the Server certificate to specified path
-	err := utils.WriteFile(def.ServerCertPath, []byte(serverCert),
-		utils.FilePerms, utils.DirPerms)
+	// Request a client ndf from the permissioning server
+	response, err := serverInstance.GetNetwork().SendRegistrationCheck(permHost,
+		&mixmessages.RegisteredNodeCheck{
+			RegCode: serverInstance.GetDefinition().RegistrationCode,
+		})
 	if err != nil {
-		jww.FATAL.Panicf("Error writing Server certificate to path "+
-			"%s: %v", def.ServerCertPath, err)
+		return false
 	}
 
-	// Write the Gateway certificate to specified path
-	err = utils.WriteFile(def.GatewayCertPath, []byte(gatewayCert),
-		utils.FilePerms, utils.DirPerms)
-	if err != nil {
-		jww.FATAL.Panicf("Error writing Gateway certificate to path "+
-			"%s: %v", def.GatewayCertPath, err)
-	}
+	return response.IsRegistered
+
 }
 
 // Create dummy users to be manually inserted into the database
