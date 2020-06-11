@@ -29,7 +29,6 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
-	"log"
 	"os"
 	"strings"
 	"sync"
@@ -70,10 +69,9 @@ type Instance struct {
 
 	roundErrFunc RoundErrBroadcastFunc
 
-	errLck                 sync.Mutex
-	roundError             *mixmessages.RoundError
-	recoveredError         *mixmessages.RoundError
-	RecoveredErrorFilePath string
+	errLck         sync.Mutex
+	roundError     *mixmessages.RoundError
+	recoveredError *mixmessages.RoundError
 
 	phaseOverrides map[int]phase.Phase
 	overrideRound  int
@@ -93,7 +91,7 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, useGPU bool, version string) (*Instance, error) {
+	machine state.Machine, version string) (*Instance, error) {
 	isGwReady := uint32(0)
 	firstPoll := uint32(0)
 	instance := &Instance{
@@ -117,7 +115,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Create stream pool if instructed to use GPU
-	if useGPU {
+	if def.UseGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
 		memSize := 268435456
@@ -170,41 +168,49 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 // Wrap CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, useGPU bool, version string, recoveredErrorFile *os.File) (*Instance, error) {
+	machine state.Machine, version string) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine, useGPU, version)
+	i, err = CreateServerInstance(def, makeImplementation, machine,
+		version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
-	i.RecoveredErrorFilePath = recoveredErrorFile.Name()
+	file, err := os.Open(i.definition.RecoveredErrorPath)
+	if err != nil {
+		return nil, errors.WithMessage(err,
+			"Failed to open recovered error file")
+	}
 
 	// Read recovered error file to bytes
 	var recoveredError []byte
-	_, err = recoveredErrorFile.Read(recoveredError)
+	_, err = file.Read(recoveredError)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to read recovered error")
 	}
 
 	// Close recovered error file
-	err = recoveredErrorFile.Close()
+	err = file.Close()
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to close recovered error file")
 	}
 
-	// Remove recovered error file
-	err = os.Remove(recoveredErrorFile.Name())
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to remove ")
-	}
-
-	// Unmarshal bytes to RoundError, set recoveredError field on instance
+	// Unmarshal bytes to RoundError
 	msg := &mixmessages.RoundError{}
 	err = proto.Unmarshal(recoveredError, msg)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to unmarshal message from file")
 	}
+
+	// Remove recovered error file
+	err = os.Remove(i.definition.RecoveredErrorPath)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to remove ")
+	}
+
+	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
+		" file at %s", msg.Error, i.definition.RecoveredErrorPath)
 
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
@@ -405,25 +411,25 @@ func (i *Instance) GetPanicWrapper() func(s string) {
 func (i *Instance) GetGatewayData() (addr string, ver string) {
 	i.gatewayMutex.RLock()
 	defer i.gatewayMutex.RUnlock()
+	jww.TRACE.Printf("Returning Gateway: %s, %s", i.gatewayAddess,
+		i.gatewayVersion)
 	return i.gatewayAddess, i.gatewayVersion
 }
 
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
-	i.gatewayMutex.RLock()
+	i.gatewayMutex.Lock()
+	defer i.gatewayMutex.Unlock()
+	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
 	if i.gatewayAddess != addr || i.gatewayVersion != ver {
-		i.gatewayMutex.RUnlock()
-		i.gatewayMutex.Lock()
-		i.gatewayVersion = addr
-		i.gatewayVersion = ver
-		i.gatewayMutex.Unlock()
-		return
+		(*i).gatewayAddess = addr
+		(*i).gatewayVersion = ver
 	}
-	i.gatewayMutex.RUnlock()
 }
 
 /* TESTING FUNCTIONS */
 func (i *Instance) OverridePhases(overrides map[int]phase.Phase) {
 	i.phaseOverrides = overrides
+	i.overrideRound = -1
 }
 
 func (i *Instance) OverridePhasesAtRound(overrides map[int]phase.Phase, round int) {
@@ -519,11 +525,11 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Ro
 	sm := i.GetStateMachine()
 	ok, err := sm.Update(current.ERROR)
 	if err != nil {
-		log.Panicf("Failed to change state to ERROR STATE %v", err)
+		jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
 	}
 
 	if !ok {
-		log.Panicf("Failed to change state to ERROR STATE")
+		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
 }
 

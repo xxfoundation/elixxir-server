@@ -9,6 +9,7 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
@@ -27,6 +28,9 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	}
 
 	res := mixmessages.ServerPollResponse{}
+
+	jww.TRACE.Printf("Gateway Info: %s, %s", gatewayAddress,
+		poll.GatewayVersion)
 
 	// Form gateway address and put it into gateway data in instance
 	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)

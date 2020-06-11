@@ -31,6 +31,7 @@ import (
 // It should be constructed using a viper object
 type Params struct {
 	KeepBuffers           bool
+	UseGPU                bool
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
@@ -45,7 +46,7 @@ type Params struct {
 
 	PhaseOverrides   []int
 	OverrideRound    int
-	RecoveredErrFile string
+	RecoveredErrPath string
 }
 
 // NewParams gets elements of the viper object
@@ -81,8 +82,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	require(params.Node.Paths.Key, "node.paths.key")
 
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
-	params.RecoveredErrFile = vip.GetString("node.paths.errOutput")
-	require(params.RecoveredErrFile, "node.paths.errOutput")
+	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
+	require(params.RecoveredErrPath, "node.paths.errOutput")
 
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
@@ -114,6 +115,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
 	params.KeepBuffers = vip.GetBool("keepBuffers")
+	params.UseGPU = vip.GetBool("useGPU")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
@@ -136,6 +138,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
+	def.Flags.UseGPU = p.UseGPU
 	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
@@ -162,6 +165,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
+	def.RecoveredErrorPath = p.RecoveredErrPath
 
 	var GwTlsCerts []byte
 
