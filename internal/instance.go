@@ -70,6 +70,7 @@ type Instance struct {
 	panicWrapper   func(s string)
 
 	gatewayAddess  string
+	gatewayID      *id.ID
 	gatewayVersion string
 	gatewayMutex   sync.RWMutex
 
@@ -298,6 +299,21 @@ func (i *Instance) GetServerCertPath() string {
 // GetGatewayCertPath returns the path for Gateway certificate
 func (i *Instance) GetGatewayCertPath() string {
 	return i.definition.GatewayCertPath
+}
+
+// SetGatewayID sets the gateway ID. It does this once
+func (i *Instance) SetGatewayID() {
+	// Get a copy of the server id and transfer to a gateway id
+	expectedGatewayID := i.GetID().DeepCopy()
+	expectedGatewayID.SetType(id.Gateway)
+
+	i.gatewayID = expectedGatewayID
+
+}
+
+// GetGatewayCertPath returns the path for Gateway certificate
+func (i *Instance) GetGatewayID() *id.ID {
+	return i.gatewayID
 }
 
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.

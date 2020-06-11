@@ -501,6 +501,8 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
 
+	instance.SetGatewayID()
+
 	// Create host and auth
 	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
 	auth := &connect.Auth{

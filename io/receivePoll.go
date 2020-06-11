@@ -22,20 +22,13 @@ import (
 func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
-	// Get sender id
+	// Get ID's needed for auth checks
 	senderId := auth.Sender.GetId()
+	expectedGatewayID := instance.GetGatewayID()
 
-	//jww.INFO.Printf("gateway address: %v", gatewayAddress)
-
-	// Get a copy of the server id and transfer to a gateway id
-	expectedGatewayID := instance.GetID().DeepCopy()
-	expectedGatewayID.SetType(id.Gateway)
-
-	// Else if the first poll has occurred, check that the gateway has a new ID
-	//  based off of our nodeID
+	// Check that the sender is authenticated and is either their gateway or the temporary gateway
 	if !auth.IsAuthenticated || (!senderId.Cmp(expectedGatewayID) && !senderId.Cmp(&id.TempGateway)) {
-		jww.INFO.Printf("After first poll, gateway id %v does not match expected\n\tExpected: %v", auth.Sender.GetId(), expectedGatewayID)
-		jww.INFO.Printf("Failed auth object: %v", auth)
+		jww.TRACE.Printf("Failed auth object: %v", auth)
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
