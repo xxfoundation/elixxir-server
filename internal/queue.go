@@ -166,6 +166,8 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			go func() { why <- true }()
 			return
 		case rtnPhase = <-rq.finishChan:
+		case <- rq.timer.C:
+			timeout = true
 		}
 
 		//process timeout
