@@ -225,7 +225,7 @@ func TestPrecomputing(t *testing.T) {
 		t.Errorf("Failed to kill resource queue: %+v", err)
 	}
 
-	err = Precomputing(instance, 3)
+	err = Precomputing(instance)
 	if err != nil {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
@@ -293,7 +293,7 @@ func TestPrecomputing_override(t *testing.T) {
 		t.Errorf("Failed to kill resource queue: %+v", err)
 	}
 
-	err = Precomputing(instance, 3)
+	err = Precomputing(instance)
 	if err != nil {
 		t.Errorf("Failed to precompute: %+v", err)
 	}

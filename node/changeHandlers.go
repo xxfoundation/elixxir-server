@@ -196,7 +196,7 @@ func Waiting(from current.Activity) error {
 }
 
 // Precomputing does various business logic to prep for the start of a new round
-func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) error {
+func Precomputing(instance *internal.Instance) error {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo, err := instance.GetCreateRoundQueue().Receive()
@@ -205,6 +205,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	}
 
 	roundID := roundInfo.GetRoundId()
+	roundTimeout := time.Duration(roundInfo.ResourceQueueTimeoutMillis) * time.Millisecond
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
 	nodeIDs, err := id.NewIDListFromBytes(topology)
@@ -231,7 +232,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout, instance.GetStreamPool(),
+		roundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming())
 
 	var override = func() {
