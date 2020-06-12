@@ -492,16 +492,17 @@ func GenerateId(i interface{}) *id.ID {
 	return nid
 }
 
+func (i *Instance) ReportNodeFailure(errIn error) {
+	i.ReportRoundFailure(errIn, i.GetID(), 0)
+}
+
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
-func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Round) {
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
-	if roundId == nil {
-		jww.FATAL.Panicf("Encountered an unrecoverable error: " + errIn.Error())
-	}
 	roundErr := mixmessages.RoundError{
-		Id:     uint64(*roundId),
+		Id:     uint64(roundId),
 		Error:  errIn.Error(),
 		NodeId: nodeId.Marshal(),
 	}
