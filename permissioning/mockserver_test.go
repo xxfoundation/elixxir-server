@@ -130,7 +130,7 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	node4 := []byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
 
 	now := time.Now()
-	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps := make([]uint64, states.NUM_STATES)
 	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 	timestamps[states.REALTIME] = uint64(time.Now().Add(500 * time.Millisecond).UnixNano())
 
@@ -140,10 +140,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 
 	// Construct round info message indicating PRECOMP starting
 	precompRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.PRECOMPUTING),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.PRECOMPUTING),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
@@ -155,10 +155,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 
 	// Construct round info message indicating STANDBY starting
 	standbyRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.STANDBY),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.STANDBY),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
@@ -173,10 +173,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 
 	// Add new round in standby stage
 	newNodeRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.STANDBY),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.STANDBY),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
