@@ -63,13 +63,13 @@ func NotStarted(instance *internal.Instance) error {
 
 	// If the certificates were retrieved from file, so do not need to register
 	if !isRegistered {
-		jww.INFO.Printf("Did not find self in NDF, registering with permissioning!")
+		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
 		// Blocking call: begin Node registration
 		err = permissioning.RegisterNode(ourDef, network, permHost)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
-				jww.WARN.Println("Node is already registered, continuing to retrieve the signed cert from the NDF. Attempting re-registration is NOT secure")
+				jww.FATAL.Panic("Node is already registered, Attempting re-registration is NOT secure")
 			} else {
 				return errors.Errorf("Failed to register node: %+v", err)
 			}
@@ -432,6 +432,7 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 			RegCode: serverInstance.GetDefinition().RegistrationCode,
 		})
 	if err != nil {
+		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
 		return false
 	}
 
