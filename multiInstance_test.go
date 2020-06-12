@@ -222,7 +222,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
-		ID:        0,
+		ID:        1,
 		UpdateID:  0,
 		State:     uint32(current.PRECOMPUTING),
 		BatchSize: uint32(batchsize),
@@ -253,7 +253,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	//get round buffers for probing
 	var roundBufs []*round.Buffer
 	for _, instance := range instances {
-		r, _ := instance.GetRoundManager().GetRound(0)
+		r, _ := instance.GetRoundManager().GetRound(1)
 		roundBufs = append(roundBufs, r.GetBuffer())
 	}
 

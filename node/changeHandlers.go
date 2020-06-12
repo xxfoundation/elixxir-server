@@ -339,7 +339,7 @@ func Error(instance *internal.Instance) error {
 
 	wg := sync.WaitGroup{}
 	// If the error originated with us, send broadcast to other nodes
-	if nid.Cmp(instance.GetID()) {
+	if nid.Cmp(instance.GetID()) && msg.Id != 0 {
 		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
 		if err != nil {
 			return errors.WithMessage(err, "Failed to get round id")
