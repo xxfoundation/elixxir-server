@@ -25,7 +25,8 @@ The command line flags for the server can be generated `--help` as follows:
 
 ```
 $ go run main.go
-Error: required flag(s) "config" not set
+The server provides a full cMix node for distributed anonymous communications.
+
 Usage:
   server [flags]
   server [command]
@@ -37,12 +38,12 @@ Available Commands:
   version     Print the version and dependency information for the Elixxir binary
 
 Flags:
-      --config string             Required.  config file (default is $HOME/.elixxir/server.yaml)
+  -c, --config string             Path to load the Node configuration file from. If not set, this file must be named gateway.yaml and must be located in ~/.xxnetwork/, /opt/xxnetwork, or /etc/xxnetwork.
       --disableStreaming          Disables streaming comms.
   -h, --help                      help for server
-  -l, --logLevel uint             Level of debugging to display. 0 = info, 1 = debug, >1 = trace (default 1)
-      --registrationCode string   Required.  Registration code to give to permissioning
-      --useGPU                    Toggle on GPU
+  -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
+      --registrationCode string   Registration code used for first time registration. Required field.
+      --useGPU                    Toggle use of GPU.
 
 Use "server [command] --help" for more information about a command.
 ```
@@ -84,55 +85,60 @@ Create a directory named `.xxnetwork` in your home directory with a file
 called `server.yaml` as follows (Make sure to use spaces, not tabs!):
 
 ``` yaml
-# START YAML ===
-# registration code used for first time registration. Unique. Provided by xx network
+# Registration code used for first time registration. This is a unique code
+# provided by xx network.
 registrationCode: "abc123"
-# sets if computation will be on the GPU or the CPU
+
+# Toggles use of the GPU.
 useGPU: false
-# Level of debugging to print. 0 = info, 1 = debug, >1 = trace
+
+# Level of debugging to print (0 = info, 1 = debug, >1 = trace).
 logLevel: 1
 
 node:
   paths:
-    # Path where an error file will be placed in the event of a fatal error
-    # used by the wrapper script
-    errOutput: ""
-    # Path where the ID will be stored after the ID is created on first run
-    # used by the wrapper script
-    idf:  ""
-    # Path to the self signed TLS cert that the node uses for identification
-    cert: ""
-    # Path to the private key for the self signed TLS cert 
-    key:  ""
-    # Path to where the log will be stored
-    log:  "server.log"
-  # port the node will communicate on
+    # Path where an error file will be placed in the event of a fatal error.
+    # This path is used by the Wrapper Script
+    errOutput: "/opt/xxnetwork/node-logs/node-err.log"
+    # Path where the ID will be stored after the ID is created on first run.
+    # This path is used by the Wrapper Script.
+    idf:  "/opt/xxnetwork/node-logs/nodeIDF.json"
+    # Path to the self-signed TLS certificate for Node. Expects PEM format.
+    # Required field.
+    cert: "/opt/xxnetwork/creds/node_cert.crt"
+    # Path to the private key for the self signed TLS cert
+    # Path to the private key associated with the self-signed TLS certificate.
+    # Required field.
+    key:  "/opt/xxnetwork/creds/node_key.key"
+    #  Path where log file will be saved.
+    log:  "/opt/xxnetwork/node-logs/node.log"
+  # Port that the Node will communicate on.
   port: 42069
 
+# Information to conenct to the Postgres database storing keys.
 database:
-  # information to conenct to the POSTGRESS database storing keys
-  name: "node_dbr"
-  username: "privacy"
+  name: "nodedb"
+  username: "node"
   password: ""
   address: "0.0.0.0:3800"
 
 gateways:
   paths:
-    # Path to the self signed TLS cert used by the gateway
-    cert: ""
+    # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
+    # Required field.
+    cert: "/opt/xxnetwork/creds/gateway-cert.crt"
 
 permissioning:
   paths:
-    # Path to the self signed TLS cert used by the permissioning. Provided by xx network
-    cert: ""
-  # IP Address of the permissioning server, provided by xx network
-  address: ""
+    # Path to the self-signed TLS certificate for the Permissioning server.
+    # Expects PEM format. Required field.
+    cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
+    # IP Address of the Permissioning server, provided by xx network.
+    address: ""
 
 metrics:
-  # location of stored metrics data. Modification to set to permissioning
-  # server instead of saving will be made at a later date
-  log:  "~/.xxnetwork/metrics.log"
-# === END YAML
+  # Location of stored metrics data.
+  log:  "/opt/xxnetowkr/server-logs/metrics.log"
 ```
 
 ## Project Structure
