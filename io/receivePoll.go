@@ -22,8 +22,9 @@ import (
 func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
-	// If we have an invalid, we deny communication
-	if !isValidAuth(instance, auth) {
+	// Check that the sender is authenticated and is either their gateway or the temporary gateway
+	if !auth.IsAuthenticated || (!isValidID(auth.Sender.GetId(), &id.TempGateway, instance.GetGatewayID())) {
+		jww.TRACE.Printf("Failed auth object: %v", auth)
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -70,9 +71,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 			res.Slots = cr.Round
 		}
 
-		// Denote that the gateway has polled once
-		instance.DeclareFirstPoll()
-
 		//denote that gateway has received info, only operates ont eh first time
 		instance.GetGatewayFirstTime().Send()
 		return &res, nil
@@ -82,33 +80,16 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	return &res, errors.New(ndf.NO_NDF)
 }
 
-// Helper function to check the auth for the specialized cases needed for
-// the ReceivePoll handler
-func isValidAuth(instance *internal.Instance, auth *connect.Auth) bool {
-	// Get sender id
-	senderId := auth.Sender.GetId()
-
-	// Get a copy of the server id and transfer to a gateway id
-	expectedGatewayID := instance.GetID().DeepCopy()
-	expectedGatewayID.SetType(id.Gateway)
-
-	// If this is the first poll received, check that the message is authenticated and
-	//  that the sender has a temporary gateway ID and that
-	//  the sender sends from the address specified in our configuration
-	if !instance.IsAfterFirstPoll() {
-		if !auth.IsAuthenticated || !senderId.Cmp(&id.TempGateway) {
-			return false
+// checks the sender against all passed in IDs, returning true if any match
+// and skipping any that are nil
+func isValidID(sender *id.ID, valid ...*id.ID)bool{
+	for _, validID := range valid{
+		if validID==nil{
+			continue
 		}
-
-		return true
-
+		if sender.Cmp(validID){
+			return true
+		}
 	}
-
-	// Else if the first poll has occurred, check that the gateway has a new ID
-	//  based off of our nodeID
-	if !auth.IsAuthenticated || !senderId.Cmp(expectedGatewayID) {
-		return false
-	}
-
-	return true
+	return false
 }

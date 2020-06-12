@@ -137,6 +137,10 @@ func NotStarted(instance *internal.Instance) error {
 	userDatabase.UpsertUser(dummy)
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
+
+	// Set the gateway ID
+	instance.SetGatewayID()
+
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 

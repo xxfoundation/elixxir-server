@@ -501,6 +501,8 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
 
+	instance.SetGatewayID()
+
 	// Create host and auth
 	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
 	auth := &connect.Auth{
@@ -514,14 +516,6 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
 			"\n\tReceived: %v", connect.AuthError(auth.Sender.GetId()), err)
-	}
-
-	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
-
-	// Attempt the same poll, with parameters that should now be invalid
-	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
-	if err.Error() != expectedError {
-		t.Errorf("Expected happy path, received error: %v", err)
 	}
 
 	// Get a copy of the server id and transfer to a gateway id
