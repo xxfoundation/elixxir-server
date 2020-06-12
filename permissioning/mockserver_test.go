@@ -129,6 +129,11 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	node3 := []byte{3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
 	node4 := []byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
 
+	now := time.Now()
+	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
+	timestamps[states.REALTIME] = uint64(time.Now().Add(500 * time.Millisecond).UnixNano())
+
 	// Create a topology for round info
 	jww.FATAL.Println(node1)
 	ourTopology := [][]byte{node1, node2, node3}
@@ -139,6 +144,7 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 		UpdateID: numUpdates,
 		State:    uint32(states.PRECOMPUTING),
 		Topology: ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Mocking permissioning server signing message
@@ -153,6 +159,7 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 		UpdateID: numUpdates,
 		State:    uint32(states.STANDBY),
 		Topology: ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Mocking permissioning server signing message
@@ -170,6 +177,7 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 		UpdateID: numUpdates,
 		State:    uint32(states.STANDBY),
 		Topology: ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Set the signature field of the round info
@@ -177,11 +185,6 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 
 	// Increment updates id for next message
 	numUpdates++
-
-	// Create a time stamp in which to transfer stats
-	ourTime := time.Now().Add(500 * time.Millisecond).UnixNano()
-	timestamps := make([]uint64, states.FAILED)
-	timestamps[states.REALTIME] = uint64(ourTime)
 
 	// Construct round info message for REALTIME
 	realtimeRoundInfo := &pb.RoundInfo{
