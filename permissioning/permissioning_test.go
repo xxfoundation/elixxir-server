@@ -284,16 +284,16 @@ func TestUpdateInternalState(t *testing.T) {
 	ourTopology := [][]byte{nodeOne, nodeTwo, nodeThree}
 
 	now := time.Now()
-	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps := make([]uint64, states.NUM_STATES)
 	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 
 	// Construct round info message
 	precompRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.PRECOMPUTING),
-		Topology: ourTopology,
-		Timestamps:timestamps,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.PRECOMPUTING),
+		Topology:   ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Increment updates id for next message
@@ -434,13 +434,13 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 
 	// ------------------------------- PENDING TEST ------------------------------------------------------------
 	now := time.Now()
-	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps := make([]uint64, states.NUM_STATES)
 	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 	pendingRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.PENDING),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.PENDING),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
@@ -469,10 +469,10 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 
 	// ------------------------------- STANDBY TESTING ------------------------------------------------------------
 	standbyRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.STANDBY),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.STANDBY),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
@@ -497,11 +497,11 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 
 	// ------------------------------- COMPLETED TESTING ------------------------------------------------------------
 	completedRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.COMPLETED),
-		Topology: ourTopology,
-		Timestamps:timestamps,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.COMPLETED),
+		Topology:   ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Increment updates id for next message
@@ -542,7 +542,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	// ------------------- Enter an unexpected state -------------------------------------
 
 	now := time.Now()
-	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps := make([]uint64, states.NUM_STATES)
 	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 
 	// Construct round info message
@@ -550,9 +550,9 @@ func TestUpdateInternalState_Error(t *testing.T) {
 		ID:       0,
 		UpdateID: 4,
 		// Attempt to turn to a state that doesn't exist (there are only NUM_STATES - 1 states)
-		State:    uint32(states.NUM_STATES),
-		Topology: ourTopology,
-		Timestamps:timestamps,
+		State:      uint32(states.NUM_STATES),
+		Topology:   ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Set the signature field of the round info
@@ -582,11 +582,11 @@ func TestUpdateInternalState_Error(t *testing.T) {
 
 	// Construct round info message
 	theirRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: 4,
-		State:    uint32(states.PRECOMPUTING),
-		Topology: badTopology,
-		Timestamps:timestamps,
+		ID:         0,
+		UpdateID:   4,
+		State:      uint32(states.PRECOMPUTING),
+		Topology:   badTopology,
+		Timestamps: timestamps,
 	}
 
 	// Set the signature field of the round info
@@ -766,7 +766,7 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
-	instance.SetLastPoll(time.Now().Add(-1*time.Second))
+	instance.SetLastPoll(time.Now().Add(-1 * time.Second))
 
 	// Start up permissioning server which will return multiple round updates
 	permComms, err := startMultipleRoundUpdatesPermissioning()
