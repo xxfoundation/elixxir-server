@@ -396,8 +396,9 @@ func Error(instance *internal.Instance) error {
 		return errors.WithMessage(err, "Resource queue kill timed out")
 	}
 
-	instance.GetPanicWrapper()(fmt.Sprintf("Error encountered - closing server & writing error to file %s",
-		instance.GetDefinition().RecoveredErrorPath))
+	instance.GetPanicWrapper()(fmt.Sprintf(
+		"Error encountered - closing server & writing error to %s: %s",
+		instance.GetDefinition().RecoveredErrorPath, msg.Error))
 	return nil
 }
 
