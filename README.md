@@ -184,6 +184,8 @@ To build with GPU support, add `-tags gpu` after installing gpumaths.
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
 
+Note: CPU metrics and some time based events may not function in windows.
+
 or
 
 ```
