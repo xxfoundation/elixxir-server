@@ -22,12 +22,8 @@ import (
 func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
-	// Get ID's needed for auth checks
-	senderId := auth.Sender.GetId()
-	expectedGatewayID := instance.GetGatewayID()
-
 	// Check that the sender is authenticated and is either their gateway or the temporary gateway
-	if !auth.IsAuthenticated || (!senderId.Cmp(expectedGatewayID) && !senderId.Cmp(&id.TempGateway)) {
+	if !auth.IsAuthenticated || (!isValidID(auth.Sender.GetId(), &id.TempGateway, instance.GetGatewayID())) {
 		jww.TRACE.Printf("Failed auth object: %v", auth)
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
@@ -82,4 +78,16 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	// If node has not gotten a response from permissioning, return an empty message
 	return &res, errors.New(ndf.NO_NDF)
+}
+
+func isValidID(sender *id.ID, valid ...*id.ID)bool{
+	for _, validID := range valid{
+		if validID==nil{
+			continue
+		}
+		if sender.Cmp(validID){
+			return true
+		}
+	}
+	return false
 }
