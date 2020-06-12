@@ -283,12 +283,17 @@ func TestUpdateInternalState(t *testing.T) {
 	nodeThree := id.NewIdFromUInt(2, id.Node, t).Marshal()
 	ourTopology := [][]byte{nodeOne, nodeTwo, nodeThree}
 
+	now := time.Now()
+	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
+
 	// Construct round info message
 	precompRoundInfo := &pb.RoundInfo{
 		ID:       0,
 		UpdateID: numUpdates,
 		State:    uint32(states.PRECOMPUTING),
 		Topology: ourTopology,
+		Timestamps:timestamps,
 	}
 
 	// Increment updates id for next message
@@ -315,7 +320,7 @@ func TestUpdateInternalState(t *testing.T) {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance, now)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -361,10 +366,6 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 
 	// Create a time stamp in which to transfer stats
-	ourTime := time.Now().Add(700 * time.Millisecond).UnixNano()
-	timestamps := make([]uint64, states.FAILED)
-	timestamps[states.REALTIME] = uint64(ourTime)
-
 	// Construct round info message
 	realtimeRoundInfo := &pb.RoundInfo{
 		ID:       0,
@@ -389,7 +390,7 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 	fmt.Println("calling update")
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance, now)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -432,11 +433,15 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	ourTopology := [][]byte{nodeOne, nodeTwo, nodeThree}
 
 	// ------------------------------- PENDING TEST ------------------------------------------------------------
+	now := time.Now()
+	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 	pendingRoundInfo := &pb.RoundInfo{
 		ID:       0,
 		UpdateID: numUpdates,
 		State:    uint32(states.PENDING),
 		Topology: ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Increment updates id for next message
@@ -457,7 +462,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance, now)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -468,6 +473,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 		UpdateID: numUpdates,
 		State:    uint32(states.STANDBY),
 		Topology: ourTopology,
+		Timestamps: timestamps,
 	}
 
 	// Increment updates id for next message
@@ -484,7 +490,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance, now)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -495,6 +501,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 		UpdateID: numUpdates,
 		State:    uint32(states.COMPLETED),
 		Topology: ourTopology,
+		Timestamps:timestamps,
 	}
 
 	// Increment updates id for next message
@@ -511,7 +518,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance, now)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -534,6 +541,10 @@ func TestUpdateInternalState_Error(t *testing.T) {
 
 	// ------------------- Enter an unexpected state -------------------------------------
 
+	now := time.Now()
+	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
+
 	// Construct round info message
 	NumStateRoundInfo := &pb.RoundInfo{
 		ID:       0,
@@ -541,6 +552,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 		// Attempt to turn to a state that doesn't exist (there are only NUM_STATES - 1 states)
 		State:    uint32(states.NUM_STATES),
 		Topology: ourTopology,
+		Timestamps:timestamps,
 	}
 
 	// Set the signature field of the round info
@@ -558,7 +570,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance, now)
 	if err == nil {
 		t.Errorf("Expected error path. Attempted to transfer to an unknown state")
 	}
@@ -574,6 +586,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 		UpdateID: 4,
 		State:    uint32(states.PRECOMPUTING),
 		Topology: badTopology,
+		Timestamps:timestamps,
 	}
 
 	// Set the signature field of the round info
@@ -587,7 +600,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
+	err = UpdateRounds(mockPollResponse, instance, now)
 	if err == nil {
 		t.Errorf("Expected error path. Should not be able to update a round in which we aren't a team" +
 			"memeber")
@@ -753,6 +766,7 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
+	instance.SetLastPoll(time.Now().Add(-1*time.Second))
 
 	// Start up permissioning server which will return multiple round updates
 	permComms, err := startMultipleRoundUpdatesPermissioning()

@@ -34,6 +34,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
@@ -75,6 +76,9 @@ type Instance struct {
 	gatewayMutex   sync.RWMutex
 
 	serverVersion string
+
+	lastPoll time.Time
+	lastPollLock sync.Mutex
 }
 
 // Create a server instance. To actually kick off the server,
@@ -316,6 +320,21 @@ func (i *Instance) GetGatewayID() *id.ID {
 	return i.gatewayID
 }
 
+// SetLastPoll sets the timestamp for the last poll of permissioning
+func (i *Instance) SetLastPoll(t time.Time) {
+	i.lastPollLock.Lock()
+	defer i.lastPollLock.Unlock()
+	i.lastPoll = t
+}
+
+//  GetLastPoll gets the timestamp for the last poll of permissioning
+func (i *Instance) GetLastPoll()time.Time {
+	i.lastPollLock.Lock()
+	defer i.lastPollLock.Unlock()
+	return i.lastPoll
+}
+
+
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
@@ -492,17 +511,25 @@ func GenerateId(i interface{}) *id.ID {
 	return nid
 }
 
+func (i *Instance) ReportNodeFailure(errIn error) {
+	i.ReportRoundFailure(errIn, i.GetID(), 0)
+}
+
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
-func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId *id.Round) {
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
 	i.errLck.Lock()
-	defer i.errLck.Unlock()
-	if roundId == nil {
-		jww.FATAL.Panicf("Encountered an unrecoverable error: " + errIn.Error())
+
+	//truncate the error if it is too long
+	errStr := errIn.Error()
+	if len(errStr)> 5000{
+		errStr = errStr[:5000]
 	}
+
+	defer i.errLck.Unlock()
 	roundErr := mixmessages.RoundError{
-		Id:     uint64(*roundId),
-		Error:  errIn.Error(),
+		Id:     uint64(roundId),
+		Error:  errStr,
 		NodeId: nodeId.Marshal(),
 	}
 

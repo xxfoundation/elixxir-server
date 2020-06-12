@@ -59,6 +59,7 @@ func Poll(instance *internal.Instance) error {
 		return errors.New("Could not get permissioning host")
 	}
 
+	//get any skipped state reports
 	var reportedActivity current.Activity
 	select {
 	case reportedActivity = <-instance.GetStateMachine().GetBuffer():
@@ -77,8 +78,17 @@ func Poll(instance *internal.Instance) error {
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
 	if err != nil {
+		if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
+			strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
+			strings.Contains(err.Error(), "requires the Node be assigned a round") ||
+			strings.Contains(err.Error(), "invalid transition") {
+			instance.ReportNodeFailure(err)
+		}
 		return err
 	}
+
+	lastPoll := instance.GetLastPoll()
+	instance.SetLastPoll(time.Now())
 
 	//updates the NDF with changes
 	err = UpdateNDf(permResponse, instance)
@@ -87,7 +97,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	// Update the internal state of rounds and the state machine
-	err = UpdateRounds(permResponse, instance)
+	err = UpdateRounds(permResponse, instance, lastPoll)
 	return err
 }
 
@@ -188,7 +198,7 @@ func queueUntilRealtime(instance *internal.Instance, start time.Time) {
 // Processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
-func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance, lastpoll time.Time) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
@@ -198,6 +208,16 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
+		}
+
+		// subtract one and a half second from lastPoll to give buffer for communciations
+		// latency and clock skew
+		tastPollBuffered := lastpoll.Add(-1500*time.Millisecond)
+
+		timeStart := time.Unix(0,int64(roundInfo.Timestamps[states.PRECOMPUTING]))
+		//check if the round is new enough for the node to care about executing it
+		if !timeStart.After(tastPollBuffered){
+			continue
 		}
 
 		// Extract topology from RoundInfo
