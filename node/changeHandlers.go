@@ -155,7 +155,7 @@ func NotStarted(instance *internal.Instance) error {
 		cur, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
 		if cur != current.NOT_STARTED || err != nil {
 			roundErr := errors.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
-			instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
+			instance.ReportNodeFailure(roundErr)
 		}
 
 		// if error passed in go to error
@@ -163,14 +163,14 @@ func NotStarted(instance *internal.Instance) error {
 			ok, err := instance.GetStateMachine().Update(current.ERROR)
 			if !ok || err != nil {
 				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
-				instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
+				instance.ReportNodeFailure(roundErr)
 			}
 		} else {
 			// Transition state machine into waiting state
 			ok, err := instance.GetStateMachine().Update(current.WAITING)
 			if !ok || err != nil {
 				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
-				instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
+				instance.ReportNodeFailure(roundErr)
 			}
 		}
 
@@ -182,7 +182,7 @@ func NotStarted(instance *internal.Instance) error {
 			if err != nil {
 				// If we receive an error polling here, panic this thread
 				roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
-				instance.ReportRoundFailure(roundErr, instance.GetID(), nil)
+				instance.ReportNodeFailure(roundErr)
 			}
 		}
 	}()
@@ -259,7 +259,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetRngStreamGen(),
 		instance.GetStreamPool(),
 		instance.GetIP(),
-		GetDefaultPanicHanlder(instance, &roundID))
+		GetDefaultPanicHanlder(instance, roundID))
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}
@@ -339,7 +339,7 @@ func Error(instance *internal.Instance) error {
 
 	wg := sync.WaitGroup{}
 	// If the error originated with us, send broadcast to other nodes
-	if nid.Cmp(instance.GetID()) {
+	if nid.Cmp(instance.GetID()) && msg.Id != 0 {
 		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
 		if err != nil {
 			return errors.WithMessage(err, "Failed to get round id")

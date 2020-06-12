@@ -28,7 +28,7 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 	if err != nil {
 		roundErr := errors.Errorf("First Node Round Init: Could not get "+
 			"round (%v) right after round init", rid)
-		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
 	}
 
 	// Create new batch object
@@ -47,7 +47,7 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 	ourRoundInfo, err := instance.GetConsensus().GetRound(rid)
 	if err != nil {
 		roundErr := errors.Errorf("Could not get round info from instance: %v", err)
-		instance.ReportRoundFailure(roundErr, instance.GetID(), &rid)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
 	}
 	// Make this a non anonymous functions, that calls a new thread and test the function seperately
 	pingMsg := &mixmessages.RoundInfo{

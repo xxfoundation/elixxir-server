@@ -79,7 +79,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
-	r := round.NewDummyRoundWithTopology(id.Round(0), 3, topology, t)
+	r := round.NewDummyRoundWithTopology(id.Round(1), 3, topology, t)
 	instance.GetRoundManager().AddRound(r)
 	_ = instance.Run()
 	return instance, topology
@@ -112,11 +112,49 @@ func TestNewStateChanges(t *testing.T) {
 func TestError(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
+		Id:     1,
+		NodeId: instance.GetID().Marshal(),
+		Error:  "",
+	}
+	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
+		return nil, nil
+	}
+	instance.SetRoundErrFunc(mockBroadcast, t)
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in SetGroup(): ", r)
+		} else {
+			t.Errorf("SetGroup() did not panic when expected while attempting to set the group again")
+		}
+		instance.GetNetwork().Shutdown()
+	}()
+
+	for i := 0; i < topology.Len(); i++ {
+		nid := topology.GetNodeAtIndex(i)
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		if err != nil {
+			t.Errorf("Failed to add host: %+v", err)
+		}
+	}
+
+	instance.SetTestRoundError(rndErr, t)
+
+	err := Error(instance)
+	if err != nil {
+		t.Errorf("Failed to error: %+v", err)
+	}
+}
+
+func TestError_RID0(t *testing.T) {
+	instance, topology := setup(t)
+	rndErr := &mixmessages.RoundError{
 		Id:     0,
 		NodeId: instance.GetID().Marshal(),
 		Error:  "",
 	}
 	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
+		t.Error()
 		return nil, nil
 	}
 	instance.SetRoundErrFunc(mockBroadcast, t)
