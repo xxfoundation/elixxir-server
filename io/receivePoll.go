@@ -80,6 +80,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	return &res, errors.New(ndf.NO_NDF)
 }
 
+// checks the sender against all passed in IDs, returning true if any match
+// and skipping any that are nil
 func isValidID(sender *id.ID, valid ...*id.ID)bool{
 	for _, validID := range valid{
 		if validID==nil{
