@@ -150,8 +150,10 @@ func initConfig() {
 	//Use default config location if none is passed
 	if cfgFile == "" {
 		var err error
-		cfgFile, err = utils.SearchDefaultLocations("server.yaml", "xxnetwork")
-		// Find home directory.
+		cfgFile, err = utils.SearchDefaultLocations("node.yaml", "xxnetwork")
+		if err != nil {
+			cfgFile, err = utils.SearchDefaultLocations("server.yaml", "xxnetwork")
+		}
 		if err != nil {
 			jww.FATAL.Panicf("No config provided and non found at default paths")
 		}

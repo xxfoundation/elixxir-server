@@ -81,8 +81,16 @@ $ mv version_vars.go cmd
 
 ## Config File
 
-Create a directory named `.xxnetwork` in your home directory with a file
-called `server.yaml` as follows (Make sure to use spaces, not tabs!):
+The Server configuration file must be named `node.yaml` and be located in
+one of the following directories:
+1. `$HOME/.xxnetwork/`
+2. `/opt/xxnetwork/`
+3. `/etc/xxnetwork/`
+
+Server searches for the YAML file in that order and uses the first occurance
+found.
+
+Note: YAML prohibits the use of tabs because whitespace has meaning.
 
 ``` yaml
 # Registration code used for first time registration. This is a unique code
