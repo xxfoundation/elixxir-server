@@ -52,6 +52,7 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
+	io.UnsignedTest = true
 	MultiInstanceTest(3, 32, false, true, t)
 }
 
@@ -155,6 +156,8 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
+
+
 
 		if errorPhase {
 			if i == 0 {

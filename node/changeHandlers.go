@@ -28,6 +28,7 @@ import (
 	"gitlab.com/elixxir/server/permissioning"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -339,6 +340,7 @@ func Error(instance *internal.Instance) error {
 	}
 
 	wg := sync.WaitGroup{}
+	numResponces := uint32(0)
 	// If the error originated with us, send broadcast to other nodes
 	if nid.Cmp(instance.GetID()) && msg.Id != 0 {
 		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
@@ -347,11 +349,11 @@ func Error(instance *internal.Instance) error {
 		}
 		top := r.GetTopology()
 		for i := 0; i < top.Len(); i++ {
+			// Send to all nodes except self
 			n := top.GetNodeAtIndex(i)
-			wg.Add(1)
-			go func() {
-				// Don't need to send back to self
-				if !instance.GetID().Cmp(n) {
+			if !instance.GetID().Cmp(n) {
+				wg.Add(1)
+				go func() {
 					h, ok := instance.GetNetwork().GetHost(n)
 					if !ok {
 						jww.ERROR.Printf("Could not get host for node %s", n.String())
@@ -359,27 +361,32 @@ func Error(instance *internal.Instance) error {
 
 					_, err := instance.SendRoundError(h, msg)
 					if err != nil {
-						err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
+						err = errors.WithMessagef(err, "Failed to send error to node %s", n.String())
 						jww.ERROR.Printf(err.Error())
 					}
-				}
-				wg.Done()
-			}()
+					atomic.AddUint32(&numResponces,1)
+					wg.Done()
+				}()
+			}
 		}
-	}
 
-	// Wait until the error messages are sent, or timeout after 3 minutes
-	timeoutCh := make(chan struct{})
-	timeout := time.NewTimer(3 * time.Minute)
+		// Wait until the error messages are sent, or timeout after 3 minutes
+		notifyTeamMembers := make(chan struct{})
+		notifyTimeout := 15 * time.Second
+		timeout := time.NewTimer(notifyTimeout)
 
-	go func() {
-		wg.Wait()
-		timeoutCh <- struct{}{}
-	}()
+		go func() {
+			wg.Wait()
+			notifyTeamMembers <- struct{}{}
+		}()
 
-	select {
-	case <-timeoutCh:
-	case <-timeout.C:
+		select {
+		case <-notifyTeamMembers:
+		case <-timeout.C:
+			jww.ERROR.Printf("Only %v/%v team members responded to the "+
+				"error broadcast, timed out after %s",
+				atomic.LoadUint32(&numResponces), top.Len(), notifyTimeout)
+		}
 	}
 
 	b, err := proto.Marshal(msg)

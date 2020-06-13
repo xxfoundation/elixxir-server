@@ -519,15 +519,19 @@ func GenerateId(i interface{}) *id.ID {
 	return nid
 }
 
+//reports an error from the node which is not associated with a round
 func (i *Instance) ReportNodeFailure(errIn error) {
 	i.ReportRoundFailure(errIn, i.GetID(), 0)
+}
+
+//reports an error from a different node in the round the node is participating in
+func (i *Instance) ReportRemoteFailure(roundErr *mixmessages.RoundError) {
+	i.reportFailure(roundErr)
 }
 
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
 
 	//truncate the error if it is too long
 	errStr := errIn.Error()
@@ -549,6 +553,24 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 			"\n roundError: %+v", err, roundErr)
 	}
 
+	i.reportFailure(&roundErr)
+}
+
+// Create a round error, pass the error over the chanel and update the state to ERROR state
+// In situations that cause critical panic level errors.
+func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+
+	nodeId, _ := id.Unmarshal(roundErr.NodeId)
+
+	//sign the round error
+	err := signature.Sign(roundErr, i.GetPrivKey())
+	if err!=nil{
+		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
+			"\n roundError: %+v", err, roundErr)
+	}
+
 	//then call update state err
 	sm := i.GetStateMachine()
 
@@ -565,7 +587,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 
 	// put the new error in the instance, since the node isn't currently in
 	// an error or crash state
-	i.roundError = &roundErr
+	i.roundError = roundErr
 
 	// Otherwise, change instance's state to ERROR
 	ok, err := sm.Update(current.ERROR)
@@ -577,6 +599,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
 }
+
 
 func (i *Instance) String() string {
 	nid := i.definition.ID
