@@ -9,6 +9,7 @@ package internal
 // constructors and it's methods
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -19,10 +20,12 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -172,24 +175,21 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
-	file, err := os.Open(i.definition.RecoveredErrorPath)
+
+	recoveredErrorEncoded, err :=  utils.ReadFile(i.definition.RecoveredErrorPath)
 	if err != nil {
 		return nil, errors.WithMessage(err,
 			"Failed to open recovered error file")
 	}
 
-	// Read recovered error file to bytes
-	var recoveredError []byte
-	_, err = file.Read(recoveredError)
+	recoveredError, err := base64.StdEncoding.DecodeString(string(recoveredErrorEncoded))
 	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to read recovered error")
+		return nil, errors.WithMessagef(err,
+			"Failed to base64 decode recovered error file: %s", string(recoveredErrorEncoded))
 	}
 
-	// Close recovered error file
-	err = file.Close()
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to close recovered error file")
-	}
+
+	jww.INFO.Printf("Raw error contents: %s", string(recoveredError))
 
 	// Unmarshal bytes to RoundError
 	msg := &mixmessages.RoundError{}
@@ -205,7 +205,7 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	}
 
 	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
-		" file at %s", msg.Error, i.definition.RecoveredErrorPath)
+		" file at %s", msg, i.definition.RecoveredErrorPath)
 
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
@@ -375,6 +375,13 @@ func (i *Instance) GetRoundError() *mixmessages.RoundError {
 }
 
 func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	return i.recoveredError
+}
+
+// only use if you already have the error lock
+func (i *Instance) GetRecoveredErrorUnsafe() *mixmessages.RoundError {
 	return i.recoveredError
 }
 
@@ -519,6 +526,7 @@ func (i *Instance) ReportNodeFailure(errIn error) {
 // In situations that cause critical panic level errors.
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
 	i.errLck.Lock()
+	defer i.errLck.Unlock()
 
 	//truncate the error if it is too long
 	errStr := errIn.Error()
@@ -526,11 +534,18 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 		errStr = errStr[:5000]
 	}
 
-	defer i.errLck.Unlock()
 	roundErr := mixmessages.RoundError{
 		Id:     uint64(roundId),
 		Error:  errStr,
 		NodeId: nodeId.Marshal(),
+	}
+
+
+	//sign the round error
+	err := signature.Sign(&roundErr, i.GetPrivKey())
+	if err!=nil{
+		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
+			"\n roundError: %+v", err, roundErr)
 	}
 
 	//then call update state err

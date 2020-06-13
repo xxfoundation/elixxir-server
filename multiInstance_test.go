@@ -1,6 +1,7 @@
 package main
 
 import (
+	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"github.com/pkg/errors"
@@ -594,6 +595,8 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T)
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
+
+		def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 		defLst = append(defLst, &def)
 	}

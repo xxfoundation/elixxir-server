@@ -8,6 +8,7 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -322,7 +323,7 @@ func Completed(from current.Activity) error {
 
 func Error(instance *internal.Instance) error {
 	//If the error state was recovered from a restart, exit.
-	if instance.GetRecoveredError() != nil {
+	if instance.GetRecoveredErrorUnsafe() != nil {
 		return nil
 	}
 
@@ -386,7 +387,9 @@ func Error(instance *internal.Instance) error {
 		return errors.WithMessage(err, "Failed to marshal message into bytes")
 	}
 
-	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, b, 0644, 0644)
+	bEncoded := base64.StdEncoding.EncodeToString(b)
+
+	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}

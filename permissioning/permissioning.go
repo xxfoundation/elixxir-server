@@ -149,15 +149,15 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr, uint32(port))
 
-	if instance.GetRecoveredError() != nil && instance.GetStateMachine().Get() == current.ERROR {
+	if reportedActivity == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
+		jww.INFO.Printf("Reporteing error to permissioning: %+v", pollMsg.Error)
 		instance.ClearRecoveredError()
-		go func() {
-			ok, err := instance.GetStateMachine().Update(current.WAITING)
-			if err != nil || !ok {
-				jww.FATAL.Panicf("Could not move to waiting state")
-			}
-		}()
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
+			return nil, err
+		}
 	}
 
 	// Send the message to permissioning

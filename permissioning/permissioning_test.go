@@ -210,6 +210,12 @@ func TestPoll_ErrState(t *testing.T) {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}
 
+	// Poll the permissioning server for updates
+	err = Poll(instance)
+	if err != nil {
+		t.Errorf("Failed to poll for ndf: %+v", err)
+	}
+
 	if instance.GetStateMachine().Get() != current.WAITING {
 		t.Error("Failed to properly update state")
 	}

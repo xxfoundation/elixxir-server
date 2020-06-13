@@ -1,6 +1,7 @@
 package permissioning
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -437,6 +438,8 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
 	}
+
+	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 	// Create state machine
 	sm := state.NewMachine(dummyStates)

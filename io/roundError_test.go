@@ -6,9 +6,11 @@
 package io
 
 import (
+	"crypto/rand"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -273,6 +275,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 		},
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
+	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
 
 	m := state.NewTestMachine(dummyStates, s, t)
 
