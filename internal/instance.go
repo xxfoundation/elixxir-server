@@ -381,6 +381,7 @@ func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
 }
 
 // only use if you already have the error lock
+// TODO - find a way to remove
 func (i *Instance) GetRecoveredErrorUnsafe() *mixmessages.RoundError {
 	return i.recoveredError
 }
