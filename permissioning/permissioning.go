@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
 	"strconv"
 	"strings"
 	"time"
@@ -279,6 +280,19 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Don't do anything
 
 			case states.COMPLETED:
+
+			case states.FAILED:
+				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
+				if err != nil {
+					return err
+				}
+				if r.GetCurrentPhaseType() == phase.Complete {
+					return nil
+				} else {
+					rid := id.Round(roundInfo.ID)
+					instance.ReportRoundFailure(errors.New("Round has failed; transitioning to error"),
+						instance.GetID(), &rid)
+				}
 
 			default:
 				return errors.Errorf("Round in unknown state: %v", states.Round(roundInfo.State))
