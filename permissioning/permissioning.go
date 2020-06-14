@@ -213,7 +213,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 		// subtract one and a half second from lastPoll to give buffer for communciations
 		// latency and clock skew
-		lastPollBuffered := lastpoll.Add(-1500 * time.Millisecond)
+		lastPollBuffered := lastpoll.Add(-300 * time.Millisecond)
 		newestUpdate := findNewestTimestamp(roundInfo.Timestamps)
 
 		timeStart := time.Unix(0, int64(newestUpdate))
@@ -242,7 +242,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Standby until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
-					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
+					return errors.Errorf("Cannot start precomputing when not in waiting state for round %v: %+v",
+						roundInfo.ID, err)
 				}
 
 				// Send info to round queue
@@ -284,14 +285,15 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			case states.FAILED:
 				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
 				if err != nil {
-					return err
+					jww.WARN.Printf("Received participatory fail in round %v which node has no knoledge of", roundInfo.ID)
+					continue
 				}
 				if r.GetCurrentPhaseType() == phase.Complete {
 					return nil
 				} else {
 					rid := id.Round(roundInfo.ID)
 					instance.ReportRoundFailure(errors.New("Round has failed; transitioning to error"),
-						instance.GetID(), &rid)
+						instance.GetID(), rid)
 				}
 
 			default:

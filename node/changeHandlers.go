@@ -27,8 +27,6 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -333,7 +331,7 @@ func Error(instance *internal.Instance) error {
 	if msg == nil {
 		jww.FATAL.Panic("No error found on instance")
 	}
-
+	/*
 	nid, err := id.Unmarshal(msg.NodeId)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get node id from error")
@@ -388,7 +386,7 @@ func Error(instance *internal.Instance) error {
 				atomic.LoadUint32(&numResponces), top.Len(), notifyTimeout)
 		}
 	}
-
+	*/
 	b, err := proto.Marshal(msg)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to marshal message into bytes")

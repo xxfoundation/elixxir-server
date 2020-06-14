@@ -8,6 +8,7 @@ package permissioning
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"fmt"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -874,6 +875,8 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		PartialNDF:      emptyNdf,
 	}
 
+	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
+
 	// Create state machine
 	sm := state.NewMachine(dummyStates)
 	ok, err := sm.Update(current.WAITING)
@@ -897,6 +900,10 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, false, false)
 
+	now := time.Now()
+	timestamps := make([]uint64, states.NUM_STATES)
+	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
+
 	update := &pb.RoundInfo{
 		ID:       uint64(0),
 		UpdateID: uint64(1),
@@ -904,6 +911,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		Topology: [][]byte{
 			instance.GetID().Marshal(),
 		},
+		Timestamps: timestamps,
 	}
 	loadedKey, err := rsa.LoadPrivateKeyFromPem(key)
 	if err != nil {
@@ -920,7 +928,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		Updates: []*pb.RoundInfo{
 			update,
 		},
-	}, instance)
+	}, instance, now)
 	if err != nil {
 		t.Errorf("UpdateRounds failed: %+v", err)
 	}
