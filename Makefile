@@ -21,7 +21,7 @@ build:
 update_release:
 	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@release
-	GOFLAGS="" go get -u gitlab.com/elixxir/comms@ben/reduceUpdates
+	GOFLAGS="" go get -u gitlab.com/elixxir/comms@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/gpumaths@release
 
 update_master:
