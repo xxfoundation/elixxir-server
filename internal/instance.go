@@ -37,7 +37,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
@@ -80,8 +79,7 @@ type Instance struct {
 
 	serverVersion string
 
-	lastPoll time.Time
-	lastPollLock sync.Mutex
+	firstRun *uint32
 }
 
 // Create a server instance. To actually kick off the server,
@@ -93,6 +91,7 @@ type Instance struct {
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
 	isGwReady := uint32(0)
+	firstRun := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -110,6 +109,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			jww.FATAL.Panic(s)
 		},
 		serverVersion: version,
+		firstRun: &firstRun,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -275,6 +275,17 @@ func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }
 
+// Sets that this is the first time the node has run
+func (i *Instance) IsFirstRun() {
+	atomic.StoreUint32(i.firstRun, 1)
+}
+
+// Gets if this is the first time the node has run
+func (i *Instance) GetFirstRun() bool {
+	return atomic.LoadUint32(i.firstRun)==1
+}
+
+
 //GetKeepBuffers returns if buffers are to be held on it
 func (i *Instance) GetKeepBuffers() bool {
 	return i.definition.Flags.KeepBuffers
@@ -319,21 +330,6 @@ func (i *Instance) SetGatewayID() {
 func (i *Instance) GetGatewayID() *id.ID {
 	return i.gatewayID
 }
-
-// SetLastPoll sets the timestamp for the last poll of permissioning
-func (i *Instance) SetLastPoll(t time.Time) {
-	i.lastPollLock.Lock()
-	defer i.lastPollLock.Unlock()
-	i.lastPoll = t
-}
-
-//  GetLastPoll gets the timestamp for the last poll of permissioning
-func (i *Instance) GetLastPoll()time.Time {
-	i.lastPollLock.Lock()
-	defer i.lastPollLock.Unlock()
-	return i.lastPoll
-}
-
 
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {

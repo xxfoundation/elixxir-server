@@ -203,8 +203,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 	//skip all processing of round updates if the node knows of no round updates
 	//which is normally the result of a crash and restart
-	skipUpdates := instance.GetConsensus().GetLastUpdateID()==-1 && len(permissioningResponse.Updates)!=0 && permissioningResponse.Updates[0].ID!=1
-
+	skipUpdates := instance.GetConsensus().GetLastUpdateID()==-1 && !instance.GetFirstRun()
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance

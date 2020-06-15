@@ -63,6 +63,7 @@ func NotStarted(instance *internal.Instance) error {
 
 	// If the certificates were retrieved from file, so do not need to register
 	if !isRegistered {
+		instance.IsFirstRun()
 		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
 		// Blocking call: begin Node registration
