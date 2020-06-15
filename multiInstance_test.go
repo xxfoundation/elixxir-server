@@ -159,25 +159,24 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 
 
 
-		if errorPhase {
-			if i == 0 {
-				gc := services.NewGraphGenerator(4,
-					uint8(runtime.NumCPU()), 1, 0)
-				g := graphs.InitErrorGraph(gc)
-				th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
-					return errors.New("Failed intentionally")
-				}
-				overrides := map[int]phase.Phase{}
-				p := phase.New(phase.Definition{
-					Graph:               g,
-					Type:                phase.PrecompGeneration,
-					TransmissionHandler: th,
-					Timeout:             5 * time.Second,
-					DoVerification:      false,
-				})
-				overrides[0] = p
-				instance.OverridePhases(overrides)
+		if errorPhase && i == 0 {
+			gc := services.NewGraphGenerator(4,
+				uint8(runtime.NumCPU()), 1, 0)
+			g := graphs.InitErrorGraph(gc)
+			th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+				return errors.New("Failed intentionally")
 			}
+			overrides := map[int]phase.Phase{}
+			p := phase.New(phase.Definition{
+				Graph:               g,
+				Type:                phase.PrecompGeneration,
+				TransmissionHandler: th,
+				Timeout:             5 * time.Second,
+				DoVerification:      false,
+			})
+			overrides[0] = p
+			instance.OverridePhases(overrides)
+			fmt.Println("I CAUSED A CRASH")
 			errWg.Add(1)
 			f := func(s string) {
 				errWg.Done()
@@ -227,7 +226,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
 		ID:        1,
-		UpdateID:  0,
+		UpdateID:  1,
 		State:     uint32(current.PRECOMPUTING),
 		BatchSize: uint32(batchsize),
 		Topology:  ourTopology,
@@ -486,13 +485,16 @@ func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 	}
 
 	if errorPhase {
+		fmt.Println("GGGGGGG")
 		errWg.Wait()
+		fmt.Println("BBBBBB")
 		for _, nodeInstance := range nodes {
 			err := nodeInstance.GetResourceQueue().Kill(1 * time.Second)
 			if err != nil {
 				t.Errorf("Node failed to kill: %s", err)
 			}
 		}
+
 		done <- struct{}{}
 		return
 	}
