@@ -37,7 +37,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
@@ -79,9 +78,6 @@ type Instance struct {
 	gatewayMutex   sync.RWMutex
 
 	serverVersion string
-
-	lastPoll time.Time
-	lastPollLock sync.Mutex
 }
 
 // Create a server instance. To actually kick off the server,
@@ -319,21 +315,6 @@ func (i *Instance) SetGatewayID() {
 func (i *Instance) GetGatewayID() *id.ID {
 	return i.gatewayID
 }
-
-// SetLastPoll sets the timestamp for the last poll of permissioning
-func (i *Instance) SetLastPoll(t time.Time) {
-	i.lastPollLock.Lock()
-	defer i.lastPollLock.Unlock()
-	i.lastPoll = t
-}
-
-//  GetLastPoll gets the timestamp for the last poll of permissioning
-func (i *Instance) GetLastPoll()time.Time {
-	i.lastPollLock.Lock()
-	defer i.lastPollLock.Unlock()
-	return i.lastPoll
-}
-
 
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {

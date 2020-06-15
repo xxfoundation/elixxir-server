@@ -88,9 +88,6 @@ func Poll(instance *internal.Instance) error {
 		return err
 	}
 
-	lastPoll := instance.GetLastPoll()
-	instance.SetLastPoll(time.Now())
-
 	//updates the NDF with changes
 	err = UpdateNDf(permResponse, instance)
 	if err != nil {
@@ -203,6 +200,11 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
+
+	//skip all processing of round updates if the node knows of no round updates
+	//which is normally the result of a crash and restart
+	skipUpdates := instance.GetConsensus().GetLastUpdateID()==-1
+
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
@@ -211,14 +213,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
 
-		// subtract one and a half second from lastPoll to give buffer for communciations
-		// latency and clock skew
-		lastPollBuffered := lastpoll.Add(-300 * time.Millisecond)
-		newestUpdate := findNewestTimestamp(roundInfo.Timestamps)
-
-		timeStart := time.Unix(0, int64(newestUpdate))
-		//check if the round is new enough for the node to care about executing it
-		if !timeStart.After(lastPollBuffered) {
+		//skip all round updates older than those known about. this can happen as
+		if skipUpdates{
 			continue
 		}
 
@@ -349,14 +345,3 @@ func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) erro
 	}
 	return errors.New("Failed to find node in ndf, maybe node registration failed?")
 }
-
-// Finds the newest timestamp by searching the slice in reverse order
-func findNewestTimestamp(tsList []uint64) uint64 {
-	for i := len(tsList) - 1; i >= 0; i-- {
-		if tsList[i] != 0 {
-			return tsList[i]
-		}
-	}
-	return 0
-}
-
