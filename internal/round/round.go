@@ -192,7 +192,9 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 
 	top := *connect.NewCircuit(list)
 
-	return &Round{id: roundId, batchSize: batchSize, topology: &top}
+	state := uint32(phase.Active)
+	r := &Round{id: roundId, batchSize: batchSize, topology: &top, state: &state}
+	return r
 }
 
 func NewDummyRoundWithTopology(roundId id.Round, batchSize uint32,

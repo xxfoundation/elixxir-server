@@ -1,6 +1,7 @@
 package main
 
 import (
+	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"github.com/pkg/errors"
@@ -51,6 +52,7 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
+	io.UnsignedTest = true
 	MultiInstanceTest(3, 32, false, true, t)
 }
 
@@ -155,25 +157,26 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
 
-		if errorPhase {
-			if i == 0 {
-				gc := services.NewGraphGenerator(4,
-					uint8(runtime.NumCPU()), 1, 0)
-				g := graphs.InitErrorGraph(gc)
-				th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
-					return errors.New("Failed intentionally")
-				}
-				overrides := map[int]phase.Phase{}
-				p := phase.New(phase.Definition{
-					Graph:               g,
-					Type:                phase.PrecompGeneration,
-					TransmissionHandler: th,
-					Timeout:             5 * time.Second,
-					DoVerification:      false,
-				})
-				overrides[0] = p
-				instance.OverridePhases(overrides)
+
+
+		if errorPhase && i == 0 {
+			gc := services.NewGraphGenerator(4,
+				uint8(runtime.NumCPU()), 1, 0)
+			g := graphs.InitErrorGraph(gc)
+			th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+				return errors.New("Failed intentionally")
 			}
+			overrides := map[int]phase.Phase{}
+			p := phase.New(phase.Definition{
+				Graph:               g,
+				Type:                phase.PrecompGeneration,
+				TransmissionHandler: th,
+				Timeout:             5 * time.Second,
+				DoVerification:      false,
+			})
+			overrides[0] = p
+			instance.OverridePhases(overrides)
+			fmt.Println("I CAUSED A CRASH")
 			errWg.Add(1)
 			f := func(s string) {
 				errWg.Done()
@@ -223,7 +226,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
 		ID:        1,
-		UpdateID:  0,
+		UpdateID:  1,
 		State:     uint32(current.PRECOMPUTING),
 		BatchSize: uint32(batchsize),
 		Topology:  ourTopology,
@@ -482,13 +485,16 @@ func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 	}
 
 	if errorPhase {
+		fmt.Println("GGGGGGG")
 		errWg.Wait()
+		fmt.Println("BBBBBB")
 		for _, nodeInstance := range nodes {
 			err := nodeInstance.GetResourceQueue().Kill(1 * time.Second)
 			if err != nil {
 				t.Errorf("Node failed to kill: %s", err)
 			}
 		}
+
 		done <- struct{}{}
 		return
 	}
@@ -594,6 +600,8 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T)
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
+
+		def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 		defLst = append(defLst, &def)
 	}

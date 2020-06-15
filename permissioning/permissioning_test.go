@@ -8,15 +8,19 @@ package permissioning
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"fmt"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
@@ -210,6 +214,12 @@ func TestPoll_ErrState(t *testing.T) {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}
 
+	// Poll the permissioning server for updates
+	err = Poll(instance)
+	if err != nil {
+		t.Errorf("Failed to poll for ndf: %+v", err)
+	}
+
 	if instance.GetStateMachine().Get() != current.WAITING {
 		t.Error("Failed to properly update state")
 	}
@@ -277,6 +287,8 @@ func TestUpdateInternalState(t *testing.T) {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
+	instance.IsFirstRun()
+
 	// Create a topology for round info
 	nodeOne := id.NewIdFromUInt(0, id.Node, t).Marshal()
 	nodeTwo := id.NewIdFromUInt(1, id.Node, t).Marshal()
@@ -289,7 +301,7 @@ func TestUpdateInternalState(t *testing.T) {
 
 	// Construct round info message
 	precompRoundInfo := &pb.RoundInfo{
-		ID:         0,
+		ID:         1,
 		UpdateID:   numUpdates,
 		State:      uint32(states.PRECOMPUTING),
 		Topology:   ourTopology,
@@ -320,7 +332,7 @@ func TestUpdateInternalState(t *testing.T) {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -368,7 +380,7 @@ func TestUpdateInternalState(t *testing.T) {
 	// Create a time stamp in which to transfer stats
 	// Construct round info message
 	realtimeRoundInfo := &pb.RoundInfo{
-		ID:       0,
+		ID:       2,
 		UpdateID: numUpdates,
 		// Queue it into starting realtime
 		State:      uint32(states.QUEUED),
@@ -390,7 +402,7 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 	fmt.Println("calling update")
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -437,7 +449,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	timestamps := make([]uint64, states.NUM_STATES)
 	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 	pendingRoundInfo := &pb.RoundInfo{
-		ID:         0,
+		ID:         1,
 		UpdateID:   numUpdates,
 		State:      uint32(states.PENDING),
 		Topology:   ourTopology,
@@ -462,14 +474,14 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
 
 	// ------------------------------- STANDBY TESTING ------------------------------------------------------------
 	standbyRoundInfo := &pb.RoundInfo{
-		ID:         0,
+		ID:         2,
 		UpdateID:   numUpdates,
 		State:      uint32(states.STANDBY),
 		Topology:   ourTopology,
@@ -490,7 +502,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -518,7 +530,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -532,6 +544,8 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
+
+	instance.IsFirstRun()
 
 	// Create a topology for round info
 	nodeOne := id.NewIdFromUInt(0, id.Node, t).Marshal()
@@ -547,7 +561,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 
 	// Construct round info message
 	NumStateRoundInfo := &pb.RoundInfo{
-		ID:       0,
+		ID:       1,
 		UpdateID: 4,
 		// Attempt to turn to a state that doesn't exist (there are only NUM_STATES - 1 states)
 		State:      uint32(states.NUM_STATES),
@@ -570,7 +584,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err == nil {
 		t.Errorf("Expected error path. Attempted to transfer to an unknown state")
 	}
@@ -600,7 +614,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err == nil {
 		t.Errorf("Expected error path. Should not be able to update a round in which we aren't a team" +
 			"memeber")
@@ -766,7 +780,6 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
-	instance.SetLastPoll(time.Now().Add(-1 * time.Second))
 
 	// Start up permissioning server which will return multiple round updates
 	permComms, err := startMultipleRoundUpdatesPermissioning()
@@ -814,5 +827,112 @@ func TestQueueUntilRealtime(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	if instance.GetStateMachine().Get() != current.REALTIME {
 		t.Errorf("State transitioned too slowly!\n")
+	}
+}
+
+func TestUpdateRounds_Failed(t *testing.T) {
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+
+	// Set up id's and address
+	nodeId = id.NewIdFromUInt(0, id.Node, t)
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 17000+rand.Intn(1000)+cnt)
+	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
+
+	cnt++
+
+	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
+	gwID := nodeId.DeepCopy()
+	gwID.SetType(id.Gateway)
+
+	// Build the node
+	emptyNdf := builEmptydMockNdf()
+
+	// Initialize definition
+	def := &internal.Definition{
+		Flags:      internal.Flags{},
+		ID:         nodeId,
+		PublicKey:  nil,
+		PrivateKey: nil,
+		TlsCert:    cert,
+		TlsKey:     key,
+		Address:    nodeAddr,
+		LogPath:    "",
+		Gateway: internal.GW{
+			ID:      gwID,
+			Address: gAddr,
+			TlsCert: cert,
+		},
+
+		UserRegistry: nil,
+		Permissioning: internal.Perm{
+			TlsCert: []byte(testUtil.RegCert),
+			Address: pAddr,
+		},
+		RegistrationCode: "",
+
+		GraphGenerator:  services.GraphGenerator{},
+		ResourceMonitor: nil,
+		FullNDF:         emptyNdf,
+		PartialNDF:      emptyNdf,
+	}
+
+	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
+
+	// Create state machine
+	sm := state.NewMachine(dummyStates)
+	ok, err := sm.Update(current.WAITING)
+	if !ok || err != nil {
+		t.Errorf("Failed to prep state machine: %+v", err)
+	}
+
+	// Add handler for instance
+	impl := func(i *internal.Instance) *node.Implementation {
+		return io.NewImplementation(i)
+	}
+
+	// Generate instance
+	instance, err := internal.CreateServerInstance(def, impl, sm,
+		"1.1.0")
+	if err != nil {
+		t.Errorf("Failed to create instance: %+v", err)
+	}
+
+	instance.GetRoundManager().AddRound(round.NewDummyRound(id.Round(0), uint32(4), t))
+
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, false, false)
+
+	now := time.Now()
+	timestamps := make([]uint64, states.NUM_STATES)
+	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
+
+	update := &pb.RoundInfo{
+		ID:       uint64(0),
+		UpdateID: uint64(1),
+		State:    uint32(states.FAILED),
+		Topology: [][]byte{
+			instance.GetID().Marshal(),
+		},
+		Timestamps: timestamps,
+	}
+	loadedKey, err := rsa.LoadPrivateKeyFromPem(key)
+	if err != nil {
+		t.Errorf("Failed to load PK from pem: %+v", err)
+	}
+	err = signature.Sign(update, loadedKey)
+	if err != nil {
+		t.Errorf("Failed to sign update: %+v", err)
+	}
+
+	err = UpdateRounds(&pb.PermissionPollResponse{
+		FullNDF:    nil,
+		PartialNDF: nil,
+		Updates: []*pb.RoundInfo{
+			update,
+		},
+	}, instance)
+	if err != nil {
+		t.Errorf("UpdateRounds failed: %+v", err)
 	}
 }

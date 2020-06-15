@@ -9,6 +9,7 @@ package internal
 // constructors and it's methods
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -19,10 +20,12 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/gpumaths"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -34,7 +37,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
@@ -77,8 +79,7 @@ type Instance struct {
 
 	serverVersion string
 
-	lastPoll time.Time
-	lastPollLock sync.Mutex
+	firstRun *uint32
 }
 
 // Create a server instance. To actually kick off the server,
@@ -90,6 +91,7 @@ type Instance struct {
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
 	isGwReady := uint32(0)
+	firstRun := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -107,6 +109,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			jww.FATAL.Panic(s)
 		},
 		serverVersion: version,
+		firstRun: &firstRun,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -172,24 +175,21 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
-	file, err := os.Open(i.definition.RecoveredErrorPath)
+
+	recoveredErrorEncoded, err :=  utils.ReadFile(i.definition.RecoveredErrorPath)
 	if err != nil {
 		return nil, errors.WithMessage(err,
 			"Failed to open recovered error file")
 	}
 
-	// Read recovered error file to bytes
-	var recoveredError []byte
-	_, err = file.Read(recoveredError)
+	recoveredError, err := base64.StdEncoding.DecodeString(string(recoveredErrorEncoded))
 	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to read recovered error")
+		return nil, errors.WithMessagef(err,
+			"Failed to base64 decode recovered error file: %s", string(recoveredErrorEncoded))
 	}
 
-	// Close recovered error file
-	err = file.Close()
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to close recovered error file")
-	}
+
+	jww.INFO.Printf("Raw error contents: %s", string(recoveredError))
 
 	// Unmarshal bytes to RoundError
 	msg := &mixmessages.RoundError{}
@@ -205,7 +205,7 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	}
 
 	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
-		" file at %s", msg.Error, i.definition.RecoveredErrorPath)
+		" file at %s", msg, i.definition.RecoveredErrorPath)
 
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
@@ -275,6 +275,17 @@ func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }
 
+// Sets that this is the first time the node has run
+func (i *Instance) IsFirstRun() {
+	atomic.StoreUint32(i.firstRun, 1)
+}
+
+// Gets if this is the first time the node has run
+func (i *Instance) GetFirstRun() bool {
+	return atomic.LoadUint32(i.firstRun)==1
+}
+
+
 //GetKeepBuffers returns if buffers are to be held on it
 func (i *Instance) GetKeepBuffers() bool {
 	return i.definition.Flags.KeepBuffers
@@ -320,21 +331,6 @@ func (i *Instance) GetGatewayID() *id.ID {
 	return i.gatewayID
 }
 
-// SetLastPoll sets the timestamp for the last poll of permissioning
-func (i *Instance) SetLastPoll(t time.Time) {
-	i.lastPollLock.Lock()
-	defer i.lastPollLock.Unlock()
-	i.lastPoll = t
-}
-
-//  GetLastPoll gets the timestamp for the last poll of permissioning
-func (i *Instance) GetLastPoll()time.Time {
-	i.lastPollLock.Lock()
-	defer i.lastPollLock.Unlock()
-	return i.lastPoll
-}
-
-
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
@@ -375,6 +371,14 @@ func (i *Instance) GetRoundError() *mixmessages.RoundError {
 }
 
 func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	return i.recoveredError
+}
+
+// only use if you already have the error lock
+// TODO - find a way to remove
+func (i *Instance) GetRecoveredErrorUnsafe() *mixmessages.RoundError {
 	return i.recoveredError
 }
 
@@ -511,14 +515,19 @@ func GenerateId(i interface{}) *id.ID {
 	return nid
 }
 
+//reports an error from the node which is not associated with a round
 func (i *Instance) ReportNodeFailure(errIn error) {
 	i.ReportRoundFailure(errIn, i.GetID(), 0)
+}
+
+//reports an error from a different node in the round the node is participating in
+func (i *Instance) ReportRemoteFailure(roundErr *mixmessages.RoundError) {
+	i.reportFailure(roundErr)
 }
 
 // Create a round error, pass the error over the chanel and update the state to ERROR state
 // In situations that cause critical panic level errors.
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
-	i.errLck.Lock()
 
 	//truncate the error if it is too long
 	errStr := errIn.Error()
@@ -526,11 +535,36 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 		errStr = errStr[:5000]
 	}
 
-	defer i.errLck.Unlock()
 	roundErr := mixmessages.RoundError{
 		Id:     uint64(roundId),
 		Error:  errStr,
 		NodeId: nodeId.Marshal(),
+	}
+
+
+	//sign the round error
+	err := signature.Sign(&roundErr, i.GetPrivKey())
+	if err!=nil{
+		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
+			"\n roundError: %+v", err, roundErr)
+	}
+
+	i.reportFailure(&roundErr)
+}
+
+// Create a round error, pass the error over the chanel and update the state to ERROR state
+// In situations that cause critical panic level errors.
+func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+
+	nodeId, _ := id.Unmarshal(roundErr.NodeId)
+
+	//sign the round error
+	err := signature.Sign(roundErr, i.GetPrivKey())
+	if err!=nil{
+		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
+			"\n roundError: %+v", err, roundErr)
 	}
 
 	//then call update state err
@@ -549,7 +583,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 
 	// put the new error in the instance, since the node isn't currently in
 	// an error or crash state
-	i.roundError = &roundErr
+	i.roundError = roundErr
 
 	// Otherwise, change instance's state to ERROR
 	ok, err := sm.Update(current.ERROR)
@@ -561,6 +595,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
 }
+
 
 func (i *Instance) String() string {
 	nid := i.definition.ID

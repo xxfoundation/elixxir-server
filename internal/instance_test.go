@@ -1,10 +1,12 @@
 package internal
 
 import (
+	"crypto/rand"
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
@@ -162,6 +164,9 @@ func mockServerDef(i interface{}) *Definition {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 	}
+
+
+	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
 
 	return &def
 }

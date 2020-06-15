@@ -6,9 +6,12 @@
 package io
 
 import (
+	"crypto/rand"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/signature"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -20,6 +23,7 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Happy path: Test if a properly crafted error message results in an error state
@@ -51,17 +55,28 @@ func TestReceiveRoundError(t *testing.T) {
 
 	expectedError := "test failed"
 
-	errMsg := &mixmessages.RoundError{
-		Id:     uint64(roundID),
-		Error:  expectedError,
-		NodeId: instance.GetID().Marshal(),
-	}
-
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", []byte(testUtil.RegCert), true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
+
+	errMsg := &mixmessages.RoundError{
+		Id:     uint64(roundID),
+		Error:  expectedError,
+		NodeId: topology.GetLastNode().Marshal(),
+	}
+
+	pk, err := rsa.LoadPrivateKeyFromPem([]byte(testUtil.RegPrivKey))
+	if err != nil {
+		t.Errorf("couldn't load privKey: %+v", err)
+	}
+
+	err = signature.Sign(errMsg,pk)
+	if err != nil {
+		t.Errorf("couldn't sign error message: %+v", err)
+	}
+
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          fakeHost,
@@ -73,12 +88,14 @@ func TestReceiveRoundError(t *testing.T) {
 		t.Fail()
 	}
 
+	time.Sleep(200*time.Millisecond)
+
 	// Check if error is passed along to channel
 	receivedError := instance.GetRoundError()
 
 	if receivedError == nil || strings.Compare(receivedError.Error, expectedError) != 0 {
-		t.Errorf("Received error did not match expected. Expected: %s\n\tReceived: %s",
-			expectedError, receivedError.Error)
+		t.Errorf("Received error did not match expected. Expected: %s\n\tReceived",
+			expectedError)
 		t.Fail()
 	}
 
@@ -253,7 +270,6 @@ func TestReceiveRoundError_BadRound(t *testing.T) {
 		t.Errorf("Received error in ReceiveRoundError: %v", err)
 		t.Fail()
 	}
-
 }
 
 func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
@@ -273,6 +289,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 		},
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
+	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
 
 	m := state.NewTestMachine(dummyStates, s, t)
 

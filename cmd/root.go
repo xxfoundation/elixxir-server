@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 		initConfig()
 		initLog()
 		if !validConfig {
-			jww.FATAL.Panic("Invalid Config File")
+			jww.FATAL.Panicf("Invalid Config File: %s", cfgFile)
 		}
 		if profile {
 			go func() {
