@@ -287,6 +287,8 @@ func TestUpdateInternalState(t *testing.T) {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
+	instance.IsFirstRun()
+
 	// Create a topology for round info
 	nodeOne := id.NewIdFromUInt(0, id.Node, t).Marshal()
 	nodeTwo := id.NewIdFromUInt(1, id.Node, t).Marshal()
@@ -542,6 +544,8 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
+
+	instance.IsFirstRun()
 
 	// Create a topology for round info
 	nodeOne := id.NewIdFromUInt(0, id.Node, t).Marshal()
