@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package internal
 
 // instance.go contains the logic for the internal.Instance object along with
@@ -77,7 +79,7 @@ type Instance struct {
 
 	serverVersion string
 
-	lastPoll time.Time
+	lastPoll     time.Time
 	lastPollLock sync.Mutex
 }
 
@@ -328,12 +330,11 @@ func (i *Instance) SetLastPoll(t time.Time) {
 }
 
 //  GetLastPoll gets the timestamp for the last poll of permissioning
-func (i *Instance) GetLastPoll()time.Time {
+func (i *Instance) GetLastPoll() time.Time {
 	i.lastPollLock.Lock()
 	defer i.lastPollLock.Unlock()
 	return i.lastPoll
 }
-
 
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
@@ -522,7 +523,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 
 	//truncate the error if it is too long
 	errStr := errIn.Error()
-	if len(errStr)> 5000{
+	if len(errStr) > 5000 {
 		errStr = errStr[:5000]
 	}
 
