@@ -299,7 +299,7 @@ func TestUpdateInternalState(t *testing.T) {
 
 	// Construct round info message
 	precompRoundInfo := &pb.RoundInfo{
-		ID:         0,
+		ID:         1,
 		UpdateID:   numUpdates,
 		State:      uint32(states.PRECOMPUTING),
 		Topology:   ourTopology,
@@ -330,7 +330,7 @@ func TestUpdateInternalState(t *testing.T) {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -378,7 +378,7 @@ func TestUpdateInternalState(t *testing.T) {
 	// Create a time stamp in which to transfer stats
 	// Construct round info message
 	realtimeRoundInfo := &pb.RoundInfo{
-		ID:       0,
+		ID:       2,
 		UpdateID: numUpdates,
 		// Queue it into starting realtime
 		State:      uint32(states.QUEUED),
@@ -400,7 +400,7 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 	fmt.Println("calling update")
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -447,7 +447,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	timestamps := make([]uint64, states.NUM_STATES)
 	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 	pendingRoundInfo := &pb.RoundInfo{
-		ID:         0,
+		ID:         1,
 		UpdateID:   numUpdates,
 		State:      uint32(states.PENDING),
 		Topology:   ourTopology,
@@ -472,14 +472,14 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
 
 	// ------------------------------- STANDBY TESTING ------------------------------------------------------------
 	standbyRoundInfo := &pb.RoundInfo{
-		ID:         0,
+		ID:         2,
 		UpdateID:   numUpdates,
 		State:      uint32(states.STANDBY),
 		Topology:   ourTopology,
@@ -500,7 +500,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -528,7 +528,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err != nil {
 		t.Errorf("Failed to update internal state: %+v", err)
 	}
@@ -557,7 +557,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 
 	// Construct round info message
 	NumStateRoundInfo := &pb.RoundInfo{
-		ID:       0,
+		ID:       1,
 		UpdateID: 4,
 		// Attempt to turn to a state that doesn't exist (there are only NUM_STATES - 1 states)
 		State:      uint32(states.NUM_STATES),
@@ -580,7 +580,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err == nil {
 		t.Errorf("Expected error path. Attempted to transfer to an unknown state")
 	}
@@ -610,7 +610,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance, now)
+	err = UpdateRounds(mockPollResponse, instance)
 	if err == nil {
 		t.Errorf("Expected error path. Should not be able to update a round in which we aren't a team" +
 			"memeber")
@@ -776,7 +776,6 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
-	instance.SetLastPoll(time.Now().Add(-1 * time.Second))
 
 	// Start up permissioning server which will return multiple round updates
 	permComms, err := startMultipleRoundUpdatesPermissioning()
@@ -928,7 +927,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		Updates: []*pb.RoundInfo{
 			update,
 		},
-	}, instance, now)
+	}, instance)
 	if err != nil {
 		t.Errorf("UpdateRounds failed: %+v", err)
 	}

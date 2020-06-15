@@ -95,7 +95,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	// Update the internal state of rounds and the state machine
-	err = UpdateRounds(permResponse, instance, lastPoll)
+	err = UpdateRounds(permResponse, instance)
 	return err
 }
 
@@ -196,14 +196,14 @@ func queueUntilRealtime(instance *internal.Instance, start time.Time) {
 // Processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
-func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance, lastpoll time.Time) error {
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
 
 	//skip all processing of round updates if the node knows of no round updates
 	//which is normally the result of a crash and restart
-	skipUpdates := instance.GetConsensus().GetLastUpdateID()==-1
+	skipUpdates := instance.GetConsensus().GetLastUpdateID()==-1 && len(permissioningResponse.Updates)!=0 && permissioningResponse.Updates[0].ID!=1
 
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
