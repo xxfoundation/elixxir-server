@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package internal
 
 // instance.go contains the logic for the internal.Instance object along with
@@ -531,7 +533,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 
 	//truncate the error if it is too long
 	errStr := errIn.Error()
-	if len(errStr)> 5000{
+	if len(errStr) > 5000 {
 		errStr = errStr[:5000]
 	}
 
