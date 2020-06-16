@@ -22,6 +22,7 @@ import (
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
+	"gitlab.com/elixxir/server/cmd"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
@@ -44,19 +45,33 @@ import (
 var errWg = sync.WaitGroup{}
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	MultiInstanceTest(3, 32, false, false, t)
+	elapsed := MultiInstanceTest(3, 32, false, false, t)
+
+	t.Logf("Computational elapsed time for 3 Node, batch size 32, CPU multi-"+
+		"instance test: %s", elapsed)
 }
 
 func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
-	MultiInstanceTest(3, 32, true, false, t)
+	batchSize := 32
+	if cmd.BatchSizeGPUTest != 0 {
+		batchSize = cmd.BatchSizeGPUTest
+	}
+
+	elapsed := MultiInstanceTest(3, batchSize, true, false, t)
+
+	t.Logf("Computational elapsed time for 3 Node, batch size %d, CPU multi-"+
+		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
 	io.UnsignedTest = true
-	MultiInstanceTest(3, 32, false, true, t)
+	elapsed := MultiInstanceTest(3, 32, false, true, t)
+
+	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
+		"instance test: %s", elapsed)
 }
 
-func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *testing.T) {
+func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *testing.T) time.Duration {
 	if errorPhase {
 		defer func() {
 			if r := recover(); r != nil {
@@ -64,6 +79,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			}
 		}()
 	}
+
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	if numNodes < 3 {
@@ -73,11 +89,11 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 
 	grp := makeMultiInstanceGroup()
 
-	//get parameters
+	// Get parameters
 	portOffset := int(rand.Uint32() % 2000)
 	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, useGPU, t)
 
-	//make user for sending messages
+	// Make user for sending messages
 	userID := id.NewIdFromUInt(42, id.User, t)
 	var baseKeys []*cyclic.Int
 	for i := 0; i < numNodes; i++ {
@@ -85,7 +101,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		baseKeys = append(baseKeys, baseKey)
 	}
 
-	//build the registries for every node
+	// Build the registries for every node
 	for i := 0; i < numNodes; i++ {
 		var registry globals.UserRegistry
 		registry = &globals.UserMap{}
@@ -98,7 +114,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		defsLst[i].UserRegistry = registry
 	}
 
-	// build the instances
+	// Build the instances
 	var instances []*internal.Instance
 
 	t.Logf("Building instances for %v nodes", numNodes)
@@ -118,15 +134,18 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		var testStates [current.NUM_STATES]state.Change
 		// Create not started
 		testStates[current.NOT_STARTED] = func(from current.Activity) error {
-			curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
+			curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second,
+				current.NOT_STARTED)
 			if curActivity != current.NOT_STARTED || err != nil {
-				t.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+				t.Errorf("Server never transitioned to %v state: %+v",
+					current.NOT_STARTED, err)
 			}
 
 			jww.DEBUG.Printf("Updating to WAITING")
 			ok, err := instance.GetStateMachine().Update(current.WAITING)
 			if !ok || err != nil {
-				t.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
+				t.Errorf("Unable to transition to %v state: %+v",
+					current.WAITING, err)
 			}
 
 			return nil
@@ -157,8 +176,6 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
 
-
-
 		if errorPhase && i == 0 {
 			gc := services.NewGraphGenerator(4,
 				uint8(runtime.NumCPU()), 1, 0)
@@ -188,12 +205,13 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	}
 
 	t.Logf("Initilizing Network for %v nodes", numNodes)
-	// initialize the network for every instance
+	// Initialize the network for every instance
 	for _, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
-		_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
-			[]byte(testUtil.RegCert), false, false)
+		_, err := instance.GetNetwork().AddHost(&id.Permissioning,
+			testUtil.NDF.Registration.Address, []byte(testUtil.RegCert), false,
+			false)
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
@@ -201,7 +219,7 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	}
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
-	//begin every instance
+	// Begin every instance
 	wg := sync.WaitGroup{}
 	for _, instance := range instances {
 		wg.Add(1)
@@ -228,20 +246,21 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		ID:        1,
 		UpdateID:  1,
 		State:     uint32(current.PRECOMPUTING),
-		BatchSize: uint32(batchsize),
+		BatchSize: uint32(batchSize),
 		Topology:  ourTopology,
 	}
 
-	expectedbatch, ecrbatch, err := buildMockBatch(batchsize, grp, baseKeys, userID, roundInfoMsg)
+	expectedBatch, ecrBatch, err := buildMockBatch(batchSize, grp, baseKeys, userID, roundInfoMsg)
 	if err != nil {
 		t.Errorf("%+v", err)
 	}
 
-	done := make(chan struct{})
+	done := make(chan time.Time)
 
-	go iterate(done, instances, t, ecrbatch, roundInfoMsg, errorPhase)
-	<-done
-	//wait for last node to be ready to receive the batch
+	go iterate(done, instances, t, ecrBatch, roundInfoMsg, errorPhase)
+	start := <-done
+	elapsed := time.Now().Sub(start)
+	// Wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 
 	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
@@ -251,31 +270,31 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	if cr != nil {
 		completedBatch.Slots = cr.Round
 	}
-	//---BUILD PROBING TOOLS----------------------------------------------------
+	// --- BUILD PROBING TOOLS -------------------------------------------------
 
-	//get round buffers for probing
-	var roundBufs []*round.Buffer
+	// Get round buffers for probing
+	var roundBuffs []*round.Buffer
 	for _, instance := range instances {
 		r, _ := instance.GetRoundManager().GetRound(1)
-		roundBufs = append(roundBufs, r.GetBuffer())
+		roundBuffs = append(roundBuffs, r.GetBuffer())
 	}
 
-	//build i/o map of permutations
-	permutationMapping := make([]uint32, batchsize)
-	for i := uint32(0); i < uint32(batchsize); i++ {
+	// Build i/o map of permutations
+	permutationMapping := make([]uint32, batchSize)
+	for i := uint32(0); i < uint32(batchSize); i++ {
 		slotIndex := i
-		for _, buf := range roundBufs {
+		for _, buf := range roundBuffs {
 			slotIndex = buf.Permutations[slotIndex]
 		}
 		permutationMapping[i] = slotIndex
 	}
 
-	//---CHECK OUTPUTS----------------------------------------------------------
+	// --- CHECK OUTPUTS -------------------------------------------------------
 	found := 0
 
-	for i := 0; i < batchsize; i++ {
+	for i := 0; i < batchSize; i++ {
 
-		inputSlot := expectedbatch.Slots[i]
+		inputSlot := expectedBatch.Slots[i]
 		outputSlot := completedBatch.Slots[permutationMapping[i]]
 
 		success := true
@@ -301,19 +320,19 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		}
 	}
 
-	if found < batchsize {
+	if found < batchSize {
 		t.Errorf("%v/%v of messages came out incorrect",
-			batchsize-found, batchsize)
+			batchSize-found, batchSize)
 	} else {
 		t.Logf("All messages recieved, passed")
 	}
 
-	//---CHECK PRECOMPUTATION---------------------------------------------------
+	// --- CHECK PRECOMPUTATION ------------------------------------------------
 
-	//SHARE PHASE=
-	pk := roundBufs[0].CypherPublicKey.DeepCopy()
-	//test that all nodes have the same PK
-	for itr, buf := range roundBufs {
+	// SHARE PHASE=
+	pk := roundBuffs[0].CypherPublicKey.DeepCopy()
+	// Test that all nodes have the same PK
+	for itr, buf := range roundBuffs {
 		pkNode := buf.CypherPublicKey.DeepCopy()
 		if pkNode.Cmp(pk) != 0 {
 			t.Errorf("Multinode instance test: node %v does not have "+
@@ -322,8 +341,8 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		}
 	}
 
-	//test that the PK is the composition of the Zs
-	for _, buf := range roundBufs {
+	// Test that the PK is the composition of the Zs
+	for _, buf := range roundBuffs {
 		Z := buf.Z.DeepCopy()
 		pkOld := pk.DeepCopy()
 		grp.RootCoprime(pkOld, Z, pk)
@@ -332,33 +351,33 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 	if pk.GetLargeInt().Cmp(grp.GetG()) != 0 {
 		t.Errorf("Multinode instance test: inverse PK is not equal "+
 			"to generator: Expected: %s, Recieved: %s",
-			grp.GetG().Text(16), roundBufs[0].CypherPublicKey.Text(16))
+			grp.GetG().Text(16), roundBuffs[0].CypherPublicKey.Text(16))
 	}
 
-	//Final result
-	//Traverse the nodes to find the final precomputation for each slot
+	// Final result
+	// Traverse the nodes to find the final precomputation for each slot
 
-	//create precomp buffer
-	payloadAPrecomps := make([]*cyclic.Int, batchsize)
-	payloadBPrecomps := make([]*cyclic.Int, batchsize)
+	// Create precomp buffer
+	payloadAPrecomps := make([]*cyclic.Int, batchSize)
+	payloadBPrecomps := make([]*cyclic.Int, batchSize)
 
-	for i := 0; i < batchsize; i++ {
+	for i := 0; i < batchSize; i++ {
 		payloadAPrecomps[i] = grp.NewInt(1)
 		payloadBPrecomps[i] = grp.NewInt(1)
 	}
 
-	//precomp Decrypt
-	for i := uint32(0); i < uint32(batchsize); i++ {
-		for _, buf := range roundBufs {
+	// Precomp Decrypt
+	for i := uint32(0); i < uint32(batchSize); i++ {
+		for _, buf := range roundBuffs {
 			grp.Mul(payloadAPrecomps[i], buf.R.Get(i), payloadAPrecomps[i])
 			grp.Mul(payloadBPrecomps[i], buf.U.Get(i), payloadBPrecomps[i])
 		}
 	}
 
-	//precomp permute
-	for i := uint32(0); i < uint32(batchsize); i++ {
+	// Precomp permute
+	for i := uint32(0); i < uint32(batchSize); i++ {
 		slotIndex := i
-		for _, buf := range roundBufs {
+		for _, buf := range roundBuffs {
 			grp.Mul(payloadAPrecomps[i], buf.S.Get(slotIndex), payloadAPrecomps[i])
 			grp.Mul(payloadBPrecomps[i], buf.V.Get(slotIndex), payloadBPrecomps[i])
 			slotIndex = buf.Permutations[slotIndex]
@@ -367,82 +386,82 @@ func MultiInstanceTest(numNodes, batchsize int, useGPU, errorPhase bool, t *test
 		grp.Inverse(payloadBPrecomps[i], payloadBPrecomps[i])
 	}
 
-	for i := 0; i < batchsize; i++ {
-		resultPayloadA := roundBufs[len(roundBufs)-1].PayloadAPrecomputation.Get(permutationMapping[i])
+	for i := 0; i < batchSize; i++ {
+		resultPayloadA := roundBuffs[len(roundBuffs)-1].PayloadAPrecomputation.Get(permutationMapping[i])
 		if payloadAPrecomps[i].Cmp(resultPayloadA) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadA slot %v "+
 				"incorrect; Expected: %s, Recieved: %s", i,
 				payloadAPrecomps[i].Text(16), resultPayloadA.Text(16))
 		}
-		resultPayloadB := roundBufs[len(roundBufs)-1].PayloadBPrecomputation.Get(permutationMapping[i])
+		resultPayloadB := roundBuffs[len(roundBuffs)-1].PayloadBPrecomputation.Get(permutationMapping[i])
 		if payloadBPrecomps[i].Cmp(resultPayloadB) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadB slot %v "+
 				"incorrect; Expected: %s, Recieved: %s", i,
 				payloadBPrecomps[i].Text(16), resultPayloadB.Text(16))
 		}
 	}
+
+	return elapsed
 }
 
 // buildMockBatch
-func buildMockBatch(batchsize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
+func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 	userID *id.ID, ri *mixmessages.RoundInfo) (*pb.Batch, *pb.Batch, error) {
-	//build a batch to send to first node
-	expectedbatch := &mixmessages.Batch{}
-	ecrbatch := &mixmessages.Batch{}
+	// Build a batch to send to first node
+	expectedBatch := &mixmessages.Batch{}
+	ecrBatch := &mixmessages.Batch{}
 
 	kmacHash, err2 := hash.NewCMixHash()
 	if err2 != nil {
 		return &pb.Batch{}, &pb.Batch{}, errors.Errorf("Could not get KMAC hash: %+v", err2)
 	}
-	for i := 0; i < batchsize; i++ {
-		//make the salt
+	for i := 0; i < batchSize; i++ {
+		// Make the salt
 		salt := make([]byte, 32)
 		binary.BigEndian.PutUint64(salt[0:8], uint64(100+6*i))
 
-		//make the payload
+		// Make the payload
 		payloadA := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(format.PayloadLen)
 		payloadB := grp.NewIntFromUInt(uint64((513 + i) * 256)).LeftpadBytes(format.PayloadLen)
 
-		//make the message
+		// Make the message
 		msg := format.NewMessage()
 		msg.SetPayloadA(payloadA)
 		msg.SetPayloadB(payloadB)
 
-		//encrypt the message
+		// Encrypt the message
 		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
 		kmacs := cmix.GenerateKMACs(salt, baseKeys, kmacHash)
 
-		//make the slot
-		ecrslot := &mixmessages.Slot{}
-		ecrslot.PayloadA = ecrMsg.GetPayloadA()
-		ecrslot.PayloadB = ecrMsg.GetPayloadB()
-		ecrslot.SenderID = userID.Bytes()
-		ecrslot.Salt = salt
-		ecrslot.KMACs = kmacs
+		// Make the slot
+		ecrSlot := &mixmessages.Slot{}
+		ecrSlot.PayloadA = ecrMsg.GetPayloadA()
+		ecrSlot.PayloadB = ecrMsg.GetPayloadB()
+		ecrSlot.SenderID = userID.Bytes()
+		ecrSlot.Salt = salt
+		ecrSlot.KMACs = kmacs
 
-		ecrbatch.Slots = append(ecrbatch.Slots, ecrslot)
-		ecrbatch.Round = ri
+		ecrBatch.Slots = append(ecrBatch.Slots, ecrSlot)
+		ecrBatch.Round = ri
 
 		slot := &mixmessages.Slot{}
 		slot.PayloadA = msg.GetPayloadA()
 		slot.PayloadB = msg.GetPayloadB()
 		slot.SenderID = userID.Bytes()
 		slot.Salt = salt
-		expectedbatch.Slots = append(expectedbatch.Slots, slot)
+		expectedBatch.Slots = append(expectedBatch.Slots, slot)
 	}
 
-	return expectedbatch, ecrbatch, nil
+	return expectedBatch, ecrBatch, nil
 }
 
-//
-func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
+func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo, errorPhase bool) {
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *internal.Instance) {
 		wg.Add(1)
 		go func() {
 			success, err := node.GetStateMachine().WaitForUnsafe(until, 5*time.Second, t)
-			//			t.Logf("success: %+v\nerr: %+v\n stateMachine: %+v", success, err, node.GetStateMachine())
 			if !success {
 				jww.FATAL.Printf("Wait for node %s to enter state %s failed: %s", node.GetID(), until.String(), err)
 			} else {
@@ -452,7 +471,7 @@ func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 
 	}
 
-	//wait until all nodes are started
+	// Wait until all nodes are started
 	wg := sync.WaitGroup{}
 
 	// Parse through the nodes prepping them for rounds
@@ -463,6 +482,9 @@ func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 	wg.Wait()
 	// Mocking permissioning server signing message
 	signRoundInfo(roundInfoMsg)
+
+	// Get starting time for benchmark
+	start := time.Now()
 
 	for index, nodeInstance := range nodes {
 		err := nodeInstance.GetConsensus().RoundUpdate(roundInfoMsg)
@@ -495,11 +517,11 @@ func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 			}
 		}
 
-		done <- struct{}{}
+		done <- start
 		return
 	}
 
-	// need to look in permissioning, manually do steps
+	// Read to look in permissioning, manually do steps
 	// Parse through the nodes prepping them for rounds
 	for _, nodeInstance := range nodes {
 		asyncWaitUntil(&wg, current.STANDBY, nodeInstance)
@@ -529,36 +551,36 @@ func iterate(done chan struct{}, nodes []*internal.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-	done <- struct{}{}
+	done <- start
 }
 
 // Utility function which signs a round info message
 func signRoundInfo(ri *pb.RoundInfo) error {
 	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
 	if err != nil {
-		return errors.Errorf("couldn't load privKey: %+v", err)
+		return errors.Errorf("Couldn't load private key: %+v", err)
 	}
 
-	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
+	ourPrivateKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	signature.Sign(ri, ourPrivKey)
+	signature.Sign(ri, ourPrivateKey)
 	return nil
 }
 
-func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T) []*internal.Definition {
+func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T) []*internal.Definition {
 
-	//generate IDs and addresses
+	// Generate IDs and addresses
 	var nidLst []*id.ID
 	var nodeLst []internal.Node
 	addrFmt := "localhost:%03d"
 	for i := 0; i < numNodes; i++ {
-		//generate id
+		// Generate id
 		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
 		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nidLst = append(nidLst, nodeID)
-		//generate address
-		addr := fmt.Sprintf(addrFmt, i+portstart)
+		// Generate address
+		addr := fmt.Sprintf(addrFmt, i+portStart)
 
 		n := internal.Node{
 			ID:      nodeID,
@@ -570,7 +592,7 @@ func makeMultiInstanceParams(numNodes, portstart int, useGPU bool, t *testing.T)
 
 	networkDef := buildNdf(nodeLst)
 
-	//generate parameters list
+	// Generate parameters list
 	var defLst []*internal.Definition
 
 	for i := 0; i < numNodes; i++ {
