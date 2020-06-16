@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
 	"strconv"
 	"strings"
 	"time"
@@ -88,9 +89,6 @@ func Poll(instance *internal.Instance) error {
 		return err
 	}
 
-	lastPoll := instance.GetLastPoll()
-	instance.SetLastPoll(time.Now())
-
 	//updates the NDF with changes
 	err = UpdateNDf(permResponse, instance)
 	if err != nil {
@@ -98,7 +96,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	// Update the internal state of rounds and the state machine
-	err = UpdateRounds(permResponse, instance, lastPoll)
+	err = UpdateRounds(permResponse, instance)
 	return err
 }
 
@@ -150,15 +148,15 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr, uint32(port))
 
-	if instance.GetRecoveredError() != nil && instance.GetStateMachine().Get() == current.ERROR {
+	if reportedActivity == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
+		jww.INFO.Printf("Reporteing error to permissioning: %+v", pollMsg.Error)
 		instance.ClearRecoveredError()
-		go func() {
-			ok, err := instance.GetStateMachine().Update(current.WAITING)
-			if err != nil || !ok {
-				jww.FATAL.Panicf("Could not move to waiting state")
-			}
-		}()
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
+			return nil, err
+		}
 	}
 
 	// Send the message to permissioning
@@ -199,10 +197,14 @@ func queueUntilRealtime(instance *internal.Instance, start time.Time) {
 // Processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
-func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance, lastpoll time.Time) error {
+func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
+
+	//skip all processing of round updates if the node knows of no round updates
+	//which is normally the result of a crash and restart
+	skipUpdates := instance.GetConsensus().GetLastUpdateID()==-1 && !instance.GetFirstRun()
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
@@ -211,14 +213,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
 
-		// subtract one and a half second from lastPoll to give buffer for communciations
-		// latency and clock skew
-		lastPollBuffered := lastpoll.Add(-1500 * time.Millisecond)
-		newestUpdate := findNewestTimestamp(roundInfo.Timestamps)
-
-		timeStart := time.Unix(0, int64(newestUpdate))
-		//check if the round is new enough for the node to care about executing it
-		if !timeStart.After(lastPollBuffered) {
+		//skip all round updates older than those known about. this can happen as
+		if skipUpdates{
 			continue
 		}
 
@@ -242,7 +238,8 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Standby until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
-					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
+					return errors.Errorf("Cannot start precomputing when not in waiting state for round %v: %+v",
+						roundInfo.ID, err)
 				}
 
 				// Send info to round queue
@@ -280,6 +277,20 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Don't do anything
 
 			case states.COMPLETED:
+
+			case states.FAILED:
+				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
+				if err != nil {
+					jww.WARN.Printf("Received participatory fail in round %v which node has no knoledge of", roundInfo.ID)
+					continue
+				}
+				if r.GetCurrentPhaseType() == phase.Complete {
+					return nil
+				} else {
+					rid := id.Round(roundInfo.ID)
+					instance.ReportRoundFailure(errors.New("Round has failed; transitioning to error"),
+						instance.GetID(), rid)
+				}
 
 			default:
 				return errors.Errorf("Round in unknown state: %v", states.Round(roundInfo.State))
@@ -333,14 +344,4 @@ func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) erro
 		}
 	}
 	return errors.New("Failed to find node in ndf, maybe node registration failed?")
-}
-
-// Finds the newest timestamp by searching the slice in reverse order
-func findNewestTimestamp(tsList []uint64) uint64 {
-	for i := len(tsList) - 1; i >= 0; i-- {
-		if tsList[i] != 0 {
-			return tsList[i]
-		}
-	}
-	return 0
 }

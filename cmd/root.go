@@ -9,6 +9,7 @@
 package cmd
 
 import (
+	"flag"
 	"fmt"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
@@ -31,6 +32,7 @@ var logPath = "cmix-server.log"
 var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
+var BatchSizeGPUTest int
 
 // If true, runs pprof http server
 var profile bool
@@ -45,7 +47,7 @@ var rootCmd = &cobra.Command{
 		initConfig()
 		initLog()
 		if !validConfig {
-			jww.FATAL.Panic("Invalid Config File")
+			jww.FATAL.Panicf("Invalid Config File: %s", cfgFile)
 		}
 		if profile {
 			go func() {
@@ -137,6 +139,10 @@ func init() {
 	rootCmd.Flags().BoolVarP(&useGPU, "useGPU", "", false, "Toggle use of GPU.")
 	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
 	handleBindingError(err, "useGPU")
+
+	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
+	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+
+		"the multi-instance GPU test.")
 
 }
 

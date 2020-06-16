@@ -10,6 +10,7 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -28,7 +29,6 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -65,6 +65,7 @@ func NotStarted(instance *internal.Instance) error {
 
 	// If the certificates were retrieved from file, so do not need to register
 	if !isRegistered {
+		instance.IsFirstRun()
 		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
 		// Blocking call: begin Node registration
@@ -324,7 +325,7 @@ func Completed(from current.Activity) error {
 
 func Error(instance *internal.Instance) error {
 	//If the error state was recovered from a restart, exit.
-	if instance.GetRecoveredError() != nil {
+	if instance.GetRecoveredErrorUnsafe() != nil {
 		return nil
 	}
 
@@ -333,13 +334,14 @@ func Error(instance *internal.Instance) error {
 	if msg == nil {
 		jww.FATAL.Panic("No error found on instance")
 	}
-
+	/*
 	nid, err := id.Unmarshal(msg.NodeId)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get node id from error")
 	}
 
 	wg := sync.WaitGroup{}
+	numResponces := uint32(0)
 	// If the error originated with us, send broadcast to other nodes
 	if nid.Cmp(instance.GetID()) && msg.Id != 0 {
 		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
@@ -348,11 +350,11 @@ func Error(instance *internal.Instance) error {
 		}
 		top := r.GetTopology()
 		for i := 0; i < top.Len(); i++ {
+			// Send to all nodes except self
 			n := top.GetNodeAtIndex(i)
-			wg.Add(1)
-			go func() {
-				// Don't need to send back to self
-				if !instance.GetID().Cmp(n) {
+			if !instance.GetID().Cmp(n) {
+				wg.Add(1)
+				go func() {
 					h, ok := instance.GetNetwork().GetHost(n)
 					if !ok {
 						jww.ERROR.Printf("Could not get host for node %s", n.String())
@@ -360,35 +362,42 @@ func Error(instance *internal.Instance) error {
 
 					_, err := instance.SendRoundError(h, msg)
 					if err != nil {
-						err := errors.WithMessagef(err, "Failed to send error to node %s", n.String())
+						err = errors.WithMessagef(err, "Failed to send error to node %s", n.String())
 						jww.ERROR.Printf(err.Error())
 					}
-				}
-				wg.Done()
-			}()
+					atomic.AddUint32(&numResponces,1)
+					wg.Done()
+				}()
+			}
+		}
+
+		// Wait until the error messages are sent, or timeout after 3 minutes
+		notifyTeamMembers := make(chan struct{})
+		notifyTimeout := 15 * time.Second
+		timeout := time.NewTimer(notifyTimeout)
+
+		go func() {
+			wg.Wait()
+			notifyTeamMembers <- struct{}{}
+		}()
+
+		select {
+		case <-notifyTeamMembers:
+		case <-timeout.C:
+			jww.ERROR.Printf("Only %v/%v team members responded to the "+
+				"error broadcast, timed out after %s",
+				atomic.LoadUint32(&numResponces), top.Len(), notifyTimeout)
 		}
 	}
-
-	// Wait until the error messages are sent, or timeout after 3 minutes
-	timeoutCh := make(chan struct{})
-	timeout := time.NewTimer(3 * time.Minute)
-
-	go func() {
-		wg.Wait()
-		timeoutCh <- struct{}{}
-	}()
-
-	select {
-	case <-timeoutCh:
-	case <-timeout.C:
-	}
-
+	*/
 	b, err := proto.Marshal(msg)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to marshal message into bytes")
 	}
 
-	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, b, 0644, 0644)
+	bEncoded := base64.StdEncoding.EncodeToString(b)
+
+	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to write error to file")
 	}

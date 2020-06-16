@@ -121,6 +121,22 @@ func TestUserMap_InsertSalt(t *testing.T) {
 	}
 }
 
+// Tests that InsertSalt() returns the error ErrNonexistantUser when the given
+// user ID is not in the user map.
+func TestUserMap_InsertSalt_ErrNonexistantUser(t *testing.T) {
+	grp := InitCrypto()
+
+	users := UserRegistry(&UserMap{})
+	u9 := users.NewUser(grp)
+	u9.ID = id.NewIdFromUInt(1, id.User, t)
+
+	err := users.InsertSalt(id.NewIdFromUInt(2, id.User, t), []byte("test"))
+	if err != ErrNonexistantUser {
+		t.Errorf("InsertSalt: Expected error when using User ID that does not "+
+			"exist.\n\texpected: %v\n\treceived: %v", ErrNonexistantUser, err)
+	}
+}
+
 // InitCrypto sets up the cryptographic constants for cMix
 func InitCrypto() *cyclic.Group {
 
