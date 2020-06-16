@@ -52,10 +52,15 @@ func Test_MultiInstance_N3_B8(t *testing.T) {
 }
 
 func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
-	elapsed := MultiInstanceTest(3, cmd.BatchSizeForTest, true, false, t)
+	batchSize := 32
+	if cmd.BatchSizeGPUTest != 0 {
+		batchSize = cmd.BatchSizeGPUTest
+	}
+
+	elapsed := MultiInstanceTest(3, batchSize, true, false, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size %d, CPU multi-"+
-		"instance test: %s", cmd.BatchSizeForTest, elapsed)
+		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {

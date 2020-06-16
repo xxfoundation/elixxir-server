@@ -31,7 +31,7 @@ var logPath = "cmix-server.log"
 var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
-var BatchSizeForTest int
+var BatchSizeGPUTest int
 
 // If true, runs pprof http server
 var profile bool
@@ -140,7 +140,7 @@ func init() {
 	handleBindingError(err, "useGPU")
 
 	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
-	flag.IntVar(&BatchSizeForTest, "batchSize", 32, "The batch size used in "+
+	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+
 		"the multi-instance GPU test.")
 
 }
