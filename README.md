@@ -11,8 +11,8 @@ To run the server in cpu development mode:
 go run main.go --config [configuration-filename]
 ```
 
-To enable the GPU, you need to install the gpumaths library into
-`/opt/xxnetwork/lib` (done via make install per it's README), then
+To enable the GPU, you need to install the gpumathsnative library into
+`/opt/xxnetwork/lib` (done via make install per its README), then
 run with the gpu tag:
 
 ```
@@ -43,7 +43,7 @@ Flags:
   -h, --help                      help for server
   -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
       --registrationCode string   Registration code used for first time registration. Required field.
-      --useGPU                    Toggle use of GPU.
+      --useGPU                    Toggle use of GPU. (Must be built or run with -tags gpu, and gpumathsnative must be installed)
 
 Use "server [command] --help" for more information about a command.
 ```
@@ -81,8 +81,9 @@ $ mv version_vars.go cmd
 
 ## Config File
 
-The Server configuration file must be named `node.yaml` and be located in
-one of the following directories:
+If the configuration file is not set via command line flag `--config`, then the
+Server configuration file must be named `node.yaml` and be located in one of the
+following directories:
 1. `$HOME/.xxnetwork/`
 2. `/opt/xxnetwork/`
 3. `/etc/xxnetwork/`
@@ -198,7 +199,7 @@ Note: GPU support is only provided on Linux.
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
 
-To build with GPU support, add `-tags gpu` after installing gpumaths.
+To build with GPU support, add `-tags gpu` after installing gpumathsnative.
 
 ### Windows
 
