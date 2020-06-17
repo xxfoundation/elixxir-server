@@ -25,7 +25,7 @@ require (
 	gitlab.com/elixxir/comms v0.0.0-20200617183144-124facf641c4
 	gitlab.com/elixxir/crypto v0.0.0-20200617175838-942372238e88
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304
-	gitlab.com/elixxir/primitives v0.0.0-20200615223226-092559ecc3be
+	gitlab.com/elixxir/primitives v0.0.0-20200617192826-98601f119cdf
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	google.golang.org/grpc v1.29.1
 	gopkg.in/ini.v1 v1.55.0 // indirect
