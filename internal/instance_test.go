@@ -172,7 +172,6 @@ func mockServerDef(i interface{}) *Definition {
 		PartialNDF:      testUtil.NDF,
 	}
 
-
 	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
 
 	return &def

@@ -161,7 +161,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 		testStates[current.WAITING] = func(from current.Activity) error { return nil }
 		// Create precomputing
 		testStates[current.PRECOMPUTING] = func(from current.Activity) error {
-			return node.Precomputing(instance, 5*time.Second)
+			return node.Precomputing(instance)
 		}
 		// Create standby
 		testStates[current.STANDBY] = func(from current.Activity) error { return nil }
@@ -250,11 +250,12 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 	// Construct round info message
 	roundInfoMsg := &mixmessages.RoundInfo{
-		ID:        1,
-		UpdateID:  1,
-		State:     uint32(current.PRECOMPUTING),
-		BatchSize: uint32(batchSize),
-		Topology:  ourTopology,
+		ID:                         1,
+		UpdateID:                   1,
+		State:                      uint32(current.PRECOMPUTING),
+		BatchSize:                  uint32(batchSize),
+		Topology:                   ourTopology,
+		ResourceQueueTimeoutMillis: 5000,
 	}
 
 	expectedBatch, ecrBatch, err := buildMockBatch(batchSize, grp, baseKeys, userID, roundInfoMsg)

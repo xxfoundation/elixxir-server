@@ -195,6 +195,8 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 gitlab.com/elixxir/comms v0.0.0-20200615233636-530c57010bbf h1:keuDg4OJWDXKqArWtjNjxsa7xwsSxwiY56QSWZT3vUo=
 gitlab.com/elixxir/comms v0.0.0-20200615233636-530c57010bbf/go.mod h1:pjuumpPqpg6SpRcgH5SMpDpqXChCHoL27heX0wcHQ/Q=
+gitlab.com/elixxir/comms v0.0.0-20200617172309-5aa03a55ba34 h1:ymx1s37YvqWGHKOMYySLiimI6z7xh/hFWbEQRqow3So=
+gitlab.com/elixxir/comms v0.0.0-20200617172309-5aa03a55ba34/go.mod h1:pjuumpPqpg6SpRcgH5SMpDpqXChCHoL27heX0wcHQ/Q=
 gitlab.com/elixxir/crypto v0.0.0-20200612160324-a76e4451ae25 h1:tmlSzEfPD+ddB2AOvM5Bu7mQZA9XDg9BdkJpdJj2nsM=
 gitlab.com/elixxir/crypto v0.0.0-20200612160324-a76e4451ae25/go.mod h1:SpcmFZ4baOMRxH7qo2myvYFNr8/bz9ItYzVo5Q2Ld1k=
 gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304 h1:pK9IXv2s7YZX+dGc6UfIWGrDTQjP4kHpGEo0siL/4cQ=

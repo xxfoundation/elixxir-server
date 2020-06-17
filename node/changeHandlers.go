@@ -199,7 +199,7 @@ func Waiting(from current.Activity) error {
 }
 
 // Precomputing does various business logic to prep for the start of a new round
-func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) error {
+func Precomputing(instance *internal.Instance) error {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo, err := instance.GetCreateRoundQueue().Receive()
@@ -208,6 +208,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	}
 
 	roundID := roundInfo.GetRoundId()
+	roundTimeout := time.Duration(roundInfo.ResourceQueueTimeoutMillis) * time.Millisecond
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
 	nodeIDs, err := id.NewIDListFromBytes(topology)
@@ -234,7 +235,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout, instance.GetStreamPool(),
+		roundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming())
 
 	var override = func() {
@@ -335,60 +336,60 @@ func Error(instance *internal.Instance) error {
 		jww.FATAL.Panic("No error found on instance")
 	}
 	/*
-	nid, err := id.Unmarshal(msg.NodeId)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to get node id from error")
-	}
-
-	wg := sync.WaitGroup{}
-	numResponces := uint32(0)
-	// If the error originated with us, send broadcast to other nodes
-	if nid.Cmp(instance.GetID()) && msg.Id != 0 {
-		r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
+		nid, err := id.Unmarshal(msg.NodeId)
 		if err != nil {
-			return errors.WithMessage(err, "Failed to get round id")
+			return errors.WithMessage(err, "Failed to get node id from error")
 		}
-		top := r.GetTopology()
-		for i := 0; i < top.Len(); i++ {
-			// Send to all nodes except self
-			n := top.GetNodeAtIndex(i)
-			if !instance.GetID().Cmp(n) {
-				wg.Add(1)
-				go func() {
-					h, ok := instance.GetNetwork().GetHost(n)
-					if !ok {
-						jww.ERROR.Printf("Could not get host for node %s", n.String())
-					}
 
-					_, err := instance.SendRoundError(h, msg)
-					if err != nil {
-						err = errors.WithMessagef(err, "Failed to send error to node %s", n.String())
-						jww.ERROR.Printf(err.Error())
-					}
-					atomic.AddUint32(&numResponces,1)
-					wg.Done()
-				}()
+		wg := sync.WaitGroup{}
+		numResponces := uint32(0)
+		// If the error originated with us, send broadcast to other nodes
+		if nid.Cmp(instance.GetID()) && msg.Id != 0 {
+			r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
+			if err != nil {
+				return errors.WithMessage(err, "Failed to get round id")
+			}
+			top := r.GetTopology()
+			for i := 0; i < top.Len(); i++ {
+				// Send to all nodes except self
+				n := top.GetNodeAtIndex(i)
+				if !instance.GetID().Cmp(n) {
+					wg.Add(1)
+					go func() {
+						h, ok := instance.GetNetwork().GetHost(n)
+						if !ok {
+							jww.ERROR.Printf("Could not get host for node %s", n.String())
+						}
+
+						_, err := instance.SendRoundError(h, msg)
+						if err != nil {
+							err = errors.WithMessagef(err, "Failed to send error to node %s", n.String())
+							jww.ERROR.Printf(err.Error())
+						}
+						atomic.AddUint32(&numResponces,1)
+						wg.Done()
+					}()
+				}
+			}
+
+			// Wait until the error messages are sent, or timeout after 3 minutes
+			notifyTeamMembers := make(chan struct{})
+			notifyTimeout := 15 * time.Second
+			timeout := time.NewTimer(notifyTimeout)
+
+			go func() {
+				wg.Wait()
+				notifyTeamMembers <- struct{}{}
+			}()
+
+			select {
+			case <-notifyTeamMembers:
+			case <-timeout.C:
+				jww.ERROR.Printf("Only %v/%v team members responded to the "+
+					"error broadcast, timed out after %s",
+					atomic.LoadUint32(&numResponces), top.Len(), notifyTimeout)
 			}
 		}
-
-		// Wait until the error messages are sent, or timeout after 3 minutes
-		notifyTeamMembers := make(chan struct{})
-		notifyTimeout := 15 * time.Second
-		timeout := time.NewTimer(notifyTimeout)
-
-		go func() {
-			wg.Wait()
-			notifyTeamMembers <- struct{}{}
-		}()
-
-		select {
-		case <-notifyTeamMembers:
-		case <-timeout.C:
-			jww.ERROR.Printf("Only %v/%v team members responded to the "+
-				"error broadcast, timed out after %s",
-				atomic.LoadUint32(&numResponces), top.Len(), notifyTimeout)
-		}
-	}
 	*/
 	b, err := proto.Marshal(msg)
 	if err != nil {

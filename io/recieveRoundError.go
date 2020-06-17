@@ -58,24 +58,23 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 	}
 
 	//check the signature on the round error is valid
-	if !UnsignedTest{
-		err = signature.Verify(msg,auth.Sender.GetPubKey())
-		if err!=nil{
-			jww.WARN.Printf("Recieved an error for round %v from node %s " +
+	if !UnsignedTest {
+		err = signature.Verify(msg, auth.Sender.GetPubKey())
+		if err != nil {
+			jww.WARN.Printf("Recieved an error for round %v from node %s "+
 				"that could not be authenticated: %s, %+v", r.GetID(),
 				auth.Sender.GetId(), err, msg)
-			return errors.WithMessage(err,"could not verify round error")
+			return errors.WithMessage(err, "could not verify round error")
 		}
 	}
-
 
 	// do edge checking to make sure the round is still ongoing, reject if it is
 	// not an in progress round
 	phaseState := r.GetCurrentPhase()
 
 	if r.GetCurrentPhase().GetType() == phase.Complete ||
-		r.GetCurrentPhase().GetType() == phase.PhaseError{
-		jww.WARN.Printf("Recieved an error for round %v from node %s " +
+		r.GetCurrentPhase().GetType() == phase.PhaseError {
+		jww.WARN.Printf("Recieved an error for round %v from node %s "+
 			"when round is already complete: %s", r.GetID(),
 			auth.Sender.GetId(), phaseState)
 		return errors.New("Cannot process error associated with inactive round")
@@ -85,11 +84,10 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 		badNodeId, msg.Error)
 
 	//report the error in a seperate thread so this will return to the originator
-	go func(){
-		time.Sleep(100*time.Millisecond)
+	go func() {
+		time.Sleep(100 * time.Millisecond)
 		instance.ReportRemoteFailure(msg)
 	}()
-
 
 	return nil
 }

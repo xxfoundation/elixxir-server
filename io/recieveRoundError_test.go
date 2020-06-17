@@ -74,7 +74,7 @@ func TestReceiveRoundError(t *testing.T) {
 		t.Errorf("couldn't load privKey: %+v", err)
 	}
 
-	err = signature.Sign(errMsg,pk)
+	err = signature.Sign(errMsg, pk)
 	if err != nil {
 		t.Errorf("couldn't sign error message: %+v", err)
 	}
@@ -90,7 +90,7 @@ func TestReceiveRoundError(t *testing.T) {
 		t.Fail()
 	}
 
-	time.Sleep(200*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Check if error is passed along to channel
 	receivedError := instance.GetRoundError()
