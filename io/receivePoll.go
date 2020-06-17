@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package io
 
 // receivePoll contains the handler for the gateway <-> server poll comm
@@ -82,12 +84,12 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 // checks the sender against all passed in IDs, returning true if any match
 // and skipping any that are nil
-func isValidID(sender *id.ID, valid ...*id.ID)bool{
-	for _, validID := range valid{
-		if validID==nil{
+func isValidID(sender *id.ID, valid ...*id.ID) bool {
+	for _, validID := range valid {
+		if validID == nil {
 			continue
 		}
-		if sender.Cmp(validID){
+		if sender.Cmp(validID) {
 			return true
 		}
 	}

@@ -1,13 +1,15 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // Package cmd initializes the CLI and config parsers as well as the logger.
 package cmd
 
 import (
+	"flag"
 	"fmt"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
@@ -30,6 +32,7 @@ var logPath = "cmix-server.log"
 var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
+var BatchSizeGPUTest int
 
 // If true, runs pprof http server
 var profile bool
@@ -38,14 +41,13 @@ var profile bool
 var rootCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Runs a server node for cMix anonymous communication platform",
-	Long: `The server provides a full cMix node for distributed anonymous
-communications.`,
-	Args: cobra.NoArgs,
+	Long:  `The server provides a full cMix node for distributed anonymous communications.`,
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		initConfig()
 		initLog()
 		if !validConfig {
-			jww.FATAL.Panic("Invalid Config File")
+			jww.FATAL.Panicf("Invalid Config File: %s", cfgFile)
 		}
 		if profile {
 			go func() {
@@ -94,50 +96,53 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.Flags().StringVarP(&cfgFile, "config", "", "",
-		"Required.  config file (default is $HOME/.elixxir/server.yaml)")
-	err := rootCmd.MarkFlagRequired("config")
-	handleBindingError(err, "config")
+	rootCmd.Flags().StringVarP(&cfgFile, "config", "c", "",
+		"Path to load the Node configuration file from. If not set, this "+
+			"file must be named gateway.yaml and must be located in "+
+			"~/.xxnetwork/, /opt/xxnetwork, or /etc/xxnetwork.")
 
-	rootCmd.Flags().UintVarP(&logLevel, "logLevel", "l", 1,
-		"Level of debugging to display. 0 = info, 1 = debug, >1 = trace")
-	err = viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
+	rootCmd.Flags().UintVarP(&logLevel, "logLevel", "l", 0,
+		"Level of debugging to print (0 = info, 1 = debug, >1 = trace).")
+	err := viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
 	handleBindingError(err, "logLevel")
 
 	rootCmd.Flags().BoolVar(&profile, "profile", false,
-		"Runs a pprof server at 0.0.0.0:8087 for profiling")
+		"Runs a pprof server at 0.0.0.0:8087 for profiling.")
 	err = rootCmd.Flags().MarkHidden("profile")
 	handleBindingError(err, "profile")
 	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
 	handleBindingError(err, "profile")
 
 	rootCmd.Flags().StringP("registrationCode", "", "",
-		"Required.  Registration code to give to permissioning")
+		"Registration code used for first time registration. Required field.")
 	err = viper.BindPFlag("registrationCode", rootCmd.Flags().Lookup("registrationCode"))
 	handleBindingError(err, "registrationCode")
 
 	rootCmd.Flags().BoolVarP(&keepBuffers, "keepBuffers", "k", false,
-		"maintains all old round information forever, will eventually "+
-			"run out of memory")
+		"Maintains all of the old round information forever; will eventually "+
+			"run out of memory.")
 	err = rootCmd.Flags().MarkHidden("keepBuffers")
 	handleBindingError(err, "keepBuffers")
 	err = viper.BindPFlag("keepBuffers", rootCmd.Flags().Lookup("keepBuffers"))
 	handleBindingError(err, "keepBuffers")
 
 	rootCmd.Flags().IntVar(&maxProcsOverride, "MaxProcsOverride", runtime.NumCPU(),
-		"Overrides the maximum number of processes go will use. Must "+
-			"be equal to or less than the number of logical cores on the device. "+
-			"Defaults at the number of logical cores on the device")
+		"Overrides the maximum number of processes Go will use. Must be equal "+
+			"to or less than the number of logical cores on the device. "+
+			"Defaults at the number of logical cores on the device.")
 	err = rootCmd.Flags().MarkHidden("MaxProcsOverride")
 	handleBindingError(err, "MaxProcsOverride")
 
-	rootCmd.Flags().BoolVarP(&disableStreaming, "disableStreaming", "",
-		false, "Disables streaming comms.")
-	rootCmd.Flags().BoolVarP(&useGPU, "useGPU", "", false,
-		"Toggle on GPU")
+	rootCmd.Flags().BoolVarP(&disableStreaming, "disableStreaming", "", false,
+		"Disables streaming comms.")
 
+	rootCmd.Flags().BoolVarP(&useGPU, "useGPU", "", false, "Toggle use of GPU.")
 	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
 	handleBindingError(err, "useGPU")
+
+	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
+	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+
+		"the multi-instance GPU test.")
 
 }
 
@@ -152,8 +157,10 @@ func initConfig() {
 	//Use default config location if none is passed
 	if cfgFile == "" {
 		var err error
-		cfgFile, err = utils.SearchDefaultLocations("server.yaml", "xxnetwork")
-		// Find home directory.
+		cfgFile, err = utils.SearchDefaultLocations("node.yaml", "xxnetwork")
+		if err != nil {
+			cfgFile, err = utils.SearchDefaultLocations("server.yaml", "xxnetwork")
+		}
 		if err != nil {
 			jww.FATAL.Panicf("No config provided and non found at default paths")
 		}

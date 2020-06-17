@@ -1,6 +1,14 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package permissioning
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -130,7 +138,7 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	node4 := []byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
 
 	now := time.Now()
-	timestamps := make([]uint64,states.NUM_STATES)
+	timestamps := make([]uint64, states.NUM_STATES)
 	timestamps[states.PRECOMPUTING] = uint64(now.UnixNano())
 	timestamps[states.REALTIME] = uint64(time.Now().Add(500 * time.Millisecond).UnixNano())
 
@@ -140,10 +148,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 
 	// Construct round info message indicating PRECOMP starting
 	precompRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.PRECOMPUTING),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.PRECOMPUTING),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
@@ -155,10 +163,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 
 	// Construct round info message indicating STANDBY starting
 	standbyRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.STANDBY),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.STANDBY),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
@@ -173,10 +181,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 
 	// Add new round in standby stage
 	newNodeRoundInfo := &pb.RoundInfo{
-		ID:       0,
-		UpdateID: numUpdates,
-		State:    uint32(states.STANDBY),
-		Topology: ourTopology,
+		ID:         0,
+		UpdateID:   numUpdates,
+		State:      uint32(states.STANDBY),
+		Topology:   ourTopology,
 		Timestamps: timestamps,
 	}
 
@@ -279,24 +287,10 @@ func mockServerDef(i interface{}) *internal.Definition {
 
 func builEmptydMockNdf() *ndf.NetworkDefinition {
 
-	cmixGroup := ndf.Group{
-		Prime:      "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF",
-		SmallPrime: "7FFFFFFFFFFFFFFFE487ED5110B4611A62633145C06E0E68948127044533E63A0105DF531D89CD9128A5043CC71A026EF7CA8CD9E69D218D98158536F92F8A1BA7F09AB6B6A8E122F242DABB312F3F637A262174D31BF6B585FFAE5B7A035BF6F71C35FDAD44CFD2D74F9208BE258FF324943328F6722D9EE1003E5C50B1DF82CC6D241B0E2AE9CD348B1FD47E9267AFC1B2AE91EE51D6CB0E3179AB1042A95DCF6A9483B84B4B36B3861AA7255E4C0278BA3604650C10BE19482F23171B671DF1CF3B960C074301CD93C1D17603D147DAE2AEF837A62964EF15E5FB4AAC0B8C1CCAA4BE754AB5728AE9130C4C7D02880AB9472D455655347FFFFFFFFFFFFFFF",
-		Generator:  "02",
-	}
-
-	e2eGroup := ndf.Group{
-		Prime:      "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF",
-		SmallPrime: "7FFFFFFFFFFFFFFFE487ED5110B4611A62633145C06E0E68948127044533E63A0105DF531D89CD9128A5043CC71A026EF7CA8CD9E69D218D98158536F92F8A1BA7F09AB6B6A8E122F242DABB312F3F637A262174D31BF6B585FFAE5B7A035BF6F71C35FDAD44CFD2D74F9208BE258FF324943328F6722D9EE1003E5C50B1DF82CC6D241B0E2AE9CD348B1FD47E9267AFC1B2AE91EE51D6CB0E3179AB1042A95DCF6A9483B84B4B36B3861AA7255E4C0278BA3604650C10BE19482F23171B671DF1CF3B960C074301CD93C1D17603D147DAE2AEF837A62964EF15E5FB4AAC0B8C1CCAA4BE754AB5728AE9130C4C7D02880AB9472D455655347FFFFFFFFFFFFFFF",
-		Generator:  "02",
-	}
-
 	ourMockNdf := &ndf.NetworkDefinition{
 		Timestamp: time.Now(),
 		Nodes:     []ndf.Node{},
 		Gateways:  []ndf.Gateway{},
-		E2E:       e2eGroup,
-		CMIX:      cmixGroup,
 		UDB:       ndf.UDB{},
 	}
 
@@ -437,6 +431,8 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
 	}
+
+	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 	// Create state machine
 	sm := state.NewMachine(dummyStates)

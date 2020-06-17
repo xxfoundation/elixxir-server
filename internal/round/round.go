@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package round
 
 // round.go contains the round.Round object and its methods A round.Round indicates
@@ -15,7 +17,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -192,7 +194,9 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 
 	top := *connect.NewCircuit(list)
 
-	return &Round{id: roundId, batchSize: batchSize, topology: &top}
+	state := uint32(phase.Active)
+	r := &Round{id: roundId, batchSize: batchSize, topology: &top, state: &state}
+	return r
 }
 
 func NewDummyRoundWithTopology(roundId id.Round, batchSize uint32,

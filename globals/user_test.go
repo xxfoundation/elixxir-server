@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package globals
 
@@ -117,6 +118,22 @@ func TestUserMap_InsertSalt(t *testing.T) {
 	if err == nil {
 		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
 			" salts for one user, recieved success")
+	}
+}
+
+// Tests that InsertSalt() returns the error ErrNonexistantUser when the given
+// user ID is not in the user map.
+func TestUserMap_InsertSalt_ErrNonexistantUser(t *testing.T) {
+	grp := InitCrypto()
+
+	users := UserRegistry(&UserMap{})
+	u9 := users.NewUser(grp)
+	u9.ID = id.NewIdFromUInt(1, id.User, t)
+
+	err := users.InsertSalt(id.NewIdFromUInt(2, id.User, t), []byte("test"))
+	if err != ErrNonexistantUser {
+		t.Errorf("InsertSalt: Expected error when using User ID that does not "+
+			"exist.\n\texpected: %v\n\treceived: %v", ErrNonexistantUser, err)
 	}
 }
 

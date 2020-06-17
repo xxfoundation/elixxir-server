@@ -15,3 +15,5 @@ cmd/version_vars.go
 *.out
 # Ignore obsolete dependency management software
 glide.lock
+# Ignore executables
+*.exe
