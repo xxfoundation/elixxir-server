@@ -81,8 +81,9 @@ $ mv version_vars.go cmd
 
 ## Config File
 
-The Server configuration file must be named `node.yaml` and be located in
-one of the following directories:
+If the configuration file is not set via command line flag `--config`, then the
+Server configuration file must be named `node.yaml` and be located in one of the
+following directories:
 1. `$HOME/.xxnetwork/`
 2. `/opt/xxnetwork/`
 3. `/etc/xxnetwork/`
