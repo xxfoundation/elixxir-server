@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package realtime
 
@@ -30,7 +31,7 @@ type KeygenDecryptStream struct {
 	EcrPayloadB *cyclic.IntBuffer
 
 	// Components for key generation
-	Users        []*id.User
+	Users        []*id.ID
 	Salts        [][]byte
 	KeysPayloadA *cyclic.IntBuffer
 	KeysPayloadB *cyclic.IntBuffer
@@ -47,10 +48,10 @@ func (s *KeygenDecryptStream) GetName() string {
 func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuf := source[0].(*round.Buffer)
 	userRegistry := source[1].(globals.UserRegistry)
-	users := make([]*id.User, batchSize)
+	users := make([]*id.ID, batchSize)
 
 	for i := uint32(0); i < batchSize; i++ {
-		users[i] = &id.User{}
+		users[i] = &id.ID{}
 	}
 
 	ds.LinkRealtimeDecryptStream(grp, batchSize,
@@ -65,7 +66,7 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 
 //Connects the internal buffers in the stream to the passed
 func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.User, salts [][]byte, kmacs [][][]byte) {
+	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte) {
 
 	ds.Grp = grp
 
@@ -105,7 +106,7 @@ func (ds *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error
 	}
 
 	// Check that the user id is formatted correctly
-	if len(slot.SenderID) != id.UserLen {
+	if len(slot.SenderID) != id.ArrIDLen {
 		return globals.ErrUserIDTooShort
 	}
 

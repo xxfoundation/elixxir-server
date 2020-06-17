@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -17,7 +18,41 @@ import (
 )
 
 const mockRoundMetricJSON = `{
-	"NodeID": "abc",
+	"NodeID": [
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		2
+	],
 	"NumNodes": 3,
 	"Index": 0,
 	"IP": "0.0.0.0",
@@ -63,7 +98,7 @@ func TestTransmitGetMeasure(t *testing.T) {
 
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{impl, impl, impl}, 10)
+		[]*node.Implementation{impl, impl, impl}, 10, t)
 	defer Shutdown(comms)
 
 	// Run the function (round ID does not matter because we mocked GetMeasure)
@@ -96,7 +131,7 @@ func TestTransmitGetMeasure_Error(t *testing.T) {
 
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{impl, impl, impl}, 10)
+		[]*node.Implementation{impl, impl, impl}, 10, t)
 	defer Shutdown(comms)
 
 	// Run the function (round ID does not matter because we mocked GetMeasure)
@@ -116,7 +151,7 @@ func TestTransmitGetMeasure_JSONError(t *testing.T) {
 
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{impl, impl, impl}, 10)
+		[]*node.Implementation{impl, impl, impl}, 10, t)
 	defer Shutdown(comms)
 
 	// Run the function (round ID does not matter because we mocked GetMeasure)

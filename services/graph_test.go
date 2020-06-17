@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package services
 
 import (
@@ -8,14 +15,14 @@ import (
 func newGraphAndGeneratorTestUtil() (*Graph, GraphGenerator) {
 	stream := &Stream1{}
 	name := "test123"
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph(name, stream)
 	return g, gc
 }
 
 func TestGraph_GetStream(t *testing.T) {
 	stream := &Stream1{}
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	g := gc.NewGraph("test", stream)
 
 	if g.GetStream() != stream {

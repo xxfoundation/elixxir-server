@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -42,8 +43,8 @@ func ReceivePostRoundPublicKey(instance *internal.Instance,
 	}
 
 	// Verify that auth is good and sender is last node
-	expectedID := r.GetTopology().GetLastNode().String()
-	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID {
+	expectedID := r.GetTopology().GetLastNode()
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(expectedID) {
 		jww.INFO.Printf("[%v]: RID %d ReceivePostRoundPublicKey failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
@@ -58,16 +59,18 @@ func ReceivePostRoundPublicKey(instance *internal.Instance,
 
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"PostRoundPublicKey comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagVerification)
 
 	err = PostRoundPublicKey(instance.GetConsensus().GetCmixGroup(), r.GetBuffer(), pk)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on posting PostRoundPublicKey "+
+		roundErr := errors.Errorf("[%v]: Error on posting PostRoundPublicKey "+
 			"to io, should be able to return: %+v", instance, err)
+		return roundErr
 	}
 
 	jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey PK is: %s",
@@ -104,8 +107,9 @@ func ReceivePostRoundPublicKey(instance *internal.Instance,
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
 		if err != nil {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
+			roundErr := errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to get decrypt phase: %+v", err)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 		}
 
 		jww.INFO.Printf("[%v]: RID %d PostRoundPublicKey FIRST NODE START PHASE \"%s\"", instance,
@@ -117,14 +121,16 @@ func ReceivePostRoundPublicKey(instance *internal.Instance,
 		decrypt.Measure(measure.TagReceiveOnReception)
 
 		if !queued {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey " +
+			roundErr := errors.Errorf("Error on first node PostRoundPublicKey " +
 				"comm, should be able to queue decrypt phase")
+			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 		}
 		err = PostPhase(decrypt, blankBatch)
 
 		if err != nil {
-			jww.FATAL.Panicf("Error on first node PostRoundPublicKey "+
+			roundErr := errors.Errorf("Error on first node PostRoundPublicKey "+
 				"comm, should be able to post to decrypt phase: %+v", err)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 		}
 	}
 	return nil

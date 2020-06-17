@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // benchmark runs parameterized benchmarking simulations of the server
 package benchmark
@@ -219,7 +220,7 @@ func RTIdentifyRTEncryptTranslate(identify, encrypt chan *services.Slot,
 		// extraction of RID from associated data
 		// HOWEVER, this will significantly change the main test using this
 		// benchmark function, as was commented in: TestEndToEndCryptops
-		rID := new(id.User).SetBytes(esTmp.AssociatedData.
+		rID := new(id.ID).SetBytes(esTmp.AssociatedData.
 			LeftpadBytes(id.UserLen))
 
 		inputMsgPostID := services.Slot(&realtime.Slot{

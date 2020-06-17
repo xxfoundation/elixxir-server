@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -27,7 +28,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	roundID := id.Round(0)
 	grp := initImplGroup()
 
-	topology := connect.NewCircuit(BuildMockNodeIDs(2))
+	topology := connect.NewCircuit(BuildMockNodeIDs(2, t))
 
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
@@ -39,7 +40,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	def.ID = topology.GetNodeAtIndex(0)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
+		"1.1.0")
 
 	mockPhase := testUtil.InitMockPhase(t)
 
@@ -50,7 +52,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -79,7 +81,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -138,7 +140,7 @@ func TestPostPhase_NoAuth(t *testing.T) {
 	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-		3, instance.GetRngStreamGen(), nil, "0.0.0.0")
+		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -162,7 +164,7 @@ func TestPostPhase_NoAuth(t *testing.T) {
 
 	// Make an auth object around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -209,7 +211,7 @@ func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPh
 
 	// Make an auth object around a node that is not the previous node
 	lastNodeIndex := topology.Len() - 2
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -254,7 +256,7 @@ func TestStreamPostPhase_NoAuth(t *testing.T) {
 
 	// Make an auth object around the last node
 	lastNodeIndex := topology.Len() - 1
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -302,7 +304,7 @@ func TestStreamPostPhase_WrongSender(t *testing.T) {
 
 	// Make an auth object around a non previous node
 	lastNodeIndex := topology.Len() - 2
-	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex).String()
+	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
@@ -338,7 +340,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -367,7 +369,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	}
 
 	// Make an auth object around the last node
-	lastNodeId := topology.GetPrevNode(instance.GetID()).String()
+	lastNodeId := topology.GetPrevNode(instance.GetID())
 	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)

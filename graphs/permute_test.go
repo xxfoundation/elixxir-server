@@ -1,13 +1,13 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package graphs
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
@@ -47,11 +47,8 @@ func TestPermute_PrecanPermute(t *testing.T) {
 }
 
 func TestModifyGraphGeneratorForPermute(t *testing.T) {
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
-	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 
 	gcPermute := ModifyGraphGeneratorForPermute(gc)
 

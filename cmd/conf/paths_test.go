@@ -1,12 +1,14 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package conf
 
 var ExpectedPaths = Paths{
+	Idf:  "nodeID.json",
 	Cert: "~/.elixxir/cert.crt",
 	Key:  "~/.elixxir/key.pem",
 	Log:  "~/.elixxir/server.log",

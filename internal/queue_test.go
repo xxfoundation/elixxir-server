@@ -1,7 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package internal
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -18,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )
@@ -105,7 +112,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	q := initQueue()
 	nid := GenerateId(t)
 
-	topology := connect.NewCircuit([]*id.Node{nid})
+	topology := connect.NewCircuit([]*id.ID{nid})
 	def := Definition{
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
@@ -114,7 +121,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		PartialNDF:      testUtil.NDF,
 	}
 	m := state.NewMachine(dummyStates)
-	instance, _ := CreateServerInstance(&def, impl, m, false)
+	instance, _ := CreateServerInstance(&def, impl, m, "1.1.0")
 	roundID := id.Round(1)
 	p := makeTestPhase(instance, phase.PrecompGeneration, roundID)
 	// Then, we need a response map for the phase
@@ -131,7 +138,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	r, err := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
 		responseMap, topology, instance.GetID(), 1,
-		instance.GetRngStreamGen(), nil, "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -152,9 +159,11 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	go q.run(instance)
 	time.Sleep(20 * time.Millisecond)
 	// Verify state while the queue is running
+	iWasCalledLck.Lock()
 	if !iWasCalled {
 		t.Error("Transmission handler never got called")
 	}
+	iWasCalledLck.Unlock()
 	//log := io.Writer()
 	//log
 	if len(q.phaseQueue) != 0 {
@@ -184,6 +193,7 @@ func (*mockCryptop) GetInputSize() uint32 {
 }
 
 var iWasCalled bool
+var iWasCalledLck sync.Mutex
 
 func makeTestPhase(instance *Instance, name phase.Type,
 	roundID id.Round) phase.Phase {
@@ -194,7 +204,8 @@ func makeTestPhase(instance *Instance, name phase.Type,
 	//  header.
 	transmissionHandler := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk,
 		getMessage phase.GetMessage) error {
-
+		iWasCalledLck.Lock()
+		defer iWasCalledLck.Unlock()
 		iWasCalled = true
 		return nil
 	}
@@ -205,10 +216,7 @@ func makeTestPhase(instance *Instance, name phase.Type,
 }
 
 func makeTestGraph(instance *Instance, batchSize uint32) *services.Graph {
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
-	}
-	graphGen := services.NewGraphGenerator(4, PanicHandler,
+	graphGen := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 1)
 	graph := graphGen.NewGraph("TestGraph", &mockStream{})
 

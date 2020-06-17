@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package round
 
 // round.go contains the round.Round object and its methods A round.Round indicates
@@ -15,11 +17,12 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/services"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -60,9 +63,9 @@ type Round struct {
 // and batchsize
 func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
-	circuit *connect.Circuit, nodeID *id.Node, batchSize uint32,
+	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
-	localIP string) (*Round, error) {
+	localIP string, errorHandler services.ErrorCallback) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
@@ -80,7 +83,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	round.phaseStateUpdateSignal = make(chan struct{}, 1)
 
 	for index, p := range phases {
-		p.GetGraph().Build(batchSize)
+		p.GetGraph().Build(batchSize, errorHandler)
 		if p.GetGraph().GetExpandedBatchSize() > maxBatchSize {
 			maxBatchSize = p.GetGraph().GetExpandedBatchSize()
 		}
@@ -182,16 +185,25 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 	if t == nil {
 		panic("Can not use NewDummyRound out side of testing")
 	}
-	list := []*id.Node{}
+	list := []*id.ID{}
 
 	for i := uint64(0); i < 8; i++ {
-		node := id.NewNodeFromUInt(i, t)
+		node := id.NewIdFromUInt(i, id.Node, t)
 		list = append(list, node)
 	}
 
 	top := *connect.NewCircuit(list)
 
-	return &Round{id: roundId, batchSize: batchSize, topology: &top}
+	state := uint32(phase.Active)
+	r := &Round{id: roundId, batchSize: batchSize, topology: &top, state: &state}
+	return r
+}
+
+func NewDummyRoundWithTopology(roundId id.Round, batchSize uint32,
+	topology *connect.Circuit, t *testing.T) *Round {
+	r := NewDummyRound(roundId, batchSize, t)
+	r.topology = topology
+	return r
 }
 
 //GetID return the ID
@@ -276,7 +288,7 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 }
 
 // Return a RoundMetrics objects for this round
-func (r *Round) GetMeasurements(nid string, numNodes, index int,
+func (r *Round) GetMeasurements(nid *id.ID, numNodes, index int,
 	resourceMetric measure.ResourceMetric) measure.RoundMetrics {
 
 	rm := r.roundMetrics

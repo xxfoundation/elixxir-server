@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -52,7 +53,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 
 	// Check for proper authentication and if the sender
 	// is the previous node in the circuit
-	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
+	if !auth.IsAuthenticated || !prevNodeID.Cmp(auth.Sender.GetId()) {
 		jww.WARN.Printf("Error on PostPhase: "+
 			"Attempted communication by %+v has not been authenticated", auth.Sender)
 		return connect.AuthError(auth.Sender.GetId())
@@ -71,9 +72,10 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	//Check if the operation can be done and get the correct phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"PostPhase comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
@@ -99,8 +101,9 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	err = PostPhase(p, batch)
 
 	if err != nil {
-		jww.FATAL.Panicf("Error on PostPhase comm, should be"+
+		roundErr := errors.Errorf("Error on PostPhase comm, should be"+
 			" able to return: %+v", err)
+		return roundErr
 	}
 	return nil
 }
@@ -113,7 +116,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "Could not get post phase stream header")
 	}
 	roundID := id.Round(batchInfo.Round.ID)
 	rm := instance.GetRoundManager()
@@ -126,7 +129,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// Check for proper authentication and expected sender
 	nodeID := instance.GetID()
 	prevNodeID := topology.GetPrevNode(nodeID)
-	if !auth.IsAuthenticated || prevNodeID.String() != auth.Sender.GetId() {
+	if !auth.IsAuthenticated || !prevNodeID.Cmp(auth.Sender.GetId()) {
 		errMsg := errors.Errorf("[%v]: Reception of StreamPostPhase comm failed authentication: "+
 			"(Expected ID: %+v, received id: %+v.\n Auth: %+v)", instance,
 			prevNodeID, auth.Sender.GetId(), auth.IsAuthenticated)
@@ -158,9 +161,10 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	// phase if it can
 	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagReceiveOnReception)
 

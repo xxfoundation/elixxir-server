@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // Package io impl.go implements server utility functions needed to work
 // with the comms library
@@ -13,6 +14,7 @@ import (
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
 	"time"
@@ -78,7 +80,7 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return nonce, dhPub, err
 	}
 
-	impl.Functions.ConfirmRegistration = func(UserID, Signature []byte, auth *connect.Auth) ([]byte, error) {
+	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, error) {
 		bytes, err := ConfirmRegistration(instance, UserID, Signature, auth)
 		if err != nil {
 			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
@@ -109,8 +111,8 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return err
 	}
 
-	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
-		response, err := ReceivePoll(poll, instance)
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth, gatewayAddress string) (*mixmessages.ServerPollResponse, error) {
+		response, err := ReceivePoll(poll, instance, gatewayAddress, auth)
 		if err != nil && err.Error() != ndf.NO_NDF {
 			jww.ERROR.Printf("Poll error: %v, %+v", auth, err)
 		}
@@ -120,6 +122,15 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 	impl.Functions.AskOnline = func() error {
 		for instance.Online == false {
 			time.Sleep(250 * time.Millisecond)
+		}
+		return nil
+	}
+
+	impl.Functions.RoundError = func(error *mixmessages.RoundError, auth *connect.Auth) error {
+		err := ReceiveRoundError(error, auth, instance)
+		if err != nil {
+			jww.ERROR.Printf("[%v] ReceiveRoundError error: %v", instance, err.Error())
+			return err
 		}
 		return nil
 	}

@@ -1,14 +1,16 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package measure
 
 // metrics.go contains the metrics object and its methods
 
 import (
+	"gitlab.com/elixxir/primitives/id"
 	"sync"
 	"time"
 )
@@ -17,8 +19,8 @@ import (
 // RWMutex prevents two threads from writing to the list at the same time.
 type Metrics struct {
 	Events []Metric
-	NodeId string
-	sync.RWMutex
+	NodeId *id.ID
+	sync.Mutex
 }
 
 // Metric structure holds a single measurement, which contains a phase tag and a
@@ -48,6 +50,8 @@ func (ms *Metrics) Measure(tag string) time.Time {
 
 // GetEvents returns a copy of the Events array.
 func (ms Metrics) GetEvents() []Metric {
+	ms.Lock()
+	defer ms.Unlock()
 	metricsEvents := make([]Metric, len(ms.Events))
 
 	copy(metricsEvents, ms.Events)

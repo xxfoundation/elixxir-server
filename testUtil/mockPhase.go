@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package testUtil
 
 import (
@@ -102,7 +109,7 @@ func InitMockPhase(t *testing.T) *MockPhase {
 	if t == nil {
 		panic(errors.New("ERROR: must pass in testing.T object"))
 	}
-	gc := services.NewGraphGenerator(1, nil, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
+	gc := services.NewGraphGenerator(1, uint8(runtime.NumCPU()), services.AutoOutputSize, 0)
 	g := gc.NewGraph("MockGraph", &MockStream{})
 	var mockModule services.Module
 	mockModule.Adapt = func(stream services.Stream,

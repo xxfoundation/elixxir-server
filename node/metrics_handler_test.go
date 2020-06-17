@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package node
 
 import (
@@ -17,7 +24,7 @@ import (
 
 // This will error when the type does not match the function
 var _ internal.MetricsHandler = func(instance *internal.Instance, roundID id.Round) error {
-	return GatherMetrics(instance, roundID, false)
+	return GatherMetrics(instance, roundID)
 }
 
 // Tests  that buildMetricJSON marshals data correctly by unmarshalling the JSON

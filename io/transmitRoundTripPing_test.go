@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package io
 
 import (
@@ -38,7 +45,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 
 	// Setup the network
 	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{impl, impl, impl}, 10)
+		[]*node.Implementation{impl, impl, impl}, 10, t)
 	defer Shutdown(comms)
 
 	mockRSAPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
@@ -73,11 +80,11 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 	}
-	nodeIDs := make([]*id.Node, 0)
+	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	mockServerInstance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	mockServerInstance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
 	mockServerInstance.GetNetwork()
 
 	roundID := id.Round(0)
@@ -98,7 +105,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 
 	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
-		mockServerInstance.GetRngStreamGen(), nil, "0.0.0.0")
+		mockServerInstance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

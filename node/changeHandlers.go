@@ -1,65 +1,83 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package node
 
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"encoding/base64"
+	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"strings"
 	"time"
 )
+
+// Number of hard-coded users to create
+var numDemoUsers = int(256)
 
 func Dummy(from current.Activity) error {
 	return nil
 }
 
 // NotStarted is the beginning state of state machine. Enters waiting upon successful completion
-func NotStarted(instance *internal.Instance, noTls bool) error {
+func NotStarted(instance *internal.Instance) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
 
+	jww.INFO.Printf("Loading certificates from disk")
 	// Get the Server and Gateway certificates from file, if they exist
-	certsExist, serverCert, gwCert := getCertificates(ourDef.ServerCertPath,
-		ourDef.GatewayCertPath)
+
+	// Connect to the Permissioning Server without authentication
+	permHost, err := network.AddHost(&id.Permissioning,
+		// instance.GetPermissioningAddress,
+		ourDef.Permissioning.Address,
+		ourDef.Permissioning.TlsCert,
+		true,
+		false)
+
+	if err != nil {
+		return errors.Errorf("Unable to connect to registration server: %+v", err)
+	}
+
+	// Determine if the node has registered already
+	isRegistered := isRegistered(instance, permHost)
 
 	// If the certificates were retrieved from file, so do not need to register
-	if !certsExist {
-		jww.INFO.Printf("Registering with permissioning!")
-		// Connect to the Permissioning Server without authentication
-		permHost, err := network.AddHost(id.PERMISSIONING,
-			// instance.GetPermissioningAddress,
-			ourDef.Permissioning.Address,
-			ourDef.Permissioning.TlsCert,
-			true,
-			false)
-		if err != nil {
-			return errors.Errorf("Unable to connect to registration server: %+v", err)
-		}
+	if !isRegistered {
+		instance.IsFirstRun()
+		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
 		// Blocking call: begin Node registration
 		err = permissioning.RegisterNode(ourDef, network, permHost)
 		if err != nil {
-			return errors.Errorf("Failed to register node: %+v", err)
-		}
+			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
+				jww.FATAL.Panic("Node is already registered, Attempting re-registration is NOT secure")
+			} else {
+				return errors.Errorf("Failed to register node: %+v", err)
+			}
 
+		}
 		// Disconnect the old Permissioning server to enable authentication
 		permHost.Disconnect()
 	}
@@ -70,7 +88,9 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
-	permHost, err := network.AddHost(id.PERMISSIONING,
+	// do this even if you have the certs to ensure the permissioning server is
+	// ready for servers to connect to it
+	permHost, err = network.AddHost(&id.Permissioning,
 		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -79,28 +99,25 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
 
-	waitUntil := 3 * time.Minute
-	pollingTicker := time.NewTicker(waitUntil)
+	pollDelay := 1 * time.Second
 
 	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
-		select {
-		case <-pollingTicker.C:
-			return errors.Errorf("Failed to get the ndf within %v", waitUntil)
-		default:
-
-		}
+		time.After(pollDelay)
 
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			//find certs in NDF
-			serverCert, gwCert, err = permissioning.FindSelfInNdf(ourDef,
-				instance.GetConsensus().GetFullNdf().Get())
-			if err != nil {
-				//if certs are not in NDF, redo the poll
-				continue
+			//find certs in NDF if they are nto already had
+			if !isRegistered {
+				err = permissioning.FindSelfInNdf(ourDef,
+					instance.GetConsensus().GetFullNdf().Get())
+				if err != nil {
+					//if certs are not in NDF, redo the poll
+					continue
+				}
 			}
+
 			err = permissioning.UpdateNDf(permResponse, instance)
 		}
 	}
@@ -109,47 +126,55 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
+	cmixGrp := instance.GetConsensus().GetCmixGroup()
+	//populate the dummy precanned users
+	jww.INFO.Printf("Adding dummy users to registry")
+	userDatabase := instance.GetUserRegistry()
+	PopulateDummyUsers(userDatabase, cmixGrp)
+
+	//Add a dummy user for gateway
+	dummy := userDatabase.NewUser(cmixGrp)
+	dummy.ID = &id.DummyUser
+	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
+	dummy.IsRegistered = true
+	userDatabase.UpsertUser(dummy)
+
+	jww.INFO.Printf("Waiting on communication from gateway to continue")
+
+	// Set the gateway ID
+	instance.SetGatewayID()
+
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
 	// Receive signal that indicates that gateway is ready for polling
-	err = instance.GetGatewayFirstTime().Receive(instance.GetGatewayConnnectionTimeout())
-	if err != nil {
-		return errors.Errorf("Unable to receive from gateway channel: %+v", err)
-	}
+	instance.GetGatewayFirstTime().Receive()
 
-	// Do not need to get the Server and Gateway certificates if they were
-	// already retrieved from file
-	if !certsExist && ourDef.WriteToFile {
-		// Save the retrieved certificates to file
-		writeCertificates(ourDef, serverCert, gwCert)
-	}
-
-	// Restart the network with these signed certs
-	err = instance.RestartNetwork(io.NewImplementation, noTls, serverCert, gwCert)
-	if err != nil {
-		return errors.Errorf("Unable to restart network with new certificates: %+v", err)
-	}
-
-	// HACK HACK HACK
-	// FIXME: we should not be coupling connections and server objects
-	// Technically the servers can fail to bind for up to
-	// a couple minutes (depending on operating system), but
-	// in practice 10 seconds works
-	time.Sleep(10 * time.Second)
+	jww.INFO.Printf("Communication form gateway recieved")
 
 	// Once done with notStarted transition into waiting
 	go func() {
 		// Ensure that instance is in not started prior to transition
-		curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
-		if curActivity != current.NOT_STARTED || err != nil {
-			jww.FATAL.Panicf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+		cur, err := instance.GetStateMachine().WaitFor(1*time.Second, current.NOT_STARTED)
+		if cur != current.NOT_STARTED || err != nil {
+			roundErr := errors.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
+			instance.ReportNodeFailure(roundErr)
 		}
 
-		// Transition state machine into waiting state
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if !ok || err != nil {
-			jww.FATAL.Panicf("Unable to transition to %v state: %+v", current.WAITING, err)
+		// if error passed in go to error
+		if instance.GetRecoveredError() != nil {
+			ok, err := instance.GetStateMachine().Update(current.ERROR)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
+				instance.ReportNodeFailure(roundErr)
+			}
+		} else {
+			// Transition state machine into waiting state
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
+				instance.ReportNodeFailure(roundErr)
+			}
 		}
 
 		// Periodically re-poll permissioning
@@ -159,10 +184,10 @@ func NotStarted(instance *internal.Instance, noTls bool) error {
 			err := permissioning.Poll(instance)
 			if err != nil {
 				// If we receive an error polling here, panic this thread
-				jww.FATAL.Panicf("Received error polling for permisioning: %+v", err)
+				roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
+				instance.ReportNodeFailure(roundErr)
 			}
 		}
-
 	}()
 
 	return nil
@@ -174,8 +199,7 @@ func Waiting(from current.Activity) error {
 }
 
 // Precomputing does various business logic to prep for the start of a new round
-func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) error {
-
+func Precomputing(instance *internal.Instance) error {
 	// Add round.queue to instance, get that here and use it to get new round
 	// start pre-precomputation
 	roundInfo, err := instance.GetCreateRoundQueue().Receive()
@@ -184,9 +208,10 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	}
 
 	roundID := roundInfo.GetRoundId()
+	roundTimeout := time.Duration(roundInfo.ResourceQueueTimeoutMillis) * time.Millisecond
 	topology := roundInfo.GetTopology()
 	// Extract topology from RoundInfo
-	nodeIDs, err := id.NewNodeListFromStrings(topology)
+	nodeIDs, err := id.NewIDListFromBytes(topology)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
@@ -195,7 +220,7 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 	circuit := connect.NewCircuit(nodeIDs)
 
 	for i := 0; i < circuit.Len(); i++ {
-		nodeId := circuit.GetNodeAtIndex(i).String()
+		nodeId := circuit.GetNodeAtIndex(i)
 		ourHost, ok := instance.GetNetwork().GetHost(nodeId)
 		if !ok {
 			return errors.Errorf("Host not available for node %s in round", circuit.GetNodeAtIndex(i))
@@ -210,8 +235,22 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetID(),
 		instance,
 		roundInfo.GetBatchSize(),
-		newRoundTimeout, nil,
+		roundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming())
+
+	var override = func() {
+		phaseOverrides := instance.GetPhaseOverrides()
+		for toOverride, or := range phaseOverrides {
+			phases[toOverride] = or
+		}
+	}
+	if instance.GetOverrideRound() != -1 {
+		if instance.GetOverrideRound() == int(roundID) {
+			override()
+		}
+	} else {
+		override()
+	}
 
 	//Build the round
 	rnd, err := round.New(
@@ -222,8 +261,9 @@ func Precomputing(instance *internal.Instance, newRoundTimeout time.Duration) er
 		instance.GetID(),
 		roundInfo.GetBatchSize(),
 		instance.GetRngStreamGen(),
-		nil,
-		instance.GetIP())
+		instance.GetStreamPool(),
+		instance.GetIP(),
+		GetDefaultPanicHanlder(instance, roundID))
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}
@@ -284,8 +324,93 @@ func Completed(from current.Activity) error {
 	return nil
 }
 
-func Error(from current.Activity) error {
-	// start error
+func Error(instance *internal.Instance) error {
+	//If the error state was recovered from a restart, exit.
+	if instance.GetRecoveredErrorUnsafe() != nil {
+		return nil
+	}
+
+	// Check for error message on server instance
+	msg := instance.GetRoundError()
+	if msg == nil {
+		jww.FATAL.Panic("No error found on instance")
+	}
+	/*
+		nid, err := id.Unmarshal(msg.NodeId)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to get node id from error")
+		}
+
+		wg := sync.WaitGroup{}
+		numResponces := uint32(0)
+		// If the error originated with us, send broadcast to other nodes
+		if nid.Cmp(instance.GetID()) && msg.Id != 0 {
+			r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
+			if err != nil {
+				return errors.WithMessage(err, "Failed to get round id")
+			}
+			top := r.GetTopology()
+			for i := 0; i < top.Len(); i++ {
+				// Send to all nodes except self
+				n := top.GetNodeAtIndex(i)
+				if !instance.GetID().Cmp(n) {
+					wg.Add(1)
+					go func() {
+						h, ok := instance.GetNetwork().GetHost(n)
+						if !ok {
+							jww.ERROR.Printf("Could not get host for node %s", n.String())
+						}
+
+						_, err := instance.SendRoundError(h, msg)
+						if err != nil {
+							err = errors.WithMessagef(err, "Failed to send error to node %s", n.String())
+							jww.ERROR.Printf(err.Error())
+						}
+						atomic.AddUint32(&numResponces,1)
+						wg.Done()
+					}()
+				}
+			}
+
+			// Wait until the error messages are sent, or timeout after 3 minutes
+			notifyTeamMembers := make(chan struct{})
+			notifyTimeout := 15 * time.Second
+			timeout := time.NewTimer(notifyTimeout)
+
+			go func() {
+				wg.Wait()
+				notifyTeamMembers <- struct{}{}
+			}()
+
+			select {
+			case <-notifyTeamMembers:
+			case <-timeout.C:
+				jww.ERROR.Printf("Only %v/%v team members responded to the "+
+					"error broadcast, timed out after %s",
+					atomic.LoadUint32(&numResponces), top.Len(), notifyTimeout)
+			}
+		}
+	*/
+	b, err := proto.Marshal(msg)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to marshal message into bytes")
+	}
+
+	bEncoded := base64.StdEncoding.EncodeToString(b)
+
+	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to write error to file")
+	}
+
+	err = instance.GetResourceQueue().Kill(5 * time.Second)
+	if err != nil {
+		return errors.WithMessage(err, "Resource queue kill timed out")
+	}
+
+	instance.GetPanicWrapper()(fmt.Sprintf(
+		"Error encountered - closing server & writing error to %s: %s",
+		instance.GetDefinition().RecoveredErrorPath, msg.Error))
 	return nil
 }
 
@@ -311,59 +436,30 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
-// getCertificates retrieves the Server and Gateway certificates from the path
-// in the definition. If one ore more certificate is not found, then that
-// certificate is returned as an empty string and the function returns false.
-func getCertificates(serverPath, gatewayPath string) (bool, string, string) {
-	var serverCert, gatewayCert []byte
-	var err error
+// Pings permissioning server to see if our registration code has already been registered
+func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
 
-	// Check if the Server certificate files exist
-	serverCertExists := utils.FileExists(serverPath)
-
-	if serverCertExists {
-		// Load the Server certificate from file
-		serverCert, err = utils.ReadFile(serverPath)
-		if err != nil {
-			jww.DEBUG.Printf("Received Server's certificate from file %s: %v",
-				serverPath, err)
-		}
+	// Request a client ndf from the permissioning server
+	response, err := serverInstance.GetNetwork().SendRegistrationCheck(permHost,
+		&mixmessages.RegisteredNodeCheck{
+			RegCode: serverInstance.GetDefinition().RegistrationCode,
+		})
+	if err != nil {
+		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
+		return false
 	}
 
-	// Check if the Gateway certificate files exist
-	gatewayCertExists := utils.FileExists(gatewayPath)
+	return response.IsRegistered
 
-	if gatewayCertExists {
-		// Load the Gateway certificate from file
-		gatewayCert, err = utils.ReadFile(gatewayPath)
-		if err != nil {
-			jww.DEBUG.Printf("Received Gateway's certificate from file: %s: %v",
-				gatewayPath, err)
-		}
-	}
-
-	return serverCertExists && gatewayCertExists,
-		string(serverCert),
-		string(gatewayCert)
 }
 
-// writeCertificates writes the Server and Gateway certificates to the paths
-// in the definition. If either file fails to save, then it panics.
-func writeCertificates(def *internal.Definition, serverCert, gatewayCert string) {
-
-	// Write the Server certificate to specified path
-	err := utils.WriteFile(def.ServerCertPath, []byte(serverCert),
-		utils.FilePerms, utils.DirPerms)
-	if err != nil {
-		jww.FATAL.Panicf("Error writing Server certificate to path "+
-			"%s: %v", def.ServerCertPath, err)
+// Create dummy users to be manually inserted into the database
+func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
+	// Deterministically create named users for demo
+	for i := 1; i < numDemoUsers; i++ {
+		u := ur.NewUser(grp)
+		u.IsRegistered = true
+		ur.UpsertUser(u)
 	}
-
-	// Write the Gateway certificate to specified path
-	err = utils.WriteFile(def.GatewayCertPath, []byte(gatewayCert),
-		utils.FilePerms, utils.DirPerms)
-	if err != nil {
-		jww.FATAL.Panicf("Error writing Gateway certificate to path "+
-			"%s: %v", def.GatewayCertPath, err)
-	}
+	return
 }

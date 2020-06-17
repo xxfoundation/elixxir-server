@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -26,14 +27,14 @@ import (
 func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 
-	topology := connect.NewCircuit(BuildMockNodeIDs(5))
+	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Gateway: internal.GW{
-			ID: id.NewTmpGateway(),
+			ID: &id.TempGateway,
 		},
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
@@ -43,10 +44,11 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 
 	m := state.NewTestMachine(dummyStates, s, t)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
+		"1.1.0")
 	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-		3, instance.GetRngStreamGen(), nil, "0.0.0.0")
+		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -78,7 +80,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhase}, responseMap, topology,
 		topology.GetNodeAtIndex(1), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -101,7 +103,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		return nil
 	}
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -132,7 +134,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	instance, topology, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
-	fakeHost, _ := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
+	fakeHost, _ := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          fakeHost,
@@ -140,15 +142,9 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 
 	pk := &mixmessages.RoundPublicKey{
 		Round: &mixmessages.RoundInfo{
-			ID:                   0,
-			XXX_NoUnkeyedLiteral: struct{}{},
-			XXX_unrecognized:     nil,
-			XXX_sizecache:        0,
+			ID: 0,
 		},
-		Key:                  nil,
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+		Key: nil,
 	}
 
 	err := ReceivePostRoundPublicKey(instance, pk, auth)
@@ -166,7 +162,8 @@ func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 	instance, _, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
-	fakeHost, _ := connect.NewHost("beep beep i'm a host", "", nil, true, true)
+	newID := id.NewIdFromString("beep beep i'm a host", id.Node, t)
+	fakeHost, _ := connect.NewHost(newID, "", nil, true, true)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          fakeHost,
@@ -174,15 +171,9 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 
 	pk := &mixmessages.RoundPublicKey{
 		Round: &mixmessages.RoundInfo{
-			ID:                   0,
-			XXX_NoUnkeyedLiteral: struct{}{},
-			XXX_unrecognized:     nil,
-			XXX_sizecache:        0,
+			ID: 0,
 		},
-		Key:                  nil,
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+		Key: nil,
 	}
 
 	err := ReceivePostRoundPublicKey(instance, pk, auth)
@@ -231,7 +222,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0")
+		nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -247,7 +238,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode().String(), "", nil, true, true)
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

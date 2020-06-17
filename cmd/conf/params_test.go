@@ -1,12 +1,14 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package conf
 
 import (
+	"fmt"
 	"github.com/spf13/viper"
 	"reflect"
 	"testing"
@@ -15,20 +17,17 @@ import (
 func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 
 	expectedParams := Params{
-		Index:            5,
-		SkipReg:          true,
-		Verbose:          true,
 		KeepBuffers:      true,
-		UseGPU:           true,
-		Groups:           ExpectedGroups,
 		RngScalingFactor: 10000,
 
-		Node:          ExpectedNode,
-		Database:      ExpectedDatabase,
-		Gateways:      ExpectedGateways,
-		Permissioning: ExpectedPermissioning,
-		Metrics:       ExpectedMetrics,
-		GraphGen:      ExpectedGraphGen,
+		Node:             ExpectedNode,
+		Database:         ExpectedDatabase,
+		Gateway:          ExpectedGateway,
+		Permissioning:    ExpectedPermissioning,
+		GraphGen:         ExpectedGraphGen,
+		RegistrationCode: "123abc",
+
+		Metrics: Metrics{Log: "~/.elixxir/metrics.log"},
 	}
 
 	vip := viper.New()
@@ -44,7 +43,7 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	params, err := NewParams(vip)
 
 	if err != nil {
-		t.Fatalf("Failed in unmarshaling from viper object")
+		t.Fatalf("Failed in unmarshaling from viper object: %+v", err)
 	}
 
 	if !reflect.DeepEqual(expectedParams.Node, params.Node) {
@@ -56,36 +55,18 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 		t.Errorf("Params database value does not match expected value")
 	}
 
-	if !reflect.DeepEqual(expectedParams.Groups, params.Groups) {
-		t.Errorf("Params group value does not match expected value")
-	}
-
-	if expectedParams.Index != params.Index {
-		t.Errorf("Params index value does not match expected value")
-	}
-
-	if expectedParams.SkipReg != params.SkipReg {
-		t.Errorf("Params skipreg value does not match expected value")
-	}
-
 	if expectedParams.KeepBuffers != params.KeepBuffers {
 		t.Errorf("Params keepbuffers value does not match expected value")
 	}
 
-	if expectedParams.Verbose != params.Verbose {
-		t.Errorf("Params verbose value does not match expected value")
-	}
-
-	if expectedParams.UseGPU != params.UseGPU {
-		t.Error("Unexpected Params UseGPU value")
-	}
-
-	if !reflect.DeepEqual(expectedParams.Gateways, params.Gateways) {
+	if !reflect.DeepEqual(expectedParams.Gateway, params.Gateway) {
 		t.Errorf("Params gateways value does not match expected value")
 	}
 
 	if !reflect.DeepEqual(expectedParams.Metrics, params.Metrics) {
 		t.Errorf("Params metrics value does not match expected value")
+		fmt.Println(expectedParams.Metrics)
+		fmt.Println(params.Metrics)
 	}
 
 	if expectedParams.RngScalingFactor != params.RngScalingFactor {

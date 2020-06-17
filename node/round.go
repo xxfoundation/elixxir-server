@@ -1,13 +1,15 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package node
 
 import (
 	"gitlab.com/elixxir/comms/connect"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -22,7 +24,7 @@ import (
 
 // NewRoundComponents sets up the transitions of different phases in the round
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.Node, instance *internal.Instance, batchSize uint32,
+	nodeID *id.ID, instance *internal.Instance, batchSize uint32,
 	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,
 	disableStreaming bool) (
 	[]phase.Phase, phase.ResponseMap) {
@@ -71,7 +73,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Build Precomputation Share phase and response
 
 	// share needs a copy of the graph constructor with an input size of 1
-	gcShare := services.NewGraphGenerator(1, gc.GetErrorHandler(),
+	gcShare := services.NewGraphGenerator(1,
 		1, 1, 0.0)
 
 	precompShareDefinition := phase.Definition{

@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // +build linux,gpu,cgo
 
@@ -13,7 +14,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
 	"math/rand"
 	"runtime"
 	"testing"
@@ -208,7 +209,7 @@ func (s *ExpTestStream) DeepCopy() *ExpTestStream {
 // Precondition: ExpTestStream is populated with test data
 // Prepares and runs a graph with the specified 3 modules
 func runTestGraph(stream *ExpTestStream, moduleA, moduleB, moduleC *Module) {
-	gc := NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 0)
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
 	// need to do _something_ here???
 	// what is it?
 	g := gc.NewGraph("test", stream)
@@ -217,7 +218,7 @@ func runTestGraph(stream *ExpTestStream, moduleA, moduleB, moduleC *Module) {
 	g.Connect(moduleA, moduleB)
 	g.Connect(moduleB, moduleC)
 	g.Last(moduleC)
-	g.Build(stream.length)
+	g.Build(stream.length, PanicHandler)
 	// 2k bit ints should work OK with powm odd 4096, as there's enough space in a 4096 bit integer to hold a 2048 bit integer
 	g.Link(stream.g, stream.length)
 	// Does this block until the graph finishes all slots?

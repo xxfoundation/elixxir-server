@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package phase
 
 import (
@@ -196,7 +198,7 @@ func TestNew(t *testing.T) {
 	timeout := 50 * time.Second
 	// Testing whether the graph error handler is reachable is outside of the
 	// scope of this test
-	g := initMockGraph(services.NewGraphGenerator(1, nil,
+	g := initMockGraph(services.NewGraphGenerator(1,
 		1, 1, 1))
 	pass := false
 

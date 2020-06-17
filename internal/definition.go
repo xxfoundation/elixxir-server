@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package internal
 
 import (
@@ -13,7 +15,6 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/services"
-	"time"
 )
 
 // in cmd/node.go, it is filling this out
@@ -29,7 +30,7 @@ type Definition struct {
 	Flags
 
 	//The ID of the node in the correct format
-	ID *id.Node
+	ID *id.ID
 
 	//DSA Keys defining the node's ownership
 	PublicKey  *rsa.PublicKey
@@ -50,12 +51,12 @@ type Definition struct {
 	// Path where the Server and Gateway certificates will be stored
 	ServerCertPath  string
 	GatewayCertPath string
-	WriteToFile     bool
 	//Information about the node's gateway
 	Gateway GW
 
 	// Information on permissioning server
-	Permissioning Perm
+	Permissioning    Perm
+	RegistrationCode string
 
 	// Our NDFs for both backend servers and front-ends
 	FullNDF    *ndf.NetworkDefinition
@@ -76,19 +77,15 @@ type Definition struct {
 	// timeout for round creation
 	RoundCreationTimeout int
 
-	//how long the server will wait for the gateway to come online
-	GwConnTimeout time.Duration
-
 	// Toggles comm streaming
 	DisableStreaming bool
+
+	// Path for outputting errors to file for recovery
+	RecoveredErrorPath string
 }
 
 // Holds all input flags to the system.
 type Flags struct {
-	// Starts a server without client registration
-	SkipReg bool
-	// Prints all logs
-	Verbose bool
 	// Denotes if the server is to store all round keys indefinably
 	KeepBuffers bool
 	// If true, use GPU acceleration for precomputation
@@ -98,7 +95,7 @@ type Flags struct {
 //Holds information about another node in the network
 type Node struct {
 	// ID of the other node
-	ID *id.Node
+	ID *id.ID
 	// PEM file containing the TLS cert
 	TlsCert []byte
 	// IP of the []byte node
@@ -113,13 +110,11 @@ type Perm struct {
 	PublicKey *rsa.PublicKey
 	// IP address of the permissioning server
 	Address string
-	// Node Registration Code
-	RegistrationCode string
 }
 
 type GW struct {
 	// ID of the gateway
-	ID *id.Gateway
+	ID *id.ID
 	// PEM file containing the TLS cert
 	TlsCert []byte
 	// IP address of the gateway

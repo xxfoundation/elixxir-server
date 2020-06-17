@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package state_test
 
 import (
@@ -34,10 +36,12 @@ func TestMockBusinessLoop(t *testing.T) {
 			t.Logf("State %s never came: %s", from, err)
 		}
 		//move to next state
-		b, err := m.Update(to)
-		if !b {
-			t.Logf("State update to %s from %s returned error: %s", to,
-				from, err.Error())
+		_, err = m.Update(to)
+		if err != nil {
+			_, err := m.Update(current.ERROR)
+			if err != nil {
+				t.Errorf("Error on transition to error state")
+			}
 		}
 	}
 
@@ -117,7 +121,7 @@ func TestMockBusinessLoop(t *testing.T) {
 		if activityCount[current.ERROR] == expectedActivity[current.ERROR] {
 			// move to crash state
 			go func() {
-				curActivity, err := m.WaitFor(5*time.Millisecond, from)
+				curActivity, err := m.WaitFor(50*time.Millisecond, from)
 				if curActivity != from {
 					t.Logf("State %s never came: %s", from, err)
 				}
@@ -127,8 +131,6 @@ func TestMockBusinessLoop(t *testing.T) {
 						current.CRASH, err.Error())
 				}
 			}()
-			// signal success
-			return errors.New("crashing")
 		} else {
 			// move to next state
 			go generalUpdate(current.ERROR, current.WAITING)

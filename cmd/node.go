@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // Package node contains the initialization and main loop of a cMix server.
 package cmd
@@ -13,22 +14,22 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
+	"gitlab.com/elixxir/server/services"
+	"os"
 	"runtime"
 	"time"
 )
-
-// Number of hard-coded users to create
-var numDemoUsers = int(256)
 
 // StartServer reads configuration options and starts the cMix server
 func StartServer(vip *viper.Viper) error {
@@ -47,25 +48,14 @@ func StartServer(vip *viper.Viper) error {
 	// Load params object from viper conf
 	params, err := conf.NewParams(vip)
 	if err != nil {
-		jww.FATAL.Println("Unable to load params from viper")
+		jww.FATAL.Panicf("Unable to load params from viper: %+v", err)
 	}
 
 	jww.INFO.Printf("Loaded params: %+v", params)
 
-	//Check that there is a gateway
-	if len(params.Gateways.Addresses) < 1 {
-		// No gateways in config file or passed via command line
-		return errors.New("Error: No gateways specified! Add to" +
-			" configuration file!")
-	}
-
 	// Initialize the backend
 	jww.INFO.Printf("Initalizing the backend")
-	dbAddress := params.Database.Addresses[params.Index]
-	cmixGrp := params.Groups.GetCMix()
-
-	// Initialize the global group
-	globals.SetGroup(cmixGrp)
+	dbAddress := params.Database.Address
 
 	//Initialize the user database
 	userDatabase := globals.NewUserRegistry(
@@ -75,21 +65,15 @@ func StartServer(vip *viper.Viper) error {
 		dbAddress,
 	)
 
-	//populate the dummy precanned users
-	jww.INFO.Printf("Adding dummy users to registry")
-	PopulateDummyUsers(userDatabase, cmixGrp)
-
-	//Add a dummy user for gateway
-	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = id.MakeDummyUserID()
-	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
-	dummy.IsRegistered = true
-	userDatabase.UpsertUser(dummy)
-
 	jww.INFO.Printf("Converting params to server definition")
-	def := params.ConvertToDefinition()
+	def, err := params.ConvertToDefinition()
+	if err != nil {
+		return errors.Errorf("Failed to convert params to definition: %+v", err)
+	}
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
+
+	def.DisableStreaming = disableStreaming
 
 	err = node.ClearMetricsLogs(def.MetricLogPath)
 	if err != nil {
@@ -97,26 +81,21 @@ func StartServer(vip *viper.Viper) error {
 	}
 
 	def.MetricsHandler = func(instance *internal.Instance, roundID id.Round) error {
-		return node.GatherMetrics(instance, roundID, metricsWhitespace)
+		return node.GatherMetrics(instance, roundID)
 	}
 
-	PanicHandler := func(g, m string, err error) {
-		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err))
-	}
-	def.GraphGenerator.SetErrorHandler(PanicHandler)
+	var instance *internal.Instance
 
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
 	jww.INFO.Printf("Creating server instance")
-	var instance *internal.Instance
 
 	ourChangeList := node.NewStateChanges()
 
 	// Update the changelist to contain state functions
 	ourChangeList[current.NOT_STARTED] = func(from current.Activity) error {
-		return node.NotStarted(instance, noTLS)
+		return node.NotStarted(instance)
 	}
 
 	ourChangeList[current.WAITING] = func(from current.Activity) error {
@@ -124,8 +103,7 @@ func StartServer(vip *viper.Viper) error {
 	}
 
 	ourChangeList[current.PRECOMPUTING] = func(from current.Activity) error {
-		// todo: ask reviewer about this magic number
-		return node.Precomputing(instance, 5*time.Second)
+		return node.Precomputing(instance)
 	}
 
 	ourChangeList[current.STANDBY] = func(from current.Activity) error {
@@ -141,38 +119,65 @@ func StartServer(vip *viper.Viper) error {
 	}
 
 	ourChangeList[current.ERROR] = func(from current.Activity) error {
-		return node.Error(from)
+		return node.Error(instance)
 	}
 
-	ourChangeList[current.ERROR] = func(from current.Activity) error {
+	ourChangeList[current.CRASH] = func(from current.Activity) error {
 		return node.Crash(from)
 	}
 
 	// Create the machine with these state functions
 	ourMachine := state.NewMachine(ourChangeList)
 
-	// Create instance
-	instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, noTLS)
-	if err != nil {
-		return errors.Errorf("Could not create server instance: %v", err)
+	// Check if the error recovery file exists
+	if _, err := os.Stat(params.RecoveredErrPath); os.IsNotExist(err) {
+		// If not, start normally
+		instance, err = internal.CreateServerInstance(def,
+			io.NewImplementation, ourMachine, currentVersion)
+		if err != nil {
+			return errors.Errorf("Could not create server instance: %v", err)
+		}
+	} else {
+		// Otherwise, start in recovery mode
+		jww.INFO.Println("Server has recovered from an error")
+		instance, err = internal.RecoverInstance(def, io.NewImplementation,
+			ourMachine, currentVersion)
+		if err != nil {
+			return errors.WithMessage(err, "Could not recover server instance")
+		}
+	}
+
+	if params.PhaseOverrides != nil {
+		overrides := map[int]phase.Phase{}
+		gc := services.NewGraphGenerator(4,
+			uint8(runtime.NumCPU()), 1, 0)
+		g := graphs.InitErrorGraph(gc)
+		th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+			return errors.New("Failed intentionally")
+		}
+		for _, i := range params.PhaseOverrides {
+			jww.ERROR.Println(fmt.Sprintf("Overriding phase %d", i))
+			p := phase.New(phase.Definition{
+				Graph:               g,
+				Type:                phase.Type(i),
+				TransmissionHandler: th,
+				Timeout:             1 * time.Minute,
+				DoVerification:      false,
+			})
+			overrides[i] = p
+		}
+		if params.OverrideRound != -1 {
+			instance.OverridePhasesAtRound(overrides, params.OverrideRound)
+		} else {
+			instance.OverridePhases(overrides)
+		}
 	}
 
 	jww.INFO.Printf("Instance created!")
 
-	// Create instance
-	if noTLS {
-		jww.INFO.Println("Blanking TLS certs for non use")
-		def.TlsKey = nil
-		def.TlsCert = nil
-		def.Gateway.TlsCert = nil
-		//for i := 0; i < def.Topology.Len(); i++ {
-		//	def.Nodes[i].TlsCert = nil
-		//}
-	}
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
 	fmt.Printf("Server Definition: \n%#v", def)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	def.RoundCreationTimeout = newRoundTimeout
 
 	jww.INFO.Printf("Connecting to network")
 
@@ -186,18 +191,5 @@ func StartServer(vip *viper.Viper) error {
 		return errors.Errorf("Unable to run instance: %+v", err)
 	}
 
-	jww.INFO.Printf("Checking all servers are online")
-
 	return nil
-}
-
-// Create dummy users to be manually inserted into the database
-func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
-	// Deterministically create named users for demo
-	for i := 1; i < numDemoUsers; i++ {
-		u := ur.NewUser(grp)
-		u.IsRegistered = true
-		ur.UpsertUser(u)
-	}
-	return
 }

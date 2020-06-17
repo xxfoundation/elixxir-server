@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -31,7 +32,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	resourceMonitor := measure.ResourceMonitor{}
 	resourceMonitor.Set(measure.ResourceMetric{})
-	topology := connect.NewCircuit(BuildMockNodeIDs(numNodes))
+	topology := connect.NewCircuit(BuildMockNodeIDs(numNodes, t))
 	// Set instance for first node
 
 	m := state.NewMachine(dummyStates)
@@ -56,7 +57,8 @@ func TestReceiveGetMeasure(t *testing.T) {
 		PartialNDF:      testUtil.NDF,
 	}
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
+		"1.1.0")
 
 	// Set up a round first node
 	roundID := id.Round(45)
@@ -74,7 +76,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0")
+		"0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

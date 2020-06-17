@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -34,7 +35,7 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 	}
 
 	expectedID := r.GetTopology().GetLastNode()
-	if !auth.IsAuthenticated || auth.Sender.GetId() != expectedID.String() {
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(expectedID) {
 		jww.INFO.Printf("[%v]: RID %d FinishRealtime failed auth "+
 			"(expected ID: %s, received ID: %s, auth: %v)",
 			instance, roundID, expectedID, auth.Sender.GetId(),
@@ -56,13 +57,13 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 	tag := phase.RealPermute.String() + "Verification"
 	r, p, err := rm.HandleIncomingComm(id.Round(roundID), tag)
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: Error on reception of "+
+		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"FinishRealtime comm, should be able to return: \n %+v",
 			instance, err)
+		return roundErr
 	}
 	p.Measure(measure.TagVerification)
 	go func() {
-
 		p.UpdateFinalStates()
 		if !instance.GetKeepBuffers() {
 			//Delete the round and its data from the manager

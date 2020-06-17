@@ -1,13 +1,13 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
 import (
-	"fmt"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
@@ -58,16 +58,16 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0")
+		nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
 	instance.GetRoundManager().AddRound(r)
 
-	var nodeIds []string
-	tempTopology := BuildMockNodeIDs(5)
+	var nodeIds [][]byte
+	tempTopology := BuildMockNodeIDs(5, t)
 	for _, tempId := range tempTopology {
-		nodeIds = append(nodeIds, tempId.String())
+		nodeIds = append(nodeIds, tempId.Marshal())
 	}
 	// Build a fake batch for the reception handler
 	// This emulates what the gateway would send to the comm
@@ -89,7 +89,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -121,7 +121,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Slots:     []*mixmessages.Slot{},
 	}
 
-	h, _ = connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ = connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -152,7 +152,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
@@ -193,7 +193,9 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost("test", "test", nil, false, false)
+	newID := id.NewIdFromString("test", id.Node, t)
+
+	h, _ := connect.NewHost(newID, "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -226,10 +228,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	const batchSize = 1
 	const roundID = 2
 
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
-	}
-	gg := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()),
+	gg := services.NewGraphGenerator(4, uint8(runtime.NumCPU()),
 		1, 1.0)
 
 	realDecrypt := phase.New(phase.Definition{
@@ -255,16 +254,16 @@ func TestReceivePostNewBatch(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0")
+		nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
 	instance.GetRoundManager().AddRound(r)
 
-	var nodeIds []string
-	tempTopology := BuildMockNodeIDs(5)
+	var nodeIds [][]byte
+	tempTopology := BuildMockNodeIDs(5, t)
 	for _, tempId := range tempTopology {
-		nodeIds = append(nodeIds, tempId.String())
+		nodeIds = append(nodeIds, tempId.Marshal())
 	}
 
 	// Build a fake batch for the reception handler
@@ -290,7 +289,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway().String(), "test", nil, false, false)
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,

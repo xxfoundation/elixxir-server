@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 package graphs
 
 /**/
@@ -98,7 +99,8 @@ func TestClientServer(t *testing.T) {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
+		"1.1.0")
 	registry := instance.GetUserRegistry()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
@@ -113,7 +115,7 @@ func TestClientServer(t *testing.T) {
 	testSalts := make([][]byte, 0)
 	testSalts = append(testSalts, testSalt)
 	//Generate an array of users for linking
-	usrs := make([]*id.User, 0)
+	usrs := make([]*id.ID, 0)
 	usrs = append(usrs, usr.ID)
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, usr.BaseKey)

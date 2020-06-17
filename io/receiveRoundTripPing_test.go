@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -58,7 +59,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 		return
@@ -97,7 +98,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 		Payload: any,
 		Round: &pb.RoundInfo{
 			ID:       45,
-			Topology: []string{instance.GetID().String()},
+			Topology: [][]byte{instance.GetID().Marshal()},
 		},
 	}
 

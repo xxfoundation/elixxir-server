@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // Contains interactions with the Node Permissioning Server
 
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/internal/phase"
 	"strconv"
 	"strings"
 	"time"
@@ -28,8 +30,6 @@ import (
 // Perform the Node registration process with the Permissioning Server
 func RegisterNode(def *internal.Definition, network *node.Comms, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
-	gw := strings.Split(def.Gateway.Address, ":")
-	gwPort, _ := strconv.ParseUint(gw[1], 10, 32)
 	node := strings.Split(def.Address, ":")
 	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
 	// Attempt Node registration
@@ -38,11 +38,11 @@ func RegisterNode(def *internal.Definition, network *node.Comms, permHost *conne
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   gw[0],
-			GatewayPort:      uint32(gwPort),
+			GatewayAddress:   "0.0.0.0", // FIXME (Jonah): this is inefficient, but will work for now
+			GatewayPort:      80,
 			ServerAddress:    node[0],
 			ServerPort:       uint32(nodePort),
-			RegistrationCode: def.Permissioning.RegistrationCode,
+			RegistrationCode: def.RegistrationCode,
 		})
 	if err != nil {
 		return errors.Errorf("Unable to send Node registration: %+v", err)
@@ -56,11 +56,12 @@ func RegisterNode(def *internal.Definition, network *node.Comms, permHost *conne
 func Poll(instance *internal.Instance) error {
 
 	// Fetch the host information from the network
-	permHost, ok := instance.GetNetwork().GetHost(id.PERMISSIONING)
+	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
 	if !ok {
 		return errors.New("Could not get permissioning host")
 	}
 
+	//get any skipped state reports
 	var reportedActivity current.Activity
 	select {
 	case reportedActivity = <-instance.GetStateMachine().GetBuffer():
@@ -79,6 +80,12 @@ func Poll(instance *internal.Instance) error {
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
 	if err != nil {
+		if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
+			strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
+			strings.Contains(err.Error(), "requires the Node be assigned a round") ||
+			strings.Contains(err.Error(), "invalid transition") {
+			instance.ReportNodeFailure(err)
+		}
 		return err
 	}
 
@@ -116,12 +123,40 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		lastUpdateId = 0
 	}
 
+	port, err := strconv.Atoi(strings.Split(instance.GetNetwork().ListeningAddr, ":")[1])
+	if err != nil {
+		jww.ERROR.Printf("Could not get port number out of server's address. " +
+			"Likely this is because the address is an IPv6 address")
+		return nil, err
+	}
+
+	gatewayAddr, gatewayVer := instance.GetGatewayData()
+
 	// Construct a message for permissioning with above information
 	pollMsg := &pb.PermissioningPoll{
 		Full:       &pb.NDFHash{Hash: fullNdfHash},
 		Partial:    &pb.NDFHash{Hash: partialNdfHash},
 		LastUpdate: uint64(lastUpdateId),
 		Activity:   uint32(reportedActivity),
+
+		GatewayVersion: gatewayVer,
+		GatewayAddress: gatewayAddr,
+
+		ServerPort:    uint32(port),
+		ServerVersion: instance.GetServerVersion(),
+	}
+
+	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr, uint32(port))
+
+	if reportedActivity == current.ERROR {
+		pollMsg.Error = instance.GetRecoveredError()
+		jww.INFO.Printf("Reporteing error to permissioning: %+v", pollMsg.Error)
+		instance.ClearRecoveredError()
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
+			return nil, err
+		}
 	}
 
 	// Send the message to permissioning
@@ -133,6 +168,32 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 	return permissioningResponse, err
 }
 
+// queueUntilRealtime is an internal function that transitions the instance
+// state from QUEUED/STANDBY to REALTIME at the provided start time.
+// If the start time is BEFORE the current time, it starts immediately and
+// prints a warning regarding possible clock skew.
+func queueUntilRealtime(instance *internal.Instance, start time.Time) {
+	// Check if the start time has already past
+	now := time.Now()
+	if now.After(start) {
+		jww.WARN.Printf("Possible clock skew detected when queuing "+
+			"for realtime , %s is after %s", now, start)
+		now = start
+	}
+
+	// Sleep until start time
+	until := start.Sub(now)
+	jww.INFO.Printf("Sleeping for %dms for realtime start",
+		until.Milliseconds())
+	time.Sleep(until)
+
+	// Update to realtime when ready
+	ok, err := instance.GetStateMachine().Update(current.REALTIME)
+	if !ok || err != nil {
+		jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
+	}
+}
+
 // Processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
@@ -140,6 +201,10 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 	// Parse the response for updates
 	newUpdates := permissioningResponse.Updates
+
+	//skip all processing of round updates if the node knows of no round updates
+	//which is normally the result of a crash and restart
+	skipUpdates := instance.GetConsensus().GetLastUpdateID() == -1 && !instance.GetFirstRun()
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
@@ -148,8 +213,13 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
 
+		//skip all round updates older than those known about. this can happen as
+		if skipUpdates {
+			continue
+		}
+
 		// Extract topology from RoundInfo
-		newNodeList, err := id.NewNodeListFromStrings(roundInfo.Topology)
+		newNodeList, err := id.NewIDListFromBytes(roundInfo.Topology)
 		if err != nil {
 			return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 		}
@@ -161,12 +231,15 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 		if index := newTopology.GetNodeLocation(instance.GetID()); index != -1 {
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
+			case states.PENDING:
+				// Don't do anything
 			case states.PRECOMPUTING: // Prepare for precomputing state
 
-				// Standy by until in WAITING state to ensure a valid transition into precomputing
+				// Standby until in WAITING state to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.WAITING)
 				if curActivity != current.WAITING || err != nil {
-					return errors.Errorf("Cannot start precomputing when not in waiting state: %+v", err)
+					return errors.Errorf("Cannot start precomputing when not in waiting state for round %v: %+v",
+						roundInfo.ID, err)
 				}
 
 				// Send info to round queue
@@ -183,7 +256,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			case states.STANDBY:
 				// Don't do anything
 
-			case states.REALTIME: // Prepare for realtime state
+			case states.QUEUED: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
 				if curActivity != current.STANDBY || err != nil {
@@ -197,30 +270,30 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				}
 
 				// Wait until the permissioning-instructed time to begin REALTIME
-				go func() {
-					// Get the realtime start time
-					duration := time.Unix(int64(roundInfo.Timestamps[states.REALTIME]), 0)
-					jww.INFO.Printf("told to sleep for duration: %v", duration)
-					// Fixme: find way to calculate sleep length that doesn't lose time
-					// If the timeDiff is positive, then we are not yet ready to start realtime.
-					//  We then sleep for timeDiff time
-					if timeDiff := time.Now().Sub(duration); timeDiff > 0 {
-						jww.INFO.Printf("Sleeping for %+v ms for realtime start", timeDiff.Milliseconds())
-						time.Sleep(timeDiff)
-					}
+				duration := time.Unix(0, int64(roundInfo.Timestamps[states.QUEUED]))
+				go queueUntilRealtime(instance, duration)
 
-					// Update to realtime when ready
-					ok, err := instance.GetStateMachine().Update(current.REALTIME)
-					if !ok || err != nil {
-						jww.FATAL.Panicf("Cannot move to realtime state: %+v", err)
-					}
-				}()
-			case states.PENDING:
+			case states.REALTIME:
 				// Don't do anything
+
 			case states.COMPLETED:
 
+			case states.FAILED:
+				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
+				if err != nil {
+					jww.WARN.Printf("Received participatory fail in round %v which node has no knoledge of", roundInfo.ID)
+					continue
+				}
+				if r.GetCurrentPhaseType() == phase.Complete {
+					return nil
+				} else {
+					rid := id.Round(roundInfo.ID)
+					instance.ReportRoundFailure(errors.New("Round has failed; transitioning to error"),
+						instance.GetID(), rid)
+				}
+
 			default:
-				return errors.New("Round in unknown state")
+				return errors.Errorf("Round in unknown state: %v", states.Round(roundInfo.State))
 
 			}
 
@@ -249,6 +322,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 	}
 
 	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
+
 		// Update the nodes in the network.Instance with the new ndf
 		err := instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
@@ -260,32 +334,14 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 
 }
 
-// InstallNdf parses the ndf for necessary information and returns that
-func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) (string, string, error) {
-
-	jww.INFO.Println("Installing FullNDF now...")
-
-	index, err := findOurNode(def.ID.Bytes(), newNdf.Nodes)
-	if err != nil {
-		return "", "", err
-	}
-
-	//Fixme: at some point soon we will not be able to assume the node & corresponding gateway share the same index
-	// will need to add logic to find the corresponding gateway..
-	return newNdf.Nodes[index].TlsCertificate, // it also holds the callback which handles gateway requesting an ndf from its server
-		newNdf.Gateways[index].TlsCertificate, nil
-}
-
-//findOurNode is a helper function which finds our node's index in the ndf
-// it returns the index of our node if found or an error if not found
-func findOurNode(nodeId []byte, nodes []ndf.Node) (int, error) {
-	//Find this node's place in the newNDF
-	for i, newNode := range nodes {
-		//Use that index bookkeeping purposes when later parsing ndf
-		if bytes.Compare(newNode.ID, nodeId) == 0 {
-			return i, nil
+// FindSelfInNdf parses the ndf to determine if we exist in the ndf.
+func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) error {
+	// Find this node's place in the newNDF
+	for _, newNode := range newNdf.Nodes {
+		// If we exist in the ndf, return no error
+		if bytes.Compare(newNode.ID, def.ID.Bytes()) == 0 {
+			return nil
 		}
 	}
-	return -1, errors.New("Failed to find node in ndf, maybe node registration failed?")
-
+	return errors.New("Failed to find node in ndf, maybe node registration failed?")
 }

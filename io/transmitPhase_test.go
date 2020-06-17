@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -99,19 +100,19 @@ func TestTransmitPhase(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	topology := connect.NewCircuit([]*id.Node{instance.GetID()})
+	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID().String(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
-		"0.0.0.0")
+		"0.0.0.0", nil)
 	if err != nil {
 		t.Error()
 	}
@@ -213,13 +214,14 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()
-	nodeIDs := make([]*id.Node, 0)
+	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)
-	def.Gateway.ID = id.NewTmpGateway()
+	def.Gateway.ID = nodeId.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, _ := internal.CreateServerInstance(&def, impl, mach, false)
+	instance, _ := internal.CreateServerInstance(&def, impl, mach, "1.1.0")
 
 	return instance, nodeAddr
 

@@ -1,16 +1,19 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -63,7 +66,7 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 
 func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	batchSize uint32, roundBuf *round.Buffer, pool *gpumaths.StreamPool,
-	cypherPayloadA, keysPayloadB *cyclic.IntBuffer) {
+	cypherPayloadA, cypherPayloadB *cyclic.IntBuffer) {
 
 	ss.Grp = grp
 	ss.StreamPool = pool
@@ -77,7 +80,7 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	ss.EncryptedPayloadBPrecomputation = roundBuf.PermutedPayloadBKeys
 
 	ss.CypherPayloadA = cypherPayloadA
-	ss.CypherPayloadB = keysPayloadB
+	ss.CypherPayloadB = cypherPayloadB
 
 	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, pool, ss.CypherPayloadA,
 		ss.CypherPayloadB)
@@ -148,7 +151,7 @@ var StripInverse = services.Module{
 		return nil
 	},
 	Cryptop:    cryptops.Inverse,
-	NumThreads: 5,
+	NumThreads: services.AutoNumThreads,
 	InputSize:  services.AutoInputSize,
 	Name:       "StripInverse",
 }
@@ -219,10 +222,14 @@ var StripChunk = services.Module{
 	Cryptop:    gpumaths.StripChunk,
 	Name:       "PrecompStripGPU",
 	NumThreads: 2,
+	InputSize:  services.AutoInputSize,
 }
 
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
+	if viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using strip graph running on CPU instead of equivalent GPU graph")
+	}
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
 
 	reveal := RevealRootCoprime.DeepCopy()
@@ -239,16 +246,28 @@ func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGPUGraph(gc services.GraphGenerator) *services.Graph {
+	if !viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using strip graph running on GPU instead of equivalent CPU graph")
+	}
 	graph := gc.NewGraph("PrecompStripGPU", &StripStream{})
 
-	// GPU library does all operations for Strip in one kernel,
+	// GPU library can do all operations for Strip in one kernel,
 	// to avoid uploading and downloading excessively
 	// or having to build an abstraction over bindings
 	// between dispatcher graphs and CUDA graphs
-	strip := StripChunk.DeepCopy()
+	// for running separate CUDA kernels without additional
+	// overhead.
+	// For some reason, the strip kernel doesn't work correctly
+	// in the real rounds. So for now we're using reveal on GPU
+	// and do the rest on CPU.
+	reveal := RevealRootCoprimeChunk.DeepCopy()
+	stripInverse := StripInverse.DeepCopy()
+	stripMul2 := StripMul2.DeepCopy()
 
-	graph.First(strip)
-	graph.Last(strip)
+	graph.First(reveal)
+	graph.Connect(reveal, stripInverse)
+	graph.Connect(stripInverse, stripMul2)
+	graph.Last(stripMul2)
 
 	return graph
 }

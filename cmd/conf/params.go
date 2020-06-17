@@ -1,27 +1,29 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package conf
 
 import (
 	gorsa "crypto/rsa"
-	"encoding/base64"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/tls"
+	"gitlab.com/elixxir/crypto/xx"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/id/idf"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
-	"golang.org/x/crypto/blake2b"
-	"net"
 	"runtime"
 	"time"
 )
@@ -29,25 +31,23 @@ import (
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
-	Index            int
-	SkipReg          bool `yaml:"skipReg"`
-	Verbose          bool
-	KeepBuffers      bool
-	UseGPU           bool
-	DisableStreaming bool
-	Groups           Groups
-	RngScalingFactor uint `yaml:"rngScalingFactor"`
-	GWConnTimeout    time.Duration
-	ServerCertPath   string
-	GatewayCertPath  string
-	SignedCertPath   string
+	KeepBuffers           bool
+	UseGPU                bool
+	RngScalingFactor      uint `yaml:"rngScalingFactor"`
+	SignedCertPath        string
+	SignedGatewayCertPath string
+	RegistrationCode      string
 
 	Node          Node
 	Database      Database
-	Gateways      Gateways
+	Gateway       Gateway
 	Permissioning Permissioning
 	Metrics       Metrics
 	GraphGen      GraphGen
+
+	PhaseOverrides   []int
+	OverrideRound    int
+	RecoveredErrPath string
 }
 
 // NewParams gets elements of the viper object
@@ -55,31 +55,50 @@ type Params struct {
 // unless it fails to parse in which it case returns error
 func NewParams(vip *viper.Viper) (*Params, error) {
 
+	var require = func(s string, key string) {
+		if s == "" {
+			jww.FATAL.Panicf("%s must be set in params", key)
+		}
+	}
+
 	params := Params{}
 
-	params.Index = vip.GetInt("index")
+	params.RegistrationCode = vip.GetString("registrationCode")
+	require(params.RegistrationCode, "registrationCode")
 
-	params.Node.Id = vip.GetString("node.id")
-	params.Node.Ids = vip.GetStringSlice("node.ids")
+	vip.SetDefault("node.listeningAddress", "0.0.0.0")
+	params.Node.ListeningAddress = vip.GetString("node.listeningAddress")
+	params.Node.Port = vip.GetInt("node.Port")
+	if params.Node.Port == 0 {
+		jww.FATAL.Panic("Must specify a port to run on")
+	}
+
+	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
+	require(params.Node.Paths.Idf, "node.paths.idf")
+
 	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
+	require(params.Node.Paths.Cert, "node.paths.cert")
+
 	params.Node.Paths.Key = vip.GetString("node.paths.key")
+	require(params.Node.Paths.Key, "node.paths.key")
+
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
-	params.Node.Addresses = vip.GetStringSlice("node.addresses")
+	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
+	require(params.RecoveredErrPath, "node.paths.errOutput")
 
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
-	params.Database.Addresses = vip.GetStringSlice("database.addresses")
+	params.Database.Address = vip.GetString("database.address")
 
-	params.Gateways.Paths.Cert = vip.GetString("gateways.paths.cert")
-	params.Gateways.Addresses = vip.GetStringSlice("gateways.addresses")
+	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
+	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
 
 	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
-	params.Permissioning.Address = vip.GetString("permissioning.address")
-	params.Permissioning.RegistrationCode = vip.GetString("permissioning.registrationCode")
+	require(params.Permissioning.Paths.Cert, "permissioning.paths.cert")
 
-	params.ServerCertPath = vip.GetString("node.paths.cert")
-	params.GatewayCertPath = vip.GetString("gateways.paths.cert")
+	params.Permissioning.Address = vip.GetString("permissioning.address")
+	require(params.Permissioning.Address, "permissioning.address")
 
 	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
 	if params.GraphGen.defaultNumTh == 0 {
@@ -96,66 +115,32 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	// This (outputThreshold) already defaulted to 0.0
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
-	params.SkipReg = vip.GetBool("skipReg")
-	params.Verbose = vip.GetBool("verbose")
 	params.KeepBuffers = vip.GetBool("keepBuffers")
-	params.UseGPU = vip.GetBool("useGpu")
+	params.UseGPU = vip.GetBool("useGPU")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
-
-	params.SignedCertPath = vip.GetString("signedCertPath")
-
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
 		params.RngScalingFactor = 10000
 	}
 
-	gwTimeoutMs := vip.GetUint64("GatewayConnectionTimeout")
-	if gwTimeoutMs == 0 {
-		params.GWConnTimeout = 289 * 365 * 24 * time.Hour
-	} else {
-		params.GWConnTimeout = time.Duration(gwTimeoutMs) * time.Millisecond
-	}
-
-	params.Groups.CMix = vip.GetStringMapString("groups.cmix")
-	params.Groups.E2E = vip.GetStringMapString("groups.e2e")
+	params.PhaseOverrides = vip.GetIntSlice("phaseOverrides")
+	overrideRoundKey := "overrideRound"
+	vip.SetDefault(overrideRoundKey, -1)
+	params.OverrideRound = vip.GetInt(overrideRoundKey)
 
 	params.Metrics.Log = vip.GetString("metrics.log")
-
-	// In the event IDs are not able to be provided,
-	// we can hash the node addresses as a workaround
-	if len(params.Node.Ids) == 0 {
-		hash, err := blake2b.New256(nil)
-		if err != nil {
-			jww.FATAL.Panicf("Unable to create ID hash %v", err)
-		}
-
-		jww.WARN.Printf("No Node IDs found, " +
-			"generating from hash of Node address...")
-
-		for i, addr := range params.Node.Addresses {
-			hash.Reset()
-			hash.Write([]byte(addr))
-			fakeId := base64.StdEncoding.EncodeToString(hash.Sum(nil))
-			params.Node.Ids = append(params.Node.Ids, fakeId)
-			if params.Index == i && len(params.Node.Id) == 0 {
-				params.Node.Id = fakeId
-			}
-		}
-	}
 
 	return &params, nil
 }
 
 // Create a new Definition object from the Params object
-func (p *Params) ConvertToDefinition() *internal.Definition {
+func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
-	def.Flags.SkipReg = p.SkipReg
-	def.Flags.Verbose = p.Verbose
 	def.Flags.UseGPU = p.UseGPU
-	def.GwConnTimeout = p.GWConnTimeout
+	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
 	var err error
@@ -176,74 +161,23 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 		}
 	}
 
-	ids := p.Node.Ids
-	var nodes []internal.Node
-	var nodeIDs []*id.Node
-
-	var nodeIDDecodeErrorHappened bool
-	for i, currId := range ids {
-		nodeID, err := base64.StdEncoding.DecodeString(currId)
-		jww.INFO.Printf("Creating Def for Node ID: %s", currId)
-		if err != nil {
-			// This indicates a server misconfiguration which needs fixing for
-			// the server to function properly
-			err = errors.Wrapf(err, "Node ID at index %v failed to decode", i)
-			jww.ERROR.Print(err)
-			nodeIDDecodeErrorHappened = true
-		}
-		n := internal.Node{
-			ID:      id.NewNodeFromBytes(nodeID),
-			TlsCert: tlsCert,
-			Address: p.Node.Addresses[i],
-		}
-		nodes = append(nodes, n)
-		nodeIDs = append(nodeIDs, id.NewNodeFromBytes(nodeID))
-	}
-
-	if nodeIDDecodeErrorHappened {
-		jww.FATAL.Panic("One or more node IDs didn't base64 decode correctly")
-	}
-
-	nodeID, err := base64.StdEncoding.DecodeString(p.Node.Id)
-	if err != nil {
-		// This indicates a server misconfiguration which needs fixing for
-		// the server to function properly
-		err = errors.Wrapf(err, "Node ID failed to decode")
-		jww.ERROR.Print(err)
-		nodeIDDecodeErrorHappened = true
-	}
-	def.ID = id.NewNodeFromBytes(nodeID)
-
-	_, port, err := net.SplitHostPort(p.Node.Addresses[p.Index])
-	if err != nil {
-		jww.FATAL.Panicf("Unable to obtain port from address: %+v",
-			errors.New(err.Error()))
-	}
-	def.Address = fmt.Sprintf("0.0.0.0:%s", port)
+	def.Address = fmt.Sprintf("%s:%d", p.Node.ListeningAddress, p.Node.Port)
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
+	def.RecoveredErrorPath = p.RecoveredErrPath
 
-	// Only def values if params is set
-	if p.SignedCertPath != "" {
-		def.WriteToFile = true
-		def.ServerCertPath = p.SignedCertPath
-		def.GatewayCertPath = p.GatewayCertPath + "-definition"
-	}
-
-	def.Gateway.Address = p.Gateways.Addresses[p.Index]
 	var GwTlsCerts []byte
 
-	if p.Gateways.Paths.Cert != "" {
-		GwTlsCerts, err = utils.ReadFile(p.Gateways.Paths.Cert)
+	if p.Gateway.Paths.Cert != "" {
+		GwTlsCerts, err = utils.ReadFile(p.Gateway.Paths.Cert)
 		if err != nil {
 			jww.FATAL.Panicf("Could not load gateway TLS Cert: %+v", err)
 		}
 	}
 
 	def.Gateway.TlsCert = GwTlsCerts
-	def.Gateway.ID = def.ID.NewGateway()
 
 	var PermTlsCert []byte
 
@@ -254,8 +188,6 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 			jww.FATAL.Panicf("Could not load permissioning TLS Cert: %+v", err)
 		}
 	}
-
-	def.DisableStreaming = p.DisableStreaming
 
 	//Set the node's private/public key
 	var privateKey *rsa.PrivateKey
@@ -293,9 +225,43 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	def.PublicKey = publicKey
 	def.PrivateKey = privateKey
 
+	// Check if the IDF exists
+	if p.Node.Paths.Idf != "" && utils.Exists(p.Node.Paths.Idf) {
+		// If the IDF exists, then get the ID and save it
+		_, newID, err2 := idf.UnloadIDF(p.Node.Paths.Idf)
+		if err2 != nil {
+			return nil, errors.Errorf("Could not unload IDF: %+v", err2)
+		}
+
+		def.ID = newID
+	} else {
+		// If the IDF does not exist, then generate a new ID, save it to an IDF,
+		// and save the ID to the definition
+
+		// Generate a random 256-bit number for the salt
+		salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
+
+		// Generate new ID
+		newID, err2 := xx.NewID(def.PublicKey, salt[:32], id.Node)
+		if err2 != nil {
+			return nil, errors.Errorf("Failed to create new ID: %+v", err2)
+		}
+
+		// Save new ID to file
+		err2 = idf.LoadIDF(p.Node.Paths.Idf, salt, newID)
+		if err2 != nil {
+			return nil, errors.Errorf("Failed to save new ID to file: %+v",
+				err2)
+		}
+
+		def.ID = newID
+	}
+
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
+
 	def.Permissioning.TlsCert = PermTlsCert
 	def.Permissioning.Address = p.Permissioning.Address
-	def.Permissioning.RegistrationCode = p.Permissioning.RegistrationCode
 	if len(def.Permissioning.TlsCert) > 0 {
 		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
 		if err != nil {
@@ -311,15 +277,10 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 	def.FullNDF = ourNdf
 	def.PartialNDF = ourNdf
 
-	PanicHandler := func(g, m string, err error) {
-		jww.FATAL.Panicf(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err))
-	}
-
-	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize, PanicHandler,
+	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
-	return def
+	return def, nil
 }
 
 // createNdf is a helper function which builds a network ndf based off of the
@@ -327,14 +288,15 @@ func (p *Params) ConvertToDefinition() *internal.Definition {
 func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition {
 	// Build our node
 	ourNode := ndf.Node{
-		ID:             def.ID.Bytes(),
+		ID:             def.ID.Marshal(),
 		Address:        def.Address,
 		TlsCertificate: string(def.TlsCert),
 	}
 
 	// Build our gateway
 	ourGateway := ndf.Gateway{
-		Address:        def.Gateway.Address,
+		ID:             def.Gateway.ID.Marshal(),
+		Address:        "0.0.0.0",
 		TlsCertificate: string(def.Gateway.TlsCert),
 	}
 
@@ -344,19 +306,13 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 		TlsCertificate: string(def.Permissioning.TlsCert),
 	}
 
-	// Build the group
-	cmixGrp := toNdfGroup(params.Groups.CMix)
-	e2eGrp := toNdfGroup(params.Groups.E2E)
-
 	networkDef := &ndf.NetworkDefinition{
 		Timestamp:    time.Time{},
 		Gateways:     []ndf.Gateway{ourGateway},
 		Nodes:        []ndf.Node{ourNode},
 		Registration: ourPerm,
 		Notification: ndf.Notification{},
-		UDB:          ndf.UDB{},
-		E2E:          e2eGrp,
-		CMIX:         cmixGrp,
+		UDB:          ndf.UDB{ID: id.UDB.Marshal()},
 	}
 
 	return networkDef

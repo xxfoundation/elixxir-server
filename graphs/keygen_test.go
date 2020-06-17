@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package graphs
 
@@ -49,7 +50,7 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 		instance.GetUserRegistry(),
 		make([][]byte, batchSize),
 		make([][][]byte, batchSize),
-		make([]*id.User, batchSize),
+		make([]*id.ID, batchSize),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 	)
@@ -110,13 +111,13 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 			CMix: cmix,
 		},
 		Node: conf.Node{
-			Ids: []string{nid.String()},
+			IdfPaths: []string{nid.String()},
 		},
 	}
 	instance := server.CreateServerInstance(&params, &globals.UserMap{}, nil, nil)
 	var stream KeygenTestStream
 	stream.Link(grp, 1, instance)
-	stream.users[0] = id.ZeroID
+	stream.users[0] = &id.ZeroUser
 	stream.salts[0] = []byte("cesium chloride")
 	err = Keygen.Adapt(&stream, MockKeygenOp, services.NewChunk(0, 1))
 	if err == nil {
@@ -184,7 +185,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	kmac := cmix.GenerateKMAC(testSalt, u.BaseKey, cmixHash)
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -193,14 +194,14 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 	//rb := round.NewBuffer(grp, batchSize, batchSize)
 	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
 		// Necessary to avoid crashing
-		stream.users[i] = id.ZeroID
+		stream.users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.salts[i] = []byte{}
 
@@ -295,7 +296,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -304,14 +305,14 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 	//rb := round.NewBuffer(grp, batchSize, batchSize)
 	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
 		// Necessary to avoid crashing
-		stream.users[i] = id.ZeroID
+		stream.users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.salts[i] = []byte{}
 
@@ -396,7 +397,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 
 	kmac := make([]byte, 32)
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	// run the module in a graph
 	g := gc.NewGraph("test", &stream)
@@ -405,14 +406,14 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	g.First(mod)
 	g.Last(mod)
 	//Keygen.NumThreads = 1
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 	//rb := round.NewBuffer(grp, batchSize, batchSize)
 	g.Link(grp, instance)
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
 		// Necessary to avoid crashing
-		stream.users[i] = id.ZeroID
+		stream.users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.salts[i] = []byte{}
 
@@ -504,7 +505,8 @@ func mockServerInstance(i interface{}) *internal.Instance {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
+		"1.1.0")
 
 	return instance
 }

@@ -5,11 +5,10 @@ go 1.13
 require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/go-pg/pg v8.0.6+incompatible
-	github.com/golang/protobuf v1.4.1
+	github.com/golang/protobuf v1.4.2
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
@@ -23,13 +22,13 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.3
-	gitlab.com/elixxir/comms v0.0.0-20200513163847-4975a4118ac6
-	gitlab.com/elixxir/crypto v0.0.0-20200513163659-38b6079db0b2
-	gitlab.com/elixxir/gpumaths v0.0.2-0.20200501011915-4ba556d76bed
-	gitlab.com/elixxir/primitives v0.0.0-20200513162412-ef77445c0ab7
+	gitlab.com/elixxir/comms v0.0.0-20200617200816-e0360e7c282e
+	gitlab.com/elixxir/crypto v0.0.0-20200617200757-fac8d7aaf8da
+	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304
+	gitlab.com/elixxir/primitives v0.0.0-20200617192826-98601f119cdf
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	google.golang.org/grpc v1.29.1
 	gopkg.in/ini.v1 v1.55.0 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.3.0
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
 )

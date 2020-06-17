@@ -1,8 +1,10 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package node
 
 import (
@@ -34,7 +36,7 @@ const (
 
 // GatherMetrics retrieves the roundMetrics for each node, converts it to JSON,
 // and writes them to a log file.
-func GatherMetrics(instance *internal.Instance, roundID id.Round, whitespace bool) error {
+func GatherMetrics(instance *internal.Instance, roundID id.Round) error {
 	// Get metrics for all nodes
 	rm := instance.GetRoundManager()
 	r, err := rm.GetRound(roundID)
@@ -45,7 +47,7 @@ func GatherMetrics(instance *internal.Instance, roundID id.Round, whitespace boo
 		r.GetTopology(), roundID)
 
 	// Convert the roundMetrics array to JSON
-	jsonData, err := buildMetricJSON(roundMetrics, whitespace)
+	jsonData, err := buildMetricJSON(roundMetrics, false)
 	if err != nil {
 		return err
 	}

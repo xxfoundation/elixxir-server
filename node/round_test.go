@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package node
 
 import (
@@ -13,10 +20,10 @@ const expectedNumPhases = 7
 func TestNewRoundComponents_FirstNode(t *testing.T) {
 	expectedFirstNodeResponses := 7
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(0)
 
@@ -40,10 +47,10 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 func TestNewRoundComponents_MiddleNode(t *testing.T) {
 	expectedMiddleNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(1)
 
@@ -66,10 +73,10 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 func TestNewRoundComponents_LastNode(t *testing.T) {
 	expectedLastNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(2)
 
@@ -92,10 +99,10 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 	expectedFirstNodeResponses := 7
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(0)
 
@@ -119,10 +126,10 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 	expectedMiddleNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(1)
 
@@ -145,10 +152,10 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 	expectedLastNodeResponses := 10
 
-	gc := services.NewGraphGenerator(4, nil, 1,
+	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 
-	topology := buildMockTopology(3)
+	topology := buildMockTopology(3, t)
 
 	nodeID := topology.GetNodeAtIndex(2)
 
@@ -169,14 +176,14 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 }
 
 // Builds a list of node IDs for testing
-func buildMockTopology(numNodes int) *connect.Circuit {
-	var nodeIDs []*id.Node
+func buildMockTopology(numNodes int, t *testing.T) *connect.Circuit {
+	var nodeIDs []*id.ID
 
 	// Build IDs
 	for i := 0; i < numNodes; i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 

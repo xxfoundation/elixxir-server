@@ -10,7 +10,7 @@ variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
   DOCKER_IMAGE: elixxirlabs/cuda-go:latest
-  MIN_CODE_COVERAGE: "82.0"
+  MIN_CODE_COVERAGE: "81.9"
 
 before_script:
   ##
@@ -42,20 +42,19 @@ build:
     - gpu
   script:
     - git clean -ffdx
-    # Get specific commit hash from go mod version string if module version is v0.0.2, otherwise use go mod version string as tag
-    # It's a quick and dirty way to get something that we ought to be able to check out
-    - GPUMATHS_VERSION=`go list -m -f "{{.Version}}" gitlab.com/elixxir/gpumaths | awk -F- '{if ($1=="v0.0.2") {print $3} else {print $1}}'`
+    # Because gpumaths is no longer one repository, let's get the native library with the release branch now
+    # Branch switching for the native library should be added shortly
+    - GPUMATHS_VERSION=release
     - echo $GPUMATHS_VERSION
-    - rm -fr gpumaths
-    - git clone git@gitlab.com:elixxir/gpumaths.git
-    - pushd gpumaths
+    - rm -fr gpumathsnative
+    - git clone -b $GPUMATHS_VERSION git@gitlab.com:elixxir/gpumathsnative.git
+    - pushd gpumathsnative
     - git clean -ffdx
-    - git checkout $GPUMATHS_VERSION
     - pushd cgbnBindings/powm
     - make turing
     - make install
     - ls
-    - ls /opt/elixxir/lib
+    - ls /opt/xxnetwork/lib
     - popd
     - popd
     - go mod vendor -v
@@ -68,9 +67,9 @@ build:
     - mkdir -p testdata
 
     # Test coverage
-    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v
+    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -parallel 1 -v
     # Test coverage with gpu extension (note that this doesn't overwrite existing coverage)
-    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -v -tags gpu
+    - go-acc --covermode atomic --output testdata/coverage.out ./... -- -parallel 1 -v -tags gpu
     # Exclude cmd from test coverage as it is command line related tooling
     # Exclude database files from test coverage due to lack of Postgre
     # Exclude newRound because of lots of side effects
@@ -93,23 +92,20 @@ build:
     - export CODE_CHECK=$(echo "$(cat testdata/coverage-percentage.txt) >= $MIN_CODE_COVERAGE" | bc -l)
     - (if [ "$CODE_CHECK" == "1" ]; then echo "Minimum coverage of $MIN_CODE_COVERAGE succeeded"; else echo "Minimum coverage of $MIN_CODE_COVERAGE failed"; exit 1; fi);
 
-    - go run main.go generate
-    - rm cmd/version_vars.go
-    - mv version_vars.go cmd
     - mkdir -p release
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
     - GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win32 main.go
     - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
-    - cp /opt/elixxir/lib/* release/
-    - cp /opt/elixxir/include/* release/
-    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/elixxir/lib' -o release/server-cuda.linux64 main.go
+    - cp /opt/xxnetwork/lib/* release/
+    - cp /opt/xxnetwork/include/* release/
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/xxnetwork/lib' -o release/server-cuda.linux64 main.go
   artifacts:
     paths:
       - vendor/
       - testdata/
-      - gpumaths/
+      - gpumathsnative/
       - release/
 
 tag_and_trigger:

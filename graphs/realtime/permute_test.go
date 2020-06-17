@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package realtime
 
@@ -275,11 +276,11 @@ func TestPermuteStream_InGraph(t *testing.T) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
 	}
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	g := InitPermuteGraph(gc)
 
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 
 	var done *uint32
 	done = new(uint32)

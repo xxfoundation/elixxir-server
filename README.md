@@ -5,121 +5,184 @@
 
 ## Running the Server
 
-First, make sure dependencies are installed into the vendor folder by running
-`glide up`. Then, in the project directory, run `go run main.go` with the
-appropriate arguments.
+To run the server in cpu development mode:
 
-If what you're working on requires you to change other repos, you can remove
-the other repo from the vendor folder and Go's build tools will look for those
-packages in your Go path instead. Knowing which dependencies to remove can be
-really helpful if you're changing a lot of repos at once.
+```
+go run main.go --config [configuration-filename]
+```
 
-If glide isn't working and you don't know why, try removing glide.lock and
-~/.glide to brutally cleanse the cache.
+To enable the GPU, you need to install the gpumathsnative library into
+`/opt/xxnetwork/lib` (done via make install per its README), then
+run with the gpu tag:
 
-Many of these flags override the values set in the config file:
+```
+go run -tags gpu main.go --config [configuration filename]
+```
 
-|Long flag|Short flag|Description|Example|
-|---|---|---|---|
-|--index|-i|Index of the server to start in the list of servers in `server.yaml`|-i 0|
-|--batch|-b|Number of messages in a batch (correlated to anonymity set, 1 is the fastest and least anonymous)|-b 64|
-|--logLevel|-l|Sets the log message level to print. (0 = info, 1 = debug, >1 = trace)|-l 2|
-|--config| |Path to configuration file|--config ~/.elixxir/server.yaml|
-|--nodeID|-n|Unique integer identifier for this node. Defaults to be equal to index|-n 125048|
-|--profile| |Runs a pprof server at localhost:8087 for profiling. Use to track down unusual and CPU usage.|--profile|
-|--version|-V|Print generated version information. To generate, run the steps in Updating Version Info.|--version|
-|--help|-h|Print a help message|--help|
-|--metricsWhitespace|-w|Set to print indented metrics JSON files|-w|
-|--disableStreaming| |Disables streaming comms. By default true.| |
+[See gpumaths for more information.](https://gitlab.com/elixxir/gpumaths)
 
-Run the `benchmark` subcommand to run the server benchmark: `$ go run main.go benchmark`.
+The command line flags for the server can be generated `--help` as follows:
+
+```
+$ go run main.go
+The server provides a full cMix node for distributed anonymous communications.
+
+Usage:
+  server [flags]
+  server [command]
+
+Available Commands:
+  benchmark   Server benchmarking tests
+  generate    Generates version and dependency information for the Elixxir binary
+  help        Help about any command
+  version     Print the version and dependency information for the Elixxir binary
+
+Flags:
+  -c, --config string             Path to load the Node configuration file from. If not set, this file must be named gateway.yaml and must be located in ~/.xxnetwork/, /opt/xxnetwork, or /etc/xxnetwork.
+      --disableStreaming          Disables streaming comms.
+  -h, --help                      help for server
+  -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
+      --registrationCode string   Registration code used for first time registration. Required field.
+      --useGPU                    Toggle use of GPU. (Must be built or run with -tags gpu, and gpumathsnative must be installed)
+
+Use "server [command] --help" for more information about a command.
+```
+
+All of those flags, except `--config`, override values in the configuration
+file.
+
+The `version` subcommand prints the version:
+
+```
+$ go run main.go version
+Elixxir Server v1.1.0 -- fac1a93d fix version cmd
+
+Dependencies:
+
+module gitlab.com/elixxir/server
+...
+```
+
+The `benchmark` subcommand is currently unsupported, but you can run (CPU)
+server benchmarks with it:
+
+```
+$ go run main.go benchmark
+```
+
+The `generate` subcommand is used for updating version information (see the
+next section).
 
 ## Updating Version Info
 ```
-$ go run main.go generate 
+$ go run main.go generate
 $ mv version_vars.go cmd
 ```
 
 ## Config File
 
-Create a directory named `.elixxir` in your home directory with a file 
-called `server.yaml` as follows (Make sure to use spaces, not tabs!):
+If the configuration file is not set via command line flag `--config`, then the
+Server configuration file must be named `node.yaml` and be located in one of the
+following directories:
+1. `$HOME/.xxnetwork/`
+2. `/opt/xxnetwork/`
+3. `/etc/xxnetwork/`
+
+Server searches for the YAML file in that order and uses the first occurance
+found.
+
+Note: YAML prohibits the use of tabs because whitespace has meaning.
 
 ``` yaml
-# START YAML ===
+# Registration code used for first time registration. This is a unique code
+# provided by xx network.
+registrationCode: "abc123"
+
+# Toggles use of the GPU.
+useGPU: false
+
+# Level of debugging to print (0 = info, 1 = debug, >1 = trace).
 logLevel: 1
+
 node:
-  id: ""
   paths:
-    cert: ""
-    key:  ""
-    log:  "server.log"
-  addresses:
-    - "0.0.0.0:11200"
-    - "0.0.0.0:11300"
-    - "0.0.0.0:11400"
+    # Path where an error file will be placed in the event of a fatal error.
+    # This path is used by the Wrapper Script
+    errOutput: "/opt/xxnetwork/node-logs/node-err.log"
+    # Path where the ID will be stored after the ID is created on first run.
+    # This path is used by the Wrapper Script.
+    idf:  "/opt/xxnetwork/node-logs/nodeIDF.json"
+    # Path to the self-signed TLS certificate for Node. Expects PEM format.
+    # Required field.
+    cert: "/opt/xxnetwork/creds/node_cert.crt"
+    # Path to the private key for the self signed TLS cert
+    # Path to the private key associated with the self-signed TLS certificate.
+    # Required field.
+    key:  "/opt/xxnetwork/creds/node_key.key"
+    #  Path where log file will be saved.
+    log:  "/opt/xxnetwork/node-logs/node.log"
+  # Port that the Node will communicate on.
+  port: 42069
+
+# Information to conenct to the Postgres database storing keys.
 database:
-  name: "cmix_server"
-  username: "cmix"
+  name: "nodedb"
+  username: "node"
   password: ""
-  addresses:
-    - ""
-    - ""
-    - ""
+  address: "0.0.0.0:3800"
+
 gateways:
   paths:
-    cert: ""
-  addresses:
-    - "0.0.0.0:8200"
-    - "0.0.0.0:8300"
-    - "0.0.0.0:8400"
+    # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
+    # Required field.
+    cert: "/opt/xxnetwork/creds/gateway-cert.crt"
+
 permissioning:
   paths:
-    cert: ""
-  address: ""
-  registrationCode: ""
-  publicKey: "-----BEGIN PUBLIC KEY-----\nMIIDNDCCAiwCggEBAJ22+1lRtmu2/h4UDx0s5VAjdBYf1lON8WSCGGQvC1xIyPek\nGq36GHMkuHZ0+hgisA8ez4E2lD18VXVyZOWhpE/+AS6ZNuAMHT6TELAcfReYBdMF\niyqfS7b5cWv+YRfGtbPMTZvjQRBK1KgK1slOAF9LmT4U8JHrUXQ78zBQw43iNVZ+\nGzTD1qXAzqoaDzaCE8PRmEPQtLCdy5/HLTnI3kHxvxTUu0Vjyig3FiHK0zJLai05\nIUW+v6x0iAUjb1yi/pK4cc2PnDbTKStVCcqMqneirfx7/XfdpvcRJadFb+oVPkMy\nVqImHGoG7TaTeX55lfrVqrvPvj7aJ0HjdUBK4lsCIQDywxGTdM52yTVpkLRlN0oX\n8j+e01CJvZafYcbd6ZmMHwKCAQBcf/awb48UP+gohDNJPkdpxNmIrOW+JaDiSAln\nBxbGE9ewzuaTL4+qfETSyyRSPaU/vk9uw1lYktGqWMQyigbEahVmLn6qcDod7Pi7\nstBdvi65VsFCozhmHRBGHA0TVHIIUFfzSUMJ/6c8YR94syrbtXQMNhyfNb6QmX2y\nAU4u9apheC9Sq+uL1kMsTdCXvFQjsoXa+2DcNk6BYfSio1rKOhCxxNIDzHakcKM6\n/cvdkpWYWavYtW4XJSUteOrGbnG6muPx3SSHGZh0OTzU2DIYaABlR2Dh40wJ5NFV\nF5+ewNxEc/mWvc5u7Ryr7YtvEW962c9QXfD5mONKsnUUsP/nAoIBAEDOApai3bhs\nC3Bq52WT0O23ieyMs5kOTyIi07/ssZy4mifylhjXe7a4tRBsU4xa37n8gfaMFYt8\n9yxfvQ9cgny4VxU0RvqO58NA6QQS5j3utQhzPGwkudJ1OGbiv9VD5fRgClXRAekM\n566lrcJAY8BKGhSShw5ihh0xq6aitENo+UIPM8MO7sfwGXGEqr0KZQCotaebTDkj\nZ8FMz2pCVzO8QPwf6z+VJor6kCXJK2mljHGxOHblMeLW/eri2rB3j92sI1GuB1fP\n/+f9wIa7t61xk1H8dw1ZZkAXIdfNW+R2TktvWBYQHnjIgtzcgN4c39piCyH3Ho7R\nCaz3nlw2QRI=\n-----END PUBLIC KEY-----"
-groups:
-  cmix:
-    prime: "9DB6FB5951B66BB6FE1E140F1D2CE5502374161FD6538DF1648218642F0B5C48C8F7A41AADFA187324B87674FA1822B00F1ECF8136943D7C55757264E5A1A44FFE012E9936E00C1D3E9310B01C7D179805D3058B2A9F4BB6F9716BFE6117C6B5B3CC4D9BE341104AD4A80AD6C94E005F4B993E14F091EB51743BF33050C38DE235567E1B34C3D6A5C0CEAA1A0F368213C3D19843D0B4B09DCB9FC72D39C8DE41F1BF14D4BB4563CA28371621CAD3324B6A2D392145BEBFAC748805236F5CA2FE92B871CD8F9C36D3292B5509CA8CAA77A2ADFC7BFD77DDA6F71125A7456FEA153E433256A2261C6A06ED3693797E7995FAD5AABBCFBE3EDA2741E375404AE25B"
-    smallprime: "F2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F"
-    generator: "5C7FF6B06F8F143FE8288433493E4769C4D988ACE5BE25A0E24809670716C613D7B0CEE6932F8FAA7C44D2CB24523DA53FBE4F6EC3595892D1AA58C4328A06C46A15662E7EAA703A1DECF8BBB2D05DBE2EB956C142A338661D10461C0D135472085057F3494309FFA73C611F78B32ADBB5740C361C9F35BE90997DB2014E2EF5AA61782F52ABEB8BD6432C4DD097BC5423B285DAFB60DC364E8161F4A2A35ACA3A10B1C4D203CC76A470A33AFDCBDD92959859ABD8B56E1725252D78EAC66E71BA9AE3F1DD2487199874393CD4D832186800654760E1E34C09E4D155179F9EC0DC4473F996BDCE6EED1CABED8B6F116F7AD9CF505DF0F998E34AB27514B0FFE7"
-  e2e:
-    prime: "E2EE983D031DC1DB6F1A7A67DF0E9A8E5561DB8E8D49413394C049B7A8ACCEDC298708F121951D9CF920EC5D146727AA4AE535B0922C688B55B3DD2AEDF6C01C94764DAB937935AA83BE36E67760713AB44A6337C20E7861575E745D31F8B9E9AD8412118C62A3E2E29DF46B0864D0C951C394A5CBBDC6ADC718DD2A3E041023DBB5AB23EBB4742DE9C1687B5B34FA48C3521632C4A530E8FFB1BC51DADDF453B0B2717C2BC6669ED76B4BDD5C9FF558E88F26E5785302BEDBCA23EAC5ACE92096EE8A60642FB61E8F3D24990B8CB12EE448EEF78E184C7242DD161C7738F32BF29A841698978825B4111B4BC3E1E198455095958333D776D8B2BEEED3A1A1A221A6E37E664A64B83981C46FFDDC1A45E3D5211AAF8BFBC072768C4F50D7D7803D2D4F278DE8014A47323631D7E064DE81C0C6BFA43EF0E6998860F1390B5D3FEACAF1696015CB79C3F9C2D93D961120CD0E5F12CBB687EAB045241F96789C38E89D796138E6319BE62E35D87B1048CA28BE389B575E994DCA755471584A09EC723742DC35873847AEF49F66E43873"
-    smallprime: "2"
-    generator: "2"
-metrics:
-  log:  "~/.elixxir/metrics.log"
-signedCertPath: ""
+    # Path to the self-signed TLS certificate for the Permissioning server.
+    # Expects PEM format. Required field.
+    cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
+    # IP Address of the Permissioning server, provided by xx network.
+    address: ""
 
-#in ms, omit to wait forever
-GatewayConnectionTimeout: 5000 
-# === END YAML
+metrics:
+  # Location of stored metrics data.
+  log:  "/opt/xxnetowkr/server-logs/metrics.log"
 ```
 
 ## Project Structure
 
-`benchmark` is for all benchmarks that estimate the performance of the whole 
-server. Benchmarks that only test a small subset of the functionality should 
-use go test -bench for running and should exist in the package
+`benchmark` is for all benchmarks that estimate the performance of the
+whole server. Benchmarks that only test a small subset of the
+functionality should use go test -bench for running and should exist
+in the package. It is currently limited to CPU-only benchmarks.
 
-`cmd` handles command-line flags, configuration options, commands and 
-subcommands. This is where the functions that actually start a node are.
+`cmd` handles command-line flags, configuration options, commands and
+subcommands. This is where the functions that actually start a node
+are.
 
-`cryptops` contains the code that runs each phase of the mix network. 
-Precomputation phases are in `precomputation` and realtime phases are in 
-`realtime`.
+`cryptops` contains the code that runs each phase of the mix network.
+Precomputation phases are in `precomputation` and realtime phases are
+in `realtime`.
 
-`globals` contains libraries and variables that many other packages need to 
-import, but that don't need to import any packages from `server` itself. In 
-general, you shouldn't put things here, and you should redesign things that 
-are here so that it makes sense for them to have their own packages.
+`globals` contains libraries and variables that many other packages
+need to import, but that don't need to import any packages from
+`server` itself. In general, you shouldn't put things here, and you
+should redesign things that are here so that it makes sense for them
+to have their own packages.
 
-`io` sets up individual cryptops, phase transitions, and new rounds, and 
-handles communication between servers.
+`internal` contains internal server data structures.
 
-`services` contains utilities for the cryptops, including the dispatcher that
-allocates cryptop work to different goroutines.
+`io` sets up individual cryptops, phase transitions, and new rounds,
+and handles communication between servers.
+
+`services` contains utilities for the cryptops, including the
+dispatcher that allocates cryptop work to different goroutines.
+
+`node` contains node business logic.
+
+`permissioning` contins logic for dealing with the permissioning server
+(the current source of consensus).
 
 ## Compiling the Binary
 
@@ -128,17 +191,23 @@ you will need to run one of the commands in the following sections.
 The `.gitlab-ci.yml` file also contains cross build instructions
 for all of these platforms.
 
+Note: GPU support is only provided on Linux.
+
 ### Linux
 
 ```
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
 
+To build with GPU support, add `-tags gpu` after installing gpumathsnative.
+
 ### Windows
 
 ```
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
+
+Note: CPU metrics and some time based events may not function in windows.
 
 or
 
@@ -153,13 +222,3 @@ for a 32 bit version.
 ```
 GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o server main.go
 ```
-
-## Godoc Generation
-
-
-- Open terminal and change current directory to your `go/src` directory
-- Run the command: `godoc -http=localhost:8000 -goroot=./gitlab.com/`
-  - This starts a local webserver with the godocs
-- Run the command: `open http://localhost:8000/pkg/`
-  - Alternatively open a browser and insert the url manually
-

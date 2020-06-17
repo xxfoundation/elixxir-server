@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -29,7 +30,7 @@ func ReceivePostNewBatch(instance *internal.Instance,
 	newBatch *mixmessages.Batch, postPhase GenericPostPhase, auth *connect.Auth) error {
 
 	// Check that authentication is good and the sender is our gateway, otherwise error
-	if !auth.IsAuthenticated || auth.Sender.GetId() != instance.GetGateway().String() {
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
 		jww.WARN.Printf("[%v]: ReceivePostNewBatch failed auth (sender ID: %s, auth: %v, expected: %s)",
 			instance, auth.Sender.GetId(), auth.IsAuthenticated, instance.GetGateway().String())
 		return connect.AuthError(auth.Sender.GetId())
@@ -45,7 +46,7 @@ func ReceivePostNewBatch(instance *internal.Instance,
 		return errors.Errorf(errCouldNotWait, current.REALTIME.String())
 	}
 
-	nodeIDs, err := id.NewNodeListFromStrings(newBatch.Round.Topology)
+	nodeIDs, err := id.NewIDListFromBytes(newBatch.Round.Topology)
 	if err != nil {
 		return errors.Errorf("Unable to convert topology into a node list: %+v", err)
 	}
@@ -59,6 +60,7 @@ func ReceivePostNewBatch(instance *internal.Instance,
 			return err
 		}
 	}
+
 	jww.INFO.Printf("[%v]: RID %d PostNewBatch END", instance,
 		newBatch.Round.ID)
 
@@ -71,7 +73,8 @@ func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batc
 	// Get the roundinfo object
 	ri := newBatch.Round
 	rm := instance.GetRoundManager()
-	rnd, err := rm.GetRound(ri.GetRoundId())
+	rid := ri.GetRoundId()
+	rnd, err := rm.GetRound(rid)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get round object from manager")
 	}
@@ -80,24 +83,24 @@ func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batc
 		ri.ID)
 
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
-		jww.FATAL.Panicf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
-			"batch with improper size", instance, ri.GetID())
+		roundErr := errors.Errorf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
+			"batch with improper size", instance, newBatch.Round.ID)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
 	}
 
 	p, err := rnd.GetPhase(phase.RealDecrypt)
-
 	if err != nil {
-		jww.FATAL.Panicf(
-			"[%v]: RID %d Error on incoming PostNewBatch comm, could "+
-				"not find phase \"%s\": %v", instance, newBatch.Round.ID,
+		roundErr := errors.Errorf("[%v]: RID %d Error on incoming PostNewBatch comm, could "+
+			"not find phase \"%s\": %v", instance, newBatch.Round.ID,
 			phase.RealDecrypt, err)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
 	}
 
 	if p.GetState() != phase.Active {
-		jww.FATAL.Panicf(
-			"[%v]: RID %d Error on incoming PostNewBatch comm, phase "+
-				"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
+		roundErr := errors.Errorf("[%v]: RID %d Error on incoming PostNewBatch comm, phase "+
+			"\"%s\" at incorrect state (\"%s\" vs \"Active\")", instance,
 			newBatch.Round.ID, phase.RealDecrypt, p.GetState())
+		instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
 	}
 
 	p.Measure(measure.TagReceiveOnReception)
@@ -108,8 +111,9 @@ func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batc
 	err = postPhase(p, newBatch)
 
 	if err != nil {
-		jww.FATAL.Panicf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
+		roundErr := errors.Errorf("[%v]: RID %d Error on incoming PostNewBatch comm at"+
 			" io PostPhase: %+v", instance, newBatch.Round.ID, err)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
 	}
 
 	return nil

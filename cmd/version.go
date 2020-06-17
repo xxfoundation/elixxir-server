@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // Handles command-line version functionality
 
@@ -15,7 +16,7 @@ import (
 )
 
 // Change this value to set the version for this build
-const currentVersion = "1.1.0"
+const currentVersion = "1.2.0"
 
 func printVersion() {
 	fmt.Printf("Elixxir Server v%s -- %s\n\n", SEMVER, GITVERSION)

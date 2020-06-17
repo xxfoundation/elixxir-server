@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package conf
 
@@ -19,8 +20,7 @@ var ExpectedPermissioning = Permissioning{
 		Key:  "",
 		Log:  "",
 	},
-	Address:          "127.0.0.1:80",
-	RegistrationCode: "pneumonoultramicroscopicsilicovolcanoconios=",
+	Address: "127.0.0.1:80",
 }
 
 // This test checks that unmarshalling the params.yaml file

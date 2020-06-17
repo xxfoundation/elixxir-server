@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package node
 
 import (
@@ -52,7 +59,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 
 	// We need to create a server.Definition so we can create a server instance.
 	def := internal.Definition{
-		ID:              id.NewNodeFromUInt(0, t),
+		ID:              id.NewIdFromUInt(0, id.Node, t),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
@@ -62,7 +69,8 @@ func setupStartNode(t *testing.T) *internal.Instance {
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, err := internal.CreateServerInstance(&def, io.NewImplementation, m, false)
+	instance, err := internal.CreateServerInstance(&def,
+		io.NewImplementation, m, "1.1.0")
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()
@@ -77,7 +85,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(id.PERMISSIONING, "", []byte(cert), false, false)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", []byte(cert), false, false)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
@@ -117,10 +125,10 @@ func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *r
 
 	batchSize := uint32(10)
 
-	list := []*id.Node{}
+	list := []*id.ID{}
 
 	for i := uint64(0); i < 8; i++ {
-		node := id.NewNodeFromUInt(i, t)
+		node := id.NewIdFromUInt(i, id.Node, t)
 		list = append(list, node)
 	}
 
@@ -128,7 +136,7 @@ func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *r
 
 	r, err := round.New(grp, &globals.UserMap{}, roundId, []phase.Phase{mockPhase},
 		responseMap, top, top.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0")
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
 
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
@@ -146,7 +154,7 @@ func TestStartLocalPrecomp_HappyPath(t *testing.T) {
 
 	newRoundInfo := &mixmessages.RoundInfo{
 		ID:        0,
-		Topology:  []string{instance.GetID().String()},
+		Topology:  [][]byte{instance.GetID().Marshal()},
 		BatchSize: 32,
 	}
 

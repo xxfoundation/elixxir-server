@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package round
 
 import (
@@ -57,15 +64,15 @@ func TestNew(t *testing.T) {
 	}
 
 	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
-		NewGraphGenerator(1, nil, 1,
+		NewGraphGenerator(1, 1,
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: handler, Timeout: time.Minute}))
 
-	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
+	topology := connect.NewCircuit([]*id.ID{&id.ID{}})
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
-		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -121,7 +128,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 		return nil
 	}
 
-	newGraph := services.NewGraphGenerator(1, nil, 1, 1, 1)
+	newGraph := services.NewGraphGenerator(1, 1, 1, 1)
 
 	newPhaseDef := phase.Definition{
 		Graph:               initMockGraph(newGraph),
@@ -132,14 +139,14 @@ func TestRound_GetMeasurements(t *testing.T) {
 
 	phases = append(phases, phase.New(newPhaseDef))
 
-	nidStr := "123"
-	nid := id.NewNodeFromUInt(uint64(123), t)
-	topology := connect.NewCircuit([]*id.Node{nid})
+	nidStr := id.NewIdFromString("123", id.Node, t)
+	nid := id.NewIdFromUInt(uint64(123), id.Node, t)
+	topology := connect.NewCircuit([]*id.ID{nid})
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil,
-		"0.0.0.0")
+		"0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -157,7 +164,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 	roundMetrics := round.GetMeasurements(nidStr, numNodes, index,
 		resourceMonitor.Get())
 
-	if roundMetrics.NodeID != nidStr {
+	if !roundMetrics.NodeID.Cmp(nidStr) {
 		t.Errorf("Round metrics has incorrect node id expected %v got %v",
 			nidStr, roundMetrics.NodeID)
 	}
@@ -179,15 +186,15 @@ func TestRound_StartRoundTrip(t *testing.T) {
 	var phases []phase.Phase
 	roundId := id.Round(58)
 	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
-		NewGraphGenerator(1, nil, 1,
+		NewGraphGenerator(1, 1,
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
 
-	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
+	topology := connect.NewCircuit([]*id.ID{&id.ID{}})
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
-		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -210,15 +217,15 @@ func TestRound_StopRoundTrip(t *testing.T) {
 	var phases []phase.Phase
 	roundId := id.Round(58)
 	phases = append(phases, phase.New(phase.Definition{Graph: initMockGraph(services.
-		NewGraphGenerator(1, nil, 1,
+		NewGraphGenerator(1, 1,
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
 
-	topology := connect.NewCircuit([]*id.Node{&id.Node{}})
+	topology := connect.NewCircuit([]*id.ID{&id.ID{}})
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
-		&id.Node{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0")
+		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

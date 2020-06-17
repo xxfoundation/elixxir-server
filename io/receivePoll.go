@@ -1,26 +1,47 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package io
 
 // receivePoll contains the handler for the gateway <-> server poll comm
 
 import (
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
 	"strings"
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance) (*mixmessages.ServerPollResponse, error) {
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
+	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
+
+	// Check that the sender is authenticated and is either their gateway or the temporary gateway
+	if !auth.IsAuthenticated || (!isValidID(auth.Sender.GetId(), &id.TempGateway, instance.GetGatewayID())) {
+		jww.TRACE.Printf("Failed auth object: %v", auth)
+		return nil, connect.AuthError(auth.Sender.GetId())
+	}
+
 	res := mixmessages.ServerPollResponse{}
+
+	jww.TRACE.Printf("Gateway Info: %s, %s", gatewayAddress,
+		poll.GatewayVersion)
+
+	// Form gateway address and put it into gateway data in instance
+	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
+
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
 		network := instance.GetConsensus()
+
 		//Compare partial NDF hash with instance and return the new one if they do not match
 		isSame := network.GetPartialNdf().CompareHash(poll.GetPartial().Hash)
 		if !isSame {
@@ -59,4 +80,18 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance) (*mi
 
 	// If node has not gotten a response from permissioning, return an empty message
 	return &res, errors.New(ndf.NO_NDF)
+}
+
+// checks the sender against all passed in IDs, returning true if any match
+// and skipping any that are nil
+func isValidID(sender *id.ID, valid ...*id.ID) bool {
+	for _, validID := range valid {
+		if validID == nil {
+			continue
+		}
+		if sender.Cmp(validID) {
+			return true
+		}
+	}
+	return false
 }

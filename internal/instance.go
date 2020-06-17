@@ -1,34 +1,47 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package internal
 
 // instance.go contains the logic for the internal.Instance object along with
 // constructors and it's methods
 
 import (
+	"encoding/base64"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 )
+
+type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
 
 // Holds long-lived server state
 type Instance struct {
@@ -42,6 +55,7 @@ type Instance struct {
 
 	consensus      *network.Instance
 	isGatewayReady *uint32
+
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
@@ -49,6 +63,25 @@ type Instance struct {
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
+
+	roundErrFunc RoundErrBroadcastFunc
+
+	errLck         sync.Mutex
+	roundError     *mixmessages.RoundError
+	recoveredError *mixmessages.RoundError
+
+	phaseOverrides map[int]phase.Phase
+	overrideRound  int
+	panicWrapper   func(s string)
+
+	gatewayAddess  string
+	gatewayID      *id.ID
+	gatewayVersion string
+	gatewayMutex   sync.RWMutex
+
+	serverVersion string
+
+	firstRun *uint32
 }
 
 // Create a server instance. To actually kick off the server,
@@ -58,9 +91,9 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, noTls bool) (*Instance, error) {
+	machine state.Machine, version string) (*Instance, error) {
 	isGwReady := uint32(0)
-
+	firstRun := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -73,6 +106,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		gatewayPoll:          NewFirstTime(),
+		roundError:           nil,
+		panicWrapper: func(s string) {
+			jww.FATAL.Panic(s)
+		},
+		serverVersion: version,
+		firstRun:      &firstRun,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -96,12 +135,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-	instance.network = node.StartNode(instance.definition.ID.String(), instance.definition.Address,
+	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
-
-	if noTls {
-		instance.network.DisableAuth()
-	}
+	instance.roundErrFunc = instance.network.SendRoundError
 
 	// Initializes the network state tracking on this server instance
 	var err error
@@ -118,63 +154,65 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Add gateways to host object
-	if instance.definition.Gateway.Address != "" {
-		_, err := instance.network.AddHost(id.NewTmpGateway().String(),
-			instance.definition.Gateway.Address, instance.definition.Gateway.TlsCert, false, true)
-		if err != nil {
-			errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
-				instance.definition.Gateway.ID, err)
-			return nil, errors.New(errMsg)
-
-		}
-	} else {
-		jww.WARN.Printf("No Gateway avalible, starting without gateway")
+	_, err = instance.network.AddHost(&id.TempGateway,
+		"", instance.definition.Gateway.TlsCert, false, true)
+	if err != nil {
+		errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
+			instance.definition.Gateway.ID, err)
+		return nil, errors.New(errMsg)
 	}
 	jww.INFO.Printf("Network Interface Initilized for Node ")
 
 	return instance, nil
 }
 
-// RestartNetwork is intended to reset the network with newly signed certs obtained from polling
-// permissioning
-func (i *Instance) RestartNetwork(makeImplementation func(*Instance) *node.Implementation, noTls bool,
-	serverCert, gwCert string) error {
-
-	jww.INFO.Printf("Restarting network...")
-	// Shut down the network so we can restart
-	i.network.Shutdown()
-
-	// Set definition for newly signed certs
-	i.definition.TlsCert = []byte(serverCert)
-	i.definition.Gateway.TlsCert = []byte(gwCert)
-
-	// Get the id and cert
-	ourId := i.GetID().String()
-	ourDef := i.GetDefinition()
-
-	// Reset the network with the newly signed certs
-	i.network = node.StartNode(ourId, ourDef.Address,
-		makeImplementation(i), ourDef.TlsCert, ourDef.TlsKey)
-
-	// Disable auth if running in a noTLS environment [TESTING ONLY]
-	if noTls {
-		i.network.DisableAuth()
-	}
-
-	// Connect to the Permissioning Server with authentication enabled
-	_, err := i.network.AddHost(id.PERMISSIONING,
-		i.definition.Permissioning.Address, i.definition.Permissioning.TlsCert, true, true)
+// Wrap CreateServerInstance, taking a recovered error file
+func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
+	machine state.Machine, version string) (*Instance, error) {
+	// Create the server instance with normal constructor
+	var i *Instance
+	var err error
+	i, err = CreateServerInstance(def, makeImplementation, machine,
+		version)
 	if err != nil {
-		return err
+		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
 
-	_, err = i.network.AddHost(i.definition.Gateway.ID.String(), i.definition.Gateway.Address,
-		i.definition.Gateway.TlsCert, false, true)
+	recoveredErrorEncoded, err := utils.ReadFile(i.definition.RecoveredErrorPath)
+	if err != nil {
+		return nil, errors.WithMessage(err,
+			"Failed to open recovered error file")
+	}
 
-	i.consensus.SetProtoComms(i.network.ProtoComms)
-	err = i.consensus.UpdateNodeConnections()
+	recoveredError, err := base64.StdEncoding.DecodeString(string(recoveredErrorEncoded))
+	if err != nil {
+		return nil, errors.WithMessagef(err,
+			"Failed to base64 decode recovered error file: %s", string(recoveredErrorEncoded))
+	}
 
-	return err
+	jww.INFO.Printf("Raw error contents: %s", string(recoveredError))
+
+	// Unmarshal bytes to RoundError
+	msg := &mixmessages.RoundError{}
+	err = proto.Unmarshal(recoveredError, msg)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to unmarshal message from file")
+	}
+
+	// Remove recovered error file
+	err = os.Remove(i.definition.RecoveredErrorPath)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to remove ")
+	}
+
+	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
+		" file at %s", msg, i.definition.RecoveredErrorPath)
+
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	i.recoveredError = msg
+
+	return i, nil
 }
 
 // Run starts the resource queue
@@ -199,7 +237,7 @@ func (i *Instance) GetStateMachine() state.Machine {
 }
 
 // GetGateway returns the id of the node's gateway
-func (i *Instance) GetGateway() *id.Gateway {
+func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
@@ -224,7 +262,7 @@ func (i *Instance) GetNetwork() *node.Comms {
 }
 
 //GetID returns this node's ID
-func (i *Instance) GetID() *id.Node {
+func (i *Instance) GetID() *id.ID {
 	return i.definition.ID
 }
 
@@ -238,9 +276,14 @@ func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }
 
-//IsRegistrationAuthenticated returns the skipReg parameter
-func (i *Instance) IsRegistrationAuthenticated() bool {
-	return i.definition.Flags.SkipReg
+// Sets that this is the first time the node has run
+func (i *Instance) IsFirstRun() {
+	atomic.StoreUint32(i.firstRun, 1)
+}
+
+// Gets if this is the first time the node has run
+func (i *Instance) GetFirstRun() bool {
+	return atomic.LoadUint32(i.firstRun) == 1
 }
 
 //GetKeepBuffers returns if buffers are to be held on it
@@ -273,6 +316,21 @@ func (i *Instance) GetGatewayCertPath() string {
 	return i.definition.GatewayCertPath
 }
 
+// SetGatewayID sets the gateway ID. It does this once
+func (i *Instance) SetGatewayID() {
+	// Get a copy of the server id and transfer to a gateway id
+	expectedGatewayID := i.GetID().DeepCopy()
+	expectedGatewayID.SetType(id.Gateway)
+
+	i.gatewayID = expectedGatewayID
+
+}
+
+// GetGatewayCertPath returns the path for Gateway certificate
+func (i *Instance) GetGatewayID() *id.ID {
+	return i.gatewayID
+}
+
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
@@ -286,10 +344,6 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
-}
-
-func (i *Instance) GetRoundCreationTimeout() int {
-	return i.definition.RoundCreationTimeout
 }
 
 func (i *Instance) GetGatewayFirstTime() *FirstTime {
@@ -312,6 +366,32 @@ func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
 }
 
+func (i *Instance) GetRoundError() *mixmessages.RoundError {
+	return i.roundError
+}
+
+func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	return i.recoveredError
+}
+
+// only use if you already have the error lock
+// TODO - find a way to remove
+func (i *Instance) GetRecoveredErrorUnsafe() *mixmessages.RoundError {
+	return i.recoveredError
+}
+
+func (i *Instance) GetServerVersion() string {
+	return i.serverVersion
+}
+
+func (i *Instance) ClearRecoveredError() {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	i.recoveredError = nil
+}
+
 func (i *Instance) IsReadyForGateway() bool {
 	ourVal := atomic.LoadUint32(i.isGatewayReady)
 
@@ -322,14 +402,87 @@ func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
 }
 
-// GetTopology returns the consensus object
-func (i *Instance) GetGatewayConnnectionTimeout() time.Duration {
-	return i.definition.GwConnTimeout
+func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	jww.FATAL.Printf("Sending round error to %+v\n", h)
+	return i.roundErrFunc(h, m)
+}
+
+func (i *Instance) GetPhaseOverrides() map[int]phase.Phase {
+	return i.phaseOverrides
+}
+
+func (i *Instance) GetOverrideRound() int {
+	return i.overrideRound
+}
+
+func (i *Instance) GetPanicWrapper() func(s string) {
+	return i.panicWrapper
+}
+
+func (i *Instance) GetGatewayData() (addr string, ver string) {
+	i.gatewayMutex.RLock()
+	defer i.gatewayMutex.RUnlock()
+	jww.TRACE.Printf("Returning Gateway: %s, %s", i.gatewayAddess,
+		i.gatewayVersion)
+	return i.gatewayAddess, i.gatewayVersion
+}
+
+func (i *Instance) UpsertGatewayData(addr string, ver string) {
+	i.gatewayMutex.Lock()
+	defer i.gatewayMutex.Unlock()
+	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
+	if i.gatewayAddess != addr || i.gatewayVersion != ver {
+		(*i).gatewayAddess = addr
+		(*i).gatewayVersion = ver
+	}
+}
+
+/* TESTING FUNCTIONS */
+func (i *Instance) OverridePhases(overrides map[int]phase.Phase) {
+	i.phaseOverrides = overrides
+	i.overrideRound = -1
+}
+
+func (i *Instance) OverridePhasesAtRound(overrides map[int]phase.Phase, round int) {
+	i.phaseOverrides = overrides
+	i.overrideRound = round
+}
+
+func (i *Instance) SetRoundErrFunc(f RoundErrBroadcastFunc, t *testing.T) {
+	if t == nil {
+		panic("Cannot call this outside of tests")
+	}
+	i.roundErrFunc = f
+}
+
+func (i *Instance) SetTestRecoveredError(m *mixmessages.RoundError, t *testing.T) {
+	if t == nil {
+		panic("This cannot be used outside of a test")
+	}
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	i.recoveredError = m
+}
+
+func (i *Instance) SetTestRoundError(m *mixmessages.RoundError, t *testing.T) {
+	if t == nil {
+		panic("This cannot be used outside of a test")
+	}
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	i.roundError = m
+}
+
+func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
+	if t == nil {
+		panic("OverridePanicWrapper cannot be used outside of a test")
+	}
+	i.panicWrapper = f
 }
 
 // GenerateId generates a random ID and returns it
 // FIXME: This function needs to be replaced
-func GenerateId(i interface{}) *id.Node {
+func GenerateId(i interface{}) *id.ID {
 	switch i.(type) {
 	case *testing.T:
 		break
@@ -343,19 +496,103 @@ func GenerateId(i interface{}) *id.Node {
 	jww.WARN.Printf("GenerateId needs to be replaced")
 
 	// Create node id buffer
-	nodeIdBytes := make([]byte, id.NodeIdLen)
+	nodeIdBytes := make([]byte, id.ArrIDLen)
 	rng := csprng.NewSystemRNG()
 
 	// Generate random bytes and store in buffer
 	_, err := rng.Read(nodeIdBytes)
 	if err != nil {
-		err := errors.New(err.Error())
+		err = errors.New(err.Error())
 		jww.FATAL.Panicf("Could not generate random nodeID: %+v", err)
 	}
 
-	nid := id.NewNodeFromBytes(nodeIdBytes)
+	nid, err := id.Unmarshal(nodeIdBytes)
+	if err != nil {
+		err = errors.New(err.Error())
+		jww.FATAL.Panicf("Could not unmarshal nodeID: %+v", err)
+	}
 
 	return nid
+}
+
+//reports an error from the node which is not associated with a round
+func (i *Instance) ReportNodeFailure(errIn error) {
+	i.ReportRoundFailure(errIn, i.GetID(), 0)
+}
+
+//reports an error from a different node in the round the node is participating in
+func (i *Instance) ReportRemoteFailure(roundErr *mixmessages.RoundError) {
+	i.reportFailure(roundErr)
+}
+
+// Create a round error, pass the error over the chanel and update the state to ERROR state
+// In situations that cause critical panic level errors.
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
+
+	//truncate the error if it is too long
+	errStr := errIn.Error()
+	if len(errStr) > 5000 {
+		errStr = errStr[:5000]
+	}
+
+	roundErr := mixmessages.RoundError{
+		Id:     uint64(roundId),
+		Error:  errStr,
+		NodeId: nodeId.Marshal(),
+	}
+
+	//sign the round error
+	err := signature.Sign(&roundErr, i.GetPrivKey())
+	if err != nil {
+		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
+			"\n roundError: %+v", err, roundErr)
+	}
+
+	i.reportFailure(&roundErr)
+}
+
+// Create a round error, pass the error over the chanel and update the state to ERROR state
+// In situations that cause critical panic level errors.
+func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+
+	nodeId, _ := id.Unmarshal(roundErr.NodeId)
+
+	//sign the round error
+	err := signature.Sign(roundErr, i.GetPrivKey())
+	if err != nil {
+		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
+			"\n roundError: %+v", err, roundErr)
+	}
+
+	//then call update state err
+	sm := i.GetStateMachine()
+
+	currentActivity := sm.Get()
+	// TODO In the future, we should write code to clean up an in-progress round
+	//  that has an error. In that case, we should also reevaluate this logic,
+	//  as it probably won't work as intended anymore.
+	if currentActivity == current.ERROR || currentActivity == current.CRASH {
+		// There's already an error, so there's no need to change to error state
+		jww.FATAL.Printf("Round failure reported, but the node is already in ERROR state. RoundID %v; nodeID %v; error text %v",
+			roundErr.Id, nodeId, roundErr.Error)
+		return
+	}
+
+	// put the new error in the instance, since the node isn't currently in
+	// an error or crash state
+	i.roundError = roundErr
+
+	// Otherwise, change instance's state to ERROR
+	ok, err := sm.Update(current.ERROR)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
+	}
+
+	if !ok {
+		jww.FATAL.Panicf("Failed to change state to ERROR state")
+	}
 }
 
 func (i *Instance) String() string {

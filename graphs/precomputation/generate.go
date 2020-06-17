@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
@@ -122,7 +123,7 @@ var Generate = services.Module{
 			}
 			for _, err := range errors {
 				if err != nil {
-					jww.CRITICAL.Panicf(err.Error())
+					jww.FATAL.Panicf(err.Error())
 				}
 			}
 		}

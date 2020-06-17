@@ -1,17 +1,20 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
 import (
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 )
@@ -189,6 +192,9 @@ var DecryptElgamalChunk = services.Module{
 
 // InitDecryptGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
+	if viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using decrypt graph running on CPU instead of equivalent GPU graph")
+	}
 	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{})
 
 	decryptElgamal := DecryptElgamal.DeepCopy()
@@ -200,6 +206,9 @@ func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 }
 
 func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
+	if !viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using decrypt graph running on GPU instead of equivalent CPU graph")
+	}
 	g := gc.NewGraph("PrecompDecryptGPU", &DecryptStream{})
 
 	decryptElgamalChunk := DecryptElgamalChunk.DeepCopy()

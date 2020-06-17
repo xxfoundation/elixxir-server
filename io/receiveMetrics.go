@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -53,7 +54,7 @@ func ReceiveGetMeasure(instance *internal.Instance, msg *mixmessages.RoundInfo) 
 		resourceMetric = resourceMonitor.Get()
 	}
 
-	metrics := r.GetMeasurements(nodeId.String(), numNodes, index, resourceMetric)
+	metrics := r.GetMeasurements(nodeId, numNodes, index, resourceMetric)
 
 	s, err := json.Marshal(metrics)
 

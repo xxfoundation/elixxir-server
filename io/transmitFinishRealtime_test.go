@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -48,7 +49,7 @@ func TestSendFinishRealtime(t *testing.T) {
 			MockFinishRealtimeImplementation(),
 			MockFinishRealtimeImplementation(),
 			MockFinishRealtimeImplementation(),
-			MockFinishRealtimeImplementation()}, 0)
+			MockFinishRealtimeImplementation()}, 0, t)
 	defer Shutdown(comms)
 
 	const numSlots = 10
@@ -69,7 +70,7 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(), nil,
-		"0.0.0.0")
+		"0.0.0.0", nil)
 	if err != nil {
 		t.Error()
 	}
@@ -150,7 +151,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 			MockFinishRealtimeImplementation_Error(),
 			MockFinishRealtimeImplementation_Error(),
 			MockFinishRealtimeImplementation_Error(),
-			MockFinishRealtimeImplementation_Error()}, 0)
+			MockFinishRealtimeImplementation_Error()}, 0, t)
 	defer Shutdown(comms)
 
 	const numSlots = 10
@@ -170,7 +171,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(), nil,
-		"0.0.0.0")
+		"0.0.0.0", nil)
 	if err != nil {
 		t.Error()
 	}

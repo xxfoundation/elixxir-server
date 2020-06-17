@@ -1,13 +1,31 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package internal
 
 import (
+	"crypto/rand"
+	"errors"
+	"github.com/golang/protobuf/proto"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
+	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -43,8 +61,35 @@ func TestMain(m *testing.M) {
 	}
 	def := mockServerDef(m)
 	sm := state.NewMachine(dummyStates)
-	instance, _ = CreateServerInstance(def, impl, sm, false)
+	instance, _ = CreateServerInstance(def, impl, sm, "1.1.0")
 	os.Exit(m.Run())
+}
+
+func TestRecoverInstance(t *testing.T) {
+	impl := func(*Instance) *node.Implementation {
+		return node.NewImplementation()
+	}
+	def := mockServerDef(t)
+	sm := state.NewMachine(dummyStates)
+
+	msg := &mixmessages.RoundError{
+		Id:     0,
+		NodeId: id.NewIdFromUInt(uint64(0), id.Node, t).Marshal(),
+		Error:  "test",
+	}
+	b, err := proto.Marshal(msg)
+	if err != nil {
+		t.Errorf("Failed to marshal test proto: %+v", err)
+	}
+
+	def.RecoveredErrorPath = "/tmp/test_err"
+
+	err = utils.WriteFile(def.RecoveredErrorPath, b, utils.FilePerms, utils.DirPerms)
+	if err != nil {
+		t.Errorf("Failed to write to test file: %+v", err)
+	}
+
+	instance, _ = RecoverInstance(def, impl, sm, "1.1.0")
 }
 
 func TestInstance_GetResourceQueue(t *testing.T) {
@@ -85,7 +130,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	tmpInstance, _ := CreateServerInstance(def, impl, m, false)
+	tmpInstance, _ := CreateServerInstance(def, impl, m, "1.1.0")
 
 	rm := tmpInstance.GetResourceMonitor()
 
@@ -127,6 +172,8 @@ func mockServerDef(i interface{}) *Definition {
 		PartialNDF:      testUtil.NDF,
 	}
 
+	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
+
 	return &def
 }
 
@@ -136,7 +183,7 @@ func TestCreateServerInstance(t *testing.T) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	_, err := CreateServerInstance(def, impl, m, true)
+	_, err := CreateServerInstance(def, impl, m, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -149,7 +196,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	instance, err := CreateServerInstance(def, impl, m, true)
+	instance, err := CreateServerInstance(def, impl, m, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -229,13 +276,16 @@ func TestInstance_GetUserRegistry(t *testing.T) {
 	}
 }
 
-func TestInstance_IsRegistrationAuthenticated(t *testing.T) {
-	instance, def := createInstance(t)
+func TestInstance_ReportCriticalError(t *testing.T) {
+	instance, _ := createInstance(t)
 
-	if def.Flags.SkipReg != instance.IsRegistrationAuthenticated() {
-		t.Logf("IsRegistrationAuthenticated() returned unexpected value")
-		t.Fail()
-	}
+	roundID := id.Round(987432)
+	testErr := errors.New("Test error")
+	instance.ReportRoundFailure(testErr, id.NewIdFromUInt(uint64(1), id.Node, t), roundID)
+	//Test happy path
+
+	//Test that if we send a different error it changes as expected
+
 }
 
 func TestInstance_GetDisableStreaming(t *testing.T) {
@@ -244,5 +294,107 @@ func TestInstance_GetDisableStreaming(t *testing.T) {
 	if def.DisableStreaming != instance.GetDisableStreaming() {
 		t.Logf("GetDisableStreaming() returned unexpected value")
 		t.Fail()
+	}
+}
+
+func TestInstance_ClearRecoveredError(t *testing.T) {
+	instance := Instance{
+		recoveredError: &mixmessages.RoundError{Id: 3},
+	}
+	instance.ClearRecoveredError()
+	if instance.recoveredError != nil {
+		t.Error("Did not clear recovered error properly")
+	}
+}
+
+func panicHandler(g, m string, err error) {
+	panic(g)
+}
+
+func TestInstance_OverridePhases(t *testing.T) {
+
+	instance, _ := createInstance(t)
+	gc := services.NewGraphGenerator(4,
+		uint8(runtime.NumCPU()), 1, 0)
+	g := graphs.InitErrorGraph(gc)
+	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		return errors.New("Failed intentionally")
+	}
+	p := phase.New(phase.Definition{
+		Graph:               g,
+		Type:                phase.Type(0),
+		TransmissionHandler: th,
+		Timeout:             3399921,
+		DoVerification:      false,
+	})
+	overrides := map[int]phase.Phase{}
+	overrides[0] = p
+	instance.OverridePhases(overrides)
+	if len(instance.phaseOverrides) != len(overrides) || instance.phaseOverrides[0].GetTimeout() != 3399921 {
+		t.Error("failed to set overrides properly")
+	}
+}
+
+func TestInstance_OverridePhasesAtRound(t *testing.T) {
+	instance, _ := createInstance(t)
+	gc := services.NewGraphGenerator(4,
+		uint8(runtime.NumCPU()), 1, 0)
+	g := graphs.InitErrorGraph(gc)
+	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		return errors.New("Failed intentionally")
+	}
+	p := phase.New(phase.Definition{
+		Graph:               g,
+		Type:                phase.Type(0),
+		TransmissionHandler: th,
+		Timeout:             3399921,
+		DoVerification:      false,
+	})
+	overrides := map[int]phase.Phase{}
+	overrides[0] = p
+	instance.OverridePhasesAtRound(overrides, 3)
+	if len(instance.phaseOverrides) != len(overrides) || instance.phaseOverrides[0].GetTimeout() != 3399921 {
+		t.Error("failed to set overrides properly")
+	}
+	if instance.overrideRound != 3 {
+		t.Errorf("Failed to set override round, expected: %d, got: %d", 3, instance.overrideRound)
+	}
+}
+
+func TestInstance_GetOverrideRound(t *testing.T) {
+	instance := Instance{
+		overrideRound: 3,
+	}
+	if instance.GetOverrideRound() != 3 {
+		t.Errorf("GetOverrideRound is broken; should have returned %d, instead got %d",
+			3, instance.GetOverrideRound())
+	}
+}
+
+func TestInstance_GetPhaseOverrides(t *testing.T) {
+	gc := services.NewGraphGenerator(4,
+		uint8(runtime.NumCPU()), 1, 0)
+	g := graphs.InitErrorGraph(gc)
+	th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		return errors.New("Failed intentionally")
+	}
+	p := phase.New(phase.Definition{
+		Graph:               g,
+		Type:                phase.Type(0),
+		TransmissionHandler: th,
+		Timeout:             83721,
+		DoVerification:      false,
+	})
+	overrides := map[int]phase.Phase{}
+	overrides[0] = p
+
+	instance := Instance{
+		phaseOverrides: overrides,
+	}
+
+	instanceOverrides := instance.GetPhaseOverrides()
+
+	if len(instanceOverrides) != len(overrides) || instanceOverrides[0].GetTimeout() != 83721 {
+		t.Error("Failed to get phase overrides set in instance")
 	}
 }

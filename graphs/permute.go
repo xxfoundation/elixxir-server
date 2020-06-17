@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package graphs
 
@@ -33,7 +34,6 @@ func PrecanPermute(permutations []uint32, IOs ...PermuteIO) {
 func ModifyGraphGeneratorForPermute(gc services.GraphGenerator) services.GraphGenerator {
 	return services.NewGraphGenerator(
 		gc.GetMinInputSize(),
-		gc.GetErrorHandler(),
 		gc.GetDefaultNumTh(),
 		gc.GetOutputSize(),
 		1.0,

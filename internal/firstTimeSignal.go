@@ -1,17 +1,17 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package internal
 
 // firstTimeSignal.go contains the logic for a channel
 // that can only be sent to once
 
 import (
-	"errors"
 	"sync"
-	"time"
 )
 
 type FirstTime struct {
@@ -34,14 +34,7 @@ func (ft *FirstTime) Send() {
 	})
 }
 
-// Receive either receives from the channel or times out
-// On timeout it errors.
-func (ft *FirstTime) Receive(duration time.Duration) error {
-
-	select {
-	case <-ft.c:
-		return nil
-	case <-time.After(duration):
-		return errors.New("Timed out receiving from first time channel")
-	}
+// Receive either receives from the channel.
+func (ft *FirstTime) Receive() {
+	<-ft.c
 }

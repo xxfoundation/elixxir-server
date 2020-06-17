@@ -1,13 +1,15 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package io
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
@@ -36,6 +38,8 @@ import (
 	"testing"
 	"time"
 )
+
+const testGatewayAddress = "0.0.0.0:8201"
 
 var dummyStates = [current.NUM_STATES]state.Change{
 	func(from current.Activity) error { return nil },
@@ -90,14 +94,14 @@ func initImplGroup() *cyclic.Group {
 }
 
 // Builds a list of node IDs for testing
-func buildMockTopology(numNodes int) *connect.Circuit {
-	var nodeIDs []*id.Node
+func buildMockTopology(numNodes int, t *testing.T) *connect.Circuit {
+	var nodeIDs []*id.ID
 
 	//Build IDs
 	for i := 0; i < numNodes; i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 
@@ -106,14 +110,14 @@ func buildMockTopology(numNodes int) *connect.Circuit {
 }
 
 // Builds a list of base64 encoded node IDs for server instance construction
-func BuildMockNodeIDs(numNodes int) []*id.Node {
-	var nodeIDs []*id.Node
+func BuildMockNodeIDs(numNodes int, t *testing.T) []*id.ID {
+	var nodeIDs []*id.ID
 
 	//Build IDs
 	for i := 0; i < numNodes; i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 
@@ -121,7 +125,7 @@ func BuildMockNodeIDs(numNodes int) []*id.Node {
 	return nodeIDs
 }
 
-func buildMockNodeAddresses(numNodes int) []string {
+func buildMockNodeAddresses(numNodes int, t *testing.T) []string {
 	//generate IDs and addresses
 	var nidLst []string
 	var addrLst []string
@@ -129,9 +133,9 @@ func buildMockNodeAddresses(numNodes int) []string {
 	portState := 6000
 	for i := 0; i < numNodes; i++ {
 		//generate id
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nidLst = append(nidLst, nodeID.String())
 		//generate address
 		addr := fmt.Sprintf(addrFmt, i+portState)
@@ -155,24 +159,19 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 	//	"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	//grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2))
 
-	var nodeIDs []*id.Node
+	var nodeIDs []*id.ID
 
 	for i := uint64(0); i < 3; i++ {
-		nodeIDs = append(nodeIDs, id.NewNodeFromUInt(i, t))
-	}
-
-	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %+v", g,
-			m, err))
+		nodeIDs = append(nodeIDs, id.NewIdFromUInt(i, id.Node, t))
 	}
 
 	// Generate IDs and addresses
 	var nodeLst []internal.Node
 	for i := 0; i < len(nodeIDs); i++ {
 		// Generate id
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 
 		// Generate address
 		addr := fmt.Sprintf("localhost:5%03d", i)
@@ -188,7 +187,7 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 	def := internal.Definition{
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
-		GraphGenerator: services.NewGraphGenerator(2, PanicHandler,
+		GraphGenerator: services.NewGraphGenerator(2,
 			2, 2, 0),
 		RngStreamGen: fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),
@@ -196,14 +195,16 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 		FullNDF:    testUtil.NDF,
 	}
 	def.ID = topology.GetNodeAtIndex(0)
-	def.Gateway.ID = id.NewTmpGateway()
+	def.Gateway.ID = &id.TempGateway
+	def.Gateway.Address = testGatewayAddress
 	m := state.NewTestMachine(dummyStates, s, t)
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
+		"1.1.0")
 
 	return instance, topology
 }
 
-func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID id.Round) (string, error) {
+func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID id.Round, t *testing.T) (string, error) {
 	serverRoundMetrics := map[string]measure.RoundMetrics{}
 	mockResourceMetrics := measure.ResourceMetric{
 		Time:          time.Unix(int64(0), int64(1)),
@@ -216,7 +217,7 @@ func mockTransmitGetMeasure(node *node.Comms, topology *connect.Circuit, roundID
 		s := topology.GetNodeAtIndex(i)
 
 		serverRoundMetrics[s.String()] = measure.RoundMetrics{
-			NodeID:         "NODE_TEST_ID",
+			NodeID:         *id.NewIdFromString("NODE_TEST_ID", id.Node, t),
 			RoundID:        3,
 			NumNodes:       5,
 			StartTime:      time.Now(),
@@ -279,7 +280,7 @@ func PushNRoundUpdates(n int, instance internal.Instance, key *rsa.PrivateKey, t
 func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Group) []*server.Definition {
 
 	//generate IDs and addresses
-	var nidLst []*id.Node
+	var nidLst []*id.ID
 	var nodeLst []server.Node
 	addrFmt := "localhost:5%03d"
 	for i := 0; i < numNodes; i++ {
@@ -293,7 +294,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 
 		n := server.Node{
 			ID:      nodeID,
-			Address: addr,
+			ListeningAddress: addr,
 		}
 		nodeLst = append(nodeLst, n)
 
@@ -317,7 +318,7 @@ func makeMultiInstanceParams(numNodes, batchsize, portstart int, grp *cyclic.Gro
 			Flags: server.Flags{
 				KeepBuffers: true,
 			},
-			Address:        nodeLst[i].Address,
+			ListeningAddress:        nodeLst[i].ListeningAddress,
 			MetricsHandler: func(i *server.Instance, roundID id.Round) error { return nil },
 			GraphGenerator: services.NewGraphGenerator(4, PanicHandler, 1, 4, 0.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
@@ -380,7 +381,7 @@ func (stream MockStreamPostPhaseServer) Context() context.Context {
 	ctx, _ := context.WithCancel(context.Background())
 
 	m := make(map[string]string)
-	m["batchinfo"] = mockBatchInfo.String()
+	m["batchinfo"] = base64.StdEncoding.EncodeToString([]byte(mockBatchInfo.String()))
 
 	md := metadata.New(m)
 	ctx = metadata.NewIncomingContext(ctx, md)
@@ -435,17 +436,17 @@ func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
 
-func buildTestNetworkComponents(impls []*node.Implementation,
-	portStart int) ([]*node.Comms, *connect.Circuit) {
-	var nodeIDs []*id.Node
+func buildTestNetworkComponents(impls []*node.Implementation, portStart int,
+	t *testing.T) ([]*node.Comms, *connect.Circuit) {
+	var nodeIDs []*id.ID
 	var addrLst []string
 	addrFmt := "localhost:3%03d"
 
 	//Build IDs and addresses
 	for i := 0; i < len(impls); i++ {
-		nodIDBytes := make([]byte, id.NodeIdLen)
+		nodIDBytes := make([]byte, id.ArrIDLen)
 		nodIDBytes[0] = byte(i + 1)
-		nodeID := id.NewNodeFromBytes(nodIDBytes)
+		nodeID := id.NewIdFromBytes(nodIDBytes, t)
 		nodeIDs = append(nodeIDs, nodeID)
 		addrLst = append(addrLst, fmt.Sprintf(addrFmt, i+portStart))
 	}
@@ -457,14 +458,15 @@ func buildTestNetworkComponents(impls []*node.Implementation,
 	var comms []*node.Comms
 
 	for index, impl := range impls {
+		nodeID := id.NewIdFromUInt(uint64(index), id.Node, t)
 		comms = append(comms,
-			node.StartNode(string(index), addrLst[index], impl, nil, nil))
+			node.StartNode(nodeID, addrLst[index], impl, nil, nil))
 	}
 
 	//Connect the comms
 	for connectFrom := 0; connectFrom < len(impls); connectFrom++ {
 		for connectTo := 0; connectTo < len(impls); connectTo++ {
-			tmpHost, _ := comms[connectFrom].AddHost(topology.GetNodeAtIndex(connectTo).String(),
+			tmpHost, _ := comms[connectFrom].AddHost(topology.GetNodeAtIndex(connectTo),
 				addrLst[connectTo], nil, false, false)
 			topology.AddHost(tmpHost)
 		}

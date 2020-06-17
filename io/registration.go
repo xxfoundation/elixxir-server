@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 // Package io registration.go handles the endpoints for registration
 
@@ -10,12 +11,14 @@ package io
 
 import (
 	"crypto"
+	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/elixxir/crypto/xx"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 )
@@ -25,28 +28,28 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte,
 	auth *connect.Auth) ([]byte, []byte, error) {
 
+	fmt.Printf("Sender ID:  %#v\n", auth.Sender.GetId())
+	fmt.Printf("Gateway ID: %#v\n", instance.GetGateway())
+
 	// Verify the sender is the authenticated gateway for this node
-	if !auth.IsAuthenticated ||
-		auth.Sender.GetId() != instance.GetGateway().String() {
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
 		return nil, nil, connect.AuthError(auth.Sender.GetId())
 	}
 
 	grp := instance.GetConsensus().GetCmixGroup()
 	sha := crypto.SHA256
 
-	if !instance.IsRegistrationAuthenticated() {
-		regPubKey := instance.GetRegServerPubKey()
-		h := sha.New()
-		h.Write([]byte(RSAPubKey))
-		data := h.Sum(nil)
+	regPubKey := instance.GetRegServerPubKey()
+	h := sha.New()
+	h.Write([]byte(RSAPubKey))
+	data := h.Sum(nil)
 
-		err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
-		if err != nil {
-			// Invalid signed Client public key, return an error
-			return []byte{}, []byte{},
-				errors.Errorf("verification of public key signature "+
-					"from registration failed: %+v", err)
-		}
+	err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
+	if err != nil {
+		// Invalid signed Client public key, return an error
+		return []byte{}, []byte{},
+			errors.Errorf("verification of public key signature "+
+				"from registration failed: %+v", err)
 	}
 
 	// Assemble Client public key
@@ -58,9 +61,9 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	}
 
 	//Check that the Client DH public key is signed correctly
-	h := sha.New()
+	h = sha.New()
 	h.Write(DHPubKey)
-	data := h.Sum(nil)
+	data = h.Sum(nil)
 
 	err = rsa.Verify(userPublicKey, sha, data, DHSignedByClientRSA, nil)
 
@@ -70,7 +73,12 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	}
 
 	// Generate UserID
-	userId := registration.GenUserID(userPublicKey, salt)
+	userId, err := xx.NewID(userPublicKey, salt, id.User)
+
+	if err != nil {
+		return []byte{}, []byte{},
+			errors.Errorf("Failed to generate new ID: %+v", err)
+	}
 
 	// Generate a nonce with a timestamp
 	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
@@ -102,18 +110,16 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 }
 
 // Handles nonce confirmation during the client registration process
-func ConfirmRegistration(instance *internal.Instance, UserID, Signature []byte,
+func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature []byte,
 	auth *connect.Auth) ([]byte, error) {
 
 	// Verify the sender is the authenticated gateway for this node
-	if !auth.IsAuthenticated ||
-		auth.Sender.GetId() != instance.GetGateway().String() {
-
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
 	// Obtain the user from the database
-	user, err := instance.GetUserRegistry().GetUser(id.NewUserFromBytes(UserID))
+	user, err := instance.GetUserRegistry().GetUser(UserID, instance.GetConsensus().GetCmixGroup())
 
 	if err != nil {
 		// Invalid nonce, return an error

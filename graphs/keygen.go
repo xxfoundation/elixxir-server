@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package graphs
 
 import (
@@ -19,7 +26,7 @@ type KeygenSubStream struct {
 	userReg globals.UserRegistry
 
 	// Inputs: user IDs and salts (required for key generation)
-	users []*id.User
+	users []*id.ID
 	salts [][]byte
 	kmacs [][][]byte
 
@@ -34,7 +41,7 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
-	userReg globals.UserRegistry, inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.User,
+	userReg globals.UserRegistry, inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID,
 	outKeysA, outKeysB *cyclic.IntBuffer) {
 	k.Grp = grp
 	k.userReg = userReg
@@ -81,7 +88,7 @@ var Keygen = services.Module{
 		}
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			user, err := kss.userReg.GetUser(kss.users[i])
+			user, err := kss.userReg.GetUser(kss.users[i], kss.Grp)
 
 			if err != nil {
 				if err.Error() == "pg: no rows in result set" ||

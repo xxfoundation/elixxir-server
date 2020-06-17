@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2018 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package services
 
@@ -32,20 +33,28 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 	omID := fmt.Sprintf("%s%d", OutModsMeasureName, threadID)
 
 	for chunk, cont := <-m.input; cont; chunk, cont = <-m.input {
+		g.Lock()
 		g.metrics.Measure(atID)
+		g.Unlock()
 		err := m.Adapt(s, m.Cryptop, chunk)
+		g.Lock()
 		g.metrics.Measure(atID)
+		g.Unlock()
 
 		if err != nil {
-			go g.generator.errorHandler(g.name, m.Name, err)
+			go g.errorHandler(g.name, m.Name, err)
 		}
 
+		g.Lock()
 		g.metrics.Measure(omID)
+		g.Unlock()
 		for _, om := range m.outputModules {
 			chunkList, err := om.assignmentList.PrimeOutputs(chunk)
 			if err != nil {
-				go g.generator.errorHandler(g.name, m.Name, err)
+				go g.errorHandler(g.name, m.Name, err)
+				g.Lock()
 				g.metrics.Measure(omID)
+				g.Unlock()
 				return
 			}
 
@@ -58,15 +67,19 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 			fin, err := om.assignmentList.DenoteCompleted(len(chunkList))
 
 			if err != nil {
-				go g.generator.errorHandler(g.name, m.Name, err)
+				go g.errorHandler(g.name, m.Name, err)
+				g.Lock()
 				g.metrics.Measure(omID)
+				g.Unlock()
 				return
 			}
 			if fin {
 				om.closeInput()
 			}
 		}
+		g.Lock()
 		g.metrics.Measure(omID)
+		g.Unlock()
 
 	}
 }
@@ -75,7 +88,9 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 // spent inside the adapt function and inside the output modules processing loop
 func (g *Graph) GetMetrics() (time.Duration, time.Duration) {
 	// Get every event and generate the time deltas
+	g.Lock()
 	events := g.metrics.GetEvents()
+	g.Unlock()
 	times := make(map[string]time.Time)
 	deltas := make(map[string]time.Duration)
 	for _, e := range events {

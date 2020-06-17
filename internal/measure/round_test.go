@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package measure
 
@@ -47,13 +48,14 @@ func TestRoundMetrics_AddPhase(t *testing.T) {
 	metricC := Metric{"another_tag2", time.Unix(1, 2)}
 	metricD := Metric{}
 
-	metricsA := Metrics{Events: []Metric{metricA, metricB, metricC, metricD}}
-	metricsB := Metrics{Events: []Metric{metricA, metricB, metricD, metricC}}
+	metricsA := Metrics{Events: []Metric{metricA, metricB, metricC, metricD}, NodeId: id.NewIdFromBytes([]byte{}, t)}
+	metricsB := Metrics{Events: []Metric{metricA, metricB, metricD, metricC}, NodeId: id.NewIdFromBytes([]byte{}, t)}
+	metricsC := Metrics{Events: []Metric{}, NodeId: id.NewIdFromBytes([]byte{}, t)}
 
 	phaseMetricA := phaseMetric{"PhaseName1", metricsA}
 	phaseMetricB := phaseMetric{"PhaseName1", metricsB}
 	phaseMetricC := phaseMetric{"PhaseName2", metricsA}
-	phaseMetricD := phaseMetric{}
+	phaseMetricD := phaseMetric{"", metricsC}
 
 	pmArr := PhaseMetrics{phaseMetricA, phaseMetricB, phaseMetricC, phaseMetricD}
 
@@ -79,11 +81,11 @@ func TestRoundMetrics_SetNodeID(t *testing.T) {
 	rm := NewRoundMetrics(42, 34)
 
 	// Set the Node ID
-	nodeID := "test"
+	nodeID := id.NewIdFromString("test", id.Node, t)
 	rm.SetNodeID(nodeID)
 
 	// Check if the Node ID was set correctly
-	if rm.NodeID != nodeID {
+	if !rm.NodeID.Cmp(nodeID) {
 		t.Errorf("SetNodeID() incorrectly set NodeID"+
 			"\n\texpected: %v\n\treceived: %v",
 			nodeID, rm.NodeID)

@@ -1,8 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Copyright © 2019 Privategrity Corporation                                   /
-//                                                                             /
-// All rights reserved.                                                        /
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
 
 package realtime
 
@@ -78,7 +79,7 @@ func TestDecryptStream_Link(t *testing.T) {
 	}
 
 	for itr, u := range stream.Users {
-		if !reflect.DeepEqual(u, &id.User{}) {
+		if !reflect.DeepEqual(u, &id.ID{}) {
 			t.Errorf("dispatchStream.link(): user is at slot %v not initilized properly", itr)
 		}
 	}
@@ -118,22 +119,24 @@ func TestDecryptStream_Input(t *testing.T) {
 		msg := &mixmessages.Slot{
 			PayloadA: expected[0],
 			PayloadB: expected[1],
-			SenderID: expected[2],
+			SenderID: id.NewIdFromBytes(expected[2], t).Bytes(),
 			Salt:     expected[3],
 		}
 
 		err := stream.Input(b, msg)
 		if err != nil {
-			t.Errorf("DecryptStream.Input() errored on slot %v: %s", b, err.Error())
+			t.Errorf("DecryptStream.Input() errored on slot %v: %+v", b, err)
 		}
 
 		if !reflect.DeepEqual(stream.EcrPayloadA.Get(b).Bytes(), expected[0]) {
-			t.Errorf("DecryptStream.Input() incorrect stored EcrPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Input() incorrectly stored EcrPayloadA "+
+				"data at %v\n\texpected: %+v\n\trecieved: %+v",
 				b, expected[0], stream.EcrPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.EcrPayloadB.Get(b).Bytes(), expected[1]) {
-			t.Errorf("DecryptStream.Input() incorrect stored EcrPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Input() incorrectly stored EcrPayloadB "+
+				"data at %v\n\texpected: %+v\n\trecieved: %+v",
 				b, expected[1], stream.EcrPayloadB.Get(b).Bytes())
 		}
 
@@ -271,7 +274,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 	}
 
 	msg2 := &mixmessages.Slot{
-		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		SenderID: id.NewIdFromUInt(0, id.User, t).Bytes(),
 		PayloadA: large.NewInt(3).Bytes(),
 		PayloadB: large.NewInt(4).Bytes(),
 	}
@@ -303,7 +306,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	stream.Link(grp, batchSize, roundBuffer, registry)
 
 	msg := &mixmessages.Slot{
-		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		SenderID: id.NewIdFromUInt(0, id.User, t).Bytes(),
 		Salt:     []byte{1, 2, 3},
 		PayloadA: large.NewInt(3).Bytes(),
 		PayloadB: large.NewInt(4).Bytes(),
@@ -316,7 +319,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	}
 
 	msg2 := &mixmessages.Slot{
-		SenderID: id.NewUserFromUint(0, t).Bytes(),
+		SenderID: id.NewIdFromUInt(0, id.User, t).Bytes(),
 		Salt:     make([]byte, 32),
 		PayloadA: large.NewInt(3).Bytes(),
 		PayloadB: large.NewInt(4).Bytes(),
@@ -349,7 +352,7 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	for b := uint32(0); b < batchSize; b++ {
 
-		senderId := &id.User{}
+		senderId := &id.ID{}
 		salt := make([]byte, 32)
 
 		expected := [][]byte{
@@ -447,12 +450,12 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	var graphInit graphs.Initializer
 	graphInit = InitDecryptGraph
 
-	gc := services.NewGraphGenerator(4, PanicHandler, uint8(runtime.NumCPU()), 1, 1.0)
+	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
 	//Initialize graph
 	g := graphInit(gc)
 
-	g.Build(batchSize)
+	g.Build(batchSize, PanicHandler)
 
 	// Build the roundBuffer
 	roundBuffer := round.NewBuffer(grp, g.GetBatchSize(), g.GetExpandedBatchSize())
@@ -483,7 +486,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
 		// Necessary to avoid crashing
-		stream.Users[i] = id.ZeroID
+		stream.Users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.Salts[i] = []byte{}
 
@@ -513,7 +516,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 			keyA := grp.NewInt(1)
 			keyB := grp.NewInt(1)
 
-			user, _ := registry.GetUser(stream.Users[i])
+			user, _ := registry.GetUser(stream.Users[i], grp)
 
 			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, keyA)
 
@@ -591,7 +594,8 @@ func mockServerInstance(i interface{}) *internal.Instance {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, false)
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
+		"1.1.0")
 
 	return instance
 }
