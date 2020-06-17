@@ -24,7 +24,7 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/signature"
 	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/gpumaths"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
@@ -111,7 +111,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			jww.FATAL.Panic(s)
 		},
 		serverVersion: version,
-		firstRun: &firstRun,
+		firstRun:      &firstRun,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -178,7 +178,7 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
 
-	recoveredErrorEncoded, err :=  utils.ReadFile(i.definition.RecoveredErrorPath)
+	recoveredErrorEncoded, err := utils.ReadFile(i.definition.RecoveredErrorPath)
 	if err != nil {
 		return nil, errors.WithMessage(err,
 			"Failed to open recovered error file")
@@ -189,7 +189,6 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 		return nil, errors.WithMessagef(err,
 			"Failed to base64 decode recovered error file: %s", string(recoveredErrorEncoded))
 	}
-
 
 	jww.INFO.Printf("Raw error contents: %s", string(recoveredError))
 
@@ -284,9 +283,8 @@ func (i *Instance) IsFirstRun() {
 
 // Gets if this is the first time the node has run
 func (i *Instance) GetFirstRun() bool {
-	return atomic.LoadUint32(i.firstRun)==1
+	return atomic.LoadUint32(i.firstRun) == 1
 }
-
 
 //GetKeepBuffers returns if buffers are to be held on it
 func (i *Instance) GetKeepBuffers() bool {
@@ -543,10 +541,9 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 		NodeId: nodeId.Marshal(),
 	}
 
-
 	//sign the round error
 	err := signature.Sign(&roundErr, i.GetPrivKey())
-	if err!=nil{
+	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)
 	}
@@ -564,7 +561,7 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 
 	//sign the round error
 	err := signature.Sign(roundErr, i.GetPrivKey())
-	if err!=nil{
+	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)
 	}
@@ -597,7 +594,6 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
 }
-
 
 func (i *Instance) String() string {
 	nid := i.definition.ID
