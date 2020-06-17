@@ -123,7 +123,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Precomputation Decrypt phase and response
 	precompDecryptDefinition := phase.Definition{
-		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
@@ -162,7 +161,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Precomputation Permute phase and response
 	precompPermuteDefinition := phase.Definition{
-		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
@@ -256,10 +254,14 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Realtime Decrypt phase and response
 	realtimeDecryptDefinition := phase.Definition{
-		Graph:               realtime.InitDecryptGraph(gc),
 		Type:                phase.RealDecrypt,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
+	}
+	if pool != nil {
+		realtimeDecryptDefinition.Graph = realtime.InitDecryptGPUGraph(gc)
+	} else {
+		realtimeDecryptDefinition.Graph = realtime.InitDecryptGraph(gc)
 	}
 
 	decryptResponse := phase.ResponseDefinition{
@@ -286,11 +288,15 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Realtime Decrypt phase and response
 	realtimePermuteDefinition := phase.Definition{
-		Graph:               realtime.InitPermuteGraph(gc),
 		Type:                phase.RealPermute,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
+	}
+	if pool != nil {
+		realtimePermuteDefinition.Graph = realtime.InitPermuteGPUGraph(gc)
+	} else {
+		realtimePermuteDefinition.Graph = realtime.InitPermuteGraph(gc)
 	}
 
 	//A permute message is never received by first node
@@ -314,7 +320,11 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 				return io.TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 			}
 		//Last node also executes the combined permute-identify graph
-		realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)
+		if pool != nil {
+			realtimePermuteDefinition.Graph = realtime.InitIdentifyGPUGraph(gc)
+		} else {
+			realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)
+		}
 	}
 
 	//All nodes process the verification step

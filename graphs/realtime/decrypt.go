@@ -8,9 +8,12 @@
 package realtime
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
@@ -20,7 +23,8 @@ import (
 
 // Stream holding data containing keys and inputs used by decrypt
 type KeygenDecryptStream struct {
-	Grp *cyclic.Group
+	Grp        *cyclic.Group
+	StreamPool *gpumaths.StreamPool
 
 	// Link to round object
 	R *cyclic.IntBuffer
@@ -54,8 +58,14 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 		users[i] = &id.ID{}
 	}
 
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
+
 	ds.LinkRealtimeDecryptStream(grp, batchSize,
-		roundBuf, userRegistry,
+		roundBuf, userRegistry, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
@@ -66,9 +76,10 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 
 //Connects the internal buffers in the stream to the passed
 func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte) {
+	userRegistry globals.UserRegistry, pool *gpumaths.StreamPool, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte) {
 
 	ds.Grp = grp
+	ds.StreamPool = pool
 
 	ds.R = round.R.GetSubBuffer(0, batchSize)
 	ds.U = round.U.GetSubBuffer(0, batchSize)
@@ -167,8 +178,91 @@ var DecryptMul3 = services.Module{
 	Name:       "DecryptMul3",
 }
 
+//module in realtime Decrypt implementing mul3
+var DecryptMul2Chunk1 = services.Module{
+	// Multiplies in own Encrypted Keys and Partial Cypher Texts
+	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		dssi, ok := streamInput.(RealtimeDecryptSubStreamInterface)
+		mul2Chunk, ok2 := cryptop.(gpumaths.Mul2ChunkPrototype)
+
+		if !ok || !ok2 {
+			return services.InvalidTypeAssert
+		}
+
+		ds := dssi.GetRealtimeDecryptSubStream()
+
+		kpa := ds.KeysPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		kpb := ds.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		R := ds.R.GetSubBuffer(chunk.Begin(), chunk.End())
+		U := ds.U.GetSubBuffer(chunk.Begin(), chunk.End())
+		pool := ds.StreamPool
+		grp := ds.Grp
+
+		// mul2 keysPayloadA=R*keysPayloadA
+		err := mul2Chunk(pool, grp, kpa, R, kpa)
+		if err != nil {
+			return err
+		}
+
+		// mul2 keysPayloadB=U*keysPayloadB
+		err = mul2Chunk(pool, grp, kpb, U, kpb)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+	Cryptop:    gpumaths.Mul2Chunk,
+	NumThreads: 2,
+	InputSize:  services.AutoInputSize,
+	Name:       "DecryptMul2Chunk1",
+}
+
+//module in realtime Decrypt implementing mul3
+var DecryptMul2Chunk2 = services.Module{
+	// Multiplies in own Encrypted Keys and Partial Cypher Texts
+	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		dssi, ok := streamInput.(RealtimeDecryptSubStreamInterface)
+		mul2Chunk, ok2 := cryptop.(gpumaths.Mul2ChunkPrototype)
+
+		if !ok || !ok2 {
+			return services.InvalidTypeAssert
+		}
+
+		ds := dssi.GetRealtimeDecryptSubStream()
+
+		kpa := ds.KeysPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		kpb := ds.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		epa := ds.EcrPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		epb := ds.EcrPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		pool := ds.StreamPool
+		grp := ds.Grp
+
+		// mul2 encryptedPayloadA=encryptedPayloadA*keysPayloadA
+		err := mul2Chunk(pool, grp, epa, epa, kpa)
+		if err != nil {
+			return err
+		}
+
+		// mul2 encryptedPayloadB=encryptedPayloadB*keysPayloadB
+		err = mul2Chunk(pool, grp, epb, epb, kpb)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+	Cryptop:    gpumaths.Mul2Chunk,
+	NumThreads: 2,
+	InputSize:  services.AutoInputSize,
+	Name:       "DecryptMul2Chunk2",
+}
+
 // InitDecryptGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
+	if viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using realtime decrypt graph running on CPU instead of equivalent GPU graph")
+	}
 	g := gc.NewGraph("RealtimeDecrypt", &KeygenDecryptStream{})
 
 	decryptKeygen := graphs.Keygen.DeepCopy()
@@ -176,8 +270,28 @@ func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 
 	g.First(decryptKeygen)
 	g.Connect(decryptKeygen, decryptMul3)
-	//g.First(decryptMul3)
 	g.Last(decryptMul3)
+
+	return g
+}
+
+// InitDecryptGPUGraph called to initialize the graph. Conforms to graphs.Initialize function type
+func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
+	if !viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using realtime decrypt graph running on GPU instead of equivalent CPU graph")
+	}
+	g := gc.NewGraph("RealtimeDecryptGPU", &KeygenDecryptStream{})
+
+	decryptKeygen := graphs.Keygen.DeepCopy()
+	// Because mul2 is the only cryptop implemented in gpumaths right now,
+	// we need to use it twice
+	decryptMul2Chunk1 := DecryptMul2Chunk1.DeepCopy()
+	decryptMul2Chunk2 := DecryptMul2Chunk2.DeepCopy()
+
+	g.First(decryptKeygen)
+	g.Connect(decryptKeygen, decryptMul2Chunk1)
+	g.Connect(decryptMul2Chunk1, decryptMul2Chunk2)
+	g.Last(decryptMul2Chunk2)
 
 	return g
 }

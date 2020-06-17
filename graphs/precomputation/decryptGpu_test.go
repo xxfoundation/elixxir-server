@@ -11,6 +11,7 @@ package precomputation
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/graphs"
@@ -22,6 +23,7 @@ import (
 
 // Runs precomp decrypt test with GPU stream pool and graphs
 func TestDecryptGPUGraph(t *testing.T) {
+	viper.Set("useGpu", true)
 	grp := initDecryptGroup()
 
 	batchSize := uint32(100)
