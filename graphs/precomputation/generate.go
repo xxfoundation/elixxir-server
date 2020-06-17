@@ -123,7 +123,7 @@ var Generate = services.Module{
 			}
 			for _, err := range errors {
 				if err != nil {
-					jww.CRITICAL.Panicf(err.Error())
+					jww.FATAL.Panicf(err.Error())
 				}
 			}
 		}
