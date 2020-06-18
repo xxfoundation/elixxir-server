@@ -191,21 +191,21 @@ var DecryptMul2Chunk1 = services.Module{
 
 		ds := dssi.GetRealtimeDecryptSubStream()
 
-		kpa := ds.KeysPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
-		kpb := ds.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		epa := ds.EcrPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		epb := ds.EcrPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
 		R := ds.R.GetSubBuffer(chunk.Begin(), chunk.End())
 		U := ds.U.GetSubBuffer(chunk.Begin(), chunk.End())
 		pool := ds.StreamPool
 		grp := ds.Grp
 
 		// mul2 keysPayloadA=R*keysPayloadA
-		err := mul2Chunk(pool, grp, kpa, R, kpa)
+		err := mul2Chunk(pool, grp, epa, R, epa)
 		if err != nil {
 			return err
 		}
 
 		// mul2 keysPayloadB=U*keysPayloadB
-		err = mul2Chunk(pool, grp, kpb, U, kpb)
+		err = mul2Chunk(pool, grp, epb, U, epb)
 		if err != nil {
 			return err
 		}
@@ -239,13 +239,13 @@ var DecryptMul2Chunk2 = services.Module{
 		grp := ds.Grp
 
 		// mul2 encryptedPayloadA=encryptedPayloadA*keysPayloadA
-		err := mul2Chunk(pool, grp, epa, epa, kpa)
+		err := mul2Chunk(pool, grp, epa, kpa, epa)
 		if err != nil {
 			return err
 		}
 
 		// mul2 encryptedPayloadB=encryptedPayloadB*keysPayloadB
-		err = mul2Chunk(pool, grp, epb, epb, kpb)
+		err = mul2Chunk(pool, grp, epb, kpb, epb)
 		if err != nil {
 			return err
 		}

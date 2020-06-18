@@ -163,13 +163,13 @@ var IdentifyMul2Chunk = services.Module{
 		epbp := is.EcrPayloadBPermuted[chunk.Begin():chunk.End()]
 
 		// Multiply encrypted payload A by its precomputation to decrypt it
-		err := mul2Slice(is.StreamPool, is.Grp, epap, pap, epap)
+		err := mul2Slice(is.StreamPool, is.Grp, pap, epap, epap)
 		if err != nil {
 			return err
 		}
 
 		// Multiply encrypted payload B by its precomputation to decrypt it
-		err = mul2Slice(is.StreamPool, is.Grp, epbp, pbp, epbp)
+		err = mul2Slice(is.StreamPool, is.Grp, pbp, epbp, epbp)
 		if err != nil {
 			return err
 		}
