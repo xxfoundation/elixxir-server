@@ -142,7 +142,7 @@ permissioning:
     # Path to the self-signed TLS certificate for the Permissioning server.
     # Expects PEM format. Required field.
     cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
-    # IP Address of the Permissioning server, provided by xx network.
+  # IP Address of the Permissioning server, provided by xx network.
   address: ""
 
 metrics:
