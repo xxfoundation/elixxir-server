@@ -9,7 +9,11 @@ package main
 
 import (
 	crand "crypto/rand"
+	gorsa "crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/binary"
+	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -41,7 +45,9 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"math/big"
 	"math/rand"
+	"net"
 	"runtime"
 	"strings"
 	"sync"
@@ -71,7 +77,6 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
-	io.UnsignedTest = true
 	elapsed := MultiInstanceTest(3, 32, false, true, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
@@ -575,6 +580,61 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 	return nil
 }
 
+// generateCert eturns a self-signed cert and key for dummy tls comms,
+// this is mostly cribbed from:
+//   https://golang.org/src/crypto/tls/generate_cert.go
+func generateCert() ([]byte, []byte) {
+	priv, err := gorsa.GenerateKey(crand.Reader, 2048)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to generate private key: %v", err)
+	}
+
+	notBefore := time.Now()
+	notAfter := notBefore.Add(10 * time.Hour)
+
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := crand.Int(crand.Reader, serialNumberLimit)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to generate serial number: %v", err)
+	}
+
+	usage := x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature
+	usage |= x509.KeyUsageCertSign
+	extUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"Dummy Key"},
+		},
+		NotBefore: notBefore,
+		NotAfter:  notAfter,
+
+		KeyUsage:              usage,
+		ExtKeyUsage:           extUsage,
+		BasicConstraintsValid: true,
+	}
+
+	template.IPAddresses = append(template.IPAddresses,
+		net.ParseIP("127.0.0.1"))
+	//template.DNSNames = append(template.DNSNames, "localhost")
+
+	template.IsCA = true
+
+	derBytes, err := x509.CreateCertificate(crand.Reader, &template,
+		&template, &priv.PublicKey, priv)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to create certificate: %v", err)
+	}
+
+	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
+	crtOut := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE",
+		Bytes: derBytes})
+	privOut := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY",
+		Bytes: privBytes})
+	return crtOut, privOut
+}
+
 func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T) []*internal.Definition {
 
 	// Generate IDs and addresses
@@ -603,6 +663,8 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 	// Generate parameters list
 	var defLst []*internal.Definition
 
+	cert, privKey := generateCert()
+
 	for i := 0; i < numNodes; i++ {
 		gatewayID := nidLst[i].DeepCopy()
 		gatewayID.SetType(id.Gateway)
@@ -613,7 +675,7 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 				KeepBuffers: true,
 				UseGPU:      useGPU,
 			},
-			TlsCert: []byte(testUtil.RegCert),
+			TlsCert: cert,
 			Gateway: internal.GW{
 				ID:      gatewayID,
 				TlsCert: nil,
@@ -631,7 +693,9 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
 
-		def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
+		cryptoPrivRSAKey, _ := tls.LoadRSAPrivateKey(string(privKey))
+
+		def.PrivateKey = &rsa.PrivateKey{*cryptoPrivRSAKey}
 
 		defLst = append(defLst, &def)
 	}

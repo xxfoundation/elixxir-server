@@ -19,8 +19,6 @@ import (
 	"time"
 )
 
-var UnsignedTest = false
-
 // ReceiveRoundError takes the round error message and checks if it's within the round
 // If so then we transition to an error state. If not we ignore the error and send it
 func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance *internal.Instance) error {
@@ -58,14 +56,12 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 	}
 
 	//check the signature on the round error is valid
-	if !UnsignedTest {
-		err = signature.Verify(msg, auth.Sender.GetPubKey())
-		if err != nil {
-			jww.WARN.Printf("Recieved an error for round %v from node %s "+
-				"that could not be authenticated: %s, %+v", r.GetID(),
-				auth.Sender.GetId(), err, msg)
-			return errors.WithMessage(err, "could not verify round error")
-		}
+	err = signature.Verify(msg, auth.Sender.GetPubKey())
+	if err != nil {
+		jww.WARN.Printf("Recieved an error for round %v from node %s "+
+			"that could not be authenticated: %s, %+v", r.GetID(),
+			auth.Sender.GetId(), err, msg)
+		return errors.WithMessage(err, "could not verify round error")
 	}
 
 	// do edge checking to make sure the round is still ongoing, reject if it is
