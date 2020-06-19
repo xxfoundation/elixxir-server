@@ -11,7 +11,6 @@ package realtime
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
@@ -24,22 +23,20 @@ import (
 	"testing"
 )
 
-// This test is largely similar to TestPermuteStreamInGraph,
-// except it uses the GPU graph instead.
-func TestPermuteStream_InGraphGPU(t *testing.T) {
-	viper.Set("useGpu", true)
-	primeString :=
-		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-			"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+// Largely similar to TestIdentifyStream_InGraph,
+// but it uses the GPU.
+func TestIdentifyStream_InGraphGPU(t *testing.T) {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
@@ -51,7 +48,7 @@ func TestPermuteStream_InGraphGPU(t *testing.T) {
 
 	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
-	g := InitPermuteGPUGraph(gc)
+	g := InitIdentifyGPUGraph(gc)
 
 	g.Build(batchSize, PanicHandler)
 
@@ -78,23 +75,22 @@ func TestPermuteStream_InGraphGPU(t *testing.T) {
 		permuteInverse[roundBuffer.Permutations[i]] = i
 	}
 
-	ps := g.GetStream().(*PermuteStream)
+	is := g.GetStream().(*IdentifyStream)
 
 	expectedPayloadA := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 	expectedPayloadB := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.SetUint64(ps.EcrPayloadA.Get(i), uint64(i+1))
-		grp.SetUint64(ps.EcrPayloadB.Get(i), uint64(i+1001))
+		grp.SetUint64(is.EcrPayloadA.Get(i), uint64(i+1))
+		grp.SetUint64(is.EcrPayloadB.Get(i), uint64(i+1001))
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
-		grp.Set(expectedPayloadA.Get(i), ps.EcrPayloadA.Get(i))
-		grp.Set(expectedPayloadB.Get(i), ps.EcrPayloadB.Get(i))
+		grp.Set(expectedPayloadA.Get(i), is.EcrPayloadA.Get(i))
+		grp.Set(expectedPayloadB.Get(i), is.EcrPayloadB.Get(i))
 
-		cryptops.Mul2(grp, ps.S.Get(i), expectedPayloadA.Get(i))
-		cryptops.Mul2(grp, ps.V.Get(i), expectedPayloadB.Get(i))
-
+		cryptops.Mul2(grp, is.S.Get(i), expectedPayloadA.Get(i))
+		cryptops.Mul2(grp, is.V.Get(i), expectedPayloadB.Get(i))
 	}
 
 	g.Run()
@@ -123,11 +119,11 @@ func TestPermuteStream_InGraphGPU(t *testing.T) {
 			}
 
 			// Compute expected result for this slot
-			if ps.PayloadAPermuted[i].Cmp(expectedPayloadA.Get(permuteInverse[i])) != 0 {
+			if is.PayloadAPermuted[i].Cmp(expectedPayloadA.Get(permuteInverse[i])) != 0 {
 				t.Error(fmt.Sprintf("Permute: Slot %v out1 not permuted correctly", i))
 			}
 
-			if ps.PayloadBPermuted[i].Cmp(expectedPayloadB.Get(permuteInverse[i])) != 0 {
+			if is.PayloadBPermuted[i].Cmp(expectedPayloadB.Get(permuteInverse[i])) != 0 {
 				t.Error(fmt.Sprintf("Permute: Slot %v out2 not permuted correctly", i))
 			}
 		}
