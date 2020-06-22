@@ -81,7 +81,10 @@ type Instance struct {
 
 	serverVersion string
 
+	//this is set to 1 if this run the node registered
 	firstRun *uint32
+	//This is set to 1 after the node has polled for the first time
+	firstPoll *uint32
 }
 
 // Create a server instance. To actually kick off the server,
@@ -94,6 +97,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	machine state.Machine, version string) (*Instance, error) {
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
+	firstPoll := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -112,6 +116,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		},
 		serverVersion: version,
 		firstRun:      &firstRun,
+		firstPoll:     &firstPoll,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -324,6 +329,11 @@ func (i *Instance) SetGatewayID() {
 
 	i.gatewayID = expectedGatewayID
 
+}
+
+//Returns true if this is the first time this is called, otherwise returns false
+func (i *Instance) IsFirstPoll() bool {
+	return atomic.SwapUint32(i.firstPoll, 1) == 0
 }
 
 // GetGatewayCertPath returns the path for Gateway certificate

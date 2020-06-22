@@ -69,14 +69,6 @@ func Poll(instance *internal.Instance) error {
 		reportedActivity = instance.GetStateMachine().Get()
 	}
 
-	// Once done and in a completed state, manually switch back into waiting
-	if reportedActivity == current.COMPLETED {
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if err != nil || !ok {
-			return errors.Errorf("Could not transition to WAITING state: %v", err)
-		}
-	}
-
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
 	if err != nil {
@@ -87,6 +79,14 @@ func Poll(instance *internal.Instance) error {
 			instance.ReportNodeFailure(err)
 		}
 		return err
+	}
+
+	// Once done and in a completed state, manually switch back into waiting
+	if reportedActivity == current.COMPLETED {
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			return errors.Errorf("Could not transition to WAITING state: %v", err)
+		}
 	}
 
 	//updates the NDF with changes
@@ -204,7 +204,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 	//skip all processing of round updates if the node knows of no round updates
 	//which is normally the result of a crash and restart
-	skipUpdates := instance.GetConsensus().GetLastUpdateID() == -1 && !instance.GetFirstRun()
+	skipUpdates := instance.IsFirstPoll() && !instance.GetFirstRun()
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
