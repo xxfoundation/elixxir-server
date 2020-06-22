@@ -81,7 +81,9 @@ type Instance struct {
 
 	serverVersion string
 
-	firstRun  *uint32
+	//this is set to 1 if this run the node registered
+	firstRun *uint32
+	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
 }
 
