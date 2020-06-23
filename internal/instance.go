@@ -61,7 +61,6 @@ type Instance struct {
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
 
-	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
 	roundErrFunc RoundErrBroadcastFunc
@@ -74,14 +73,17 @@ type Instance struct {
 	overrideRound  int
 	panicWrapper   func(s string)
 
-	gatewayAddess  string
+	gatewayAddress string
 	gatewayID      *id.ID
 	gatewayVersion string
 	gatewayMutex   sync.RWMutex
 
 	serverVersion string
 
+	//this is set to 1 if this run the node registered
 	firstRun *uint32
+	//This is set to 1 after the node has polled for the first time
+	firstPoll *uint32
 }
 
 // Create a server instance. To actually kick off the server,
@@ -94,6 +96,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	machine state.Machine, version string) (*Instance, error) {
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
+	firstPoll := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -105,13 +108,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
-		gatewayPoll:          NewFirstTime(),
 		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
 		serverVersion: version,
 		firstRun:      &firstRun,
+		firstPoll:     &firstPoll,
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -326,6 +329,11 @@ func (i *Instance) SetGatewayID() {
 
 }
 
+//Returns true if this is the first time this is called, otherwise returns false
+func (i *Instance) IsFirstPoll() bool {
+	return atomic.SwapUint32(i.firstPoll, 1) == 0
+}
+
 // GetGatewayCertPath returns the path for Gateway certificate
 func (i *Instance) GetGatewayID() *id.ID {
 	return i.gatewayID
@@ -344,10 +352,6 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
-}
-
-func (i *Instance) GetGatewayFirstTime() *FirstTime {
-	return i.gatewayPoll
 }
 
 func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
@@ -422,17 +426,17 @@ func (i *Instance) GetPanicWrapper() func(s string) {
 func (i *Instance) GetGatewayData() (addr string, ver string) {
 	i.gatewayMutex.RLock()
 	defer i.gatewayMutex.RUnlock()
-	jww.TRACE.Printf("Returning Gateway: %s, %s", i.gatewayAddess,
+	jww.TRACE.Printf("Returning Gateway: %s, %s", i.gatewayAddress,
 		i.gatewayVersion)
-	return i.gatewayAddess, i.gatewayVersion
+	return i.gatewayAddress, i.gatewayVersion
 }
 
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
 	i.gatewayMutex.Lock()
 	defer i.gatewayMutex.Unlock()
 	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
-	if i.gatewayAddess != addr || i.gatewayVersion != ver {
-		(*i).gatewayAddess = addr
+	if i.gatewayAddress != addr || i.gatewayVersion != ver {
+		(*i).gatewayAddress = addr
 		(*i).gatewayVersion = ver
 	}
 }
