@@ -26,7 +26,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	// Check that the sender is authenticated and is either their gateway or the temporary gateway
 	if !auth.IsAuthenticated || (!isValidID(auth.Sender.GetId(), &id.TempGateway, instance.GetGatewayID())) {
-		jww.TRACE.Printf("Failed auth object: %v", auth)
+		jww.INFO.Printf("Failed auth gateway poll: %v", auth)
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -73,8 +73,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 			res.Slots = cr.Round
 		}
 
-		//denote that gateway has received info, only operates ont eh first time
-		instance.GetGatewayFirstTime().Send()
 		return &res, nil
 	}
 

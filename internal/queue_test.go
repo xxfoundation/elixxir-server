@@ -157,7 +157,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		t.Error("After enqueueing, the phase's state should be Queued")
 	}
 	go q.run(instance)
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	// Verify state while the queue is running
 	iWasCalledLck.Lock()
 	if !iWasCalled {

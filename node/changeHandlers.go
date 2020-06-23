@@ -143,14 +143,12 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Set the gateway ID
 	instance.SetGatewayID()
+	//add the permanant gateway host
+	permHost, err = network.AddHost(instance.GetGatewayID(),
+		"", ourDef.Gateway.TlsCert, true, true)
 
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
-
-	// Receive signal that indicates that gateway is ready for polling
-	instance.GetGatewayFirstTime().Receive()
-
-	jww.INFO.Printf("Communication form gateway recieved")
 
 	// Once done with notStarted transition into waiting
 	go func() {

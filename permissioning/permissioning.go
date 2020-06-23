@@ -62,12 +62,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	//get any skipped state reports
-	var reportedActivity current.Activity
-	select {
-	case reportedActivity = <-instance.GetStateMachine().GetBuffer():
-	default:
-		reportedActivity = instance.GetStateMachine().Get()
-	}
+	reportedActivity := instance.GetStateMachine().GetActivityToReport()
 
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
