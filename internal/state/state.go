@@ -225,7 +225,9 @@ func (m Machine) Get() current.Activity {
 	return *m.Activity
 }
 
-// gets the current state under a read lock
+// Server can update state internally faster than it informs permissioning. This
+// buffers all updates to ensure none are missed by permissioning, and returns
+// the current state if there are no buffered changes
 func (m Machine) GetActivityToReport() current.Activity {
 	m.RLock()
 	defer m.RUnlock()
