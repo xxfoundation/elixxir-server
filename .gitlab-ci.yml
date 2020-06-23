@@ -116,7 +116,7 @@ tag_and_trigger:
   script:
     - git remote add origin_tags git@gitlab.com:elixxir/server.git || true
     - git remote set-url origin_tags git@gitlab.com:elixxir/server.git || true
-    - git tag $(./release/server.linux64 version | grep "Elixxir Server v"| cut -d ' ' -f3) -f
+    - git tag $(./release/server.linux64 version | grep "xx network Server v"| cut -d ' ' -f4) -f
     - git push origin_tags -f --tags
     - "curl -X POST -F token=3cd593ad56ec017e30254c9ec6c0ab -F ref=master https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
 
