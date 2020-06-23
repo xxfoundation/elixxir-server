@@ -73,8 +73,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 			res.Slots = cr.Round
 		}
 
-		//denote that gateway has received info, only operates ont eh first time
-		instance.GetGatewayFirstTime().Send()
 		return &res, nil
 	}
 

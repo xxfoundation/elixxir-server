@@ -226,10 +226,17 @@ func (m Machine) Get() current.Activity {
 }
 
 // gets the current state under a read lock
-func (m Machine) GetBuffer() <-chan current.Activity {
+func (m Machine) GetActivityToReport() current.Activity {
 	m.RLock()
 	defer m.RUnlock()
-	return m.changebuffer
+	var reportedActivity current.Activity
+
+	select {
+	case reportedActivity = <-m.changebuffer:
+	default:
+		reportedActivity = *m.Activity
+	}
+	return reportedActivity
 }
 
 // if the the passed state is the next state update, waits until that update

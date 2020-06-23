@@ -61,7 +61,6 @@ type Instance struct {
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
 
-	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
 	roundErrFunc RoundErrBroadcastFunc
@@ -74,7 +73,7 @@ type Instance struct {
 	overrideRound  int
 	panicWrapper   func(s string)
 
-	gatewayAddess  string
+	gatewayAddress string
 	gatewayID      *id.ID
 	gatewayVersion string
 	gatewayMutex   sync.RWMutex
@@ -109,7 +108,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
 		completedBatchQueue:  round.NewCompletedQueue(),
-		gatewayPoll:          NewFirstTime(),
 		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
@@ -356,10 +354,6 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
 }
 
-func (i *Instance) GetGatewayFirstTime() *FirstTime {
-	return i.gatewayPoll
-}
-
 func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 	return i.completedBatchQueue
 }
@@ -432,17 +426,17 @@ func (i *Instance) GetPanicWrapper() func(s string) {
 func (i *Instance) GetGatewayData() (addr string, ver string) {
 	i.gatewayMutex.RLock()
 	defer i.gatewayMutex.RUnlock()
-	jww.TRACE.Printf("Returning Gateway: %s, %s", i.gatewayAddess,
+	jww.TRACE.Printf("Returning Gateway: %s, %s", i.gatewayAddress,
 		i.gatewayVersion)
-	return i.gatewayAddess, i.gatewayVersion
+	return i.gatewayAddress, i.gatewayVersion
 }
 
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
 	i.gatewayMutex.Lock()
 	defer i.gatewayMutex.Unlock()
 	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
-	if i.gatewayAddess != addr || i.gatewayVersion != ver {
-		(*i).gatewayAddess = addr
+	if i.gatewayAddress != addr || i.gatewayVersion != ver {
+		(*i).gatewayAddress = addr
 		(*i).gatewayVersion = ver
 	}
 }
