@@ -177,7 +177,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 				server.GetID(), rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
 			rid := curRound.GetID()
-			roundErr := errors.Errorf("Round has timed out killing the round %v", rid)
+			roundErr := errors.Errorf("Resource Queue has timed out killing Round %v after %s", rid, runningPhase.GetTimeout())
 
 			server.ReportRoundFailure(roundErr, server.GetID(), rid)
 			break

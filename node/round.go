@@ -123,7 +123,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Precomputation Decrypt phase and response
 	precompDecryptDefinition := phase.Definition{
-		Graph:               precomputation.InitDecryptGraph(gc),
 		Type:                phase.PrecompDecrypt,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
@@ -162,7 +161,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Build Precomputation Permute phase and response
 	precompPermuteDefinition := phase.Definition{
-		Graph:               precomputation.InitPermuteGraph(gc),
 		Type:                phase.PrecompPermute,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
