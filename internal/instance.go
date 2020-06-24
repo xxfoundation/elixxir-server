@@ -61,6 +61,7 @@ type Instance struct {
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
 
+	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
 	roundErrFunc RoundErrBroadcastFunc
@@ -107,6 +108,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
+		gatewayPoll:          NewFirstTime(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		roundError:           nil,
 		panicWrapper: func(s string) {
@@ -257,6 +259,11 @@ func (i *Instance) GetRoundManager() *round.Manager {
 //GetResourceQueue returns the resource queue used by the server
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
+}
+
+//GetGatewayFirstTime returns the structure which denotes if the node has been contacted by the gateway
+func (i *Instance) GetGatewayFirstTime() *FirstTime {
+	return i.gatewayPoll
 }
 
 // GetNetwork returns the network object

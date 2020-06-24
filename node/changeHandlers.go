@@ -150,6 +150,12 @@ func NotStarted(instance *internal.Instance) error {
 	// Atomically denote that gateway is ready for polling
 	instance.SetGatewayAsReady()
 
+	// Wait for signal that indicates that gateway is ready for polling to
+	// continue in order to ensure the gateway is online
+	instance.GetGatewayFirstTime().Receive()
+
+	jww.INFO.Printf("Communication form gateway recieved")
+
 	// Once done with notStarted transition into waiting
 	go func() {
 		// Ensure that instance is in not started prior to transition
