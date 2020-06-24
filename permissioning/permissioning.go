@@ -205,6 +205,9 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 		// Add the new information to the network instance
 		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
+			if strings.Contains(err.Error(), "id is older than first tracked") {
+				continue
+			}
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
 
