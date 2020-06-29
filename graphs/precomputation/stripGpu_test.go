@@ -43,7 +43,7 @@ func TestStripGPU_Graph(t *testing.T) {
 	expectedName := "PrecompStripGPU"
 
 	if g.GetName() != expectedName {
-		t.Errorf("PrecompStripGPU has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())
+		t.Errorf("PrecompStripGPU has incorrect name Expected %s, Received %s", expectedName, g.GetName())
 	}
 
 	// Build the graph

@@ -110,14 +110,14 @@ func TestUserMap_InsertSalt(t *testing.T) {
 	for i := 0; i < MaxSalts; i++ {
 		err := users.InsertSalt(u9.ID, []byte("test"))
 		if err != nil {
-			t.Errorf("InsertSalt: Expected success! Recieved: %s", err.Error())
+			t.Errorf("InsertSalt: Expected success! Received: %s", err.Error())
 		}
 	}
 	// Now we have exceeded the max number, expect failure
 	err := users.InsertSalt(u9.ID, []byte("test"))
 	if err == nil {
 		t.Errorf("InsertSalt: Expected failure due to exceeding max count of" +
-			" salts for one user, recieved success")
+			" salts for one user, received success")
 	}
 }
 

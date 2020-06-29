@@ -145,7 +145,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 
 	if reportedActivity == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
-		jww.INFO.Printf("Reporteing error to permissioning: %+v", pollMsg.Error)
+		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
 		instance.ClearRecoveredError()
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {

@@ -38,7 +38,7 @@ func TestDecryptStream_GetName(t *testing.T) {
 	ds := KeygenDecryptStream{}
 
 	if ds.GetName() != expected {
-		t.Errorf("DecryptStream.GetName(), Expected %s, Recieved %s", expected, ds.GetName())
+		t.Errorf("DecryptStream.GetName(), Expected %s, Received %s", expected, ds.GetName())
 	}
 }
 
@@ -70,12 +70,12 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	if uint32(len(stream.Users)) != batchSize {
 		t.Errorf("dispatchStream.link(): user slice not created at correct length."+
-			"Expected: %v, Recieved: %v", batchSize, len(stream.Users))
+			"Expected: %v, Received: %v", batchSize, len(stream.Users))
 	}
 
 	if uint32(len(stream.Salts)) != batchSize {
 		t.Errorf("dispatchStream.link(): salts slice not created at correct length."+
-			"Expected: %v, Recieved: %v", batchSize, len(stream.Salts))
+			"Expected: %v, Received: %v", batchSize, len(stream.Salts))
 	}
 
 	for itr, u := range stream.Users {
@@ -130,13 +130,13 @@ func TestDecryptStream_Input(t *testing.T) {
 
 		if !reflect.DeepEqual(stream.EcrPayloadA.Get(b).Bytes(), expected[0]) {
 			t.Errorf("DecryptStream.Input() incorrectly stored EcrPayloadA "+
-				"data at %v\n\texpected: %+v\n\trecieved: %+v",
+				"data at %v\n\texpected: %+v\n\treceived: %+v",
 				b, expected[0], stream.EcrPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.EcrPayloadB.Get(b).Bytes(), expected[1]) {
 			t.Errorf("DecryptStream.Input() incorrectly stored EcrPayloadB "+
-				"data at %v\n\texpected: %+v\n\trecieved: %+v",
+				"data at %v\n\texpected: %+v\n\treceived: %+v",
 				b, expected[1], stream.EcrPayloadB.Get(b).Bytes())
 		}
 
@@ -377,22 +377,22 @@ func TestDecryptStream_Output(t *testing.T) {
 		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.SenderID, expected[0]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved SenderID data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received SenderID data at %v: Expected: %v, Received: %v",
 				b, expected[0], output.SenderID)
 		}
 
 		if !reflect.DeepEqual(output.Salt, expected[1]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved Salt data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received Salt data at %v: Expected: %v, Received: %v",
 				b, expected[1], output.Salt)
 		}
 
 		if !reflect.DeepEqual(output.PayloadA, expected[2]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved PayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received PayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[2], output.PayloadA)
 		}
 
 		if !reflect.DeepEqual(output.PayloadB, expected[3]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved PayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received PayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[3], output.PayloadB)
 		}
 

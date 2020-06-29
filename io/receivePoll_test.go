@@ -371,7 +371,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 	}
 
 	if res.GetBatchRequest().ID != newRound.ID {
-		t.Logf("Wrong batch request recieved")
+		t.Logf("Wrong batch request received")
 		t.Fail()
 	}
 

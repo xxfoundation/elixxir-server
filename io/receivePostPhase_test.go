@@ -101,12 +101,12 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	for index := range mockBatch.Slots {
 		if mockPhase.GetChunks()[index].Begin() != uint32(index) {
 			t.Errorf("PostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetChunks()[index].Begin())
+				"Expected: %v, Received: %v", index, mockPhase.GetChunks()[index].Begin())
 		}
 
 		if mockPhase.GetIndices()[index] != uint32(index) {
 			t.Errorf("PostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetIndices()[index])
+				"Expected: %v, Received: %v", index, mockPhase.GetIndices()[index])
 		}
 	}
 
@@ -392,12 +392,12 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	for index := range mockBatch.Slots {
 		if mockPhase.GetChunks()[index].Begin() != uint32(index) {
 			t.Errorf("StreamPostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetChunks()[index].Begin())
+				"Expected: %v, Received: %v", index, mockPhase.GetChunks()[index].Begin())
 		}
 
 		if mockPhase.GetIndices()[index] != uint32(index) {
 			t.Errorf("StreamPostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetIndices()[index])
+				"Expected: %v, Received: %v", index, mockPhase.GetIndices()[index])
 		}
 	}
 

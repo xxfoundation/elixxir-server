@@ -68,13 +68,13 @@ func TestPostPrecompResult(t *testing.T) {
 		payloadAPrecomp := r.PayloadAPrecomputation.Get(index)
 		if payloadAPrecomp.Cmp(grp.NewInt(int64(precompValue))) != 0 {
 			t.Errorf("payload A precomp didn't match at index %v;"+
-				"Expected: %v, Recieved: %v", index, precompValue,
+				"Expected: %v, Received: %v", index, precompValue,
 				payloadAPrecomp.Text(16))
 		}
 		payloadBPrecomp := r.PayloadBPrecomputation.Get(index)
 		if payloadBPrecomp.Cmp(grp.NewInt(int64(precompValue+bs))) != 0 {
 			t.Errorf("payload B precomp didn't match at index %v;"+
-				"Expected: %v, Recieved: %v", index, precompValue+bs,
+				"Expected: %v, Received: %v", index, precompValue+bs,
 				payloadBPrecomp.Text(16))
 		}
 	}
@@ -203,7 +203,7 @@ Loop:
 				expectedPrecompResults[i] = getMockPostPrecompSlot(i)
 			}
 			if !reflect.DeepEqual(receivedPrecomp, expectedPrecompResults) {
-				t.Errorf("Precomps differed: Expected: %v\n\tRecieved: %v", expectedPrecompResults, receivedPrecomp)
+				t.Errorf("Precomps differed: Expected: %v\n\tReceived: %v", expectedPrecompResults, receivedPrecomp)
 			}
 			numReceivedPrecomps++
 		case <-time.After(5 * time.Second):

@@ -32,13 +32,13 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
-			"First Node; Expected: %v, Recieved: %v", expectedNumPhases,
+			"First Node; Expected: %v, Received: %v", expectedNumPhases,
 			len(phases))
 	}
 
 	if len(responses) != expectedFirstNodeResponses {
 		t.Errorf("NewRoundComponents: incorrect number for responses "+
-			"for First Node; Expected: %v, Recieved: %v",
+			"for First Node; Expected: %v, Received: %v",
 			expectedFirstNodeResponses, len(responses))
 	}
 
@@ -59,13 +59,13 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
-			"Middle Node; Expected: %v, Recieved: %v", expectedNumPhases,
+			"Middle Node; Expected: %v, Received: %v", expectedNumPhases,
 			len(phases))
 	}
 
 	if len(responses) != expectedMiddleNodeResponses {
 		t.Errorf("NewRoundComponents: incorrect number for responces "+
-			"for Middle Node; Expected: %v, Recieved: %v",
+			"for Middle Node; Expected: %v, Received: %v",
 			expectedMiddleNodeResponses, len(responses))
 	}
 }
@@ -85,13 +85,13 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
-			"Last Node; Expected: %v, Recieved: %v", expectedNumPhases,
+			"Last Node; Expected: %v, Received: %v", expectedNumPhases,
 			len(phases))
 	}
 
 	if len(responses) != expectedLastNodeResponses {
 		t.Errorf("NewRoundComponents: incorrect number for responces "+
-			"for Last Node; Expected: %v, Recieved: %v",
+			"for Last Node; Expected: %v, Received: %v",
 			expectedLastNodeResponses, len(responses))
 	}
 }
@@ -111,13 +111,13 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
-			"First Node; Expected: %v, Recieved: %v", expectedNumPhases,
+			"First Node; Expected: %v, Received: %v", expectedNumPhases,
 			len(phases))
 	}
 
 	if len(responses) != expectedFirstNodeResponses {
 		t.Errorf("NewRoundComponents: incorrect number for responses "+
-			"for First Node; Expected: %v, Recieved: %v",
+			"for First Node; Expected: %v, Received: %v",
 			expectedFirstNodeResponses, len(responses))
 	}
 
@@ -138,13 +138,13 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
-			"Middle Node; Expected: %v, Recieved: %v", expectedNumPhases,
+			"Middle Node; Expected: %v, Received: %v", expectedNumPhases,
 			len(phases))
 	}
 
 	if len(responses) != expectedMiddleNodeResponses {
 		t.Errorf("NewRoundComponents: incorrect number for responces "+
-			"for Middle Node; Expected: %v, Recieved: %v",
+			"for Middle Node; Expected: %v, Received: %v",
 			expectedMiddleNodeResponses, len(responses))
 	}
 }
@@ -164,13 +164,13 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
-			"Last Node; Expected: %v, Recieved: %v", expectedNumPhases,
+			"Last Node; Expected: %v, Received: %v", expectedNumPhases,
 			len(phases))
 	}
 
 	if len(responses) != expectedLastNodeResponses {
 		t.Errorf("NewRoundComponents: incorrect number for responces "+
-			"for Last Node; Expected: %v, Recieved: %v",
+			"for Last Node; Expected: %v, Received: %v",
 			expectedLastNodeResponses, len(responses))
 	}
 }

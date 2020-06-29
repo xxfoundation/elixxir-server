@@ -83,8 +83,8 @@ func NotStarted(instance *internal.Instance) error {
 	}
 
 	// Connect to the Permissioning Server with authentication enabled
-	// the server does not have a signed cert, but the pemrissionign has its cert,
-	// reverse authetnication on conenctiosn just use the public key inside certs,
+	// the server does not have a signed cert, but the pemrissioning has its cert,
+	// reverse authentication on connections just use the public key inside certs,
 	// not the entire key chain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
@@ -143,7 +143,7 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Set the gateway ID
 	instance.SetGatewayID()
-	//add the permanant gateway host
+	//add the permanent gateway host
 	permHost, err = network.AddHost(instance.GetGatewayID(),
 		"", ourDef.Gateway.TlsCert, true, true)
 
@@ -154,7 +154,7 @@ func NotStarted(instance *internal.Instance) error {
 	// continue in order to ensure the gateway is online
 	instance.GetGatewayFirstTime().Receive()
 
-	jww.INFO.Printf("Communication form gateway recieved")
+	jww.INFO.Printf("Communication from gateway received")
 
 	// Once done with notStarted transition into waiting
 	go func() {

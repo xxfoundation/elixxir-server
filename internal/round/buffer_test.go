@@ -54,12 +54,12 @@ func TestNewRound(t *testing.T) {
 
 		if r.batchSize != batchSize {
 			t.Errorf("New RoundBuffer: Batch Size not stored correctly, "+
-				"Expected %v, Recieved: %v", batchSize, r.batchSize)
+				"Expected %v, Received: %v", batchSize, r.batchSize)
 		}
 
 		if r.expandedBatchSize != expandedBatchSize {
 			t.Errorf("New RoundBuffer: Expanded Batch Size not stored correctly, "+
-				"Expected %v, Recieved: %v", expandedBatchSize, r.expandedBatchSize)
+				"Expected %v, Received: %v", expandedBatchSize, r.expandedBatchSize)
 		}
 
 		defaultInt := grp.NewInt(1)
@@ -117,7 +117,7 @@ func TestNewRound(t *testing.T) {
 func checkIntBuffer(ib *cyclic.IntBuffer, expandedBatchSize uint32, source string, defaultInt *cyclic.Int, t *testing.T) {
 	if ib.Len() != int(expandedBatchSize) {
 		t.Errorf("New RoundBuffer: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, expandedBatchSize, ib.Len())
+			"Expected %v, Received: %v", source, expandedBatchSize, ib.Len())
 	}
 
 	numBad := 0
@@ -148,12 +148,12 @@ func TestRound_Get(t *testing.T) {
 
 		if r.GetBatchSize() != batchSize {
 			t.Errorf("RoundBuffer.GetBatchSize: Batch Size not correct, "+
-				"Expected %v, Recieved: %v", batchSize, r.GetBatchSize())
+				"Expected %v, Received: %v", batchSize, r.GetBatchSize())
 		}
 
 		if r.GetExpandedBatchSize() != expandedBatchSize {
 			t.Errorf("New RoundBuffer: Expanded Batch Size not correct, "+
-				"Expected %v, Recieved: %v", expandedBatchSize, r.GetExpandedBatchSize())
+				"Expected %v, Received: %v", expandedBatchSize, r.GetExpandedBatchSize())
 		}
 	}
 }

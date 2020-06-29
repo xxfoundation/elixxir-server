@@ -28,7 +28,7 @@ func TestRevealStream_GetName(t *testing.T) {
 	rs := RevealStream{}
 
 	if rs.GetName() != expected {
-		t.Errorf("RevealStream.GetName(), Expected %s, Recieved %s", expected, rs.GetName())
+		t.Errorf("RevealStream.GetName(), Expected %s, Received %s", expected, rs.GetName())
 	}
 }
 
@@ -46,7 +46,7 @@ func TestRevealStream_Link(t *testing.T) {
 
 	if roundBuffer.Z.Cmp(stream.Z) != 0 {
 		t.Errorf(
-			"RevealStream.Link() Z value not linked: Expected %s, Recieved %s",
+			"RevealStream.Link() Z value not linked: Expected %s, Received %s",
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
@@ -58,7 +58,7 @@ func TestRevealStream_Link(t *testing.T) {
 
 	if stream.Z.Cmp(expected) != 0 {
 		t.Errorf(
-			"RevealStream.Link() Z value not linked to roundBuffer: Expected %s, Recieved %s",
+			"RevealStream.Link() Z value not linked to roundBuffer: Expected %s, Received %s",
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 }
@@ -93,12 +93,12 @@ func TestRevealtStream_Input(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[0]) {
-			t.Errorf("RevealStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("RevealStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[1]) {
-			t.Errorf("RevealStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("RevealStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
@@ -192,12 +192,12 @@ func TestRevealStream_Output(t *testing.T) {
 		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.PartialPayloadACypherText, expected[0]) {
-			t.Errorf("RevealStream.Output() incorrect recieved CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("RevealStream.Output() incorrect received CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialPayloadBCypherText, expected[1]) {
-			t.Errorf("RevealStream.Output() incorrect recieved CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("RevealStream.Output() incorrect received CypherPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
