@@ -18,10 +18,12 @@ import (
 	"gitlab.com/elixxir/primitives/utils"
 	"os"
 	"runtime"
+	"strings"
 	// net/http must be imported before net/http/pprof for the pprof import
 	// to automatically initialize its http handlers
 	"net/http"
 	_ "net/http/pprof"
+	"time"
 )
 
 var cfgFile string
@@ -63,9 +65,26 @@ var rootCmd = &cobra.Command{
 			}()
 		}
 
-		err := StartServer(viper.GetViper())
-		if err != nil {
-			jww.FATAL.Panicf("Failed to start server: %+v", err)
+		for {
+			err := StartServer(viper.GetViper())
+			if err == nil {
+				break
+			}
+			errMsg := err.Error()
+			transport := strings.Contains(errMsg,
+				"transport is closing")
+			cde := strings.Contains(errMsg, "DeadlineExceeded")
+			ndf := strings.Contains(errMsg, "ndf")
+			if ndf && (cde || transport) {
+				jww.ERROR.Print("Cannot start, permissioning " +
+					"is unavailable, retrying in 10s...")
+				time.Sleep(10 * time.Second)
+				continue
+			}
+			if err != nil {
+				jww.FATAL.Panicf("Failed to start server: %+v",
+					err)
+			}
 		}
 
 		// Prevent node from exiting
