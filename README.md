@@ -44,6 +44,7 @@ Flags:
   -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
       --registrationCode string   Registration code used for first time registration. Required field.
       --useGPU                    Toggle use of GPU. (Must be built or run with -tags gpu, and gpumathsnative must be installed)
+      --disableIpOverride         Toggle use of local IP override
 
 Use "server [command] --help" for more information about a command.
 ```
