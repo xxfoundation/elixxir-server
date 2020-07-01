@@ -28,7 +28,6 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
-	"net"
 	"strings"
 	"time"
 )
@@ -131,23 +130,10 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Then we ping the server and attempt on that port
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
-	if exists {
-		addr := host.GetAddress()
-		timeout := 5 * time.Second
-		conn, err := net.DialTimeout("tcp", addr, timeout)
-		if err != nil {
-			// If we cannot connect, mark the node as failed
-			jww.DEBUG.Printf("Failed to verify connectivity"+
-				" for local address %s", addr)
-		}
-		// Attempt to close the connection
-		if conn != nil {
-			errClose := conn.Close()
-			if errClose != nil {
-				jww.DEBUG.Printf("Failed to close connection for local address %s",
-					addr)
-			}
-		}
+	if exists && host.IsOnline() {
+		jww.DEBUG.Printf("Successfully contacted local address!")
+	} else {
+		return errors.New("unable to contact local address")
 	}
 
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
