@@ -29,9 +29,6 @@ const (
 	// Time between performance checks
 	performanceCheckPeriod = 15 * time.Second
 
-	// Specifies the number of recently executed functions to display
-	numFuncPrint = 10
-
 	// Base for CPU usage numbers
 	cpuUsageBase = 10
 
@@ -104,15 +101,13 @@ func monitorMemoryUsage(perfCheck time.Duration, deltaMem,
 			if memoryDelta >= deltaMem && memoryAllocated >= minMem {
 				lastTrigger = triggerTime
 
-				jww.WARN.Printf("Performance warning triggered after %v "+
-					"seconds", deltaTriggerTime*time.Second)
+				jww.WARN.Printf("Performance warning triggered after %v",
+					deltaTriggerTime)
 
 				jww.WARN.Printf("  Allocated Memory %v exceeded threshold of %v",
 					convertToReadableBytes(memoryAllocated), pastMemoryAllocated)
 
 				jww.WARN.Printf("  Number of threads: %v", currentThreads)
-				jww.WARN.Printf("  Top %d threads by memory allocation:",
-					numFuncPrint)
 			}
 
 			// Only trigger periodically
