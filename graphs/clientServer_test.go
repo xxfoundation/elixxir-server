@@ -69,6 +69,7 @@ func TestClientServer(t *testing.T) {
 		UserRegistry:    &globals.UserMap{},
 		PartialNDF:      testUtil.NDF,
 		FullNDF:         testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
 
 	var stateChanges [current.NUM_STATES]state.Change

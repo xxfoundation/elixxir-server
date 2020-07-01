@@ -170,6 +170,7 @@ func mockServerDef(i interface{}) *Definition {
 		ResourceMonitor: &resourceMonitor,
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           Flags{DisableIpOverride: true},
 	}
 
 	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
