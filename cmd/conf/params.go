@@ -33,6 +33,7 @@ import (
 type Params struct {
 	KeepBuffers           bool
 	UseGPU                bool
+	DisableIpOverride     bool
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
@@ -72,6 +73,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	if params.Node.Port == 0 {
 		jww.FATAL.Panic("Must specify a port to run on")
 	}
+
+	params.DisableIpOverride = vip.GetBool("disableIpOverride")
 
 	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
 	require(params.Node.Paths.Idf, "node.paths.idf")
@@ -140,6 +143,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
+	def.Flags.DisableIpOverride = p.DisableIpOverride
 	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
