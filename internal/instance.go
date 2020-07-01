@@ -34,7 +34,6 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
-	"net"
 	"os"
 	"strings"
 	"sync"
@@ -154,12 +153,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Handle overriding local IP
 	if !instance.GetDefinition().DisableIpOverride {
-		_, port, err := net.SplitHostPort(instance.GetDefinition().Address)
-		if err != nil {
-			return nil, errors.WithMessage(err, "Could not split host port pair")
-		}
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
-			ID, fmt.Sprintf("0.0.0.0:%s", port))
+			ID, instance.GetDefinition().Address)
 	}
 
 	// Connect to our gateway. At this point we should only know our gateway as this should occur

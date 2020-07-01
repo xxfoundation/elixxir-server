@@ -28,6 +28,7 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
+	"net"
 	"strings"
 	"time"
 )
@@ -127,6 +128,24 @@ func NotStarted(instance *internal.Instance) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
+
+	// Then we ping the server and attempt on that port
+	timeout := 5 * time.Second
+	conn, err := net.DialTimeout("tcp", instance.GetDefinition().Address, timeout)
+	if err != nil {
+		// If we cannot connect, mark the node as failed
+		jww.DEBUG.Printf("Failed to verify connectivity"+
+			" for local address %s", instance.GetDefinition().Address)
+	}
+	// Attempt to close the connection
+	if conn != nil {
+		errClose := conn.Close()
+		if errClose != nil {
+			jww.DEBUG.Printf("Failed to close connection for local address %s",
+				instance.GetDefinition().Address)
+		}
+	}
+
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 	//populate the dummy precanned users
 	jww.INFO.Printf("Adding dummy users to registry")
