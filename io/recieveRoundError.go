@@ -58,7 +58,7 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 	//check the signature on the round error is valid
 	err = signature.Verify(msg, auth.Sender.GetPubKey())
 	if err != nil {
-		jww.WARN.Printf("Recieved an error for round %v from node %s "+
+		jww.WARN.Printf("Received an error for round %v from node %s "+
 			"that could not be authenticated: %s, %+v", r.GetID(),
 			auth.Sender.GetId(), err, msg)
 		return errors.WithMessage(err, "could not verify round error")
@@ -70,7 +70,7 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 
 	if r.GetCurrentPhase().GetType() == phase.Complete ||
 		r.GetCurrentPhase().GetType() == phase.PhaseError {
-		jww.WARN.Printf("Recieved an error for round %v from node %s "+
+		jww.WARN.Printf("Received an error for round %v from node %s "+
 			"when round is already complete: %s", r.GetID(),
 			auth.Sender.GetId(), phaseState)
 		return errors.New("Cannot process error associated with inactive round")

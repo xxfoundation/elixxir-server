@@ -36,7 +36,7 @@ func NewGraphGenerator(minInputSize uint32, defaultNumTh uint8, outputSize uint3
 
 	if outputThreshold < 0.0 || outputThreshold > 1.0 {
 		jww.FATAL.Panicf("Output Threshold must be between 0.0 and 1."+
-			"0: recieved: %v", outputThreshold)
+			"0: received: %v", outputThreshold)
 	}
 
 	return GraphGenerator{

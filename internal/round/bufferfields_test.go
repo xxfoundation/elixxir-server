@@ -31,12 +31,12 @@ func TestInitCryptoFields_ExpBatchSizeGreaterThanBatchSize(t *testing.T) {
 
 		if r.GetBatchSize() != batchSize {
 			t.Errorf("NewBuffer: Batch Size not stored correctly, "+
-				"Expected %v, Recieved: %v", batchSize, r.batchSize)
+				"Expected %v, Received: %v", batchSize, r.batchSize)
 		}
 
 		if r.GetExpandedBatchSize() != expandedBatchSize {
 			t.Errorf("NewBuffer: Expanded Batch Size not stored correctly, "+
-				"Expected %v, Recieved: %v", expandedBatchSize, r.expandedBatchSize)
+				"Expected %v, Received: %v", expandedBatchSize, r.expandedBatchSize)
 		}
 
 		if r.Z.Cmp(grp.NewMaxInt()) != 0 {
@@ -110,12 +110,12 @@ func TestInitCryptoFields_ExpandedBatchSizeEqBatchSize(t *testing.T) {
 
 		if r.GetBatchSize() != batchSize {
 			t.Errorf("NewBuffer: Batch Size not stored correctly, "+
-				"Expected %v, Recieved: %v", batchSize, r.batchSize)
+				"Expected %v, Received: %v", batchSize, r.batchSize)
 		}
 
 		if r.GetExpandedBatchSize() != expandedBatchSize {
 			t.Errorf("NewBuffer: Expanded Batch Size not stored correctly, "+
-				"Expected %v, Recieved: %v", expandedBatchSize, r.expandedBatchSize)
+				"Expected %v, Received: %v", expandedBatchSize, r.expandedBatchSize)
 		}
 
 		if r.Z.Cmp(grp.NewMaxInt()) != 0 {

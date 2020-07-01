@@ -166,7 +166,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			instance.definition.Gateway.ID, err)
 		return nil, errors.New(errMsg)
 	}
-	jww.INFO.Printf("Network Interface Initilized for Node ")
+	jww.INFO.Printf("Network Interface Initialized for Node ")
 
 	return instance, nil
 }

@@ -28,7 +28,7 @@ func TestStripStream_GetName(t *testing.T) {
 	stream := StripStream{}
 
 	if stream.GetName() != expected {
-		t.Errorf("StripStream.GetName(), Expected %s, Recieved %s", expected, stream.GetName())
+		t.Errorf("StripStream.GetName(), Expected %s, Received %s", expected, stream.GetName())
 	}
 }
 
@@ -46,7 +46,7 @@ func TestStripStream_Link(t *testing.T) {
 
 	if roundBuffer.Z.Cmp(stream.Z) != 0 {
 		t.Errorf(
-			"RevealStream.Link() Z value not linked: Expected %s, Recieved %s",
+			"RevealStream.Link() Z value not linked: Expected %s, Received %s",
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
@@ -61,7 +61,7 @@ func TestStripStream_Link(t *testing.T) {
 
 	if stream.Z.Cmp(expected) != 0 {
 		t.Errorf(
-			"StripStream.Link() Z value not linked to round: Expected %s, Recieved %s",
+			"StripStream.Link() Z value not linked to round: Expected %s, Received %s",
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 }
@@ -96,12 +96,12 @@ func TestStripStream_Input(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[0]) {
-			t.Errorf("StripStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("StripStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[1]) {
-			t.Errorf("StripStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("StripStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
@@ -187,14 +187,14 @@ func TestStripStream_Output(t *testing.T) {
 		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.EncryptedPayloadAKeys, expected[0]) {
-			t.Errorf("StripStream.Output() incorrect recieved "+
-				"CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("StripStream.Output() incorrect received "+
+				"CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], output.EncryptedPayloadAKeys)
 		}
 
 		if !reflect.DeepEqual(output.EncryptedPayloadBKeys, expected[1]) {
-			t.Errorf("StripStream.Output() incorrect recieved CypherPayloadB"+
-				" data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("StripStream.Output() incorrect received CypherPayloadB"+
+				" data at %v: Expected: %v, Received: %v",
 				b, expected[1], output.EncryptedPayloadBKeys)
 		}
 

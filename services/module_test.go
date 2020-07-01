@@ -26,7 +26,7 @@ func testThresholhelper(batchSize uint32, thresh float32, expected uint32,
 
 	if th != expected {
 		t.Errorf("Thresholding: Incorrect for batchsize %v at "+
-			"threshold: %v; Expected; %v, Recieved: %v", batchSize, thresh,
+			"threshold: %v; Expected; %v, Received: %v", batchSize, thresh,
 			expected, th)
 	}
 }

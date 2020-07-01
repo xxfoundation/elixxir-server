@@ -101,12 +101,12 @@ func TestStreamPostPhase(t *testing.T) {
 	for index := range mockBatch.Slots {
 		if mockPhase.chunks[index].Begin() != uint32(index) {
 			t.Errorf("StreamPostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+				"Expected: %v, Received: %v", index, mockPhase.chunks[index].Begin())
 		}
 
 		if mockPhase.indices[index] != uint32(index) {
 			t.Errorf("StreamPostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+				"Expected: %v, Received: %v", index, mockPhase.indices[index])
 		}
 	}
 }
@@ -179,17 +179,17 @@ func TestStreamTransmitPhase(t *testing.T) {
 	//Check that what was received is correct
 	if id.Round(receivedBatch.Round.ID) != roundID {
 		t.Errorf("StreamTransmitPhase: Incorrect round ID"+
-			"Expected: %v, Recieved: %v", roundID, receivedBatch.Round.ID)
+			"Expected: %v, Received: %v", roundID, receivedBatch.Round.ID)
 	}
 
 	if phase.Type(receivedBatch.FromPhase) != phaseTy {
 		t.Errorf("StreamTransmitPhase: Incorrect Phase type"+
-			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.FromPhase)
+			"Expected: %v, Received: %v", phaseTy, receivedBatch.FromPhase)
 	}
 
 	if uint32(len(receivedBatch.Slots)) != batchSize {
-		t.Errorf("StreamTransmitPhase: Recieved Batch of wrong size"+
-			"Expected: %v, Recieved: %v", batchSize,
+		t.Errorf("StreamTransmitPhase: Received Batch of wrong size"+
+			"Expected: %v, Received: %v", batchSize,
 			uint32(len(receivedBatch.Slots)))
 	}
 

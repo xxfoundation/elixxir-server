@@ -92,7 +92,7 @@ func TestCompletedQueue_Receive(t *testing.T) {
 	}
 
 	if receivedRoundInfo.RoundID != 23 {
-		t.Logf("Recieved unexpected round id")
+		t.Logf("Received unexpected round id")
 		t.Fail()
 	}
 
