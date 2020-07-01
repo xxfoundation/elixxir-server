@@ -130,19 +130,23 @@ func NotStarted(instance *internal.Instance) error {
 	}
 
 	// Then we ping the server and attempt on that port
-	timeout := 5 * time.Second
-	conn, err := net.DialTimeout("tcp", instance.GetDefinition().Address, timeout)
-	if err != nil {
-		// If we cannot connect, mark the node as failed
-		jww.DEBUG.Printf("Failed to verify connectivity"+
-			" for local address %s", instance.GetDefinition().Address)
-	}
-	// Attempt to close the connection
-	if conn != nil {
-		errClose := conn.Close()
-		if errClose != nil {
-			jww.DEBUG.Printf("Failed to close connection for local address %s",
-				instance.GetDefinition().Address)
+	host, exists := instance.GetNetwork().GetHost(instance.GetID())
+	if exists {
+		addr := host.GetAddress()
+		timeout := 5 * time.Second
+		conn, err := net.DialTimeout("tcp", addr, timeout)
+		if err != nil {
+			// If we cannot connect, mark the node as failed
+			jww.DEBUG.Printf("Failed to verify connectivity"+
+				" for local address %s", addr)
+		}
+		// Attempt to close the connection
+		if conn != nil {
+			errClose := conn.Close()
+			if errClose != nil {
+				jww.DEBUG.Printf("Failed to close connection for local address %s",
+					addr)
+			}
 		}
 	}
 
