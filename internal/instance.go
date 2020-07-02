@@ -151,6 +151,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
 
+	// Handle overriding local IP
+	if !instance.GetDefinition().DisableIpOverride {
+		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
+			ID, instance.GetDefinition().Address)
+	}
+
 	// Connect to our gateway. At this point we should only know our gateway as this should occur
 	//  BEFORE polling
 	err = instance.GetConsensus().UpdateGatewayConnections()
@@ -166,7 +172,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			instance.definition.Gateway.ID, err)
 		return nil, errors.New(errMsg)
 	}
-	jww.INFO.Printf("Network Interface Initilized for Node ")
+	jww.INFO.Printf("Network Interface Initialized for Node ")
 
 	return instance, nil
 }
@@ -194,8 +200,6 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 		return nil, errors.WithMessagef(err,
 			"Failed to base64 decode recovered error file: %s", string(recoveredErrorEncoded))
 	}
-
-	jww.INFO.Printf("Raw error contents: %s", string(recoveredError))
 
 	// Unmarshal bytes to RoundError
 	msg := &mixmessages.RoundError{}

@@ -54,7 +54,7 @@ func StartServer(vip *viper.Viper) error {
 	jww.INFO.Printf("Loaded params: %+v", params)
 
 	// Initialize the backend
-	jww.INFO.Printf("Initalizing the backend")
+	jww.INFO.Printf("Initalizing the backend...")
 	dbAddress := params.Database.Address
 
 	//Initialize the user database
@@ -65,7 +65,7 @@ func StartServer(vip *viper.Viper) error {
 		dbAddress,
 	)
 
-	jww.INFO.Printf("Converting params to server definition")
+	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
 	if err != nil {
 		return errors.Errorf("Failed to convert params to definition: %+v", err)
@@ -89,7 +89,7 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
-	jww.INFO.Printf("Creating server instance")
+	jww.INFO.Printf("Creating server instance...")
 
 	ourChangeList := node.NewStateChanges()
 
@@ -152,7 +152,8 @@ func StartServer(vip *viper.Viper) error {
 		gc := services.NewGraphGenerator(4,
 			uint8(runtime.NumCPU()), 1, 0)
 		g := graphs.InitErrorGraph(gc)
-		th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		th := func(roundID id.Round, instance phase.GenericInstance,
+			getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 			return errors.New("Failed intentionally")
 		}
 		for _, i := range params.PhaseOverrides {
@@ -173,18 +174,12 @@ func StartServer(vip *viper.Viper) error {
 		}
 	}
 
-	jww.INFO.Printf("Instance created!")
-
-	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	fmt.Printf("Server Definition: \n%#v", def)
-	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-
-	jww.INFO.Printf("Connecting to network")
+	jww.INFO.Printf("~~~~~~~~~~~~~~~~~~~~~~~~\nServer Definition:\n%#v\n~~~~~~~~~~~~~~~~~~~~~~~~", def)
 
 	// initialize the network
 	instance.Online = true
 
-	jww.INFO.Printf("Begining resource queue")
+	jww.INFO.Printf("Beginning resource queue...")
 	//Begin the resource queue
 	err = instance.Run()
 	if err != nil {

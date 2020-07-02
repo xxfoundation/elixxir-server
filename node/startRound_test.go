@@ -64,6 +64,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
 
 	// Here we create a server instance so that we can test the poll ndf.

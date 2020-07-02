@@ -96,7 +96,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 	if numNodes < 3 {
 		t.Errorf("Multi Instance Test must have a minnimum of 3 nodes,"+
-			" Recieved %v", numNodes)
+			" Received %v", numNodes)
 	}
 
 	grp := makeMultiInstanceGroup()
@@ -314,7 +314,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 		if grp.NewIntFromBytes(inputSlot.PayloadA).Cmp(grp.NewIntFromBytes(outputSlot.PayloadA)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload A did "+
-				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
+				"not match; \n Expected: %s \n Received: %s", i, permutationMapping[i],
 				grp.NewIntFromBytes(inputSlot.PayloadA).Text(16),
 				grp.NewIntFromBytes(outputSlot.PayloadA).Text(16))
 			success = false
@@ -322,7 +322,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 		if grp.NewIntFromBytes(inputSlot.PayloadB).Cmp(grp.NewIntFromBytes(outputSlot.PayloadB)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload B did "+
-				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
+				"not match; \n Expected: %s \n Received: %s", i, permutationMapping[i],
 				grp.NewIntFromBytes(inputSlot.PayloadB).Text(16),
 				grp.NewIntFromBytes(outputSlot.PayloadB).Text(16))
 			success = false
@@ -337,7 +337,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 		t.Errorf("%v/%v of messages came out incorrect",
 			batchSize-found, batchSize)
 	} else {
-		t.Logf("All messages recieved, passed")
+		t.Logf("All messages received, passed")
 	}
 
 	// --- CHECK PRECOMPUTATION ------------------------------------------------
@@ -363,7 +363,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 	if pk.GetLargeInt().Cmp(grp.GetG()) != 0 {
 		t.Errorf("Multinode instance test: inverse PK is not equal "+
-			"to generator: Expected: %s, Recieved: %s",
+			"to generator: Expected: %s, Received: %s",
 			grp.GetG().Text(16), roundBuffs[0].CypherPublicKey.Text(16))
 	}
 
@@ -403,13 +403,13 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 		resultPayloadA := roundBuffs[len(roundBuffs)-1].PayloadAPrecomputation.Get(permutationMapping[i])
 		if payloadAPrecomps[i].Cmp(resultPayloadA) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadA slot %v "+
-				"incorrect; Expected: %s, Recieved: %s", i,
+				"incorrect; Expected: %s, Received: %s", i,
 				payloadAPrecomps[i].Text(16), resultPayloadA.Text(16))
 		}
 		resultPayloadB := roundBuffs[len(roundBuffs)-1].PayloadBPrecomputation.Get(permutationMapping[i])
 		if payloadBPrecomps[i].Cmp(resultPayloadB) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadB slot %v "+
-				"incorrect; Expected: %s, Recieved: %s", i,
+				"incorrect; Expected: %s, Received: %s", i,
 				payloadBPrecomps[i].Text(16), resultPayloadB.Text(16))
 		}
 	}

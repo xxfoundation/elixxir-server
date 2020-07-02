@@ -33,6 +33,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 		Gateway: internal.GW{
 			ID: &id.TempGateway,
 		},

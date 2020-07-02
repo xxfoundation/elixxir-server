@@ -475,6 +475,7 @@ func mockServerInstance(i interface{}) *internal.Instance {
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
 
 	var stateChanges [current.NUM_STATES]state.Change

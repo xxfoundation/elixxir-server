@@ -39,7 +39,7 @@ func TestPermute_PrecanPermute(t *testing.T) {
 		for _, io := range ios {
 			if io.Input.Get(uint32(i)).Cmp(io.Output[permutations[i]]) != 0 {
 				t.Errorf("PrecanPermute: Output permutation doesnt match input "+
-					"Expected: %v, Recieved: %v", io.Input.Get(uint32(i)), io.Output[permutations[i]])
+					"Expected: %v, Received: %v", io.Input.Get(uint32(i)), io.Output[permutations[i]])
 
 			}
 		}
@@ -54,17 +54,17 @@ func TestModifyGraphGeneratorForPermute(t *testing.T) {
 
 	if gcPermute.GetOutputSize() != gc.GetOutputSize() {
 		t.Errorf("ModifyGraphGeneratorForPermute: Output not copied correctly, "+
-			"Expected: %v, Recieved: %v", gc.GetOutputSize(), gcPermute.GetOutputSize())
+			"Expected: %v, Received: %v", gc.GetOutputSize(), gcPermute.GetOutputSize())
 	}
 
 	if gcPermute.GetDefaultNumTh() != gc.GetDefaultNumTh() {
 		t.Errorf("ModifyGraphGeneratorForPermute: DefaultNumThreads not copied correctly, "+
-			"Expected: %v, Recieved: %v", gc.GetDefaultNumTh(), gcPermute.GetDefaultNumTh())
+			"Expected: %v, Received: %v", gc.GetDefaultNumTh(), gcPermute.GetDefaultNumTh())
 	}
 
 	if gcPermute.GetMinInputSize() != gc.GetMinInputSize() {
 		t.Errorf("ModifyGraphGeneratorForPermute: MinInputSize not copied correctly, "+
-			"Expected: %v, Recieved: %v", gc.GetMinInputSize(), gcPermute.GetMinInputSize())
+			"Expected: %v, Received: %v", gc.GetMinInputSize(), gcPermute.GetMinInputSize())
 	}
 
 	// Test that the function on the output is the same as the input
@@ -72,7 +72,7 @@ func TestModifyGraphGeneratorForPermute(t *testing.T) {
 	expectedThreshold := 1.0
 	if expectedThreshold != actualThreshold {
 		t.Errorf("ModifyGraphGeneratorForPermute: OutputThreshold not set correctly, "+
-			"Expected: %v, Recieved: %v", expectedThreshold, actualThreshold)
+			"Expected: %v, Received: %v", expectedThreshold, actualThreshold)
 	}
 }
 

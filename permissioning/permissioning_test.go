@@ -590,37 +590,6 @@ func TestUpdateInternalState_Error(t *testing.T) {
 		t.Errorf("Expected error path. Attempted to transfer to an unknown state")
 	}
 
-	//  --------------- Non team member test case -----------------------------------------
-
-	// Exclude our node from the topology
-	badTopology := [][]byte{nodeTwo, nodeThree}
-
-	// Construct round info message
-	theirRoundInfo := &pb.RoundInfo{
-		ID:         0,
-		UpdateID:   4,
-		State:      uint32(states.PRECOMPUTING),
-		Topology:   badTopology,
-		Timestamps: timestamps,
-	}
-
-	// Set the signature field of the round info
-	signRoundInfo(theirRoundInfo)
-
-	// Construct permissioning poll response
-	mockPollResponse = &pb.PermissionPollResponse{
-		FullNDF:    fullNdf,
-		PartialNDF: stripNdf,
-		Updates:    []*pb.RoundInfo{theirRoundInfo},
-	}
-
-	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
-	if err == nil {
-		t.Errorf("Expected error path. Should not be able to update a round in which we aren't a team" +
-			"memeber")
-	}
-
 }
 
 //Full-stack happy path test for the node registration logic

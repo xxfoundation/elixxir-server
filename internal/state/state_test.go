@@ -294,8 +294,8 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 		select {
 		case st := <-m.signal:
 			if st != current.WAITING {
-				t.Errorf("signal runners recieved an update to "+
-					"the wrong state: Expected: %s, Recieved: %s",
+				t.Errorf("signal runners received an update to "+
+					"the wrong state: Expected: %s, Received: %s",
 					current.WAITING, st)
 			}
 		case <-timer.C:
@@ -345,10 +345,10 @@ func TestGet_Happy(t *testing.T) {
 	for i := 0; i < numTest; i++ {
 		expectedState := current.Activity(rand.Uint64()%uint64(current.NUM_STATES-1) + 1)
 		*m.Activity = expectedState
-		recievedState := m.Get()
-		if recievedState != expectedState {
+		receivedState := m.Get()
+		if receivedState != expectedState {
 			t.Errorf("Get returned the wrong value. "+
-				"Expected: %v, Recieved: %s", expectedState, recievedState)
+				"Expected: %v, Received: %s", expectedState, receivedState)
 		}
 	}
 }
@@ -389,7 +389,7 @@ func TestGet_Locked(t *testing.T) {
 	case st := <-readState:
 		if st != current.WAITING {
 			t.Errorf("Get() did not return the correct state. "+
-				"Expected: %s, Recieved: %s", current.WAITING, st)
+				"Expected: %s, Received: %s", current.WAITING, st)
 		}
 	case <-timer.C:
 		t.Errorf("Get() did not return when it should not have been " +

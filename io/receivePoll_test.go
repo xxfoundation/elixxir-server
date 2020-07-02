@@ -63,6 +63,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 		Gateway:         ourGateway,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
 
 	// Here we create a server instance so that we can test the poll ndf.
@@ -371,7 +372,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 	}
 
 	if res.GetBatchRequest().ID != newRound.ID {
-		t.Logf("Wrong batch request recieved")
+		t.Logf("Wrong batch request received")
 		t.Fail()
 	}
 

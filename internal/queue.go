@@ -70,7 +70,7 @@ func (rq *ResourceQueue) Kill(t time.Duration) error {
 		select {
 		case rq.killChan <- why:
 		default:
-			return errors.New("Shoudl always be able to send")
+			return errors.New("Node should be able to send kill on timeout")
 		}
 
 		timer := time.NewTimer(t)
@@ -78,7 +78,7 @@ func (rq *ResourceQueue) Kill(t time.Duration) error {
 		case <-why:
 			return nil
 		case <-timer.C:
-			return errors.New("Something timed out where am i")
+			return errors.New("Signal denoting kill of resource queue kill was not received")
 		}
 	}
 	return nil
