@@ -201,8 +201,6 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 			"Failed to base64 decode recovered error file: %s", string(recoveredErrorEncoded))
 	}
 
-	jww.INFO.Printf("Raw error contents: %s", string(recoveredError))
-
 	// Unmarshal bytes to RoundError
 	msg := &mixmessages.RoundError{}
 	err = proto.Unmarshal(recoveredError, msg)

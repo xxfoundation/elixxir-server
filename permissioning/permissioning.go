@@ -312,7 +312,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 				// do nothing if you have the round as complete
 				if r.GetCurrentPhaseType() == phase.Complete && r.GetID() == rid {
-					jww.WARN.Printf("Received participatory fail in round %v which node has completed: %s", rid, errStr)
+					jww.WARN.Printf("Received participatory fail in round %v which node has completed: %s", rid)
 					return nil
 					// fail if the round is in progress
 				} else if r.GetCurrentPhaseType() != phase.Complete && r.GetID() == rid {
@@ -321,7 +321,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 						instance.GetID(), rid)
 					// if the node is working on a different round, do nothing, the error is likely old
 				} else {
-					jww.WARN.Printf("Received participatory fail from old round %v: %s", rid, errStr)
+					jww.WARN.Printf("Received participatory fail from old round %v", rid)
 				}
 
 			default:
