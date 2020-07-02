@@ -94,7 +94,7 @@ found.
 
 Note: YAML prohibits the use of tabs because whitespace has meaning.
 
-``` yaml
+```yaml
 # Registration code used for first time registration. This is a unique code
 # provided by xx network.
 registrationCode: "abc123"
@@ -143,8 +143,8 @@ permissioning:
     # Path to the self-signed TLS certificate for the Permissioning server.
     # Expects PEM format. Required field.
     cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
-    # IP Address of the Permissioning server, provided by xx network.
-    address: ""
+  # IP Address of the Permissioning server, provided by xx network.
+  address: ""
 
 metrics:
   # Location of stored metrics data.
