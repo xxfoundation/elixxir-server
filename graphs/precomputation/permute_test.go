@@ -30,7 +30,7 @@ func TestPermuteStream_GetName(t *testing.T) {
 	stream := PermuteStream{}
 
 	if stream.GetName() != expected {
-		t.Errorf("PermuteStream.GetName(), Expected %s, Recieved %s", expected, stream.GetName())
+		t.Errorf("PermuteStream.GetName(), Expected %s, Received %s", expected, stream.GetName())
 	}
 }
 
@@ -91,22 +91,22 @@ func TestPermuteStream_Input(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(stream.KeysPayloadA.Get(b).Bytes(), expected[0]) {
-			t.Errorf("PermuteStream.Input() incorrect stored KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Input() incorrect stored KeysPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], stream.KeysPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.KeysPayloadB.Get(b).Bytes(), expected[1]) {
-			t.Errorf("PermuteStream.Input() incorrect stored KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Input() incorrect stored KeysPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[2]) {
-			t.Errorf("PermuteStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[3]) {
-			t.Errorf("PermuteStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
@@ -203,22 +203,22 @@ func TestPermuteStream_Output(t *testing.T) {
 		output := stream.Output(uint32(b))
 
 		if !reflect.DeepEqual(output.EncryptedPayloadAKeys, expected[0]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Output() incorrect received KeysPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], output.EncryptedPayloadAKeys)
 		}
 
 		if !reflect.DeepEqual(output.EncryptedPayloadBKeys, expected[1]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Output() incorrect received KeysPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialPayloadACypherText, expected[2]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Output() incorrect received CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialPayloadBCypherText, expected[3]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Output() incorrect received CypherPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
@@ -260,7 +260,7 @@ func TestPermuteGraph(t *testing.T) {
 	g := graphInit(gc)
 
 	if g.GetName() != expectedName {
-		t.Errorf("PrecompPermute has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())
+		t.Errorf("PrecompPermute has incorrect name Expected %s, Received %s", expectedName, g.GetName())
 	}
 
 	// Build the graph

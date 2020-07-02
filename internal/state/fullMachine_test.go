@@ -158,7 +158,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	// check that the final state is correct
 	finalState := m.Get()
 	if finalState != current.CRASH {
-		t.Errorf("Final state not correct; expected: %s, recieved: %s",
+		t.Errorf("Final state not correct; expected: %s, received: %s",
 			current.CRASH, finalState)
 	}
 

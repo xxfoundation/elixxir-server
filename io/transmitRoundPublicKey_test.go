@@ -110,7 +110,7 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 
 		if expected.Cmp(actual) != 0 {
 			t.Errorf("TransmitRoundPublicKey: Incorrect public key from node %v"+
-				"Expected: %v, Recieved: %v", index, expected, actual)
+				"Expected: %v, Received: %v", index, expected, actual)
 		}
 	}
 }

@@ -35,7 +35,7 @@ func TestCMixResponse_GetPhaseLookup(t *testing.T) {
 	r := buildTestResponse()
 
 	if r.GetPhaseLookup() != lookup {
-		t.Errorf("ResponseDefinition.GetPhaseLookup: Expected: %s, Recieved:%s",
+		t.Errorf("ResponseDefinition.GetPhaseLookup: Expected: %s, Received:%s",
 			lookup, r.GetPhaseLookup())
 	}
 }
@@ -45,7 +45,7 @@ func TestCMixResponse_GetReturnPhase(t *testing.T) {
 	r := buildTestResponse()
 
 	if r.GetReturnPhase() != rtn {
-		t.Errorf("ResponseDefinition.GetReturnPhase: Expected: %s, Recieved:%s",
+		t.Errorf("ResponseDefinition.GetReturnPhase: Expected: %s, Received:%s",
 			rtn, r.GetReturnPhase())
 	}
 }

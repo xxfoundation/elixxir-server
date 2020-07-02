@@ -118,6 +118,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			ResourceMonitor: &measure.ResourceMonitor{},
 			FullNDF:         testUtil.NDF,
 			PartialNDF:      testUtil.NDF,
+			Flags:           internal.Flags{DisableIpOverride: true},
 		}
 		def.ID = topology.GetNodeAtIndex(1)
 

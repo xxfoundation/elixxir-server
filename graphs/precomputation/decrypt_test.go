@@ -28,7 +28,7 @@ func TestDecryptStream_GetName(t *testing.T) {
 	ds := DecryptStream{}
 
 	if ds.GetName() != expected {
-		t.Errorf("DecryptStream.GetName(), Expected %s, Recieved %s", expected, ds.GetName())
+		t.Errorf("DecryptStream.GetName(), Expected %s, Received %s", expected, ds.GetName())
 	}
 }
 
@@ -89,22 +89,22 @@ func TestDecryptStream_Input(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(stream.KeysPayloadA.Get(b).Bytes(), expected[0]) {
-			t.Errorf("DecryptStream.Input() incorrect stored KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Input() incorrect stored KeysPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], stream.KeysPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.KeysPayloadB.Get(b).Bytes(), expected[1]) {
-			t.Errorf("DecryptStream.Input() incorrect stored KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Input() incorrect stored KeysPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadA.Get(b).Bytes(), expected[2]) {
-			t.Errorf("DecryptStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Input() incorrect stored CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(stream.CypherPayloadB.Get(b).Bytes(), expected[3]) {
-			t.Errorf("DecryptStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Input() incorrect stored CypherPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
@@ -206,22 +206,22 @@ func TestDecryptStream_Output(t *testing.T) {
 		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.EncryptedPayloadAKeys, expected[0]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved KeysPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received KeysPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], stream.KeysPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.EncryptedPayloadBKeys, expected[1]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved KeysPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received KeysPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], stream.KeysPayloadB.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialPayloadACypherText, expected[2]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved CypherPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received CypherPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[2], stream.CypherPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(output.PartialPayloadBCypherText, expected[3]) {
-			t.Errorf("DecryptStream.Output() incorrect recieved CypherPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("DecryptStream.Output() incorrect received CypherPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[3], stream.CypherPayloadB.Get(b).Bytes())
 		}
 
@@ -264,7 +264,7 @@ func TestDecryptGraph(t *testing.T) {
 	g := graphInit(gc)
 
 	if g.GetName() != expectedName {
-		t.Errorf("PrecompDecrypt has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())
+		t.Errorf("PrecompDecrypt has incorrect name Expected %s, Received %s", expectedName, g.GetName())
 	}
 
 	//Build the graph
@@ -337,7 +337,7 @@ func TestDecryptGraph(t *testing.T) {
 func checkStreamIntBuffer(grp *cyclic.Group, ib, sourceib *cyclic.IntBuffer, source string, t *testing.T) {
 	if ib.Len() != sourceib.Len() {
 		t.Errorf("preomp.DecryptStream.Link: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, sourceib.Len(), ib.Len())
+			"Expected %v, Received: %v", source, sourceib.Len(), ib.Len())
 	}
 
 	numBad := 0
@@ -358,7 +358,7 @@ func checkStreamIntBuffer(grp *cyclic.Group, ib, sourceib *cyclic.IntBuffer, sou
 func checkIntBuffer(ib *cyclic.IntBuffer, expandedBatchSize uint32, source string, defaultInt *cyclic.Int, t *testing.T) {
 	if ib.Len() != int(expandedBatchSize) {
 		t.Errorf("New RoundBuffer: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, expandedBatchSize, ib.Len())
+			"Expected %v, Received: %v", source, expandedBatchSize, ib.Len())
 	}
 
 	numBad := 0

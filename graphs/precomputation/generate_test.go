@@ -53,7 +53,7 @@ func TestGenerateStream_GetName(t *testing.T) {
 
 	if ds.GetName() != expected {
 		t.Errorf("GenerateStream.GetName(), "+
-			"Expected %s, Recieved %s", expected, ds.GetName())
+			"Expected %s, Received %s", expected, ds.GetName())
 	}
 }
 
@@ -158,7 +158,7 @@ func TestGenerateGraph(t *testing.T) {
 
 	if g.GetName() != expectedName {
 		t.Errorf("PrecompGenerate has incorrect name "+
-			"Expected %s, Recieved %s", expectedName, g.GetName())
+			"Expected %s, Received %s", expectedName, g.GetName())
 	}
 
 	//Build the graph
