@@ -297,10 +297,10 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// the node didnt know because that can cause ping ponging restarts
 				if err != nil {
 					if !strings.Contains(errStr, "Notified of round failure in round node has no knowledge") {
-						jww.WARN.Printf("Received primary participatory fail in round %v which node has no knoledge of", roundInfo.ID)
-						instance.ReportRoundFailure(errors.Errorf("Notified of round failure in round node has no knowledge: %s:", errStr), firstSource, rid)
+						jww.WARN.Printf("Received primary participatory fail in round %v which node has no knowledge of", roundInfo.ID)
+						instance.ReportRoundFailure(errors.Errorf("Notified of round failure in round node has no knowledge: %s", errStr), firstSource, rid)
 					} else {
-						jww.WARN.Printf("Received secondary participatory fail in round %v which node has no knoledge of", roundInfo.ID)
+						jww.WARN.Printf("Received secondary participatory fail in round %v which node has no knowledge of", roundInfo.ID)
 					}
 					continue
 				}
