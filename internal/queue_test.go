@@ -119,6 +119,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           Flags{DisableIpOverride: true},
 	}
 	m := state.NewMachine(dummyStates)
 	instance, _ := CreateServerInstance(&def, impl, m, "1.1.0")

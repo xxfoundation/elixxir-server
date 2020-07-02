@@ -193,6 +193,7 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		PartialNDF: testUtil.NDF,
 		FullNDF:    testUtil.NDF,
+		Flags:      internal.Flags{DisableIpOverride: true},
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = &id.TempGateway

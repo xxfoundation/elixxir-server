@@ -90,6 +90,8 @@ type Flags struct {
 	KeepBuffers bool
 	// If true, use GPU acceleration for precomputation
 	UseGPU bool
+	// If true, disable overriding of local node IP in NDF
+	DisableIpOverride bool
 }
 
 //Holds information about another node in the network

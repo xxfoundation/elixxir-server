@@ -151,6 +151,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
 
+	// Handle overriding local IP
+	if !instance.GetDefinition().DisableIpOverride {
+		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
+			ID, instance.GetDefinition().Address)
+	}
+
 	// Connect to our gateway. At this point we should only know our gateway as this should occur
 	//  BEFORE polling
 	err = instance.GetConsensus().UpdateGatewayConnections()

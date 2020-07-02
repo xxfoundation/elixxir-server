@@ -79,6 +79,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		PublicKey:       mockRSAPub,
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
 	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)

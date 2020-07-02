@@ -55,6 +55,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,

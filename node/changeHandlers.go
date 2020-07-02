@@ -127,6 +127,15 @@ func NotStarted(instance *internal.Instance) error {
 	if err != nil {
 		return errors.Errorf("Failed to get ndf: %+v", err)
 	}
+
+	// Then we ping the server and attempt on that port
+	host, exists := instance.GetNetwork().GetHost(instance.GetID())
+	if exists && host.IsOnline() {
+		jww.DEBUG.Printf("Successfully contacted local address!")
+	} else {
+		return errors.New("unable to contact local address")
+	}
+
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 	//populate the dummy precanned users
 	jww.INFO.Printf("Adding dummy users to registry")
