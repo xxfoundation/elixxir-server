@@ -278,15 +278,20 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			case states.COMPLETED:
 
 			case states.FAILED:
-				firstSource, err := id.Unmarshal(roundInfo.Errors[0].NodeId)
-				var idStr string
-				if err != nil {
-					idStr = "BAD ID"
-				} else {
-					idStr = firstSource.String()
-				}
+				errStr := "Unknown error"
+				firstSource := &id.Permissioning
+				if roundInfo.Errors != nil {
+					var err error
+					firstSource, err = id.Unmarshal(roundInfo.Errors[0].NodeId)
+					var idStr string
+					if err != nil {
+						idStr = "BAD ID"
+					} else {
+						idStr = firstSource.String()
+					}
 
-				errStr := fmt.Sprintf("%s first failed %v: %s", idStr, roundInfo.ID, roundInfo.Errors[0].Error)
+					errStr = fmt.Sprintf("%s first failed %v: %s", idStr, roundInfo.ID, roundInfo.Errors[0].Error)
+				}
 
 				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
 
