@@ -312,7 +312,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 				// do nothing if you have the round as complete
 				if r.GetCurrentPhaseType() == phase.Complete && r.GetID() == rid {
-					jww.WARN.Printf("Received participatory fail in round %v which node has completed: %s", rid)
+					jww.WARN.Printf("Received participatory fail in round %v which node has completed", rid)
 					return nil
 					// fail if the round is in progress
 				} else if r.GetCurrentPhaseType() != phase.Complete && r.GetID() == rid {
