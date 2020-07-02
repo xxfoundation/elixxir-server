@@ -11,6 +11,7 @@ package permissioning
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/connect"
@@ -277,17 +278,45 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			case states.COMPLETED:
 
 			case states.FAILED:
-				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
+				firstSource, err := id.Unmarshal(roundInfo.Errors[0].NodeId)
+				var idStr string
 				if err != nil {
-					jww.WARN.Printf("Received participatory fail in round %v which node has no knoledge of", roundInfo.ID)
+					idStr = "BAD ID"
+				} else {
+					idStr = firstSource.String()
+				}
+
+				errStr := fmt.Sprintf("%s first failed %v: %s", idStr, roundInfo.ID, roundInfo.Errors[0].Error)
+
+				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
+
+				rid := id.Round(roundInfo.ID)
+
+				// if the round is unknown, restart with an error unless the report
+				// is from a node that did not know about the round. Do not restart if
+				// the node didnt know because that can cause ping ponging restarts
+				if err != nil {
+					if !strings.Contains(errStr, "Notified of round failure in round node has no knowledge") {
+						jww.WARN.Printf("Received primary participatory fail in round %v which node has no knowledge of", roundInfo.ID)
+						instance.ReportRoundFailure(errors.Errorf("Notified of round failure in round node has no knowledge: %s", errStr), firstSource, rid)
+					} else {
+						jww.WARN.Printf("Received secondary participatory fail in round %v which node has no knowledge of", roundInfo.ID)
+					}
 					continue
 				}
-				if r.GetCurrentPhaseType() == phase.Complete {
+
+				// do nothing if you have the round as complete
+				if r.GetCurrentPhaseType() == phase.Complete && r.GetID() == rid {
+					jww.WARN.Printf("Received participatory fail in round %v which node has completed: %s", rid, errStr)
 					return nil
-				} else {
-					rid := id.Round(roundInfo.ID)
-					instance.ReportRoundFailure(errors.New("Round has failed; transitioning to error"),
+					// fail if the round is in progress
+				} else if r.GetCurrentPhaseType() != phase.Complete && r.GetID() == rid {
+					jww.WARN.Printf("Received participatory fail in round %v which is in progress", roundInfo.ID)
+					instance.ReportRoundFailure(errors.Errorf("Notified of round failure for participatory round: %s", errStr),
 						instance.GetID(), rid)
+					// if the node is working on a different round, do nothing, the error is likely old
+				} else {
+					jww.WARN.Printf("Received participatory fail from old round %v: %s", rid, errStr)
 				}
 
 			default:
