@@ -77,7 +77,7 @@ var rootCmd = &cobra.Command{
 			cde := strings.Contains(errMsg, "DeadlineExceeded")
 			ndf := strings.Contains(errMsg, "ndf")
 			if ndf && (cde || transport) {
-				if instance != nil {
+				if instance != nil && instance.GetNetwork() != nil {
 					instance.GetNetwork().Shutdown()
 				}
 				jww.ERROR.Print("Cannot start, permissioning " +
