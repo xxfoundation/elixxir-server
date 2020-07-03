@@ -75,7 +75,6 @@ type Instance struct {
 	panicWrapper   func(s string)
 
 	gatewayAddress string
-	gatewayID      *id.ID
 	gatewayVersion string
 	gatewayMutex   sync.RWMutex
 
@@ -140,6 +139,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
+
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
 		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
@@ -157,21 +157,22 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			ID, instance.GetDefinition().Address)
 	}
 
-	// Connect to our gateway. At this point we should only know our gateway as this should occur
-	//  BEFORE polling
-	err = instance.GetConsensus().UpdateGatewayConnections()
-	if err != nil {
-		return nil, errors.Errorf("Could not update gateway connections: %+v", err)
-	}
-
-	// Add gateways to host object
+	// Connect to our gateway
 	_, err = instance.network.AddHost(&id.TempGateway,
 		"", instance.definition.Gateway.TlsCert, false, true)
 	if err != nil {
-		errMsg := fmt.Sprintf("Count not add gateway %s as host: %+v",
+		errMsg := fmt.Sprintf("Count not add dummy gateway %s as host: %+v",
 			instance.definition.Gateway.ID, err)
 		return nil, errors.New(errMsg)
 	}
+	_, err = instance.network.AddHost(instance.GetGateway(),
+		"", instance.definition.Gateway.TlsCert, false, true)
+	if err != nil {
+		errMsg := fmt.Sprintf("Count not add real gateway %s as host: %+v",
+			instance.definition.Gateway.ID, err)
+		return nil, errors.New(errMsg)
+	}
+
 	jww.INFO.Printf("Network Interface Initialized for Node ")
 
 	return instance, nil
@@ -330,24 +331,9 @@ func (i *Instance) GetGatewayCertPath() string {
 	return i.definition.GatewayCertPath
 }
 
-// SetGatewayID sets the gateway ID. It does this once
-func (i *Instance) SetGatewayID() {
-	// Get a copy of the server id and transfer to a gateway id
-	expectedGatewayID := i.GetID().DeepCopy()
-	expectedGatewayID.SetType(id.Gateway)
-
-	i.gatewayID = expectedGatewayID
-
-}
-
 //Returns true if this is the first time this is called, otherwise returns false
 func (i *Instance) IsFirstPoll() bool {
 	return atomic.SwapUint32(i.firstPoll, 1) == 0
-}
-
-// GetGatewayCertPath returns the path for Gateway certificate
-func (i *Instance) GetGatewayID() *id.ID {
-	return i.gatewayID
 }
 
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.

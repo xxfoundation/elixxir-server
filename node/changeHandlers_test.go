@@ -60,6 +60,8 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		Address: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{

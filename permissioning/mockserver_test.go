@@ -431,6 +431,8 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
 	}
+	def.Gateway.ID = nodeId.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 

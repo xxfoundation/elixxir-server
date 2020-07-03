@@ -57,6 +57,8 @@ func TestReceiveGetMeasure(t *testing.T) {
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
 		"1.1.0")

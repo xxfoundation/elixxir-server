@@ -81,6 +81,9 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
+
 	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)
 

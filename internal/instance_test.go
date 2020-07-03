@@ -173,6 +173,9 @@ func mockServerDef(i interface{}) *Definition {
 		Flags:           Flags{DisableIpOverride: true},
 	}
 
+	def.Gateway.ID = nid.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
+
 	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
 
 	return &def

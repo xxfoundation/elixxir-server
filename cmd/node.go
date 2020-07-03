@@ -32,7 +32,7 @@ import (
 )
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(vip *viper.Viper) error {
+func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
 
 	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
@@ -68,7 +68,7 @@ func StartServer(vip *viper.Viper) error {
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
 	if err != nil {
-		return errors.Errorf("Failed to convert params to definition: %+v", err)
+		return nil, errors.Errorf("Failed to convert params to definition: %+v", err)
 	}
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
@@ -135,7 +135,7 @@ func StartServer(vip *viper.Viper) error {
 		instance, err = internal.CreateServerInstance(def,
 			io.NewImplementation, ourMachine, currentVersion)
 		if err != nil {
-			return errors.Errorf("Could not create server instance: %v", err)
+			return instance, errors.Errorf("Could not create server instance: %v", err)
 		}
 	} else {
 		// Otherwise, start in recovery mode
@@ -143,7 +143,7 @@ func StartServer(vip *viper.Viper) error {
 		instance, err = internal.RecoverInstance(def, io.NewImplementation,
 			ourMachine, currentVersion)
 		if err != nil {
-			return errors.WithMessage(err, "Could not recover server instance")
+			return instance, errors.WithMessage(err, "Could not recover server instance")
 		}
 	}
 
@@ -183,8 +183,8 @@ func StartServer(vip *viper.Viper) error {
 	//Begin the resource queue
 	err = instance.Run()
 	if err != nil {
-		return errors.Errorf("Unable to run instance: %+v", err)
+		return instance, errors.Errorf("Unable to run instance: %+v", err)
 	}
 
-	return nil
+	return instance, nil
 }
