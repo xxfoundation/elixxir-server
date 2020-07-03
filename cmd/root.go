@@ -66,6 +66,8 @@ var rootCmd = &cobra.Command{
 			}()
 		}
 
+		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
+
 		for {
 			instance, err := StartServer(viper.GetViper())
 			if err == nil {
