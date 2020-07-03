@@ -39,6 +39,8 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,

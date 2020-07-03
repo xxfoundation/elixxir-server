@@ -477,6 +477,8 @@ func mockServerInstance(i interface{}) *internal.Instance {
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	var stateChanges [current.NUM_STATES]state.Change
 	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {

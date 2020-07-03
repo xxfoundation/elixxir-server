@@ -71,6 +71,8 @@ func TestClientServer(t *testing.T) {
 		FullNDF:         testUtil.NDF,
 		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = nid.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	var stateChanges [current.NUM_STATES]state.Change
 	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {

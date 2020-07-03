@@ -121,6 +121,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			Flags:           internal.Flags{DisableIpOverride: true},
 		}
 		def.ID = topology.GetNodeAtIndex(1)
+		def.Gateway.ID = def.ID.DeepCopy()
+		def.Gateway.ID.SetType(id.Gateway)
 
 		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
