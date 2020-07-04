@@ -121,6 +121,8 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		PartialNDF:      testUtil.NDF,
 		Flags:           Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = nid.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 	m := state.NewMachine(dummyStates)
 	instance, _ := CreateServerInstance(&def, impl, m, "1.1.0")
 	roundID := id.Round(1)

@@ -65,6 +65,8 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		Gateway:         ourGateway,
 		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, testState, t)
@@ -365,6 +367,12 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
+	h, _ = connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	auth = &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
 	res, err = ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
@@ -502,8 +510,6 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 // Third call uses new auth object with expected parameters, expected happy path
 func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
-
-	instance.SetGatewayID()
 
 	// Create host and auth
 	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)

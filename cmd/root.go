@@ -66,8 +66,10 @@ var rootCmd = &cobra.Command{
 			}()
 		}
 
+		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
+
 		for {
-			err := StartServer(viper.GetViper())
+			instance, err := StartServer(viper.GetViper())
 			if err == nil {
 				break
 			}
@@ -77,6 +79,9 @@ var rootCmd = &cobra.Command{
 			cde := strings.Contains(errMsg, "DeadlineExceeded")
 			ndf := strings.Contains(errMsg, "ndf")
 			if ndf && (cde || transport) {
+				if instance != nil && instance.GetNetwork() != nil {
+					instance.GetNetwork().Shutdown()
+				}
 				jww.ERROR.Print("Cannot start, permissioning " +
 					"is unavailable, retrying in 10s...")
 				time.Sleep(10 * time.Second)
