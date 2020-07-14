@@ -9,7 +9,6 @@ package io
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -25,6 +24,8 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"testing"
 )
 
@@ -117,7 +118,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 	before := r.GetRTStart().String()
 
 	err = TransmitRoundTripPing(comms[0], topology.GetNodeAtIndex(1),
-		r, &mixmessages.Ack{}, "EMPTY/ACK", nil)
+		r, &messages.Ack{}, "EMPTY/ACK", nil)
 	if err != nil {
 		t.Errorf("Error transmitting rt ping: %+v", err)
 	}

@@ -16,7 +16,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
@@ -34,6 +33,8 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"os"
 	"strings"
 	"sync"
@@ -41,7 +42,7 @@ import (
 	"testing"
 )
 
-type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
+type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
 // Holds long-lived server state
 type Instance struct {
@@ -403,7 +404,7 @@ func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
 }
 
-func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
+func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*messages.Ack, error) {
 	jww.FATAL.Printf("Sending round error to %+v\n", h)
 	return i.roundErrFunc(h, m)
 }

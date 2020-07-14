@@ -9,7 +9,6 @@ package io
 
 import (
 	"crypto/rand"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/signature"
@@ -23,6 +22,7 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
 	"strings"
 	"testing"
 	"time"

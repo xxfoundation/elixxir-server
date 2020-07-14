@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -31,6 +30,8 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"reflect"
@@ -340,7 +341,7 @@ type MockStreamPostPhaseServer struct {
 	batch *mixmessages.Batch
 }
 
-func (stream MockStreamPostPhaseServer) SendAndClose(*mixmessages.Ack) error {
+func (stream MockStreamPostPhaseServer) SendAndClose(*messages.Ack) error {
 	if len(stream.batch.Slots) == mockStreamSlotIndex {
 		return nil
 	}

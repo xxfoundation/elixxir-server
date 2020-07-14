@@ -10,7 +10,6 @@ package io
 import (
 	"context"
 	"errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -21,6 +20,8 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"testing"
@@ -32,7 +33,7 @@ type MockTransmitStream struct {
 	batch mixmessages.Batch
 }
 
-func (stream MockTransmitStream) SendAndClose(*mixmessages.Ack) error {
+func (stream MockTransmitStream) SendAndClose(*messages.Ack) error {
 	if len(stream.batch.Slots) == mockIndex {
 		return nil
 	}
@@ -217,7 +218,7 @@ func mockStreamPostPhase(stream mixmessages.Node_StreamPostPhaseServer) error {
 		// If we are at end of receiving
 		// send ack and finish
 		if err == io.EOF {
-			ack := mixmessages.Ack{
+			ack := messages.Ack{
 				Error: "",
 			}
 
