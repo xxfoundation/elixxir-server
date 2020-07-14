@@ -11,12 +11,12 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/xx_network/comms/connect"
 	"time"
 )
 

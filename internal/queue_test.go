@@ -9,7 +9,6 @@ package internal
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -23,6 +22,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
 	"runtime"
 	"sync"
 	"testing"

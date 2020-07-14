@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/io"
+	"gitlab.com/xx_network/comms/messages"
 	insecureRand "math/rand"
 )
 
@@ -88,7 +89,7 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 func doRoundTripPing(round *round.Round, instance *internal.Instance, ri *mixmessages.RoundInfo) error {
 	payloadInfo := "EMPTY/ACK"
 	var payload proto.Message
-	payload = &mixmessages.Ack{}
+	payload = &messages.Ack{}
 
 	// Get create topology and fetch the next node
 	topology := round.GetTopology()

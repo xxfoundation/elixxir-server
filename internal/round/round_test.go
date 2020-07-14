@@ -8,7 +8,6 @@
 package round
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/csprng"
@@ -19,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/comms/connect"
 	"reflect"
 	"runtime"
 	"testing"
