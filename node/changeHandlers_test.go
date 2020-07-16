@@ -12,9 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
@@ -309,15 +306,38 @@ func TestPrecomputing_override(t *testing.T) {
 	}
 }
 
-// Utility function which signs a round info message
-func signRoundInfo(ri *mixmessages.RoundInfo) error {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+// Smoke test: does isRegistered communicate with permissioning server?
+func TestIsRegistered(t *testing.T) {
+	// Create instance
+	instance, err := createServerInstance(t)
 	if err != nil {
-		return errors.Errorf("couldn't load privKey: %+v", err)
+		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
-	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
+	// Start up permissioning server
+	permComms, mockPermissioning, err := startPermissioning()
+	if err != nil {
+		t.Errorf("Couldn't create permissioning server: %+v", err)
+	}
+	defer permComms.Shutdown()
 
-	signature.Sign(ri, ourPrivKey)
-	return nil
+	// Add retrieve permissioning host from instance
+	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
+	if !ok {
+		t.Fatal("Didn't get a permissioning host. Failing now")
+	}
+	result := isRegistered(instance, permHost)
+	const expected = true
+	if result != expected {
+		t.Errorf("Expected response from mock permissioning to be %v. Got %v instead", expected, result)
+	}
+
+	// It should be possible to see this error in the test logs
+	expectedErr := errors.New("mock error")
+	mockPermissioning.SetDesiredError(expectedErr)
+	result = isRegistered(instance, permHost)
+	const expectedWhenErr = false
+	if result != expectedWhenErr {
+		t.Error("isRegistered should return false when permissioning returns an error")
+	}
 }
