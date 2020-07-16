@@ -119,7 +119,7 @@ func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 
 	for _, m := range g.modules {
 		if m.id != g.firstModule.id && m.id != g.lastModule.id {
-			m.open(0)
+			m.open(g.expandBatchSize)
 		}
 	}
 	/*finish setting up output*/
