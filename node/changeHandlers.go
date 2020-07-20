@@ -450,7 +450,7 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	// Request a client ndf from the permissioning server
 	response, err := serverInstance.GetNetwork().SendRegistrationCheck(permHost,
 		&mixmessages.RegisteredNodeCheck{
-			RegCode: serverInstance.GetDefinition().RegistrationCode,
+			ID: serverInstance.GetID().Bytes(),
 		})
 	if err != nil {
 		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
