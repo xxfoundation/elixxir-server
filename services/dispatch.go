@@ -10,6 +10,7 @@ package services
 import (
 	"fmt"
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"strings"
 	"time"
 )
@@ -32,55 +33,73 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 	atID := fmt.Sprintf("%s%d", AdaptMeasureName, threadID)
 	omID := fmt.Sprintf("%s%d", OutModsMeasureName, threadID)
 
-	for chunk, cont := <-m.input; cont; chunk, cont = <-m.input {
-		g.Lock()
-		g.metrics.Measure(atID)
-		g.Unlock()
-		err := m.Adapt(s, m.Cryptop, chunk)
-		g.Lock()
-		g.metrics.Measure(atID)
-		g.Unlock()
+	// Time out that channel read in the loop, since it sometimes blocks forever
+	// for unknown reasons
+	var chunk Chunk
+	var ok bool
+	timeoutDuration := 2 * time.Minute
+	timeout := time.NewTimer(timeoutDuration)
+	keepLooping := true
+	for keepLooping {
+		select {
+		case <-timeout.C:
+			keepLooping = false
+			jww.WARN.Printf("Graph %v in module %v timed out thread %v", g.GetName(), m.Name, threadID)
+		case chunk, ok = <-m.input:
+			if ok {
+				g.Lock()
+				g.metrics.Measure(atID)
+				g.Unlock()
+				err := m.Adapt(s, m.Cryptop, chunk)
+				g.Lock()
+				g.metrics.Measure(atID)
+				g.Unlock()
 
-		if err != nil {
-			go g.errorHandler(g.name, m.Name, err)
-		}
+				if err != nil {
+					go g.errorHandler(g.name, m.Name, err)
+				}
 
-		g.Lock()
-		g.metrics.Measure(omID)
-		g.Unlock()
-		for _, om := range m.outputModules {
-			chunkList, err := om.assignmentList.PrimeOutputs(chunk)
-			if err != nil {
-				go g.errorHandler(g.name, m.Name, err)
 				g.Lock()
 				g.metrics.Measure(omID)
 				g.Unlock()
-				return
-			}
+				for _, om := range m.outputModules {
+					chunkList, err := om.assignmentList.PrimeOutputs(chunk)
+					if err != nil {
+						go g.errorHandler(g.name, m.Name, err)
+						g.Lock()
+						g.metrics.Measure(omID)
+						g.Unlock()
+						return
+					}
 
-			for _, r := range chunkList {
-				/*fmt.Printf( "%s sending (%v - %v) to %s \n",
-				m.Name, r.begin, r.end, om.Name)*/
-				om.input <- r
-			}
+					for _, r := range chunkList {
+						/*fmt.Printf( "%s sending (%v - %v) to %s \n",
+						m.Name, r.begin, r.end, om.Name)*/
+						om.input <- r
+					}
 
-			fin, err := om.assignmentList.DenoteCompleted(len(chunkList))
+					fin, err := om.assignmentList.DenoteCompleted(len(chunkList))
 
-			if err != nil {
-				go g.errorHandler(g.name, m.Name, err)
+					if err != nil {
+						go g.errorHandler(g.name, m.Name, err)
+						g.Lock()
+						g.metrics.Measure(omID)
+						g.Unlock()
+						return
+					}
+					if fin {
+						om.closeInput()
+					}
+				}
 				g.Lock()
 				g.metrics.Measure(omID)
 				g.Unlock()
-				return
-			}
-			if fin {
-				om.closeInput()
+				timeout.Reset(timeoutDuration)
+			} else {
+				// normal loop exit
+				keepLooping = false
 			}
 		}
-		g.Lock()
-		g.metrics.Measure(omID)
-		g.Unlock()
-
 	}
 }
 
