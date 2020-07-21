@@ -133,6 +133,13 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Metrics.Log = vip.GetString("metrics.log")
 
+	params.Gateway.useNodeIp = vip.GetBool("gateway.useNodeIp")
+	params.Gateway.advertisedIP = vip.GetString("gateway.advertisedIP")
+	if params.Gateway.useNodeIp && params.Gateway.advertisedIP != "" {
+		jww.FATAL.Panicf("Cannot set both gateway.useNodeIp and " +
+			"gateway.advertisedIP at the same time.")
+	}
+
 	return &params, nil
 }
 
@@ -283,6 +290,9 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
+
+	def.Gateway.UseNodeIp = p.Gateway.useNodeIp
+	def.Gateway.AdvertisedIP = p.Gateway.advertisedIP
 
 	return def, nil
 }

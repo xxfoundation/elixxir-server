@@ -68,8 +68,13 @@ func NotStarted(instance *internal.Instance) error {
 		instance.IsFirstRun()
 		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
+		// Blocking call which waits until gateway
+		// has first contacted its node
+		// This ensures we have the correct gateway information
+		instance.GetGatewayFirstContact().Receive()
+
 		// Blocking call: begin Node registration
-		err = permissioning.RegisterNode(ourDef, network, permHost)
+		err = permissioning.RegisterNode(ourDef, instance, permHost)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
 				jww.FATAL.Panic("Node is already registered, Attempting re-registration is NOT secure")
@@ -156,7 +161,7 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Wait for signal that indicates that gateway is ready for polling to
 	// continue in order to ensure the gateway is online
-	instance.GetGatewayFirstTime().Receive()
+	instance.GetGatewayFirstPoll().Receive()
 
 	jww.INFO.Printf("Communication from gateway received")
 

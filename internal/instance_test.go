@@ -402,3 +402,72 @@ func TestInstance_GetPhaseOverrides(t *testing.T) {
 		t.Error("Failed to get phase overrides set in instance")
 	}
 }
+
+// Tests that GetGatewayAdvertisedIP() returns the original gatewayAddress when
+// neither useNodeIpForGateway nor gatewayAdvertisedIP are set.
+func TestInstance_GetGatewayAdvertisedIP(t *testing.T) {
+	instance := Instance{
+		gatewayAddress: "0.0.0.0:22840",
+	}
+
+	testIP := instance.getGatewayAdvertisedIP(instance.gatewayAddress)
+
+	if testIP != instance.gatewayAddress {
+		t.Errorf("GetGatewayAdvertisedIP() did not return the correct address "+
+			"when no flags where set.\n\texpected: %v\n\treceived: %v",
+			instance.gatewayAddress, testIP)
+	}
+}
+
+// Tests that GetGatewayAdvertisedIP() returns the gatewayReplaceIpPlaceholder
+// with the original gatewayAddress port when useNodeIpForGateway is set.
+func TestInstance_GetGatewayAdvertisedIP_useNodeIpForGateway(t *testing.T) {
+	instance := Instance{
+		gatewayAddress:      "0.0.0.0:22840",
+		useNodeIpForGateway: true,
+	}
+	expectedIP := gatewayReplaceIpPlaceholder + ":22840"
+
+	testIP := instance.getGatewayAdvertisedIP(instance.gatewayAddress)
+
+	if testIP != expectedIP {
+		t.Errorf("GetGatewayAdvertisedIP() did not return the correct address "+
+			"when useNodeIpForGateway was set.\n\texpected: %v\n\treceived: %v",
+			expectedIP, testIP)
+	}
+}
+
+// Tests that GetGatewayAdvertisedIP() returns the gatewayAdvertisedIP when it
+// is set.
+func TestInstance_GetGatewayAdvertisedIP_gatewayAdvertisedIP(t *testing.T) {
+	instance := Instance{
+		gatewayAddress:      "0.0.0.0:22840",
+		gatewayAdvertisedIP: "192.168.1.1:22840",
+	}
+
+	testIP := instance.getGatewayAdvertisedIP(instance.gatewayAddress)
+
+	if testIP != instance.gatewayAdvertisedIP {
+		t.Errorf("GetGatewayAdvertisedIP() did not return the correct address "+
+			"when gatewayAdvertisedIP was set.\n\texpected: %v\n\treceived: %v",
+			instance.gatewayAdvertisedIP, testIP)
+	}
+}
+
+// Tests that GetGatewayAdvertisedIP() panics when useNodeIpForGateway is set
+// and the provided Gateway address does not have a port.
+func TestInstance_GetGatewayAdvertisedIP_useNodeIpForGateway_NoPort(t *testing.T) {
+	instance := Instance{
+		gatewayAddress:      "0.0.0.0",
+		useNodeIpForGateway: true,
+	}
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("getGatewayAdvertisedIP() did not panic when no port was " +
+				"provided.")
+		}
+	}()
+
+	_ = instance.getGatewayAdvertisedIP(instance.gatewayAddress)
+}
