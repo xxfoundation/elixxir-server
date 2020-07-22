@@ -38,6 +38,10 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	// Form gateway address and put it into gateway data in instance
 	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
 
+	// Asynchronously indicate that gateway has successfully contacted
+	// its node
+	instance.GetGatewayFirstContact().Send()
+
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
 		network := instance.GetConsensus()
@@ -75,7 +79,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 		// denote that gateway has received info,
 		// only does something the first time
-		instance.GetGatewayFirstTime().Send()
+		instance.GetGatewayFirstPoll().Send()
 
 		return &res, nil
 	}
