@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/comms/messages"
 	"io"
 	"strings"
 )
@@ -136,11 +137,11 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	}
 
 	// Set error in ack message if we didn't receive all slots
-	ack := mixmessages.Ack{
+	ack := messages.Ack{
 		Error: "",
 	}
 	if err != io.EOF {
-		ack = mixmessages.Ack{
+		ack = messages.Ack{
 			Error: "failed to receive all slots: " + err.Error(),
 		}
 	}

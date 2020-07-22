@@ -10,7 +10,6 @@ package node
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
@@ -24,6 +23,8 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"runtime"
 	"testing"
 	"time"
@@ -117,7 +118,7 @@ func TestError(t *testing.T) {
 		NodeId: instance.GetID().Marshal(),
 		Error:  "",
 	}
-	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error) {
 		return nil, nil
 	}
 	instance.SetRoundErrFunc(mockBroadcast, t)
@@ -154,7 +155,7 @@ func TestError_RID0(t *testing.T) {
 		NodeId: instance.GetID().Marshal(),
 		Error:  "",
 	}
-	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error) {
 		t.Error()
 		return nil, nil
 	}
