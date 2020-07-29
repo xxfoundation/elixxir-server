@@ -104,10 +104,13 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
+	// String to look for the check for a reverse contact error.
+	// not panicking on these errors allows for better debugging
+	cannotPingErr := "cannot be contacted"
 
 	pollDelay := 1 * time.Second
 
-	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
+	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(), cannotPingErr)) {
 		time.After(pollDelay)
 
 		var permResponse *mixmessages.PermissionPollResponse
@@ -196,9 +199,17 @@ func NotStarted(instance *internal.Instance) error {
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
-				// If we receive an error polling here, panic this thread
-				roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
-				instance.ReportNodeFailure(roundErr)
+				// do not error if the poll failed due to contact issues,
+				// this allows for better debugging
+				if strings.Contains(err.Error(), cannotPingErr) {
+					jww.ERROR.Printf("Your node is not online: %s", err.Error())
+					time.Sleep(pollDelay)
+				} else {
+					// If we receive an error polling here, panic this thread
+					roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
+					instance.ReportNodeFailure(roundErr)
+				}
+
 			}
 		}
 	}()
