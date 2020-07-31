@@ -12,11 +12,11 @@ package io
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/xx_network/comms/connect"
 	"strings"
 )
 
@@ -37,6 +37,10 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	// Form gateway address and put it into gateway data in instance
 	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
+
+	// Asynchronously indicate that gateway has successfully contacted
+	// its node
+	instance.GetGatewayFirstContact().Send()
 
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
@@ -75,7 +79,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 		// denote that gateway has received info,
 		// only does something the first time
-		instance.GetGatewayFirstTime().Send()
+		instance.GetGatewayFirstPoll().Send()
 
 		return &res, nil
 	}

@@ -15,7 +15,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
@@ -28,6 +27,7 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
+	"gitlab.com/xx_network/comms/connect"
 	"strings"
 	"time"
 )
@@ -68,8 +68,13 @@ func NotStarted(instance *internal.Instance) error {
 		instance.IsFirstRun()
 		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
+		// Blocking call which waits until gateway
+		// has first contacted its node
+		// This ensures we have the correct gateway information
+		instance.GetGatewayFirstContact().Receive()
+
 		// Blocking call: begin Node registration
-		err = permissioning.RegisterNode(ourDef, network, permHost)
+		err = permissioning.RegisterNode(ourDef, instance, permHost)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
 				jww.FATAL.Panic("Node is already registered, Attempting re-registration is NOT secure")
@@ -99,10 +104,13 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
+	// String to look for the check for a reverse contact error.
+	// not panicking on these errors allows for better debugging
+	cannotPingErr := "cannot be contacted"
 
 	pollDelay := 1 * time.Second
 
-	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF)) {
+	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(), cannotPingErr)) {
 		time.After(pollDelay)
 
 		var permResponse *mixmessages.PermissionPollResponse
@@ -156,7 +164,7 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Wait for signal that indicates that gateway is ready for polling to
 	// continue in order to ensure the gateway is online
-	instance.GetGatewayFirstTime().Receive()
+	instance.GetGatewayFirstPoll().Receive()
 
 	jww.INFO.Printf("Communication from gateway received")
 
@@ -191,9 +199,17 @@ func NotStarted(instance *internal.Instance) error {
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
-				// If we receive an error polling here, panic this thread
-				roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
-				instance.ReportNodeFailure(roundErr)
+				// do not error if the poll failed due to contact issues,
+				// this allows for better debugging
+				if strings.Contains(err.Error(), cannotPingErr) {
+					jww.ERROR.Printf("Your node is not online: %s", err.Error())
+					time.Sleep(pollDelay)
+				} else {
+					// If we receive an error polling here, panic this thread
+					roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
+					instance.ReportNodeFailure(roundErr)
+				}
+
 			}
 		}
 	}()
@@ -450,7 +466,7 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	// Request a client ndf from the permissioning server
 	response, err := serverInstance.GetNetwork().SendRegistrationCheck(permHost,
 		&mixmessages.RegisteredNodeCheck{
-			RegCode: serverInstance.GetDefinition().RegistrationCode,
+			ID: serverInstance.GetID().Bytes(),
 		})
 	if err != nil {
 		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())

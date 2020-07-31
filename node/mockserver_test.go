@@ -5,7 +5,7 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-package permissioning
+package node
 
 import (
 	crand "crypto/rand"
@@ -47,18 +47,20 @@ var cnt = 0
 var nodeAddr string
 
 // --------------------------------Dummy implementation of permissioning server --------------------------------
-type mockPermission struct{}
+type mockPermission struct {
+	err error
+}
 
 func (i *mockPermission) PollNdf([]byte, *connect.Auth) ([]byte, error) {
-	return nil, nil
+	return nil, i.err
 }
 
 func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byte, err error) {
-	return nil, nil
+	return nil, i.err
 }
 
 func (i *mockPermission) RegisterNode(*id.ID, string, string, string, string, string) error {
-	return nil
+	return i.err
 }
 
 func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb.PermissionPollResponse, error) {
@@ -75,19 +77,26 @@ func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb
 	return &pb.PermissionPollResponse{
 		FullNDF:    fullNDFMsg,
 		PartialNDF: partialNDFMsg,
-	}, nil
+	}, i.err
 }
 
 func (i *mockPermission) CheckRegistration(msg *pb.RegisteredNodeCheck) (confirmation *pb.RegisteredNodeConfirmation, e error) {
-	return nil, nil
+	return &pb.RegisteredNodeConfirmation{
+		IsRegistered: true,
+	}, i.err
+}
+
+// Set an error that RPC calls to this permissioning server will return
+func (i *mockPermission) SetDesiredError(err error) {
+	i.err = err
 }
 
 func (i *mockPermission) GetCurrentClientVersion() (string, error) {
-	return "0.0.0", nil
+	return "0.0.0", i.err
 }
 
 func (i *mockPermission) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
-	return nil, nil
+	return nil, i.err
 }
 
 // --------------------------------Dummy implementation of permissioning server --------------------------------
@@ -250,17 +259,6 @@ func (*mockGateway) PollForNotifications(auth *connect.Auth) ([]*id.ID, error) {
 
 func (*mockGateway) Poll(*pb.GatewayPoll) (*pb.GatewayPollResponse, error) {
 	return nil, nil
-}
-
-var dummyStates = [current.NUM_STATES]state.Change{
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
 }
 
 func mockServerDef(i interface{}) *internal.Definition {
@@ -466,19 +464,20 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 }
 
 // Utility function which starts up a permissioning server
-func startPermissioning() (*registration.Comms, error) {
+func startPermissioning() (*registration.Comms, *mockPermission, error) {
 
 	cert := []byte(testUtil.RegCert)
 	key := []byte(testUtil.RegPrivKey)
 	// Initialize permissioning server
-	pHandler := registration.Handler(&mockPermission{})
+	mp := &mockPermission{}
+	pHandler := registration.Handler(mp)
 	permComms = registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
 	_, err := permComms.AddHost(nodeId, pAddr, cert, false, false)
 	if err != nil {
-		return nil, errors.Errorf("Permissioning could not connect to node")
+		return nil, nil, errors.Errorf("Permissioning could not connect to node")
 	}
 
-	return permComms, nil
+	return permComms, mp, nil
 }
 
 func startGateway() (*gateway.Comms, error) {

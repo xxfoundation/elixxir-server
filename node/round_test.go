@@ -8,9 +8,9 @@
 package node
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/comms/connect"
 	"testing"
 	"time"
 )

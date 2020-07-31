@@ -14,33 +14,48 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/xx_network/comms/connect"
+	"net"
 	"strconv"
 	"strings"
 	"time"
 )
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *internal.Definition, network *node.Comms, permHost *connect.Host) error {
+func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
 	node := strings.Split(def.Address, ":")
 	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
+
+	// Get the gateway's address
+	gwAddr, _ := instance.GetGatewayData()
+	// Split the address into port and address for message
+	gwIP, gwPortStr, err := net.SplitHostPort(gwAddr)
+	if err != nil {
+		return errors.Errorf("Unable to parse gateway's address. Is it set up correctly?")
+	}
+
+	// Convert port to int to conform to message type
+	gwPort, err := strconv.Atoi(gwPortStr)
+	if err != nil {
+		return errors.Errorf("Unable to parse gateway's port. Is it set up correctly?")
+	}
+
 	// Attempt Node registration
-	err := network.SendNodeRegistration(permHost,
+	err = instance.GetNetwork().SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
 			ID:               def.ID.Bytes(),
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   "0.0.0.0", // FIXME (Jonah): this is inefficient, but will work for now
-			GatewayPort:      80,
+			GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
+			GatewayPort:      uint32(gwPort),
 			ServerAddress:    node[0],
 			ServerPort:       uint32(nodePort),
 			RegistrationCode: def.RegistrationCode,
@@ -142,7 +157,8 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		ServerVersion: instance.GetServerVersion(),
 	}
 
-	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr, uint32(port))
+	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,
+		uint32(port))
 
 	if reportedActivity == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()

@@ -16,7 +16,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
@@ -34,6 +33,9 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -41,7 +43,11 @@ import (
 	"testing"
 )
 
-type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error)
+// The placeholder for the host in the Gateway address that is used to indicate
+// to permissioning to replace it with the Node's host.
+const gatewayReplaceIpPlaceholder = "CHANGE_TO_PUBLIC_IP"
+
+type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
 // Holds long-lived server state
 type Instance struct {
@@ -53,8 +59,12 @@ type Instance struct {
 	streamPool    *gpumaths.StreamPool
 	machine       state.Machine
 
-	consensus      *network.Instance
+	consensus *network.Instance
+	// Denotes that gateway is ready for repeated polling
 	isGatewayReady *uint32
+	// Denotes that the gateway has successfully contacted its node
+	// for the first time
+	gatewayFirstPoll *FirstTime
 
 	// Channels
 	createRoundQueue    round.Queue
@@ -74,9 +84,11 @@ type Instance struct {
 	overrideRound  int
 	panicWrapper   func(s string)
 
-	gatewayAddress string
-	gatewayVersion string
-	gatewayMutex   sync.RWMutex
+	gatewayAddress      string
+	gatewayVersion      string
+	gatewayMutex        sync.RWMutex
+	useNodeIpForGateway bool
+	gatewayAdvertisedIP string
 
 	serverVersion string
 
@@ -113,9 +125,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion: version,
-		firstRun:      &firstRun,
-		firstPoll:     &firstPoll,
+		useNodeIpForGateway: def.Gateway.UseNodeIp,
+		gatewayAdvertisedIP: def.Gateway.AdvertisedIP,
+		serverVersion:       version,
+		firstRun:            &firstRun,
+		firstPoll:           &firstPoll,
+		gatewayFirstPoll:    NewFirstTime(),
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -266,9 +281,14 @@ func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
 
-//GetGatewayFirstTime returns the structure which denotes if the node has been contacted by the gateway
-func (i *Instance) GetGatewayFirstTime() *FirstTime {
+//GetGatewayFirstPoll returns the structure which denotes if the node has been fully polled by the gateway
+func (i *Instance) GetGatewayFirstPoll() *FirstTime {
 	return i.gatewayPoll
+}
+
+//GetGatewayFirstPoll returns the structure which denotes if the node has been contacted by the gateway
+func (i *Instance) GetGatewayFirstContact() *FirstTime {
+	return i.gatewayFirstPoll
 }
 
 // GetNetwork returns the network object
@@ -403,7 +423,7 @@ func (i *Instance) SetGatewayAsReady() {
 	atomic.CompareAndSwapUint32(i.isGatewayReady, 0, 1)
 }
 
-func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*mixmessages.Ack, error) {
+func (i *Instance) SendRoundError(h *connect.Host, m *mixmessages.RoundError) (*messages.Ack, error) {
 	jww.FATAL.Printf("Sending round error to %+v\n", h)
 	return i.roundErrFunc(h, m)
 }
@@ -431,11 +451,42 @@ func (i *Instance) GetGatewayData() (addr string, ver string) {
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
 	i.gatewayMutex.Lock()
 	defer i.gatewayMutex.Unlock()
+
+	addr = i.getGatewayAdvertisedIP(addr)
+
 	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
 	if i.gatewayAddress != addr || i.gatewayVersion != ver {
 		(*i).gatewayAddress = addr
 		(*i).gatewayVersion = ver
 	}
+}
+
+// getGatewayAdvertisedIP returns the correct advertised IP for Gateway. If
+// useNodeIpForGateway is set, then a placeholder with the Gateway's IP is
+// returned. If gatewayAdvertisedIP is set, then it is returned. If neither is
+// set, then the original Gateway IP is returned.
+func (i *Instance) getGatewayAdvertisedIP(gatewayAddr string) string {
+	if gatewayAddr != "" {
+		if i.useNodeIpForGateway {
+			_, port, err := net.SplitHostPort(gatewayAddr)
+			if err != nil {
+				jww.FATAL.Panicf("Error parsing Gateway address %#v: %v", gatewayAddr, err)
+			}
+			addr := net.JoinHostPort(gatewayReplaceIpPlaceholder, port)
+			jww.TRACE.Printf("useNodeIpForGateway flag is set. Modified Gateway's "+
+				"address to %s", addr)
+
+			return addr
+		}
+
+		if i.gatewayAdvertisedIP != "" {
+			jww.TRACE.Printf("gatewayAdvertisedIP flag is set. Modified Gateway's "+
+				"address to %s", i.gatewayAdvertisedIP)
+			return i.gatewayAdvertisedIP
+		}
+	}
+
+	return gatewayAddr
 }
 
 /* TESTING FUNCTIONS */

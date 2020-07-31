@@ -100,6 +100,9 @@ func TestRegisterNode(t *testing.T) {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
 
+	// Upsert test data for gateway
+	instance.UpsertGatewayData("0.0.0.0:5289", "1.4")
+
 	// Add permissioning as a host
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
 		def.Permissioning.TlsCert, false, false)
@@ -121,7 +124,7 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Register node with permissioning
-	err = RegisterNode(def, instance.GetNetwork(), permHost)
+	err = RegisterNode(def, instance, permHost)
 	if err != nil {
 		t.Errorf("Failed to register node: %+v", err)
 	}
@@ -692,6 +695,9 @@ func TestRegistration(t *testing.T) {
 		gwConnected <- struct{}{}
 	}()
 
+	// Upsert test data for gateway
+	instance.UpsertGatewayData("0.0.0.0:5289", "1.4")
+
 	// Register the node in a separate thread and notify when finished
 	go func() {
 		// Fetch permissioning host
@@ -701,7 +707,7 @@ func TestRegistration(t *testing.T) {
 		}
 
 		// Register with node
-		err = RegisterNode(def, instance.GetNetwork(), permHost)
+		err = RegisterNode(def, instance, permHost)
 		if err != nil {
 			t.Error(err)
 		}

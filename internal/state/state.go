@@ -250,7 +250,7 @@ func (m Machine) WaitFor(timeout time.Duration, expected ...current.Activity) (c
 	m.RLock()
 
 	// channels to control and receive from the worker thread
-	kill := make(chan struct{})
+	kill := make(chan struct{}, 1) // Size set to 1 to avoid race conditions
 	done := make(chan error)
 
 	// Place values in expected into a map

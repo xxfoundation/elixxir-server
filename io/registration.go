@@ -13,7 +13,6 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
@@ -21,6 +20,7 @@ import (
 	"gitlab.com/elixxir/crypto/xx"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/xx_network/comms/connect"
 )
 
 // Handles a client request for a nonce during the client registration process

@@ -137,6 +137,13 @@ gateways:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
     # Required field.
     cert: "/opt/xxnetwork/creds/gateway-cert.crt"
+  # When set to true, the Node's public IP is used for Gateway. For use when the
+  # Gateway communicates to the Node via a local IP address.
+  # useNodeIp and AdvertisedIP cannot be set at the same time.
+  useNodeIp: false
+  # The address and port set here are used as the Gateway's public IP address.
+  # useNodeIp and AdvertisedIP cannot be set at the same time.
+  advertisedIP: ""
 
 permissioning:
   paths:
