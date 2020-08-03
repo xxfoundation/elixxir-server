@@ -80,12 +80,12 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return nonce, dhPub, err
 	}
 
-	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, error) {
-		bytes, err := ConfirmRegistration(instance, UserID, Signature, auth)
+	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, []byte, error) {
+		bytes, clientGWKey, err := ConfirmRegistration(instance, UserID, Signature, auth)
 		if err != nil {
 			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
 		}
-		return bytes, err
+		return bytes, clientGWKey, err
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		err := ReceivePostPrecompResult(instance, roundID, slots, auth)

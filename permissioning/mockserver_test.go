@@ -231,8 +231,8 @@ func (*mockGateway) GetMessage(userID *id.ID, msgID string, ipAddress string) (*
 	return nil, nil
 }
 
-func (*mockGateway) PutMessage(message *pb.Slot, ipAddress string) error {
-	return nil
+func (*mockGateway) PutMessage(message *pb.GatewaySlot, ipAddress string) (*pb.GatewaySlotResponse, error) {
+	return nil, nil
 }
 
 func (*mockGateway) RequestNonce(message *pb.NonceRequest, ipAddress string) (*pb.Nonce, error) {

@@ -344,7 +344,7 @@ func TestConfirmRegistration(t *testing.T) {
 	}
 
 	//call confirm
-	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -391,7 +391,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
 		&connect.Auth{
 			IsAuthenticated: false, // This is the crux of the test
 			Sender:          gwHost,
@@ -428,7 +428,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
 		&connect.Auth{
 			IsAuthenticated: true, // True for this test, we want bad sender ID
 			Sender:          gwHost,
@@ -465,7 +465,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -509,7 +509,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -534,7 +534,7 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err = ConfirmRegistration(serverInstance, user.ID, []byte("test"),
+	_, _, err = ConfirmRegistration(serverInstance, user.ID, []byte("test"),
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
