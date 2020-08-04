@@ -20,14 +20,15 @@ build:
 
 update_release:
 	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@release
+	GOFLAGS="" go get -u gitlab.com/xx_network/primitives@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/comms@release
 	GOFLAGS="" go get -u gitlab.com/elixxir/gpumathsgo@release
 	GOFLAGS="" go get -u gitlab.com/xx_network/comms@release
 
-
 update_master:
 	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@master
+	GOFLAGS="" go get -u gitlab.com/xx_network/primitives@master
 	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@master
 	GOFLAGS="" go get -u gitlab.com/elixxir/comms@master
 	GOFLAGS="" go get -u gitlab.com/xx_network/comms@master

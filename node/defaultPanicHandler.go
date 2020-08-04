@@ -9,8 +9,8 @@ package node
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/xx_network/primitives/id"
 )
 
 func GetDefaultPanicHanlder(i *internal.Instance, roundID id.Round) func(g, m string, err error) {

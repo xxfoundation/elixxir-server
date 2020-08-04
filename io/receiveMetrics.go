@@ -13,9 +13,9 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/xx_network/primitives/id"
 	"time"
 )
 
