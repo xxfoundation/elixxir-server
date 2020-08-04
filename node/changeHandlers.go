@@ -107,6 +107,7 @@ func NotStarted(instance *internal.Instance) error {
 	// String to look for the check for a reverse contact error.
 	// not panicking on these errors allows for better debugging
 	cannotPingErr := "cannot be contacted"
+	permissioningShuttingDownError := "transport is closing"
 
 	pollDelay := 1 * time.Second
 
@@ -201,7 +202,9 @@ func NotStarted(instance *internal.Instance) error {
 			if err != nil {
 				// do not error if the poll failed due to contact issues,
 				// this allows for better debugging
-				if strings.Contains(err.Error(), cannotPingErr) {
+				if strings.Contains(err.Error(), cannotPingErr) ||
+					strings.Contains(err.Error(), permissioningShuttingDownError) {
+
 					jww.ERROR.Printf("Your node is not online: %s", err.Error())
 					time.Sleep(pollDelay)
 				} else {
