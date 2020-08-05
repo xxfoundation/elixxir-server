@@ -10,10 +10,10 @@ package node
 import (
 	"bytes"
 	"encoding/json"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"path/filepath"
 	"reflect"

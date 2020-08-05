@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/xx_network/primitives/id"
 )
 
 // TransmitRoundTripPing sends a round trip ping and starts
