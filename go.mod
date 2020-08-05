@@ -22,12 +22,12 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.3
-	gitlab.com/elixxir/comms v0.0.0-20200804173225-11345b774364
-	gitlab.com/elixxir/crypto v0.0.0-20200804172431-132b6336c177
+	gitlab.com/elixxir/comms v0.0.0-20200804225939-84dbe3cccc62
+	gitlab.com/elixxir/crypto v0.0.0-20200804231945-1354885c51cd
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304
-	gitlab.com/elixxir/primitives v0.0.0-20200804170709-a1896d262cd9
-	gitlab.com/xx_network/comms v0.0.0-20200804173440-47aa0850e752
-	gitlab.com/xx_network/primitives v0.0.0-20200804174346-bfd30843a99b
+	gitlab.com/elixxir/primitives v0.0.0-20200804231232-ad79a9e8f113
+	gitlab.com/xx_network/comms v0.0.0-20200804225654-09a9af23d699
+	gitlab.com/xx_network/primitives v0.0.0-20200804183002-f99f7a7284da
 	golang.org/x/crypto v0.0.0-20200707235045-ab33eee955e0
 	google.golang.org/grpc v1.30.0
 	gopkg.in/ini.v1 v1.55.0 // indirect
@@ -35,6 +35,4 @@ require (
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
 )
 
-replace (
-	google.golang.org/grpc => github.com/grpc/grpc-go v1.27.1
-)
+replace google.golang.org/grpc => github.com/grpc/grpc-go v1.27.1
