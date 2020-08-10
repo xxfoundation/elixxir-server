@@ -15,7 +15,7 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/xx_network/comms/connect"
 
-	//"gitlab.com/elixxir/crypto/signature/rsa"
+	//"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"

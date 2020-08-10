@@ -14,8 +14,8 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/signature/rsa"
+	"gitlab.com/xx_network/crypto/nonce"
+	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"sync"
 )
