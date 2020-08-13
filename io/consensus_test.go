@@ -8,12 +8,13 @@ package io
 
 import (
 	"bytes"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/testUtil"
 	"testing"
 )
 
 func TestGetNdf(t *testing.T) {
-	instance, _, _, _, _, _, _ := setup(t)
+	instance, _, _ := createMockInstance(t, 0, current.REALTIME)
 
 	receivedNdf, err := GetNdf(instance)
 	if err != nil {
