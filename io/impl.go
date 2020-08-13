@@ -36,6 +36,15 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
+	impl.Functions.GetNdf = func() ([]byte, error) {
+		response, err := GetNdf(instance)
+		if err != nil {
+			jww.ERROR.Printf("GetNdf error: %v", err)
+		}
+
+		return response, err
+	}
+
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
 		err := ReceivePostPhase(batch, instance, auth)
 		if err != nil {
