@@ -252,16 +252,18 @@ func (*mockGateway) Poll(*pb.GatewayPoll) (*pb.GatewayPollResponse, error) {
 	return nil, nil
 }
 
-func (*mockGateway) RequestBloom(msg *pb.GetBloom) (*pb.GetBloomResponse, error) {
-	return nil, nil
-}
-
 func (*mockGateway) RequestHistoricalRounds(msg *pb.HistoricalRounds) (*pb.HistoricalRoundsResponse, error) {
 	return &pb.HistoricalRoundsResponse{}, nil
 }
 
+// Client -> Gateway message request
 func (*mockGateway) RequestMessages(msg *pb.GetMessages) (*pb.GetMessagesResponse, error) {
 	return &pb.GetMessagesResponse{}, nil
+}
+
+// Client -> Gateway bloom request
+func (*mockGateway) RequestBloom(msg *pb.GetBloom) (*pb.GetBloomResponse, error) {
+	return &pb.GetBloomResponse{}, nil
 }
 
 var dummyStates = [current.NUM_STATES]state.Change{
