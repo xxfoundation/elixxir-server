@@ -29,6 +29,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.3
+<<<<<<< HEAD
 	gitlab.com/elixxir/comms v0.0.0-20200730220537-60dbe58afe94
 	gitlab.com/elixxir/crypto v0.0.0-20200707005343-97f868cbd930
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304
@@ -36,6 +37,17 @@ require (
 	gitlab.com/xx_network/comms v0.0.0-20200730220144-eea32e8b696d
 	golang.org/x/crypto v0.0.0-20200707235045-ab33eee955e0
 	google.golang.org/grpc v1.30.0
+=======
+	gitlab.com/elixxir/comms v0.0.0-20200813225502-e879259ca741
+	gitlab.com/elixxir/crypto v0.0.0-20200811195343-de268a55c7c4
+	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304
+	gitlab.com/elixxir/primitives v0.0.0-20200812191102-31c01f08b4dc
+	gitlab.com/xx_network/comms v0.0.0-20200818182121-732dd75b1947
+	gitlab.com/xx_network/crypto v0.0.0-20200812183430-c77a5281c686
+	gitlab.com/xx_network/primitives v0.0.0-20200812183720-516a65a4a9b2
+	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+	google.golang.org/grpc v1.31.0
+>>>>>>> 12d182fc... Made RegisterNode pass in Salt
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect

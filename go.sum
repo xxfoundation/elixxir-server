@@ -197,9 +197,20 @@ github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
+<<<<<<< HEAD
 gitlab.com/elixxir/comms v0.0.0-20200707210150-b8ebd0951d23/go.mod h1:OsWMZ1O/R9fOkm+PoHnR3rkXfFtipGoPs73FuKuurHY=
 gitlab.com/elixxir/comms v0.0.0-20200730220537-60dbe58afe94 h1:AY3Nm9QXAh8jRUyKdX0jsay4A4j4z7/ofJgJKbvIFmc=
 gitlab.com/elixxir/comms v0.0.0-20200730220537-60dbe58afe94/go.mod h1:rlB+AA0mNMRq9GIR587cNw5RX4Cr8VOiVpZkFTTcukQ=
+=======
+github.com/zeebo/assert v0.0.0-20181109011804-10f827ce2ed6/go.mod h1:yssERNPivllc1yU3BvpjYI5BUW+zglcz6QWqeVRL5t0=
+github.com/zeebo/assert v1.1.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
+github.com/zeebo/blake3 v0.0.4/go.mod h1:YOZo8A49yNqM0X/Y+JmDUZshJWLt1laHsNSn5ny2i34=
+github.com/zeebo/pcg v0.0.0-20181207190024-3cdc6b625a05/go.mod h1:Gr+78ptB0MwXxm//LBaEvBiaXY7hXJ6KGe2V32X2F6E=
+gitlab.com/elixxir/comms v0.0.0-20200813225502-e879259ca741 h1:yIjgre8xSDpnhJkDzTr1lgR7NC1bPWCk2Sgn8udiS2A=
+gitlab.com/elixxir/comms v0.0.0-20200813225502-e879259ca741/go.mod h1:hEi6dhcR1v6TGcp3tBy+QFuE25zux206xymuB+PpUqs=
+gitlab.com/elixxir/comms v0.0.0-20200818185612-c73e285ad13f h1:WfVyRzkqG/VJ2sreOyLzL90FZMayS/wo0B20/EB3QMo=
+gitlab.com/elixxir/comms v0.0.0-20200818185612-c73e285ad13f/go.mod h1:1mS46sceMJ2z38NRCkFbMIya+9XqSb9+FkA6QAPC5I8=
+>>>>>>> 12d182fc... Made RegisterNode pass in Salt
 gitlab.com/elixxir/crypto v0.0.0-20200612160324-a76e4451ae25 h1:tmlSzEfPD+ddB2AOvM5Bu7mQZA9XDg9BdkJpdJj2nsM=
 gitlab.com/elixxir/crypto v0.0.0-20200612160324-a76e4451ae25/go.mod h1:SpcmFZ4baOMRxH7qo2myvYFNr8/bz9ItYzVo5Q2Ld1k=
 gitlab.com/elixxir/crypto v0.0.0-20200707005343-97f868cbd930 h1:9qzfwyR12OYgn3j30qcHZHHVfWshWnH54lcAHppEROQ=
@@ -208,10 +219,43 @@ gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304 h1:pK9IXv2s7Y
 gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304/go.mod h1:PymVIFnQSHltaQqwjUTbvSnT9FNViO3XkuNiP9m65vM=
 gitlab.com/elixxir/primitives v0.0.0-20200608222556-1d2c04e59346 h1:o+7DerjZ6EinUowEFWwaQSmRabiekqjV8jD1UZRXaa4=
 gitlab.com/elixxir/primitives v0.0.0-20200608222556-1d2c04e59346/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
+<<<<<<< HEAD
 gitlab.com/elixxir/primitives v0.0.0-20200706165052-9fe7a4fb99a3 h1:GTfflZBNLeBq3UApYog0J3+hytdkoRsDduGQji2wyEU=
 gitlab.com/elixxir/primitives v0.0.0-20200706165052-9fe7a4fb99a3/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
 gitlab.com/xx_network/comms v0.0.0-20200730220144-eea32e8b696d h1:P4ceawldsxuwQ6LZHnUnemtiOJI9/QquYi8QkFuUbtI=
 gitlab.com/xx_network/comms v0.0.0-20200730220144-eea32e8b696d/go.mod h1:76OCijGBxYOBV5Kt7z6K7vNg3n9I57aCQMmI8GTpoEM=
+=======
+gitlab.com/elixxir/primitives v0.0.0-20200731184040-494269b53b4d h1:OKWTmYN5q8XVHo8JXThIH0TCuvl/fLXR7MGVacpqfRg=
+gitlab.com/elixxir/primitives v0.0.0-20200731184040-494269b53b4d/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
+gitlab.com/elixxir/primitives v0.0.0-20200804170709-a1896d262cd9 h1:o0P00afLOlI3/98DR3G5IfGSTAO1ab/uzhPYzxE/Kcg=
+gitlab.com/elixxir/primitives v0.0.0-20200804170709-a1896d262cd9/go.mod h1:p0VelQda72OzoUckr1O+vPW0AiFe0nyKQ6gYcmFSuF8=
+gitlab.com/elixxir/primitives v0.0.0-20200804182913-788f47bded40 h1:S1cyRivF4MywQX10K8cGXux6Pbwy5dbWhsxs56G+8hs=
+gitlab.com/elixxir/primitives v0.0.0-20200804182913-788f47bded40/go.mod h1:tzdFFvb1ESmuTCOl1z6+yf6oAICDxH2NPUemVgoNLxc=
+gitlab.com/elixxir/primitives v0.0.0-20200804231232-ad79a9e8f113 h1:66qCDQobeKqfiuFjzWaMysJxa58AedSj6X2o/TCLaqU=
+gitlab.com/elixxir/primitives v0.0.0-20200804231232-ad79a9e8f113/go.mod h1:tzdFFvb1ESmuTCOl1z6+yf6oAICDxH2NPUemVgoNLxc=
+gitlab.com/elixxir/primitives v0.0.0-20200805174810-86b366d1dd2d h1:ky5oz0D2EmOzk2n/A6Ugwj7S1B6rftxMJwc19sjGkz8=
+gitlab.com/elixxir/primitives v0.0.0-20200805174810-86b366d1dd2d/go.mod h1:tzdFFvb1ESmuTCOl1z6+yf6oAICDxH2NPUemVgoNLxc=
+gitlab.com/elixxir/primitives v0.0.0-20200812191102-31c01f08b4dc h1:43innow2sbJLflB73gwS8gg1meInFXNA1LGYeeDQ6lw=
+gitlab.com/elixxir/primitives v0.0.0-20200812191102-31c01f08b4dc/go.mod h1:pJx2DZk9s8vVMnLN7x0hIPngDjbNSdOP6kk3RLlRxHg=
+gitlab.com/xx_network/comms v0.0.0-20200805174823-841427dd5023/go.mod h1:owEcxTRl7gsoM8c3RQ5KAm5GstxrJp5tn+6JfQ4z5Hw=
+gitlab.com/xx_network/comms v0.0.0-20200812204124-8dc2a2a1b9ca h1:Z1ubeattVNEdW5f4jl2KXVyEHoRKKZOV0393bg56xV0=
+gitlab.com/xx_network/comms v0.0.0-20200812204124-8dc2a2a1b9ca/go.mod h1:idLzPGYig57XE7xuU93OlIF9s6NgSJj7OArQvsd5DjY=
+gitlab.com/xx_network/comms v0.0.0-20200818182121-732dd75b1947 h1:g0k4nP0o/6qkh09F9d/Fy7Ys93fkyZU+kK71JviLdMg=
+gitlab.com/xx_network/comms v0.0.0-20200818182121-732dd75b1947/go.mod h1:idLzPGYig57XE7xuU93OlIF9s6NgSJj7OArQvsd5DjY=
+gitlab.com/xx_network/crypto v0.0.0-20200806202113-978fa1984bbf/go.mod h1:i0df/q6dDCBiscgD51fMoS2U2TBrm6LcyN822JmB5Tw=
+gitlab.com/xx_network/crypto v0.0.0-20200806235322-ede3c15881ce h1:gypNBUl2guESEv4MDgH+miwYqR4jPoWM8dLt2Zs5gIs=
+gitlab.com/xx_network/crypto v0.0.0-20200806235322-ede3c15881ce/go.mod h1:i0df/q6dDCBiscgD51fMoS2U2TBrm6LcyN822JmB5Tw=
+gitlab.com/xx_network/crypto v0.0.0-20200812183430-c77a5281c686 h1:XP7U93c2gk08fs5RkNwtnQ+C+/tAT0AYuPC4xy8GF1A=
+gitlab.com/xx_network/crypto v0.0.0-20200812183430-c77a5281c686/go.mod h1:i0df/q6dDCBiscgD51fMoS2U2TBrm6LcyN822JmB5Tw=
+gitlab.com/xx_network/primitives v0.0.0-20200803231956-9b192c57ea7c h1:tGe3QtCC6St63FuxVAaDtHSx0BCNqzCsfjbRo5jacWM=
+gitlab.com/xx_network/primitives v0.0.0-20200803231956-9b192c57ea7c/go.mod h1:wtdCMr7DPePz9qwctNoAUzZtbOSHSedcK++3Df3psjA=
+gitlab.com/xx_network/primitives v0.0.0-20200804183002-f99f7a7284da h1:CCVslUwNC7Ul7NG5nu3ThGTSVUt1TxNRX+47f5TUwnk=
+gitlab.com/xx_network/primitives v0.0.0-20200804183002-f99f7a7284da/go.mod h1:OK9xevzWCaPO7b1wiluVJGk7R5ZsuC7pHY5hteZFQug=
+gitlab.com/xx_network/primitives v0.0.0-20200812183720-516a65a4a9b2 h1:Jvv2fLk+2ULDCXiVTPI8Jlg2fBrmq2NSA+dlsN5t2Pk=
+gitlab.com/xx_network/primitives v0.0.0-20200812183720-516a65a4a9b2/go.mod h1:OK9xevzWCaPO7b1wiluVJGk7R5ZsuC7pHY5hteZFQug=
+gitlab.com/xx_network/ring v0.0.2 h1:TlPjlbFdhtJrwvRgIg4ScdngMTaynx/ByHBRZiXCoL0=
+gitlab.com/xx_network/ring v0.0.2/go.mod h1:aLzpP2TiZTQut/PVHR40EJAomzugDdHXetbieRClXIM=
+>>>>>>> 12d182fc... Made RegisterNode pass in Salt
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=
