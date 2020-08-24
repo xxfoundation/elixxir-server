@@ -198,8 +198,8 @@ github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGr
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 gitlab.com/elixxir/comms v0.0.0-20200707210150-b8ebd0951d23/go.mod h1:OsWMZ1O/R9fOkm+PoHnR3rkXfFtipGoPs73FuKuurHY=
-gitlab.com/elixxir/comms v0.0.0-20200820194546-0881d5e2fd51 h1:Wg7vorFI9yO+CrIhEOFuW0fJcM31tvBYEq/2wV3fKmo=
-gitlab.com/elixxir/comms v0.0.0-20200820194546-0881d5e2fd51/go.mod h1:HiSOYK9J3gckXygXqAWuuYXPbG7ZBv5OZ6AvGj+A/qs=
+gitlab.com/elixxir/comms v0.0.0-20200820212104-7d54af613a75 h1:yng9GhldVufuAKycKLmqUmSvm8uAr841/Dmi5azTi8s=
+gitlab.com/elixxir/comms v0.0.0-20200820212104-7d54af613a75/go.mod h1:VtMYqSprauTHtbeLchSoUdABX0LD6vR7khlYaREQejU=
 gitlab.com/elixxir/crypto v0.0.0-20200612160324-a76e4451ae25/go.mod h1:SpcmFZ4baOMRxH7qo2myvYFNr8/bz9ItYzVo5Q2Ld1k=
 gitlab.com/elixxir/crypto v0.0.0-20200707005343-97f868cbd930 h1:9qzfwyR12OYgn3j30qcHZHHVfWshWnH54lcAHppEROQ=
 gitlab.com/elixxir/crypto v0.0.0-20200707005343-97f868cbd930/go.mod h1:LHBAaEf48a0/AjU118rjoworH0LgXifhAqmNX3ZRvME=
@@ -212,8 +212,8 @@ gitlab.com/elixxir/primitives v0.0.0-20200706165052-9fe7a4fb99a3 h1:GTfflZBNLeBq
 gitlab.com/elixxir/primitives v0.0.0-20200706165052-9fe7a4fb99a3/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
 gitlab.com/elixxir/primitives v0.0.0-20200708185800-a06e961280e6 h1:7xLD8w5qAKN1YqG2UiMiN3rODUACyQME83uDlVhvWLo=
 gitlab.com/elixxir/primitives v0.0.0-20200708185800-a06e961280e6/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
-gitlab.com/xx_network/comms v0.0.0-20200731174953-53980d88816e h1:P8Nt1WdTwkHC0JT0Hc9NaQgVN2g5WkClx7kHYnuZb+Q=
-gitlab.com/xx_network/comms v0.0.0-20200731174953-53980d88816e/go.mod h1:76OCijGBxYOBV5Kt7z6K7vNg3n9I57aCQMmI8GTpoEM=
+gitlab.com/xx_network/comms v0.0.0-20200820210701-016f5017b13c h1:EHyp6GAXuT0/P3R9+9yUEaw0A8BZcSIC2Tfow11//ew=
+gitlab.com/xx_network/comms v0.0.0-20200820210701-016f5017b13c/go.mod h1:J+GJ6fn71a4xnYVvbcrhtvWSOQIqqhaGcaej5xB3/JY=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=

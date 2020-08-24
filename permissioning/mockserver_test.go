@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/gateway"
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -27,27 +26,24 @@ import (
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
-	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
 
-var nodeId *id.ID
-var permComms *registration.Comms
-var gwComms *gateway.Comms
-var testNdf *ndf.NetworkDefinition
-var pAddr string
-var cnt = 0
-var nodeAddr string
+var count = 0
+var countLock sync.Mutex
 
 // --------------------------------Dummy implementation of permissioning server --------------------------------
-type mockPermission struct{}
+type mockPermission struct {
+	cert []byte
+	key  []byte
+}
 
 func (i *mockPermission) PollNdf([]byte, *connect.Auth) ([]byte, error) {
 	return nil, nil
@@ -69,8 +65,14 @@ func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb
 	fullNDFMsg := &pb.NDF{Ndf: fullNdf}
 	partialNDFMsg := &pb.NDF{Ndf: stripNdf}
 
-	signNdf(fullNDFMsg)
-	signNdf(partialNDFMsg)
+	err := signNdf(fullNDFMsg, i.key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign full ndf: %+v", err)
+	}
+	err = signNdf(partialNDFMsg, i.key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign partial ndf: %+v", err)
+	}
 
 	return &pb.PermissionPollResponse{
 		FullNDF:    fullNDFMsg,
@@ -91,7 +93,10 @@ func (i *mockPermission) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
 }
 
 // --------------------------------Dummy implementation of permissioning server --------------------------------
-type mockPermissionMultipleRounds struct{}
+type mockPermissionMultipleRounds struct {
+	cert []byte
+	key  []byte
+}
 
 func (i *mockPermissionMultipleRounds) PollNdf([]byte, *connect.Auth) ([]byte, error) {
 	return nil, nil
@@ -117,10 +122,19 @@ func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth
 	fullNDFMsg := &pb.NDF{Ndf: fullNdf}
 	partialNDFMsg := &pb.NDF{Ndf: stripNdf}
 
-	signNdf(fullNDFMsg)
-	signNdf(partialNDFMsg)
+	err := signNdf(fullNDFMsg, i.key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign full ndf: %+v", err)
+	}
+	err = signNdf(partialNDFMsg, i.key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign partial ndf: %+v", err)
+	}
 
-	ourRoundInfoList := buildRoundInfoMessages()
+	ourRoundInfoList, err := buildRoundInfoMessages(i.key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to build round info message: %+v", err)
+	}
 
 	return &pb.PermissionPollResponse{
 		FullNDF:    fullNDFMsg,
@@ -129,7 +143,7 @@ func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth
 	}, nil
 }
 
-func buildRoundInfoMessages() []*pb.RoundInfo {
+func buildRoundInfoMessages(key []byte) ([]*pb.RoundInfo, error) {
 	numUpdates := uint64(0)
 
 	node1 := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
@@ -156,7 +170,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	}
 
 	// Mocking permissioning server signing message
-	signRoundInfo(precompRoundInfo)
+	err := signRoundInfo(precompRoundInfo, key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign precomp round info: %+v", err)
+	}
 
 	// Increment updates id for next message
 	numUpdates++
@@ -171,7 +188,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	}
 
 	// Mocking permissioning server signing message
-	signRoundInfo(standbyRoundInfo)
+	err = signRoundInfo(standbyRoundInfo, key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign standby round info: %+v", err)
+	}
 
 	// Increment updates id for next message
 	numUpdates++
@@ -189,7 +209,10 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	}
 
 	// Set the signature field of the round info
-	signRoundInfo(newNodeRoundInfo)
+	err = signRoundInfo(newNodeRoundInfo, key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign new node round info: %+v", err)
+	}
 
 	// Increment updates id for next message
 	numUpdates++
@@ -207,9 +230,12 @@ func buildRoundInfoMessages() []*pb.RoundInfo {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(realtimeRoundInfo)
+	err = signRoundInfo(realtimeRoundInfo, key)
+	if err != nil {
+		return nil, errors.Errorf("Failed to sign realtime round info: %+v", err)
+	}
 
-	return []*pb.RoundInfo{precompRoundInfo, standbyRoundInfo, newNodeRoundInfo, realtimeRoundInfo}
+	return []*pb.RoundInfo{precompRoundInfo, standbyRoundInfo, newNodeRoundInfo, realtimeRoundInfo}, nil
 }
 
 func (i *mockPermissionMultipleRounds) GetCurrentClientVersion() (string, error) {
@@ -217,38 +243,6 @@ func (i *mockPermissionMultipleRounds) GetCurrentClientVersion() (string, error)
 }
 
 func (i *mockPermissionMultipleRounds) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
-	return nil, nil
-}
-
-// --------------------------Dummy implementation of gateway server --------------------------------------
-type mockGateway struct{}
-
-func (*mockGateway) CheckMessages(userID *id.ID, messageID string, ipAddress string) ([]string, error) {
-	return nil, nil
-}
-
-func (*mockGateway) GetMessage(userID *id.ID, msgID string, ipAddress string) (*pb.Slot, error) {
-	return nil, nil
-}
-
-func (*mockGateway) PutMessage(message *pb.Slot, ipAddress string) error {
-	return nil
-}
-
-func (*mockGateway) RequestNonce(message *pb.NonceRequest, ipAddress string) (*pb.Nonce, error) {
-	return nil, nil
-}
-
-func (*mockGateway) ConfirmNonce(message *pb.RequestRegistrationConfirmation, ipAddress string) (*pb.
-	RegistrationConfirmation, error) {
-	return nil, nil
-}
-
-func (*mockGateway) PollForNotifications(auth *connect.Auth) ([]*id.ID, error) {
-	return nil, nil
-}
-
-func (*mockGateway) Poll(*pb.GatewayPoll) (*pb.GatewayPollResponse, error) {
 	return nil, nil
 }
 
@@ -261,26 +255,6 @@ var dummyStates = [current.NUM_STATES]state.Change{
 	func(from current.Activity) error { return nil },
 	func(from current.Activity) error { return nil },
 	func(from current.Activity) error { return nil },
-}
-
-func mockServerDef(i interface{}) *internal.Definition {
-	nid := internal.GenerateId(i)
-
-	resourceMetric := measure.ResourceMetric{
-		Time:          time.Now(),
-		MemAllocBytes: 0,
-		NumThreads:    0,
-	}
-	resourceMonitor := measure.ResourceMonitor{}
-	resourceMonitor.Set(resourceMetric)
-
-	def := internal.Definition{
-		ID:              nid,
-		ResourceMonitor: &resourceMonitor,
-		FullNDF:         testUtil.NDF,
-	}
-
-	return &def
 }
 
 // ------------------------------ Utility functions for testing purposes  ----------------------------------------------
@@ -297,61 +271,42 @@ func builEmptydMockNdf() *ndf.NetworkDefinition {
 	return ourMockNdf
 }
 
-func buildMockNdf(nodeId *id.ID, nodeAddress, gwAddress string, cert, key []byte) {
-	node := ndf.Node{
-		ID:             nodeId.Bytes(),
-		TlsCertificate: string(cert),
-		Address:        nodeAddress,
-	}
-	gw := ndf.Gateway{
-		Address:        gwAddress,
-		TlsCertificate: string(cert),
-	}
-	mockGroup := ndf.Group{
-		Prime:      "25",
-		SmallPrime: "42",
-		Generator:  "2",
-	}
-	testNdf = &ndf.NetworkDefinition{
-		Timestamp: time.Now(),
-		Nodes:     []ndf.Node{node},
-		Gateways:  []ndf.Gateway{gw},
-		E2E:       mockGroup,
-		CMIX:      mockGroup,
-		UDB:       ndf.UDB{},
-	}
-}
-
 // Utility function which signs an ndf message
-func signNdf(ourNdf *pb.NDF) error {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+func signNdf(ourNdf *pb.NDF, key []byte) error {
+	pk, err := tls.LoadRSAPrivateKey(string(key))
 	if err != nil {
 		return errors.Errorf("couldn't load privKey: %+v", err)
 	}
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	signature.Sign(ourNdf, ourPrivKey)
+	err = signature.Sign(ourNdf, ourPrivKey)
+	if err != nil {
+		return errors.Errorf("Failed to sign ndf: %+v", err)
+	}
 
 	return nil
 }
 
 // Utility function which signs a round info message
-func signRoundInfo(ri *pb.RoundInfo) error {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+func signRoundInfo(ri *pb.RoundInfo, key []byte) error {
+	pk, err := tls.LoadRSAPrivateKey(string(key))
 	if err != nil {
 		return errors.Errorf("couldn't load privKey: %+v", err)
 	}
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	signature.Sign(ri, ourPrivKey)
+	err = signature.Sign(ri, ourPrivKey)
+	if err != nil {
+		return errors.Errorf("Failed to sign round info: %+v", err)
+	}
 	return nil
 }
 
 // Utility function which builds a signed full-ndf message
-func setupFullNdf() (*pb.NDF, error) {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+func setupFullNdf(key []byte) (*pb.NDF, error) {
+	pk, err := tls.LoadRSAPrivateKey(string(key))
 	if err != nil {
 		return nil, errors.Errorf("couldn't load privKey: %+v", err)
 	}
@@ -359,14 +314,13 @@ func setupFullNdf() (*pb.NDF, error) {
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
 	f := &mixmessages.NDF{}
-	tmpNdf, _, _ := ndf.DecodeNDF(testUtil.ExampleJSON)
+	tmpNdf, _, err := ndf.DecodeNDF(testUtil.ExampleJSON)
+	if err != nil {
+		return nil, errors.Errorf("Failed to decode NDF: %+v", err)
+	}
 	f.Ndf, err = tmpNdf.Marshal()
 	if err != nil {
 		return nil, errors.Errorf("Failed to marshal ndf: %+v", err)
-	}
-
-	if err != nil {
-		return nil, errors.Errorf("Could not generate serialized ndf: %s", err)
 	}
 
 	err = signature.Sign(f, ourPrivKey)
@@ -375,8 +329,8 @@ func setupFullNdf() (*pb.NDF, error) {
 }
 
 // Utility function which builds a signed partial-ndf message
-func setupPartialNdf() (*pb.NDF, error) {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+func setupPartialNdf(key []byte) (*pb.NDF, error) {
+	pk, err := tls.LoadRSAPrivateKey(string(key))
 	if err != nil {
 		return nil, errors.Errorf("couldn't load privKey: %+v", err)
 	}
@@ -398,14 +352,17 @@ func setupPartialNdf() (*pb.NDF, error) {
 }
 
 // Utility function which creates an instance
-func createServerInstance(t *testing.T) (*internal.Instance, error) {
-	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
+	nodeAddr string, nodeId *id.ID, cert, key []byte, err error) {
+	cert, _ = utils.ReadFile(testkeys.GetNodeCertPath())
+	key, _ = utils.ReadFile(testkeys.GetNodeKeyPath())
 
 	nodeId = id.NewIdFromUInt(uint64(0), id.Node, t)
-	nodeAddr = fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
-	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
-	cnt++
+	countLock.Lock()
+	nodeAddr = fmt.Sprintf("0.0.0.0:%d", 7200+count)
+	pAddr = fmt.Sprintf("0.0.0.0:%d", 2200+count)
+	count++
+	countLock.Unlock()
 	// Build the node
 	emptyNdf := builEmptydMockNdf()
 	// Initialize definition
@@ -421,7 +378,7 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 		MetricLogPath: "",
 		UserRegistry:  nil,
 		Permissioning: internal.Perm{
-			TlsCert: []byte(testUtil.RegCert),
+			TlsCert: cert,
 			Address: pAddr,
 		},
 		RegistrationCode: "",
@@ -440,7 +397,7 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 	sm := state.NewMachine(dummyStates)
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
-		return nil, errors.Errorf("Failed to prep state machine: %+v", err)
+		return
 	}
 
 	// Add handler for instance
@@ -449,31 +406,32 @@ func createServerInstance(t *testing.T) (*internal.Instance, error) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm,
+	instance, err = internal.CreateServerInstance(def, impl, sm,
 		"1.1.0")
 	if err != nil {
-		return nil, errors.Errorf("Unable to create instance: %+v", err)
+		return
 	}
 
 	// Add permissioning as a host
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
 		def.Permissioning.TlsCert, false, false)
 	if err != nil {
-		return nil, errors.Errorf("Failed to add permissioning host: %+v", err)
+		return
 	}
 
-	return instance, nil
+	err = nil
+	return
 }
 
 // Utility function which starts up a permissioning server
-func startPermissioning() (*registration.Comms, error) {
-
-	cert := []byte(testUtil.RegCert)
-	key := []byte(testUtil.RegPrivKey)
+func startPermissioning(pAddr, nAddr string, nodeId *id.ID, cert, key []byte) (*registration.Comms, error) {
 	// Initialize permissioning server
-	pHandler := registration.Handler(&mockPermission{})
-	permComms = registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId, pAddr, cert, false, false)
+	pHandler := registration.Handler(&mockPermission{
+		cert: cert,
+		key:  key,
+	})
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	_, err := permComms.AddHost(nodeId, nAddr, cert, false, false)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
 	}
@@ -481,30 +439,14 @@ func startPermissioning() (*registration.Comms, error) {
 	return permComms, nil
 }
 
-func startGateway() (*gateway.Comms, error) {
-	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
-
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 5000+rand.Intn(1000))
-	gHandler := gateway.Handler(&mockGateway{})
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-	gwComms = gateway.StartGateway(gwID, gAddr, gHandler, cert, key)
-	_, err := gwComms.AddHost(nodeId, nodeAddr, cert, false, false)
-	if err != nil {
-		return nil, err
-	}
-
-	return gwComms, nil
-}
-
-func startMultipleRoundUpdatesPermissioning() (*registration.Comms, error) {
-	cert := []byte(testUtil.RegCert)
-	key := []byte(testUtil.RegPrivKey)
+func startMultipleRoundUpdatesPermissioning(pAddr, nAddr string, nodeId *id.ID, cert, key []byte) (*registration.Comms, error) {
 	// Initialize permissioning server
-	pHandler := registration.Handler(&mockPermissionMultipleRounds{})
-	permComms = registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId, pAddr, cert, false, false)
+	pHandler := registration.Handler(&mockPermissionMultipleRounds{
+		cert: cert,
+		key:  key,
+	})
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	_, err := permComms.AddHost(nodeId, nAddr, cert, false, false)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
 	}
