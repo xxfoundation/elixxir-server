@@ -31,6 +31,8 @@ type Definition struct {
 
 	//The ID of the node in the correct format
 	ID *id.ID
+	// The Salt used to generate the Node ID
+	Salt []byte
 
 	//DSA Keys defining the node's ownership
 	PublicKey  *rsa.PublicKey

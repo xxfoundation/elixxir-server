@@ -49,7 +49,7 @@ func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byt
 	return nil, i.err
 }
 
-func (i *mockPermission) RegisterNode(*id.ID, string, string, string, string, string) error {
+func (i *mockPermission) RegisterNode([]byte, string, string, string, string, string) error {
 	return i.err
 }
 

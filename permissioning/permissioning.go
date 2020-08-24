@@ -51,7 +51,7 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	// Attempt Node registration
 	err = instance.GetNetwork().SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
-			ID:               def.ID.Bytes(),
+			Salt:             def.Salt,
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
 			GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
