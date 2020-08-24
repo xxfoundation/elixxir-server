@@ -239,12 +239,10 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	// Check if the IDF exists
 	if p.Node.Paths.Idf != "" && utils.Exists(p.Node.Paths.Idf) {
 		// If the IDF exists, then get the ID and save it
-		_, newID, err2 := idf.UnloadIDF(p.Node.Paths.Idf)
-		if err2 != nil {
-			return nil, errors.Errorf("Could not unload IDF: %+v", err2)
+		def.Salt, def.ID, err = idf.UnloadIDF(p.Node.Paths.Idf)
+		if err != nil {
+			return nil, errors.Errorf("Could not unload IDF: %+v", err)
 		}
-
-		def.ID = newID
 	} else {
 		// If the IDF does not exist, then generate a new ID, save it to an IDF,
 		// and save the ID to the definition
