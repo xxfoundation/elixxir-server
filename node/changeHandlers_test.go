@@ -103,14 +103,6 @@ func TestNewStateChanges(t *testing.T) {
 	}
 }
 
-/*func TestNotStarted_RoundError(t *testing.T) {
-	instance, _ := setup(t)
-	err := NotStarted(instance, true)
-	if err != nil {
-		t.Error(err)
-	}
-}*/
-
 func TestError(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
@@ -301,8 +293,8 @@ func TestPrecomputing_override(t *testing.T) {
 	}
 
 	rnd, _ := instance.GetRoundManager().GetRound(id.Round(1))
-	phase, _ := rnd.GetPhase(phase.PrecompGeneration)
-	if phase.GetTimeout() != 30127 {
+	precompPhase, _ := rnd.GetPhase(phase.PrecompGeneration)
+	if precompPhase.GetTimeout() != 30127 {
 		t.Error("Failed to override phase")
 	}
 }
@@ -310,13 +302,15 @@ func TestPrecomputing_override(t *testing.T) {
 // Smoke test: does isRegistered communicate with permissioning server?
 func TestIsRegistered(t *testing.T) {
 	// Create instance
-	instance, err := createServerInstance(t)
+	instance, pAddr, nAddr, nodeId, cert, key, err := createServerInstance(t)
+
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
 	// Start up permissioning server
-	permComms, mockPermissioning, err := startPermissioning()
+	permComms, mockPermissioning, err := startPermissioning(pAddr, nAddr, nodeId, cert, key, t)
+
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
