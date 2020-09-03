@@ -80,7 +80,7 @@ func TestPhase_GetState(t *testing.T) {
 
 func TestPhase_GetType(t *testing.T) {
 	phaseType := PrecompGeneration
-	p := phase{tYpe: phaseType}
+	p := phase{phaseType: phaseType}
 	if p.GetType() != phaseType {
 		t.Error("Type was different")
 	}
@@ -94,13 +94,13 @@ func TestPhase_Cmp(t *testing.T) {
 	phaseType := uint32(2)
 	roundID := id.Round(258)
 	p := &phase{
-		roundID: roundID,
-		tYpe:    Type(phaseType),
+		roundID:   roundID,
+		phaseType: Type(phaseType),
 	}
 
 	p2 := &phase{
-		roundID: roundID + 1,
-		tYpe:    Type(phaseType + 1),
+		roundID:   roundID + 1,
+		phaseType: Type(phaseType + 1),
 	}
 
 	if !p.Cmp(p) {
@@ -116,20 +116,20 @@ func TestPhase_Stringer(t *testing.T) {
 	phaseType := uint32(2)
 	roundID := id.Round(258)
 	p := &phase{
-		roundID: roundID,
-		tYpe:    Type(phaseType),
+		roundID:   roundID,
+		phaseType: Type(phaseType),
 	}
 
 	p2 := &phase{
-		roundID: roundID + 1,
-		tYpe:    Type(phaseType + 1),
+		roundID:   roundID + 1,
+		phaseType: Type(phaseType + 1),
 	}
 
 	pStr := fmt.Sprintf("phase.phase{roundID: %v, phaseType: %s}",
-		p.roundID, p.tYpe)
+		p.roundID, p.phaseType)
 
 	p2Str := fmt.Sprintf("phase.phase{roundID: %v, phaseType: %s}",
-		p2.roundID, p2.tYpe)
+		p2.roundID, p2.phaseType)
 
 	if p.String() != pStr {
 		t.Errorf("phase.String: Returned incorrect string, Expected: %s, Received: %s",
@@ -233,8 +233,8 @@ func TestNew(t *testing.T) {
 // metric does not exist
 func TestPhase_Measure(t *testing.T) {
 	p := &phase{
-		roundID: 0,
-		tYpe:    RealPermute,
+		roundID:   0,
+		phaseType: RealPermute,
 	}
 
 	for i := 0; i < 10; i++ {
