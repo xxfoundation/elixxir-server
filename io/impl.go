@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/interconnect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"time"
@@ -36,13 +37,15 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
-	impl.Functions.GetNdf = func() ([]byte, error) {
+	impl.Functions.GetNdf = func() (*interconnect.NDF, error) {
 		response, err := GetNdf(instance)
 		if err != nil {
 			jww.ERROR.Printf("GetNdf error: %v", err)
 		}
 
-		return response, err
+		return &interconnect.NDF{
+			Ndf: response,
+		}, err
 	}
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {

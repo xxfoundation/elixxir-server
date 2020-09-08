@@ -17,6 +17,7 @@ import (
 	"gitlab.com/xx_network/crypto/nonce"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
+	"strconv"
 	"sync"
 )
 
@@ -103,7 +104,7 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	usr.ID.SetType(id.User)
 
 	h.Reset()
-	h.Write([]byte(string(40000 + i)))
+	h.Write([]byte(strconv.Itoa(int(4000 + i))))
 	usr.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
 	usr.RsaPublicKey = nil
 
