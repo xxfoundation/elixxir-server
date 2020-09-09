@@ -103,7 +103,7 @@ func TestSendFinishRealtime(t *testing.T) {
 	}
 
 	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
+		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
 			"number of chunks; expected: %v, received: %v", numSlots,
 			len(cr.Round))
 	}
@@ -207,7 +207,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	}
 
 	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
+		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
 			"number of chunks; expected: %v, received: %v", numSlots,
 			len(cr.Round))
 	}

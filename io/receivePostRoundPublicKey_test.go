@@ -255,7 +255,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	// Verify that a PostPhase is called by ensuring callback
 	// does set the actual by comparing it to the expected batch
 	if uint32(len(mockPhaseDecrypt.GetIndices())) != batchSize {
-		t.Errorf("first node did not recieve the correct number of " +
+		t.Errorf("first node did not receive the correct number of " +
 			"elements")
 	}
 
