@@ -35,7 +35,7 @@ func TestFirstTime_Send(t *testing.T) {
 	}
 }
 
-//tests that recieving works and waits until the send occurs
+//tests that receiving works and waits until the send occurs
 
 func TestFirstTime_Receive(t *testing.T) {
 	ft := NewFirstTime()
