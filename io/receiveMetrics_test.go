@@ -92,9 +92,21 @@ func TestReceiveGetMeasure(t *testing.T) {
 		ID: uint64(roundID),
 	}
 
+	// Build a host around the last node
+	firstNodeId := topology.GetNodeAtIndex(0)
+	fakeHost, err := connect.NewHost(firstNodeId, "", nil, true, true)
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
 	rnd.GetMeasurementsReadyChan() <- struct{}{}
 
-	resp, err = ReceiveGetMeasure(instance, &info)
+	resp, err = ReceiveGetMeasure(instance, &info, auth)
 
 	if err != nil {
 		t.Errorf("Failed to return metrics: %+v", err)
@@ -111,7 +123,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 		ID: uint64(roundID) - 1,
 	}
 
-	_, err = ReceiveGetMeasure(instance, &info)
+	_, err = ReceiveGetMeasure(instance, &info, auth)
 
 	if err == nil {
 		t.Errorf("This should have thrown an error, instead got: %+v", err)
