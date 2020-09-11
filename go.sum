@@ -251,6 +251,8 @@ gitlab.com/xx_network/comms v0.0.0-20200911192900-fb3db3044765 h1:So+Cjrh2luIlOS
 gitlab.com/xx_network/comms v0.0.0-20200911192900-fb3db3044765/go.mod h1:J+GJ6fn71a4xnYVvbcrhtvWSOQIqqhaGcaej5xB3/JY=
 gitlab.com/xx_network/comms v0.0.0-20200911212158-c574947b4c6a h1:Ju8cMAeaGjK4N7icC5JaOrgwQrIT8M3TYuLfr9T0FCg=
 gitlab.com/xx_network/comms v0.0.0-20200911212158-c574947b4c6a/go.mod h1:J+GJ6fn71a4xnYVvbcrhtvWSOQIqqhaGcaej5xB3/JY=
+gitlab.com/xx_network/comms v0.0.0-20200911225302-05fdb4b165a3 h1:d/l3/BvnMfkspHrc0hEZFxAqWvJKiAa2xAyU/btvDCw=
+gitlab.com/xx_network/comms v0.0.0-20200911225302-05fdb4b165a3/go.mod h1:J+GJ6fn71a4xnYVvbcrhtvWSOQIqqhaGcaej5xB3/JY=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=
