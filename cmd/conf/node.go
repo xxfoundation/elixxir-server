@@ -12,4 +12,5 @@ type Node struct {
 	Paths            Paths
 	ListeningAddress string
 	Port             int
+	InterconnectPort int
 }

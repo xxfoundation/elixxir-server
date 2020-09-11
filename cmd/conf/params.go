@@ -73,6 +73,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	if params.Node.Port == 0 {
 		jww.FATAL.Panic("Must specify a port to run on")
 	}
+	params.Node.InterconnectPort = vip.GetInt("node.interconnectPort")
 
 	params.DisableIpOverride = vip.GetBool("disableIpOverride")
 
@@ -173,6 +174,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	}
 
 	def.Address = fmt.Sprintf("%s:%d", p.Node.ListeningAddress, p.Node.Port)
+	def.InterconnectPort = p.Node.InterconnectPort
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log

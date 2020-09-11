@@ -44,6 +44,8 @@ type Definition struct {
 	TlsKey []byte
 	//String containing the local address and port to connect to
 	Address string
+	// Interconnect port
+	InterconnectPort int
 
 	//Path the node will store its log at
 	LogPath string

@@ -462,7 +462,7 @@ func buildTestNetworkComponents(impls []*node.Implementation, portStart int,
 	for index, impl := range impls {
 		nodeID := id.NewIdFromUInt(uint64(index), id.Node, t)
 		comms = append(comms,
-			node.StartNode(nodeID, addrLst[index], impl, nil, nil))
+			node.StartNode(nodeID, addrLst[index], 0, impl, nil, nil))
 	}
 
 	//Connect the comms

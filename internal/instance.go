@@ -156,7 +156,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	//Start local node
 
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
-		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
+		instance.definition.InterconnectPort, makeImplementation(instance),
+		instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
 
 	// Initializes the network state tracking on this server instance
