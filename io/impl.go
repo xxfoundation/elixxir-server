@@ -29,7 +29,7 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
 		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
-		metrics, err := ReceiveGetMeasure(instance, message)
+		metrics, err := ReceiveGetMeasure(instance, message, auth)
 		if err != nil {
 			jww.ERROR.Printf("GetMeasure error: %+v, %+v", auth, err)
 		}
