@@ -29,8 +29,8 @@ update_release:
 update_master:
 	GOFLAGS="" go get -u gitlab.com/elixxir/primitives@master
 	GOFLAGS="" go get -u gitlab.com/elixxir/crypto@master
-	GOFLAGS="" go get -u gitlab.com/elixxir/comms@hotfix/unsupressErrors
-	GOFLAGS="" go get -u gitlab.com/xx_network/comms@hotfix-token
+	GOFLAGS="" go get -u gitlab.com/elixxir/comms@master
+	GOFLAGS="" go get -u gitlab.com/xx_network/comms@master
 
 
 master: clean update_master build version
