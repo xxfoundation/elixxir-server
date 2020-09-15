@@ -470,6 +470,7 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 
 func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo, errorPhase bool) {
+	time.Sleep(2 * time.Second)
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *internal.Instance) {
 		wg.Add(1)

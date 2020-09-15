@@ -55,8 +55,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	// is the previous node in the circuit
 	if !auth.IsAuthenticated || !prevNodeID.Cmp(auth.Sender.GetId()) {
 		jww.WARN.Printf("Error on PostPhase: "+
-			"Attempted communication by %+v has not been authenticated", auth.Sender)
-		return connect.AuthError(auth.Sender.GetId())
+			"Attempted communication by %+v has not been authenticated: %s", auth.Sender, auth.Reason)
+		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
 	// Waiting for correct phase
