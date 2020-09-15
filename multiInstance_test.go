@@ -45,6 +45,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
 	"math/big"
 	"math/rand"
 	"net"
@@ -221,9 +222,10 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 	for _, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
+		params := connect.GetDefaultHostParams()
+		params.AuthEnabled = false
 		_, err := instance.GetNetwork().AddHost(&id.Permissioning,
-			testUtil.NDF.Registration.Address, []byte(testUtil.RegCert), false,
-			false)
+			testUtil.NDF.Registration.Address, []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
