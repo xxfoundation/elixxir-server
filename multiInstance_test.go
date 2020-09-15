@@ -277,7 +277,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 
 	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
-	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+	if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
 		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 	}
 	if cr != nil {

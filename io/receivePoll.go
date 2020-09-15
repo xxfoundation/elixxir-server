@@ -69,7 +69,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 		//get a completed batch if it exists and pass it to the gateway
 		cr, err := instance.GetCompletedBatchQueue().Receive()
-		if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+		if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 

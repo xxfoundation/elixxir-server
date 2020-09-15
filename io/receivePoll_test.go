@@ -223,7 +223,7 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 }
 
 // Test that when the fulll ndf hash is the same as the
-// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
+// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestReceivePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
@@ -316,7 +316,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	t.Logf("ROUND Updates: %v", res.Updates)
 	if len(res.Updates) == 0 {
-		t.Logf("We did not recieve any updates")
+		t.Logf("We did not receive any updates")
 		t.Fail()
 	}
 
@@ -443,7 +443,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 	}
 
 	if len(res.Slots) != 10 {
-		t.Logf("We did not recieve the expected amount of slots")
+		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 

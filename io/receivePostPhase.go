@@ -79,7 +79,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECEIVE/START", instance,
 		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
@@ -168,7 +168,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECEIVE/START", instance,
 		roundID, phaseTy, p.GetType())
 
 	//queue the phase to be operated on if it is not queued yet

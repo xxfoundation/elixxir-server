@@ -35,7 +35,7 @@ func (cq CompletedQueue) Receive() (*CompletedRound, error) {
 	case cr := <-cq:
 		return cr, nil
 	default:
-		return nil, errors.New("Did not recieve a completed round")
+		return nil, errors.New("Did not receive a completed round")
 	}
 }
 
