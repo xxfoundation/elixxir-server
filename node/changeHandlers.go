@@ -84,11 +84,12 @@ func NotStarted(instance *internal.Instance) error {
 			}
 
 		}
-		// Disconnect the old Permissioning server to enable authentication
-		network.RemoveHost(permHost.GetId())
-		permHost.Disconnect()
 		jww.INFO.Printf("Node has registered with permissioning, waiting for network to continue")
 	}
+
+	// Disconnect the old Permissioning server to enable authentication
+	permHost.Disconnect()
+	network.RemoveHost(permHost.GetId())
 
 	// Connect to the Permissioning Server with authentication enabled
 	// the server does not have a signed cert, but the pemrissioning has its cert,
