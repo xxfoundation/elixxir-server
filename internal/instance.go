@@ -174,14 +174,14 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Connect to our gateway
 	_, err = instance.network.AddHost(&id.TempGateway,
-		"", instance.definition.Gateway.TlsCert, false, true)
+		"", instance.definition.Gateway.TlsCert, connect.GetDefaultHostParams())
 	if err != nil {
 		errMsg := fmt.Sprintf("Count not add dummy gateway %s as host: %+v",
 			instance.definition.Gateway.ID, err)
 		return nil, errors.New(errMsg)
 	}
 	_, err = instance.network.AddHost(instance.GetGateway(),
-		"", instance.definition.Gateway.TlsCert, false, true)
+		"", instance.definition.Gateway.TlsCert, connect.GetDefaultHostParams())
 	if err != nil {
 		errMsg := fmt.Sprintf("Count not add real gateway %s as host: %+v",
 			instance.definition.Gateway.ID, err)
