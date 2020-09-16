@@ -49,12 +49,13 @@ func NotStarted(instance *internal.Instance) error {
 	// Get the Server and Gateway certificates from file, if they exist
 
 	// Connect to the Permissioning Server without authentication
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	permHost, err := network.AddHost(&id.Permissioning,
 		// instance.GetPermissioningAddress,
 		ourDef.Permissioning.Address,
 		ourDef.Permissioning.TlsCert,
-		true,
-		false)
+		params)
 
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -97,8 +98,10 @@ func NotStarted(instance *internal.Instance) error {
 	// full NDF
 	// do this even if you have the certs to ensure the permissioning server is
 	// ready for servers to connect to it
+	params = connect.GetDefaultHostParams()
+	params.MaxRetries = 0
 	permHost, err = network.AddHost(&id.Permissioning,
-		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
+		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, params)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
