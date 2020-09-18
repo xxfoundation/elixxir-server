@@ -58,7 +58,9 @@ func TestReceiveRoundError(t *testing.T) {
 	expectedError := "test failed"
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", []byte(testUtil.RegCert), true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", []byte(testUtil.RegCert), params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -149,7 +151,9 @@ func TestReceiveRoundError_Auth(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -203,8 +207,10 @@ func TestReceiveRoundError_BadNodeId(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
 	fakeHost, err := connect.NewHost(topology.GetLastNode(),
-		"", nil, true, true)
+		"", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -258,7 +264,9 @@ func TestReceiveRoundError_BadRound(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

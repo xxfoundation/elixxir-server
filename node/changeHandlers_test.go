@@ -76,8 +76,10 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
 		m, "1.1.0")
 
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
-		[]byte(testUtil.RegCert), false, false)
+		[]byte(testUtil.RegCert), params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -126,7 +128,9 @@ func TestError(t *testing.T) {
 
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -164,7 +168,9 @@ func TestError_RID0(t *testing.T) {
 
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -186,7 +192,9 @@ func TestPrecomputing(t *testing.T) {
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -255,7 +263,10 @@ func TestPrecomputing_override(t *testing.T) {
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		params.AuthEnabled = false
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
