@@ -346,13 +346,21 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 }
 
 // Processes the polling response from permissioning for ndf updates,
-// installing any ndf changes if needed and connecting to new nodes
+// installing any ndf changes if needed and connecting to new nodes. Also saves
+// a list of node addresses found in the NDF to a separate file.
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {
 			return errors.Errorf("Could not update full ndf: %+v", err)
+		}
+
+		// Save the list of node IP addresses to file
+		err = SaveNodeIpList(instance.GetConsensus().GetFullNdf().Get(),
+			instance.GetDefinition().IpListOutput, instance.GetDefinition().ID)
+		if err != nil {
+			jww.ERROR.Printf("Failed to save list of IP addresses from NDF: %v", err)
 		}
 	}
 

@@ -28,6 +28,9 @@ import (
 	"time"
 )
 
+// The default path to save the list of node IP addresses
+const defaultIpListPath = "/opt/xxnetwork/node-logs/ipList.txt"
+
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
@@ -89,6 +92,12 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
 	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
 	require(params.RecoveredErrPath, "node.paths.errOutput")
+
+	// If no path was supplied, then use the default
+	params.Node.Paths.ipListOutput = vip.GetString("node.paths.ipListOutput")
+	if params.Node.Paths.ipListOutput == "" {
+		params.Node.Paths.ipListOutput = defaultIpListPath
+	}
 
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
@@ -180,6 +189,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
 	def.RecoveredErrorPath = p.RecoveredErrPath
+	def.IpListOutput = p.Node.Paths.ipListOutput
 
 	var GwTlsCerts []byte
 
