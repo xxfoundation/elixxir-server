@@ -66,14 +66,15 @@ func NotStarted(instance *internal.Instance) error {
 	// If the certificates were retrieved from file, so do not need to register
 	if !isRegistered {
 		instance.IsFirstRun()
-		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
 		// Blocking call which waits until gateway
 		// has first contacted its node
 		// This ensures we have the correct gateway information
+		jww.INFO.Printf("Waiting on contact from gateway...")
 		instance.GetGatewayFirstContact().Receive()
 
 		// Blocking call: begin Node registration
+		jww.INFO.Printf("Registering with permissioning...")
 		err = permissioning.RegisterNode(ourDef, instance, permHost)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
