@@ -52,6 +52,9 @@ type Definition struct {
 	//Path which system metrics are stored for first node
 	MetricLogPath string
 
+	// Path to save the list of node IP addresses
+	IpListOutput string
+
 	// Path where the Server and Gateway certificates will be stored
 	ServerCertPath  string
 	GatewayCertPath string

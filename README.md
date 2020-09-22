@@ -120,8 +120,11 @@ node:
     # Path to the private key associated with the self-signed TLS certificate.
     # Required field.
     key:  "/opt/xxnetwork/creds/node_key.key"
-    #  Path where log file will be saved.
+    # Path where log file will be saved.
     log:  "/opt/xxnetwork/node-logs/node.log"
+    # Path where the list of node addresses is saved to.
+    # Optional field; defaults to "/opt/xxnetwork/node-logs/ipList.txt".
+    ipListOutput:  "/opt/xxnetwork/node-logs/ipList.txt"
   # Port that the Node will communicate on.
   port: 42069
 
