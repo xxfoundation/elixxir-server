@@ -17,7 +17,6 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"net"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -121,11 +120,7 @@ func incrementPort(address string) (string, error) {
 	return net.JoinHostPort(host, strconv.Itoa(portNum)), nil
 }
 
-// modifyPath adds a suffix to the path's filename (before the extension).
+// modifyPath adds a suffix to the path's filename (after the extension).
 func modifyPath(path, suffix string) string {
-	dir, file := filepath.Split(path)
-	ext := filepath.Ext(path)
-	file = file[:len(file)-len(ext)]
-	file = file + suffix + ext
-	return filepath.Join(dir, file)
+	return path + suffix
 }

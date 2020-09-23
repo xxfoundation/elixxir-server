@@ -180,14 +180,14 @@ func Test_incrementPort_Error(t *testing.T) {
 func Test_modifyPath(t *testing.T) {
 	suffix := "-suffix"
 	paths := []string{"test.txt", "test"}
-	expectedPaths := []string{"test" + suffix + ".txt", "test" + suffix}
+	expectedPaths := []string{"test.txt" + suffix, "test" + suffix}
 
 	for i, p := range paths {
 		testPath := modifyPath(p, suffix)
 
 		if expectedPaths[i] != testPath {
 			t.Errorf("modifyPath() returned the wrong path."+
-				"\n\texpected: %s\n\treceived %s", expectedPaths[i], testPath)
+				"\n\texpected: %s\n\treceived: %s", expectedPaths[i], testPath)
 		}
 	}
 }
