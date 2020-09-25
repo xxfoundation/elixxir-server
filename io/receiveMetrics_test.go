@@ -94,7 +94,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 
 	// Build a host around the last node
 	firstNodeId := topology.GetNodeAtIndex(0)
-	fakeHost, err := connect.NewHost(firstNodeId, "", nil, true, true)
+	fakeHost, err := connect.NewHost(firstNodeId, "", nil, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
