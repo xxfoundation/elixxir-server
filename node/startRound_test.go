@@ -88,7 +88,9 @@ func setupStartNode(t *testing.T) *internal.Instance {
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", []byte(cert), false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", []byte(cert), params)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()

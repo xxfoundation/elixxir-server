@@ -104,7 +104,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		return nil
 	}
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -135,7 +137,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	instance, topology, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
-	fakeHost, _ := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, _ := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          fakeHost,
@@ -164,7 +168,9 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 	instance, _, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
 	newID := id.NewIdFromString("beep beep i'm a host", id.Node, t)
-	fakeHost, _ := connect.NewHost(newID, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, _ := connect.NewHost(newID, "", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          fakeHost,
@@ -239,7 +245,9 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

@@ -31,7 +31,9 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -81,7 +83,9 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -169,7 +173,9 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -210,7 +216,9 @@ func TestPostPrecompResultFunc(t *testing.T) {
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 
-	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -231,7 +239,9 @@ func TestPostPrecompResult_WrongSender(t *testing.T) {
 	instance, _ := mockServerInstance(t, current.PRECOMPUTING)
 
 	newID := id.NewIdFromString("bad", id.Node, t)
-	fakeHost, err := connect.NewHost(newID, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(newID, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

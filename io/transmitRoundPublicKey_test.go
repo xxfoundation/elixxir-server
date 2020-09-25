@@ -65,9 +65,9 @@ func TestPostRoundPublicKey_Transmit(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}

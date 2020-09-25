@@ -40,6 +40,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/tls"
@@ -221,9 +222,10 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 	for _, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
+		params := connect.GetDefaultHostParams()
+		params.AuthEnabled = false
 		_, err := instance.GetNetwork().AddHost(&id.Permissioning,
-			testUtil.NDF.Registration.Address, []byte(testUtil.RegCert), false,
-			false)
+			testUtil.NDF.Registration.Address, []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
@@ -470,6 +472,7 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 
 func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo, errorPhase bool) {
+	time.Sleep(2 * time.Second)
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *internal.Instance) {
 		wg.Add(1)

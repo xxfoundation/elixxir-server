@@ -28,6 +28,7 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -51,7 +52,10 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		jww.FATAL.Panicf("Unable to load params from viper: %+v", err)
 	}
 
-	jww.INFO.Printf("Loaded params: %+v", params)
+	ps := fmt.Sprintf("Loaded params: %+v", params)
+	ps = strings.ReplaceAll(ps, params.Database.Password, "[dbpass]")
+	ps = strings.ReplaceAll(ps, params.RegistrationCode, "[regcode]")
+	jww.INFO.Printf(ps)
 
 	// Initialize the backend
 	jww.INFO.Printf("Initalizing the backend...")

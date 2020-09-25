@@ -133,7 +133,7 @@ func TestRequestNonceFailAuthId(t *testing.T) {
 	newID := id.NewIdFromString("420blazeit", id.Node, t)
 
 	// The incorrect ID here is the crux of the test
-	gwHost, err := connect.NewHost(newID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(newID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -155,7 +155,7 @@ func TestRequestNonceFailAuth(t *testing.T) {
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -204,7 +204,7 @@ func TestRequestNonce(t *testing.T) {
 			"key: %+v", err)
 	}
 
-	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -249,7 +249,7 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -292,7 +292,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -338,7 +338,7 @@ func TestConfirmRegistration(t *testing.T) {
 		t.Errorf("Error signing data")
 	}
 
-	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -386,7 +386,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -423,7 +423,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 	newID := id.NewIdFromString("420blzit", id.Node, t)
 
 	// The incorrect ID here is the crux of the test
-	gwHost, err := connect.NewHost(newID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(newID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -460,7 +460,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -504,7 +504,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -529,7 +529,7 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), false, true)
+	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}

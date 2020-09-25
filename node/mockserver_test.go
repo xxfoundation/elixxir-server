@@ -204,8 +204,10 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	}
 
 	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
+		def.Permissioning.TlsCert, params)
 	if err != nil {
 		return
 	}
@@ -219,7 +221,9 @@ func startPermissioning(pAddr, nAddr string, nodeId *id.ID, cert, key []byte, t 
 	mp := &mockPermission{}
 	pHandler := registration.Handler(mp)
 	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId, nAddr, cert, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
 	if err != nil {
 		return nil, nil, errors.Errorf("Permissioning could not connect to node")
 	}

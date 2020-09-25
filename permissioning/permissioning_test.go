@@ -23,6 +23,7 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
@@ -119,8 +120,10 @@ func TestRegisterNode(t *testing.T) {
 	defer permComms.Shutdown()
 
 	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
+		def.Permissioning.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -712,8 +715,10 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
+		def.Permissioning.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -748,7 +753,9 @@ func TestRegistration(t *testing.T) {
 	// Register the node in a separate thread and notify when finished
 	go func() {
 		// Fetch permissioning host
-		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, params)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
@@ -945,7 +952,9 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	instance.GetRoundManager().AddRound(round.NewDummyRound(id.Round(0), uint32(4), t))
 
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, false, false)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, params)
 
 	now := time.Now()
 	timestamps := make([]uint64, states.NUM_STATES)

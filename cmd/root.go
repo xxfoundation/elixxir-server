@@ -74,11 +74,11 @@ var rootCmd = &cobra.Command{
 				break
 			}
 			errMsg := err.Error()
-			transport := strings.Contains(errMsg,
-				"transport is closing")
+			transport := strings.Contains(errMsg, "transport is closing")
 			cde := strings.Contains(errMsg, "DeadlineExceeded")
 			ndf := strings.Contains(errMsg, "ndf")
-			if ndf && (cde || transport) {
+			iot := strings.Contains(errMsg, "i/o timeout")
+			if (ndf && (cde || transport)) || iot {
 				if instance != nil && instance.GetNetwork() != nil {
 					instance.GetNetwork().Shutdown()
 				}

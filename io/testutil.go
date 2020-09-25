@@ -468,8 +468,10 @@ func buildTestNetworkComponents(impls []*node.Implementation, portStart int,
 	//Connect the comms
 	for connectFrom := 0; connectFrom < len(impls); connectFrom++ {
 		for connectTo := 0; connectTo < len(impls); connectTo++ {
+			params := connect.GetDefaultHostParams()
+			params.AuthEnabled = false
 			tmpHost, _ := comms[connectFrom].AddHost(topology.GetNodeAtIndex(connectTo),
-				addrLst[connectTo], nil, false, false)
+				addrLst[connectTo], nil, params)
 			topology.AddHost(tmpHost)
 		}
 	}

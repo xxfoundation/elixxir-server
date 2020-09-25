@@ -413,8 +413,10 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	}
 
 	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
+		def.Permissioning.TlsCert, params)
 	if err != nil {
 		return
 	}
@@ -431,7 +433,9 @@ func startPermissioning(pAddr, nAddr string, nodeId *id.ID, cert, key []byte) (*
 		key:  key,
 	})
 	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId, nAddr, cert, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
 	}
@@ -445,8 +449,10 @@ func startMultipleRoundUpdatesPermissioning(pAddr, nAddr string, nodeId *id.ID, 
 		cert: cert,
 		key:  key,
 	})
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
-	_, err := permComms.AddHost(nodeId, nAddr, cert, false, false)
+	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
 	}
