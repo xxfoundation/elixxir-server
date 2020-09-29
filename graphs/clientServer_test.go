@@ -32,13 +32,14 @@ import (
 
 // Fill part of message with random payloads
 // Fill part of message with random payloads
-func makeMsg() format.Message {
+func makeMsg(grp *cyclic.Group) format.Message {
+	primeLegnth := len(grp.GetPBytes())
 	rng := rand.New(rand.NewSource(21))
-	payloadA := make([]byte, 256)
-	payloadB := make([]byte, 256)
+	payloadA := make([]byte, primeLegnth)
+	payloadB := make([]byte, primeLegnth)
 	rng.Read(payloadA)
 	rng.Read(payloadB)
-	msg := format.NewMessage(256)
+	msg := format.NewMessage(primeLegnth)
 	msg.SetPayloadA(payloadA)
 	msg.SetPayloadB(payloadB)
 
@@ -134,7 +135,7 @@ func TestClientServer(t *testing.T) {
 	userBaseKeys = append(userBaseKeys, usr.BaseKey)
 
 	//Generate a mock message
-	inputMsg := makeMsg()
+	inputMsg := makeMsg(grp)
 
 	//Encrypt the input message
 	encryptedMsg := cmix.ClientEncrypt(grp, inputMsg, testSalt, userBaseKeys)
@@ -158,11 +159,11 @@ func TestClientServer(t *testing.T) {
 
 	grp.Mul(keyA_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadA()), multPayloadA)
 	grp.Mul(keyB_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadB()), multPayloadB)
-
-	testMsg := format.NewMessage(256)
+	primeLength := len(grp.GetPBytes())
+	testMsg := format.NewMessage(primeLength)
 
 	testMsg.SetPayloadA(multPayloadA.Bytes())
-	testMsg.SetPayloadB(multPayloadB.LeftpadBytes(256))
+	testMsg.SetPayloadB(multPayloadB.LeftpadBytes(uint64(primeLength)))
 
 	//Compare the payloads of the 2 messages
 	if !reflect.DeepEqual(testMsg.GetPayloadA(), inputMsg.GetPayloadA()) {
