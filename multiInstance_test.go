@@ -436,11 +436,11 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 		binary.BigEndian.PutUint64(salt[0:8], uint64(100+6*i))
 
 		// Make the payload
-		payloadA := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(format.PayloadLen)
-		payloadB := grp.NewIntFromUInt(uint64((513 + i) * 256)).LeftpadBytes(format.PayloadLen)
+		payloadA := grp.NewIntFromUInt(uint64(1 + i)).LeftpadBytes(256)
+		payloadB := grp.NewIntFromUInt(uint64((513 + i) * 256)).LeftpadBytes(256)
 
 		// Make the message
-		msg := format.NewMessage()
+		msg := format.NewMessage(256)
 		msg.SetPayloadA(payloadA)
 		msg.SetPayloadB(payloadB)
 
