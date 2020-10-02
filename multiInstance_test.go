@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	nodeComms "gitlab.com/elixxir/comms/node"
@@ -59,7 +60,7 @@ import (
 var errWg = sync.WaitGroup{}
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	elapsed := MultiInstanceTest(3, 32, false, false, t)
+	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, false, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, CPU multi-"+
 		"instance test: %s", elapsed)
@@ -71,20 +72,21 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 		batchSize = cmd.BatchSizeGPUTest
 	}
 
-	elapsed := MultiInstanceTest(3, batchSize, true, false, t)
+	viper.Set("useGpu", true)
+	elapsed := MultiInstanceTest(3, batchSize, makeMultiInstanceGroup4k(), true, false, t)
 
-	t.Logf("Computational elapsed time for 3 Node, batch size %d, CPU multi-"+
+	t.Logf("Computational elapsed time for 3 Node, batch size %d, GPU multi-"+
 		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
-	elapsed := MultiInstanceTest(3, 32, false, true, t)
+	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, true, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
 		"instance test: %s", elapsed)
 }
 
-func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *testing.T) time.Duration {
+func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, errorPhase bool, t *testing.T) time.Duration {
 	if errorPhase {
 		defer func() {
 			if r := recover(); r != nil {
@@ -100,11 +102,9 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 			" Received %v", numNodes)
 	}
 
-	grp := makeMultiInstanceGroup()
-
 	// Get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, useGPU, t)
+	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, grp, useGPU, t)
 
 	// Make user for sending messages
 	userID := id.NewIdFromUInt(42, id.User, t)
@@ -640,7 +640,7 @@ func generateCert() ([]byte, []byte) {
 	return crtOut, privOut
 }
 
-func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T) []*internal.Definition {
+func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU bool, t *testing.T) []*internal.Definition {
 
 	// Generate IDs and addresses
 	var nidLst []*id.ID
@@ -663,7 +663,7 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 
 	}
 
-	networkDef := buildNdf(nodeLst)
+	networkDef := buildNdf(nodeLst, grp)
 
 	// Generate parameters list
 	var defLst []*internal.Definition
@@ -724,8 +724,15 @@ func makeMultiInstanceGroup() *cyclic.Group {
 		large.NewInt(2))
 }
 
+func makeMultiInstanceGroup4k() *cyclic.Group {
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AAAC42DAD33170D04507A33A85521ABDF1CBA64ECFB850458DBEF0A8AEA71575D060C7DB3970F85A6E1E4C7ABF5AE8CDB0933D71E8C94E04A25619DCEE3D2261AD2EE6BF12FFA06D98A0864D87602733EC86A64521F2B18177B200CBBE117577A615D6C770988C0BAD946E208E24FA074E5AB3143DB5BFCE0FD108E4B82D120A92108011A723C12A787E6D788719A10BDBA5B2699C327186AF4E23C1A946834B6150BDA2583E9CA2AD44CE8DBBBC2DB04DE8EF92E8EFC141FBECAA6287C59474E6BC05D99B2964FA090C3A2233BA186515BE7ED1F612970CEE2D7AFB81BDD762170481CD0069127D5B05AA993B4EA988D8FDDC186FFB7DC90A6C08F4DF435C934063199FFFFFFFFFFFFFFFF"
+
+	return cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2))
+}
+
 // buildNdf builds the ndf used for definitions
-func buildNdf(nodeLst []internal.Node) *ndf.NetworkDefinition {
+func buildNdf(nodeLst []internal.Node, grp *cyclic.Group) *ndf.NetworkDefinition {
 	// Pull the node id's out of nodeList
 	ndfNodes := make([]ndf.Node, 0)
 	for _, ourNode := range nodeLst {
@@ -740,19 +747,9 @@ func buildNdf(nodeLst []internal.Node) *ndf.NetworkDefinition {
 
 	// Build a group
 	group := ndf.Group{
-		Prime: "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-			"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-			"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-			"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-			"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-			"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-			"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-			"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-			"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-			"15728E5A8AACAA68FFFFFFFFFFFFFFFF",
+		Prime:      grp.GetP().TextVerbose(16, 0),
 		SmallPrime: "2",
-		Generator:  "2",
+		Generator:  grp.GetG().TextVerbose(16, 0),
 	}
 
 	// Construct an ndf
