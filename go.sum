@@ -205,6 +205,8 @@ gitlab.com/elixxir/comms v0.0.0-20200707210150-b8ebd0951d23 h1:ikyf3DPibZq+SsVUe
 gitlab.com/elixxir/comms v0.0.0-20200707210150-b8ebd0951d23/go.mod h1:OsWMZ1O/R9fOkm+PoHnR3rkXfFtipGoPs73FuKuurHY=
 gitlab.com/elixxir/comms v0.0.0-20200917221445-8a509560122a h1:WsrvOH/UUkOImFg79R6O93b/ZR40KiyHNXKf2rSRXGk=
 gitlab.com/elixxir/comms v0.0.0-20200917221445-8a509560122a/go.mod h1:L2Va13j2AbQkpkveOQmNzrQD37uI5NKeBhYH+LWMOx0=
+gitlab.com/elixxir/comms v0.0.0-20201007164918-8331c82e4f19 h1:g8KpUhsUPRppsGlN4F5/yJLpG/adxM6jb+4to4dGaWo=
+gitlab.com/elixxir/comms v0.0.0-20201007164918-8331c82e4f19/go.mod h1:kY0+AZPKkZMB+Dgvwj5cfqNE+OJjtbkxYj9hLhddN4A=
 gitlab.com/elixxir/crypto v0.0.0-20200612160324-a76e4451ae25/go.mod h1:SpcmFZ4baOMRxH7qo2myvYFNr8/bz9ItYzVo5Q2Ld1k=
 gitlab.com/elixxir/crypto v0.0.0-20200707005343-97f868cbd930 h1:9qzfwyR12OYgn3j30qcHZHHVfWshWnH54lcAHppEROQ=
 gitlab.com/elixxir/crypto v0.0.0-20200707005343-97f868cbd930/go.mod h1:LHBAaEf48a0/AjU118rjoworH0LgXifhAqmNX3ZRvME=
@@ -228,6 +230,8 @@ gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201002184945-6117de9a219e h1:EF+E6g9/7I
 gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201002184945-6117de9a219e/go.mod h1:Xzg3HHVorqlJeQTpajlKpFN4VNKGAp2eORGck9NtyEc=
 gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201002224936-10c0009b7bdd h1:oA7/PmaCVQlxYqWtPpN1JN8rNp+DiIzXPBFuSoVQnoI=
 gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201002224936-10c0009b7bdd/go.mod h1:Xzg3HHVorqlJeQTpajlKpFN4VNKGAp2eORGck9NtyEc=
+gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201007163558-0fea70f49fe0 h1:blqjf4He46aA1zfrnPrYl6N+pAet05bPwmqvRfZ6xZI=
+gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201007163558-0fea70f49fe0/go.mod h1:vUk8KpHenphHQgPszZcdyGDgd4/nEuqD7elXSynZUuM=
 gitlab.com/elixxir/primitives v0.0.0-20200608222556-1d2c04e59346/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
 gitlab.com/elixxir/primitives v0.0.0-20200706165052-9fe7a4fb99a3 h1:GTfflZBNLeBq3UApYog0J3+hytdkoRsDduGQji2wyEU=
 gitlab.com/elixxir/primitives v0.0.0-20200706165052-9fe7a4fb99a3/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
