@@ -44,7 +44,7 @@ func TestDecryptGPUGraph(t *testing.T) {
 	g := graphInit(gc)
 
 	if g.GetName() != expectedName {
-		t.Errorf("PrecompDecrypt has incorrect name Expected %s, Recieved %s", expectedName, g.GetName())
+		t.Errorf("PrecompDecrypt has incorrect name Expected %s, Received %s", expectedName, g.GetName())
 	}
 
 	//Build the graph

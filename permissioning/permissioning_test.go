@@ -14,10 +14,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
@@ -26,6 +23,10 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -35,17 +36,25 @@ import (
 //// Full-stack happy path test for the node registration logic
 func TestRegisterNode(t *testing.T) {
 
-	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+	cert, err := utils.ReadFile(testkeys.GetNodeCertPath())
+	if err != nil {
+		t.Errorf("Failed to read cert file: %+v", err)
+	}
+	key, err := utils.ReadFile(testkeys.GetNodeKeyPath())
+	if err != nil {
+		t.Errorf("Failed to read key file: %+v", err)
+	}
 
 	// Set up id's and address
-	nodeId = id.NewIdFromUInt(0, id.Node, t)
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 17000+rand.Intn(1000)+cnt)
-	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
+	nodeId := id.NewIdFromUInt(0, id.Node, t)
 
-	cnt++
+	countLock.Lock()
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7100+count)
+	pAddr := fmt.Sprintf("0.0.0.0:%d", 2100+count)
+	gAddr := fmt.Sprintf("0.0.0.0:%d", 4100+count)
+	count++
+	countLock.Unlock()
 
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
@@ -70,7 +79,7 @@ func TestRegisterNode(t *testing.T) {
 
 		UserRegistry: nil,
 		Permissioning: internal.Perm{
-			TlsCert: []byte(testUtil.RegCert),
+			TlsCert: cert,
 			Address: pAddr,
 		},
 		RegistrationCode: "",
@@ -100,19 +109,24 @@ func TestRegisterNode(t *testing.T) {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
 
-	// Add permissioning as a host
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
-	if err != nil {
-		t.Errorf("Failed to add permissioning host: %+v", err)
-	}
+	// Upsert test data for gateway
+	instance.UpsertGatewayData("0.0.0.0:5289", "1.4")
 
 	// Start up permissioning server
-	permComms, err := startPermissioning()
+	permComms, err := startPermissioning(pAddr, nodeAddr, nodeId, cert, key)
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
 	defer permComms.Shutdown()
+
+	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
+		def.Permissioning.TlsCert, params)
+	if err != nil {
+		t.Errorf("Failed to add permissioning host: %+v", err)
+	}
 
 	// Fetch permissioning host
 	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
@@ -121,7 +135,7 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Register node with permissioning
-	err = RegisterNode(def, instance.GetNetwork(), permHost)
+	err = RegisterNode(def, instance, permHost)
 	if err != nil {
 		t.Errorf("Failed to register node: %+v", err)
 	}
@@ -131,13 +145,13 @@ func TestRegisterNode(t *testing.T) {
 // Happy path: Test polling
 func TestPoll(t *testing.T) {
 	// Create instance
-	instance, err := createServerInstance(t)
+	instance, pAddr, nAddr, nodeId, cert, key, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
 	// Start up permissioning server
-	permComms, err := startPermissioning()
+	permComms, err := startPermissioning(pAddr, nAddr, nodeId, cert, key)
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
@@ -188,7 +202,7 @@ func TestPoll(t *testing.T) {
 
 func TestPoll_ErrState(t *testing.T) {
 	// Create instance
-	instance, err := createServerInstance(t)
+	instance, pAddr, nAddr, nodeId, cert, key, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
@@ -203,7 +217,7 @@ func TestPoll_ErrState(t *testing.T) {
 	}
 
 	// Start up permissioning server
-	permComms, err := startPermissioning()
+	permComms, err := startPermissioning(pAddr, nAddr, nodeId, cert, key)
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
@@ -233,16 +247,17 @@ func TestPoll_ErrState(t *testing.T) {
 // Happy path: Pings the mock registration server for a poll response
 func TestRetrieveState(t *testing.T) {
 	// Create server instance
-	instance, err := createServerInstance(t)
+	instance, pAddr, nAddr, nodeId, cert, key, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
 	defer instance.GetNetwork().Shutdown()
 
 	// Create permissioning server
-	permComms, err := startPermissioning()
+	permComms, err := startPermissioning(pAddr, nAddr, nodeId, cert, key)
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server")
+		t.FailNow()
 	}
 	defer permComms.Shutdown()
 
@@ -283,7 +298,7 @@ func TestUpdateInternalState(t *testing.T) {
 	numUpdates := uint64(0)
 
 	// Create server instance
-	instance, err := createServerInstance(t)
+	instance, _, _, _, _, key, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
@@ -313,11 +328,20 @@ func TestUpdateInternalState(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(precompRoundInfo)
+	err = signRoundInfo(precompRoundInfo, key)
+	if err != nil {
+		t.Errorf("Failed to sign precomp round info: %+v", err)
+	}
 
 	// Set up the ndf's
-	fullNdf, _ := setupFullNdf()
-	stripNdf, _ := setupPartialNdf()
+	fullNdf, err := setupFullNdf(key)
+	if err != nil {
+		t.Errorf("Failed to setup full ndf: %+v", err)
+	}
+	stripNdf, err := setupPartialNdf(key)
+	if err != nil {
+		t.Errorf("Failed to setup partial ndf: %+v", err)
+	}
 
 	// ------------------- TRANSFER FROM WAITING TO PRECOMP ---------------------------------------
 
@@ -393,7 +417,10 @@ func TestUpdateInternalState(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(realtimeRoundInfo)
+	err = signRoundInfo(realtimeRoundInfo, key)
+	if err != nil {
+		t.Errorf("Failed to sign realtime round info: %+v", err)
+	}
 
 	// Construct permissioning poll response
 	mockPollResponse = &pb.PermissionPollResponse{
@@ -434,7 +461,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	numUpdates := uint64(0)
 
 	// Create server instance
-	instance, err := createServerInstance(t)
+	instance, _, _, _, _, key, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
@@ -461,11 +488,14 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(pendingRoundInfo)
+	err = signRoundInfo(pendingRoundInfo, key)
+	if err != nil {
+		t.Errorf("Failed to sign pending round info: %+v", err)
+	}
 
 	// Set up the ndf's
-	fullNdf, _ := setupFullNdf()
-	stripNdf, _ := setupPartialNdf()
+	fullNdf, _ := setupFullNdf(key)
+	stripNdf, _ := setupPartialNdf(key)
 
 	// Construct permissioning poll response
 	mockPollResponse := &pb.PermissionPollResponse{
@@ -493,7 +523,10 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(standbyRoundInfo)
+	err = signRoundInfo(standbyRoundInfo, key)
+	if err != nil {
+		t.Errorf("Failed to sign standby round info: %+v", err)
+	}
 
 	// Construct permissioning poll response
 	mockPollResponse = &pb.PermissionPollResponse{
@@ -521,7 +554,10 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 	numUpdates++
 
 	// Set the signature field of the round info
-	signRoundInfo(completedRoundInfo)
+	err = signRoundInfo(completedRoundInfo, key)
+	if err != nil {
+		t.Errorf("Failed to sign completed round info: %+v", err)
+	}
 
 	// Construct permissioning poll response
 	mockPollResponse = &pb.PermissionPollResponse{
@@ -541,7 +577,7 @@ func TestUpdateInternalState_Smoke(t *testing.T) {
 // Attempt to update round in which our node is not a team-member
 func TestUpdateInternalState_Error(t *testing.T) {
 	// Create server instance
-	instance, err := createServerInstance(t)
+	instance, _, _, _, _, key, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
@@ -571,11 +607,20 @@ func TestUpdateInternalState_Error(t *testing.T) {
 	}
 
 	// Set the signature field of the round info
-	signRoundInfo(NumStateRoundInfo)
+	err = signRoundInfo(NumStateRoundInfo, key)
+	if err != nil {
+		t.Errorf("Failed to sign NumState round info: %+v", err)
+	}
 
 	// Set up the ndf's
-	fullNdf, _ := setupFullNdf()
-	stripNdf, _ := setupPartialNdf()
+	fullNdf, err := setupFullNdf(key)
+	if err != nil {
+		t.Errorf("Failed to setup full ndf: %+v", err)
+	}
+	stripNdf, err := setupPartialNdf(key)
+	if err != nil {
+		t.Errorf("Failed to setup partial ndf: %+v", err)
+	}
 
 	// Construct permissioning poll response
 	mockPollResponse := &pb.PermissionPollResponse{
@@ -590,37 +635,6 @@ func TestUpdateInternalState_Error(t *testing.T) {
 		t.Errorf("Expected error path. Attempted to transfer to an unknown state")
 	}
 
-	//  --------------- Non team member test case -----------------------------------------
-
-	// Exclude our node from the topology
-	badTopology := [][]byte{nodeTwo, nodeThree}
-
-	// Construct round info message
-	theirRoundInfo := &pb.RoundInfo{
-		ID:         0,
-		UpdateID:   4,
-		State:      uint32(states.PRECOMPUTING),
-		Topology:   badTopology,
-		Timestamps: timestamps,
-	}
-
-	// Set the signature field of the round info
-	signRoundInfo(theirRoundInfo)
-
-	// Construct permissioning poll response
-	mockPollResponse = &pb.PermissionPollResponse{
-		FullNDF:    fullNdf,
-		PartialNDF: stripNdf,
-		Updates:    []*pb.RoundInfo{theirRoundInfo},
-	}
-
-	// Update internal state with mock response
-	err = UpdateRounds(mockPollResponse, instance)
-	if err == nil {
-		t.Errorf("Expected error path. Should not be able to update a round in which we aren't a team" +
-			"memeber")
-	}
-
 }
 
 //Full-stack happy path test for the node registration logic
@@ -630,15 +644,23 @@ func TestRegistration(t *testing.T) {
 	permDone := make(chan struct{})
 
 	// Pull certs and key
-	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+	cert, err := utils.ReadFile(testkeys.GetNodeCertPath())
+	if err != nil {
+		t.Errorf("Failed to load cert: +%v", err)
+	}
+	key, err := utils.ReadFile(testkeys.GetNodeKeyPath())
+	if err != nil {
+		t.Errorf("Failed to load key: +%v", err)
+	}
 
 	// Generate id's and addresses
-	nodeId = id.NewIdFromUInt(0, id.Node, t)
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
-	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
-	cnt++
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
+	nodeId := id.NewIdFromUInt(0, id.Node, t)
+	countLock.Lock()
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7400+count)
+	pAddr := fmt.Sprintf("0.0.0.0:%d", 2400+count)
+	gAddr := fmt.Sprintf("0.0.0.0:%d", 4400+count)
+	count++
+	countLock.Unlock()
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
@@ -663,7 +685,7 @@ func TestRegistration(t *testing.T) {
 		},
 		UserRegistry: nil,
 		Permissioning: internal.Perm{
-			TlsCert: []byte(testUtil.RegCert),
+			TlsCert: cert,
 			Address: pAddr,
 		},
 		RegistrationCode: "",
@@ -693,14 +715,16 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
+		def.Permissioning.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
 	// Boot up permissioning server
-	permComms, err := startPermissioning()
+	permComms, err := startPermissioning(pAddr, nodeAddr, nodeId, cert, key)
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
@@ -723,16 +747,21 @@ func TestRegistration(t *testing.T) {
 		gwConnected <- struct{}{}
 	}()
 
+	// Upsert test data for gateway
+	instance.UpsertGatewayData("0.0.0.0:5289", "1.4")
+
 	// Register the node in a separate thread and notify when finished
 	go func() {
 		// Fetch permissioning host
-		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, params)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
 
 		// Register with node
-		err = RegisterNode(def, instance.GetNetwork(), permHost)
+		err = RegisterNode(def, instance, permHost)
 		if err != nil {
 			t.Error(err)
 		}
@@ -777,13 +806,13 @@ func TestRegistration(t *testing.T) {
 
 func TestPoll_MultipleRoundupdates(t *testing.T) {
 	// Create instance
-	instance, err := createServerInstance(t)
+	instance, pAddr, nAddr, nodeId, cert, key, err := createServerInstance(t)
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
 	// Start up permissioning server which will return multiple round updates
-	permComms, err := startMultipleRoundUpdatesPermissioning()
+	permComms, err := startMultipleRoundUpdatesPermissioning(pAddr, nAddr, nodeId, cert, key)
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
@@ -805,12 +834,24 @@ func TestPoll_MultipleRoundupdates(t *testing.T) {
 // requested to wait until is after the current time.
 func TestQueueUntilRealtime(t *testing.T) {
 	// Test that it happens after ~100ms
-	instance, _ := createServerInstance(t)
+	instance, _, _, _, _, _, _ := createServerInstance(t)
 	now := time.Now()
 	after := now.Add(100 * time.Millisecond)
 	before := now.Add(-100 * time.Millisecond)
-	instance.GetStateMachine().Update(current.PRECOMPUTING)
-	instance.GetStateMachine().Update(current.STANDBY)
+	ok, err := instance.GetStateMachine().Update(current.PRECOMPUTING)
+	if err != nil {
+		t.Errorf("Failed to update to precomputing: %+v", err)
+	}
+	if !ok {
+		t.Errorf("Did not transition to precomputing")
+	}
+	ok, err = instance.GetStateMachine().Update(current.STANDBY)
+	if err != nil {
+		t.Errorf("Failed to update to standby: %+v", err)
+	}
+	if !ok {
+		t.Errorf("Did not transition to standby")
+	}
 	go queueUntilRealtime(instance, after)
 	if instance.GetStateMachine().Get() == current.REALTIME {
 		t.Errorf("State transitioned too quickly!\n")
@@ -821,9 +862,21 @@ func TestQueueUntilRealtime(t *testing.T) {
 	}
 
 	// Test the case where time.Now() is after the start time
-	instance, _ = createServerInstance(t)
-	instance.GetStateMachine().Update(current.PRECOMPUTING)
-	instance.GetStateMachine().Update(current.STANDBY)
+	instance, _, _, _, _, _, _ = createServerInstance(t)
+	ok, err = instance.GetStateMachine().Update(current.PRECOMPUTING)
+	if err != nil {
+		t.Errorf("Failed to update to precomputing: %+v", err)
+	}
+	if !ok {
+		t.Errorf("Did not transition to precomputing")
+	}
+	ok, err = instance.GetStateMachine().Update(current.STANDBY)
+	if err != nil {
+		t.Errorf("Failed to update to standby: %+v", err)
+	}
+	if !ok {
+		t.Errorf("Did not transition to standby")
+	}
 	go queueUntilRealtime(instance, before)
 	time.Sleep(50 * time.Millisecond)
 	if instance.GetStateMachine().Get() != current.REALTIME {
@@ -837,13 +890,10 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
 	// Set up id's and address
-	nodeId = id.NewIdFromUInt(0, id.Node, t)
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 17000+rand.Intn(1000)+cnt)
-	pAddr = fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
-
-	cnt++
-
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000)+cnt)
+	nodeId := id.NewIdFromUInt(0, id.Node, t)
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 17000+rand.Intn(1000))
+	pAddr := fmt.Sprintf("0.0.0.0:%d", 2000+rand.Intn(1000))
+	gAddr := fmt.Sprintf("0.0.0.0:%d", 4000+rand.Intn(1000))
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
 
@@ -902,7 +952,9 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	instance.GetRoundManager().AddRound(round.NewDummyRound(id.Round(0), uint32(4), t))
 
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, false, false)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, params)
 
 	now := time.Now()
 	timestamps := make([]uint64, states.NUM_STATES)

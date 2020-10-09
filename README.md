@@ -44,6 +44,7 @@ Flags:
   -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
       --registrationCode string   Registration code used for first time registration. Required field.
       --useGPU                    Toggle use of GPU. (Must be built or run with -tags gpu, and gpumathsnative must be installed)
+      --disableIpOverride         Toggle use of local IP override
 
 Use "server [command] --help" for more information about a command.
 ```
@@ -93,7 +94,7 @@ found.
 
 Note: YAML prohibits the use of tabs because whitespace has meaning.
 
-``` yaml
+```yaml
 # Registration code used for first time registration. This is a unique code
 # provided by xx network.
 registrationCode: "abc123"
@@ -119,8 +120,11 @@ node:
     # Path to the private key associated with the self-signed TLS certificate.
     # Required field.
     key:  "/opt/xxnetwork/creds/node_key.key"
-    #  Path where log file will be saved.
+    # Path where log file will be saved.
     log:  "/opt/xxnetwork/node-logs/node.log"
+    # Path where the list of node addresses is saved to.
+    # Optional field; defaults to "/opt/xxnetwork/node-logs/ipList.txt".
+    ipListOutput:  "/opt/xxnetwork/node-logs/ipList.txt"
   # Port that the Node will communicate on.
   port: 42069
 
@@ -136,14 +140,21 @@ gateways:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
     # Required field.
     cert: "/opt/xxnetwork/creds/gateway-cert.crt"
+  # When set to true, the Node's public IP is used for Gateway. For use when the
+  # Gateway communicates to the Node via a local IP address.
+  # useNodeIp and AdvertisedIP cannot be set at the same time.
+  useNodeIp: false
+  # The address and port set here are used as the Gateway's public IP address.
+  # useNodeIp and AdvertisedIP cannot be set at the same time.
+  advertisedIP: ""
 
 permissioning:
   paths:
     # Path to the self-signed TLS certificate for the Permissioning server.
     # Expects PEM format. Required field.
     cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
-    # IP Address of the Permissioning server, provided by xx network.
-    address: ""
+  # IP Address of the Permissioning server, provided by xx network.
+  address: ""
 
 metrics:
   # Location of stored metrics data.

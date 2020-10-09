@@ -9,8 +9,8 @@ package phase
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/primitives/id"
 	"strings"
 	"testing"
 	"time"
@@ -132,12 +132,12 @@ func TestPhase_Stringer(t *testing.T) {
 		p2.roundID, p2.tYpe)
 
 	if p.String() != pStr {
-		t.Errorf("phase.String: Returned incorrect string, Expected: %s, Recieved: %s",
+		t.Errorf("phase.String: Returned incorrect string, Expected: %s, Received: %s",
 			pStr, p)
 	}
 
 	if p2.String() != p2Str {
-		t.Errorf("phase.String: Returned incorrect string, Expected: %s, Recieved: %s",
+		t.Errorf("phase.String: Returned incorrect string, Expected: %s, Received: %s",
 			p2Str, p2)
 	}
 }

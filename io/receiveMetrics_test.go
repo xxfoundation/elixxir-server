@@ -9,9 +9,7 @@ package io
 
 import (
 	"encoding/json"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -19,6 +17,8 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"sync"
 	"testing"
 	"time"
@@ -55,7 +55,10 @@ func TestReceiveGetMeasure(t *testing.T) {
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
 		"1.1.0")
@@ -89,9 +92,21 @@ func TestReceiveGetMeasure(t *testing.T) {
 		ID: uint64(roundID),
 	}
 
+	// Build a host around the last node
+	firstNodeId := topology.GetNodeAtIndex(0)
+	fakeHost, err := connect.NewHost(firstNodeId, "", nil, connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Failed to create fakeHost, %s", err)
+	}
+
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          fakeHost,
+	}
+
 	rnd.GetMeasurementsReadyChan() <- struct{}{}
 
-	resp, err = ReceiveGetMeasure(instance, &info)
+	resp, err = ReceiveGetMeasure(instance, &info, auth)
 
 	if err != nil {
 		t.Errorf("Failed to return metrics: %+v", err)
@@ -108,7 +123,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 		ID: uint64(roundID) - 1,
 	}
 
-	_, err = ReceiveGetMeasure(instance, &info)
+	_, err = ReceiveGetMeasure(instance, &info, auth)
 
 	if err == nil {
 		t.Errorf("This should have thrown an error, instead got: %+v", err)

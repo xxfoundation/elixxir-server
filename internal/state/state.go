@@ -225,11 +225,20 @@ func (m Machine) Get() current.Activity {
 	return *m.Activity
 }
 
-// gets the current state under a read lock
-func (m Machine) GetBuffer() <-chan current.Activity {
+// Server can update state internally faster than it informs permissioning. This
+// buffers all updates to ensure none are missed by permissioning, and returns
+// the current state if there are no buffered changes
+func (m Machine) GetActivityToReport() current.Activity {
 	m.RLock()
 	defer m.RUnlock()
-	return m.changebuffer
+	var reportedActivity current.Activity
+
+	select {
+	case reportedActivity = <-m.changebuffer:
+	default:
+		reportedActivity = *m.Activity
+	}
+	return reportedActivity
 }
 
 // if the the passed state is the next state update, waits until that update
@@ -241,7 +250,7 @@ func (m Machine) WaitFor(timeout time.Duration, expected ...current.Activity) (c
 	m.RLock()
 
 	// channels to control and receive from the worker thread
-	kill := make(chan struct{})
+	kill := make(chan struct{}, 1) // Size set to 1 to avoid race conditions
 	done := make(chan error)
 
 	// Place values in expected into a map

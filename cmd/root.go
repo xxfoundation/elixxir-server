@@ -18,10 +18,12 @@ import (
 	"gitlab.com/elixxir/primitives/utils"
 	"os"
 	"runtime"
+	"strings"
 	// net/http must be imported before net/http/pprof for the pprof import
 	// to automatically initialize its http handlers
 	"net/http"
 	_ "net/http/pprof"
+	"time"
 )
 
 var cfgFile string
@@ -33,6 +35,7 @@ var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
+var disableIpOverride bool
 
 // If true, runs pprof http server
 var profile bool
@@ -63,9 +66,29 @@ var rootCmd = &cobra.Command{
 			}()
 		}
 
-		err := StartServer(viper.GetViper())
-		if err != nil {
-			jww.FATAL.Panicf("Failed to start server: %+v", err)
+		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
+
+		for {
+			instance, err := StartServer(viper.GetViper())
+			if err == nil {
+				break
+			}
+			errMsg := err.Error()
+			transport := strings.Contains(errMsg, "transport is closing")
+			cde := strings.Contains(errMsg, "DeadlineExceeded")
+			ndf := strings.Contains(errMsg, "ndf")
+			iot := strings.Contains(errMsg, "i/o timeout")
+			if (ndf && (cde || transport)) || iot {
+				if instance != nil && instance.GetNetwork() != nil {
+					instance.GetNetwork().Shutdown()
+				}
+				jww.ERROR.Print("Cannot start, permissioning " +
+					"is unavailable, retrying in 10s...")
+				time.Sleep(10 * time.Second)
+				continue
+			}
+			jww.FATAL.Panicf("Failed to start server: %+v",
+				err)
 		}
 
 		// Prevent node from exiting
@@ -112,6 +135,11 @@ func init() {
 	handleBindingError(err, "profile")
 	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
 	handleBindingError(err, "profile")
+
+	rootCmd.Flags().BoolVar(&disableIpOverride, "disableIpOverride", false,
+		"Disable override of local node IP address in the NDF.")
+	err = viper.BindPFlag("disableIpOverride", rootCmd.Flags().Lookup("disableIpOverride"))
+	handleBindingError(err, "disableIpOverride")
 
 	rootCmd.Flags().StringP("registrationCode", "", "",
 		"Registration code used for first time registration. Required field.")
@@ -168,21 +196,20 @@ func initConfig() {
 	}
 
 	f, err := os.Open(cfgFile)
-
-	_, err = f.Stat()
-
-	validConfig = true
-
 	if err != nil {
-		jww.ERROR.Printf("Invalid config file (%s): %s", cfgFile,
-			err.Error())
-		validConfig = false
+		jww.ERROR.Printf("Could not open config file: %+v", err)
+		return
+	}
+	_, err = f.Stat()
+	if err != nil {
+		jww.ERROR.Printf("Could not stat config file: %+v", err)
+		return
 	}
 
 	err = f.Close()
-
 	if err != nil {
 		jww.ERROR.Printf("Could not close config file: %+v", err)
+		return
 	}
 
 	viper.SetConfigFile(cfgFile)
@@ -193,9 +220,10 @@ func initConfig() {
 	if err = viper.ReadInConfig(); err != nil {
 		jww.ERROR.Printf("Unable to read config file (%s): %s", cfgFile,
 			err.Error())
-		validConfig = false
+		return
 	}
 
+	validConfig = true
 }
 
 // initLog initializes logging thresholds and the log path.

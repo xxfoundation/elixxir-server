@@ -9,7 +9,11 @@ package main
 
 import (
 	crand "crypto/rand"
+	gorsa "crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/binary"
+	"encoding/pem"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -22,13 +26,8 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/cmd"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
@@ -41,7 +40,15 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/crypto/tls"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
+	"math/big"
 	"math/rand"
+	"net"
 	"runtime"
 	"strings"
 	"sync"
@@ -71,7 +78,6 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
-	io.UnsignedTest = true
 	elapsed := MultiInstanceTest(3, 32, false, true, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
@@ -91,7 +97,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 	if numNodes < 3 {
 		t.Errorf("Multi Instance Test must have a minnimum of 3 nodes,"+
-			" Recieved %v", numNodes)
+			" Received %v", numNodes)
 	}
 
 	grp := makeMultiInstanceGroup()
@@ -216,9 +222,10 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 	for _, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
+		params := connect.GetDefaultHostParams()
+		params.AuthEnabled = false
 		_, err := instance.GetNetwork().AddHost(&id.Permissioning,
-			testUtil.NDF.Registration.Address, []byte(testUtil.RegCert), false,
-			false)
+			testUtil.NDF.Registration.Address, []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
@@ -272,7 +279,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 
 	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
-	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+	if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
 		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 	}
 	if cr != nil {
@@ -309,7 +316,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 		if grp.NewIntFromBytes(inputSlot.PayloadA).Cmp(grp.NewIntFromBytes(outputSlot.PayloadA)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload A did "+
-				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
+				"not match; \n Expected: %s \n Received: %s", i, permutationMapping[i],
 				grp.NewIntFromBytes(inputSlot.PayloadA).Text(16),
 				grp.NewIntFromBytes(outputSlot.PayloadA).Text(16))
 			success = false
@@ -317,7 +324,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 		if grp.NewIntFromBytes(inputSlot.PayloadB).Cmp(grp.NewIntFromBytes(outputSlot.PayloadB)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload B did "+
-				"not match; \n Expected: %s \n Recieved: %s", i, permutationMapping[i],
+				"not match; \n Expected: %s \n Received: %s", i, permutationMapping[i],
 				grp.NewIntFromBytes(inputSlot.PayloadB).Text(16),
 				grp.NewIntFromBytes(outputSlot.PayloadB).Text(16))
 			success = false
@@ -332,7 +339,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 		t.Errorf("%v/%v of messages came out incorrect",
 			batchSize-found, batchSize)
 	} else {
-		t.Logf("All messages recieved, passed")
+		t.Logf("All messages received, passed")
 	}
 
 	// --- CHECK PRECOMPUTATION ------------------------------------------------
@@ -358,7 +365,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 	if pk.GetLargeInt().Cmp(grp.GetG()) != 0 {
 		t.Errorf("Multinode instance test: inverse PK is not equal "+
-			"to generator: Expected: %s, Recieved: %s",
+			"to generator: Expected: %s, Received: %s",
 			grp.GetG().Text(16), roundBuffs[0].CypherPublicKey.Text(16))
 	}
 
@@ -398,13 +405,13 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 		resultPayloadA := roundBuffs[len(roundBuffs)-1].PayloadAPrecomputation.Get(permutationMapping[i])
 		if payloadAPrecomps[i].Cmp(resultPayloadA) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadA slot %v "+
-				"incorrect; Expected: %s, Recieved: %s", i,
+				"incorrect; Expected: %s, Received: %s", i,
 				payloadAPrecomps[i].Text(16), resultPayloadA.Text(16))
 		}
 		resultPayloadB := roundBuffs[len(roundBuffs)-1].PayloadBPrecomputation.Get(permutationMapping[i])
 		if payloadBPrecomps[i].Cmp(resultPayloadB) != 0 {
 			t.Errorf("Multinode instance test: precomputation for payloadB slot %v "+
-				"incorrect; Expected: %s, Recieved: %s", i,
+				"incorrect; Expected: %s, Received: %s", i,
 				payloadBPrecomps[i].Text(16), resultPayloadB.Text(16))
 		}
 	}
@@ -465,6 +472,7 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 
 func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	ecrBatch *pb.Batch, roundInfoMsg *mixmessages.RoundInfo, errorPhase bool) {
+	time.Sleep(2 * time.Second)
 	// Define a mechanism to wait until the next state
 	asyncWaitUntil := func(wg *sync.WaitGroup, until current.Activity, node *internal.Instance) {
 		wg.Add(1)
@@ -575,6 +583,61 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 	return nil
 }
 
+// generateCert eturns a self-signed cert and key for dummy tls comms,
+// this is mostly cribbed from:
+//   https://golang.org/src/crypto/tls/generate_cert.go
+func generateCert() ([]byte, []byte) {
+	priv, err := gorsa.GenerateKey(crand.Reader, 2048)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to generate private key: %v", err)
+	}
+
+	notBefore := time.Now()
+	notAfter := notBefore.Add(10 * time.Hour)
+
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := crand.Int(crand.Reader, serialNumberLimit)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to generate serial number: %v", err)
+	}
+
+	usage := x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature
+	usage |= x509.KeyUsageCertSign
+	extUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"Dummy Key"},
+		},
+		NotBefore: notBefore,
+		NotAfter:  notAfter,
+
+		KeyUsage:              usage,
+		ExtKeyUsage:           extUsage,
+		BasicConstraintsValid: true,
+	}
+
+	template.IPAddresses = append(template.IPAddresses,
+		net.ParseIP("127.0.0.1"))
+	//template.DNSNames = append(template.DNSNames, "localhost")
+
+	template.IsCA = true
+
+	derBytes, err := x509.CreateCertificate(crand.Reader, &template,
+		&template, &priv.PublicKey, priv)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to create certificate: %v", err)
+	}
+
+	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
+	crtOut := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE",
+		Bytes: derBytes})
+	privOut := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY",
+		Bytes: privBytes})
+	return crtOut, privOut
+}
+
 func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T) []*internal.Definition {
 
 	// Generate IDs and addresses
@@ -603,6 +666,8 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 	// Generate parameters list
 	var defLst []*internal.Definition
 
+	cert, privKey := generateCert()
+
 	for i := 0; i < numNodes; i++ {
 		gatewayID := nidLst[i].DeepCopy()
 		gatewayID.SetType(id.Gateway)
@@ -613,7 +678,7 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 				KeepBuffers: true,
 				UseGPU:      useGPU,
 			},
-			TlsCert: []byte(testUtil.RegCert),
+			TlsCert: cert,
 			Gateway: internal.GW{
 				ID:      gatewayID,
 				TlsCert: nil,
@@ -631,7 +696,9 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		}
 
-		def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
+		cryptoPrivRSAKey, _ := tls.LoadRSAPrivateKey(string(privKey))
+
+		def.PrivateKey = &rsa.PrivateKey{*cryptoPrivRSAKey}
 
 		defLst = append(defLst, &def)
 	}

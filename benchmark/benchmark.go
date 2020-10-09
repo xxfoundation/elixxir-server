@@ -17,7 +17,7 @@ import (
 	//"gitlab.com/elixxir/server/globals"
 	//"gitlab.com/elixxir/server/services"
 	//"fmt"
-	//"gitlab.com/elixxir/primitives/id"
+	//"gitlab.com/xx_network/primitives/id"
 )
 
 var group *cyclic.Group

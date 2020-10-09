@@ -8,15 +8,10 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network/dataStructures"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
-	ndf2 "gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -24,6 +19,11 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
+	ndf2 "gitlab.com/xx_network/primitives/ndf"
 	"testing"
 	"time"
 )
@@ -63,7 +63,10 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 		Gateway:         ourGateway,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, testState, t)
@@ -90,7 +93,9 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", cert, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", cert, params)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
@@ -157,7 +162,9 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 	}()
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -201,7 +208,9 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 	poll.Full.Hash = fullHash2
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -220,12 +229,14 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 }
 
 // Test that when the fulll ndf hash is the same as the
-// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
+// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestReceivePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -250,7 +261,9 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 	poll.Partial.Hash = fullHash2
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -274,7 +287,9 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -299,7 +314,9 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 	PushNRoundUpdates(10, instance, privKey, t)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -313,7 +330,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	t.Logf("ROUND Updates: %v", res.Updates)
 	if len(res.Updates) == 0 {
-		t.Logf("We did not recieve any updates")
+		t.Logf("We did not receive any updates")
 		t.Fail()
 	}
 
@@ -342,7 +359,9 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 	}
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -364,6 +383,12 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
+	h, _ = connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
+	auth = &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
 	res, err = ReceivePoll(poll, &instance, testGatewayAddress, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
@@ -371,7 +396,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 	}
 
 	if res.GetBatchRequest().ID != newRound.ID {
-		t.Logf("Wrong batch request recieved")
+		t.Logf("Wrong batch request received")
 		t.Fail()
 	}
 
@@ -421,7 +446,9 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 	}
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -434,7 +461,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 	}
 
 	if len(res.Slots) != 10 {
-		t.Logf("We did not recieve the expected amount of slots")
+		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 
@@ -453,7 +480,9 @@ func TestReceivePoll_Unauthenticated(t *testing.T) {
 	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
@@ -478,7 +507,9 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 	badGatewayId := id.NewIdFromString("bad", id.Gateway, t)
 
 	// Create host and auth
-	h, _ := connect.NewHost(badGatewayId, testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(badGatewayId, testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -502,10 +533,10 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
 
-	instance.SetGatewayID()
-
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -524,7 +555,7 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	newGatewayId.SetType(id.Gateway)
 
 	// Create host and auth with new parameters, namely a gateway id based off of the server id
-	h, _ = connect.NewHost(newGatewayId, testGatewayAddress, nil, false, false)
+	h, _ = connect.NewHost(newGatewayId, testGatewayAddress, nil, params)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,

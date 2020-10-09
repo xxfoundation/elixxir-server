@@ -29,7 +29,7 @@ func TestPermuteStream_GetName(t *testing.T) {
 	ps := PermuteStream{}
 
 	if ps.GetName() != expected {
-		t.Errorf("PermuteStream.GetName(), Expected %s, Recieved %s", expected, ps.GetName())
+		t.Errorf("PermuteStream.GetName(), Expected %s, Received %s", expected, ps.GetName())
 	}
 }
 
@@ -106,12 +106,12 @@ func TestPermuteStream_Input(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(ps.EcrPayloadA.Get(b).Bytes(), expected[0]) {
-			t.Errorf("PermuteStream.Input() incorrect stored PayloadAPermuted data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Input() incorrect stored PayloadAPermuted data at %v: Expected: %v, Received: %v",
 				b, expected[0], ps.PayloadAPermuted[b].Bytes())
 		}
 
 		if !reflect.DeepEqual(ps.EcrPayloadB.Get(b).Bytes(), expected[1]) {
-			t.Errorf("PermuteStream.Input() incorrect stored PayloadBPermuted data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Input() incorrect stored PayloadBPermuted data at %v: Expected: %v, Received: %v",
 				b, expected[1], ps.PayloadBPermuted[b].Bytes())
 		}
 	}
@@ -232,12 +232,12 @@ func TestPermuteStream_Output(t *testing.T) {
 		output := stream.Output(b)
 
 		if !reflect.DeepEqual(output.PayloadA, expected[0]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved PayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Output() incorrect received PayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], output.PayloadA)
 		}
 
 		if !reflect.DeepEqual(output.PayloadB, expected[1]) {
-			t.Errorf("PermuteStream.Output() incorrect recieved PayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("PermuteStream.Output() incorrect received PayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], output.PayloadB)
 		}
 	}
@@ -358,7 +358,7 @@ func TestPermuteStream_InGraph(t *testing.T) {
 func checkStreamIntBuffer(grp *cyclic.Group, ib, sourceib *cyclic.IntBuffer, source string, t *testing.T) {
 	if ib.Len() != sourceib.Len() {
 		t.Errorf("preomp.PermuteStream.Link: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, sourceib.Len(), ib.Len())
+			"Expected %v, Received: %v", source, sourceib.Len(), ib.Len())
 	}
 
 	numBad := 0
@@ -379,7 +379,7 @@ func checkStreamIntBuffer(grp *cyclic.Group, ib, sourceib *cyclic.IntBuffer, sou
 func checkIntBuffer(ib *cyclic.IntBuffer, expandedBatchSize uint32, source string, defaultInt *cyclic.Int, t *testing.T) {
 	if ib.Len() != int(expandedBatchSize) {
 		t.Errorf("New RoundBuffer: Length of intBuffer %s not correct, "+
-			"Expected %v, Recieved: %v", source, expandedBatchSize, ib.Len())
+			"Expected %v, Received: %v", source, expandedBatchSize, ib.Len())
 	}
 
 	numBad := 0

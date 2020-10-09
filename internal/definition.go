@@ -9,12 +9,12 @@ package internal
 
 import (
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
 )
 
 // in cmd/node.go, it is filling this out
@@ -31,6 +31,8 @@ type Definition struct {
 
 	//The ID of the node in the correct format
 	ID *id.ID
+	// The Salt used to generate the Node ID
+	Salt []byte
 
 	//DSA Keys defining the node's ownership
 	PublicKey  *rsa.PublicKey
@@ -42,11 +44,16 @@ type Definition struct {
 	TlsKey []byte
 	//String containing the local address and port to connect to
 	Address string
+	// Interconnect port
+	InterconnectPort int
 
 	//Path the node will store its log at
 	LogPath string
 	//Path which system metrics are stored for first node
 	MetricLogPath string
+
+	// Path to save the list of node IP addresses
+	IpListOutput string
 
 	// Path where the Server and Gateway certificates will be stored
 	ServerCertPath  string
@@ -90,6 +97,8 @@ type Flags struct {
 	KeepBuffers bool
 	// If true, use GPU acceleration for precomputation
 	UseGPU bool
+	// If true, disable overriding of local node IP in NDF
+	DisableIpOverride bool
 }
 
 //Holds information about another node in the network
@@ -119,6 +128,10 @@ type GW struct {
 	TlsCert []byte
 	// IP address of the gateway
 	Address string
+	// Toggles use of Node's IP address as Gateway's address in Permissioning.
+	UseNodeIp bool
+	// Replaces Gateway's IP address reported to Permissioning.
+	AdvertisedIP string
 }
 
 type MetricsHandler func(i *Instance, roundID id.Round) error

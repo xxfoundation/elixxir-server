@@ -9,13 +9,11 @@ package internal
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -23,6 +21,8 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"runtime"
 	"sync"
 	"testing"
@@ -119,7 +119,10 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = nid.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 	m := state.NewMachine(dummyStates)
 	instance, _ := CreateServerInstance(&def, impl, m, "1.1.0")
 	roundID := id.Round(1)
@@ -157,7 +160,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		t.Error("After enqueueing, the phase's state should be Queued")
 	}
 	go q.run(instance)
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	// Verify state while the queue is running
 	iWasCalledLck.Lock()
 	if !iWasCalled {

@@ -8,15 +8,15 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"runtime"
 	"strings"
 	"testing"
@@ -89,7 +89,9 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -121,7 +123,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Slots:     []*mixmessages.Slot{},
 	}
 
-	h, _ = connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	h, _ = connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -152,7 +154,9 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
@@ -195,7 +199,9 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 
 	newID := id.NewIdFromString("test", id.Node, t)
 
-	h, _ := connect.NewHost(newID, "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(newID, "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -289,7 +295,9 @@ func TestReceivePostNewBatch(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,

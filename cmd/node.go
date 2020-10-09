@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/cmd/conf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
@@ -26,13 +25,15 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(vip *viper.Viper) error {
+func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
 
 	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
@@ -51,10 +52,13 @@ func StartServer(vip *viper.Viper) error {
 		jww.FATAL.Panicf("Unable to load params from viper: %+v", err)
 	}
 
-	jww.INFO.Printf("Loaded params: %+v", params)
+	ps := fmt.Sprintf("Loaded params: %+v", params)
+	ps = strings.ReplaceAll(ps, params.Database.Password, "[dbpass]")
+	ps = strings.ReplaceAll(ps, params.RegistrationCode, "[regcode]")
+	jww.INFO.Printf(ps)
 
 	// Initialize the backend
-	jww.INFO.Printf("Initalizing the backend")
+	jww.INFO.Printf("Initalizing the backend...")
 	dbAddress := params.Database.Address
 
 	//Initialize the user database
@@ -65,10 +69,10 @@ func StartServer(vip *viper.Viper) error {
 		dbAddress,
 	)
 
-	jww.INFO.Printf("Converting params to server definition")
+	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
 	if err != nil {
-		return errors.Errorf("Failed to convert params to definition: %+v", err)
+		return nil, errors.Errorf("Failed to convert params to definition: %+v", err)
 	}
 	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
@@ -89,7 +93,7 @@ func StartServer(vip *viper.Viper) error {
 	def.RngStreamGen = fastRNG.NewStreamGenerator(params.RngScalingFactor,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 
-	jww.INFO.Printf("Creating server instance")
+	jww.INFO.Printf("Creating server instance...")
 
 	ourChangeList := node.NewStateChanges()
 
@@ -135,7 +139,7 @@ func StartServer(vip *viper.Viper) error {
 		instance, err = internal.CreateServerInstance(def,
 			io.NewImplementation, ourMachine, currentVersion)
 		if err != nil {
-			return errors.Errorf("Could not create server instance: %v", err)
+			return instance, errors.Errorf("Could not create server instance: %v", err)
 		}
 	} else {
 		// Otherwise, start in recovery mode
@@ -143,7 +147,7 @@ func StartServer(vip *viper.Viper) error {
 		instance, err = internal.RecoverInstance(def, io.NewImplementation,
 			ourMachine, currentVersion)
 		if err != nil {
-			return errors.WithMessage(err, "Could not recover server instance")
+			return instance, errors.WithMessage(err, "Could not recover server instance")
 		}
 	}
 
@@ -152,7 +156,8 @@ func StartServer(vip *viper.Viper) error {
 		gc := services.NewGraphGenerator(4,
 			uint8(runtime.NumCPU()), 1, 0)
 		g := graphs.InitErrorGraph(gc)
-		th := func(roundID id.Round, instance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
+		th := func(roundID id.Round, instance phase.GenericInstance,
+			getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 			return errors.New("Failed intentionally")
 		}
 		for _, i := range params.PhaseOverrides {
@@ -173,23 +178,17 @@ func StartServer(vip *viper.Viper) error {
 		}
 	}
 
-	jww.INFO.Printf("Instance created!")
-
-	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-	fmt.Printf("Server Definition: \n%#v", def)
-	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~")
-
-	jww.INFO.Printf("Connecting to network")
+	jww.INFO.Printf("~~~~~~~~~~~~~~~~~~~~~~~~\nServer Definition:\n%#v\n~~~~~~~~~~~~~~~~~~~~~~~~", def)
 
 	// initialize the network
 	instance.Online = true
 
-	jww.INFO.Printf("Begining resource queue")
+	jww.INFO.Printf("Beginning resource queue...")
 	//Begin the resource queue
 	err = instance.Run()
 	if err != nil {
-		return errors.Errorf("Unable to run instance: %+v", err)
+		return instance, errors.Errorf("Unable to run instance: %+v", err)
 	}
 
-	return nil
+	return instance, nil
 }

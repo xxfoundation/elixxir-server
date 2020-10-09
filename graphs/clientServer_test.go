@@ -15,13 +15,13 @@ import (
 	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"math/rand"
 	"reflect"
@@ -69,7 +69,10 @@ func TestClientServer(t *testing.T) {
 		UserRegistry:    &globals.UserMap{},
 		PartialNDF:      testUtil.NDF,
 		FullNDF:         testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = nid.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	var stateChanges [current.NUM_STATES]state.Change
 	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {

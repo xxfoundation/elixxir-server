@@ -4,13 +4,15 @@
 // Use of this source code is governed by a license that can be found in the //
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
+package io
 
-package conf
+import (
+	"gitlab.com/elixxir/server/internal"
+)
 
-var ExpectedPaths = Paths{
-	Idf:          "nodeID.json",
-	Cert:         "~/.elixxir/cert.crt",
-	Key:          "~/.elixxir/key.pem",
-	Log:          "~/.elixxir/server.log",
-	ipListOutput: "/opt/xxnetwork/node-logs/ipList.txt",
+// consensus.go contains handlers and senders for communication with
+// our consensus platform
+
+func GetNdf(instance *internal.Instance) ([]byte, error) {
+	return instance.GetConsensus().GetFullNdf().Get().Marshal()
 }

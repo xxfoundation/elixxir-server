@@ -15,24 +15,28 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/crypto/xx"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/id/idf"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/crypto/tls"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/id/idf"
+	"gitlab.com/xx_network/primitives/ndf"
 	"runtime"
 	"time"
 )
+
+// The default path to save the list of node IP addresses
+const defaultIpListPath = "/opt/xxnetwork/node-logs/ipList.txt"
 
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
 	KeepBuffers           bool
 	UseGPU                bool
+	DisableIpOverride     bool
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
@@ -72,6 +76,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	if params.Node.Port == 0 {
 		jww.FATAL.Panic("Must specify a port to run on")
 	}
+	params.Node.InterconnectPort = vip.GetInt("node.interconnectPort")
+
+	params.DisableIpOverride = vip.GetBool("disableIpOverride")
 
 	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
 	require(params.Node.Paths.Idf, "node.paths.idf")
@@ -85,6 +92,12 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
 	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
 	require(params.RecoveredErrPath, "node.paths.errOutput")
+
+	// If no path was supplied, then use the default
+	params.Node.Paths.ipListOutput = vip.GetString("node.paths.ipListOutput")
+	if params.Node.Paths.ipListOutput == "" {
+		params.Node.Paths.ipListOutput = defaultIpListPath
+	}
 
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
@@ -130,6 +143,13 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Metrics.Log = vip.GetString("metrics.log")
 
+	params.Gateway.useNodeIp = vip.GetBool("gateway.useNodeIp")
+	params.Gateway.advertisedIP = vip.GetString("gateway.advertisedIP")
+	if params.Gateway.useNodeIp && params.Gateway.advertisedIP != "" {
+		jww.FATAL.Panicf("Cannot set both gateway.useNodeIp and " +
+			"gateway.advertisedIP at the same time.")
+	}
+
 	return &params, nil
 }
 
@@ -140,6 +160,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
+	def.Flags.DisableIpOverride = p.DisableIpOverride
 	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
@@ -162,11 +183,13 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	}
 
 	def.Address = fmt.Sprintf("%s:%d", p.Node.ListeningAddress, p.Node.Port)
+	def.InterconnectPort = p.Node.InterconnectPort
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
 	def.RecoveredErrorPath = p.RecoveredErrPath
+	def.IpListOutput = p.Node.Paths.ipListOutput
 
 	var GwTlsCerts []byte
 
@@ -228,27 +251,25 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	// Check if the IDF exists
 	if p.Node.Paths.Idf != "" && utils.Exists(p.Node.Paths.Idf) {
 		// If the IDF exists, then get the ID and save it
-		_, newID, err2 := idf.UnloadIDF(p.Node.Paths.Idf)
-		if err2 != nil {
-			return nil, errors.Errorf("Could not unload IDF: %+v", err2)
+		def.Salt, def.ID, err = idf.UnloadIDF(p.Node.Paths.Idf)
+		if err != nil {
+			return nil, errors.Errorf("Could not unload IDF: %+v", err)
 		}
-
-		def.ID = newID
 	} else {
 		// If the IDF does not exist, then generate a new ID, save it to an IDF,
 		// and save the ID to the definition
 
 		// Generate a random 256-bit number for the salt
-		salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
+		def.Salt = cmix.NewSalt(csprng.NewSystemRNG(), 32)
 
 		// Generate new ID
-		newID, err2 := xx.NewID(def.PublicKey, salt[:32], id.Node)
+		newID, err2 := xx.NewID(def.PublicKey, def.Salt[:32], id.Node)
 		if err2 != nil {
 			return nil, errors.Errorf("Failed to create new ID: %+v", err2)
 		}
 
 		// Save new ID to file
-		err2 = idf.LoadIDF(p.Node.Paths.Idf, salt, newID)
+		err2 = idf.LoadIDF(p.Node.Paths.Idf, def.Salt, newID)
 		if err2 != nil {
 			return nil, errors.Errorf("Failed to save new ID to file: %+v",
 				err2)
@@ -279,6 +300,9 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
+
+	def.Gateway.UseNodeIp = p.Gateway.useNodeIp
+	def.Gateway.AdvertisedIP = p.Gateway.advertisedIP
 
 	return def, nil
 }

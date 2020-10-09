@@ -8,10 +8,8 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -19,6 +17,8 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
 )
@@ -31,7 +31,9 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -81,7 +83,9 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -118,8 +122,11 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			ResourceMonitor: &measure.ResourceMonitor{},
 			FullNDF:         testUtil.NDF,
 			PartialNDF:      testUtil.NDF,
+			Flags:           internal.Flags{DisableIpOverride: true},
 		}
 		def.ID = topology.GetNodeAtIndex(1)
+		def.Gateway.ID = def.ID.DeepCopy()
+		def.Gateway.ID.SetType(id.Gateway)
 
 		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
@@ -166,7 +173,9 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -207,7 +216,9 @@ func TestPostPrecompResultFunc(t *testing.T) {
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 
-	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -228,7 +239,9 @@ func TestPostPrecompResult_WrongSender(t *testing.T) {
 	instance, _ := mockServerInstance(t, current.PRECOMPUTING)
 
 	newID := id.NewIdFromString("bad", id.Node, t)
-	fakeHost, err := connect.NewHost(newID, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(newID, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

@@ -9,14 +9,14 @@ package io
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
 )
@@ -103,8 +103,8 @@ func TestSendFinishRealtime(t *testing.T) {
 	}
 
 	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
-			"number of chunks; expected: %v, recieved: %v", numSlots,
+		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
+			"number of chunks; expected: %v, received: %v", numSlots,
 			len(cr.Round))
 	}
 
@@ -207,8 +207,8 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	}
 
 	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
-			"number of chunks; expected: %v, recieved: %v", numSlots,
+		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
+			"number of chunks; expected: %v, received: %v", numSlots,
 			len(cr.Round))
 	}
 

@@ -8,14 +8,14 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 )
 
@@ -50,7 +50,9 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -103,7 +105,9 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -158,7 +162,9 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 
 	// Create a fake host and auth object to pass into function that needs it
 	newID := id.NewIdFromString("bad", id.Node, t)
-	fakeHost, err := connect.NewHost(newID, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(newID, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -210,8 +216,10 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
 	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(topology.Len()-1),
-		"", nil, true, true)
+		"", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

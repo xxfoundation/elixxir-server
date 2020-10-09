@@ -8,15 +8,15 @@
 package node
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/gpumathsgo"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"time"
 )
 

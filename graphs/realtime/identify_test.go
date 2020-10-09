@@ -29,7 +29,7 @@ func TestIdentifyStream_GetName(t *testing.T) {
 	is := IdentifyStream{}
 
 	if is.GetName() != expected {
-		t.Errorf("IdentifyStream.GetName(), Expected %s, Recieved %s", expected, is.GetName())
+		t.Errorf("IdentifyStream.GetName(), Expected %s, Received %s", expected, is.GetName())
 	}
 }
 
@@ -108,12 +108,12 @@ func TestIdentifyStream_Input(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(is.EcrPayloadA.Get(b).Bytes(), expected[0]) {
-			t.Errorf("IdentifyStream.Input() incorrect stored EcrPayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("IdentifyStream.Input() incorrect stored EcrPayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], is.EcrPayloadA.Get(b).Bytes())
 		}
 
 		if !reflect.DeepEqual(is.EcrPayloadB.Get(b).Bytes(), expected[1]) {
-			t.Errorf("IdentifyStream.Input() incorrect stored EcrPayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("IdentifyStream.Input() incorrect stored EcrPayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], is.EcrPayloadB.Get(b).Bytes())
 		}
 	}
@@ -234,12 +234,12 @@ func TestIdentifyStream_Output(t *testing.T) {
 		output := is.Output(b)
 
 		if !reflect.DeepEqual(output.PayloadA, grp.NewIntFromBytes(expected[0]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
-			t.Errorf("IdentifyStream.Output() incorrect recieved PayloadA data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("IdentifyStream.Output() incorrect received PayloadA data at %v: Expected: %v, Received: %v",
 				b, expected[0], output.PayloadA)
 		}
 
 		if !reflect.DeepEqual(output.PayloadB, grp.NewIntFromBytes(expected[1]).LeftpadBytes(uint64(grp.GetP().ByteLen()))) {
-			t.Errorf("IdentifyStream.Output() incorrect recieved PayloadB data at %v: Expected: %v, Recieved: %v",
+			t.Errorf("IdentifyStream.Output() incorrect received PayloadB data at %v: Expected: %v, Received: %v",
 				b, expected[1], output.PayloadB)
 		}
 	}

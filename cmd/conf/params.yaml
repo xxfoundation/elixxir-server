@@ -11,6 +11,7 @@ node:
     errOutput: "~/.elixxir/error.out"
   listeningAddress: "127.0.0.1"
   port: 80
+  interconnectPort: 0
 database:
   name: "name"
   username: "username"

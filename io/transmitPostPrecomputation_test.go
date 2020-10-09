@@ -8,19 +8,19 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"reflect"
 	"testing"
 	"time"
@@ -68,13 +68,13 @@ func TestPostPrecompResult(t *testing.T) {
 		payloadAPrecomp := r.PayloadAPrecomputation.Get(index)
 		if payloadAPrecomp.Cmp(grp.NewInt(int64(precompValue))) != 0 {
 			t.Errorf("payload A precomp didn't match at index %v;"+
-				"Expected: %v, Recieved: %v", index, precompValue,
+				"Expected: %v, Received: %v", index, precompValue,
 				payloadAPrecomp.Text(16))
 		}
 		payloadBPrecomp := r.PayloadBPrecomputation.Get(index)
 		if payloadBPrecomp.Cmp(grp.NewInt(int64(precompValue+bs))) != 0 {
 			t.Errorf("payload B precomp didn't match at index %v;"+
-				"Expected: %v, Recieved: %v", index, precompValue+bs,
+				"Expected: %v, Received: %v", index, precompValue+bs,
 				payloadBPrecomp.Text(16))
 		}
 	}
@@ -96,10 +96,6 @@ func getMockPostPrecompSlot(i uint32) *mixmessages.Slot {
 		PartialPayloadACypherText: []byte{byte(i)},
 		PartialPayloadBCypherText: []byte{byte(i)},
 	}
-}
-
-func postPrecompInstance() {
-
 }
 
 var roundReceiver chan uint64
@@ -147,9 +143,9 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
@@ -203,7 +199,7 @@ Loop:
 				expectedPrecompResults[i] = getMockPostPrecompSlot(i)
 			}
 			if !reflect.DeepEqual(receivedPrecomp, expectedPrecompResults) {
-				t.Errorf("Precomps differed: Expected: %v\n\tRecieved: %v", expectedPrecompResults, receivedPrecomp)
+				t.Errorf("Precomps differed: Expected: %v\n\tReceived: %v", expectedPrecompResults, receivedPrecomp)
 			}
 			numReceivedPrecomps++
 		case <-time.After(5 * time.Second):

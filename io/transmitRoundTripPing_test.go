@@ -9,15 +9,12 @@ package io
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -25,6 +22,10 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 )
 
@@ -79,7 +80,11 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		PublicKey:       mockRSAPub,
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
+
 	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)
 
@@ -113,7 +118,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 	before := r.GetRTStart().String()
 
 	err = TransmitRoundTripPing(comms[0], topology.GetNodeAtIndex(1),
-		r, &mixmessages.Ack{}, "EMPTY/ACK", nil)
+		r, &messages.Ack{}, "EMPTY/ACK", nil)
 	if err != nil {
 		t.Errorf("Error transmitting rt ping: %+v", err)
 	}

@@ -9,13 +9,9 @@ package io
 
 import (
 	"crypto/rand"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -23,6 +19,10 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
 	"strings"
 	"testing"
 	"time"
@@ -58,7 +58,9 @@ func TestReceiveRoundError(t *testing.T) {
 	expectedError := "test failed"
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", []byte(testUtil.RegCert), true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", []byte(testUtil.RegCert), params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -149,7 +151,9 @@ func TestReceiveRoundError_Auth(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -203,8 +207,10 @@ func TestReceiveRoundError_BadNodeId(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
 	fakeHost, err := connect.NewHost(topology.GetLastNode(),
-		"", nil, true, true)
+		"", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -258,7 +264,9 @@ func TestReceiveRoundError_BadRound(t *testing.T) {
 	}
 
 	// Create a fake host and auth object to pass into function that needs it
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -283,6 +291,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 		Gateway: internal.GW{
 			ID: &id.TempGateway,
 		},

@@ -27,7 +27,7 @@ func TestShareStream_GetName(t *testing.T) {
 	rs := ShareStream{}
 
 	if rs.GetName() != expected {
-		t.Errorf("ShareStream.GetName(), Expected %s, Recieved %s", expected, rs.GetName())
+		t.Errorf("ShareStream.GetName(), Expected %s, Received %s", expected, rs.GetName())
 	}
 }
 
@@ -45,7 +45,7 @@ func TestShareStream_Link(t *testing.T) {
 
 	if roundBuffer.Z.Cmp(stream.Z) != 0 {
 		t.Errorf(
-			"ShareStream.Link() Z value not linked: Expected %s, Recieved %s",
+			"ShareStream.Link() Z value not linked: Expected %s, Received %s",
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
@@ -54,7 +54,7 @@ func TestShareStream_Link(t *testing.T) {
 
 	if stream.Z.Cmp(expected) != 0 {
 		t.Errorf(
-			"RevealStream.Link() Z value not linked to round: Expected %s, Recieved %s",
+			"RevealStream.Link() Z value not linked to round: Expected %s, Received %s",
 			roundBuffer.Z.TextVerbose(10, 16), stream.Z.TextVerbose(10, 16))
 	}
 
@@ -142,7 +142,7 @@ func TestShareStream_Output(t *testing.T) {
 	output := stream.Output(0)
 
 	if !reflect.DeepEqual(output.PartialRoundPublicCypherKey, expected) {
-		t.Errorf("RevealStream.Output() incorrect recieved Partial Round Cypher Key: Expected: %v, Recieved: %v",
+		t.Errorf("RevealStream.Output() incorrect received Partial Round Cypher Key: Expected: %v, Received: %v",
 			expected, output.PartialRoundPublicCypherKey)
 	}
 
@@ -213,7 +213,7 @@ func TestShare_Graph(t *testing.T) {
 		chunk, ok = g.GetOutput()
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			if PubicCypherKeyExpected.Cmp(stream.PartialPublicCypherKey) != 0 {
-				t.Errorf("PrecompShare:PartialPublicCypherKey incorrect, Expected: %v, Recieved: %v",
+				t.Errorf("PrecompShare:PartialPublicCypherKey incorrect, Expected: %v, Received: %v",
 					PubicCypherKeyExpected.Text(16), stream.PartialPublicCypherKey.Text(16))
 			}
 		}

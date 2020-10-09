@@ -10,16 +10,14 @@ package io
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/primitives/id"
 	"time"
 )
-
-var UnsignedTest = false
 
 // ReceiveRoundError takes the round error message and checks if it's within the round
 // If so then we transition to an error state. If not we ignore the error and send it
@@ -58,14 +56,12 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 	}
 
 	//check the signature on the round error is valid
-	if !UnsignedTest {
-		err = signature.Verify(msg, auth.Sender.GetPubKey())
-		if err != nil {
-			jww.WARN.Printf("Recieved an error for round %v from node %s "+
-				"that could not be authenticated: %s, %+v", r.GetID(),
-				auth.Sender.GetId(), err, msg)
-			return errors.WithMessage(err, "could not verify round error")
-		}
+	err = signature.Verify(msg, auth.Sender.GetPubKey())
+	if err != nil {
+		jww.WARN.Printf("Received an error for round %v from node %s "+
+			"that could not be authenticated: %s, %+v", r.GetID(),
+			auth.Sender.GetId(), err, msg)
+		return errors.WithMessage(err, "could not verify round error")
 	}
 
 	// do edge checking to make sure the round is still ongoing, reject if it is
@@ -74,7 +70,7 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 
 	if r.GetCurrentPhase().GetType() == phase.Complete ||
 		r.GetCurrentPhase().GetType() == phase.PhaseError {
-		jww.WARN.Printf("Recieved an error for round %v from node %s "+
+		jww.WARN.Printf("Received an error for round %v from node %s "+
 			"when round is already complete: %s", r.GetID(),
 			auth.Sender.GetId(), phaseState)
 		return errors.New("Cannot process error associated with inactive round")

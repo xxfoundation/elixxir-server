@@ -16,13 +16,13 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
 	"testing"
@@ -475,7 +475,10 @@ func mockServerInstance(i interface{}) *internal.Instance {
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	var stateChanges [current.NUM_STATES]state.Change
 	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {

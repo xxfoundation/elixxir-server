@@ -11,12 +11,13 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/interconnect"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
 	"time"
 )
 
@@ -28,12 +29,23 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl.Functions.GetMeasure = func(message *mixmessages.RoundInfo,
 		auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
-		metrics, err := ReceiveGetMeasure(instance, message)
+		metrics, err := ReceiveGetMeasure(instance, message, auth)
 		if err != nil {
 			jww.ERROR.Printf("GetMeasure error: %+v, %+v", auth, err)
 		}
 		return metrics, err
 
+	}
+
+	impl.Functions.GetNdf = func() (*interconnect.NDF, error) {
+		response, err := GetNdf(instance)
+		if err != nil {
+			jww.ERROR.Printf("GetNdf error: %v", err)
+		}
+
+		return &interconnect.NDF{
+			Ndf: response,
+		}, err
 	}
 
 	impl.Functions.PostPhase = func(batch *mixmessages.Batch, auth *connect.Auth) error {
@@ -80,12 +92,12 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return nonce, dhPub, err
 	}
 
-	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, error) {
-		bytes, err := ConfirmRegistration(instance, UserID, Signature, auth)
+	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, []byte, error) {
+		bytes, clientGWKey, err := ConfirmRegistration(instance, UserID, Signature, auth)
 		if err != nil {
 			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
 		}
-		return bytes, err
+		return bytes, clientGWKey, err
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		err := ReceivePostPrecompResult(instance, roundID, slots, auth)

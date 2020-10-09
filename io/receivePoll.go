@@ -12,11 +12,11 @@ package io
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
 	"strings"
 )
 
@@ -25,8 +25,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
 	// Check that the sender is authenticated and is either their gateway or the temporary gateway
-	if !auth.IsAuthenticated || (!isValidID(auth.Sender.GetId(), &id.TempGateway, instance.GetGatewayID())) {
-		jww.TRACE.Printf("Failed auth object: %v", auth)
+	if !auth.IsAuthenticated || !isValidID(auth.Sender.GetId(), &id.TempGateway, instance.GetGateway()) {
+		jww.INFO.Printf("Failed auth gateway poll: %v", auth)
 		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
@@ -37,6 +37,10 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	// Form gateway address and put it into gateway data in instance
 	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
+
+	// Asynchronously indicate that gateway has successfully contacted
+	// its node
+	instance.GetGatewayFirstContact().Send()
 
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
@@ -65,7 +69,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 		//get a completed batch if it exists and pass it to the gateway
 		cr, err := instance.GetCompletedBatchQueue().Receive()
-		if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+		if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
@@ -73,8 +77,10 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 			res.Slots = cr.Round
 		}
 
-		//denote that gateway has received info, only operates ont eh first time
-		instance.GetGatewayFirstTime().Send()
+		// denote that gateway has received info,
+		// only does something the first time
+		instance.GetGatewayFirstPoll().Send()
+
 		return &res, nil
 	}
 

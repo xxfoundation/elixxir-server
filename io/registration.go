@@ -13,14 +13,15 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
+	"gitlab.com/elixxir/crypto/cmix"
 	hash2 "gitlab.com/elixxir/crypto/hash"
-	"gitlab.com/elixxir/crypto/nonce"
 	"gitlab.com/elixxir/crypto/registration"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/crypto/xx"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/nonce"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
 )
 
 // Handles a client request for a nonce during the client registration process
@@ -111,11 +112,11 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 
 // Handles nonce confirmation during the client registration process
 func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature []byte,
-	auth *connect.Auth) ([]byte, error) {
+	auth *connect.Auth) ([]byte, []byte, error) {
 
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
-		return nil, connect.AuthError(auth.Sender.GetId())
+		return nil, nil, connect.AuthError(auth.Sender.GetId())
 	}
 
 	// Obtain the user from the database
@@ -123,14 +124,14 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 
 	if err != nil {
 		// Invalid nonce, return an error
-		return make([]byte, 0),
+		return make([]byte, 0), make([]byte, 0),
 			errors.Errorf("Unable to confirm registration, could not "+
 				"find a user: %+v", err)
 	}
 
 	// Verify nonce has not expired
 	if !user.Nonce.IsValid() {
-		return make([]byte, 0),
+		return make([]byte, 0), make([]byte, 0),
 			errors.Errorf("Unable to confirm registration, Nonce is expired")
 	}
 
@@ -144,7 +145,7 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 	err = rsa.Verify(user.RsaPublicKey, sha, data, Signature, nil)
 
 	if err != nil {
-		return make([]byte, 0),
+		return make([]byte, 0), make([]byte, 0),
 			errors.Errorf("Unable to confirm registration, signature invalid")
 	}
 
@@ -162,9 +163,12 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 		return make([]byte, 0),	errors.New("unable to sign client public key")
 	}*/
 
+	// Hash the basekey
+	hashedData := cmix.GenerateClientGatewayKey(user.BaseKey)
+	user.BaseKey.Bytes()
 	//update the user's state to registered
 	user.IsRegistered = true
 	instance.GetUserRegistry().UpsertUser(user)
-	// Fixme: what is going on here?
-	return make([]byte, 0), nil
+	// Fixme: what is going on here? RSA signature has been blank?
+	return make([]byte, 0), hashedData, nil
 }

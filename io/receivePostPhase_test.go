@@ -8,10 +8,8 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -19,6 +17,8 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
 )
@@ -35,9 +35,12 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
@@ -82,7 +85,9 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -101,12 +106,12 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	for index := range mockBatch.Slots {
 		if mockPhase.GetChunks()[index].Begin() != uint32(index) {
 			t.Errorf("PostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetChunks()[index].Begin())
+				"Expected: %v, Received: %v", index, mockPhase.GetChunks()[index].Begin())
 		}
 
 		if mockPhase.GetIndices()[index] != uint32(index) {
 			t.Errorf("PostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetIndices()[index])
+				"Expected: %v, Received: %v", index, mockPhase.GetIndices()[index])
 		}
 	}
 
@@ -165,7 +170,9 @@ func TestPostPhase_NoAuth(t *testing.T) {
 	// Make an auth object around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -212,7 +219,9 @@ func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPh
 	// Make an auth object around a node that is not the previous node
 	lastNodeIndex := topology.Len() - 2
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -257,7 +266,9 @@ func TestStreamPostPhase_NoAuth(t *testing.T) {
 	// Make an auth object around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -305,7 +316,9 @@ func TestStreamPostPhase_WrongSender(t *testing.T) {
 	// Make an auth object around a non previous node
 	lastNodeIndex := topology.Len() - 2
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -370,7 +383,9 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 
 	// Make an auth object around the last node
 	lastNodeId := topology.GetPrevNode(instance.GetID())
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -392,12 +407,12 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 	for index := range mockBatch.Slots {
 		if mockPhase.GetChunks()[index].Begin() != uint32(index) {
 			t.Errorf("StreamPostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetChunks()[index].Begin())
+				"Expected: %v, Received: %v", index, mockPhase.GetChunks()[index].Begin())
 		}
 
 		if mockPhase.GetIndices()[index] != uint32(index) {
 			t.Errorf("StreamPostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.GetIndices()[index])
+				"Expected: %v, Received: %v", index, mockPhase.GetIndices()[index])
 		}
 	}
 

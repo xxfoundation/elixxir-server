@@ -10,13 +10,8 @@ package node
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
@@ -27,6 +22,9 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/primitives/id"
 	"runtime"
 	"testing"
 	"time"
@@ -60,6 +58,8 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		Address: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
+	def.Gateway.ID = def.ID.DeepCopy()
+	def.Gateway.ID.SetType(id.Gateway)
 
 	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{
@@ -76,8 +76,10 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
 		m, "1.1.0")
 
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
-		[]byte(testUtil.RegCert), false, false)
+		[]byte(testUtil.RegCert), params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -103,14 +105,6 @@ func TestNewStateChanges(t *testing.T) {
 	}
 }
 
-/*func TestNotStarted_RoundError(t *testing.T) {
-	instance, _ := setup(t)
-	err := NotStarted(instance, true)
-	if err != nil {
-		t.Error(err)
-	}
-}*/
-
 func TestError(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
@@ -118,7 +112,7 @@ func TestError(t *testing.T) {
 		NodeId: instance.GetID().Marshal(),
 		Error:  "",
 	}
-	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error) {
 		return nil, nil
 	}
 	instance.SetRoundErrFunc(mockBroadcast, t)
@@ -134,7 +128,9 @@ func TestError(t *testing.T) {
 
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -155,7 +151,7 @@ func TestError_RID0(t *testing.T) {
 		NodeId: instance.GetID().Marshal(),
 		Error:  "",
 	}
-	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*mixmessages.Ack, error) {
+	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error) {
 		t.Error()
 		return nil, nil
 	}
@@ -172,7 +168,9 @@ func TestError_RID0(t *testing.T) {
 
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -194,7 +192,9 @@ func TestPrecomputing(t *testing.T) {
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -263,7 +263,10 @@ func TestPrecomputing_override(t *testing.T) {
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		params.AuthEnabled = false
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -301,21 +304,46 @@ func TestPrecomputing_override(t *testing.T) {
 	}
 
 	rnd, _ := instance.GetRoundManager().GetRound(id.Round(1))
-	phase, _ := rnd.GetPhase(phase.PrecompGeneration)
-	if phase.GetTimeout() != 30127 {
+	precompPhase, _ := rnd.GetPhase(phase.PrecompGeneration)
+	if precompPhase.GetTimeout() != 30127 {
 		t.Error("Failed to override phase")
 	}
 }
 
-// Utility function which signs a round info message
-func signRoundInfo(ri *mixmessages.RoundInfo) error {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+// Smoke test: does isRegistered communicate with permissioning server?
+func TestIsRegistered(t *testing.T) {
+	// Create instance
+	instance, pAddr, nAddr, nodeId, cert, key, err := createServerInstance(t)
+
 	if err != nil {
-		return errors.Errorf("couldn't load privKey: %+v", err)
+		t.Errorf("Couldn't create instance: %+v", err)
 	}
 
-	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
+	// Start up permissioning server
+	permComms, mockPermissioning, err := startPermissioning(pAddr, nAddr, nodeId, cert, key, t)
 
-	signature.Sign(ri, ourPrivKey)
-	return nil
+	if err != nil {
+		t.Errorf("Couldn't create permissioning server: %+v", err)
+	}
+	defer permComms.Shutdown()
+
+	// Add retrieve permissioning host from instance
+	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
+	if !ok {
+		t.Fatal("Didn't get a permissioning host. Failing now")
+	}
+	result := isRegistered(instance, permHost)
+	const expected = true
+	if result != expected {
+		t.Errorf("Expected response from mock permissioning to be %v. Got %v instead", expected, result)
+	}
+
+	// It should be possible to see this error in the test logs
+	expectedErr := errors.New("mock error")
+	mockPermissioning.SetDesiredError(expectedErr)
+	result = isRegistered(instance, permHost)
+	const expectedWhenErr = false
+	if result != expectedWhenErr {
+		t.Error("isRegistered should return false when permissioning returns an error")
+	}
 }

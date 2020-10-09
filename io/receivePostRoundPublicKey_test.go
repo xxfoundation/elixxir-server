@@ -8,11 +8,9 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -20,6 +18,8 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"strings"
 	"testing"
 )
@@ -33,6 +33,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		Flags:           internal.Flags{DisableIpOverride: true},
 		Gateway: internal.GW{
 			ID: &id.TempGateway,
 		},
@@ -103,7 +104,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 		return nil
 	}
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -134,7 +137,9 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 func TestReceivePostRoundPublicKey_AuthError(t *testing.T) {
 	instance, topology, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
-	fakeHost, _ := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, _ := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          fakeHost,
@@ -163,7 +168,9 @@ func TestReceivePostRoundPublicKey_BadHostError(t *testing.T) {
 	instance, _, _ := createMockInstance(t, 1, current.PRECOMPUTING)
 
 	newID := id.NewIdFromString("beep beep i'm a host", id.Node, t)
-	fakeHost, _ := connect.NewHost(newID, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, _ := connect.NewHost(newID, "", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          fakeHost,
@@ -238,7 +245,9 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 
 	impl := NewImplementation(instance)
 
-	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetLastNode(), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -254,7 +263,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	// Verify that a PostPhase is called by ensuring callback
 	// does set the actual by comparing it to the expected batch
 	if uint32(len(mockPhaseDecrypt.GetIndices())) != batchSize {
-		t.Errorf("first node did not recieve the correct number of " +
+		t.Errorf("first node did not receive the correct number of " +
 			"elements")
 	}
 

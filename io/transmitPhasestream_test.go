@@ -10,17 +10,18 @@ package io
 import (
 	"context"
 	"errors"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/primitives/id"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"testing"
@@ -32,7 +33,7 @@ type MockTransmitStream struct {
 	batch mixmessages.Batch
 }
 
-func (stream MockTransmitStream) SendAndClose(*mixmessages.Ack) error {
+func (stream MockTransmitStream) SendAndClose(*messages.Ack) error {
 	if len(stream.batch.Slots) == mockIndex {
 		return nil
 	}
@@ -101,12 +102,12 @@ func TestStreamPostPhase(t *testing.T) {
 	for index := range mockBatch.Slots {
 		if mockPhase.chunks[index].Begin() != uint32(index) {
 			t.Errorf("StreamPostPhase: output chunk not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.chunks[index].Begin())
+				"Expected: %v, Received: %v", index, mockPhase.chunks[index].Begin())
 		}
 
 		if mockPhase.indices[index] != uint32(index) {
 			t.Errorf("StreamPostPhase: output index  not equal to passed;"+
-				"Expected: %v, Recieved: %v", index, mockPhase.indices[index])
+				"Expected: %v, Received: %v", index, mockPhase.indices[index])
 		}
 	}
 }
@@ -136,9 +137,9 @@ func TestStreamTransmitPhase(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
@@ -179,17 +180,17 @@ func TestStreamTransmitPhase(t *testing.T) {
 	//Check that what was received is correct
 	if id.Round(receivedBatch.Round.ID) != roundID {
 		t.Errorf("StreamTransmitPhase: Incorrect round ID"+
-			"Expected: %v, Recieved: %v", roundID, receivedBatch.Round.ID)
+			"Expected: %v, Received: %v", roundID, receivedBatch.Round.ID)
 	}
 
 	if phase.Type(receivedBatch.FromPhase) != phaseTy {
 		t.Errorf("StreamTransmitPhase: Incorrect Phase type"+
-			"Expected: %v, Recieved: %v", phaseTy, receivedBatch.FromPhase)
+			"Expected: %v, Received: %v", phaseTy, receivedBatch.FromPhase)
 	}
 
 	if uint32(len(receivedBatch.Slots)) != batchSize {
-		t.Errorf("StreamTransmitPhase: Recieved Batch of wrong size"+
-			"Expected: %v, Recieved: %v", batchSize,
+		t.Errorf("StreamTransmitPhase: Received Batch of wrong size"+
+			"Expected: %v, Received: %v", batchSize,
 			uint32(len(receivedBatch.Slots)))
 	}
 
@@ -217,7 +218,7 @@ func mockStreamPostPhase(stream mixmessages.Node_StreamPostPhaseServer) error {
 		// If we are at end of receiving
 		// send ack and finish
 		if err == io.EOF {
-			ack := mixmessages.Ack{
+			ack := messages.Ack{
 				Error: "",
 			}
 

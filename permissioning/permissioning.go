@@ -11,35 +11,51 @@ package permissioning
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
+	"net"
 	"strconv"
 	"strings"
 	"time"
 )
 
 // Perform the Node registration process with the Permissioning Server
-func RegisterNode(def *internal.Definition, network *node.Comms, permHost *connect.Host) error {
+func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
 	node := strings.Split(def.Address, ":")
 	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
+
+	// Get the gateway's address
+	gwAddr, _ := instance.GetGatewayData()
+	// Split the address into port and address for message
+	gwIP, gwPortStr, err := net.SplitHostPort(gwAddr)
+	if err != nil {
+		return errors.Errorf("Unable to parse gateway's address. Is it set up correctly?")
+	}
+
+	// Convert port to int to conform to message type
+	gwPort, err := strconv.Atoi(gwPortStr)
+	if err != nil {
+		return errors.Errorf("Unable to parse gateway's port. Is it set up correctly?")
+	}
+
 	// Attempt Node registration
-	err := network.SendNodeRegistration(permHost,
+	err = instance.GetNetwork().SendNodeRegistration(permHost,
 		&pb.NodeRegistration{
-			ID:               def.ID.Bytes(),
+			Salt:             def.Salt,
 			ServerTlsCert:    string(def.TlsCert),
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   "0.0.0.0", // FIXME (Jonah): this is inefficient, but will work for now
-			GatewayPort:      80,
+			GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
+			GatewayPort:      uint32(gwPort),
 			ServerAddress:    node[0],
 			ServerPort:       uint32(nodePort),
 			RegistrationCode: def.RegistrationCode,
@@ -62,20 +78,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	//get any skipped state reports
-	var reportedActivity current.Activity
-	select {
-	case reportedActivity = <-instance.GetStateMachine().GetBuffer():
-	default:
-		reportedActivity = instance.GetStateMachine().Get()
-	}
-
-	// Once done and in a completed state, manually switch back into waiting
-	if reportedActivity == current.COMPLETED {
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if err != nil || !ok {
-			return errors.Errorf("Could not transition to WAITING state: %v", err)
-		}
-	}
+	reportedActivity := instance.GetStateMachine().GetActivityToReport()
 
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
@@ -87,6 +90,14 @@ func Poll(instance *internal.Instance) error {
 			instance.ReportNodeFailure(err)
 		}
 		return err
+	}
+
+	// Once done and in a completed state, manually switch back into waiting
+	if reportedActivity == current.COMPLETED {
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if err != nil || !ok {
+			return errors.Errorf("Could not transition to WAITING state: %v", err)
+		}
 	}
 
 	//updates the NDF with changes
@@ -146,11 +157,12 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		ServerVersion: instance.GetServerVersion(),
 	}
 
-	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr, uint32(port))
+	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,
+		uint32(port))
 
 	if reportedActivity == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
-		jww.INFO.Printf("Reporteing error to permissioning: %+v", pollMsg.Error)
+		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
 		instance.ClearRecoveredError()
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
@@ -204,12 +216,15 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 
 	//skip all processing of round updates if the node knows of no round updates
 	//which is normally the result of a crash and restart
-	skipUpdates := instance.GetConsensus().GetLastUpdateID() == -1 && !instance.GetFirstRun()
+	skipUpdates := instance.IsFirstPoll() && !instance.GetFirstRun()
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
 		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {
+			if strings.Contains(err.Error(), "id is older than first tracked") {
+				continue
+			}
 			return errors.Errorf("Unable to update for round %+v: %+v", roundInfo.ID, err)
 		}
 
@@ -279,17 +294,45 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			case states.COMPLETED:
 
 			case states.FAILED:
+				errStr := "Unknown error"
+				firstSource := &id.Permissioning
+				if roundInfo.Errors != nil {
+					var err error
+					firstSource, err = id.Unmarshal(roundInfo.Errors[0].NodeId)
+					var idStr string
+					if err != nil {
+						idStr = "BAD ID"
+					} else {
+						idStr = firstSource.String()
+					}
+
+					errStr = fmt.Sprintf("%s first failed %v: %s", idStr, roundInfo.ID, roundInfo.Errors[0].Error)
+				}
+
 				r, err := instance.GetRoundManager().GetRound(id.Round(roundInfo.ID))
+
+				rid := id.Round(roundInfo.ID)
+
+				// if the round is unknown, restart with an error unless the report
+				// is from a node that did not know about the round. Do not restart if
+				// the node didnt know because that can cause ping ponging restarts
 				if err != nil {
-					jww.WARN.Printf("Received participatory fail in round %v which node has no knoledge of", roundInfo.ID)
+					jww.WARN.Printf("Received secondary participatory fail in round %v which node has no knowledge of", roundInfo.ID)
 					continue
 				}
-				if r.GetCurrentPhaseType() == phase.Complete {
+
+				// do nothing if you have the round as complete
+				if r.GetCurrentPhaseType() == phase.Complete && r.GetID() == rid {
+					jww.WARN.Printf("Received participatory fail in round %v which node has completed", rid)
 					return nil
-				} else {
-					rid := id.Round(roundInfo.ID)
-					instance.ReportRoundFailure(errors.New("Round has failed; transitioning to error"),
+					// fail if the round is in progress
+				} else if r.GetCurrentPhaseType() != phase.Complete && r.GetID() == rid {
+					jww.WARN.Printf("Received participatory fail in round %v which is in progress", roundInfo.ID)
+					instance.ReportRoundFailure(errors.Errorf("Notified of round failure for participatory round: %s", errStr),
 						instance.GetID(), rid)
+					// if the node is working on a different round, do nothing, the error is likely old
+				} else {
+					jww.WARN.Printf("Received participatory fail from old round %v", rid)
 				}
 
 			default:
@@ -303,13 +346,21 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 }
 
 // Processes the polling response from permissioning for ndf updates,
-// installing any ndf changes if needed and connecting to new nodes
+// installing any ndf changes if needed and connecting to new nodes. Also saves
+// a list of node addresses found in the NDF to a separate file.
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {
 			return errors.Errorf("Could not update full ndf: %+v", err)
+		}
+
+		// Save the list of node IP addresses to file
+		err = SaveNodeIpList(instance.GetConsensus().GetFullNdf().Get(),
+			instance.GetDefinition().IpListOutput, instance.GetDefinition().ID)
+		if err != nil {
+			jww.ERROR.Printf("Failed to save list of IP addresses from NDF: %v", err)
 		}
 	}
 

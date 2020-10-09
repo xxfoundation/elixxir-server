@@ -12,7 +12,7 @@ func TestErrorStream_GetName(t *testing.T) {
 
 	if testName != exptectedName {
 		t.Errorf("GetName() did not return the expected name."+
-			"\n\texpected: %v\n\trecieved: %v", exptectedName, testName)
+			"\n\texpected: %v\n\treceived: %v", exptectedName, testName)
 	}
 }
 
@@ -23,7 +23,7 @@ func TestErrorStream_Output(t *testing.T) {
 
 	if expectedOutput.String() != testOutput.String() {
 		t.Errorf("Output() did not return the expected output."+
-			"\n\texpected: %#v\n\trecieved: %#v",
+			"\n\texpected: %#v\n\treceived: %#v",
 			expectedOutput.String(), testOutput.String())
 	}
 }

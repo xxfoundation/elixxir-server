@@ -12,14 +12,14 @@ package io
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/connect"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"time"
 )
 
@@ -55,8 +55,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	// is the previous node in the circuit
 	if !auth.IsAuthenticated || !prevNodeID.Cmp(auth.Sender.GetId()) {
 		jww.WARN.Printf("Error on PostPhase: "+
-			"Attempted communication by %+v has not been authenticated", auth.Sender)
-		return connect.AuthError(auth.Sender.GetId())
+			"Attempted communication by %+v has not been authenticated: %s", auth.Sender, auth.Reason)
+		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
 	// Waiting for correct phase
@@ -79,7 +79,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECEIVE/START", instance,
 		roundID, phaseTy, p.GetType())
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
@@ -168,7 +168,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECIEVE/START", instance,
+	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECEIVE/START", instance,
 		roundID, phaseTy, p.GetType())
 
 	//queue the phase to be operated on if it is not queued yet

@@ -11,8 +11,8 @@ package phase
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/primitives/id"
 )
 
 type GetChunk func() (services.Chunk, bool)

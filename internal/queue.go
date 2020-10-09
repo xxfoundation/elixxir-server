@@ -70,7 +70,7 @@ func (rq *ResourceQueue) Kill(t time.Duration) error {
 		select {
 		case rq.killChan <- why:
 		default:
-			return errors.New("Shoudl always be able to send")
+			return errors.New("Node should be able to send kill on timeout")
 		}
 
 		timer := time.NewTimer(t)
@@ -78,7 +78,7 @@ func (rq *ResourceQueue) Kill(t time.Duration) error {
 		case <-why:
 			return nil
 		case <-timer.C:
-			return errors.New("Something timed out where am i")
+			return errors.New("Signal denoting kill of resource queue kill was not received")
 		}
 	}
 	return nil
@@ -177,7 +177,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 				server.GetID(), rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 				rq.activePhase.GetType().String())
 			rid := curRound.GetID()
-			roundErr := errors.Errorf("Round has timed out killing the round %v", rid)
+			roundErr := errors.Errorf("Resource Queue has timed out killing Round %v after %s", rid, runningPhase.GetTimeout())
 
 			server.ReportRoundFailure(roundErr, server.GetID(), rid)
 			break
