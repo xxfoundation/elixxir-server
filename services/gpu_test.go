@@ -295,20 +295,12 @@ func TestCGC(t *testing.T) {
 	// Make a copy to make sure we can get the same results in a different way
 	testExp := goldExp.DeepCopy()
 
-	// Make sure there's enough space in the stream to fit the input size
-	stream := streamPool.TakeStream()
-	streamPool.ReturnStream(stream)
-	// MaxSlotsExp should be the same with all streams
-	if int(gpumaths.ExpChunk.GetInputSize()) > stream.GetMaxSlotsExp() {
-		t.Fatalf("stream too small! has %v slots. make it bigger", stream.GetMaxSlotsExp())
-	}
-
 	// Copy to set custom input size
 	gpuBLocal := gpuB.DeepCopy()
 	// We could also set input size to be the number of slots that's less than MaxSlotsExp that has a common factor with the CPU input sizes
 	// That would allow for fairly large chunks while not exceeding input size
 	// The user is responsible for choosing an input size that will work well with both the dispatcher and CUDA
-	gpuBLocal.InputSize = uint32(stream.GetMaxSlotsExp())
+	gpuBLocal.InputSize = 512
 	// Time test graph runs, just for fun
 	start := time.Now()
 	runTestGraph(&goldExp, cpuA.DeepCopy(), cpuB.DeepCopy(), cpuC.DeepCopy())
@@ -355,20 +347,12 @@ func TestGGG(t *testing.T) {
 	// Make a copy to make sure we can get the same results in a different way
 	testExp := goldExp.DeepCopy()
 
-	// Make sure there's enough space in the stream to fit the input size
-	stream := streamPool.TakeStream()
-	streamPool.ReturnStream(stream)
-	// MaxSlotsExp should be the same with all streams
-	if int(gpumaths.ExpChunk.GetInputSize()) > stream.GetMaxSlotsExp() {
-		t.Fatalf("stream too small! has %v slots. make it bigger", stream.GetMaxSlotsExp())
-	}
-
 	gpuALocal := gpuA.DeepCopy()
 	gpuBLocal := gpuB.DeepCopy()
 	gpuCLocal := gpuC.DeepCopy()
-	gpuALocal.InputSize = uint32(stream.GetMaxSlotsExp())
-	gpuBLocal.InputSize = uint32(stream.GetMaxSlotsExp())
-	gpuCLocal.InputSize = uint32(stream.GetMaxSlotsExp())
+	gpuALocal.InputSize = 512
+	gpuBLocal.InputSize = 512
+	gpuCLocal.InputSize = 512
 
 	// Time test graph runs, just for fun
 	start := time.Now()
