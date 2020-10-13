@@ -36,6 +36,7 @@ const defaultIpListPath = "/opt/xxnetwork/node-logs/ipList.txt"
 type Params struct {
 	KeepBuffers           bool
 	UseGPU                bool
+	UseGPURealtime        bool
 	DisableIpOverride     bool
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
@@ -130,6 +131,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.KeepBuffers = vip.GetBool("keepBuffers")
 	params.UseGPU = vip.GetBool("useGPU")
+	params.UseGPURealtime = vip.GetBool("useGPURealtime")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
@@ -160,6 +162,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
+	def.Flags.UseGPURealtime = p.UseGPURealtime
 	def.Flags.DisableIpOverride = p.DisableIpOverride
 	def.RegistrationCode = p.RegistrationCode
 

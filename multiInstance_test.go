@@ -59,7 +59,7 @@ import (
 var errWg = sync.WaitGroup{}
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	elapsed := MultiInstanceTest(3, 32, false, false, t)
+	elapsed := MultiInstanceTest(3, 32, false, false, false, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, CPU multi-"+
 		"instance test: %s", elapsed)
@@ -71,20 +71,20 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 		batchSize = cmd.BatchSizeGPUTest
 	}
 
-	elapsed := MultiInstanceTest(3, batchSize, true, false, t)
+	elapsed := MultiInstanceTest(3, batchSize, true, true, false, t)
 
-	t.Logf("Computational elapsed time for 3 Node, batch size %d, CPU multi-"+
+	t.Logf("Computational elapsed time for 3 Node, batch size %d, GPU multi-"+
 		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
-	elapsed := MultiInstanceTest(3, 32, false, true, t)
+	elapsed := MultiInstanceTest(3, 32, false, false, true, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
 		"instance test: %s", elapsed)
 }
 
-func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *testing.T) time.Duration {
+func MultiInstanceTest(numNodes, batchSize int, useGPU, useGPURealtime, errorPhase bool, t *testing.T) time.Duration {
 	if errorPhase {
 		defer func() {
 			if r := recover(); r != nil {
@@ -104,7 +104,7 @@ func MultiInstanceTest(numNodes, batchSize int, useGPU, errorPhase bool, t *test
 
 	// Get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, useGPU, t)
+	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, useGPU, useGPURealtime, t)
 
 	// Make user for sending messages
 	userID := id.NewIdFromUInt(42, id.User, t)
@@ -638,7 +638,7 @@ func generateCert() ([]byte, []byte) {
 	return crtOut, privOut
 }
 
-func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T) []*internal.Definition {
+func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, useGPURealtime bool, t *testing.T) []*internal.Definition {
 
 	// Generate IDs and addresses
 	var nidLst []*id.ID
@@ -675,8 +675,9 @@ func makeMultiInstanceParams(numNodes, portStart int, useGPU bool, t *testing.T)
 		def := internal.Definition{
 			ID: nidLst[i],
 			Flags: internal.Flags{
-				KeepBuffers: true,
-				UseGPU:      useGPU,
+				KeepBuffers:    true,
+				UseGPU:         useGPU,
+				UseGPURealtime: useGPURealtime,
 			},
 			TlsCert: cert,
 			Gateway: internal.GW{

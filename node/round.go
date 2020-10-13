@@ -36,6 +36,10 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Used to swap between streaming and non-streaming
 	transmissionHandler := io.StreamTransmitPhase
 
+	// Used to determine usage of GPU maths in certain phases
+	useGPU := instance.GetDefinition().UseGPU
+	useGPURealtime := instance.GetDefinition().UseGPURealtime
+
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
 	//Build Precomputation Generation phase and response
@@ -127,7 +131,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 	}
-	if pool != nil {
+	if pool != nil && useGPU {
 		precompDecryptDefinition.Graph = precomputation.InitDecryptGPUGraph(gc)
 	} else {
 		precompDecryptDefinition.Graph = precomputation.InitDecryptGraph(gc)
@@ -165,7 +169,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 	}
-	if pool != nil {
+	if pool != nil && useGPU {
 		precompPermuteDefinition.Graph = precomputation.InitPermuteGPUGraph(gc)
 	} else {
 		precompPermuteDefinition.Graph = precomputation.InitPermuteGraph(gc)
@@ -204,7 +208,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
-	if pool != nil {
+	if pool != nil && useGPU {
 		precompRevealDefinition.Graph = precomputation.InitRevealGPUGraph(gc)
 	} else {
 		precompRevealDefinition.Graph = precomputation.InitRevealGraph(gc)
@@ -232,7 +236,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		precompRevealDefinition.TransmissionHandler = io.TransmitPrecompResult
 		// Last node also computes the strip operation along with reveal, so its
 		// graph is replaced with the composed reveal-strip graph
-		if pool != nil {
+		if pool != nil && useGPU {
 			precompRevealDefinition.Graph = precomputation.InitStripGPUGraph(gc)
 		} else {
 			precompRevealDefinition.Graph = precomputation.InitStripGraph(gc)
@@ -258,7 +262,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 	}
-	if pool != nil {
+	if pool != nil && useGPURealtime {
 		realtimeDecryptDefinition.Graph = realtime.InitDecryptGPUGraph(gc)
 	} else {
 		realtimeDecryptDefinition.Graph = realtime.InitDecryptGraph(gc)
@@ -293,7 +297,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
-	if pool != nil {
+	if pool != nil && useGPURealtime {
 		realtimePermuteDefinition.Graph = realtime.InitPermuteGPUGraph(gc)
 	} else {
 		realtimePermuteDefinition.Graph = realtime.InitPermuteGraph(gc)
@@ -320,7 +324,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 				return io.TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 			}
 		//Last node also executes the combined permute-identify graph
-		if pool != nil {
+		if pool != nil && useGPURealtime {
 			realtimePermuteDefinition.Graph = realtime.InitIdentifyGPUGraph(gc)
 		} else {
 			realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)
