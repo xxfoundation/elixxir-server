@@ -22,17 +22,23 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.3
-	gitlab.com/elixxir/comms v0.0.0-20200925164459-6dde2d05f8ee
-	gitlab.com/elixxir/crypto v0.0.0-20200915165059-c7f41bbc86b4
-	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20200617001921-1de1fff56304
-	gitlab.com/elixxir/primitives v0.0.0-20200916172343-37503735c7a1
-	gitlab.com/xx_network/comms v0.0.0-20200925163950-5686bc0f8ab0
-	gitlab.com/xx_network/crypto v0.0.0-20200812183430-c77a5281c686
-	gitlab.com/xx_network/primitives v0.0.0-20200812183720-516a65a4a9b2
+	github.com/stretchr/testify v1.6.1 // indirect
+	gitlab.com/elixxir/comms v0.0.3-0.20201028163559-a0cf9f4ff7ed
+	gitlab.com/elixxir/crypto v0.0.3-0.20201028163406-cafac959d5e5
+	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201007161945-e32ce68f7eff
+	gitlab.com/elixxir/primitives v0.0.2-0.20201027223120-aa87ff68654d
+	gitlab.com/xx_network/comms v0.0.3-0.20201028163534-e277b11dc7e5
+	gitlab.com/xx_network/crypto v0.0.1
+	gitlab.com/xx_network/primitives v0.0.1
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
+	golang.org/x/text v0.3.3 // indirect
+	google.golang.org/genproto v0.0.0-20200709005830-7a2ca40e9dc3 // indirect
 	google.golang.org/grpc v1.31.0
+	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
 )
 
