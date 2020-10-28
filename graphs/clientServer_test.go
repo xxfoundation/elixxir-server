@@ -32,14 +32,14 @@ import (
 
 // Fill part of message with random payloads
 // Fill part of message with random payloads
-func makeMsg(grp *cyclic.Group) format.Message {
+func makeMsg(grp *cyclic.Group) *format.Message {
 	primeLegnth := len(grp.GetPBytes())
 	rng := rand.New(rand.NewSource(21))
 	payloadA := make([]byte, primeLegnth)
 	payloadB := make([]byte, primeLegnth)
 	rng.Read(payloadA)
 	rng.Read(payloadB)
-	msg := format.NewMessage(primeLegnth)
+	msg := format.NewMessage()
 	msg.SetPayloadA(payloadA)
 	msg.SetPayloadB(payloadB)
 
@@ -160,7 +160,7 @@ func TestClientServer(t *testing.T) {
 	grp.Mul(keyA_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadA()), multPayloadA)
 	grp.Mul(keyB_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadB()), multPayloadB)
 	primeLength := len(grp.GetPBytes())
-	testMsg := format.NewMessage(primeLength)
+	testMsg := format.NewMessage()
 
 	testMsg.SetPayloadA(multPayloadA.Bytes())
 	testMsg.SetPayloadB(multPayloadB.LeftpadBytes(uint64(primeLength)))
