@@ -127,7 +127,7 @@ var Generate = services.Module{
 				}
 			}
 		}
-		gs.RngStreamGen.Close(stream)
+		stream.Close()
 
 		return nil
 	},

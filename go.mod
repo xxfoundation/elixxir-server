@@ -25,8 +25,7 @@ require (
 	github.com/stretchr/testify v1.6.1 // indirect
 	gitlab.com/elixxir/comms v0.0.2
 	gitlab.com/elixxir/crypto v0.0.2
-	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201007163558-0fea70f49fe0
-	gitlab.com/elixxir/gpumathsnative v0.0.2-0.20201001215959-fb36eccb674e // indirect
+	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201007161945-e32ce68f7eff
 	gitlab.com/elixxir/primitives v0.0.1
 	gitlab.com/xx_network/comms v0.0.2
 	gitlab.com/xx_network/crypto v0.0.1

@@ -32,7 +32,7 @@ import (
 
 // Fill part of message with random payloads
 // Fill part of message with random payloads
-func makeMsg(grp *cyclic.Group) format.Message {
+func makeMsg(grp *cyclic.Group) *format.Message {
 	primeLegnth := len(grp.GetPBytes())
 	rng := rand.New(rand.NewSource(21))
 	payloadA := make([]byte, primeLegnth)
@@ -43,7 +43,7 @@ func makeMsg(grp *cyclic.Group) format.Message {
 	msg.SetPayloadA(payloadA)
 	msg.SetPayloadB(payloadB)
 
-	return msg
+	return &msg
 }
 
 func TestClientServer(t *testing.T) {
@@ -138,7 +138,7 @@ func TestClientServer(t *testing.T) {
 	inputMsg := makeMsg(grp)
 
 	//Encrypt the input message
-	encryptedMsg := cmix.ClientEncrypt(grp, inputMsg, testSalt, userBaseKeys)
+	encryptedMsg := cmix.ClientEncrypt(grp, *inputMsg, testSalt, userBaseKeys)
 
 	//Generate an encrypted message using the keys manually, test output agains encryptedMsg above
 	hash, err := blake2b.New256(nil)
