@@ -442,7 +442,7 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 
 		// Make the message
 
-		msg := format.NewMessage()
+		msg := format.NewMessage(int(primeLength))
 		msg.SetPayloadA(payloadA)
 		msg.SetPayloadB(payloadB)
 

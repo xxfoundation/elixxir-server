@@ -39,11 +39,11 @@ func makeMsg(grp *cyclic.Group) *format.Message {
 	payloadB := make([]byte, primeLegnth)
 	rng.Read(payloadA)
 	rng.Read(payloadB)
-	msg := format.NewMessage()
+	msg := format.NewMessage(primeLegnth)
 	msg.SetPayloadA(payloadA)
 	msg.SetPayloadB(payloadB)
 
-	return msg
+	return &msg
 }
 
 func TestClientServer(t *testing.T) {
@@ -138,7 +138,7 @@ func TestClientServer(t *testing.T) {
 	inputMsg := makeMsg(grp)
 
 	//Encrypt the input message
-	encryptedMsg := cmix.ClientEncrypt(grp, inputMsg, testSalt, userBaseKeys)
+	encryptedMsg := cmix.ClientEncrypt(grp, *inputMsg, testSalt, userBaseKeys)
 
 	//Generate an encrypted message using the keys manually, test output agains encryptedMsg above
 	hash, err := blake2b.New256(nil)
@@ -160,7 +160,7 @@ func TestClientServer(t *testing.T) {
 	grp.Mul(keyA_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadA()), multPayloadA)
 	grp.Mul(keyB_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadB()), multPayloadB)
 	primeLength := len(grp.GetPBytes())
-	testMsg := format.NewMessage()
+	testMsg := format.NewMessage(primeLength)
 
 	testMsg.SetPayloadA(multPayloadA.Bytes())
 	testMsg.SetPayloadB(multPayloadB.LeftpadBytes(uint64(primeLength)))
