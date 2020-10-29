@@ -36,12 +36,10 @@ var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
 var disableIpOverride bool
+var devMode bool
 
 // If true, runs pprof http server
 var profile bool
-
-// Global var
-var devMode bool
 
 // rootCmd represents the base command when called without any sub-commands
 var rootCmd = &cobra.Command{
@@ -178,11 +176,9 @@ func init() {
 	// NOTE: Meant for use by developer team ONLY. The development/maintenance
 	// team are NOT responsible for any issues encountered by
 	// any users who modify this logic
-	rootCmd.Flags().BoolVar(&devMode, "devmode", false,
+	rootCmd.Flags().BoolVar(&devMode, "devMode", false,
 		"Allows for a non-production safe (non-persistent DB) run of binary.")
 	err = rootCmd.Flags().MarkHidden("devMode")
-	handleBindingError(err, "devMode")
-	err = viper.BindPFlag("devMode", rootCmd.Flags().Lookup("devMode"))
 	handleBindingError(err, "devMode")
 
 }
