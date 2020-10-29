@@ -62,13 +62,15 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	dbAddress := params.Database.Address
 
 	//Initialize the user database
-	userDatabase := globals.NewUserRegistry(
-		params.Database.Username,
-		params.Database.Password,
-		params.Database.Name,
-		dbAddress,
-		devMode,
-	)
+	userDatabase, err := globals.NewUserRegistry(params.Database.Username,
+		params.Database.Password, params.Database.Name, dbAddress)
+	if err != nil {
+		if params.DevMode {
+			jww.WARN.Printf(err.Error())
+		} else {
+			jww.FATAL.Panicf(err.Error())
+		}
+	}
 
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()

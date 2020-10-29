@@ -36,7 +36,6 @@ var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
 var disableIpOverride bool
-var devMode bool
 
 // If true, runs pprof http server
 var profile bool
@@ -174,11 +173,14 @@ func init() {
 		"the multi-instance GPU test.")
 
 	// NOTE: Meant for use by developer team ONLY. The development/maintenance
-	// team are NOT responsible for any issues encountered by
-	// any users who modify this logic
-	rootCmd.Flags().BoolVar(&devMode, "devMode", false,
-		"Allows for a non-production safe (non-persistent DB) run of binary.")
+	// team are NOT responsible for any issues encountered by any users
+	// who modify this logic or who run on the network with this option
+	rootCmd.Flags().BoolP("devMode", "", false,
+		"Run in development/testing mode. Do not use on beta or main "+
+			"nets")
 	err = rootCmd.Flags().MarkHidden("devMode")
+	handleBindingError(err, "devMode")
+	err = viper.BindPFlag("devMode", rootCmd.Flags().Lookup("devMode"))
 	handleBindingError(err, "devMode")
 
 }

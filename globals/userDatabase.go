@@ -86,15 +86,8 @@ func decodeUser(userIdDB string) *id.ID {
 }
 
 // Initialize the UserRegistry interface with appropriate backend
-func NewUserRegistry(username, password,
-	database, address string, devMode bool) UserRegistry {
-	// Initialize the dev-mode storage system
-	if devMode {
-		jww.WARN.Println("Running on dangerous mode. DO NOT run on the production network. " +
-			"The network maintainers are not responsible for issues encountered")
-		return UserRegistry(&UserMap{})
+func NewUserRegistry(username, password, database, address string) (UserRegistry, error) {
 
-	}
 	// Create the database connection
 	db := pg.Connect(&pg.Options{
 		User:         username,
@@ -110,14 +103,16 @@ func NewUserRegistry(username, password,
 	if err != nil {
 		// If we cannot initialize the database (and not in devMode), we are not production-ready
 		// Therefore we panic
-		jww.ERROR.Panicf("Unable to initialize database backend. "+
+		errMsg := errors.Errorf("Unable to initialize database backend. "+
 			"Cannot enter production network: %+v", errors.New(err.Error()))
+		return UserRegistry(&UserMap{}), errMsg
+
 	}
 
 	// Return the database-backed UserRegistry interface
 	// in the event there are no database errors
 	jww.INFO.Println("Using database backend for UserRegistry!")
-	return UserRegistry(&UserDatabase{db: db})
+	return UserRegistry(&UserDatabase{db: db}), nil
 
 }
 

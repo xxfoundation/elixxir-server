@@ -52,6 +52,8 @@ type Params struct {
 	PhaseOverrides   []int
 	OverrideRound    int
 	RecoveredErrPath string
+
+	DevMode bool
 }
 
 // NewParams gets elements of the viper object
@@ -149,6 +151,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 		jww.FATAL.Panicf("Cannot set both gateway.useNodeIp and " +
 			"gateway.advertisedIP at the same time.")
 	}
+
+	params.DevMode = viper.GetBool("devMode")
 
 	return &params, nil
 }
@@ -303,7 +307,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Gateway.UseNodeIp = p.Gateway.useNodeIp
 	def.Gateway.AdvertisedIP = p.Gateway.advertisedIP
-
+	def.DevMode = p.DevMode
 	return def, nil
 }
 

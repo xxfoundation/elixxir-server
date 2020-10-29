@@ -155,7 +155,10 @@ func NotStarted(instance *internal.Instance) error {
 	//populate the dummy precanned users
 	jww.INFO.Printf("Adding dummy users to registry")
 	userDatabase := instance.GetUserRegistry()
-	PopulateDummyUsers(userDatabase, cmixGrp)
+
+	if instance.GetDefinition().DevMode {
+		PopulateDummyUsers(userDatabase, cmixGrp)
+	}
 
 	//Add a dummy user for gateway
 	dummy := userDatabase.NewUser(cmixGrp)
