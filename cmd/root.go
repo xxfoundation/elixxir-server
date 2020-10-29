@@ -40,6 +40,9 @@ var disableIpOverride bool
 // If true, runs pprof http server
 var profile bool
 
+// Global var
+var devMode bool
+
 // rootCmd represents the base command when called without any sub-commands
 var rootCmd = &cobra.Command{
 	Use:   "server",
@@ -171,6 +174,16 @@ func init() {
 	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
 	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+
 		"the multi-instance GPU test.")
+
+	// NOTE: Meant for use by developer team ONLY. The development/maintenance
+	// team are NOT responsible for any issues encountered by
+	// any users who modify this logic
+	rootCmd.Flags().BoolVar(&devMode, "devmode", false,
+		"Allows for a non-production safe (non-persistent DB) run of binary.")
+	err = rootCmd.Flags().MarkHidden("devMode")
+	handleBindingError(err, "devMode")
+	err = viper.BindPFlag("devMode", rootCmd.Flags().Lookup("devMode"))
+	handleBindingError(err, "devMode")
 
 }
 

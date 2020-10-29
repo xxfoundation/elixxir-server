@@ -67,6 +67,7 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		params.Database.Password,
 		params.Database.Name,
 		dbAddress,
+		devMode,
 	)
 
 	jww.INFO.Printf("Converting params to server definition...")
