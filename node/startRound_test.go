@@ -10,10 +10,10 @@ package node
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/large"
 
 	//"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"

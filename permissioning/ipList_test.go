@@ -8,9 +8,9 @@
 package permissioning
 
 import (
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
+	"gitlab.com/xx_network/primitives/utils"
 	"os"
 	"strconv"
 	"testing"

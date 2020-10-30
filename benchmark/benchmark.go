@@ -11,7 +11,7 @@ package benchmark
 import (
 	//jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	//"gitlab.com/elixxir/crypto/large"
+	//"gitlab.com/xx_network/crypto/large"
 	//	"gitlab.com/elixxir/server/cryptops/precomputation"
 	//	"gitlab.com/elixxir/server/cryptops/realtime"
 	//"gitlab.com/elixxir/server/globals"

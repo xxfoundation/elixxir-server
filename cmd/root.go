@@ -15,7 +15,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/xx_network/primitives/utils"
 	"os"
 	"runtime"
 	"strings"
