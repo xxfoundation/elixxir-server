@@ -172,6 +172,16 @@ func init() {
 	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+
 		"the multi-instance GPU test.")
 
+	// NOTE: Meant for use by developer team ONLY. The development/maintenance
+	// team are NOT responsible for any issues encountered by any users
+	// who modify this logic or who run on the network with this option
+	rootCmd.Flags().BoolP("devMode", "", false,
+		"Run in development/testing mode. Do not use on beta or main "+
+			"nets")
+	 rootCmd.Flags().MarkHidden("devMode")
+	err = viper.BindPFlag("devMode", rootCmd.Flags().Lookup("devMode"))
+	handleBindingError(err, "devMode")
+
 }
 
 func handleBindingError(err error, flag string) {

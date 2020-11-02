@@ -62,12 +62,19 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	dbAddress := params.Database.Address
 
 	//Initialize the user database
-	userDatabase := globals.NewUserRegistry(
-		params.Database.Username,
-		params.Database.Password,
-		params.Database.Name,
-		dbAddress,
-	)
+	userDatabase, err := globals.NewUserRegistry(params.Database.Username,
+		params.Database.Password, params.Database.Name, dbAddress)
+	if err != nil {
+		eMsg := fmt.Sprintf("Could not initialize database: "+
+			"psql://%s@%s/%s: %v", params.Database.Username,
+			params.Database.Address, params.Database.Name, err)
+
+		if params.DevMode {
+			jww.WARN.Printf(eMsg)
+		} else {
+			jww.FATAL.Panicf(eMsg)
+		}
+	}
 
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
