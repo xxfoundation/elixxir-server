@@ -26,6 +26,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"reflect"
