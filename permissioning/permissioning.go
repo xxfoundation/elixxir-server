@@ -141,6 +141,8 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		return nil, err
 	}
 
+	clientReport, _ := instance.GetClientReport().Receive()
+
 	gatewayAddr, gatewayVer := instance.GetGatewayData()
 
 	// Construct a message for permissioning with above information
@@ -155,6 +157,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 
 		ServerPort:    uint32(port),
 		ServerVersion: instance.GetServerVersion(),
+		ClientError:   clientReport,
 	}
 
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,

@@ -13,8 +13,10 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/large"
+	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
@@ -57,8 +59,10 @@ func TestDecryptStream_Link(t *testing.T) {
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-
-	stream.Link(grp, batchSize, roundBuffer, registry)
+	testReporter := round.NewClientFailureReport()
+	var streamPool *gpumaths.StreamPool
+	var rng *fastRNG.StreamGenerator
+	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, testReporter)
 
 	checkIntBuffer(stream.EcrPayloadA, batchSize, "EcrPayloadA", grp.NewInt(1), t)
 	checkIntBuffer(stream.EcrPayloadB, batchSize, "EcrPayloadB", grp.NewInt(1), t)
@@ -99,8 +103,11 @@ func TestDecryptStream_Input(t *testing.T) {
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+	testReporter := round.NewClientFailureReport()
+	var streamPool *gpumaths.StreamPool
+	var rng *fastRNG.StreamGenerator
 
-	stream.Link(grp, batchSize, roundBuffer, registry)
+	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, testReporter)
 
 	for b := uint32(0); b < batchSize; b++ {
 
@@ -159,8 +166,11 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+	testReporter := round.NewClientFailureReport()
+	var streamPool *gpumaths.StreamPool
+	var rng *fastRNG.StreamGenerator
 
-	stream.Link(grp, batchSize, roundBuffer, registry)
+	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, testReporter)
 
 	msg := &mixmessages.Slot{
 		PayloadA: []byte{0},
@@ -226,8 +236,11 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+	testReport := round.NewClientFailureReport()
+	var streamPool *gpumaths.StreamPool
+	var rng *fastRNG.StreamGenerator
 
-	stream.Link(grp, batchSize, roundBuffer, registry)
+	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, testReport)
 
 	val := large.NewIntFromString(primeString, 16)
 	val = val.Mul(val, val)
@@ -258,8 +271,11 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
+	testReport := round.NewClientFailureReport()
+	var streamPool *gpumaths.StreamPool
+	var rng *fastRNG.StreamGenerator
 
-	stream.Link(grp, batchSize, roundBuffer, registry)
+	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, testReport)
 
 	msg := &mixmessages.Slot{
 		SenderID: []byte{1, 2},
@@ -302,8 +318,10 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-
-	stream.Link(grp, batchSize, roundBuffer, registry)
+	var streamPool *gpumaths.StreamPool
+	var rng *fastRNG.StreamGenerator
+	reporter := round.NewClientFailureReport()
+	stream.Link(grp, batchSize, roundBuffer, registry, streamPool, rng, reporter)
 
 	msg := &mixmessages.Slot{
 		SenderID: id.NewIdFromUInt(0, id.User, t).Bytes(),
@@ -347,8 +365,10 @@ func TestDecryptStream_Output(t *testing.T) {
 	registry.UpsertUser(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-
-	stream.Link(grp, batchSize, roundBuffer, registry)
+	var streamPool *gpumaths.StreamPool
+	var rng *fastRNG.StreamGenerator
+	reporter := round.NewClientFailureReport()
+	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, reporter)
 
 	for b := uint32(0); b < batchSize; b++ {
 

@@ -49,7 +49,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		"1.1.0")
 	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -81,7 +81,7 @@ func TestPostRoundPublicKeyFunc(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhase}, responseMap, topology,
 		topology.GetNodeAtIndex(1), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -229,7 +229,7 @@ func TestPostRoundPublicKeyFunc_FirstNodeSendsBatch(t *testing.T) {
 	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
 		[]phase.Phase{mockPhaseShare, mockPhaseDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0", nil)
+		nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

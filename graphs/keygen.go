@@ -8,12 +8,15 @@
 package graphs
 
 import (
+	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/server/globals"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
@@ -33,6 +36,8 @@ type KeygenSubStream struct {
 	// Output: keys
 	KeysA *cyclic.IntBuffer
 	KeysB *cyclic.IntBuffer
+
+	userErrors round.ClientReport
 }
 
 // LinkStream This Link doesn't conform to the Stream interface because KeygenSubStream
@@ -42,7 +47,7 @@ type KeygenSubStream struct {
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
 	userReg globals.UserRegistry, inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID,
-	outKeysA, outKeysB *cyclic.IntBuffer) {
+	outKeysA, outKeysB *cyclic.IntBuffer, reporter round.ClientReport) {
 	k.Grp = grp
 	k.userReg = userReg
 	k.salts = inSalts
@@ -50,6 +55,7 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
 	k.kmacs = inKMACS
 	k.KeysA = outKeysA
 	k.KeysB = outKeysB
+	k.userErrors = reporter
 }
 
 //Returns the substream, used to return an embedded struct off an interface
@@ -87,6 +93,7 @@ var Keygen = services.Module{
 			jww.FATAL.Panicf("Could not get CMIX hash: %s", err.Error())
 		}
 
+		var clientErrors []*pb.ClientError
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			user, err := kss.userReg.GetUser(kss.users[i], kss.Grp)
 
@@ -96,9 +103,13 @@ var Keygen = services.Module{
 					jww.INFO.Printf("No user found for slot %d", i)
 					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
-					return nil
+					errMsg := fmt.Sprintf("%s [%v] in storage:%v", services.UserNotFound, kss.users[i], err)
+					clientErrors = append(clientErrors, &pb.ClientError{
+						Error:    errMsg,
+						ClientId: kss.users[i].Bytes(),
+					})
 				}
-				return err
+				continue
 			}
 
 			success := false
@@ -128,11 +139,19 @@ var Keygen = services.Module{
 				jww.DEBUG.Printf("KMACS: %#v", kss.kmacs[i])
 				jww.DEBUG.Printf("User %v on slot %v could not be validated",
 					user.ID, i)
+				errMsg := fmt.Sprintf("%s. UserID [%v] failed on slot %d", services.InvalidMAC,
+					user.ID, i)
+				clientErrors = append(clientErrors, &pb.ClientError{
+					Error:    errMsg,
+					ClientId: kss.users[i].Bytes(),
+				})
 			}
 
 		}
 
-		return nil
+		err = kss.userErrors.Send(clientErrors)
+
+		return err
 	},
 	Cryptop:    cryptops.Keygen,
 	InputSize:  services.AutoInputSize,

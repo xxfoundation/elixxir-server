@@ -18,6 +18,12 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 )
 
+const (
+	RoundBuff   = 0
+	Registry    = 1
+	ErrReporter = 4
+)
+
 // Stream holding data containing keys and inputs used by decrypt
 type KeygenDecryptStream struct {
 	Grp *cyclic.Group
@@ -46,9 +52,18 @@ func (s *KeygenDecryptStream) GetName() string {
 
 //Link creates the stream's internal buffers and
 func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
-	roundBuf := source[0].(*round.Buffer)
-	userRegistry := source[1].(globals.UserRegistry)
+	roundBuf := source[RoundBuff].(*round.Buffer)
+	userRegistry := source[Registry].(globals.UserRegistry)
 	users := make([]*id.ID, batchSize)
+	var clientReporter round.ClientReport
+	var ok bool
+	// Find the client error reporter (if it exists)
+	for _, face := range source {
+		clientReporter, ok = face.(round.ClientReport)
+		if ok {
+			break
+		}
+	}
 
 	for i := uint32(0); i < batchSize; i++ {
 		users[i] = &id.ID{}
@@ -61,12 +76,13 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		users, make([][]byte, batchSize),
-		make([][][]byte, batchSize))
+		make([][][]byte, batchSize), clientReporter)
 }
 
 //Connects the internal buffers in the stream to the passed
 func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte) {
+	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
+	users []*id.ID, salts [][]byte, kmacs [][][]byte, clientReporter round.ClientReport) {
 
 	ds.Grp = grp
 
@@ -81,7 +97,8 @@ func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batc
 	ds.Salts = salts
 	ds.KMACS = kmacs
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS, ds.Users, ds.KeysPayloadA, ds.KeysPayloadB)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS,
+		ds.Users, ds.KeysPayloadA, ds.KeysPayloadB, clientReporter)
 }
 
 // PermuteStream conforms to this interface.

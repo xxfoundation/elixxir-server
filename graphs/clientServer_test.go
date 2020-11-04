@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
@@ -124,7 +125,8 @@ func TestClientServer(t *testing.T) {
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, usr.BaseKey)
 	kmacs := make([][][]byte, 1)
-	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys)
+	reporter := round.NewClientFailureReport()
+	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys, reporter)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)

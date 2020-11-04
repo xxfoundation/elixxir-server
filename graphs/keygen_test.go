@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
@@ -53,6 +54,7 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 		make([]*id.ID, batchSize),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		round.NewClientFailureReport(),
 	)
 }
 
@@ -352,6 +354,13 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 			}
 		}
 	}
+
+	clientErrs, err := stream.userErrors.Receive()
+	if clientErrs == nil || err != nil {
+		t.Errorf("Expected to have errors in channel!"+
+			"\n\tError received: %v"+
+			"\n\tClient errors: %v", err, clientErrs)
+	}
 }
 
 // High-level test of the reception keygen adapter when the KMAC is invalid
@@ -435,6 +444,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 
 	for ok {
 		chunk, ok = g.GetOutput()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// inspect stream output: XORing the salt with the output should
 			// return the original base key
@@ -462,6 +472,13 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 					"dont match")
 			}
 		}
+	}
+
+	clientErrs, err := stream.userErrors.Receive()
+	if clientErrs == nil || err != nil {
+		t.Errorf("Expected to have errors in channel!"+
+			"\n\tError received: %v"+
+			"\n\tClient errors: %v", err, clientErrs)
 	}
 }
 
