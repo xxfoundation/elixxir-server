@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	hash2 "gitlab.com/elixxir/crypto/hash"
-
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/globals"
