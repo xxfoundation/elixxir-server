@@ -69,6 +69,7 @@ github.com/grpc/grpc-go v1.27.1/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS
 github.com/hashicorp/hcl v1.0.0 h1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
+github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a h1:zPPuIq2jAWWPTrGt70eK/BSch+gFAGrNzecsoENgu2o=
 github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a/go.mod h1:yL958EeXv8Ylng6IfnvG4oflryUi3vgA3xPs9hmII1s=
@@ -168,6 +169,12 @@ github.com/zeebo/blake3 v0.0.4/go.mod h1:YOZo8A49yNqM0X/Y+JmDUZshJWLt1laHsNSn5ny
 github.com/zeebo/pcg v0.0.0-20181207190024-3cdc6b625a05/go.mod h1:Gr+78ptB0MwXxm//LBaEvBiaXY7hXJ6KGe2V32X2F6E=
 gitlab.com/elixxir/comms v0.0.2 h1:nQKRWmCYhHpAUhy/QrpuL/A7VxQdEUTNnS4RO/sv7Bw=
 gitlab.com/elixxir/comms v0.0.2/go.mod h1:SOcdimhLwT/xeY5iCklEm7Z0TstrhcbWgBj8aYxCn6w=
+gitlab.com/elixxir/comms v0.0.3-0.20201029214813-f3136e412103 h1:3y4zbn5kc1CU/6oCYkDMGI0qSXCnj/iiruqrjvYBgeg=
+gitlab.com/elixxir/comms v0.0.3-0.20201029214813-f3136e412103/go.mod h1:SOcdimhLwT/xeY5iCklEm7Z0TstrhcbWgBj8aYxCn6w=
+gitlab.com/elixxir/comms v0.0.3-0.20201030183124-af1e370dd5a4 h1:gNydCtnh5GeTOaeTAySA93swWSVC0PIIkIYGtgUfxyM=
+gitlab.com/elixxir/comms v0.0.3-0.20201030183124-af1e370dd5a4/go.mod h1:SOcdimhLwT/xeY5iCklEm7Z0TstrhcbWgBj8aYxCn6w=
+gitlab.com/elixxir/comms v0.0.3-0.20201103161921-fa5670022727 h1:Dd5SoZwNDpSWa0tlK9ke85zuM6W7+xaiL2/roUJpjoQ=
+gitlab.com/elixxir/comms v0.0.3-0.20201103161921-fa5670022727/go.mod h1:SOcdimhLwT/xeY5iCklEm7Z0TstrhcbWgBj8aYxCn6w=
 gitlab.com/elixxir/crypto v0.0.0-20200612160324-a76e4451ae25/go.mod h1:SpcmFZ4baOMRxH7qo2myvYFNr8/bz9ItYzVo5Q2Ld1k=
 gitlab.com/elixxir/crypto v0.0.0-20200804182833-984246dea2c4/go.mod h1:ucm9SFKJo+K0N2GwRRpaNr+tKXMIOVWzmyUD0SbOu2c=
 gitlab.com/elixxir/crypto v0.0.0-20200805174804-bdf909f2a16d/go.mod h1:cu6uNoANVLV0J6HyTL6KqVtVyh9SHU1RjJhytYlsbVQ=
