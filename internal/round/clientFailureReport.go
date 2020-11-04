@@ -14,14 +14,14 @@ import (
 // Contains logic that handles an invalid client error within realtime
 // Reports this error through a channel to permissioning
 
-const MaxSimultaneousRoundErrors = 1
+const MaxSimultaneousUserErrors = 10
 
 // Reports client errors occurring during a round
 type ClientReport chan []*pb.ClientError
 
 // Initiates a new client failure reporter.
 func NewClientFailureReport() ClientReport {
-	return make(chan []*pb.ClientError, MaxSimultaneousRoundErrors)
+	return make(chan []*pb.ClientError, MaxSimultaneousUserErrors)
 }
 
 // Sends a client error through the channel if possible
