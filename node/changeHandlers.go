@@ -153,13 +153,11 @@ func NotStarted(instance *internal.Instance) error {
 
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
-
 	if instance.GetDefinition().DevMode {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
 		userDatabase := instance.GetUserRegistry()
 		PopulateDummyUsers(userDatabase, cmixGrp)
-
 
 		//Add a dummy user for gateway
 		dummy := userDatabase.NewUser(cmixGrp)
@@ -168,7 +166,6 @@ func NotStarted(instance *internal.Instance) error {
 		dummy.IsRegistered = true
 		userDatabase.UpsertUser(dummy)
 	}
-
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 
