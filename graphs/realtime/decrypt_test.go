@@ -490,7 +490,9 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	}
 
-	g.Link(grp, roundBuffer, registry)
+	clientReport := round.NewClientFailureReport()
+
+	g.Link(grp, roundBuffer, registry, clientReport)
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 
