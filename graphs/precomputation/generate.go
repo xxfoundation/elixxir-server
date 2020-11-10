@@ -21,10 +21,6 @@ import (
 // Generate phase transforms first unpermuted internode keys
 // and partial cypher texts into the data that the permute phase needs
 
-//size of the exponent. Highly security relevant, DO NOT CHANGE
-const exponentSizeBits = 4096
-const exponentSize = exponentSizeBits / 8
-
 // GenerateStream holds the inputs for the Generate operation
 type GenerateStream struct {
 	Grp *cyclic.Group
@@ -120,10 +116,10 @@ var Generate = services.Module{
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			errors := []error{
-				generate(gs.Grp, gs.R.Get(i), gs.YR.Get(i), exponentSize, stream),
-				generate(gs.Grp, gs.S.Get(i), gs.YS.Get(i), exponentSize, stream),
-				generate(gs.Grp, gs.U.Get(i), gs.YU.Get(i), exponentSize, stream),
-				generate(gs.Grp, gs.V.Get(i), gs.YV.Get(i), exponentSize, stream),
+				generate(gs.Grp, gs.R.Get(i), gs.YR.Get(i), stream),
+				generate(gs.Grp, gs.S.Get(i), gs.YS.Get(i), stream),
+				generate(gs.Grp, gs.U.Get(i), gs.YU.Get(i), stream),
+				generate(gs.Grp, gs.V.Get(i), gs.YV.Get(i), stream),
 			}
 			for _, err := range errors {
 				if err != nil {
