@@ -18,7 +18,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -28,6 +27,7 @@ import (
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
+	"gitlab.com/xx_network/primitives/utils"
 	"strings"
 	"time"
 )
@@ -152,17 +152,20 @@ func NotStarted(instance *internal.Instance) error {
 	}
 
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
-	//populate the dummy precanned users
-	jww.INFO.Printf("Adding dummy users to registry")
-	userDatabase := instance.GetUserRegistry()
-	PopulateDummyUsers(userDatabase, cmixGrp)
 
-	//Add a dummy user for gateway
-	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = &id.DummyUser
-	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
-	dummy.IsRegistered = true
-	userDatabase.UpsertUser(dummy)
+	if instance.GetDefinition().DevMode {
+		//populate the dummy precanned users
+		jww.INFO.Printf("Adding dummy users to registry")
+		userDatabase := instance.GetUserRegistry()
+		PopulateDummyUsers(userDatabase, cmixGrp)
+
+		//Add a dummy user for gateway
+		dummy := userDatabase.NewUser(cmixGrp)
+		dummy.ID = &id.DummyUser
+		dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
+		dummy.IsRegistered = true
+		userDatabase.UpsertUser(dummy)
+	}
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 

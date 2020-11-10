@@ -86,8 +86,8 @@ func decodeUser(userIdDB string) *id.ID {
 }
 
 // Initialize the UserRegistry interface with appropriate backend
-func NewUserRegistry(username, password,
-	database, address string) UserRegistry {
+func NewUserRegistry(username, password, database, address string) (UserRegistry, error) {
+
 	// Create the database connection
 	db := pg.Connect(&pg.Options{
 		User:         username,
@@ -101,18 +101,19 @@ func NewUserRegistry(username, password,
 	// Attempt to connect to the database and initialize the schema
 	err := createSchema(db)
 	if err != nil {
-		// Return the map-backed UserRegistry interface
-		// in the event there is a database error
-		jww.ERROR.Printf("Unable to initalize database backend: %+v",
-			errors.New(err.Error()))
-		jww.INFO.Println("Using map backend for UserRegistry!")
-		return UserRegistry(&UserMap{})
-	} else {
-		// Return the database-backed UserRegistry interface
-		// in the event there are no database errors
-		jww.INFO.Println("Using database backend for UserRegistry!")
-		return UserRegistry(&UserDatabase{db: db})
+		// If we cannot initialize the database (and not in devMode), we are not production-ready
+		// Therefore we panic
+		errMsg := errors.Errorf("Unable to initialize database backend. "+
+			"Cannot enter production network: %+v", errors.New(err.Error()))
+		return UserRegistry(&UserMap{}), errMsg
+
 	}
+
+	// Return the database-backed UserRegistry interface
+	// in the event there are no database errors
+	jww.INFO.Println("Using database backend for UserRegistry!")
+	return UserRegistry(&UserDatabase{db: db}), nil
+
 }
 
 // Inserts a unique salt into the salt table

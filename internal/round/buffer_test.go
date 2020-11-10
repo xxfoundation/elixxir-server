@@ -9,7 +9,7 @@ package round
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
+	"gitlab.com/xx_network/crypto/large"
 	"math/rand"
 	"reflect"
 	"testing"

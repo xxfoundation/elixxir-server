@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/server/globals"
@@ -21,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"math/rand"
@@ -32,17 +32,18 @@ import (
 
 // Fill part of message with random payloads
 // Fill part of message with random payloads
-func makeMsg() *format.Message {
+func makeMsg(grp *cyclic.Group) *format.Message {
+	primeLegnth := len(grp.GetPBytes())
 	rng := rand.New(rand.NewSource(21))
-	payloadA := make([]byte, format.PayloadLen)
-	payloadB := make([]byte, format.PayloadLen)
+	payloadA := make([]byte, primeLegnth)
+	payloadB := make([]byte, primeLegnth)
 	rng.Read(payloadA)
 	rng.Read(payloadB)
-	msg := format.NewMessage()
+	msg := format.NewMessage(primeLegnth)
 	msg.SetPayloadA(payloadA)
-	msg.SetDecryptedPayloadB(payloadB)
+	msg.SetPayloadB(payloadB)
 
-	return msg
+	return &msg
 }
 
 func TestClientServer(t *testing.T) {
@@ -134,10 +135,10 @@ func TestClientServer(t *testing.T) {
 	userBaseKeys = append(userBaseKeys, usr.BaseKey)
 
 	//Generate a mock message
-	inputMsg := makeMsg()
+	inputMsg := makeMsg(grp)
 
 	//Encrypt the input message
-	encryptedMsg := cmix.ClientEncrypt(grp, inputMsg, testSalt, userBaseKeys)
+	encryptedMsg := cmix.ClientEncrypt(grp, *inputMsg, testSalt, userBaseKeys)
 
 	//Generate an encrypted message using the keys manually, test output agains encryptedMsg above
 	hash, err := blake2b.New256(nil)
@@ -158,11 +159,11 @@ func TestClientServer(t *testing.T) {
 
 	grp.Mul(keyA_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadA()), multPayloadA)
 	grp.Mul(keyB_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadB()), multPayloadB)
-
-	testMsg := format.NewMessage()
+	primeLength := len(grp.GetPBytes())
+	testMsg := format.NewMessage(primeLength)
 
 	testMsg.SetPayloadA(multPayloadA.Bytes())
-	testMsg.SetDecryptedPayloadB(multPayloadB.LeftpadBytes(format.PayloadLen))
+	testMsg.SetPayloadB(multPayloadB.LeftpadBytes(uint64(primeLength)))
 
 	//Compare the payloads of the 2 messages
 	if !reflect.DeepEqual(testMsg.GetPayloadA(), inputMsg.GetPayloadA()) {

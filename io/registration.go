@@ -16,11 +16,11 @@ import (
 	"gitlab.com/elixxir/crypto/cmix"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/registration"
-	"gitlab.com/elixxir/crypto/xx"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/nonce"
 	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/crypto/xx"
 	"gitlab.com/xx_network/primitives/id"
 )
 

@@ -192,39 +192,6 @@ var StripMul2 = services.Module{
 	Name:       "StripMul2",
 }
 
-var StripChunk = services.Module{
-	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		sssi, ok := streamInput.(stripSubstreamInterface)
-		sc, ok2 := cryptop.(gpumaths.StripChunkPrototype)
-		if !ok || !ok2 {
-			return services.InvalidTypeAssert
-		}
-		ss := sssi.GetStripSubStream()
-		gpuStreams := ss.StreamPool
-		cpa := ss.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
-		ppa := ss.EncryptedPayloadAPrecomputation[chunk.Begin():chunk.End()]
-		ppaResults := ss.PayloadAPrecomputation.GetSubBuffer(chunk.Begin(), chunk.End())
-		err := sc(gpuStreams, ss.Grp, ppaResults, ss.Z, ppa, cpa)
-		if err != nil {
-			return err
-		}
-
-		cpb := ss.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
-		ppb := ss.EncryptedPayloadBPrecomputation[chunk.Begin():chunk.End()]
-		ppbResults := ss.PayloadBPrecomputation.GetSubBuffer(chunk.Begin(), chunk.End())
-		err = sc(gpuStreams, ss.Grp, ppbResults, ss.Z, ppb, cpb)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
-	Cryptop:    gpumaths.StripChunk,
-	Name:       "PrecompStripGPU",
-	NumThreads: 2,
-	InputSize:  services.AutoInputSize,
-}
-
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGpu") {

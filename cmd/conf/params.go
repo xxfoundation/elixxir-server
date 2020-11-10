@@ -14,16 +14,16 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/xx"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/tls"
+	"gitlab.com/xx_network/crypto/xx"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/id/idf"
 	"gitlab.com/xx_network/primitives/ndf"
+	"gitlab.com/xx_network/primitives/utils"
 	"runtime"
 	"time"
 )
@@ -53,6 +53,8 @@ type Params struct {
 	PhaseOverrides   []int
 	OverrideRound    int
 	RecoveredErrPath string
+
+	DevMode bool
 }
 
 // NewParams gets elements of the viper object
@@ -151,6 +153,8 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 		jww.FATAL.Panicf("Cannot set both gateway.useNodeIp and " +
 			"gateway.advertisedIP at the same time.")
 	}
+
+	params.DevMode = viper.GetBool("devMode")
 
 	return &params, nil
 }
@@ -306,7 +310,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Gateway.UseNodeIp = p.Gateway.useNodeIp
 	def.Gateway.AdvertisedIP = p.Gateway.advertisedIP
-
+	def.DevMode = p.DevMode
 	return def, nil
 }
 

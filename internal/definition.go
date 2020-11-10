@@ -89,6 +89,8 @@ type Definition struct {
 
 	// Path for outputting errors to file for recovery
 	RecoveredErrorPath string
+
+	DevMode bool
 }
 
 // Holds all input flags to the system.
