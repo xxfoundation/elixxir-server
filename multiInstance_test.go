@@ -57,7 +57,6 @@ import (
 
 var errWg = sync.WaitGroup{}
 
-/*
 func Test_MultiInstance_N3_B8(t *testing.T) {
 	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, false, t)
 
@@ -65,7 +64,7 @@ func Test_MultiInstance_N3_B8(t *testing.T) {
 		"instance test: %s", elapsed)
 }
 
-func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
+/*func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 	batchSize := 32
 	if cmd.BatchSizeGPUTest != 0 {
 		batchSize = cmd.BatchSizeGPUTest
@@ -76,14 +75,14 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 
 	t.Logf("Computational elapsed time for 3 Node, batch size %d, GPU multi-"+
 		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)
-}
+}*/
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
 	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, true, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
 		"instance test: %s", elapsed)
-}*/
+}
 
 func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, errorPhase bool, t *testing.T) time.Duration {
 	if errorPhase {
