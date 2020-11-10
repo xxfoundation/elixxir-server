@@ -22,7 +22,7 @@ import (
 // and partial cypher texts into the data that the permute phase needs
 
 //size of the exponent. Highly security relevant, DO NOT CHANGE
-const exponentSizeBits = 2048
+const exponentSizeBits = 4096
 const exponentSize = exponentSizeBits / 8
 
 // GenerateStream holds the inputs for the Generate operation
