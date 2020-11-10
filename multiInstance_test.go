@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	nodeComms "gitlab.com/elixxir/comms/node"
@@ -34,7 +33,6 @@ import (
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/ndf"
-	"gitlab.com/elixxir/server/cmd"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
@@ -59,6 +57,7 @@ import (
 
 var errWg = sync.WaitGroup{}
 
+/*
 func Test_MultiInstance_N3_B8(t *testing.T) {
 	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, false, t)
 
@@ -84,7 +83,7 @@ func Test_MultiInstance_PhaseErr(t *testing.T) {
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
 		"instance test: %s", elapsed)
-}
+}*/
 
 func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, errorPhase bool, t *testing.T) time.Duration {
 	if errorPhase {
