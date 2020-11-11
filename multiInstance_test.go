@@ -73,7 +73,7 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 	}
 
 	viper.Set("useGpu", true)
-	elapsed := MultiInstanceTest(3, batchSize, makeMultiInstanceGroup4k(), true, false, t)
+	elapsed := MultiInstanceTest(3, batchSize, makeMultiInstanceGroup(), true, false, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size %d, GPU multi-"+
 		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)
