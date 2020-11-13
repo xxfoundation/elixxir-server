@@ -21,7 +21,7 @@ import (
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
 	// Check that the sender is authenticated and is either their gateway or the temporary gateway
@@ -32,11 +32,11 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	res := mixmessages.ServerPollResponse{}
 
-	jww.TRACE.Printf("Gateway Info: %s, %s", gatewayAddress,
+	jww.TRACE.Printf("Gateway Info: %s, %s", poll.GatewayAddress,
 		poll.GatewayVersion)
 
 	// Form gateway address and put it into gateway data in instance
-	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
+	instance.UpsertGatewayData(poll.GatewayAddress, poll.GatewayVersion)
 
 	// Asynchronously indicate that gateway has successfully contacted
 	// its node

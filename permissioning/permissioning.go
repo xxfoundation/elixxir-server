@@ -153,7 +153,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		GatewayVersion: gatewayVer,
 		GatewayAddress: gatewayAddr,
 
-		ServerPort:    uint32(port),
+		ServerAddress: instance.GetIP(),
 		ServerVersion: instance.GetServerVersion(),
 	}
 
