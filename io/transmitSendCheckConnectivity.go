@@ -15,7 +15,7 @@ type checkPermConnComm interface {
 	SendCheckConnectivityMessage(host *connect.Host, message *pb.Address) (*pb.ConnectivityResponse, error)
 }
 
-func transmitSendCheckConnectivity(addr string, port int, comms checkPermConnComm) (string, error) {
+func TransmitSendCheckConnectivity(addr string, port int, comms checkPermConnComm) (string, error) {
 	// Get the permissioning host so we can check our connection to it
 	permHost, found := comms.GetHost(&id.Permissioning)
 	if found == false {

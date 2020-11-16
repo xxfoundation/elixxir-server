@@ -111,7 +111,7 @@ func Poll(instance *internal.Instance) error {
 	return err
 }
 
-// PollPermissioning polls the permissioning server for updates
+// PollPermissioning  the permissioning server for updates
 func PollPermissioning(permHost *connect.Host, instance *internal.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 

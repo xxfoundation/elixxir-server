@@ -29,7 +29,7 @@ func TestCheckPermConn(t *testing.T) {
 	pc := permComms{}
 
 	// Run our function
-	addr, err := transmitSendCheckConnectivity("0.0.0.0", 6550, &pc)
+	addr, err := TransmitSendCheckConnectivity("0.0.0.0", 6550, &pc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestCheckPermConn_SetConfigIP(t *testing.T) {
 	pc := permComms{}
 
 	// Run our function
-	addr, err := transmitSendCheckConnectivity("192.168.15.6", 6550, &pc)
+	addr, err := TransmitSendCheckConnectivity("192.168.15.6", 6550, &pc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func (c *permCommsBadPermHost) SendCheckConnectivityMessage(host *connect.Host, 
 
 func TestCheckPermConn_NoPermHost(t *testing.T) {
 	pc := permCommsBadPermHost{}
-	_, err := transmitSendCheckConnectivity("192.168.1.1", 6550, &pc)
+	_, err := TransmitSendCheckConnectivity("192.168.1.1", 6550, &pc)
 	if err == nil {
 		t.Errorf("CheckPermConn did not return an error")
 	}
@@ -94,7 +94,7 @@ func (c *permCommsBadCheckConn) SendCheckConnectivityMessage(host *connect.Host,
 
 func TestCheckPermConn_BadCommsCheckConn(t *testing.T) {
 	pc := permCommsBadCheckConn{}
-	_, err := transmitSendCheckConnectivity("192.168.1.1", 6550, &pc)
+	_, err := TransmitSendCheckConnectivity("192.168.1.1", 6550, &pc)
 	if err == nil {
 		t.Errorf("CheckPermConn did not return an error")
 	}
