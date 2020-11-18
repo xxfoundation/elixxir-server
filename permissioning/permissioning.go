@@ -39,7 +39,7 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	// Split the address into port and address for message
 	gwIP, gwPortStr, err := net.SplitHostPort(gwAddr)
 	if err != nil {
-		return errors.Errorf("Unable to parse gateway's address. Is it set up correctly?")
+		return errors.Errorf("Unable to parse gateway's address [%s]. Is it set up correctly?", gwAddr)
 	}
 
 	// Convert port to int to conform to message type
