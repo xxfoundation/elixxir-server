@@ -35,12 +35,27 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 	jww.TRACE.Printf("Gateway Info: %s, %s", poll.GatewayAddress,
 		poll.GatewayVersion)
 
+	// fixme: this is a hack. due to the interconnected web of server <-> permissioning polling
+	//  and GW <-> server polling, we reach a deadlock state
+	//  To elaborate: GW only sets its address AFTER polling server for an NDF and
+	//   checking Connectivity w/ permissioning (GW needs to poll server to contact permissioning in the first place)
+	//   so it sends an empty address to server until this is set
+	//  However server needs GW's address BEFORE registering as it needs to provide valid addresses for the NDF
+	//  Server does not provide an NDF to GW until it (server) has registered and polled permissioning
+	//  Which means GW cannot get a response when it polls server and cannot move forward to setting its own address
+	//  Therefore GW doesn't ever get it's address set, and server crashes when trying to parse an empty GW address
+	// fixme: Suggested solution: Generate a comm where server gets GW's address, and place that comm in RegisterNode
+	// Cannot upsert gateway data unless valid address is sent through the wire
+	if poll.GatewayAddress == "" {
+		poll.GatewayAddress = "1.2.3.4:11420"
+	}
 	// Form gateway address and put it into gateway data in instance
 	instance.UpsertGatewayData(poll.GatewayAddress, poll.GatewayVersion)
 
 	// Asynchronously indicate that gateway has successfully contacted
 	// its node
 	instance.GetGatewayFirstContact().Send()
+
 
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
