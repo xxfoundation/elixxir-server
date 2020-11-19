@@ -37,14 +37,17 @@ func TransmitSendCheckConnectivity(addr string, port int, comms checkPermConnCom
 	if addr != "0.0.0.0" {
 		// Print out information about the test to the user
 		if strings.Compare(r.CallerAddr, addr) != 0 {
-			jww.LOG.Printf("Address used in config does not match address detected from CheckConnectivity test." +
+			jww.INFO.Printf("Address used in config does not match address detected from CheckConnectivity test." +
 				"This likely means your Node is sending data out via an IP other than the one in your config file!")
 		}
 		return addr, nil
 	} else {
-		jww.LOG.Printf("Detected IP/port is available: %t\n The IP permissioning detected"+
+		if strings.Contains(r.CallerAddr,":"){
+			r.CallerAddr = strings.Split(r.CallerAddr,":")[0]
+		}
+		jww.INFO.Printf("Detected IP/port is available: %t\n The IP permissioning detected"+
 			" from your request to it is \"%s\"\n", r.GetCallerAvailable(), r.CallerAddr)
-		jww.LOG.Printf("IP in config is available: %t\n", r.GetOtherAvailable())
+		jww.INFO.Printf("IP in config is available: %t\n", r.GetOtherAvailable())
 		return r.CallerAddr, nil
 	}
 }
