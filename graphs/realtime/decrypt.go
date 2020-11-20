@@ -55,34 +55,30 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 	roundBuf := source[RoundBuff].(*round.Buffer)
 	userRegistry := source[Registry].(globals.UserRegistry)
 	users := make([]*id.ID, batchSize)
-	var clientReporter round.ClientReport
-	var ok bool
-	// Find the client error reporter (if it exists)
+	var clientReporter *round.ClientReport
+	var roundID id.Round
+	// Find the client error reporter and the roundID (if it exists)
 	for _, face := range source {
-		clientReporter, ok = face.(round.ClientReport)
-		if ok {
-			break
-		}
+		clientReporter, _ = face.(*round.ClientReport)
+		roundID, _ = face.(id.Round)
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
 		users[i] = &id.ID{}
 	}
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize,
-		roundBuf, userRegistry,
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		users, make([][]byte, batchSize),
-		make([][][]byte, batchSize), clientReporter)
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
+		make([][]byte, batchSize), make([][][]byte, batchSize),
+		clientReporter, roundID)
 }
 
 //Connects the internal buffers in the stream to the passed
-func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
-	users []*id.ID, salts [][]byte, kmacs [][][]byte, clientReporter round.ClientReport) {
+func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32,
+	round *round.Buffer, userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB,
+	keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte,
+	clientReporter *round.ClientReport, roundId id.Round) {
 
 	ds.Grp = grp
 
@@ -97,8 +93,7 @@ func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batc
 	ds.Salts = salts
 	ds.KMACS = kmacs
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS,
-		ds.Users, ds.KeysPayloadA, ds.KeysPayloadB, clientReporter)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS, ds.Users, ds.KeysPayloadA, ds.KeysPayloadB, clientReporter, roundId)
 }
 
 // PermuteStream conforms to this interface.

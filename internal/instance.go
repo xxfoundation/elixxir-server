@@ -70,7 +70,7 @@ type Instance struct {
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
-	clientErrors        round.ClientReport
+	clientErrors        *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -390,11 +390,7 @@ func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
 }
 
-func (i *Instance) GetClientReport() round.ClientReport {
-	return i.clientErrors
-}
-
-func (i *Instance) GetClientReportChan() chan []*mixmessages.ClientError {
+func (i *Instance) GetClientReport() *round.ClientReport {
 	return i.clientErrors
 }
 

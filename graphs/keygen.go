@@ -37,7 +37,8 @@ type KeygenSubStream struct {
 	KeysA *cyclic.IntBuffer
 	KeysB *cyclic.IntBuffer
 
-	userErrors round.ClientReport
+	userErrors *round.ClientReport
+	roundId    id.Round
 }
 
 // LinkStream This Link doesn't conform to the Stream interface because KeygenSubStream
@@ -45,9 +46,9 @@ type KeygenSubStream struct {
 // For salts and users: the slices don't have to point to valid underlying data
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
-func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
-	userReg globals.UserRegistry, inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID,
-	outKeysA, outKeysB *cyclic.IntBuffer, reporter round.ClientReport) {
+func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, userReg globals.UserRegistry,
+	inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID, outKeysA,
+	outKeysB *cyclic.IntBuffer, reporter *round.ClientReport, roundID id.Round) {
 	k.Grp = grp
 	k.userReg = userReg
 	k.salts = inSalts
@@ -56,6 +57,7 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group,
 	k.KeysA = outKeysA
 	k.KeysB = outKeysB
 	k.userErrors = reporter
+	k.roundId = roundID
 }
 
 //Returns the substream, used to return an embedded struct off an interface
@@ -108,6 +110,7 @@ var Keygen = services.Module{
 						Error:    errMsg,
 						ClientId: kss.users[i].Bytes(),
 					})
+
 				}
 				continue
 			}
@@ -145,13 +148,23 @@ var Keygen = services.Module{
 					Error:    errMsg,
 					ClientId: kss.users[i].Bytes(),
 				})
+
 			}
 
 		}
 
-		err = kss.userErrors.Send(clientErrors)
+		if clientErrors != nil {
 
-		return err
+			clientErrorReport := &pb.ClientErrors{
+				ClientErrors: clientErrors,
+				RoundID:      uint64(kss.roundId),
+			}
+
+			kss.userErrors.Report(clientErrorReport, uint64(kss.roundId))
+
+		}
+
+		return nil
 	},
 	Cryptop:    cryptops.Keygen,
 	InputSize:  services.AutoInputSize,
