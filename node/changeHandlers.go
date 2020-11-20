@@ -23,11 +23,13 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -60,6 +62,21 @@ func NotStarted(instance *internal.Instance) error {
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
+
+	// Detect our IP to use
+	ipSplit := strings.Split(instance.GetIP(), ":")
+	if len(ipSplit) != 2 {
+		return errors.Errorf("ipSplit did not have two elements, suggesting a malformed IP was passed in")
+	}
+	ipPort, err := strconv.Atoi(ipSplit[1])
+	if err != nil {
+		return errors.Errorf("strconv for ipSplit port failed: %+v", err)
+	}
+	retIP, err := io.TransmitSendCheckConnectivity(ipSplit[0], ipPort, network)
+	if err != nil {
+		return errors.Errorf("Couldn't complete CheckPermConn: %v", err)
+	}
+	ourDef.Address = fmt.Sprintf("%s:%d", retIP, ipPort)
 
 	// Determine if the node has registered already
 	isRegistered := isRegistered(instance, permHost)

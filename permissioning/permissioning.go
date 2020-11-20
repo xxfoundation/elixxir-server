@@ -39,7 +39,7 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	// Split the address into port and address for message
 	gwIP, gwPortStr, err := net.SplitHostPort(gwAddr)
 	if err != nil {
-		return errors.Errorf("Unable to parse gateway's address. Is it set up correctly?")
+		return errors.Errorf("Unable to parse gateway's address [%s]. Is it set up correctly?", gwAddr)
 	}
 
 	// Convert port to int to conform to message type
@@ -79,7 +79,7 @@ func Poll(instance *internal.Instance) error {
 
 	//get any skipped state reports
 	reportedActivity := instance.GetStateMachine().GetActivityToReport()
-	instance.GetConsensus().GetLastRoundID()
+
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
 	if err != nil {
@@ -111,10 +111,9 @@ func Poll(instance *internal.Instance) error {
 	return err
 }
 
-// PollPermissioning polls the permissioning server for updates
+// PollPermissioning  the permissioning server for updates
 func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
-
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -162,7 +161,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		GatewayVersion: gatewayVer,
 		GatewayAddress: gatewayAddr,
 
-		ServerAddress: instance.GetDefinition().Address,
+		ServerAddress: instance.GetIP(),
 		ServerVersion: instance.GetServerVersion(),
 		ClientErrors:  clientReport,
 	}
@@ -302,7 +301,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Don't do anything
 
 			case states.COMPLETED:
-				instance.GetClientReport().Receive(id.Round(roundInfo.ID))
+
 			case states.FAILED:
 				errStr := "Unknown error"
 				firstSource := &id.Permissioning
