@@ -47,7 +47,7 @@ func TestClientReport_Send(t *testing.T) {
 	ourNewReport.ErrorTracker[rndId] = make(chan *pb.ClientError, 8)
 
 	clientErr := &pb.ClientError{}
-	err := ourNewReport.Send(rndId, clientErr)
+	err := ourNewReport.Send(rndId, clientErr, 32)
 	if len(ourNewReport.ErrorTracker) != 1 {
 		t.Errorf("Error tracker should have length of 1 after a report! "+
 			"Length is: %+v", len(ourNewReport.ErrorTracker))
@@ -57,7 +57,7 @@ func TestClientReport_Send(t *testing.T) {
 		t.Errorf("Unexpcted error: %v", err)
 	}
 
-	err = ourNewReport.Send(rndId, clientErr)
+	err = ourNewReport.Send(rndId, clientErr, 32)
 	if err != nil {
 		t.Errorf("Should be able to send when reporter is empty: %+v."+
 			"\nLength of reporter: %+v", err, len(ourNewReport.ErrorTracker))
@@ -86,7 +86,7 @@ func TestClientReport_Receive_Receive(t *testing.T) {
 	ourNewReport.ErrorTracker[rndId] = make(chan *pb.ClientError, 8)
 
 	// Send to queue
-	err := ourNewReport.Send(rndId, ce)
+	err := ourNewReport.Send(rndId, ce, 32)
 	if err != nil {
 		t.Errorf("Expected happy path, received error when sending! Err: %+v", err)
 	}

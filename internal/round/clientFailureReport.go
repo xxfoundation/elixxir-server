@@ -74,9 +74,7 @@ func (cr *ClientReport) Receive(rndID id.Round) ([]*pb.ClientError, error) {
 			clientErrors = append(clientErrors, ce)
 		default:
 			// Clear out channel
-			cr.RWMutex.Lock()
 			cr.ErrorTracker[rndID] = nil
-			cr.RWMutex.Unlock()
 
 			return clientErrors, nil
 		}
