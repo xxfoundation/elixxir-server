@@ -58,9 +58,17 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 	var clientReporter *round.ClientReport
 	var roundID id.Round
 	// Find the client error reporter and the roundID (if it exists)
+	var ok bool
 	for _, face := range source {
-		clientReporter, _ = face.(*round.ClientReport)
-		roundID, _ = face.(id.Round)
+		_, ok = face.(*round.ClientReport)
+		if ok {
+			clientReporter = face.(*round.ClientReport)
+		}
+
+		_, ok = face.(id.Round)
+		if ok {
+			roundID = face.(id.Round)
+		}
 	}
 
 	for i := uint32(0); i < batchSize; i++ {
@@ -93,7 +101,8 @@ func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batc
 	ds.Salts = salts
 	ds.KMACS = kmacs
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS, ds.Users, ds.KeysPayloadA, ds.KeysPayloadB, clientReporter, roundId)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS, ds.Users, ds.KeysPayloadA,
+		ds.KeysPayloadB, clientReporter, roundId, batchSize)
 }
 
 // PermuteStream conforms to this interface.

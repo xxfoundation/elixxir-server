@@ -39,6 +39,7 @@ type KeygenSubStream struct {
 
 	userErrors *round.ClientReport
 	roundId    id.Round
+	batchSize  uint32
 }
 
 // LinkStream This Link doesn't conform to the Stream interface because KeygenSubStream
@@ -48,7 +49,7 @@ type KeygenSubStream struct {
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, userReg globals.UserRegistry,
 	inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID, outKeysA,
-	outKeysB *cyclic.IntBuffer, reporter *round.ClientReport, roundID id.Round) {
+	outKeysB *cyclic.IntBuffer, reporter *round.ClientReport, roundID id.Round, batchSize uint32) {
 	k.Grp = grp
 	k.userReg = userReg
 	k.salts = inSalts
@@ -58,6 +59,7 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, userReg globals.UserRegi
 	k.KeysB = outKeysB
 	k.userErrors = reporter
 	k.roundId = roundID
+	k.batchSize = batchSize
 }
 
 //Returns the substream, used to return an embedded struct off an interface
@@ -95,7 +97,6 @@ var Keygen = services.Module{
 			jww.FATAL.Panicf("Could not get CMIX hash: %s", err.Error())
 		}
 
-		var clientErrors []*pb.ClientError
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			user, err := kss.userReg.GetUser(kss.users[i], kss.Grp)
 
@@ -106,10 +107,15 @@ var Keygen = services.Module{
 					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
 					errMsg := fmt.Sprintf("%s [%v] in storage:%v", services.UserNotFound, kss.users[i], err)
-					clientErrors = append(clientErrors, &pb.ClientError{
+					clientError := &pb.ClientError{
 						Error:    errMsg,
 						ClientId: kss.users[i].Bytes(),
-					})
+					}
+
+					err = kss.userErrors.Send(kss.roundId, clientError, kss.batchSize)
+					if err != nil {
+						return err
+					}
 
 				}
 				continue
@@ -144,23 +150,17 @@ var Keygen = services.Module{
 					user.ID, i)
 				errMsg := fmt.Sprintf("%s. UserID [%v] failed on slot %d", services.InvalidMAC,
 					user.ID, i)
-				clientErrors = append(clientErrors, &pb.ClientError{
+				clientError := &pb.ClientError{
 					Error:    errMsg,
 					ClientId: kss.users[i].Bytes(),
-				})
+				}
+
+				err = kss.userErrors.Send(kss.roundId, clientError, kss.batchSize)
+				if err != nil {
+					return err
+				}
 
 			}
-
-		}
-
-		if clientErrors != nil {
-
-			clientErrorReport := &pb.ClientErrors{
-				ClientErrors: clientErrors,
-				RoundID:      uint64(kss.roundId),
-			}
-
-			kss.userErrors.Report(clientErrorReport, uint64(kss.roundId))
 
 		}
 

@@ -17,17 +17,24 @@ import (
 func TestNewClientReport(t *testing.T) {
 	ourNewReport := NewClientFailureReport()
 
-	if len(ourNewReport.userErrorChannel) != 0 {
-		t.Errorf("New Client report expected to be of length 0! Length is: %+v", len(ourNewReport.userErrorChannel))
+	if ourNewReport == nil {
+		t.Errorf("New Client report should not be nil: %+v", ourNewReport)
 	}
 
-	clientErrs := &pb.ClientErrors{}
+	rndId := id.Round(0)
+	ourNewReport.ErrorTracker[rndId] = make(chan *pb.ClientError, 8)
+	if len(ourNewReport.ErrorTracker) != 1 {
+		t.Errorf("Client report expected to be of length 1! Length is: %+v", len(ourNewReport.ErrorTracker))
+	}
+
+	ce := &pb.ClientError{}
 
 	// Test
-	ourNewReport.userErrorChannel <- clientErrs
+	ourNewReport.ErrorTracker[rndId] <- ce
 
-	if len(ourNewReport.userErrorChannel) != 1 {
-		t.Errorf("Client report expected to be of length 1! Length is: %+v", len(ourNewReport.userErrorChannel))
+	if len(ourNewReport.ErrorTracker[rndId]) != 1 {
+		t.Errorf("Client report expected to be of length 1! "+
+			"Length is: %+v", len(ourNewReport.ErrorTracker[rndId]))
 	}
 
 }
@@ -35,33 +42,37 @@ func TestNewClientReport(t *testing.T) {
 // Happy path
 func TestClientReport_Send(t *testing.T) {
 	ourNewReport := NewClientFailureReport()
+	rndId := id.Round(0)
 
-	if len(ourNewReport.userErrorChannel) != 0 {
-		t.Errorf("New Client report expected to be of length 0! Length is: %+v", len(ourNewReport.userErrorChannel))
-	}
-	clientErrs := &pb.ClientErrors{}
-	rndId := uint64(0)
-	ourNewReport.Report(clientErrs, rndId)
-	if len(ourNewReport.userErrorTracker) != 1 {
+	ourNewReport.ErrorTracker[rndId] = make(chan *pb.ClientError, 8)
+
+	clientErr := &pb.ClientError{}
+	err := ourNewReport.Send(rndId, clientErr)
+	if len(ourNewReport.ErrorTracker) != 1 {
 		t.Errorf("Error tracker should have length of 1 after a report! "+
-			"Length is: %+v", len(ourNewReport.userErrorTracker))
-
+			"Length is: %+v", len(ourNewReport.ErrorTracker))
 	}
-	err := ourNewReport.Send(rndId)
+
+	if err != nil {
+		t.Errorf("Unexpcted error: %v", err)
+	}
+
+	err = ourNewReport.Send(rndId, clientErr)
 	if err != nil {
 		t.Errorf("Should be able to send when reporter is empty: %+v."+
-			"\nLength of reporter: %+v", err, len(ourNewReport.userErrorChannel))
+			"\nLength of reporter: %+v", err, len(ourNewReport.ErrorTracker))
 	}
 
-	if len(ourNewReport.userErrorTracker) != 1 {
-		t.Errorf("Error tracker should be empty after a send! "+
-			"Length is: %+v", len(ourNewReport.userErrorChannel))
+	if len(ourNewReport.ErrorTracker[rndId]) != 2 {
+		t.Errorf("Error tracker should be two after a send! "+
+			"Length is: %+v", len(ourNewReport.ErrorTracker[rndId]))
 
 	}
 
 }
 
-// Happy path
+//
+//// Happy path
 func TestClientReport_Receive_Receive(t *testing.T) {
 	ourNewReport := NewClientFailureReport()
 	testId := id.NewIdFromBytes([]byte("test"), t)
@@ -71,29 +82,29 @@ func TestClientReport_Receive_Receive(t *testing.T) {
 		Error:    testErr,
 	}
 
-	clientErrs := &pb.ClientErrors{ClientErrors: []*pb.ClientError{ce}}
-	rndId := uint64(0)
+	rndId := id.Round(0)
+	ourNewReport.ErrorTracker[rndId] = make(chan *pb.ClientError, 8)
+
 	// Send to queue
-	ourNewReport.Report(clientErrs, rndId)
-	err := ourNewReport.Send(rndId)
+	err := ourNewReport.Send(rndId, ce)
 	if err != nil {
 		t.Errorf("Expected happy path, received error when sending! Err: %+v", err)
 	}
 
-	receivedClientErrs, err := ourNewReport.Receive()
+	receivedClientErrs, err := ourNewReport.Receive(rndId)
 	if err != nil {
 		t.Errorf("Expected happy path, received error when receiving! Err: %+v", err)
 	}
 
-	if len(receivedClientErrs.ClientErrors) != 1 {
+	if len(receivedClientErrs) != 1 {
 		t.Logf("Received unexpected round id")
 		t.Fail()
 	}
 
-	if !reflect.DeepEqual(receivedClientErrs.ClientErrors[0], ce) {
+	if !reflect.DeepEqual(receivedClientErrs[0], ce) {
 		t.Errorf("Client error received from channel does not match input from channel."+
 			"\n\tReceived: %v"+
-			"\n\tExpected: %v", receivedClientErrs.ClientErrors[0], ce)
+			"\n\tExpected: %v", receivedClientErrs[0], ce)
 	}
 
 }
@@ -101,8 +112,8 @@ func TestClientReport_Receive_Receive(t *testing.T) {
 // Error path: Attempt to receive from an empty queue
 func TestClientReport_Receive_Error(t *testing.T) {
 	ourNewReport := NewClientFailureReport()
-
-	_, err := ourNewReport.Receive()
+	rndID := id.Round(0)
+	_, err := ourNewReport.Receive(rndID)
 
 	if err != nil {
 		return

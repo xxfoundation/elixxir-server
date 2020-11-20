@@ -9,61 +9,77 @@ package round
 import (
 	"github.com/pkg/errors"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/xx_network/primitives/id"
+	"sync"
 )
 
 // Contains logic that handles an invalid client error within realtime
 // Reports this error through a channel to permissioning
 
-const maxClientFailures = 100
-
-// Reports client errors occurring during a round
+// Client report maps a channel containing a series of client errors
+// to a round ID
 type ClientReport struct {
-	userErrorChannel chan *pb.ClientErrors
-	userErrorTracker map[uint64]*pb.ClientErrors
+	ErrorTracker map[id.Round]chan *pb.ClientError
+	sync.RWMutex
 }
 
 // Initiates a new client failure reporter.
 func NewClientFailureReport() *ClientReport {
+	m := make(map[id.Round]chan *pb.ClientError)
 	return &ClientReport{
-		userErrorChannel: make(chan *pb.ClientErrors, maxClientFailures),
-		userErrorTracker: make(map[uint64]*pb.ClientErrors),
+		ErrorTracker: m,
+		RWMutex:      sync.RWMutex{},
 	}
+	//m := make(map[id.Round]chan *pb.ClientError)
+	//m[0] = make(chan *pb.ClientError, 32)
+	//return &ClientReport{
+	//	UserErrorTracker: m,
+	//}
 }
 
-// Sends a client error through the channel if possible. Pulls the errors from the map
-// and nils out that entry. If the map is not recognized, either no errors exist or node
-// was not part of that round
-func (cr *ClientReport) Send(rndID uint64) error {
+// Sends a client error through the channel if possible
+func (cr *ClientReport) Send(rndID id.Round, err *pb.ClientError, batchSize uint32) error {
+	cr.RWMutex.Lock()
+	defer cr.RWMutex.Unlock()
+	// Check that map entry has been initialized
+	if cr.ErrorTracker[rndID] == nil {
+		cr.ErrorTracker[rndID] = make(chan *pb.ClientError, batchSize)
+	}
+	// Send to channel
+	select {
+	case cr.ErrorTracker[rndID] <- err:
+		return nil
+	default:
+		// todo: rework error message
+		return errors.Errorf("Error tracker full at len %d"+
+			"for round %v. Should not happen!", len(cr.ErrorTracker[rndID]), rndID)
+	}
 
-	report := cr.userErrorTracker[rndID]
+}
 
-	if report != nil {
+// Receive takes the channel (if initialized) and exhausts the channel into a list
+func (cr *ClientReport) Receive(rndID id.Round) ([]*pb.ClientError, error) {
+	cr.RWMutex.Lock()
+	defer cr.RWMutex.Unlock()
+
+	if cr.ErrorTracker[rndID] == nil {
+		return nil, errors.Errorf("Error channel for round %d non-existent", rndID)
+	}
+
+	// Exhaust the channel
+	clientErrors := make([]*pb.ClientError, 0)
+	for {
 		select {
-		case cr.userErrorChannel <- report:
-			// Clean up map
-			cr.userErrorTracker[rndID] = nil
-			return nil
+		case ce := <-cr.ErrorTracker[rndID]:
+			clientErrors = append(clientErrors, ce)
 		default:
-			return errors.New("Round Queue is full")
+			// Clear out channel
+			cr.RWMutex.Lock()
+			cr.ErrorTracker[rndID] = nil
+			cr.RWMutex.Unlock()
+
+			return clientErrors, nil
 		}
 	}
 
-	return nil
-}
-
-// Report places the reported client errors in the tracker (a map) which may be pulled out
-// upon completion of the given round
-func (cr *ClientReport) Report(clientErrors *pb.ClientErrors, roundID uint64) {
-	cr.userErrorTracker[roundID] = clientErrors
-}
-
-// Receives any client errors from the channel
-//  if available.
-func (cr *ClientReport) Receive() (*pb.ClientErrors, error) {
-	select {
-	case ce := <-cr.userErrorChannel:
-		return ce, nil
-	default:
-		return nil, errors.New("Client reporter has nothing in it")
-	}
 }

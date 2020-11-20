@@ -79,7 +79,7 @@ func Poll(instance *internal.Instance) error {
 
 	//get any skipped state reports
 	reportedActivity := instance.GetStateMachine().GetActivityToReport()
-
+	instance.GetConsensus().GetLastRoundID()
 	// Ping permissioning for updated information
 	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
 	if err != nil {
@@ -143,7 +143,12 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		return nil, err
 	}
 
-	clientReport, _ := instance.GetClientReport().Receive()
+	var clientReport []*pb.ClientError
+	latestRound := instance.GetRoundManager().GetLatestRound()
+	if reportedActivity == current.COMPLETED {
+		clientReport, _ = instance.GetClientReport().Receive(latestRound)
+
+	}
 
 	gatewayAddr, gatewayVer := instance.GetGatewayData()
 
@@ -159,7 +164,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 
 		ServerAddress: instance.GetDefinition().Address,
 		ServerVersion: instance.GetServerVersion(),
-		ClientError:   clientReport,
+		ClientErrors:  clientReport,
 	}
 
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,
@@ -297,10 +302,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Don't do anything
 
 			case states.COMPLETED:
-				err = instance.GetClientReport().Send(roundInfo.ID)
-				if err != nil {
-					return errors.Errorf("Unable to send client report: %+v", err)
-				}
+				instance.GetClientReport().Receive(id.Round(roundInfo.ID))
 			case states.FAILED:
 				errStr := "Unknown error"
 				firstSource := &id.Permissioning

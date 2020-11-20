@@ -27,7 +27,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
-	gitlab.com/elixxir/comms v0.0.4-0.20201120162954-a3dab5683eb2
+	gitlab.com/elixxir/comms v0.0.4-0.20201120183451-1eda2db4d475
 	gitlab.com/elixxir/crypto v0.0.5-0.20201118204646-9b23991834c6
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201105175137-191e95bf062b
 	gitlab.com/elixxir/primitives v0.0.3-0.20201116174806-97f190989704

@@ -47,7 +47,10 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.KeygenSubStream.LinkStream(grp, instance.GetUserRegistry(), make([][]byte, batchSize), make([][][]byte, batchSize), make([]*id.ID, batchSize), grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), round.NewClientFailureReport(), 0)
+	s.KeygenSubStream.LinkStream(grp, instance.GetUserRegistry(), make([][]byte, batchSize),
+		make([][][]byte, batchSize), make([]*id.ID, batchSize),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		round.NewClientFailureReport(), 0, batchSize)
 }
 
 func (s *KeygenTestStream) Input(index uint32,
@@ -346,8 +349,8 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 			}
 		}
 	}
-	stream.userErrors.Send(uint64(stream.roundId))
-	clientErrs, err := stream.userErrors.Receive()
+
+	clientErrs, err := stream.userErrors.Receive(stream.roundId)
 	if clientErrs == nil || err != nil {
 		t.Errorf("Expected to have errors in channel!"+
 			"\n\tError received: %v"+
@@ -466,8 +469,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 		}
 	}
 
-	stream.userErrors.Send(uint64(stream.roundId))
-	clientErrs, err := stream.userErrors.Receive()
+	clientErrs, err := stream.userErrors.Receive(stream.roundId)
 	if clientErrs == nil || err != nil {
 		t.Errorf("Expected to have errors in channel!"+
 			"\n\tError received: %v"+
