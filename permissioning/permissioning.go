@@ -39,7 +39,7 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	// Split the address into port and address for message
 	gwIP, gwPortStr, err := net.SplitHostPort(gwAddr)
 	if err != nil {
-		return errors.Errorf("Unable to parse gateway's address. Is it set up correctly?")
+		return errors.Errorf("Unable to parse gateway's address [%s]. Is it set up correctly?", gwAddr)
 	}
 
 	// Convert port to int to conform to message type
@@ -111,7 +111,7 @@ func Poll(instance *internal.Instance) error {
 	return err
 }
 
-// PollPermissioning polls the permissioning server for updates
+// PollPermissioning  the permissioning server for updates
 func PollPermissioning(permHost *connect.Host, instance *internal.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
@@ -153,7 +153,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		GatewayVersion: gatewayVer,
 		GatewayAddress: gatewayAddr,
 
-		ServerAddress: instance.GetDefinition().Address,
+		ServerAddress: instance.GetIP(),
 		ServerVersion: instance.GetServerVersion(),
 	}
 

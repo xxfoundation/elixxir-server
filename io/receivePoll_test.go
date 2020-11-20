@@ -170,7 +170,7 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		t.Fail()
@@ -216,7 +216,7 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -242,7 +242,7 @@ func TestReceivePoll_SameFullNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -269,7 +269,7 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -295,7 +295,7 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -322,7 +322,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error: %v", err)
 		t.Fail()
@@ -367,7 +367,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -389,7 +389,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err = ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err = ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -454,7 +454,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -491,7 +491,7 @@ func TestReceivePoll_Unauthenticated(t *testing.T) {
 	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
 
 	// Call ReceivePoll with bad auth
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err.Error() != expectedError {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -518,7 +518,7 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 	// Reset auth error
 	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
 
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err.Error() != expectedError {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -543,7 +543,7 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	}
 
 	// Happy path of 1st receive poll for auth
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err != nil {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -562,7 +562,7 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	}
 
 	// Attempt second poll with new, expected parameters
-	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err = ReceivePoll(pollMsg, &instance, auth)
 	if err != nil {
 		t.Errorf("Expected happy path, received error: %v", err)
 	}

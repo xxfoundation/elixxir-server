@@ -57,7 +57,7 @@ func (i *mockPermission) RegisterNode([]byte, string, string, string, string, st
 	return nil
 }
 
-func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb.PermissionPollResponse, error) {
+func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
 	ourNdf := testUtil.NDF
 	fullNdf, _ := ourNdf.Marshal()
 	stripNdf, _ := ourNdf.StripNdf().Marshal()
@@ -114,7 +114,7 @@ func (i *mockPermissionMultipleRounds) CheckRegistration(msg *pb.RegisteredNodeC
 	return nil, nil
 }
 
-func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb.PermissionPollResponse, error) {
+func (i *mockPermissionMultipleRounds) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
 	ourNdf := testUtil.NDF
 	fullNdf, _ := ourNdf.Marshal()
 	stripNdf, _ := ourNdf.StripNdf().Marshal()

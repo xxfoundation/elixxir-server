@@ -3,14 +3,12 @@ module gitlab.com/elixxir/server
 go 1.13
 
 require (
-	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/golang/protobuf v1.4.3
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20201025035756-632e723a6687
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/nxadm/tail v1.4.5 // indirect
@@ -25,15 +23,13 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	github.com/ugorji/go v1.1.4 // indirect
-	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
-	gitlab.com/elixxir/comms v0.0.4-0.20201106195323-564dd271f47f
-	gitlab.com/elixxir/crypto v0.0.4
-	gitlab.com/elixxir/gpumathsgo v0.0.2
-	gitlab.com/elixxir/primitives v0.0.2
-	gitlab.com/xx_network/comms v0.0.3
+	gitlab.com/elixxir/comms v0.0.4-0.20201117173036-2da45a4eb327
+	gitlab.com/elixxir/crypto v0.0.5-0.20201118204646-9b23991834c6
+	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201105175137-191e95bf062b
+	gitlab.com/elixxir/primitives v0.0.3-0.20201116174806-97f190989704
+	gitlab.com/xx_network/comms v0.0.4-0.20201118225304-345dad24bb1e
 	gitlab.com/xx_network/crypto v0.0.4
-	gitlab.com/xx_network/primitives v0.0.2
+	gitlab.com/xx_network/primitives v0.0.3-0.20201116234927-44e42fc91e7c
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	google.golang.org/grpc v1.33.1
 	gopkg.in/ini.v1 v1.62.0 // indirect

@@ -53,7 +53,7 @@ func (i *mockPermission) RegisterNode([]byte, string, string, string, string, st
 	return i.err
 }
 
-func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth, string) (*pb.PermissionPollResponse, error) {
+func (i *mockPermission) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
 	ourNdf := testUtil.NDF
 	fullNdf, _ := ourNdf.Marshal()
 	stripNdf, _ := ourNdf.StripNdf().Marshal()
