@@ -112,7 +112,9 @@ func Poll(instance *internal.Instance) error {
 }
 
 // PollPermissioning polls the permissioning server for updates
-func PollPermissioning(permHost *connect.Host, instance *internal.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
+func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
+	reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
+
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -155,7 +157,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		GatewayVersion: gatewayVer,
 		GatewayAddress: gatewayAddr,
 
-		ServerPort:    uint32(port),
+		ServerAddress: instance.GetDefinition().Address,
 		ServerVersion: instance.GetServerVersion(),
 		ClientError:   clientReport,
 	}
@@ -295,7 +297,10 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				// Don't do anything
 
 			case states.COMPLETED:
-
+				err = instance.GetClientReport().Send(roundInfo.ID)
+				if err != nil {
+					return errors.Errorf("Unable to send client report: %+v", err)
+				}
 			case states.FAILED:
 				errStr := "Unknown error"
 				firstSource := &id.Permissioning
