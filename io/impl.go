@@ -123,8 +123,8 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return err
 	}
 
-	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth, gatewayAddress string) (*mixmessages.ServerPollResponse, error) {
-		response, err := ReceivePoll(poll, instance, gatewayAddress, auth)
+	impl.Functions.Poll = func(poll *mixmessages.ServerPoll, auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
+		response, err := ReceivePoll(poll, instance, auth)
 		if err != nil && err.Error() != ndf.NO_NDF {
 			jww.ERROR.Printf("Poll error: %v, %+v", auth, err)
 		}
