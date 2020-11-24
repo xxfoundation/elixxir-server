@@ -200,6 +200,7 @@ func InitPermuteGPUGraph(gc services.GraphGenerator) *services.Graph {
 	g := gcPermute.NewGraph("RealtimePermuteGPU", &PermuteStream{})
 
 	mul2 := PermuteMul2Chunk.DeepCopy()
+	mul2.InputSize = 32
 
 	g.First(mul2)
 	g.Last(mul2)

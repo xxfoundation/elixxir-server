@@ -209,6 +209,8 @@ func InitIdentifyGPUGraph(gc services.GraphGenerator) *services.Graph {
 
 	permuteMul2 := PermuteMul2Chunk.DeepCopy()
 	identifyMul2 := IdentifyMul2Chunk.DeepCopy()
+	permuteMul2.InputSize = 32
+	identifyMul2.InputSize = 32
 
 	g.First(permuteMul2)
 	g.Connect(permuteMul2, identifyMul2)

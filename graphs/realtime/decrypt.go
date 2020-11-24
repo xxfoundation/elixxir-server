@@ -179,51 +179,11 @@ var DecryptMul3 = services.Module{
 }
 
 //module in realtime Decrypt implementing mul3
-var DecryptMul2Chunk1 = services.Module{
+var DecryptMul3Chunk = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
 		dssi, ok := streamInput.(RealtimeDecryptSubStreamInterface)
-		mul2Chunk, ok2 := cryptop.(gpumaths.Mul2ChunkPrototype)
-
-		if !ok || !ok2 {
-			return services.InvalidTypeAssert
-		}
-
-		ds := dssi.GetRealtimeDecryptSubStream()
-
-		epa := ds.EcrPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
-		epb := ds.EcrPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
-		R := ds.R.GetSubBuffer(chunk.Begin(), chunk.End())
-		U := ds.U.GetSubBuffer(chunk.Begin(), chunk.End())
-		pool := ds.StreamPool
-		grp := ds.Grp
-
-		// mul2 keysPayloadA=R*keysPayloadA
-		err := mul2Chunk(pool, grp, epa, R, epa)
-		if err != nil {
-			return err
-		}
-
-		// mul2 keysPayloadB=U*keysPayloadB
-		err = mul2Chunk(pool, grp, epb, U, epb)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	},
-	Cryptop:    gpumaths.Mul2Chunk,
-	NumThreads: 2,
-	InputSize:  services.AutoInputSize,
-	Name:       "DecryptMul2Chunk1",
-}
-
-//module in realtime Decrypt implementing mul3
-var DecryptMul2Chunk2 = services.Module{
-	// Multiplies in own Encrypted Keys and Partial Cypher Texts
-	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := streamInput.(RealtimeDecryptSubStreamInterface)
-		mul2Chunk, ok2 := cryptop.(gpumaths.Mul2ChunkPrototype)
+		mul3Chunk, ok2 := cryptop.(gpumaths.Mul3ChunkPrototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
@@ -235,27 +195,29 @@ var DecryptMul2Chunk2 = services.Module{
 		kpb := ds.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
 		epa := ds.EcrPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
 		epb := ds.EcrPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		R := ds.R.GetSubBuffer(chunk.Begin(), chunk.End())
+		U := ds.U.GetSubBuffer(chunk.Begin(), chunk.End())
 		pool := ds.StreamPool
 		grp := ds.Grp
 
-		// mul2 encryptedPayloadA=encryptedPayloadA*keysPayloadA
-		err := mul2Chunk(pool, grp, epa, kpa, epa)
+		//Do mul3 ecrPayloadA=payloadAKey*R*ecrPayloadA%p
+		err := mul3Chunk(pool, grp, kpa, R, epa, epa)
 		if err != nil {
 			return err
 		}
 
-		// mul2 encryptedPayloadB=encryptedPayloadB*keysPayloadB
-		err = mul2Chunk(pool, grp, epb, kpb, epb)
+		//Do mul3 ecrPayloadB=payloadBKey*U*ecrPayloadB%p
+		err = mul3Chunk(pool, grp, kpb, U, epb, epb)
 		if err != nil {
 			return err
 		}
 
 		return nil
 	},
-	Cryptop:    gpumaths.Mul2Chunk,
+	Cryptop:    gpumaths.Mul3Chunk,
 	NumThreads: 2,
-	InputSize:  services.AutoInputSize,
-	Name:       "DecryptMul2Chunk2",
+	InputSize:  32,
+	Name:       "DecryptMul3Chunk",
 }
 
 // InitDecryptGraph called to initialize the graph. Conforms to graphs.Initialize function type
@@ -283,15 +245,11 @@ func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("RealtimeDecryptGPU", &KeygenDecryptStream{})
 
 	decryptKeygen := graphs.Keygen.DeepCopy()
-	// Because mul2 is the only cryptop implemented in gpumaths right now,
-	// we need to use it twice
-	decryptMul2Chunk1 := DecryptMul2Chunk1.DeepCopy()
-	decryptMul2Chunk2 := DecryptMul2Chunk2.DeepCopy()
+	decryptMul3Chunk := DecryptMul3Chunk.DeepCopy()
 
 	g.First(decryptKeygen)
-	g.Connect(decryptKeygen, decryptMul2Chunk1)
-	g.Connect(decryptMul2Chunk1, decryptMul2Chunk2)
-	g.Last(decryptMul2Chunk2)
+	g.Connect(decryptKeygen, decryptMul3Chunk)
+	g.Last(decryptMul3Chunk)
 
 	return g
 }
