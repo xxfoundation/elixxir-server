@@ -37,17 +37,24 @@ func NewClientFailureReport() *ClientReport {
 	//}
 }
 
-// Sends a client error through the channel if possible
-func (cr *ClientReport) Send(rndID id.Round, err *pb.ClientError, batchSize uint32) error {
+// Initializes a channel within the client error map
+func (cr *ClientReport) InitErrorChan(rndID id.Round, batchSize uint32) {
 	cr.RWMutex.Lock()
-	defer cr.RWMutex.Unlock()
-	// Check that map entry has been initialized
-	if cr.ErrorTracker[rndID] == nil {
-		cr.ErrorTracker[rndID] = make(chan *pb.ClientError, batchSize)
-	}
+	newChan := make(chan *pb.ClientError, batchSize)
+	cr.ErrorTracker[rndID] = newChan
+	cr.RWMutex.Unlock()
+
+}
+
+// Sends a client error through the channel if possible
+func (cr *ClientReport) Send(rndID id.Round, clientError *pb.ClientError) error {
+	cr.RWMutex.Lock()
+	tracker := cr.ErrorTracker[rndID]
+	cr.RWMutex.Unlock()
+
 	// Send to channel
 	select {
-	case cr.ErrorTracker[rndID] <- err:
+	case tracker <- clientError:
 		return nil
 	default:
 		// todo: rework error message
@@ -74,8 +81,8 @@ func (cr *ClientReport) Receive(rndID id.Round) ([]*pb.ClientError, error) {
 			clientErrors = append(clientErrors, ce)
 		default:
 			// Clear out channel
-			cr.ErrorTracker[rndID] = nil
-
+			close(cr.ErrorTracker[rndID])
+			delete(cr.ErrorTracker, rndID)
 			return clientErrors, nil
 		}
 	}

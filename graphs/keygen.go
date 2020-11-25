@@ -97,6 +97,8 @@ var Keygen = services.Module{
 			jww.FATAL.Panicf("Could not get CMIX hash: %s", err.Error())
 		}
 
+		kss.userErrors.InitErrorChan(kss.roundId, kss.batchSize)
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			user, err := kss.userReg.GetUser(kss.users[i], kss.Grp)
 
@@ -112,7 +114,7 @@ var Keygen = services.Module{
 						ClientId: kss.users[i].Bytes(),
 					}
 
-					err = kss.userErrors.Send(kss.roundId, clientError, kss.batchSize)
+					err = kss.userErrors.Send(kss.roundId, clientError)
 					if err != nil {
 						return err
 					}
@@ -155,7 +157,7 @@ var Keygen = services.Module{
 					ClientId: kss.users[i].Bytes(),
 				}
 
-				err = kss.userErrors.Send(kss.roundId, clientError, kss.batchSize)
+				err = kss.userErrors.Send(kss.roundId, clientError)
 				if err != nil {
 					return err
 				}
