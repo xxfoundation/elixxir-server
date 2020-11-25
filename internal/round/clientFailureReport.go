@@ -48,9 +48,9 @@ func (cr *ClientReport) InitErrorChan(rndID id.Round, batchSize uint32) {
 
 // Sends a client error through the channel if possible
 func (cr *ClientReport) Send(rndID id.Round, clientError *pb.ClientError) error {
-	cr.RWMutex.Lock()
+	cr.RWMutex.RLock()
 	tracker := cr.ErrorTracker[rndID]
-	cr.RWMutex.Unlock()
+	cr.RWMutex.RUnlock()
 
 	// Send to channel
 	select {
@@ -80,7 +80,7 @@ func (cr *ClientReport) Receive(rndID id.Round) ([]*pb.ClientError, error) {
 		case ce := <-cr.ErrorTracker[rndID]:
 			clientErrors = append(clientErrors, ce)
 		default:
-			// Clear out channel
+			// Clear out channel and map entry
 			close(cr.ErrorTracker[rndID])
 			delete(cr.ErrorTracker, rndID)
 			return clientErrors, nil
