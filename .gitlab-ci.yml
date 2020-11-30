@@ -42,16 +42,21 @@ build:
     - gpu
   script:
     - git clean -ffdx
-    # Because gpumaths is no longer one repository, let's get the native library with the release branch now
-    # Branch switching for the native library should be added shortly
-    - GPUMATHS_VERSION=release
+    # Clone a specific gpumaths branch if the pipeline has variable set
+    # Otherwise clone release gpumathsnative
+    - GPUMATHS_CLONE_VERSION=${GPUMATHS_VERSION-release}
+    # If server pipeline branch is master, get master branch of gpumathsnative
+    - if [ "$CI_COMMIT_BRANCH" == "master" ]
+    -   GPUMATHS_CLONE_VERSION=master
+    - fi
     - echo $GPUMATHS_VERSION
+    - echo $GPUMATHS_CLONE_VERSION
     - rm -fr gpumathsnative
-    - git clone -b $GPUMATHS_VERSION git@gitlab.com:elixxir/gpumathsnative.git
+    - git clone -b $GPUMATHS_CLONE_VERSION git@gitlab.com:elixxir/gpumathsnative.git
     - pushd gpumathsnative
     - git clean -ffdx
     - pushd cgbnBindings/powm
-    - make turing
+    - make fatbin
     - make install
     - ls
     - ls /opt/xxnetwork/lib
