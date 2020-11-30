@@ -46,7 +46,7 @@ build:
     # Otherwise clone release gpumathsnative
     - GPUMATHS_CLONE_VERSION=${GPUMATHS_VERSION-release}
     # If server pipeline branch is master, get master branch of gpumathsnative
-    - if [ "$CI_COMMIT_BRANCH" == "master" ]
+    - if [ "$CI_COMMIT_BRANCH" == "master" ]; then
     -   GPUMATHS_CLONE_VERSION=master
     - fi
     - echo $GPUMATHS_VERSION
