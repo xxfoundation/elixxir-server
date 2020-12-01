@@ -14,7 +14,7 @@ import (
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/primitives/id"
 	"time"
 )

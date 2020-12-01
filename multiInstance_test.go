@@ -42,7 +42,7 @@ import (
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
-	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/tls"
 	"gitlab.com/xx_network/primitives/id"
