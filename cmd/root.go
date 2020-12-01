@@ -178,7 +178,7 @@ func init() {
 	rootCmd.Flags().BoolP("devMode", "", false,
 		"Run in development/testing mode. Do not use on beta or main "+
 			"nets")
-	 rootCmd.Flags().MarkHidden("devMode")
+	rootCmd.Flags().MarkHidden("devMode")
 	err = viper.BindPFlag("devMode", rootCmd.Flags().Lookup("devMode"))
 	handleBindingError(err, "devMode")
 
