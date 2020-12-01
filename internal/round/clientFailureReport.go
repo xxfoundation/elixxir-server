@@ -57,7 +57,6 @@ func (cr *ClientReport) Send(rndID id.Round, clientError *pb.ClientError) error 
 	case tracker <- clientError:
 		return nil
 	default:
-		// todo: rework error message
 		return errors.Errorf("Error tracker full at len %d"+
 			"for round %v. Should not happen!", len(cr.ErrorTracker[rndID]), rndID)
 	}
@@ -66,10 +65,13 @@ func (cr *ClientReport) Send(rndID id.Round, clientError *pb.ClientError) error 
 
 // Receive takes the channel (if initialized) and exhausts the channel into a list
 func (cr *ClientReport) Receive(rndID id.Round) ([]*pb.ClientError, error) {
+	// Read the tracker out of the map and clear it from the map
 	cr.RWMutex.Lock()
-	defer cr.RWMutex.Unlock()
+	tracker := cr.ErrorTracker[rndID]
+	delete(cr.ErrorTracker, rndID)
+	cr.RWMutex.Unlock()
 
-	if cr.ErrorTracker[rndID] == nil {
+	if tracker == nil {
 		return nil, errors.Errorf("Error channel for round %d non-existent", rndID)
 	}
 
@@ -77,12 +79,10 @@ func (cr *ClientReport) Receive(rndID id.Round) ([]*pb.ClientError, error) {
 	clientErrors := make([]*pb.ClientError, 0)
 	for {
 		select {
-		case ce := <-cr.ErrorTracker[rndID]:
+		case ce := <-tracker:
 			clientErrors = append(clientErrors, ce)
 		default:
 			// Clear out channel and map entry
-			close(cr.ErrorTracker[rndID])
-			delete(cr.ErrorTracker, rndID)
 			return clientErrors, nil
 		}
 	}
