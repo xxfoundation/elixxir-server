@@ -258,8 +258,8 @@ github.com/zeebo/blake3 v0.1.0/go.mod h1:YOZo8A49yNqM0X/Y+JmDUZshJWLt1laHsNSn5ny
 github.com/zeebo/pcg v0.0.0-20181207190024-3cdc6b625a05/go.mod h1:Gr+78ptB0MwXxm//LBaEvBiaXY7hXJ6KGe2V32X2F6E=
 github.com/zeebo/pcg v1.0.0 h1:dt+dx+HvX8g7Un32rY9XWoYnd0NmKmrIzpHF7qiTDj0=
 github.com/zeebo/pcg v1.0.0/go.mod h1:09F0S9iiKrwn9rlI5yjLkmrug154/YRW6KnnXVDM/l4=
-gitlab.com/elixxir/comms v0.0.4-0.20201130220746-47f71717b918 h1:DqER/GZvxa//ivpGZiQyUuJb7YVN1HcQgcNwEOoS96c=
-gitlab.com/elixxir/comms v0.0.4-0.20201130220746-47f71717b918/go.mod h1:UhXItTZXnA284//dhxT/HYn0JQl1gLtkqg+ixPssSIA=
+gitlab.com/elixxir/comms v0.0.4-0.20201201190929-9fb7d4523dae h1:vwHEZ8CRKq9U5LfElDunBen0+IzvTa8d70yIaumBKUo=
+gitlab.com/elixxir/comms v0.0.4-0.20201201190929-9fb7d4523dae/go.mod h1:UhXItTZXnA284//dhxT/HYn0JQl1gLtkqg+ixPssSIA=
 gitlab.com/elixxir/crypto v0.0.0-20200804182833-984246dea2c4/go.mod h1:ucm9SFKJo+K0N2GwRRpaNr+tKXMIOVWzmyUD0SbOu2c=
 gitlab.com/elixxir/crypto v0.0.3/go.mod h1:ZNgBOblhYToR4m8tj4cMvJ9UsJAUKq+p0gCp07WQmhA=
 gitlab.com/elixxir/crypto v0.0.4 h1:8eWjvUepCU2PiqZM2NFYo6rFg1w8KWO1hMDwMNFEqoI=
