@@ -5,7 +5,7 @@
 
 ## Running the Server
 
-To run the server in cpu development mode:
+To run the server in CPU development mode:
 
 ```
 go run main.go --config [configuration-filename]
@@ -90,7 +90,7 @@ following directories:
 2. `/opt/xxnetwork/`
 3. `/etc/xxnetwork/`
 
-Server searches for the YAML file in that order and uses the first occurance
+Server searches for the YAML file in that order and uses the first occurrence
 found.
 
 Note: YAML prohibits the use of tabs because whitespace has meaning.
@@ -129,7 +129,7 @@ node:
   # Port that the Node will communicate on.
   port: 42069
 
-# Information to conenct to the Postgres database storing keys.
+# Information to connect to the Postgres database storing keys.
 database:
   name: "nodedb"
   username: "node"
@@ -159,7 +159,7 @@ permissioning:
 
 metrics:
   # Location of stored metrics data.
-  log:  "/opt/xxnetowkr/server-logs/metrics.log"
+  log:  "/opt/xxnetwork/server-logs/metrics.log"
 ```
 
 ## Project Structure
@@ -193,7 +193,7 @@ dispatcher that allocates cryptop work to different goroutines.
 
 `node` contains node business logic.
 
-`permissioning` contins logic for dealing with the permissioning server
+`permissioning` contains logic for dealing with the permissioning server
 (the current source of consensus).
 
 ## Compiling the Binary
