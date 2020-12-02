@@ -60,7 +60,7 @@ import (
 var errWg = sync.WaitGroup{}
 
 func Test_MultiInstance_N3_B8(t *testing.T) {
-	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, false, false, t)
+	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, false, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, CPU multi-"+
 		"instance test: %s", elapsed)
@@ -73,20 +73,20 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 	}
 
 	viper.Set("useGpu", true)
-	elapsed := MultiInstanceTest(3, batchSize, makeMultiInstanceGroup4k(), true, true, false, t)
+	elapsed := MultiInstanceTest(3, batchSize, makeMultiInstanceGroup4k(), true, false, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size %d, GPU multi-"+
 		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)
 }
 
 func Test_MultiInstance_PhaseErr(t *testing.T) {
-	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, false, true, t)
+	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, true, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
 		"instance test: %s", elapsed)
 }
 
-func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, useGPURealtime, errorPhase bool, t *testing.T) time.Duration {
+func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, errorPhase bool, t *testing.T) time.Duration {
 	if errorPhase {
 		defer func() {
 			if r := recover(); r != nil {
@@ -104,7 +104,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, useGP
 
 	// Get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, grp, useGPU, useGPURealtime, t)
+	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, grp, useGPU, t)
 
 	// Make user for sending messages
 	userID := id.NewIdFromUInt(42, id.User, t)
@@ -640,7 +640,7 @@ func generateCert() ([]byte, []byte) {
 	return crtOut, privOut
 }
 
-func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU bool, useGPURealtime bool, t *testing.T) []*internal.Definition {
+func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU bool, t *testing.T) []*internal.Definition {
 
 	// Generate IDs and addresses
 	var nidLst []*id.ID
@@ -677,9 +677,8 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 		def := internal.Definition{
 			ID: nidLst[i],
 			Flags: internal.Flags{
-				KeepBuffers:    true,
-				UseGPU:         useGPU,
-				UseGPURealtime: useGPURealtime,
+				KeepBuffers: true,
+				UseGPU:      useGPU,
 			},
 			TlsCert: cert,
 			Gateway: internal.GW{

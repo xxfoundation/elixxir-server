@@ -34,7 +34,6 @@ var logPath = "cmix-server.log"
 var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
-var useGPURealtime bool
 var BatchSizeGPUTest int
 var disableIpOverride bool
 
@@ -168,11 +167,6 @@ func init() {
 	rootCmd.Flags().BoolVarP(&useGPU, "useGPU", "", false, "Toggle use of GPU.")
 	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
 	handleBindingError(err, "useGPU")
-
-	rootCmd.Flags().BoolVarP(&useGPURealtime, "useGPURealtime", "", false,
-		"Toggle use of GPU in realtime phases.")
-	err = viper.BindPFlag("useGPURealtime", rootCmd.Flags().Lookup("useGPURealtime"))
-	handleBindingError(err, "useGPURealtime")
 
 	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
 	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+

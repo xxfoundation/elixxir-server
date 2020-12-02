@@ -38,7 +38,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Used to determine usage of GPU maths in certain phases
 	useGPU := instance.GetDefinition().UseGPU
-	useGPURealtime := instance.GetDefinition().UseGPURealtime
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
@@ -262,7 +261,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		TransmissionHandler: transmissionHandler,
 		Timeout:             newRoundTimeout,
 	}
-	if pool != nil && useGPURealtime {
+	if pool != nil && useGPU {
 		realtimeDecryptDefinition.Graph = realtime.InitDecryptGPUGraph(gc)
 	} else {
 		realtimeDecryptDefinition.Graph = realtime.InitDecryptGraph(gc)
@@ -297,7 +296,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}
-	if pool != nil && useGPURealtime {
+	if pool != nil && useGPU {
 		realtimePermuteDefinition.Graph = realtime.InitPermuteGPUGraph(gc)
 	} else {
 		realtimePermuteDefinition.Graph = realtime.InitPermuteGraph(gc)
@@ -324,7 +323,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 				return io.TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
 			}
 		//Last node also executes the combined permute-identify graph
-		if pool != nil && useGPURealtime {
+		if pool != nil && useGPU {
 			realtimePermuteDefinition.Graph = realtime.InitIdentifyGPUGraph(gc)
 		} else {
 			realtimePermuteDefinition.Graph = realtime.InitIdentifyGraph(gc)
