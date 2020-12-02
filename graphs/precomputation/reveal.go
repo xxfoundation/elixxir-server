@@ -146,13 +146,13 @@ var RevealRootCoprimeChunk = services.Module{
 		rs := rssi.getSubStream()
 		gpuStreams := rs.StreamPool
 		cpa := rs.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
-		err := rc(gpuStreams, rs.Grp, rs.Z, cpa)
+		err := rc(gpuStreams, rs.Grp, rs.Z, cpa, cpa)
 		if err != nil {
 			return err
 		}
 
 		cpb := rs.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
-		err = rc(gpuStreams, rs.Grp, rs.Z, cpb)
+		err = rc(gpuStreams, rs.Grp, rs.Z, cpb, cpb)
 		if err != nil {
 			return err
 		}
