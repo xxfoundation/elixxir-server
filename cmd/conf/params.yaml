@@ -41,7 +41,6 @@ verbose: true
 skipReg: true
 keepBuffers: true
 useGpu: true
-useGpuRealtime: true
 metrics:
   log:  "~/.elixxir/metrics.log"
 ...
