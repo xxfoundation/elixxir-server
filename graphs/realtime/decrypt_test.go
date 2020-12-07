@@ -427,7 +427,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+	if u.BaseKey.BitLen() < 248 || u.BaseKey.BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
 			u.BaseKey.BitLen())

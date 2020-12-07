@@ -27,7 +27,10 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(0)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
 		100, 2*time.Second, nil, false)
 
 	if len(phases) != expectedNumPhases {
@@ -54,7 +57,10 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(1)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
 		100, 2*time.Second, nil, false)
 
 	if len(phases) != expectedNumPhases {
@@ -80,7 +86,10 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(2)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
 		100, 2*time.Second, nil, false)
 
 	if len(phases) != expectedNumPhases {
@@ -106,7 +115,10 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(0)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
 		100, 2*time.Second, nil, true)
 
 	if len(phases) != expectedNumPhases {
@@ -133,7 +145,10 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(1)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
 		100, 2*time.Second, nil, true)
 
 	if len(phases) != expectedNumPhases {
@@ -159,7 +174,10 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(2)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
 		100, 2*time.Second, nil, true)
 
 	if len(phases) != expectedNumPhases {
