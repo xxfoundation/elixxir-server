@@ -12,10 +12,10 @@ package realtime
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/shuffle"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
+	"gitlab.com/elixxir/server/cryptops"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/crypto/large"
