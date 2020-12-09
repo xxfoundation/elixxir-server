@@ -31,7 +31,7 @@ require (
 	gitlab.com/xx_network/crypto v0.0.5-0.20201130191038-b4f77b62e2c2
 	gitlab.com/xx_network/primitives v0.0.3-0.20201116234927-44e42fc91e7c
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
-	google.golang.org/grpc v1.33.1
+	google.golang.org/grpc v1.33.2
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect

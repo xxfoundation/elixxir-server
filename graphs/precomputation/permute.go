@@ -249,7 +249,7 @@ var PermuteElgamalChunk = services.Module{
 // InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using permute graph running on CPU instead of equivalent GPU graph")
+		jww.WARN.Printf("Using precomp permute graph running on CPU instead of equivalent GPU graph")
 	}
 	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
 	g := gcPermute.NewGraph("PrecompPermute", &PermuteStream{})
@@ -265,7 +265,7 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 // InitPermuteGPUGraph creates a graph that runs cryptops for Permute on the GPU
 func InitPermuteGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using permute graph running on GPU instead of equivalent CPU graph")
+		jww.WARN.Printf("Using precomp permute graph running on GPU instead of equivalent CPU graph")
 	}
 	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
 	g := gcPermute.NewGraph("PrecompPermuteGPU", &PermuteStream{})

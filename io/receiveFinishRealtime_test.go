@@ -22,6 +22,12 @@ import (
 func TestReceiveFinishRealtime(t *testing.T) {
 	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
 
+	// Add nodes as hosts to topology
+	for _, nid := range BuildMockNodeIDs(5, t) {
+		h, _ := connect.NewHost(nid, "", nil, connect.GetDefaultHostParams())
+		topology.AddHost(h)
+	}
+
 	// Set up a round first node
 	roundID := id.Round(45)
 
@@ -66,7 +72,6 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	if err != nil {
 		t.Errorf("ReceiveFinishRealtime: errored: %+v", err)
 	}
-
 }
 
 // Tests that the ReceiveFinishRealtime function will fail when passed with an
@@ -187,6 +192,12 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	resourceMonitor.Set(measure.ResourceMetric{})
 
 	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
+
+	// Add nodes as hosts to topology
+	for _, nid := range BuildMockNodeIDs(5, t) {
+		h, _ := connect.NewHost(nid, "", nil, connect.GetDefaultHostParams())
+		topology.AddHost(h)
+	}
 
 	// Set up a round first node
 	roundID := id.Round(45)
