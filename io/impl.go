@@ -12,6 +12,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
@@ -155,6 +156,14 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 			return "", err
 		}
 		return address, nil
+	}
+
+	impl.Functions.StartSharePhase = func(ri *mixmessages.RoundInfo, auth *connect.Auth) error {
+		return StartSharePhase(nil, instance, auth)
+	}
+
+	impl.Functions.SharePhaseRound = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
+		return SharePhaseRound(sharedPiece, auth, instance)
 	}
 
 	return impl
