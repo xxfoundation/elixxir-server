@@ -112,7 +112,8 @@ func Poll(instance *internal.Instance) error {
 }
 
 // PollPermissioning  the permissioning server for updates
-func PollPermissioning(permHost *connect.Host, instance *internal.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
+func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
+	reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -141,6 +142,13 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		return nil, err
 	}
 
+	var clientReport []*pb.ClientError
+	latestRound := instance.GetRoundManager().GetLatestRound()
+	if reportedActivity == current.COMPLETED {
+		clientReport, _ = instance.GetClientReport().Receive(latestRound)
+
+	}
+
 	gatewayAddr, gatewayVer := instance.GetGatewayData()
 
 	// Construct a message for permissioning with above information
@@ -155,6 +163,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 
 		ServerAddress: instance.GetIP(),
 		ServerVersion: instance.GetServerVersion(),
+		ClientErrors:  clientReport,
 	}
 
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,

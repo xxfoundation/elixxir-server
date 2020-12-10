@@ -74,7 +74,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	rnd, err := round.New(grp,
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -134,7 +134,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			m, "1.1.0")
 		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-			3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+			3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
@@ -158,7 +158,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		rnd, err := round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
-			3, instances[i].GetRngStreamGen(), nil, "0.0.0.0", nil)
+			3, instances[i].GetRngStreamGen(), nil,
+			"0.0.0.0", nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
