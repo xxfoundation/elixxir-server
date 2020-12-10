@@ -85,7 +85,7 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 		streamPool = source[3].(*gpumaths.StreamPool)
 	}
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, streamPool,grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, streamPool, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
 		make([][]byte, batchSize), make([][][]byte, batchSize),

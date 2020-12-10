@@ -28,14 +28,15 @@ require (
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77 // indirect
 	gitlab.com/elixxir/comms v0.0.4-0.20201203180513-60494ae73d91
-	gitlab.com/elixxir/crypto v0.0.6
-	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201105175137-191e95bf062b
+	gitlab.com/elixxir/crypto v0.0.7-0.20201201231824-67328e9b6426
+	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201204193956-57cb3db4b5fc
 	gitlab.com/elixxir/primitives v0.0.3-0.20201116174806-97f190989704
 	gitlab.com/xx_network/comms v0.0.4-0.20201202184223-c22375bd1e6d
 	gitlab.com/xx_network/crypto v0.0.5-0.20201209162436-bc2308a94174
 	gitlab.com/xx_network/primitives v0.0.3-0.20201116234927-44e42fc91e7c
 	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
+	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1 // indirect
 	google.golang.org/grpc v1.33.1
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0

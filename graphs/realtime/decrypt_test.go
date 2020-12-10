@@ -321,7 +321,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 	reporter := round.NewClientFailureReport()
-	stream.Link(grp, batchSize, roundBuffer, registry, streamPool, rng, reporter)
+	stream.Link(grp, batchSize, roundBuffer, registry, nil, streamPool, rng, reporter)
 
 	msg := &mixmessages.Slot{
 		SenderID: id.NewIdFromUInt(0, id.User, t).Bytes(),
