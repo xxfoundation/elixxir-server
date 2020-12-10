@@ -8,9 +8,12 @@
 package realtime
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
@@ -26,7 +29,8 @@ const (
 
 // Stream holding data containing keys and inputs used by decrypt
 type KeygenDecryptStream struct {
-	Grp *cyclic.Group
+	Grp        *cyclic.Group
+	StreamPool *gpumaths.StreamPool
 
 	// Link to round object
 	R *cyclic.IntBuffer
@@ -75,7 +79,13 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 		users[i] = &id.ID{}
 	}
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+	var streamPool *gpumaths.StreamPool
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[3].(*gpumaths.StreamPool)
+	}
+
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, streamPool,grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
 		make([][]byte, batchSize), make([][][]byte, batchSize),
@@ -84,11 +94,12 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 
 //Connects the internal buffers in the stream to the passed
 func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32,
-	round *round.Buffer, userRegistry globals.UserRegistry, ecrPayloadA, ecrPayloadB,
+	round *round.Buffer, userRegistry globals.UserRegistry, pool *gpumaths.StreamPool, ecrPayloadA, ecrPayloadB,
 	keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte,
 	clientReporter *round.ClientReport, roundId id.Round) {
 
 	ds.Grp = grp
+	ds.StreamPool = pool
 
 	ds.R = round.R.GetSubBuffer(0, batchSize)
 	ds.U = round.U.GetSubBuffer(0, batchSize)
@@ -188,8 +199,53 @@ var DecryptMul3 = services.Module{
 	Name:       "DecryptMul3",
 }
 
+//module in realtime Decrypt implementing mul3
+var DecryptMul3Chunk = services.Module{
+	// Multiplies in own Encrypted Keys and Partial Cypher Texts
+	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
+		dssi, ok := streamInput.(RealtimeDecryptSubStreamInterface)
+		mul3Chunk, ok2 := cryptop.(gpumaths.Mul3ChunkPrototype)
+
+		if !ok || !ok2 {
+			return services.InvalidTypeAssert
+		}
+
+		ds := dssi.GetRealtimeDecryptSubStream()
+
+		kpa := ds.KeysPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		kpb := ds.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		epa := ds.EcrPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
+		epb := ds.EcrPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
+		R := ds.R.GetSubBuffer(chunk.Begin(), chunk.End())
+		U := ds.U.GetSubBuffer(chunk.Begin(), chunk.End())
+		pool := ds.StreamPool
+		grp := ds.Grp
+
+		//Do mul3 ecrPayloadA=payloadAKey*R*ecrPayloadA%p
+		err := mul3Chunk(pool, grp, kpa, R, epa, epa)
+		if err != nil {
+			return err
+		}
+
+		//Do mul3 ecrPayloadB=payloadBKey*U*ecrPayloadB%p
+		err = mul3Chunk(pool, grp, kpb, U, epb, epb)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+	Cryptop:    gpumaths.Mul3Chunk,
+	NumThreads: 2,
+	InputSize:  32,
+	Name:       "DecryptMul3Chunk",
+}
+
 // InitDecryptGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
+	if viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using realtime decrypt graph running on CPU instead of equivalent GPU graph")
+	}
 	g := gc.NewGraph("RealtimeDecrypt", &KeygenDecryptStream{})
 
 	decryptKeygen := graphs.Keygen.DeepCopy()
@@ -197,8 +253,24 @@ func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 
 	g.First(decryptKeygen)
 	g.Connect(decryptKeygen, decryptMul3)
-	//g.First(decryptMul3)
 	g.Last(decryptMul3)
+
+	return g
+}
+
+// InitDecryptGPUGraph called to initialize the graph. Conforms to graphs.Initialize function type
+func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
+	if !viper.GetBool("useGpu") {
+		jww.WARN.Printf("Using realtime decrypt graph running on GPU instead of equivalent CPU graph")
+	}
+	g := gc.NewGraph("RealtimeDecryptGPU", &KeygenDecryptStream{})
+
+	decryptKeygen := graphs.Keygen.DeepCopy()
+	decryptMul3Chunk := DecryptMul3Chunk.DeepCopy()
+
+	g.First(decryptKeygen)
+	g.Connect(decryptKeygen, decryptMul3Chunk)
+	g.Last(decryptMul3Chunk)
 
 	return g
 }

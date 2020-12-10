@@ -40,9 +40,9 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
-	"gitlab.com/xx_network/crypto/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/tls"
 	"gitlab.com/xx_network/primitives/id"
@@ -73,7 +73,7 @@ func Test_MultiInstance_N3_B32_GPU(t *testing.T) {
 	}
 
 	viper.Set("useGpu", true)
-	elapsed := MultiInstanceTest(3, batchSize, makeMultiInstanceGroup4k(), true, false, t)
+	elapsed := MultiInstanceTest(3, batchSize, makeMultiInstanceGroup(), true, false, t)
 
 	t.Logf("Computational elapsed time for 3 Node, batch size %d, GPU multi-"+
 		"instance test: %s", cmd.BatchSizeGPUTest, elapsed)

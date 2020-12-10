@@ -146,13 +146,13 @@ var RevealRootCoprimeChunk = services.Module{
 		rs := rssi.getSubStream()
 		gpuStreams := rs.StreamPool
 		cpa := rs.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
-		err := rc(gpuStreams, rs.Grp, rs.Z, cpa)
+		err := rc(gpuStreams, rs.Grp, rs.Z, cpa, cpa)
 		if err != nil {
 			return err
 		}
 
 		cpb := rs.CypherPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
-		err = rc(gpuStreams, rs.Grp, rs.Z, cpb)
+		err = rc(gpuStreams, rs.Grp, rs.Z, cpb, cpb)
 		if err != nil {
 			return err
 		}
@@ -167,7 +167,7 @@ var RevealRootCoprimeChunk = services.Module{
 // InitRevealGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using reveal graph running on CPU instead of equivalent GPU graph")
+		jww.WARN.Printf("Using precomp reveal graph running on CPU instead of equivalent GPU graph")
 	}
 	graph := gc.NewGraph("PrecompReveal", &RevealStream{})
 
@@ -181,7 +181,7 @@ func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 
 func InitRevealGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using reveal graph running on GPU instead of equivalent CPU graph")
+		jww.WARN.Printf("Using precomp reveal graph running on GPU instead of equivalent CPU graph")
 	}
 	g := gc.NewGraph("PrecompRevealGPU", &RevealStream{})
 

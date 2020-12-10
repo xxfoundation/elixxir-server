@@ -800,10 +800,10 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	testReport := round.NewClientFailureReport()
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize,
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize,
 		grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0)
 
-	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrPayloadA, ecrPayloadB,
+	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)
 }
 

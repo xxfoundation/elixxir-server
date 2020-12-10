@@ -146,5 +146,16 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		}
 		return nil
 	}
+
+	impl.Functions.GetPermissioningAddress = func() (string, error) {
+		address, err := ReceivePermissioningAddressPing(instance)
+		if err != nil {
+			jww.ERROR.Printf("Failed to receive ping from gateway requesting "+
+				"permissioning address: %+v", err)
+			return "", err
+		}
+		return address, nil
+	}
+
 	return impl
 }
