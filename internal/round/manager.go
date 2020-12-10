@@ -18,18 +18,26 @@ import (
 
 // Manager contains a pointer to the roundMap, which maps round id's to rounds
 type Manager struct {
-	roundMap *sync.Map
+	roundMap    *sync.Map
+	latestRound id.Round
 }
 
 // NewManager creates a new manager object with an empty round map
 func NewManager() *Manager {
 	rmap := sync.Map{}
-	return &Manager{&rmap}
+	return &Manager{
+		roundMap:    &rmap,
+		latestRound: 0,
+	}
 }
 
 // AddRound adds the round to the round manager's tracking
 func (rm *Manager) AddRound(round *Round) {
 	rm.roundMap.Store(round.id, round)
+}
+
+func (rm *Manager) GetLatestRound() id.Round {
+	return rm.latestRound
 }
 
 // GetRound returns the round if it exists, or an error if it doesn't

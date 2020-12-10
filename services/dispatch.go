@@ -15,7 +15,13 @@ import (
 	"time"
 )
 
-var InvalidTypeAssert = errors.New("type assert failed")
+var (
+	InvalidTypeAssert = errors.New("type assert failed")
+	InvalidMAC        = "User could not be validated"
+	UserNotFound      = "Could not find user"
+	ErrorDelimiter    = "; "
+	IdDelimiter       = "[]"
+)
 
 // AdaptMeasureName is the name used to measure how long the adapt function
 // takes in dispatch.

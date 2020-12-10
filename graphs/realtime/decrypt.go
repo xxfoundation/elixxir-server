@@ -21,6 +21,12 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 )
 
+const (
+	RoundBuff   = 0
+	Registry    = 1
+	ErrReporter = 4
+)
+
 // Stream holding data containing keys and inputs used by decrypt
 type KeygenDecryptStream struct {
 	Grp        *cyclic.Group
@@ -50,9 +56,24 @@ func (s *KeygenDecryptStream) GetName() string {
 
 //Link creates the stream's internal buffers and
 func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
-	roundBuf := source[0].(*round.Buffer)
-	userRegistry := source[1].(globals.UserRegistry)
+	roundBuf := source[RoundBuff].(*round.Buffer)
+	userRegistry := source[Registry].(globals.UserRegistry)
 	users := make([]*id.ID, batchSize)
+	var clientReporter *round.ClientReport
+	var roundID id.Round
+	// Find the client error reporter and the roundID (if it exists)
+	var ok bool
+	for _, face := range source {
+		_, ok = face.(*round.ClientReport)
+		if ok {
+			clientReporter = face.(*round.ClientReport)
+		}
+
+		_, ok = face.(id.Round)
+		if ok {
+			roundID = face.(id.Round)
+		}
+	}
 
 	for i := uint32(0); i < batchSize; i++ {
 		users[i] = &id.ID{}
@@ -64,19 +85,18 @@ func (ds *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source 
 		streamPool = source[3].(*gpumaths.StreamPool)
 	}
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize,
-		roundBuf, userRegistry, streamPool,
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		users, make([][]byte, batchSize),
-		make([][][]byte, batchSize))
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, streamPool, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
+		make([][]byte, batchSize), make([][][]byte, batchSize),
+		clientReporter, roundID)
 }
 
 //Connects the internal buffers in the stream to the passed
-func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32, round *round.Buffer,
-	userRegistry globals.UserRegistry, pool *gpumaths.StreamPool, ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte) {
+func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32,
+	round *round.Buffer, userRegistry globals.UserRegistry, pool *gpumaths.StreamPool, ecrPayloadA, ecrPayloadB,
+	keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte,
+	clientReporter *round.ClientReport, roundId id.Round) {
 
 	ds.Grp = grp
 	ds.StreamPool = pool
@@ -92,7 +112,8 @@ func (ds *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batc
 	ds.Salts = salts
 	ds.KMACS = kmacs
 
-	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS, ds.Users, ds.KeysPayloadA, ds.KeysPayloadB)
+	ds.KeygenSubStream.LinkStream(ds.Grp, userRegistry, ds.Salts, ds.KMACS, ds.Users, ds.KeysPayloadA,
+		ds.KeysPayloadB, clientReporter, roundId, batchSize)
 }
 
 // PermuteStream conforms to this interface.
