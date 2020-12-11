@@ -137,7 +137,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	if def.UseGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
-		memSize := 268435456
+		memSize := 200000
 		jww.INFO.Printf("Initializing GPU maths, CUDA backend, with memory size %v", memSize)
 		var err error
 		// It could be better to configure the amount of memory used in a configuration file instead
