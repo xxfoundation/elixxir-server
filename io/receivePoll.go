@@ -88,7 +88,11 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 		}
 
 		if cr != nil {
-			res.Slots = cr.Round
+			batch := &mixmessages.CompletedBatch{
+				RoundID: uint64(cr.RoundID),
+				Slots:   cr.Round,
+			}
+			res.Batch = batch
 		}
 
 		// denote that gateway has received info,

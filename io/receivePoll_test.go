@@ -180,8 +180,8 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		t.Fail()
 	}
 
-	if res.Slots != nil {
-		t.Errorf("ServerPollResponse.Slots is not nil")
+	if res.Batch != nil {
+		t.Errorf("ServerPollResponse.Batch is not nil")
 		t.Fail()
 	}
 	if res.BatchRequest != nil {
@@ -460,13 +460,13 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		t.Fail()
 	}
 
-	if len(res.Slots) != 10 {
+	if len(res.Batch.Slots) != 10 {
 		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 
 	for k := uint32(0); k < 10; k++ {
-		if res.Slots[k].Index != k {
+		if res.Batch.Slots[k].Index != k {
 			t.Logf("Slots did not match expected index")
 		}
 	}
