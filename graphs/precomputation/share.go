@@ -53,6 +53,7 @@ func (ss *ShareStream) GetSubStream() *ShareStream {
 }
 
 // Input initializes stream inputs from slot
+// todo: modify this
 func (ss *ShareStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if !ss.Grp.BytesInside(slot.PartialRoundPublicCypherKey) {

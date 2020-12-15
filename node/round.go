@@ -79,6 +79,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	gcShare := services.NewGraphGenerator(1,
 		1, 1, 0.0)
 
+	// todo: modify this logic, it's handler and the broadcaster (?)
 	precompShareDefinition := phase.Definition{
 		Graph:               precomputation.InitShareGraph(gcShare),
 		Type:                phase.PrecompShare,
@@ -98,6 +99,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// The last node broadcasts the result to all other nodes so it uses a
 	// different transmission handler
+	// todo: modify this logic, it's handler and the broadcaster (?)
 	if topology.IsLastNode(nodeID) {
 		precompShareDefinition.TransmissionHandler = io.TransmitRoundPublicKey
 	}
@@ -115,7 +117,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// TRANSITION: the transition out of share phase is done on the first
 	// node in the first node check at the bottom of
-	// ReceivePostRoundPublicKey in node/receiver.go
+	// ReceivePostRoundPublicKey in io/receiver.go
 
 	/*--PRECOMP DECRYPT-------------------------------------------------------*/
 
@@ -145,7 +147,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		PhaseToExecute: phase.PrecompDecrypt,
 	}
 
-	// TRANSITION: the transition out of decryot phase is done on the first
+	// TRANSITION: the transition out of decrypt phase is done on the first
 	// node after every node finishes precomp decrypt and it receives the
 	// transmission from the last node.  It transitions into the permute phase
 	if topology.IsFirstNode(nodeID) {
