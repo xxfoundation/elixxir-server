@@ -12,9 +12,9 @@ package realtime
 import (
 	"fmt"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/crypto/cryptops"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
+	"gitlab.com/elixxir/server/cryptops"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"

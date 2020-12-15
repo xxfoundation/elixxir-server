@@ -4,13 +4,14 @@
 // Use of this source code is governed by a license that can be found in the LICENSE file //
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-package io
+// Package cryptops wraps various cryptographic operations around a generic interface.
+// Operations include but are not limited to: key generation, ElGamal, multiplication, etc.
+package cryptops
 
-import (
-	"gitlab.com/elixxir/server/internal"
-)
-
-// ReceivePermissioningAddressPing returns the permissioning server's address.
-func ReceivePermissioningAddressPing(instance *internal.Instance) (string, error) {
-	return instance.GetDefinition().Permissioning.Address, nil
+type Cryptop interface {
+	//Returns the name.  Used for debugging.
+	GetName() string
+	//Gets the number of parallel computations the cryptop does at once.
+	//A value of zero denotes it is arbitrary
+	GetInputSize() uint32
 }
