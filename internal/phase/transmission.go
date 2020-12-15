@@ -23,5 +23,4 @@ type Measure func(tag string)
 //  A more general refactor is required to remove this while keeping testability
 type Transmit func(roundID id.Round, instance GenericInstance, getChunk GetChunk, getMessage GetMessage) error
 
-type GenericInstance interface {
-}
+type GenericInstance interface{}

@@ -97,6 +97,9 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
+
+	// Phase share count
+	numShares *uint32
 }
 
 // Create a server instance. To actually kick off the server,
@@ -110,6 +113,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
 	firstPoll := uint32(0)
+	numShares := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -131,6 +135,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		serverVersion:       version,
 		firstRun:            &firstRun,
 		firstPoll:           &firstPoll,
+		numShares:           &numShares,
 		gatewayFirstPoll:    NewFirstTime(),
 		clientErrors:        round.NewClientFailureReport(),
 	}
@@ -357,6 +362,17 @@ func (i *Instance) GetGatewayCertPath() string {
 //Returns true if this is the first time this is called, otherwise returns false
 func (i *Instance) IsFirstPoll() bool {
 	return atomic.SwapUint32(i.firstPoll, 1) == 0
+}
+
+// Increments the number of shares received
+// in a precomp round key generation
+func (i *Instance) IncrementShares() uint32 {
+	return atomic.AddUint32(i.numShares, 1)
+}
+
+// Resets the amount of shares for the next round
+func (i *Instance) ResetShares() {
+	atomic.SwapUint32(i.numShares, 0)
 }
 
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
