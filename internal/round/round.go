@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/gpumathsgo"
@@ -370,4 +371,26 @@ func (r *Round) GetRTEnd() time.Time {
 // GetRTPayload gets the payload info for the rt ping
 func (r *Round) GetRTPayload() string {
 	return r.roundMetrics.RTPayload
+}
+
+// AddPieceMessage adds to the message tracker a new shared piece to the list
+// of messages received by this host
+func (r *Round) AddPieceMessage(piece *pb.SharePiece, origin *id.ID) {
+	r.buffer.AddPieceMessage(piece, origin)
+}
+
+// GetPieceMessagesByNode gets all the sharePiece messages received by the
+// specified nodeID
+func (r *Round) GetPieceMessagesByNode(origin *id.ID) []*pb.SharePiece {
+	return r.buffer.GetPieceMessagesByNode(origin)
+}
+
+// UpdateFinalKeys adds a new key to the list of final keys
+func (r *Round) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
+	return r.UpdateFinalKeys(piece)
+}
+
+// GetFinalKeys returns the list of keys generated
+func (r *Round) GetFinalKeys() []*cyclic.Int {
+	return r.buffer.GetFinalKeys()
 }

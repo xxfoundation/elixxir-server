@@ -11,7 +11,10 @@ package round
 // and constructors
 
 import (
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/xx_network/primitives/id"
+	"sync"
 )
 
 type Buffer struct {
@@ -46,6 +49,11 @@ type Buffer struct {
 	// To reuse in the Identify phase because the Reveal phase does not use the data
 	PermutedPayloadAKeys []*cyclic.Int
 	PermutedPayloadBKeys []*cyclic.Int
+
+	// Multiparty DH Keys
+	FinalKeys     []*cyclic.Int
+	ShareMessages map[*id.ID][]*pb.SharePiece
+	SharePhaseMux sync.RWMutex
 }
 
 // Function to initialize a new round
@@ -55,7 +63,7 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 	for i := uint32(0); i < expandedBatchSize; i++ {
 		permutations[i] = i
 	}
-
+	newSharedMessageMap := make(map[*id.ID][]*pb.SharePiece)
 	return &Buffer{
 		R: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		S: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
@@ -78,6 +86,10 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 
 		PayloadAPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		PayloadBPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
+
+		FinalKeys:     make([]*cyclic.Int, 0),
+		ShareMessages: newSharedMessageMap,
+		SharePhaseMux: sync.RWMutex{},
 	}
 }
 
@@ -122,4 +134,37 @@ func (r *Buffer) Erase() {
 
 	r.PermutedPayloadAKeys = nil
 	r.PermutedPayloadBKeys = nil
+}
+
+// AddPieceMessage adds to the message tracker a new shared piece to the list
+// of messages received by this host
+func (r *Buffer) AddPieceMessage(piece *pb.SharePiece, origin *id.ID) {
+	r.SharePhaseMux.Lock()
+	r.ShareMessages[origin] = append(r.ShareMessages[origin], piece)
+	r.SharePhaseMux.Unlock()
+}
+
+// GetPieceMessagesByNode gets all the sharePiece messages received by the
+// specified nodeID
+func (r *Buffer) GetPieceMessagesByNode(origin *id.ID) []*pb.SharePiece {
+	r.SharePhaseMux.RLock()
+	messages := r.ShareMessages[origin]
+	r.SharePhaseMux.RUnlock()
+	return messages
+}
+
+// UpdateFinalKeys adds a new key to the list of final keys
+func (r *Buffer) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
+	r.SharePhaseMux.Lock()
+	defer r.SharePhaseMux.Unlock()
+	r.FinalKeys = append(r.FinalKeys, piece)
+	return r.FinalKeys
+}
+
+// GetFinalKeys returns the list of keys generated
+func (r *Buffer) GetFinalKeys() []*cyclic.Int {
+	r.SharePhaseMux.RLock()
+	defer r.SharePhaseMux.RUnlock()
+	return r.FinalKeys
+
 }
