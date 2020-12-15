@@ -65,7 +65,7 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
-	localIP string, errorHandler services.ErrorCallback) (*Round, error) {
+	localIP string, errorHandler services.ErrorCallback, clientErr *ClientReport) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
@@ -158,8 +158,17 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	}
 
 	for index, p := range phases {
-		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
+		// If in realDecrypt, we need to handle client specific errors
+		if p.GetType() == phase.RealDecrypt {
+			p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool, clientErr, id)
+		} else {
+			// Other phases can operate normally
+			p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
+
+		}
+
 		round.phaseMap[p.GetType()] = index
+
 	}
 
 	round.phases = make([]phase.Phase, len(phases))

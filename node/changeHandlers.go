@@ -316,7 +316,8 @@ func Precomputing(instance *internal.Instance) error {
 		instance.GetRngStreamGen(),
 		instance.GetStreamPool(),
 		instance.GetIP(),
-		GetDefaultPanicHandler(instance, roundID))
+		GetDefaultPanicHandler(instance, roundID),
+		instance.GetClientReport())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}

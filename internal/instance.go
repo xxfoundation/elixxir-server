@@ -30,8 +30,8 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/csprng"
-	"gitlab.com/xx_network/crypto/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
@@ -70,6 +70,7 @@ type Instance struct {
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
+	clientErrors        *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -131,6 +132,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		firstRun:            &firstRun,
 		firstPoll:           &firstPoll,
 		gatewayFirstPoll:    NewFirstTime(),
+		clientErrors:        round.NewClientFailureReport(),
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -386,6 +388,10 @@ func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
+}
+
+func (i *Instance) GetClientReport() *round.ClientReport {
+	return i.clientErrors
 }
 
 func (i *Instance) GetRoundError() *mixmessages.RoundError {
