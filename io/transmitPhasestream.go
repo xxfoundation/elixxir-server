@@ -46,8 +46,6 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	recipientID := topology.GetNextNode(nodeID)
 	recipientIndex := topology.GetNodeLocation(recipientID)
 	recipient := topology.GetHostAtIndex(recipientIndex)
-	fmt.Printf("***recipient: %+v\n", recipient.String())
-	fmt.Printf("***instance ID: %+v\n", instance.GetID())
 	header := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
