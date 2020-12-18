@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/xx_network/primitives/id"
 	"sync"
+	"sync/atomic"
 )
 
 type Buffer struct {
@@ -51,9 +52,10 @@ type Buffer struct {
 	PermutedPayloadBKeys []*cyclic.Int
 
 	// Multiparty DH Keys
-	FinalKeys     []*cyclic.Int
-	ShareMessages map[*id.ID][]*pb.SharePiece
-	SharePhaseMux sync.RWMutex
+	FinalKeys      []*cyclic.Int
+	ShareMessages  map[*id.ID][]*pb.SharePiece
+	SharesReceived *uint32
+	SharePhaseMux  sync.RWMutex
 }
 
 // Function to initialize a new round
@@ -64,6 +66,7 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 		permutations[i] = i
 	}
 	newSharedMessageMap := make(map[*id.ID][]*pb.SharePiece)
+	sharedReceived := uint32(0)
 	return &Buffer{
 		R: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		S: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
@@ -87,9 +90,10 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 		PayloadAPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		PayloadBPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 
-		FinalKeys:     make([]*cyclic.Int, 0),
-		ShareMessages: newSharedMessageMap,
-		SharePhaseMux: sync.RWMutex{},
+		FinalKeys:      make([]*cyclic.Int, 0),
+		ShareMessages:  newSharedMessageMap,
+		SharesReceived: &sharedReceived,
+		SharePhaseMux:  sync.RWMutex{},
 	}
 }
 
@@ -166,5 +170,10 @@ func (r *Buffer) GetFinalKeys() []*cyclic.Int {
 	r.SharePhaseMux.RLock()
 	defer r.SharePhaseMux.RUnlock()
 	return r.FinalKeys
+}
 
+// Increments the number of shares received
+// as part of phaseShare
+func (r *Buffer) IncrementShares() uint32 {
+	return atomic.AddUint32(r.SharesReceived, 1)
 }

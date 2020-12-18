@@ -20,10 +20,12 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/primitives/id"
+	"sync"
 )
 
-// Triggers the multi-party communication in which generation of the round's Diffie-Helman key
-// will be generated
+// Triggers the multi-party communication in which generation of the
+// round's Diffie-Hellman key will be generated. This triggers all other
+// nodes in the team to start generating and sending out shares.
 func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInstance) error {
 	// Cast the instance into the proper internal type
 	instance, ok := serverInstance.(*internal.Instance)
@@ -50,38 +52,68 @@ func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInsta
 	}
 
 	// Send the trigger to everyone in the round
+	errChan := make(chan error, topology.Len())
+	var wg sync.WaitGroup
 	for i := 0; i < topology.Len(); i++ {
-		h := topology.GetHostAtIndex(i)
-		ack, err := instance.GetNetwork().SendStartSharePhase(h, ri)
-		if ack != nil && ack.Error != "" || err != nil {
-			err = errors.Errorf("Remote Server Error: %s", ack.Error)
+		wg.Add(1)
+		go func(localIndex int) {
+			h := topology.GetHostAtIndex(i)
+			ack, err := instance.GetNetwork().SendStartSharePhase(h, ri)
+			if err != nil {
+				errChan <- errors.Wrapf(err, "")
+			}
+
+			if ack != nil && ack.Error != "" {
+				errChan <- errors.Errorf("Remote Server Error: %s", ack.Error)
+			}
+			wg.Done()
+		}(i)
+	}
+	// Wait for all responses
+	wg.Wait()
+
+	// Return all node comms or ack errors if any
+	// as a single error message
+	var errs error
+	for len(errChan) > 0 {
+		err := <-errChan
+		if errs != nil {
+			errs = errors.Wrap(errs, err.Error())
+		} else {
+			errs = err
 		}
 	}
 
-	return err
+	return errs
 }
 
-// TransmitPhaseShare is a helper function which generates our local shared piece
-// of the round key. It also sends the message to all other nodes in the team
+// TransmitPhaseShare is send function which generates our shared piece and
+// transmits it to all other nodes in the team. If theirPiece is non-nil,
+// then our piece generation is a response to receiving a shared piece
+// from a teammate. In this case, we create our piece off of their piece
+// by exponentiating on their share with our roundKey and sent that to the team.
+// If theirPiece is nil, then we are generating our piece for the first time,
+// exponentiating off of the group itself and our round key, sending that that
+// to the team.
 func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	theirPiece *pb.SharePiece) error {
 
 	var newPiece *cyclic.Int
 	participants := make([][]byte, 0)
-	generator := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetConsensus().GetCmixGroup()
 	roundKey := r.GetBuffer().Z
 
 	// Checks if we are the first participant to generate a share
 	if theirPiece == nil {
-		// If first, generate our piece off of generator and our key
+		// If first, generate our piece off of grp and our key
 		// and add ourselves to the participant list
-		newPiece = generator.ExpG(roundKey, generator.NewInt(1))
+		newPiece = grp.ExpG(roundKey, grp.NewInt(1))
 		participants = [][]byte{instance.GetID().Bytes()}
 	} else {
 		// If we are not the first, raise the existing piece by our key
 		// and add ourselves to the participant list
-		oldPiece := generator.NewIntFromBytes(theirPiece.Piece)
-		newPiece = generator.ExpG(oldPiece, roundKey)
+		oldPiece := grp.NewIntFromBytes(theirPiece.Piece)
+		newPiece = grp.ExpG(oldPiece, roundKey)
 		participants = append(participants, instance.GetID().Bytes())
 	}
 
@@ -100,14 +132,39 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 
 	// Send the shared theirPiece to all other nodes (including ourselves)
 	topology := r.GetTopology()
+	var wg sync.WaitGroup
+	errChan := make(chan error, topology.Len())
 	for i := 0; i < topology.Len(); i++ {
-		h := topology.GetHostAtIndex(i)
-		_, err = instance.GetNetwork().SendSharePhase(h, ourPiece)
-		if err != nil {
-			return errors.Errorf("Could not send to node [%s]: %v", h.GetId(), err)
-		}
+		wg.Add(1)
 
+		go func(localIndex int) {
+			h := topology.GetHostAtIndex(i)
+			ack, err := instance.GetNetwork().SendSharePhase(h, ourPiece)
+			if err != nil {
+				errChan <- errors.Errorf("Could not send to node [%s]: %v", h.GetId(), err)
+			}
+
+			if ack != nil && ack.Error != "" {
+				errChan <- errors.Errorf("Remote Server Error: %s", ack.Error)
+			}
+
+			wg.Done()
+		}(i)
+	}
+	// Wait for all responses
+	wg.Wait()
+
+	// Return all node comms or ack errors if any
+	// as a single error message
+	var errs error
+	for len(errChan) > 0 {
+		err := <-errChan
+		if errs != nil {
+			errs = errors.Wrap(errs, err.Error())
+		} else {
+			errs = err
+		}
 	}
 
-	return nil
+	return errs
 }

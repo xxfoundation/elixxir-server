@@ -387,10 +387,14 @@ func (r *Round) GetPieceMessagesByNode(origin *id.ID) []*pb.SharePiece {
 
 // UpdateFinalKeys adds a new key to the list of final keys
 func (r *Round) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
-	return r.UpdateFinalKeys(piece)
+	return r.buffer.UpdateFinalKeys(piece)
 }
 
 // GetFinalKeys returns the list of keys generated
 func (r *Round) GetFinalKeys() []*cyclic.Int {
 	return r.buffer.GetFinalKeys()
+}
+
+func (r *Round) IncrementShares() uint32 {
+	return r.buffer.IncrementShares()
 }

@@ -364,17 +364,6 @@ func (i *Instance) IsFirstPoll() bool {
 	return atomic.SwapUint32(i.firstPoll, 1) == 0
 }
 
-// Increments the number of shares received
-// in a precomp round key generation
-func (i *Instance) IncrementShares() uint32 {
-	return atomic.AddUint32(i.numShares, 1)
-}
-
-// Resets the amount of shares for the next round
-func (i *Instance) ResetShares() {
-	atomic.SwapUint32(i.numShares, 0)
-}
-
 // GetRngStreamGen returns the fastRNG StreamGenerator in definition.
 func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
