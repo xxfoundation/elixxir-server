@@ -176,7 +176,7 @@ func generateShare(theirPiece *pb.SharePiece, grp *cyclic.Group,
 	// If we are not the first, raise the existing piece by our key
 	// and add ourselves to the participant list
 	oldPiece := grp.NewIntFromBytes(theirPiece.Piece)
-	newPiece := grp.ExpG(oldPiece, roundKey)
+	newPiece := grp.Exp(oldPiece, roundKey, grp.NewInt(1))
 	participants := theirPiece.Participants
 	participants = append(participants, ourId.Bytes())
 
