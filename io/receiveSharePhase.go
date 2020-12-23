@@ -59,10 +59,20 @@ func StartSharePhase(ri *pb.RoundInfo, instance *internal.Instance, auth *connec
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
+	// todo: check phase here, figure out how to do that. maybe use handlecomm func
+	tag := phase.PrecompShare.String() // todo: change tag(?)
+	_, p, err := rm.HandleIncomingComm(roundID, tag)
+	if err != nil {
+		return errors.Errorf("[%v]: Error on reception of "+
+			"StartSharePhase comm, should be able to return: \n %+v",
+			instance, err)
+	}
+	p.Measure(measure.TagReceiveOnReception)
+
 	// Verify signature of the received shared piece
 	err = signature.Verify(ri, auth.Sender.GetPubKey())
 	if err != nil {
-		return errors.Errorf("Failed to verify signature from [%s]: %v", auth.Sender, err)
+		return errors.Errorf("Failed to verify signature from [%s]: %v", auth.Sender.GetId(), err)
 	}
 
 	// Generate and sign the  message
@@ -81,7 +91,6 @@ func StartSharePhase(ri *pb.RoundInfo, instance *internal.Instance, auth *connec
 // received piece and send that share all other teammates.
 // We also update our state for this received message
 func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *internal.Instance) error {
-	// todo: check phase here, figure out how to do that. maybe use handlecomm func
 
 	// Check state machine for proper state
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
@@ -99,6 +108,16 @@ func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get round")
 	}
+
+	// todo: check phase here, figure out how to do that. maybe use handlecomm func
+	tag := phase.PrecompShare.String() + "Verification" // todo: change tag
+	_, p, err := rm.HandleIncomingComm(roundID, tag)
+	if err != nil {
+		return errors.Errorf("[%v]: Error on reception of "+
+			"SharePhaseRound comm, should be able to return: \n %+v",
+			instance, err)
+	}
+	p.Measure(tag)
 
 	topology := r.GetTopology()
 

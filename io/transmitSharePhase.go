@@ -10,6 +10,7 @@
 package io
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -57,7 +58,7 @@ func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInsta
 	for i := 0; i < topology.Len(); i++ {
 		wg.Add(1)
 		go func(localIndex int) {
-			h := topology.GetHostAtIndex(i)
+			h := topology.GetHostAtIndex(localIndex)
 			ack, err := instance.GetNetwork().SendStartSharePhase(h, ri)
 			if err != nil {
 				errChan <- errors.Wrapf(err, "")
@@ -138,7 +139,8 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 		wg.Add(1)
 
 		go func(localIndex int) {
-			h := topology.GetHostAtIndex(i)
+			h := topology.GetHostAtIndex(localIndex)
+			fmt.Printf("attempting to send to host: %v", h.String())
 			ack, err := instance.GetNetwork().SendSharePhase(h, ourPiece)
 			if err != nil {
 				errChan <- errors.Errorf("Could not send to node [%s]: %v", h.GetId(), err)
