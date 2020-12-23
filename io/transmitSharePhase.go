@@ -161,7 +161,7 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 // generateShare is a helper function which generates a key share to be
 // sent to all nodes in the round. If this is a response to a received
 // share, we exponentiate on that share. If this is a response to a
-// StartSharePhase, we exponentiate the group on our key
+// StartSharePhase (theirPiece is nil), we exponentiate the group on our key
 func generateShare(theirPiece *pb.SharePiece, grp *cyclic.Group,
 	roundKey *cyclic.Int, ourId *id.ID) (*cyclic.Int, [][]byte) {
 	// Checks if we are the first participant to generate a share

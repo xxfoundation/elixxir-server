@@ -8,10 +8,13 @@
 package round
 
 import (
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/xx_network/crypto/large"
+	"gitlab.com/xx_network/primitives/id"
 	"math/rand"
 	"reflect"
+	"sync/atomic"
 	"testing"
 )
 
@@ -408,5 +411,124 @@ func TestBuffer_Erase(t *testing.T) {
 		t.Errorf("Erase() did not properly delete the buffer's PermutedPayloadBKeys"+
 			"\n\treceived: %v\n\texpected: %v",
 			r.PermutedPayloadBKeys, nil)
+	}
+
+	if len(r.ShareMessages) != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's ShareMessages map"+
+			"\n\treceived: %v\n\texpected: %v",
+			r.ShareMessages, nil)
+	}
+
+	if r.FinalKeys != nil {
+		t.Errorf("Erase() did not properly delete the buffer's FinalKeys"+
+			"\n\treceived: %v\n\texpected: %v",
+			r.FinalKeys, nil)
+	}
+
+	sharesReceived := atomic.LoadUint32(r.SharesReceived)
+	if sharesReceived != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's SharesReceived"+
+			"\n\treceived: %v\n\texpected: %v",
+			r.SharesReceived, 0)
+	}
+
+}
+
+// Full test of methods handling ShareMessages in Buffer
+func TestBuffer_ShareMessages(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	batchSize := rng.Uint32() % 1000
+	expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
+
+	r := NewBuffer(grp, batchSize, expandedBatchSize)
+	testId := id.NewIdFromBytes([]byte("test"), t)
+	testMsg := &pb.SharePiece{
+		Piece: []byte("expectedPiece"),
+	}
+
+	// Test AddPieceMessage properly inserts message into map
+	r.AddPieceMessage(testMsg, testId)
+
+	receivedPiece := r.ShareMessages[testId]
+	if len(receivedPiece) != 1 {
+		t.Errorf("Map was not updated for newly inserted message")
+	}
+
+	if !reflect.DeepEqual(receivedPiece, []*pb.SharePiece{testMsg}) {
+		t.Errorf("AddPieceMessage did not add the message to the ShareMessages"+
+			"map: \n\treceived: [%v]\n\texpected: [%v]", receivedPiece, testMsg)
+	}
+
+	// Test GetPieceMessagesByNode properly retrieves messages from map
+	receivedPiece = r.GetPieceMessagesByNode(testId)
+	if len(receivedPiece) != 1 {
+		t.Errorf("Map was not updated for newly inserted message")
+	}
+
+	if !reflect.DeepEqual(receivedPiece, []*pb.SharePiece{testMsg}) {
+		t.Errorf("AddPieceMessage did not add the message to the ShareMessages"+
+			"map: \n\treceived: [%v]\n\texpected: [%v]", receivedPiece, testMsg)
+	}
+}
+
+// Full test of methods handling FinalKeys in Buffer
+func TestBuffer_FinalKeys(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	batchSize := rng.Uint32() % 1000
+	expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
+
+	r := NewBuffer(grp, batchSize, expandedBatchSize)
+
+	expectedKey := grp.NewInt(25)
+
+	// Test that UpdateFinalKeys inserts a key into the list
+	r.UpdateFinalKeys(expectedKey)
+	if len(r.FinalKeys) != 1 {
+		t.Errorf("Final keys not updated after insertion of new key")
+	}
+
+	if expectedKey.Cmp(r.FinalKeys[0]) != 0 {
+		t.Errorf("Final key received does not match expected."+
+			"\n\treceived: [%v]\n\texpected: [%v]", r.FinalKeys[0], expectedKey)
+	}
+
+	// Tests that GetFinalKeys retrieves from the slice the expected value
+	if len(r.GetFinalKeys()) != 1 {
+		t.Errorf("Final keys not updated after insertion of new key")
+	}
+
+	if expectedKey.Cmp(r.GetFinalKeys()[0]) != 0 {
+		t.Errorf("Final key received does not match expected."+
+			"\n\treceived: [%v]\n\texpected: [%v]", r.FinalKeys[0], expectedKey)
+	}
+
+}
+
+// Full test of IncrementShares
+func TestBuffer_IncrementShares(t *testing.T) {
+	rng := rand.New(rand.NewSource(42))
+	batchSize := rng.Uint32() % 1000
+	expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
+
+	r := NewBuffer(grp, batchSize, expandedBatchSize)
+
+	// Check that returned value consistently increments
+	// (note that we index at 1 here, as receivedShares in first iteration
+	// increments from 0 to 1)
+	totalIncrements := 5
+	for expectedNum := 1; expectedNum < totalIncrements+1; expectedNum++ {
+		retrievedVal := r.IncrementShares()
+		if retrievedVal != uint32(expectedNum) {
+			t.Errorf("Number returned from IncrementShares not expected."+
+				"\n\treceived: [%v]\n\texpected: [%v]", retrievedVal, expectedNum)
+		}
+	}
+
+	// Check that the final value is the expected number
+	finalValue := atomic.LoadUint32(r.SharesReceived)
+	if finalValue != uint32(totalIncrements) {
+		t.Errorf("Final value of SharesReceived not expected."+
+			"\n\treceived: [%v]\n\texpected: [%v]", finalValue, totalIncrements)
+
 	}
 }

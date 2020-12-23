@@ -138,6 +138,12 @@ func (r *Buffer) Erase() {
 
 	r.PermutedPayloadAKeys = nil
 	r.PermutedPayloadBKeys = nil
+
+	atomic.SwapUint32(r.SharesReceived, 0)
+	r.FinalKeys = nil
+	for key := range r.ShareMessages {
+		delete(r.ShareMessages, key)
+	}
 }
 
 // AddPieceMessage adds to the message tracker a new shared piece to the list
