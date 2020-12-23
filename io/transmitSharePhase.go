@@ -99,26 +99,12 @@ func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInsta
 func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	theirPiece *pb.SharePiece) error {
 
-	var newPiece *cyclic.Int
-	participants := make([][]byte, 0)
 	grp := instance.GetConsensus().GetCmixGroup()
 	roundKey := r.GetBuffer().Z
 
-	// Checks if we are the first participant to generate a share
-	if theirPiece == nil {
-		// If first, generate our piece off of grp and our key
-		// and add ourselves to the participant list
-		newPiece = grp.ExpG(roundKey, grp.NewInt(1))
-		participants = [][]byte{instance.GetID().Bytes()}
-	} else {
-		// If we are not the first, raise the existing piece by our key
-		// and add ourselves to the participant list
-		oldPiece := grp.NewIntFromBytes(theirPiece.Piece)
-		newPiece = grp.ExpG(oldPiece, roundKey)
-		participants = append(participants, instance.GetID().Bytes())
-	}
-
 	// Build the message to be sent to all other nodes
+	newPiece, participants := generateShare(theirPiece, grp,
+		roundKey, instance.GetID())
 	ourPiece := &pb.SharePiece{
 		Piece:        newPiece.Bytes(),
 		Participants: participants,
@@ -137,8 +123,9 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	errChan := make(chan error, topology.Len())
 	for i := 0; i < topology.Len(); i++ {
 		wg.Add(1)
+		localIndex := i
 
-		go func(localIndex int) {
+		go func() {
 			h := topology.GetHostAtIndex(localIndex)
 			fmt.Printf("attempting to send to host: %v", h.String())
 			ack, err := instance.GetNetwork().SendSharePhase(h, ourPiece)
@@ -151,7 +138,7 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 			}
 
 			wg.Done()
-		}(i)
+		}()
 	}
 	// Wait for all responses
 	wg.Wait()
@@ -169,4 +156,29 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	}
 
 	return errs
+}
+
+// generateShare is a helper function which generates a key share to be
+// sent to all nodes in the round. If this is a response to a received
+// share, we exponentiate on that share. If this is a response to a
+// StartSharePhase, we exponentiate the group on our key
+func generateShare(theirPiece *pb.SharePiece, grp *cyclic.Group,
+	roundKey *cyclic.Int, ourId *id.ID) (*cyclic.Int, [][]byte) {
+	// Checks if we are the first participant to generate a share
+	if theirPiece == nil {
+		// If first, generate our piece off of grp and our key
+		// and add ourselves to the participant list
+		newPiece := grp.ExpG(roundKey, grp.NewInt(1))
+		participants := [][]byte{ourId.Bytes()}
+		return newPiece, participants
+	}
+
+	// If we are not the first, raise the existing piece by our key
+	// and add ourselves to the participant list
+	oldPiece := grp.NewIntFromBytes(theirPiece.Piece)
+	newPiece := grp.ExpG(oldPiece, roundKey)
+	participants := theirPiece.Participants
+	participants = append(participants, ourId.Bytes())
+
+	return newPiece, participants
 }
