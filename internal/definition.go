@@ -130,10 +130,6 @@ type GW struct {
 	TlsCert []byte
 	// IP address of the gateway
 	Address string
-	// Toggles use of Node's IP address as Gateway's address in Permissioning.
-	UseNodeIp bool
-	// Replaces Gateway's IP address reported to Permissioning.
-	AdvertisedIP string
 }
 
 type MetricsHandler func(i *Instance, roundID id.Round) error

@@ -16,9 +16,9 @@ var nodeID = id.ID([33]byte{82, 253, 252, 7, 33, 130, 101, 79, 22, 63, 95, 15,
 	226, 198, 73, 2})
 
 var ExpectedNode = Node{
-	Paths:            ExpectedPaths,
-	ListeningAddress: "127.0.0.1",
-	Port:             80,
+	Paths:           ExpectedPaths,
+	AddressOverride: "",
+	Port:            80,
 }
 
 /*

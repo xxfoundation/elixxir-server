@@ -10,7 +10,7 @@ package conf
 // Contains Node config params
 type Node struct {
 	Paths            Paths
-	ListeningAddress string
+	AddressOverride  string
 	Port             int
 	InterconnectPort int
 }

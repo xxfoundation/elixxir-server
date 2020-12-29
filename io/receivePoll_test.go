@@ -128,12 +128,13 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 
 	fullHash1 := instance.GetConsensus().GetFullNdf().GetHash()
 
-	//Push a round update that can be used for the test:
+	// Push a round update that can be used for the test:
 	poll := pb.ServerPoll{
-		Full:       &pb.NDFHash{Hash: fullHash1},
-		Partial:    &pb.NDFHash{Hash: fullHash1},
-		LastUpdate: 0,
-		Error:      "",
+		Full:           &pb.NDFHash{Hash: fullHash1},
+		Partial:        &pb.NDFHash{Hash: fullHash1},
+		LastUpdate:     0,
+		Error:          "",
+		GatewayAddress: "1.2.3.4:11420",
 	}
 
 	fullHash2, err := dataStructures.GenerateNDFHash(test2Ndf)
