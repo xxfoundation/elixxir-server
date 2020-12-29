@@ -9,7 +9,6 @@ package conf
 
 import (
 	gorsa "crypto/rsa"
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -24,7 +23,9 @@ import (
 	"gitlab.com/xx_network/primitives/id/idf"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
+	"net"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -72,8 +73,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.RegistrationCode = vip.GetString("registrationCode")
 	require(params.RegistrationCode, "registrationCode")
 
-	vip.SetDefault("node.listeningAddress", "0.0.0.0")
-	params.Node.ListeningAddress = vip.GetString("node.listeningAddress")
+	params.Node.AddressOverride = vip.GetString("node.addressOverride")
 	params.Node.Port = vip.GetInt("node.Port")
 	if params.Node.Port == 0 {
 		jww.FATAL.Panic("Must specify a port to run on")
@@ -145,13 +145,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Metrics.Log = vip.GetString("metrics.log")
 
-	params.Gateway.useNodeIp = vip.GetBool("gateway.useNodeIp")
-	params.Gateway.advertisedIP = vip.GetString("gateway.advertisedIP")
-	if params.Gateway.useNodeIp && params.Gateway.advertisedIP != "" {
-		jww.FATAL.Panicf("Cannot set both gateway.useNodeIp and " +
-			"gateway.advertisedIP at the same time.")
-	}
-
 	params.DevMode = viper.GetBool("devMode")
 
 	return &params, nil
@@ -186,7 +179,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 	}
 
-	def.Address = fmt.Sprintf("%s:%d", p.Node.ListeningAddress, p.Node.Port)
+	def.Address = net.JoinHostPort(p.Node.AddressOverride, strconv.Itoa(p.Node.Port))
 	def.InterconnectPort = p.Node.InterconnectPort
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
@@ -305,8 +298,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
-	def.Gateway.UseNodeIp = p.Gateway.useNodeIp
-	def.Gateway.AdvertisedIP = p.Gateway.advertisedIP
 	def.DevMode = p.DevMode
 	return def, nil
 }

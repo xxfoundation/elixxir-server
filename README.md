@@ -125,6 +125,9 @@ node:
     # Path where the list of node addresses is saved to.
     # Optional field; defaults to "/opt/xxnetwork/node-logs/ipList.txt".
     ipListOutput:  "/opt/xxnetwork/node-logs/ipList.txt"
+  # If set, this address (host and port required) will be used for the node's
+  # public IP address instead of the automatically determined address. Optional.
+  addressOverride: ""
   # Port that the Node will communicate on.
   port: 42069
 
@@ -140,13 +143,6 @@ gateways:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
     # Required field.
     cert: "/opt/xxnetwork/creds/gateway-cert.crt"
-  # When set to true, the Node's public IP is used for Gateway. For use when the
-  # Gateway communicates to the Node via a local IP address.
-  # useNodeIp and AdvertisedIP cannot be set at the same time.
-  useNodeIp: false
-  # The address and port set here are used as the Gateway's public IP address.
-  # useNodeIp and AdvertisedIP cannot be set at the same time.
-  advertisedIP: ""
 
 permissioning:
   paths:
