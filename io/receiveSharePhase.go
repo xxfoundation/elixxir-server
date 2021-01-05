@@ -200,10 +200,10 @@ func updateRoundShares(instance *internal.Instance, r *round.Round,
 				return errors.Errorf("Could not "+
 					"finalize key generation: %s", err)
 			}
-			return nil
 
 		}
 	}
+
 	return nil
 }
 
