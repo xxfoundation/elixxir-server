@@ -111,16 +111,6 @@ func SharePhasePiece(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 		return errors.WithMessage(err, "Failed to get round")
 	}
 
-	// todo: check phase here, figure out how to do that. maybe use handlecomm func
-	tag := phase.PrecompShare.String() // todo: change tag
-	_, p, err := rm.HandleIncomingComm(roundID, tag)
-	if err != nil {
-		return errors.Errorf("[%v]: Error on reception of "+
-			"SharePhasePiece comm, should be able to return: \n %+v",
-			instance, err)
-	}
-	p.Measure(tag)
-
 	// Check for proper authentication and if the sender is in the round
 	senderId := auth.Sender.GetId()
 	if !auth.IsAuthenticated ||
