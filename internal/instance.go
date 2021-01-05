@@ -58,6 +58,7 @@ type Instance struct {
 	network       *node.Comms
 	streamPool    *gpumaths.StreamPool
 	machine       state.Machine
+	phaseState    state.GenericMachine
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -97,9 +98,6 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
-
-	// Phase share count
-	numShares *uint32
 }
 
 // Create a server instance. To actually kick off the server,
@@ -113,7 +111,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
 	firstPoll := uint32(0)
-	numShares := uint32(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -135,9 +132,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		serverVersion:       version,
 		firstRun:            &firstRun,
 		firstPoll:           &firstPoll,
-		numShares:           &numShares,
 		gatewayFirstPoll:    NewFirstTime(),
 		clientErrors:        round.NewClientFailureReport(),
+		phaseState:          state.NewGenericMachine(),
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -169,7 +166,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF, nil)
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
+		def.PartialNDF, def.FullNDF, nil)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
