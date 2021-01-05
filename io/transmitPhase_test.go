@@ -190,12 +190,11 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 	}
 
 	//make server rsa key pair
-	serverRSAPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
-	if err != nil {
-		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
-	}
+	pk, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
-	serverRSAPub := serverRSAPriv.GetPublic()
+	privKey, _ := rsa.LoadPrivateKeyFromPem(pk)
+
+	//serverRSAPub := serverRSAPriv.GetPublic()
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
 
 	cnt++
@@ -204,8 +203,8 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
-		PrivateKey:      serverRSAPriv,
-		PublicKey:       serverRSAPub,
+		PrivateKey:      privKey,
+		PublicKey:       privKey.GetPublic(),
 		TlsCert:         cert,
 		TlsKey:          key,
 		FullNDF:         testUtil.NDF,

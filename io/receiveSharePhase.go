@@ -31,7 +31,8 @@ import (
 // It does basic checks of the validity of the message and the sender.
 // After checks are complete, it generates and transmits its own share by
 // calling TransmitPhaseShare
-func StartSharePhase(ri *pb.RoundInfo, instance *internal.Instance, auth *connect.Auth) error {
+func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
+	instance *internal.Instance) error {
 	// todo: check phase here, figure out how to do that. maybe use handlecomm func
 
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
@@ -92,6 +93,10 @@ func StartSharePhase(ri *pb.RoundInfo, instance *internal.Instance, auth *connec
 // We also update our state for this received message
 func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *internal.Instance) error {
 
+	if piece == nil || piece.Participants == nil || piece.Piece == nil {
+		return errors.Errorf("Should not receive nil pieces in key generation")
+	}
+
 	// Check state machine for proper state
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
@@ -110,7 +115,7 @@ func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 	}
 
 	// todo: check phase here, figure out how to do that. maybe use handlecomm func
-	tag := phase.PrecompShare.String() + "Verification" // todo: change tag
+	tag := phase.PrecompShare.String() // todo: change tag
 	_, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
 		return errors.Errorf("[%v]: Error on reception of "+
@@ -119,11 +124,10 @@ func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 	}
 	p.Measure(tag)
 
-	topology := r.GetTopology()
-
 	// Check for proper authentication and if the sender is in the round
 	senderId := auth.Sender.GetId()
-	if !auth.IsAuthenticated || topology.GetNodeLocation(senderId) == -1 {
+	if !auth.IsAuthenticated ||
+		r.GetTopology().GetNodeLocation(senderId) == -1 {
 		jww.WARN.Printf("Error on SharePhaseRound: "+
 			"Attempted communication by %+v has not been authenticated: %s",
 			auth.Sender, auth.Reason)
@@ -163,9 +167,8 @@ func updateRoundShares(instance *internal.Instance, r *round.Round,
 	r.AddPieceMessage(piece, originID)
 	newAmountOfShares := r.IncrementShares()
 
+	// Pull the participants and teamsize information
 	participants := piece.Participants
-
-	// Check if we are done with this round of sharing
 	teamSize := r.GetTopology().Len()
 
 	// Check if this shared piece has gone through all nodes
@@ -221,6 +224,8 @@ func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 		return err
 	}
 
+	// Pull a key from the list (all should be identical from
+	// the above check)
 	finalKey := finalKeys[0].Bytes()
 
 	// Double check that key is inside of group
@@ -234,9 +239,10 @@ func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 	grp.SetBytes(r.GetBuffer().CypherPublicKey, finalKey)
 
 	// Once done, transition from precompShare to precompDecrypt
-	if err := transitionToPrecompDecrypt(instance, r); err != nil {
-		return errors.Errorf("Could not transition to precompDecrypt: %s", err)
-	}
+	// Fixme: figure out how to properly transfer phases
+	//if err := transitionToPrecompDecrypt(instance, r); err != nil {
+	//	return errors.Errorf("Could not transition to precompDecrypt: %s", err)
+	//}
 
 	return nil
 }

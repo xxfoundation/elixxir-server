@@ -10,7 +10,6 @@
 package io
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -100,16 +99,10 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	theirPiece *pb.SharePiece) error {
 
 	grp := instance.GetConsensus().GetCmixGroup()
-	roundKey := r.GetBuffer().Z
 
 	// Build the message to be sent to all other nodes
-	newPiece, participants := generateShare(theirPiece, grp,
-		roundKey, instance.GetID())
-	ourPiece := &pb.SharePiece{
-		Piece:        newPiece.Bytes(),
-		Participants: participants,
-		RoundID:      uint64(r.GetID()),
-	}
+	ourPiece := generateShare(theirPiece, grp,
+		r, instance.GetID())
 
 	// Sign our message for other nodes to verify
 	err := signature.Sign(ourPiece, instance.GetPrivKey())
@@ -127,7 +120,6 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 
 		go func() {
 			h := topology.GetHostAtIndex(localIndex)
-			fmt.Printf("attempting to send to host: %v", h.String())
 			ack, err := instance.GetNetwork().SendSharePhase(h, ourPiece)
 			if err != nil {
 				errChan <- errors.Errorf("Could not send to node [%s]: %v", h.GetId(), err)
@@ -163,14 +155,20 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 // share, we exponentiate on that share. If this is a response to a
 // StartSharePhase (theirPiece is nil), we exponentiate the group on our key
 func generateShare(theirPiece *pb.SharePiece, grp *cyclic.Group,
-	roundKey *cyclic.Int, ourId *id.ID) (*cyclic.Int, [][]byte) {
+	rnd *round.Round, ourId *id.ID) *pb.SharePiece {
+
+	roundKey := rnd.GetBuffer().Z
 	// Checks if we are the first participant to generate a share
 	if theirPiece == nil {
 		// If first, generate our piece off of grp and our key
 		// and add ourselves to the participant list
 		newPiece := grp.ExpG(roundKey, grp.NewInt(1))
 		participants := [][]byte{ourId.Bytes()}
-		return newPiece, participants
+		return &pb.SharePiece{
+			Piece:        newPiece.Bytes(),
+			Participants: participants,
+			RoundID:      uint64(rnd.GetID()),
+		}
 	}
 
 	// If we are not the first, raise the existing piece by our key
@@ -180,5 +178,9 @@ func generateShare(theirPiece *pb.SharePiece, grp *cyclic.Group,
 	participants := theirPiece.Participants
 	participants = append(participants, ourId.Bytes())
 
-	return newPiece, participants
+	return &pb.SharePiece{
+		Piece:        newPiece.Bytes(),
+		Participants: participants,
+		RoundID:      uint64(rnd.GetID()),
+	}
 }

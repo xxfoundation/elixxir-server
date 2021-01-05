@@ -47,7 +47,6 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		"1.1.0")
 
 	mockPhase := testUtil.InitMockPhase(t)
-
 	responseMap := make(phase.ResponseMap)
 	responseMap[mockPhase.GetType().String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
