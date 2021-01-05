@@ -130,7 +130,7 @@ func TestSharePhaseRound(t *testing.T) {
 		t.Errorf("couldn't sign info message: %+v", err)
 	}
 
-	err = SharePhaseRound(piece, auth, instance)
+	err = SharePhasePiece(piece, auth, instance)
 	if err != nil {
 		t.Errorf("Error in happy path: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 		t.Errorf("couldn't sign info message: %+v", err)
 	}
 
-	err = SharePhaseRound(piece, auth, instance)
+	err = SharePhasePiece(piece, auth, instance)
 	if err != nil {
 		t.Errorf("Error in happy path: %v", err)
 	}

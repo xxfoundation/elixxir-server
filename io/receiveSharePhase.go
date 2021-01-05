@@ -7,7 +7,7 @@
 
 package io
 
-// Contains handlers for StartSharePhase and SharePhaseRound
+// Contains handlers for StartSharePhase and SharePhasePiece
 
 import (
 	"bytes"
@@ -60,6 +60,9 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
+	//internal edge checking, independant of system
+	// check and iterate within handleincoming comm
+
 	// todo: check phase here, figure out how to do that. maybe use handlecomm func
 	tag := phase.PrecompShare.String() // todo: change tag(?)
 	_, p, err := rm.HandleIncomingComm(roundID, tag)
@@ -70,13 +73,7 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	}
 	p.Measure(measure.TagReceiveOnReception)
 
-	// Verify signature of the received shared piece
-	err = signature.Verify(ri, auth.Sender.GetPubKey())
-	if err != nil {
-		return errors.Errorf("Failed to verify signature from [%s]: %v", auth.Sender.GetId(), err)
-	}
-
-	// Generate and sign the  message
+	// Generate and sign the  message to be shared with the team
 	err = TransmitPhaseShare(instance, r, nil)
 	if err != nil {
 		jww.FATAL.Panicf("Error on StartSharePhase: "+
@@ -86,12 +83,12 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	return nil
 }
 
-// SharePhaseRound is a reception handler for receiving a key generation share.
+// SharePhasePiece is a reception handler for receiving a key generation share.
 // It does basic validity checks on the share and the sender. If our node is not
 // in the list of participants of the message, we generate a share off of the
 // received piece and send that share all other teammates.
 // We also update our state for this received message
-func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *internal.Instance) error {
+func SharePhasePiece(piece *pb.SharePiece, auth *connect.Auth, instance *internal.Instance) error {
 
 	if piece == nil || piece.Participants == nil || piece.Piece == nil {
 		return errors.Errorf("Should not receive nil pieces in key generation")
@@ -119,7 +116,7 @@ func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 	_, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
 		return errors.Errorf("[%v]: Error on reception of "+
-			"SharePhaseRound comm, should be able to return: \n %+v",
+			"SharePhasePiece comm, should be able to return: \n %+v",
 			instance, err)
 	}
 	p.Measure(tag)
@@ -128,16 +125,16 @@ func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 	senderId := auth.Sender.GetId()
 	if !auth.IsAuthenticated ||
 		r.GetTopology().GetNodeLocation(senderId) == -1 {
-		jww.WARN.Printf("Error on SharePhaseRound: "+
+		jww.WARN.Printf("Error on SharePhasePiece: "+
 			"Attempted communication by %+v has not been authenticated: %s",
 			auth.Sender, auth.Reason)
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
 	// Handle the state of our round and update for received piece
-	err = updateRoundShares(instance, r, senderId, piece)
+	err = updateSharePieces(instance, r, senderId, piece)
 	if err != nil {
-		jww.FATAL.Panicf("Error on round [%d] SharePhaseRound: Could not update "+
+		jww.FATAL.Panicf("Error on round [%d] SharePhasePiece: Could not update "+
 			"new round shares: %s", r.GetID(), err)
 	}
 
@@ -147,7 +144,7 @@ func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 		// Develop and send our share
 		err = TransmitPhaseShare(instance, r, piece)
 		if err != nil {
-			jww.FATAL.Panicf("Error on SharePhaseRound: "+
+			jww.FATAL.Panicf("Error on SharePhasePiece: "+
 				"Could not send our shared piece of the key: %s", err)
 		}
 
@@ -156,12 +153,17 @@ func SharePhaseRound(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 	return nil
 }
 
-// updateRoundShares is a helper function which updates the state for a new
+// involve incremnt shares. Going to have to get pulled out, on edge check
+//
+
+//
+
+// updateSharePieces is a helper function which updates the state for a new
 // round's phaseShare being received. If we have received a share from all
 // we add to a list of final keys. If our final keys list is the size of the
 // team, then we are done with sharePhase and check all messages and keys.
 // If we don't enough final keys, we start a new sub-round of generating a key
-func updateRoundShares(instance *internal.Instance, r *round.Round,
+func updateSharePieces(instance *internal.Instance, r *round.Round,
 	originID *id.ID, piece *pb.SharePiece) error {
 	// Add message to state
 	r.AddPieceMessage(piece, originID)
@@ -259,17 +261,17 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
 		roundErr := errors.Errorf("Error on reception of "+
-			"SharePhaseRound comm, should be able to return: \n %+v", err)
+			"SharePhasePiece comm, should be able to return: \n %+v", err)
 		return roundErr
 	}
 	p.Measure(measure.TagVerification)
 
-	jww.INFO.Printf("[%v]: RID %d SharePhaseRound PK is: %s",
+	jww.INFO.Printf("[%v]: RID %d SharePhasePiece PK is: %s",
 		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))
 
 	p.UpdateFinalStates()
 
-	jww.INFO.Printf("[%v]: RID %d SharePhaseRound END", instance,
+	jww.INFO.Printf("[%v]: RID %d SharePhasePiece END", instance,
 		roundID)
 
 	if topology.IsFirstNode(instance.GetID()) {
@@ -300,11 +302,11 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
 		if err != nil {
-			return errors.Errorf("Error on first node SharePhaseRound "+
+			return errors.Errorf("Error on first node SharePhasePiece "+
 				"comm, should be able to get decrypt phase: %+v", err)
 		}
 
-		jww.INFO.Printf("[%v]: RID %d SharePhaseRound FIRST NODE START PHASE \"%s\"", instance,
+		jww.INFO.Printf("[%v]: RID %d SharePhasePiece FIRST NODE START PHASE \"%s\"", instance,
 			roundID, decrypt.GetType())
 
 		queued :=
@@ -313,13 +315,13 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 		decrypt.Measure(measure.TagReceiveOnReception)
 
 		if !queued {
-			return errors.Errorf("Error on first node SharePhaseRound " +
+			return errors.Errorf("Error on first node SharePhasePiece " +
 				"comm, should be able to queue decrypt phase")
 		}
 		err = PostPhase(decrypt, blankBatch)
 
 		if err != nil {
-			return errors.Errorf("Error on first node SharePhaseRound "+
+			return errors.Errorf("Error on first node SharePhasePiece "+
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}

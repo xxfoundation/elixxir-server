@@ -5,13 +5,12 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-// Contains sending functions for StartSharePhase and SharePhaseRound
+// Contains sending functions for StartSharePhase and SharePhasePiece
 
 package io
 
 import (
 	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -43,12 +42,6 @@ func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInsta
 
 	ri := &mixmessages.RoundInfo{
 		ID: uint64(roundID),
-	}
-
-	// Attempt to sign the round info being passed to the next round
-	if err = signature.Sign(ri, instance.GetPrivKey()); err != nil {
-		jww.FATAL.Panicf("Could not start share phase: "+
-			"Failed to sign round info for round [%d]: %s ", roundID, err)
 	}
 
 	// Send the trigger to everyone in the round

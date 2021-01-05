@@ -163,7 +163,7 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 	}
 
 	impl.Functions.SharePhaseRound = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
-		return SharePhaseRound(sharedPiece, auth, instance)
+		return SharePhasePiece(sharedPiece, auth, instance)
 	}
 
 	return impl
