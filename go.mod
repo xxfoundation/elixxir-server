@@ -12,7 +12,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/magiconair/properties v1.8.4 // indirect
-	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/mitchellh/mapstructure v1.4.0 // indirect
 	github.com/nxadm/tail v1.4.5 // indirect
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.3 // indirect
@@ -20,7 +20,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	github.com/smartystreets/assertions v1.2.0 // indirect
-	github.com/spf13/afero v1.4.1 // indirect
+	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
@@ -30,14 +30,16 @@ require (
 	gitlab.com/elixxir/comms v0.0.4-0.20210104224025-4e1cedc524a1
 	gitlab.com/elixxir/crypto v0.0.7-0.20210104223925-7dfd3ad55d5c
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201214172820-4ea04ce74939
-	gitlab.com/elixxir/primitives v0.0.3-0.20210104223605-0e47af99d9d5
-	gitlab.com/xx_network/comms v0.0.4-0.20201217200138-87075d5b4ffd
-	gitlab.com/xx_network/crypto v0.0.5-0.20201217195719-cc31e1d1eee3
-	gitlab.com/xx_network/primitives v0.0.4-0.20201216174909-808eb0fc97fc
+	gitlab.com/elixxir/primitives v0.0.3-0.20210106014507-bf3dfe228fa6
+	gitlab.com/xx_network/comms v0.0.4-0.20210106014446-be163ef3ccce
+	gitlab.com/xx_network/crypto v0.0.5-0.20210106014410-0554a33a7124
+	gitlab.com/xx_network/primitives v0.0.4-0.20210106014326-691ebfca3b07
 	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
-	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1 // indirect
-	google.golang.org/grpc v1.33.1
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
+	golang.org/x/sys v0.0.0-20210105210732-16f7687f5001 // indirect
+	google.golang.org/genproto v0.0.0-20210105202744-fe13368bc0e1 // indirect
+	google.golang.org/grpc v1.34.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
