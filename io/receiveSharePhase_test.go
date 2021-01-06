@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/signature"
@@ -118,6 +119,8 @@ func TestSharePhaseRound(t *testing.T) {
 		Sender:          testHost,
 	}
 
+	instance.GetPhaseShareMachine().Update(state.STARTED)
+
 	err = signature.Sign(ri, instance.GetPrivKey())
 	if err != nil {
 		t.Errorf("couldn't sign info message: %+v", err)
@@ -207,6 +210,7 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 	}
 
 	piece := generateShare(nil, grp, rnd, instance.GetID())
+	instance.GetPhaseShareMachine().Update(state.STARTED)
 
 	err = signature.Sign(piece, instance.GetPrivKey())
 	if err != nil {

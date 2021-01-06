@@ -46,6 +46,9 @@ type GenericMachine struct {
 	//used to signal to waiting threads that a state change has occurred
 	signal chan Status
 
+	//holds valid state transitions
+	stateMap [][]bool
+
 	//changeChan
 	changebuffer chan Status
 }
@@ -63,18 +66,32 @@ func NewGenericMachine() GenericMachine {
 	GM := GenericMachine{&ss,
 		&sync.RWMutex{},
 		make(chan Status),
+		make([][]bool, NUM_STATUS),
 		make(chan Status, 100),
 	}
+
+	//finish populating the stateMap
+	for i := 0; i < int(NUM_STATUS); i++ {
+		GM.stateMap[i] = make([]bool, NUM_STATUS)
+	}
+
+	GM.addStateTransition(NOT_STARTED, STARTED)
+	GM.addStateTransition(STARTED, ENDED)
+	GM.addStateTransition(ENDED, NOT_STARTED)
 
 	return GM
 }
 
+// todo: docstring
 func (gm GenericMachine) Start() error {
 	_, err := gm.stateChange(*gm.Status)
 	return err
 }
 
-func (gm *GenericMachine) WaitFor(timeout time.Duration, expected ...Status) (Status, error) {
+// if the the passed state is the next state update, waits until that update
+// happens. return success if the waited state is the current state. returns an
+// error after the timeout expires
+func (gm GenericMachine) WaitFor(timeout time.Duration, expected ...Status) (Status, error) {
 	// take the read lock to ensure state does not change during intital
 	// checks
 	gm.RLock()
@@ -119,6 +136,28 @@ func (gm *GenericMachine) WaitFor(timeout time.Duration, expected ...Status) (St
 		return *gm.Status, nil
 	}
 
+	validTransition := false
+
+	// if not in the state and the expected state cannot be reached from the
+	// current one, return false and an error
+	for _, activity := range expected {
+		if gm.stateMap[*gm.Status][activity] {
+			validTransition = true
+		}
+
+	}
+
+	if !validTransition {
+		// kill the worker thread
+		kill <- struct{}{}
+		// release the read lock
+		gm.RUnlock()
+		// return the error
+		return *gm.Status, errors.Errorf("Cannot wait for state %s which "+
+			"cannot be reached from the current state %s", expected, *gm.Status)
+
+	}
+
 	// unlock the read lock, allows state changes to take effect
 	gm.RUnlock()
 
@@ -128,12 +167,22 @@ func (gm *GenericMachine) WaitFor(timeout time.Duration, expected ...Status) (St
 	return *gm.Status, err
 }
 
-func (gm *GenericMachine) Update(nextState Status) (bool, error) {
+// if the requested state update is valid from the current state, moves the
+// next state and updates any go routines waiting on the state update.
+// returns a boolean if the update cannot be done and an error explaining why
+func (gm GenericMachine) Update(nextStatus Status) (bool, error) {
 	gm.Lock()
 	defer gm.Unlock()
 
+	// check if the requested state change is valid
+	if !gm.stateMap[*gm.Status][nextStatus] {
+		// return an error if state change if invalid
+		return false, errors.Errorf("not a valid state change from "+
+			"%s to %s", *gm.Status, nextStatus)
+	}
+
 	//execute the state change
-	success, err := gm.stateChange(nextState)
+	success, err := gm.stateChange(nextStatus)
 	if !success {
 		return false, err
 	}
@@ -147,10 +196,17 @@ func (gm *GenericMachine) Update(nextState Status) (bool, error) {
 			signal = false
 		}
 	}
+
 	return true, nil
 
 }
 
+// Wrapper around a call to update to not started, resetting the state machine
+func (gm GenericMachine) Reset() (bool, error) {
+	return gm.Update(NOT_STARTED)
+}
+
+// Internal function used to change states in NewGenericMachine() and Update()
 func (gm GenericMachine) stateChange(nextState Status) (bool, error) {
 	*gm.Status = nextState
 
@@ -161,4 +217,12 @@ func (gm GenericMachine) stateChange(nextState Status) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// adds a state transition to the state object
+func (gm GenericMachine) addStateTransition(from Status, to ...Status) {
+	for _, t := range to {
+		gm.stateMap[from][t] = true
+	}
+
 }

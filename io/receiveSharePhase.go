@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/signature"
@@ -60,11 +61,8 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
-	//internal edge checking, independant of system
-	// check and iterate within handleincoming comm
-
-	// todo: check phase here, figure out how to do that. maybe use handlecomm func
-	tag := phase.PrecompShare.String() // todo: change tag(?)
+	// Check if we are in the proper stage
+	tag := phase.PrecompShare.String()
 	_, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
 		return errors.Errorf("[%v]: Error on reception of "+
@@ -72,6 +70,15 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 			instance, err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
+
+	// Update our internal phase machine to started
+	ok, err := instance.GetPhaseShareMachine().Update(state.STARTED)
+	if err != nil {
+		jww.ERROR.Printf("Failed to transition to state STARTED: %+v", err)
+	}
+	if !ok {
+		jww.ERROR.Printf("Could not transition to state STARTED")
+	}
 
 	// Generate and sign the  message to be shared with the team
 	err = TransmitPhaseShare(instance, r, nil)
@@ -101,6 +108,16 @@ func SharePhasePiece(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 	}
 	if curActivity != current.PRECOMPUTING {
 		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
+	}
+
+	// Check the local phase state machine for proper state
+	curStatus, err := instance.GetPhaseShareMachine().WaitFor(100*time.Millisecond, state.STARTED)
+	if err != nil {
+		return errors.WithMessagef(err, errFailedToWait, state.STARTED.String())
+	}
+	if curStatus != state.STARTED {
+		return errors.Errorf(errCouldNotWait, state.STARTED.String())
+
 	}
 
 	// Get round from round manager
@@ -142,11 +159,6 @@ func SharePhasePiece(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 
 	return nil
 }
-
-// involve incremnt shares. Going to have to get pulled out, on edge check
-//
-
-//
 
 // updateSharePieces is a helper function which updates the state for a new
 // round's phaseShare being received. If we have received a share from all
@@ -230,6 +242,13 @@ func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 	// Set round key now that everything is confirmed
 	grp.SetBytes(r.GetBuffer().CypherPublicKey, finalKey)
 
+	ok, err := instance.GetPhaseShareMachine().Update(state.ENDED)
+	if err != nil {
+		return errors.Errorf("Failed to transition to state ENDED: %+v", err)
+	}
+	if !ok {
+		return errors.Errorf("Could not transition to state ENDED")
+	}
 	// Once done, transition from precompShare to precompDecrypt
 	// Fixme: figure out how to properly transfer phases
 	//if err := transitionToPrecompDecrypt(instance, r); err != nil {
@@ -315,6 +334,15 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}
+
+	ok, err := instance.GetPhaseShareMachine().Reset()
+	if err != nil {
+		return errors.Errorf("Failed to transition to state ENDED: %+v", err)
+	}
+	if !ok {
+		return errors.Errorf("Could not transition to state ENDED")
+	}
+
 	return nil
 }
 

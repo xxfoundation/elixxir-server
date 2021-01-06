@@ -51,14 +51,14 @@ type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundEr
 
 // Holds long-lived server state
 type Instance struct {
-	Online        bool
-	definition    *Definition
-	roundManager  *round.Manager
-	resourceQueue *ResourceQueue
-	network       *node.Comms
-	streamPool    *gpumaths.StreamPool
-	machine       state.Machine
-	phaseState    state.GenericMachine
+	Online            bool
+	definition        *Definition
+	roundManager      *round.Manager
+	resourceQueue     *ResourceQueue
+	network           *node.Comms
+	streamPool        *gpumaths.StreamPool
+	machine           state.Machine
+	phaseStateMachine state.GenericMachine
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -134,7 +134,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		firstPoll:           &firstPoll,
 		gatewayFirstPoll:    NewFirstTime(),
 		clientErrors:        round.NewClientFailureReport(),
-		phaseState:          state.NewGenericMachine(),
+		phaseStateMachine:   state.NewGenericMachine(),
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -262,9 +262,14 @@ func (i *Instance) GetConsensus() *network.Instance {
 	return i.consensus
 }
 
-// GetStateMachine returns the consensus object
+// GetStateMachine returns the round tracking state machine
 func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
+}
+
+// GetStateMachine returns state machine tracking the phase share status
+func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
+	return i.phaseStateMachine
 }
 
 // GetGateway returns the id of the node's gateway
