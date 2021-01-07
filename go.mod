@@ -23,18 +23,18 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20210104180323-e63fb84884a4
-	gitlab.com/elixxir/crypto v0.0.7-0.20201204190304-eb78f3e5d1ff
+	gitlab.com/elixxir/comms v0.0.4-0.20210107191410-a94c39b6d275
+	gitlab.com/elixxir/crypto v0.0.7-0.20210106001826-bf1cc50f1a2c
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201204193956-57cb3db4b5fc
-	gitlab.com/elixxir/primitives v0.0.3-0.20201116174806-97f190989704
-	gitlab.com/xx_network/comms v0.0.4-0.20201204172144-7c65b7174ae1
-	gitlab.com/xx_network/crypto v0.0.5-0.20201209162436-bc2308a94174
-	gitlab.com/xx_network/primitives v0.0.3-0.20201116234927-44e42fc91e7c
+	gitlab.com/elixxir/primitives v0.0.3-0.20210106001742-69578b457afa
+	gitlab.com/xx_network/comms v0.0.4-0.20210106001723-9e94893d0208
+	gitlab.com/xx_network/crypto v0.0.5-0.20210106001644-a7c339164e03
+	gitlab.com/xx_network/primitives v0.0.4-0.20201229212313-fe33d9809f27
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1 // indirect
 	google.golang.org/grpc v1.33.2
 	gopkg.in/ini.v1 v1.62.0 // indirect
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
 )
 
