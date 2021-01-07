@@ -120,12 +120,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion:    version,
-		firstRun:         &firstRun,
-		firstPoll:        &firstPoll,
-		gatewayFirstPoll: NewFirstTime(),
-		clientErrors:     round.NewClientFailureReport(),
-		phaseStateMachine:   state.NewGenericMachine(),
+		serverVersion:     version,
+		firstRun:          &firstRun,
+		firstPoll:         &firstPoll,
+		gatewayFirstPoll:  NewFirstTime(),
+		clientErrors:      round.NewClientFailureReport(),
+		phaseStateMachine: state.NewGenericMachine(),
 	}
 
 	// Create stream pool if instructed to use GPU

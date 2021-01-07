@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20210107191410-a94c39b6d275
+	gitlab.com/elixxir/comms v0.0.4-0.20210107210825-0c6e29656151
 	gitlab.com/elixxir/crypto v0.0.7-0.20210106001826-bf1cc50f1a2c
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201204193956-57cb3db4b5fc
 	gitlab.com/elixxir/primitives v0.0.3-0.20210106001742-69578b457afa

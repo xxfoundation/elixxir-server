@@ -53,12 +53,7 @@ type GenericMachine struct {
 	changebuffer chan Status
 }
 
-//trinary, not started, started, ended
-// make it waitForActive()
-// makeActive() end()
-// instantiate in instance
-// make it generic,
-
+// Constructor which generates a generic state machine
 func NewGenericMachine() GenericMachine {
 	ss := NOT_STARTED
 
@@ -82,7 +77,7 @@ func NewGenericMachine() GenericMachine {
 	return GM
 }
 
-// todo: docstring
+// Initiates the state machine
 func (gm GenericMachine) Start() error {
 	_, err := gm.stateChange(*gm.Status)
 	return err
@@ -106,7 +101,10 @@ func (gm GenericMachine) WaitFor(timeout time.Duration, expected ...Status) (Sta
 		expectedMap[val] = true
 	}
 
-	// todo: comment
+	// start a thread to reserve a spot to get a notification on state updates
+	// state updates cannot happen until the state read lock is released, so
+	// this wont do anything until the initial checks are done, but will ensure
+	// there are no laps in being ready to receive a notifications
 	timer := time.NewTimer(timeout)
 	go func() {
 		// wait on a state change notification or a timeout

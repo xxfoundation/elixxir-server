@@ -78,8 +78,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// share needs a copy of the graph constructor with an input size of 1
 	gcShare := services.NewGraphGenerator(1,
 		1, 1, 0.0)
-
-	// todo: modify this logic, it's handler and the broadcaster (?)
+	// todo: May need modification for integration w/ phaseShare
 	precompShareDefinition := phase.Definition{
 		Graph:               precomputation.InitShareGraph(gcShare),
 		Type:                phase.PrecompShare,
@@ -99,7 +98,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// The last node broadcasts the result to all other nodes so it uses a
 	// different transmission handler
-	// todo: modify this logic, it's handler and the broadcaster (?)
+	// todo: May need modification for integration w/ phaseShare
 	if topology.IsLastNode(nodeID) {
 		precompShareDefinition.TransmissionHandler = io.TransmitRoundPublicKey
 	}

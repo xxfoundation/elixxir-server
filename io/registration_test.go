@@ -95,8 +95,8 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 	}
 
 	serverRSAPub := serverRSAPriv.GetPublic()
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000))
-
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
+	cnt++
 	def := internal.Definition{
 		ID:              nid,
 		UserRegistry:    &globals.UserMap{},
