@@ -35,17 +35,12 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"net"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 )
-
-// The placeholder for the host in the Gateway address that is used to indicate
-// to permissioning to replace it with the Node's host.
-const gatewayReplaceIpPlaceholder = "CHANGE_TO_PUBLIC_IP"
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
@@ -86,11 +81,9 @@ type Instance struct {
 	overrideRound  int
 	panicWrapper   func(s string)
 
-	gatewayAddress      string
-	gatewayVersion      string
-	gatewayMutex        sync.RWMutex
-	useNodeIpForGateway bool
-	gatewayAdvertisedIP string
+	gatewayAddress string
+	gatewayVersion string
+	gatewayMutex   sync.RWMutex
 
 	serverVersion string
 
@@ -127,13 +120,11 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		useNodeIpForGateway: def.Gateway.UseNodeIp,
-		gatewayAdvertisedIP: def.Gateway.AdvertisedIP,
-		serverVersion:       version,
-		firstRun:            &firstRun,
-		firstPoll:           &firstPoll,
-		gatewayFirstPoll:    NewFirstTime(),
-		clientErrors:        round.NewClientFailureReport(),
+		serverVersion:    version,
+		firstRun:         &firstRun,
+		firstPoll:        &firstPoll,
+		gatewayFirstPoll: NewFirstTime(),
+		clientErrors:     round.NewClientFailureReport(),
 		phaseStateMachine:   state.NewGenericMachine(),
 	}
 
@@ -141,7 +132,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	if def.UseGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
-		memSize := 268435456
+		memSize := 200000
 		jww.INFO.Printf("Initializing GPU maths, CUDA backend, with memory size %v", memSize)
 		var err error
 		// It could be better to configure the amount of memory used in a configuration file instead
@@ -463,45 +454,22 @@ func (i *Instance) GetGatewayData() (addr string, ver string) {
 	return i.gatewayAddress, i.gatewayVersion
 }
 
+// UpsertGatewayData saves the gateway address and version to the instance, if
+// they differ. Panics if the gateway address is empty.
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
+	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
+
+	if addr == "" {
+		jww.FATAL.Panicf("Faild to upsert gateway data, gateway address is empty.")
+	}
+
 	i.gatewayMutex.Lock()
 	defer i.gatewayMutex.Unlock()
 
-	addr = i.getGatewayAdvertisedIP(addr)
-
-	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
 	if i.gatewayAddress != addr || i.gatewayVersion != ver {
 		(*i).gatewayAddress = addr
 		(*i).gatewayVersion = ver
 	}
-}
-
-// getGatewayAdvertisedIP returns the correct advertised IP for Gateway. If
-// useNodeIpForGateway is set, then a placeholder with the Gateway's IP is
-// returned. If gatewayAdvertisedIP is set, then it is returned. If neither is
-// set, then the original Gateway IP is returned.
-func (i *Instance) getGatewayAdvertisedIP(gatewayAddr string) string {
-	if gatewayAddr != "" {
-		if i.useNodeIpForGateway {
-			_, port, err := net.SplitHostPort(gatewayAddr)
-			if err != nil {
-				jww.FATAL.Panicf("Error parsing Gateway address %#v: %v", gatewayAddr, err)
-			}
-			addr := net.JoinHostPort(gatewayReplaceIpPlaceholder, port)
-			jww.TRACE.Printf("useNodeIpForGateway flag is set. Modified Gateway's "+
-				"address to %s", addr)
-
-			return addr
-		}
-
-		if i.gatewayAdvertisedIP != "" {
-			jww.TRACE.Printf("gatewayAdvertisedIP flag is set. Modified Gateway's "+
-				"address to %s", i.gatewayAdvertisedIP)
-			return i.gatewayAdvertisedIP
-		}
-	}
-
-	return gatewayAddr
 }
 
 /* TESTING FUNCTIONS */
@@ -592,8 +560,8 @@ func (i *Instance) ReportRemoteFailure(roundErr *mixmessages.RoundError) {
 	i.reportFailure(roundErr)
 }
 
-// Create a round error, pass the error over the chanel and update the state to ERROR state
-// In situations that cause critical panic level errors.
+// Create a round error, pass the error over the channel and update the state to
+// ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
 
 	//truncate the error if it is too long
@@ -618,8 +586,8 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 	i.reportFailure(&roundErr)
 }
 
-// Create a round error, pass the error over the chanel and update the state to ERROR state
-// In situations that cause critical panic level errors.
+// Create a round error, pass the error over the channel and update the state to
+// ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()

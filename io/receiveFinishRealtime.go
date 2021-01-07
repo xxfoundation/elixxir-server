@@ -65,14 +65,14 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 	p.Measure(measure.TagVerification)
 	go func() {
 		p.UpdateFinalStates()
-		if !r.GetTopology().IsFirstNode(instance.GetID()) {
+		/*if !r.GetTopology().IsFirstNode(instance.GetID()) {
 			// Disconnect from all hosts that are not "you"
 			for i := 0; i < r.GetTopology().Len(); i++ {
 				if !r.GetTopology().GetNodeAtIndex(i).Cmp(instance.GetID()) {
 					r.GetTopology().GetHostAtIndex(i).Disconnect()
 				}
 			}
-		}
+		}*/
 		if !instance.GetKeepBuffers() {
 			//Delete the round and its data from the manager
 			//Delay so it can be used by post round hanlders
@@ -116,11 +116,11 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 			// disconnect from a node which is in use. In such a case, the next
 			// operation will reconnect. Given how unlikely this event is and
 			// the auto recovery, we do not really care.
-			for i := 0; i < r.GetTopology().Len(); i++ {
+			/*for i := 0; i < r.GetTopology().Len(); i++ {
 				if !r.GetTopology().GetNodeAtIndex(i).Cmp(instance.GetID()) {
 					r.GetTopology().GetHostAtIndex(i).Disconnect()
 				}
-			}
+			}*/
 		}()
 	}
 

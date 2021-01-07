@@ -9,7 +9,5 @@ package conf
 
 // Contains Gateways config params
 type Gateway struct {
-	Paths        Paths
-	useNodeIp    bool
-	advertisedIP string
+	Paths Paths
 }
