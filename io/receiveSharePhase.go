@@ -251,9 +251,9 @@ func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 	}
 	// Once done, transition from precompShare to precompDecrypt
 	// Fixme: figure out how to properly transfer phases
-	//if err := transitionToPrecompDecrypt(instance, r); err != nil {
-	//	return errors.Errorf("Could not transition to precompDecrypt: %s", err)
-	//}
+	if err := transitionToPrecompDecrypt(instance, r); err != nil {
+		return errors.Errorf("Could not transition to precompDecrypt: %s", err)
+	}
 
 	return nil
 }
@@ -367,7 +367,7 @@ func checkFinalKeys(keys []*cyclic.Int) error {
 		thisKey := keys[i]
 		nextKey := keys[i+1]
 		if thisKey.Cmp(nextKey) != 0 {
-			return errors.Errorf("Keys from sub-rounds were not identical")
+			return errors.Errorf("Keys generated from phaseShare were not identical")
 		}
 	}
 	return nil
