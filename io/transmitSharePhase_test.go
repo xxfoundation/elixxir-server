@@ -54,7 +54,7 @@ func TestTransmitStartSharePhase(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(rnd)
 
-	err = TransmitStartSharePhase(roundID, instance)
+	err = TransmitStartSharePhase(roundID, instance, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to transmit: %+v", err)
 	}

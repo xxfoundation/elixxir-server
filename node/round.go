@@ -82,7 +82,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	precompShareDefinition := phase.Definition{
 		Graph:               precomputation.InitShareGraph(gcShare),
 		Type:                phase.PrecompShare,
-		TransmissionHandler: io.TransmitPhase,
+		TransmissionHandler: io.TransmitPhase, // fixme: replace w/ TransmitStartSharePhase
 		Timeout:             newRoundTimeout,
 		DoVerification:      true,
 	}

@@ -25,7 +25,7 @@ import (
 // Triggers the multi-party communication in which generation of the
 // round's Diffie-Hellman key will be generated. This triggers all other
 // nodes in the team to start generating and sending out shares.
-func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInstance) error {
+func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk, getMessage phase.GetMessage) error {
 	// Cast the instance into the proper internal type
 	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
