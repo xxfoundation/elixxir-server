@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
-  DOCKER_IMAGE: elixxirlabs/cuda-go:go1.13-cuda11.1
+  DOCKER_IMAGE: elixxirlabs/cuda-go:go1.13-cuda11.1-mc
   MIN_CODE_COVERAGE: "81.0"
 
 before_script:
