@@ -437,6 +437,7 @@ func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
+func (*MockPhase) GetAlternate() (bool, func())           { return false, nil }
 
 func buildTestNetworkComponents(impls []*node.Implementation, portStart int,
 	t *testing.T) ([]*node.Comms, *connect.Circuit) {

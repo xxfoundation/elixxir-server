@@ -84,9 +84,11 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	round.phaseStateUpdateSignal = make(chan struct{}, 1)
 
 	for index, p := range phases {
-		p.GetGraph().Build(batchSize, errorHandler)
-		if p.GetGraph().GetExpandedBatchSize() > maxBatchSize {
-			maxBatchSize = p.GetGraph().GetExpandedBatchSize()
+		if p.GetGraph() != nil {
+			p.GetGraph().Build(batchSize, errorHandler)
+			if p.GetGraph().GetExpandedBatchSize() > maxBatchSize {
+				maxBatchSize = p.GetGraph().GetExpandedBatchSize()
+			}
 		}
 
 		// the NumStates-2 exists because the Initialized and verified states
@@ -160,12 +162,14 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 
 	for index, p := range phases {
 		// If in realDecrypt, we need to handle client specific errors
-		if p.GetType() == phase.RealDecrypt {
-			p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool, clientErr, id)
-		} else {
-			// Other phases can operate normally
-			p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
+		if p.GetGraph() != nil {
+			if p.GetType() == phase.RealDecrypt {
+				p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool, clientErr, id)
+			} else {
+				// Other phases can operate normally
+				p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
 
+			}
 		}
 
 		round.phaseMap[p.GetType()] = index
@@ -271,7 +275,8 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 
 	if err != nil {
 		jww.FATAL.Panicf("phase %s looked up up from response map "+
-			"does not exist in round", response.GetPhaseLookup())
+			"with tag %s does not exist in round", response.GetPhaseLookup(),
+			commTag)
 	}
 
 	t := time.NewTimer(15 * time.Second)

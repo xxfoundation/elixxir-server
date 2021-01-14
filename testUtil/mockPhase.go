@@ -104,6 +104,7 @@ func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
+func (*MockPhase) GetAlternate() (bool, func())           { return false, nil }
 
 func InitMockPhase(t *testing.T) *MockPhase {
 	if t == nil {

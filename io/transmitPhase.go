@@ -37,6 +37,7 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 	if err != nil {
 		return errors.Errorf("Received completed batch for round %v that doesn't exist: %s", roundID, err)
 	}
+	rType := r.GetCurrentPhaseType()
 
 	topology := r.GetTopology()
 	nodeId := instance.GetID()
@@ -82,7 +83,7 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 		measureFunc(measure.TagTransmitLastSlot)
 	}
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
-		name, roundID, r.GetCurrentPhaseType())
+		name, roundID, rType)
 
 	// Make sure the comm doesn't return an Ack with an error message
 	ack, err := instance.GetNetwork().SendPostPhase(recipient, batch)

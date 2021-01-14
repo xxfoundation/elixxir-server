@@ -38,7 +38,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		return errors.Errorf("Could not retrieve round %d from"+
 			" manager %s", roundID, err)
 	}
-
+	rType := r.GetCurrentPhaseType()
 	topology := r.GetTopology()
 	nodeID := instance.GetID()
 
@@ -96,7 +96,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		topology.Len())
 
 	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\""+
-		" COMPLETE/SEND", name, roundID, r.GetCurrentPhaseType())
+		" COMPLETE/SEND", name, roundID, rType)
 
 	cancel()
 
