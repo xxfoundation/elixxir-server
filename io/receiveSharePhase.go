@@ -163,7 +163,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 	} else {
 		// If not a participant, send message to neighboring node
 		if err = TransmitPhaseShare(instance, r, piece); err != nil {
-			jww.FATAL.Panicf("Error on ReceiveSharePhasePiece: "+
+			jww.FATAL.Panicf("ReceiveSharePhasePiece Error: "+
 				"Could not send our shared piece of the key: %s", err)
 		}
 	}
@@ -222,10 +222,23 @@ func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 	}
 
 	// Check the validity
-	if err = updateFinalKeys(piece, r, senderId, instance); err != nil {
-		jww.FATAL.Panicf("Could not verify final key received: %v", err)
+	var finalKeys []*cyclic.Int
+	if finalKeys, err = updateFinalKeys(piece, r, senderId, instance); err != nil {
+		jww.FATAL.Panicf("ReceiveFinalKey Error: "+
+			"Issue verifying received final keys: %v", err)
 
 	}
+
+	// If we have received final keys from every node,
+	// it's time to finalize key negotiation
+	teamSize := r.GetTopology().Len()
+	if len(finalKeys) != teamSize {
+		if err = finalizeKeyGeneration(instance, r, finalKeys); err != nil {
+			jww.FATAL.Panicf("ReceiveFinalKey Error: "+
+				"Could not finalize key negotiation: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -233,15 +246,15 @@ func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 // It checks the validity of the supposed final key. If valid,
 // it adds it to the state. If we have received final keys from all
 // nodes, final key generation is initiated.
-func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
-	instance *internal.Instance) error {
+func updateFinalKeys(piece *pb.SharePiece, r *round.Round,
+	originID *id.ID, instance *internal.Instance) ([]*cyclic.Int, error) {
 	// Pull the participants and teamsize information
 	participants := piece.Participants
 	teamSize := r.GetTopology().Len()
 
 	// Check if this shared piece has gone through all nodes
 	if len(participants) != teamSize {
-		return errors.Errorf("Potential final key was not " +
+		return nil, errors.Errorf("Potential final key was not " +
 			"received by all members of the team")
 	}
 
@@ -258,17 +271,10 @@ func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
 	grp := instance.GetConsensus().GetCmixGroup()
 	roundKey := grp.NewIntFromBytes(piece.Piece)
 	if err := r.AddFinalShareMessage(piece, originID); err != nil {
-		return errors.Errorf("Failed to add final key "+
+		return nil, errors.Errorf("Failed to add final key "+
 			"from [%s]: %v", originID, err)
 	}
-	finalKeys := r.UpdateFinalKeys(roundKey)
-
-	// If we have received final keys from every node
-	if len(finalKeys) == teamSize {
-		return finalizeKeyGeneration(instance, r, finalKeys)
-	}
-
-	return nil
+	return r.UpdateFinalKeys(roundKey), nil
 }
 
 // finalizeKeyGeneration makes the final checks for the key generation.
@@ -294,8 +300,7 @@ func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 
 	// Double check that key is inside of group
 	grp := instance.GetConsensus().GetCmixGroup()
-	inside := grp.BytesInside(finalKey)
-	if !inside {
+	if !grp.BytesInside(finalKey) {
 		return services.ErrOutsideOfGroup
 	}
 
@@ -441,9 +446,11 @@ func checkSignatures(r *round.Round) error {
 		msg := r.GetPieceMessagesByNode(nodeInfo.GetId())
 		// Check every message from every node in team
 		// Check if the signature for this message is valid
+		// fixme: this is done for multi-instance test: DO NOT keep in final merge
 		if nodeInfo.GetPubKey() != nil {
 			if err := signature.Verify(msg, nodeInfo.GetPubKey()); err != nil {
-				return errors.Errorf("Could not verify signature for node [%s]: %v",
+				return errors.Errorf(
+					"Could not verify signature for node [%s]: %v",
 					nodeInfo.GetId(), err)
 			}
 		}
