@@ -18,7 +18,7 @@ import (
 const expectedNumPhases = 7
 
 func TestNewRoundComponents_FirstNode(t *testing.T) {
-	expectedFirstNodeResponses := 7
+	expectedFirstNodeResponses := 8
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -106,7 +106,7 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 }
 
 func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
-	expectedFirstNodeResponses := 7
+	expectedFirstNodeResponses := 8
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
