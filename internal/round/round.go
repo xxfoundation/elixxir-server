@@ -378,26 +378,21 @@ func (r *Round) GetRTPayload() string {
 	return r.roundMetrics.RTPayload
 }
 
-// AddPieceMessage adds to the message tracker a new shared piece to the list
-// of messages received by this host
-func (r *Round) AddPieceMessage(piece *pb.SharePiece, origin *id.ID) {
-	r.buffer.AddPieceMessage(piece, origin)
+// AddFinalShareMessage adds to the message tracker final share piece from the sender
+// If we have a message in there already, we error
+func (r *Round) AddFinalShareMessage(piece *pb.SharePiece, origin *id.ID) error {
+	return r.buffer.AddFinalShareMessage(piece, origin)
 }
 
-// GetPieceMessagesByNode gets all the sharePiece messages received by the
+// GetPieceMessagesByNode gets final share piece message received by the
 // specified nodeID
-func (r *Round) GetPieceMessagesByNode(origin *id.ID) []*pb.SharePiece {
+func (r *Round) GetPieceMessagesByNode(origin *id.ID) *pb.SharePiece {
 	return r.buffer.GetPieceMessagesByNode(origin)
 }
 
 // UpdateFinalKeys adds a new key to the list of final keys
 func (r *Round) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
 	return r.buffer.UpdateFinalKeys(piece)
-}
-
-// GetFinalKeys returns the list of keys generated
-func (r *Round) GetFinalKeys() []*cyclic.Int {
-	return r.buffer.GetFinalKeys()
 }
 
 func (r *Round) IncrementShares() uint32 {

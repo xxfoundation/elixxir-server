@@ -7,6 +7,7 @@
 package io
 
 import (
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -54,7 +55,7 @@ func TestTransmitStartSharePhase(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(rnd)
 
-	err = TransmitStartSharePhase(roundID, instance, nil, nil)
+	err = TransmitStartSharePhase(roundID, instance)
 	if err != nil {
 		t.Errorf("Failed to transmit: %+v", err)
 	}
@@ -95,14 +96,16 @@ func TestTransmitPhaseShare(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(rnd)
 
-	// Nil piece transmission
-	err = TransmitPhaseShare(instance, rnd, nil)
-	if err != nil {
-		t.Errorf("Failed to transmit: %+v", err)
-	}
-
 	// Non-nil piece transmission
-	piece := generateShare(nil, grp, rnd, instance.GetID())
+	msg := &pb.SharePiece{
+		Piece:        grp.GetG().Bytes(),
+		Participants: make([][]byte, 0),
+		RoundID:      uint64(rnd.GetID()),
+	}
+	piece, err := generateShare(msg, grp, rnd, instance)
+	if err != nil {
+		t.Errorf("Could not generate a mock share: %v", err)
+	}
 	err = TransmitPhaseShare(instance, rnd, piece)
 	if err != nil {
 		t.Errorf("Failed to transmit: %+v", err)

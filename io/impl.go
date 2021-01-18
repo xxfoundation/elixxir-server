@@ -159,11 +159,15 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 	}
 
 	impl.Functions.StartSharePhase = func(ri *mixmessages.RoundInfo, auth *connect.Auth) error {
-		return StartSharePhase(ri, auth, instance)
+		return ReceiveStartSharePhase(ri, auth, instance)
 	}
 
 	impl.Functions.SharePhaseRound = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
-		return SharePhasePiece(sharedPiece, auth, instance)
+		return ReceiveSharePhasePiece(sharedPiece, auth, instance)
+	}
+
+	impl.Functions.ShareFinalKey = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
+		return ReceiveFinalKey(sharedPiece, auth, instance)
 	}
 
 	return impl

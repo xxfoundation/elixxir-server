@@ -7,7 +7,7 @@
 
 package io
 
-// Contains handlers for StartSharePhase and SharePhasePiece
+// Contains handlers for ReceiveStartSharePhase and ReceiveSharePhasePiece
 
 import (
 	"bytes"
@@ -28,11 +28,11 @@ import (
 	"time"
 )
 
-// StartSharePhase is a reception handler for TransmitStartSharePhase.
+// ReceiveStartSharePhase is a reception handler for TransmitStartSharePhase.
 // It does basic checks of the validity of the message and the sender.
 // After checks are complete, it generates and transmits its own share by
 // calling TransmitPhaseShare
-func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
+func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	instance *internal.Instance) error {
 	// todo: check phase here, figure out how to do that. maybe use handlecomm func
 
@@ -55,9 +55,11 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	// Check for proper authentication
 	// and if the sender is the leader of the round
 	topology := r.GetTopology()
-	if !auth.IsAuthenticated || !topology.IsFirstNode(auth.Sender.GetId()) {
-		jww.WARN.Printf("Error on PostPhase: "+
-			"Attempted communication by %+v has not been authenticated: %s", auth.Sender, auth.Reason)
+	senderId := auth.Sender.GetId()
+	if !auth.IsAuthenticated || topology.GetNodeLocation(senderId) == -1 {
+		jww.WARN.Printf("Error on ReceiveStartSharePhase: "+
+			"Attempted communication by %+v has not been authenticated: %s",
+			auth.Sender, auth.Reason)
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
@@ -66,7 +68,7 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	_, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
 		return errors.Errorf("[%v]: Error on reception of "+
-			"StartSharePhase comm, should be able to return: \n %+v",
+			"ReceiveStartSharePhase comm, should be able to return: \n %+v",
 			instance, err)
 	}
 	p.Measure(measure.TagReceiveOnReception)
@@ -80,23 +82,33 @@ func StartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 		jww.ERROR.Printf("Could not transition to state STARTED")
 	}
 
+	// If first, generate our piece off of grp and our key
+	// and add ourselves to the participant list
+	grp := instance.GetConsensus().GetCmixGroup()
+	msg := &pb.SharePiece{
+		Piece:        grp.GetG().Bytes(),
+		Participants: make([][]byte, 0),
+		RoundID:      uint64(r.GetID()),
+	}
+
 	// Generate and sign the  message to be shared with the team
-	err = TransmitPhaseShare(instance, r, nil)
-	if err != nil {
-		jww.FATAL.Panicf("Error on StartSharePhase: "+
+	if err = TransmitPhaseShare(instance, r, msg); err != nil {
+		jww.FATAL.Panicf("Error on ReceiveStartSharePhase: "+
 			"Could not send our shared piece of the key: %v", err)
 	}
 
 	return nil
 }
 
-// SharePhasePiece is a reception handler for receiving a key generation share.
+// ReceiveSharePhasePiece is a reception handler for receiving a key generation share.
 // It does basic validity checks on the share and the sender. If our node is not
 // in the list of participants of the message, we generate a share off of the
 // received piece and send that share all other teammates.
 // We also update our state for this received message
-func SharePhasePiece(piece *pb.SharePiece, auth *connect.Auth, instance *internal.Instance) error {
+func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
+	instance *internal.Instance) error {
 
+	// Nil checks on received message
 	if piece == nil || piece.Participants == nil || piece.Piece == nil {
 		return errors.Errorf("Should not receive nil pieces in key generation")
 	}
@@ -130,82 +142,130 @@ func SharePhasePiece(piece *pb.SharePiece, auth *connect.Auth, instance *interna
 
 	// Check for proper authentication and if the sender is in the round
 	senderId := auth.Sender.GetId()
-	if !auth.IsAuthenticated ||
-		r.GetTopology().GetNodeLocation(senderId) == -1 {
-		jww.WARN.Printf("Error on SharePhasePiece: "+
+	topology := r.GetTopology()
+	prevNode := topology.GetPrevNode(instance.GetID())
+
+	if !auth.IsAuthenticated || !prevNode.Cmp(senderId) {
+		jww.WARN.Printf("Error on ReceiveSharePhasePiece: "+
 			"Attempted communication by %+v has not been authenticated: %s",
 			auth.Sender, auth.Reason)
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
-	// Handle the state of our round and update for received piece
-	err = updateSharePieces(instance, r, senderId, piece)
-	if err != nil {
-		jww.FATAL.Panicf("Error on round [%d] SharePhasePiece: Could not update "+
-			"new round shares: %s", r.GetID(), err)
-	}
-
-	// If we are aren't already a participant, we must send our share on this piece
 	participants := piece.Participants
-	if !isAlreadyParticipant(participants, instance.GetID().Bytes()) {
-		// Develop and send our share
-		err = TransmitPhaseShare(instance, r, piece)
-		if err != nil {
-			jww.FATAL.Panicf("Error on SharePhasePiece: "+
+	if isAlreadyParticipant(participants, instance.GetID().Bytes()) {
+		// If we are a participant, then our piece has come full circle.
+		// send out final key to all members
+		if err := TransmitFinalShare(instance, r, piece); err != nil {
+			jww.FATAL.Panicf("Error on ReceiveSharePhasePiece: "+
+				"Could not send our final key: %s", err)
+		}
+	} else {
+		// If not a participant, send message to neighboring node
+		if err = TransmitPhaseShare(instance, r, piece); err != nil {
+			jww.FATAL.Panicf("Error on ReceiveSharePhasePiece: "+
 				"Could not send our shared piece of the key: %s", err)
 		}
-
 	}
 
 	return nil
 }
 
-// updateSharePieces is a helper function which updates the state for a new
-// round's phaseShare being received. If we have received a share from all
-// we add to a list of final keys. If our final keys list is the size of the
-// team, then we are done with sharePhase and check all messages and keys.
-// If we don't enough final keys, we start a new sub-round of generating a key
-func updateSharePieces(instance *internal.Instance, r *round.Round,
-	originID *id.ID, piece *pb.SharePiece) error {
-	// Add message to state
-	r.AddPieceMessage(piece, originID)
-	newAmountOfShares := r.IncrementShares()
+// ReceiveFinalKey is a reception handler for a node transmitting their generated
+// final key. This node checks for validity of the message and its own state.
+// Further checks the validity of the key received, and updates it's own state
+// upon validation. If all final keys have been received, this node finalizes
+// key generation and moves it's phase forward
+func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
+	instance *internal.Instance) error {
 
+	// Nil checks on received message
+	if piece == nil || piece.Participants == nil || piece.Piece == nil {
+		return errors.Errorf("Should not receive nil pieces in key generation")
+	}
+
+	// Check state machine for proper state
+	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
+	if err != nil {
+		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
+	}
+	if curActivity != current.PRECOMPUTING {
+		return errors.Errorf(errCouldNotWait, current.PRECOMPUTING.String())
+	}
+
+	// Check the local phase state machine for proper state
+	curStatus, err := instance.GetPhaseShareMachine().WaitFor(100*time.Millisecond, state.STARTED)
+	if err != nil {
+		return errors.WithMessagef(err, errFailedToWait, state.STARTED.String())
+	}
+	if curStatus != state.STARTED {
+		return errors.Errorf(errCouldNotWait, state.STARTED.String())
+	}
+
+	// Get round from round manager
+	roundID := id.Round(piece.RoundID)
+	rm := instance.GetRoundManager()
+	r, err := rm.GetRound(roundID)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to get round")
+	}
+
+	// Check for proper authentication and if the
+	// sender is the leader of the round
+	topology := r.GetTopology()
+	senderId := auth.Sender.GetId()
+	if !auth.IsAuthenticated || topology.GetNodeLocation(senderId) == -1 {
+		jww.WARN.Printf("Error on ReceiveStartSharePhase: "+
+			"Attempted communication by %+v has not been authenticated: %s",
+			auth.Sender, auth.Reason)
+		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
+	}
+
+	// Check the validity
+	if err = updateFinalKeys(piece, r, senderId, instance); err != nil {
+		jww.FATAL.Panicf("Could not verify final key received: %v", err)
+
+	}
+	return nil
+}
+
+// updateFinalKeys is a helper function for ReceiveFinalKey.
+// It checks the validity of the supposed final key. If valid,
+// it adds it to the state. If we have received final keys from all
+// nodes, final key generation is initiated.
+func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
+	instance *internal.Instance) error {
 	// Pull the participants and teamsize information
 	participants := piece.Participants
 	teamSize := r.GetTopology().Len()
 
 	// Check if this shared piece has gone through all nodes
-	if len(participants) == teamSize {
-		// Add the key with all shares to our state
-		grp := instance.GetConsensus().GetCmixGroup()
-		roundKey := grp.NewIntFromBytes(piece.Piece)
-		finalKeys := r.UpdateFinalKeys(roundKey)
+	if len(participants) != teamSize {
+		return errors.Errorf("Potential final key was not " +
+			"received by all members of the team")
+	}
 
-		// Check if the amount of keys added to the list is equal to the teamsize.
-		// ie shares originated from every node in the team has made the rounds
-		// across the team to be generated as a final key
-		if teamSize == len(finalKeys) {
-			// Check that the every node has sent a share [teamsize^2] times
-			if (teamSize * teamSize) != int(newAmountOfShares) {
-				// When the amount of keys generated are (teamsize), the amount
-				// of shares should also be (teamsize^2). If this is not the case,
-				// something has gone wrong
-				return errors.Errorf("Amount of shares [%d] does not reflect "+
-					"every node sending a message expected amount of times. "+
-					"Expected amount of shares [%d]",
-					newAmountOfShares, teamSize*teamSize)
+	// todo: this is for debugging, remove when ready to merge
+	list := make([]*id.ID, 0)
+	for _, thisId := range participants {
+		identification, _ := id.Unmarshal(thisId)
+		list = append(list, identification)
+	}
+	jww.DEBUG.Printf("[%s] List of IDs: %v", instance.GetID(), list)
+	// todo: remove all above debugging code
 
-			}
+	// Add the key with all shares to our state
+	grp := instance.GetConsensus().GetCmixGroup()
+	roundKey := grp.NewIntFromBytes(piece.Piece)
+	if err := r.AddFinalShareMessage(piece, originID); err != nil {
+		return errors.Errorf("Failed to add final key "+
+			"from [%s]: %v", originID, err)
+	}
+	finalKeys := r.UpdateFinalKeys(roundKey)
 
-			// If so, perform finalize the key generation phase
-			err := finalizeKeyGeneration(instance, r, finalKeys)
-			if err != nil {
-				return errors.Errorf("Could not "+
-					"finalize key generation: %s", err)
-			}
-
-		}
+	// If we have received final keys from every node
+	if len(finalKeys) == teamSize {
+		return finalizeKeyGeneration(instance, r, finalKeys)
 	}
 
 	return nil
@@ -250,7 +310,6 @@ func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 		return errors.Errorf("Could not transition to state ENDED")
 	}
 	// Once done, transition from precompShare to precompDecrypt
-	// Fixme: figure out how to properly transfer phases
 	if err := transitionToPrecompDecrypt(instance, r); err != nil {
 		return errors.Errorf("Could not transition to precompDecrypt: %s", err)
 	}
@@ -270,17 +329,17 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 	r, p, err := rm.HandleIncomingComm(roundID, tag)
 	if err != nil {
 		roundErr := errors.Errorf("Error on reception of "+
-			"SharePhasePiece comm, should be able to return: \n %+v", err)
+			"ReceiveSharePhasePiece comm, should be able to return: \n %+v", err)
 		return roundErr
 	}
 	p.Measure(measure.TagVerification)
 
-	jww.INFO.Printf("[%v]: RID %d SharePhasePiece PK is: %s",
+	jww.INFO.Printf("[%v]: RID %d ReceiveSharePhasePiece PK is: %s",
 		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))
 
 	p.UpdateFinalStates()
 
-	jww.INFO.Printf("[%v]: RID %d SharePhasePiece END", instance,
+	jww.INFO.Printf("[%v]: RID %d ReceiveSharePhasePiece END", instance,
 		roundID)
 
 	if topology.IsFirstNode(instance.GetID()) {
@@ -311,11 +370,11 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 		}
 		decrypt, err := r.GetPhase(phase.PrecompDecrypt)
 		if err != nil {
-			return errors.Errorf("Error on first node SharePhasePiece "+
+			return errors.Errorf("Error on first node ReceiveSharePhasePiece "+
 				"comm, should be able to get decrypt phase: %+v", err)
 		}
 
-		jww.INFO.Printf("[%v]: RID %d SharePhasePiece FIRST NODE START PHASE \"%s\"", instance,
+		jww.INFO.Printf("[%v]: RID %d ReceiveSharePhasePiece FIRST NODE START PHASE \"%s\"", instance,
 			roundID, decrypt.GetType())
 
 		queued :=
@@ -324,13 +383,13 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 		decrypt.Measure(measure.TagReceiveOnReception)
 
 		if !queued {
-			return errors.Errorf("Error on first node SharePhasePiece " +
+			return errors.Errorf("Error on first node ReceiveSharePhasePiece " +
 				"comm, should be able to queue decrypt phase")
 		}
 		err = PostPhase(decrypt, blankBatch)
 
 		if err != nil {
-			return errors.Errorf("Error on first node SharePhasePiece "+
+			return errors.Errorf("Error on first node ReceiveSharePhasePiece "+
 				"comm, should be able to post to decrypt phase: %+v", err)
 		}
 	}
@@ -367,7 +426,7 @@ func checkFinalKeys(keys []*cyclic.Int) error {
 		thisKey := keys[i]
 		nextKey := keys[i+1]
 		if thisKey.Cmp(nextKey) != 0 {
-			return errors.Errorf("Keys generated from phaseShare were not identical")
+			return errors.Errorf("Keys generated from phase share were not identical")
 		}
 	}
 	return nil
@@ -379,10 +438,10 @@ func checkSignatures(r *round.Round) error {
 	topology := r.GetTopology()
 	for i := 0; i < topology.Len(); i++ {
 		nodeInfo := topology.GetHostAtIndex(i)
-		msgs := r.GetPieceMessagesByNode(nodeInfo.GetId())
+		msg := r.GetPieceMessagesByNode(nodeInfo.GetId())
 		// Check every message from every node in team
-		for _, msg := range msgs {
-			// Check if the signature for this message is valid
+		// Check if the signature for this message is valid
+		if nodeInfo.GetPubKey() != nil {
 			if err := signature.Verify(msg, nodeInfo.GetPubKey()); err != nil {
 				return errors.Errorf("Could not verify signature for node [%s]: %v",
 					nodeInfo.GetId(), err)

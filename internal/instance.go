@@ -259,6 +259,7 @@ func (i *Instance) GetStateMachine() state.Machine {
 }
 
 // GetStateMachine returns state machine tracking the phase share status
+// todo: consider removing, may not be needed for final phase share design
 func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
 	return i.phaseStateMachine
 }

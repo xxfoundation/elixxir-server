@@ -59,6 +59,10 @@ type MockPhase struct {
 	indices []uint32
 }
 
+func (mp *MockPhase) GetAlternate() (bool, func()) {
+	panic("implement me")
+}
+
 func (mp *MockPhase) Send(chunk services.Chunk) {
 	mp.chunks = append(mp.chunks, chunk)
 }
@@ -213,8 +217,12 @@ func makeTestPhase(instance *Instance, name phase.Type,
 		return nil
 	}
 	timeout := 500 * time.Millisecond
-	p := phase.New(phase.Definition{makeTestGraph(instance, 1), name, transmissionHandler,
-		timeout, false})
+	p := phase.New(phase.Definition{
+		Graph:               makeTestGraph(instance, 1),
+		Type:                name,
+		TransmissionHandler: transmissionHandler,
+		Timeout:             timeout,
+		DoVerification:      false})
 	return p
 }
 

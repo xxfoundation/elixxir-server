@@ -5,7 +5,7 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-// Contains sending functions for StartSharePhase and SharePhasePiece
+// Contains sending functions for ReceiveStartSharePhase and ReceiveSharePhasePiece
 
 package io
 
@@ -15,7 +15,6 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/primitives/id"
@@ -25,14 +24,9 @@ import (
 // Triggers the multi-party communication in which generation of the
 // round's Diffie-Hellman key will be generated. This triggers all other
 // nodes in the team to start generating and sending out shares.
-func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInstance) error {
-	// Cast the instance into the proper internal type
-	instance, ok := serverInstance.(*internal.Instance)
-	if !ok {
-		return errors.Errorf("Invalid server instance passed in")
-	}
+func TransmitStartSharePhase(roundID id.Round, instance *internal.Instance) error {
 
-	//get the round so you can get its batch size
+	// Get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
 		return errors.Errorf("Received completed batch for round %v that doesn't exist: %s", roundID, err)
@@ -44,7 +38,7 @@ func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInsta
 		ID: uint64(roundID),
 	}
 
-	// Send the trigger to everyone in the round
+	// Send the final key to everyone in the round
 	errChan := make(chan error, topology.Len())
 	var wg sync.WaitGroup
 	for i := 0; i < topology.Len(); i++ {
@@ -81,49 +75,62 @@ func TransmitStartSharePhase(roundID id.Round, serverInstance phase.GenericInsta
 }
 
 // TransmitPhaseShare is send function which generates our shared piece and
-// transmits it to all other nodes in the team. If theirPiece is non-nil,
-// then our piece generation is a response to receiving a shared piece
-// from a teammate. In this case, we create our piece off of their piece
-// by exponentiating on their share with our roundKey and sent that to the team.
-// If theirPiece is nil, then we are generating our piece for the first time,
-// exponentiating off of the group itself and our round key, sending that that
-// to the team.
+// transmits it to our neighboring node. We exponentiate the piece with our
+// private round key.
 func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	theirPiece *pb.SharePiece) error {
 
 	grp := instance.GetConsensus().GetCmixGroup()
 
 	// Build the message to be sent to all other nodes
-	ourPiece := generateShare(theirPiece, grp,
-		r, instance.GetID())
+	ourPiece, err := generateShare(theirPiece, grp,
+		r, instance)
 
-	// Sign our message for other nodes to verify
-	err := signature.Sign(ourPiece, instance.GetPrivKey())
+	// Pull recipient to send for the next node
+	topology := r.GetTopology()
+	recipientID := topology.GetNextNode(instance.GetID())
+	nextNodeIndex := topology.GetNodeLocation(recipientID)
+	recipient := topology.GetHostAtIndex(nextNodeIndex)
+
+	// Send share to next node
+	ack, err := instance.GetNetwork().SendSharePhase(recipient, ourPiece)
 	if err != nil {
-		return errors.Errorf("Could not sign message: %s", err)
+		return errors.Errorf("Could not send to node [%s]: %v",
+			recipient.GetId(), err)
+	}
+	if ack != nil && ack.Error != "" {
+		return errors.Errorf("Remote Server Error: %s", ack.Error)
 	}
 
-	// Send the shared theirPiece to all other nodes (including ourselves)
+	return nil
+}
+
+// TransmitFinalShare is a function which sends out the final key receive
+// all other nodes in the team.
+func TransmitFinalShare(instance *internal.Instance, r *round.Round,
+	finalPiece *pb.SharePiece) error {
+
 	topology := r.GetTopology()
-	var wg sync.WaitGroup
+
+	// Send the trigger to everyone in the round
 	errChan := make(chan error, topology.Len())
+	var wg sync.WaitGroup
 	for i := 0; i < topology.Len(); i++ {
 		wg.Add(1)
-		localIndex := i
-
-		go func() {
+		go func(localIndex int) {
+			// Send to every node other than ourself
 			h := topology.GetHostAtIndex(localIndex)
-			ack, err := instance.GetNetwork().SendSharePhase(h, ourPiece)
+			ack, err := instance.GetNetwork().SendFinalKey(h, finalPiece)
 			if err != nil {
-				errChan <- errors.Errorf("Could not send to node [%s]: %v", h.GetId(), err)
+				errChan <- errors.Wrapf(err, "")
 			}
 
 			if ack != nil && ack.Error != "" {
 				errChan <- errors.Errorf("Remote Server Error: %s", ack.Error)
-			}
 
+			}
 			wg.Done()
-		}()
+		}(i)
 	}
 	// Wait for all responses
 	wg.Wait()
@@ -141,39 +148,34 @@ func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	}
 
 	return errs
+
 }
 
 // generateShare is a helper function which generates a key share to be
-// sent to all nodes in the round. If this is a response to a received
-// share, we exponentiate on that share. If this is a response to a
-// StartSharePhase (theirPiece is nil), we exponentiate the group on our key
+// sent to the next node in the round. We exponentiate the received piece
+// with our round's private key
 func generateShare(theirPiece *pb.SharePiece, grp *cyclic.Group,
-	rnd *round.Round, ourId *id.ID) *pb.SharePiece {
+	rnd *round.Round, instance *internal.Instance) (*pb.SharePiece, error) {
 
-	roundKey := rnd.GetBuffer().Z
-	// Checks if we are the first participant to generate a share
-	if theirPiece == nil {
-		// If first, generate our piece off of grp and our key
-		// and add ourselves to the participant list
-		newPiece := grp.ExpG(roundKey, grp.NewInt(1))
-		participants := [][]byte{ourId.Bytes()}
-		return &pb.SharePiece{
-			Piece:        newPiece.Bytes(),
-			Participants: participants,
-			RoundID:      uint64(rnd.GetID()),
-		}
-	}
+	roundPrivKey := rnd.GetBuffer().Z
 
-	// If we are not the first, raise the existing piece by our key
+	// Raise the existing piece by our key
 	// and add ourselves to the participant list
 	oldPiece := grp.NewIntFromBytes(theirPiece.Piece)
-	newPiece := grp.Exp(oldPiece, roundKey, grp.NewInt(1))
+	newPiece := grp.Exp(oldPiece, roundPrivKey, grp.NewInt(1))
 	participants := theirPiece.Participants
-	participants = append(participants, ourId.Bytes())
+	participants = append(participants, instance.GetID().Bytes())
 
-	return &pb.SharePiece{
+	ourPiece := &pb.SharePiece{
 		Piece:        newPiece.Bytes(),
 		Participants: participants,
 		RoundID:      uint64(rnd.GetID()),
 	}
+
+	// Sign our message for other nodes to verify
+	if err := signature.Sign(ourPiece, instance.GetPrivKey()); err != nil {
+		return nil, errors.Errorf("Could not sign message: %s", err)
+	}
+
+	return ourPiece, nil
 }

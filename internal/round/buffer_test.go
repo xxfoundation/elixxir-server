@@ -8,10 +8,8 @@
 package round
 
 import (
-	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/xx_network/crypto/large"
-	"gitlab.com/xx_network/primitives/id"
 	"math/rand"
 	"reflect"
 	"sync/atomic"
@@ -413,16 +411,16 @@ func TestBuffer_Erase(t *testing.T) {
 			r.PermutedPayloadBKeys, nil)
 	}
 
-	if len(r.ShareMessages) != 0 {
-		t.Errorf("Erase() did not properly delete the buffer's ShareMessages map"+
-			"\n\treceived: %v\n\texpected: %v",
-			r.ShareMessages, nil)
-	}
-
 	if r.FinalKeys != nil {
 		t.Errorf("Erase() did not properly delete the buffer's FinalKeys"+
 			"\n\treceived: %v\n\texpected: %v",
 			r.FinalKeys, nil)
+	}
+
+	if len(r.FinalShareMessages) != 0 {
+		t.Errorf("Erase() did not properly delete the buffer's ShareMessages map"+
+			"\n\treceived: %v\n\texpected: %v",
+			r.FinalShareMessages, nil)
 	}
 
 	sharesReceived := atomic.LoadUint32(r.SharesReceived)
@@ -432,43 +430,6 @@ func TestBuffer_Erase(t *testing.T) {
 			r.SharesReceived, 0)
 	}
 
-}
-
-// Full test of methods handling ShareMessages in Buffer
-func TestBuffer_ShareMessages(t *testing.T) {
-	rng := rand.New(rand.NewSource(42))
-	batchSize := rng.Uint32() % 1000
-	expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
-
-	r := NewBuffer(grp, batchSize, expandedBatchSize)
-	testId := id.NewIdFromBytes([]byte("test"), t)
-	testMsg := &pb.SharePiece{
-		Piece: []byte("expectedPiece"),
-	}
-
-	// Test AddPieceMessage properly inserts message into map
-	r.AddPieceMessage(testMsg, testId)
-
-	receivedPiece := r.ShareMessages[testId]
-	if len(receivedPiece) != 1 {
-		t.Errorf("Map was not updated for newly inserted message")
-	}
-
-	if !reflect.DeepEqual(receivedPiece, []*pb.SharePiece{testMsg}) {
-		t.Errorf("AddPieceMessage did not add the message to the ShareMessages"+
-			"map: \n\treceived: [%v]\n\texpected: [%v]", receivedPiece, testMsg)
-	}
-
-	// Test GetPieceMessagesByNode properly retrieves messages from map
-	receivedPiece = r.GetPieceMessagesByNode(testId)
-	if len(receivedPiece) != 1 {
-		t.Errorf("Map was not updated for newly inserted message")
-	}
-
-	if !reflect.DeepEqual(receivedPiece, []*pb.SharePiece{testMsg}) {
-		t.Errorf("AddPieceMessage did not add the message to the ShareMessages"+
-			"map: \n\treceived: [%v]\n\texpected: [%v]", receivedPiece, testMsg)
-	}
 }
 
 // Full test of methods handling FinalKeys in Buffer
@@ -493,11 +454,11 @@ func TestBuffer_FinalKeys(t *testing.T) {
 	}
 
 	// Tests that GetFinalKeys retrieves from the slice the expected value
-	if len(r.GetFinalKeys()) != 1 {
+	if len(r.FinalKeys) != 1 {
 		t.Errorf("Final keys not updated after insertion of new key")
 	}
 
-	if expectedKey.Cmp(r.GetFinalKeys()[0]) != 0 {
+	if expectedKey.Cmp(r.FinalKeys[0]) != 0 {
 		t.Errorf("Final key received does not match expected."+
 			"\n\treceived: [%v]\n\texpected: [%v]", r.FinalKeys[0], expectedKey)
 	}
