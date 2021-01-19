@@ -146,7 +146,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 	prevNode := topology.GetPrevNode(instance.GetID())
 
 	if !auth.IsAuthenticated || !prevNode.Cmp(senderId) {
-		jww.WARN.Printf("Error on ReceiveSharePhasePiece: "+
+		jww.WARN.Printf("ReceiveSharePhasePiece Error: "+
 			"Attempted communication by %+v has not been authenticated: %s",
 			auth.Sender, auth.Reason)
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
@@ -171,11 +171,11 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 	return nil
 }
 
-// ReceiveFinalKey is a reception handler for a node transmitting their generated
-// final key. This node checks for validity of the message and its own state.
-// Further checks the validity of the key received, and updates it's own state
-// upon validation. If all final keys have been received, this node finalizes
-// key generation and moves it's phase forward
+// ReceiveFinalKey is a reception handler for a node transmitting their
+// team-generated final key. This node checks for validity of the message
+// and its own state. Further checks the validity of the key received,
+// and updates it's own state upon validation. If all final keys have been
+// received, this node finalizes key generation and moves it's phase forward
 func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 	instance *internal.Instance) error {
 
@@ -324,15 +324,10 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 	rm := instance.GetRoundManager()
 	topology := r.GetTopology()
 	roundID := r.GetID()
-
-	tag := phase.PrecompShare.String() + "Verification"
-	r, p, err := rm.HandleIncomingComm(roundID, tag)
+	p, err := rm.GetPhase(roundID, int32(phase.PrecompShare))
 	if err != nil {
-		roundErr := errors.Errorf("Error on reception of "+
-			"ReceiveSharePhasePiece comm, should be able to return: \n %+v", err)
-		return roundErr
+		return errors.Errorf("Could not pull phase: %v", err)
 	}
-	p.Measure(measure.TagVerification)
 
 	jww.INFO.Printf("[%v]: RID %d ReceiveSharePhasePiece PK is: %s",
 		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))

@@ -175,7 +175,7 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 	mockPhaseShare := testUtil.InitMockPhase(t)
 	mockPhaseShare.Ptype = phase.PrecompShare
 
-	tagKey := mockPhaseShare.GetType().String() + "Verification"
+	tagKey := mockPhaseShare.GetType().String()
 	responseMap[tagKey] = phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  mockPhaseShare.GetType(),
@@ -272,7 +272,7 @@ func TestReceiveFinalKey(t *testing.T) {
 	mockPhaseShare := testUtil.InitMockPhase(t)
 	mockPhaseShare.Ptype = phase.PrecompShare
 
-	tagKey := mockPhaseShare.GetType().String() + "Verification"
+	tagKey := mockPhaseShare.GetType().String()
 	responseMap[tagKey] = phase.NewResponse(
 		phase.ResponseDefinition{
 			PhaseAtSource:  mockPhaseShare.GetType(),

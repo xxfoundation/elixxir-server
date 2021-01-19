@@ -65,15 +65,6 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return err
 	}
 
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-		err := ReceivePostRoundPublicKey(instance, pk, auth)
-		if err != nil {
-			jww.ERROR.Printf("ReceivePostRoundPublicKey error: %+v, %+v", auth,
-				err)
-		}
-		return err
-	}
-
 	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
 		err := ReceiveFinishRealtime(instance, message, auth)
 		if err != nil {
