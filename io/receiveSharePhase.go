@@ -271,7 +271,7 @@ func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
 // Finally it sets the round buffer public key if that
 func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 	finalKeys []*cyclic.Int) error {
-	jww.DEBUG.Printf("Finalizing key generation for round [%s]", r.GetID())
+	jww.DEBUG.Printf("Finalizing key generation for round [%v]", r.GetID())
 	// Check signatures sent by every host
 	if err := checkSignatures(r); err != nil {
 		return err
