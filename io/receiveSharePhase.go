@@ -245,15 +245,6 @@ func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
 			"received by all members of the team")
 	}
 
-	// todo: this is for debugging, remove when ready to merge
-	list := make([]*id.ID, 0)
-	for _, thisId := range participants {
-		identification, _ := id.Unmarshal(thisId)
-		list = append(list, identification)
-	}
-	jww.DEBUG.Printf("[%s] List of IDs: %v", instance.GetID(), list)
-	// todo: remove all above debugging code
-
 	// Add the key with all shares to our state
 	grp := instance.GetConsensus().GetCmixGroup()
 	roundKey := grp.NewIntFromBytes(piece.Piece)
@@ -436,6 +427,7 @@ func checkSignatures(r *round.Round) error {
 		msg := r.GetPieceMessagesByNode(nodeInfo.GetId())
 		// Check every message from every node in team
 		// Check if the signature for this message is valid
+		// fixme: this is done for multiinstance test, remove before merge
 		if nodeInfo.GetPubKey() != nil {
 			if err := signature.Verify(msg, nodeInfo.GetPubKey()); err != nil {
 				return errors.Errorf("Could not verify signature for node [%s]: %v",

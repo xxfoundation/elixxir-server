@@ -24,12 +24,12 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
 	gitlab.com/elixxir/comms v0.0.4-0.20210118234933-d91e6de058bd
-	gitlab.com/elixxir/crypto v0.0.7-0.20210106001826-bf1cc50f1a2c
+	gitlab.com/elixxir/crypto v0.0.7-0.20210115231025-5d9b0dbc6985
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20201204193956-57cb3db4b5fc
-	gitlab.com/elixxir/primitives v0.0.3-0.20210106001742-69578b457afa
-	gitlab.com/xx_network/comms v0.0.4-0.20210106001723-9e94893d0208
-	gitlab.com/xx_network/crypto v0.0.5-0.20210106001644-a7c339164e03
-	gitlab.com/xx_network/primitives v0.0.4-0.20201229212313-fe33d9809f27
+	gitlab.com/elixxir/primitives v0.0.3-0.20210107183456-9cf6fe2de1e5
+	gitlab.com/xx_network/comms v0.0.4-0.20210115175102-ad5814bff11c
+	gitlab.com/xx_network/crypto v0.0.5-0.20210107183440-804e0f8b7d22
+	gitlab.com/xx_network/primitives v0.0.4-0.20210118193646-93176e2e6925
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1 // indirect
 	google.golang.org/grpc v1.33.2

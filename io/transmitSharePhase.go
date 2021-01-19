@@ -112,6 +112,11 @@ func TransmitFinalShare(instance *internal.Instance, r *round.Round,
 
 	topology := r.GetTopology()
 
+	// Sign our message for other nodes to verify
+	if err := signature.Sign(finalPiece, instance.GetPrivKey()); err != nil {
+		return errors.Errorf("Could not sign message: %s", err)
+	}
+
 	// Send the trigger to everyone in the round
 	errChan := make(chan error, topology.Len())
 	var wg sync.WaitGroup
