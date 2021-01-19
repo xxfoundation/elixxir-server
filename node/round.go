@@ -81,7 +81,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Type:                phase.PrecompShare,
 		TransmissionHandler: nil,
 		Timeout:             newRoundTimeout,
-		DoVerification:      true,
+		DoVerification:      false,
 	}
 
 	if topology.IsFirstNode(nodeID) {
@@ -93,15 +93,6 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 		}
 	}
-
-	// Build response to broadcast of result
-	responses[phase.PrecompShare.String()+phase.Verification] =
-		phase.NewResponse(
-			phase.ResponseDefinition{
-				PhaseAtSource:  phase.PrecompShare,
-				ExpectedStates: []phase.State{phase.Computed},
-				PhaseToExecute: phase.PrecompShare,
-			})
 
 	responses[phase.PrecompShare.String()] = phase.NewResponse(
 		phase.ResponseDefinition{
