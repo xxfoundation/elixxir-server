@@ -57,7 +57,7 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	topology := r.GetTopology()
 	senderId := auth.Sender.GetId()
 	if !auth.IsAuthenticated || topology.GetNodeLocation(senderId) == -1 {
-		jww.WARN.Printf("Error on ReceiveStartSharePhase: "+
+		jww.WARN.Printf("ReceiveStartSharePhase Error: "+
 			"Attempted communication by %+v has not been authenticated: %s",
 			auth.Sender, auth.Reason)
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
@@ -93,7 +93,7 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 
 	// Generate and sign the  message to be shared with the team
 	if err = TransmitPhaseShare(instance, r, msg); err != nil {
-		jww.FATAL.Panicf("Error on ReceiveStartSharePhase: "+
+		jww.FATAL.Panicf("ReceiveStartSharePhase Error: "+
 			"Could not send our shared piece of the key: %v", err)
 	}
 
@@ -157,13 +157,13 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 		// If we are a participant, then our piece has come full circle.
 		// send out final key to all members
 		if err := TransmitFinalShare(instance, r, piece); err != nil {
-			jww.FATAL.Panicf("Error on ReceiveSharePhasePiece: "+
+			jww.FATAL.Panicf("ReceiveSharePhasePiece Error: "+
 				"Could not send our final key: %s", err)
 		}
 	} else {
 		// If not a participant, send message to neighboring node
 		if err = TransmitPhaseShare(instance, r, piece); err != nil {
-			jww.FATAL.Panicf("Error on ReceiveSharePhasePiece: "+
+			jww.FATAL.Panicf("ReceiveSharePhasePiece Error: "+
 				"Could not send our shared piece of the key: %s", err)
 		}
 	}
@@ -215,7 +215,7 @@ func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 	topology := r.GetTopology()
 	senderId := auth.Sender.GetId()
 	if !auth.IsAuthenticated || topology.GetNodeLocation(senderId) == -1 {
-		jww.WARN.Printf("Error on ReceiveStartSharePhase: "+
+		jww.WARN.Printf("ReceiveFinalKey Error: "+
 			"Attempted communication by %+v has not been authenticated: %s",
 			auth.Sender, auth.Reason)
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
@@ -223,7 +223,7 @@ func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 
 	// Check the validity
 	if err = updateFinalKeys(piece, r, senderId, instance); err != nil {
-		jww.FATAL.Panicf("Could not verify final key received: %v", err)
+		jww.FATAL.Panicf("ReceiveFinalKey Error: Could not verify final key received: %v", err)
 
 	}
 	return nil
@@ -255,6 +255,8 @@ func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
 	}
 	finalKeys := r.UpdateFinalKeys(roundKey)
 
+	jww.DEBUG.Printf("Received final key [%v] from [%s]", roundKey, originID)
+
 	// If we have received final keys from every node
 	if len(finalKeys) == teamSize {
 		return finalizeKeyGeneration(instance, r, finalKeys)
@@ -269,7 +271,7 @@ func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
 // Finally it sets the round buffer public key if that
 func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 	finalKeys []*cyclic.Int) error {
-
+	jww.DEBUG.Printf("Finalizing key generation for round [%s]", r.GetID())
 	// Check signatures sent by every host
 	if err := checkSignatures(r); err != nil {
 		return err
@@ -427,7 +429,7 @@ func checkSignatures(r *round.Round) error {
 		nodeInfo := topology.GetHostAtIndex(i)
 		msg := r.GetPieceMessagesByNode(nodeInfo.GetId())
 		// Check every message from every node in team
-		// Check if the signature for this message is valid
+		// Check if theSending Start Share Phase message... signature for this message is valid
 		if nodeInfo.GetPubKey() != nil {
 			if err := signature.Verify(msg, nodeInfo.GetPubKey()); err != nil {
 				return errors.Errorf("Could not verify signature for node [%s]: %v",
