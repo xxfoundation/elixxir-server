@@ -248,6 +248,7 @@ func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
 	// Add the key with all shares to our state
 	grp := instance.GetConsensus().GetCmixGroup()
 	roundKey := grp.NewIntFromBytes(piece.Piece)
+	// Check that this node hasn't already sent a final key
 	if err := r.AddFinalShareMessage(piece, originID); err != nil {
 		return errors.Errorf("Failed to add final key "+
 			"from [%s]: %v", originID, err)
@@ -427,7 +428,6 @@ func checkSignatures(r *round.Round) error {
 		msg := r.GetPieceMessagesByNode(nodeInfo.GetId())
 		// Check every message from every node in team
 		// Check if the signature for this message is valid
-		// fixme: this is done for multiinstance test, remove before merge
 		if nodeInfo.GetPubKey() != nil {
 			if err := signature.Verify(msg, nodeInfo.GetPubKey()); err != nil {
 				return errors.Errorf("Could not verify signature for node [%s]: %v",
