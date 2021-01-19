@@ -170,38 +170,16 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
 
-	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	mockPhaseShare := testUtil.InitMockPhase(t)
 	mockPhaseShare.Ptype = phase.PrecompShare
 
-	tagKey := mockPhaseShare.GetType().String()
-	responseMap[tagKey] = phase.NewResponse(
-		phase.ResponseDefinition{
-			PhaseAtSource:  mockPhaseShare.GetType(),
-			ExpectedStates: []phase.State{phase.Active},
-			PhaseToExecute: mockPhaseShare.GetType()},
-	)
-
 	mockPhaseDecrypt := testUtil.InitMockPhase(t)
 	mockPhaseDecrypt.Ptype = phase.PrecompDecrypt
 
-	tagKey = mockPhaseDecrypt.GetType().String()
-	responseMap[tagKey] = phase.NewResponse(
-		phase.ResponseDefinition{
-			PhaseAtSource:  mockPhaseDecrypt.GetType(),
-			ExpectedStates: []phase.State{phase.Active},
-			PhaseToExecute: mockPhaseDecrypt.GetType()},
-	)
+	phases := []phase.Phase{mockPhaseShare, mockPhaseDecrypt}
 
-	responseMap[phase.PrecompShare.String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
-	responseMap[phase.PrecompShare.String()+"Verification"] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
-
-	rnd, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase, mockPhaseDecrypt},
+	rnd, err := round.New(grp, &globals.UserMap{}, roundID, phases,
 		responseMap, topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
@@ -267,38 +245,16 @@ func TestReceiveFinalKey(t *testing.T) {
 	}
 
 	// Build responses for checks and for phase transition
-	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	mockPhaseShare := testUtil.InitMockPhase(t)
 	mockPhaseShare.Ptype = phase.PrecompShare
 
-	tagKey := mockPhaseShare.GetType().String()
-	responseMap[tagKey] = phase.NewResponse(
-		phase.ResponseDefinition{
-			PhaseAtSource:  mockPhaseShare.GetType(),
-			ExpectedStates: []phase.State{phase.Active},
-			PhaseToExecute: mockPhaseShare.GetType()},
-	)
-
 	mockPhaseDecrypt := testUtil.InitMockPhase(t)
 	mockPhaseDecrypt.Ptype = phase.PrecompDecrypt
 
-	tagKey = mockPhaseDecrypt.GetType().String()
-	responseMap[tagKey] = phase.NewResponse(
-		phase.ResponseDefinition{
-			PhaseAtSource:  mockPhaseDecrypt.GetType(),
-			ExpectedStates: []phase.State{phase.Active},
-			PhaseToExecute: mockPhaseDecrypt.GetType()},
-	)
+	phases := []phase.Phase{mockPhaseShare, mockPhaseDecrypt}
 
-	responseMap[phase.PrecompShare.String()] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
-	responseMap[phase.PrecompShare.String()+"Verification"] =
-		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
-			[]phase.State{phase.Active}, mockPhase.GetType()})
-
-	rnd, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase, mockPhaseDecrypt},
+	rnd, err := round.New(grp, &globals.UserMap{}, roundID, phases,
 		responseMap, topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
