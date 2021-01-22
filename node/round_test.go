@@ -31,7 +31,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, false)
+		100, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -48,7 +48,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 }
 
 func TestNewRoundComponents_MiddleNode(t *testing.T) {
-	expectedMiddleNodeResponses := 10
+	expectedMiddleNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -61,7 +61,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, false)
+		100, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -77,7 +77,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 }
 
 func TestNewRoundComponents_LastNode(t *testing.T) {
-	expectedLastNodeResponses := 10
+	expectedLastNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -90,7 +90,7 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, false)
+		100, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -119,7 +119,7 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, true)
+		100, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -136,7 +136,7 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 }
 
 func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
-	expectedMiddleNodeResponses := 10
+	expectedMiddleNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -149,7 +149,7 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, true)
+		100, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -165,7 +165,7 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 }
 
 func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
-	expectedLastNodeResponses := 10
+	expectedLastNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -178,7 +178,7 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
 	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, true)
+		100, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+

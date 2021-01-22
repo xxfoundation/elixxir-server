@@ -81,20 +81,14 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 
 	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECEIVE/START", instance,
 		roundID, phaseTy, p.GetType())
+	//if the phase has an alternate action, use that
+	if has, alternate := p.GetAlternate(); has {
+		go alternate()
+		return nil
+	}
+
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
-	//HACK HACK HACK
-	//The share phase needs a batchsize of 1, when it receives
-	// from generation on the first node this will do the
-	// conversion on the batch
-	if p.GetType() == phase.PrecompShare && len(batch.Slots) != 1 {
-		batch.Slots = batch.Slots[:1]
-		batch.Slots[0].PartialRoundPublicCypherKey =
-			instance.GetConsensus().GetCmixGroup().GetG().Bytes()
-		jww.INFO.Printf("[%v]: RID %d PostPhase PRECOMP SHARE HACK "+
-			"HACK HACK", instance, roundID)
-	}
 
 	batch.FromPhase = int32(p.GetType())
 	//send the data to the phase

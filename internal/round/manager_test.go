@@ -89,8 +89,11 @@ func TestManager_GetPhase(t *testing.T) {
 			1, 1, 1)
 
 		definition := phase.Definition{
-			initMockGraph(gc), phase.Type(uint32(i)), nil,
-			time.Second, false,
+			Graph:               initMockGraph(gc),
+			Type:                phase.Type(uint32(i)),
+			TransmissionHandler: nil,
+			Timeout:             time.Second,
+			DoVerification:      false,
 		}
 
 		phases[i] = phase.New(definition)

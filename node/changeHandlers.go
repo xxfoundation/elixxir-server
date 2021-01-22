@@ -289,7 +289,8 @@ func Precomputing(instance *internal.Instance) error {
 		instance,
 		roundInfo.GetBatchSize(),
 		roundTimeout, instance.GetStreamPool(),
-		instance.GetDisableStreaming())
+		instance.GetDisableStreaming(),
+		roundID)
 
 	var override = func() {
 		phaseOverrides := instance.GetPhaseOverrides()

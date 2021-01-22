@@ -8,6 +8,7 @@
 package node
 
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -26,7 +27,7 @@ import (
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	nodeID *id.ID, instance *internal.Instance, batchSize uint32,
 	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,
-	disableStreaming bool) (
+	disableStreaming bool, roundID id.Round) (
 	[]phase.Phase, phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
@@ -74,48 +75,35 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	/*--PRECOMP SHARE---------------------------------------------------------*/
 
 	// Build Precomputation Share phase and response
-
-	// share needs a copy of the graph constructor with an input size of 1
-	gcShare := services.NewGraphGenerator(1,
-		1, 1, 0.0)
-
+	// todo: May need modification for integration w/ phaseShare
 	precompShareDefinition := phase.Definition{
-		Graph:               precomputation.InitShareGraph(gcShare),
+		Graph:               nil,
 		Type:                phase.PrecompShare,
-		TransmissionHandler: io.TransmitPhase,
+		TransmissionHandler: nil,
 		Timeout:             newRoundTimeout,
-		DoVerification:      true,
+		DoVerification:      false,
 	}
 
-	// Build response to broadcast of result
-	responses[phase.PrecompShare.String()+phase.Verification] =
-		phase.NewResponse(
-			phase.ResponseDefinition{
-				PhaseAtSource:  phase.PrecompShare,
-				ExpectedStates: []phase.State{phase.Computed},
-				PhaseToExecute: phase.PrecompShare,
-			})
+	if topology.IsFirstNode(nodeID) {
+		precompShareDefinition.Alternate = func() {
+			jww.INFO.Println("RUNNING ALTERNATE")
+			if err := io.TransmitStartSharePhase(roundID, instance); err != nil {
+				jww.FATAL.Panicf("Failed to start share phase: %+v", err)
+			}
 
-	// The last node broadcasts the result to all other nodes so it uses a
-	// different transmission handler
-	if topology.IsLastNode(nodeID) {
-		precompShareDefinition.TransmissionHandler = io.TransmitRoundPublicKey
+		}
 	}
 
-	// First node transitions into share phase and as a result had no share
-	// phase reception
-	if !topology.IsFirstNode(nodeID) {
-		responses[phase.PrecompShare.String()] = phase.NewResponse(
-			phase.ResponseDefinition{
-				PhaseAtSource:  phase.PrecompShare,
-				ExpectedStates: generalExpectedStates,
-				PhaseToExecute: phase.PrecompShare,
-			})
-	}
+	responses[phase.PrecompShare.String()] = phase.NewResponse(
+		phase.ResponseDefinition{
+			PhaseAtSource:  phase.PrecompShare,
+			ExpectedStates: generalExpectedStates,
+			PhaseToExecute: phase.PrecompShare,
+		})
 
 	// TRANSITION: the transition out of share phase is done on the first
 	// node in the first node check at the bottom of
-	// ReceivePostRoundPublicKey in node/receiver.go
+	// ReceivePostRoundPublicKey in io/receiver.go
 
 	/*--PRECOMP DECRYPT-------------------------------------------------------*/
 
@@ -145,7 +133,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		PhaseToExecute: phase.PrecompDecrypt,
 	}
 
-	// TRANSITION: the transition out of decryot phase is done on the first
+	// TRANSITION: the transition out of decrypt phase is done on the first
 	// node after every node finishes precomp decrypt and it receives the
 	// transmission from the last node.  It transitions into the permute phase
 	if topology.IsFirstNode(nodeID) {

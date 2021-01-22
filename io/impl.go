@@ -12,6 +12,7 @@ package io
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
@@ -60,15 +61,6 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		err := ReceiveStreamPostPhase(streamServer, instance, auth)
 		if err != nil {
 			jww.ERROR.Printf("StreamPostPhase error: %+v, %+v", auth, err)
-		}
-		return err
-	}
-
-	impl.Functions.PostRoundPublicKey = func(pk *mixmessages.RoundPublicKey, auth *connect.Auth) error {
-		err := ReceivePostRoundPublicKey(instance, pk, auth)
-		if err != nil {
-			jww.ERROR.Printf("ReceivePostRoundPublicKey error: %+v, %+v", auth,
-				err)
 		}
 		return err
 	}
@@ -155,6 +147,18 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 			return "", err
 		}
 		return address, nil
+	}
+
+	impl.Functions.StartSharePhase = func(ri *mixmessages.RoundInfo, auth *connect.Auth) error {
+		return ReceiveStartSharePhase(ri, auth, instance)
+	}
+
+	impl.Functions.SharePhaseRound = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
+		return ReceiveSharePhasePiece(sharedPiece, auth, instance)
+	}
+
+	impl.Functions.ShareFinalKey = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
+		return ReceiveFinalKey(sharedPiece, auth, instance)
 	}
 
 	return impl

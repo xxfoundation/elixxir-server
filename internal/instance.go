@@ -46,13 +46,14 @@ type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundEr
 
 // Holds long-lived server state
 type Instance struct {
-	Online        bool
-	definition    *Definition
-	roundManager  *round.Manager
-	resourceQueue *ResourceQueue
-	network       *node.Comms
-	streamPool    *gpumaths.StreamPool
-	machine       state.Machine
+	Online            bool
+	definition        *Definition
+	roundManager      *round.Manager
+	resourceQueue     *ResourceQueue
+	network           *node.Comms
+	streamPool        *gpumaths.StreamPool
+	machine           state.Machine
+	phaseStateMachine state.GenericMachine
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -119,11 +120,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion:    version,
-		firstRun:         &firstRun,
-		firstPoll:        &firstPoll,
-		gatewayFirstPoll: NewFirstTime(),
-		clientErrors:     round.NewClientFailureReport(),
+		serverVersion:     version,
+		firstRun:          &firstRun,
+		firstPoll:         &firstPoll,
+		gatewayFirstPoll:  NewFirstTime(),
+		clientErrors:      round.NewClientFailureReport(),
+		phaseStateMachine: state.NewGenericMachine(),
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -155,7 +157,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF, nil)
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
+		def.PartialNDF, def.FullNDF, nil)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -250,9 +253,15 @@ func (i *Instance) GetConsensus() *network.Instance {
 	return i.consensus
 }
 
-// GetStateMachine returns the consensus object
+// GetStateMachine returns the round tracking state machine
 func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
+}
+
+// GetStateMachine returns state machine tracking the phase share status
+// todo: consider removing, may not be needed for final phase share design
+func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
+	return i.phaseStateMachine
 }
 
 // GetGateway returns the id of the node's gateway

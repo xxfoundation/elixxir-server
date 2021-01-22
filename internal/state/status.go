@@ -4,23 +4,31 @@
 // Use of this source code is governed by a license that can be found in the //
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
-
-package phase
-
-// definition.go contains the phase.Definition object
+package state
 
 import (
-	"gitlab.com/elixxir/server/services"
-	"time"
+	"fmt"
 )
 
-// The definition of a phase object, including the
-// phase type, handler and graph
-type Definition struct {
-	Graph               *services.Graph
-	Alternate           func()
-	Type                Type
-	TransmissionHandler Transmit
-	Timeout             time.Duration
-	DoVerification      bool
+type Status uint32
+
+const (
+	NOT_STARTED = Status(iota)
+	STARTED
+	ENDED
+	NUM_STATUS
+)
+
+// Stringer to get the name of the activity, primarily for for error prints
+func (s Status) String() string {
+	switch s {
+	case NOT_STARTED:
+		return "NOT_STARTED"
+	case STARTED:
+		return "STARTED"
+	case ENDED:
+		return "ENDED"
+	default:
+		return fmt.Sprintf("UNKNOWN STATE: %d", s)
+	}
 }
