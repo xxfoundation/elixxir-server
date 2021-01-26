@@ -25,7 +25,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	gitlab.com/elixxir/comms v0.0.4-0.20210125231706-c782d1f645ea
 	gitlab.com/elixxir/crypto v0.0.7-0.20210125231257-b52a556be893
-	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20210126194322-2c7af4baf073
+	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20210126200244-4362a0e26e04
 	gitlab.com/elixxir/primitives v0.0.3-0.20210125225949-9469ce6b08fc
 	gitlab.com/xx_network/comms v0.0.4-0.20210121204701-7a1eb0542424
 	gitlab.com/xx_network/crypto v0.0.5-0.20210121204626-b251b926e4f7
