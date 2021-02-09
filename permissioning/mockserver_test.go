@@ -45,12 +45,12 @@ type mockPermission struct {
 	key  []byte
 }
 
-func (i *mockPermission) PollNdf([]byte, *connect.Auth) ([]byte, error) {
+func (i *mockPermission) PollNdf([]byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byte, err error) {
-	return nil, nil
+func (i *mockPermission) RegisterUser(registrationCode, test, test2 string) (hash []byte, has2 []byte, err error) {
+	return nil, nil, nil
 }
 
 func (i *mockPermission) RegisterNode([]byte, string, string, string, string, string) error {
@@ -98,12 +98,12 @@ type mockPermissionMultipleRounds struct {
 	key  []byte
 }
 
-func (i *mockPermissionMultipleRounds) PollNdf([]byte, *connect.Auth) ([]byte, error) {
+func (i *mockPermissionMultipleRounds) PollNdf([]byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (i *mockPermissionMultipleRounds) RegisterUser(registrationCode, test string) (hash []byte, err error) {
-	return nil, nil
+func (i *mockPermissionMultipleRounds) RegisterUser(registrationCode, test, test2 string) (hash []byte, hash2 []byte, err error) {
+	return nil, nil, nil
 }
 
 func (i *mockPermissionMultipleRounds) RegisterNode([]byte, string, string, string, string, string) error {

@@ -41,12 +41,12 @@ type mockPermission struct {
 	err error
 }
 
-func (i *mockPermission) PollNdf([]byte, *connect.Auth) ([]byte, error) {
+func (i *mockPermission) PollNdf([]byte) ([]byte, error) {
 	return nil, i.err
 }
 
-func (i *mockPermission) RegisterUser(registrationCode, test string) (hash []byte, err error) {
-	return nil, i.err
+func (i *mockPermission) RegisterUser(registrationCode, test, test2 string) (hash []byte, hash2 []byte, err error) {
+	return nil, nil, i.err
 }
 
 func (i *mockPermission) RegisterNode([]byte, string, string, string, string, string) error {
