@@ -13,6 +13,7 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/pkg/errors"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/registration"
@@ -25,16 +26,15 @@ import (
 )
 
 // Handles a client request for a nonce during the client registration process
-func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
-	DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte,
-	auth *connect.Auth) ([]byte, []byte, error) {
+func RequestNonce(instance *internal.Instance,
+	request *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
 
 	fmt.Printf("Sender ID:  %#v\n", auth.Sender.GetId())
 	fmt.Printf("Gateway ID: %#v\n", instance.GetGateway())
 
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
-		return nil, nil, connect.AuthError(auth.Sender.GetId())
+		return &pb.Nonce{}, connect.AuthError(auth.Sender.GetId())
 	}
 
 	grp := instance.GetConsensus().GetCmixGroup()
@@ -42,42 +42,42 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 
 	regPubKey := instance.GetRegServerPubKey()
 	h := sha.New()
-	h.Write([]byte(RSAPubKey))
+	h.Write([]byte(request.ClientRSAPubKey))
 	data := h.Sum(nil)
 
-	err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
+	err := rsa.Verify(regPubKey, sha, data, request.GetClientSignedByServer().Signature, nil)
 	if err != nil {
 		// Invalid signed Client public key, return an error
-		return []byte{}, []byte{},
+		return &pb.Nonce{},
 			errors.Errorf("verification of public key signature "+
 				"from registration failed: %+v", err)
 	}
 
 	// Assemble Client public key
-	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(RSAPubKey))
+	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(request.ClientRSAPubKey))
 
 	if err != nil {
-		return []byte{}, []byte{},
+		return &pb.Nonce{},
 			errors.Errorf("Unable to decode client RSA Pub Key: %+v", err)
 	}
 
 	//Check that the Client DH public key is signed correctly
 	h = sha.New()
-	h.Write(DHPubKey)
+	h.Write(request.ClientDHPubKey)
 	data = h.Sum(nil)
 
-	err = rsa.Verify(userPublicKey, sha, data, DHSignedByClientRSA, nil)
+	err = rsa.Verify(userPublicKey, sha, data, request.GetRequestSignature().Signature, nil)
 
 	if err != nil {
-		return []byte{}, []byte{},
+		return &pb.Nonce{},
 			errors.Errorf("Client signature on DH key could not be verified: %+v", err)
 	}
 
 	// Generate UserID
-	userId, err := xx.NewID(userPublicKey, salt, id.User)
+	userId, err := xx.NewID(userPublicKey, request.Salt, id.User)
 
 	if err != nil {
-		return []byte{}, []byte{},
+		return &pb.Nonce{},
 			errors.Errorf("Failed to generate new ID: %+v", err)
 	}
 
@@ -85,13 +85,13 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
 
 	if err != nil {
-		return []byte{}, []byte{}, err
+		return &pb.Nonce{}, err
 	}
 
 	//Generate an ephemeral DH key pair
 	DHPriv := grp.RandomCoprime(grp.NewInt(1))
 	DHPub := grp.ExpG(DHPriv, grp.NewInt(1))
-	clientDHPub := grp.NewIntFromBytes(DHPubKey)
+	clientDHPub := grp.NewIntFromBytes(request.ClientDHPubKey)
 
 	// Generate user CMIX baseKey
 	b, _ := hash2.NewCMixHash()
@@ -106,8 +106,17 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	newUser.IsRegistered = false
 	instance.GetUserRegistry().UpsertUser(newUser)
 
+
+	h.Reset()
+	h.Write(userId.Bytes())
+	h.Write(userNonce.Bytes())
+
 	// Return nonce to Client with empty error field
-	return userNonce.Bytes(), DHPub.Bytes(), nil
+	return &pb.Nonce{
+		Nonce:    userNonce.Bytes(),
+		DHPubKey: DHPub.Bytes(),
+		IdentityHash: h.Sum(nil),
+	}, nil
 }
 
 // Handles nonce confirmation during the client registration process

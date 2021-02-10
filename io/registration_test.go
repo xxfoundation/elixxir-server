@@ -10,6 +10,7 @@ package io
 import (
 	"crypto"
 	"fmt"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -22,6 +23,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/crypto/nonce"
@@ -140,12 +142,10 @@ func TestRequestNonceFailAuthId(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, _, err2 := RequestNonce(serverInstance,
-		make([]byte, 0), "", clientDHPub.Bytes(), make([]byte, 0),
-		make([]byte, 0), &connect.Auth{
-			IsAuthenticated: true, // True for this test, we want bad sender ID
-			Sender:          gwHost,
-		})
+	_, err2 := RequestNonce(serverInstance, &pb.NonceRequest{}, &connect.Auth{
+		IsAuthenticated: true, // True for this test, we want bad sender ID
+		Sender:          gwHost,
+	})
 
 	if !connect.IsAuthError(err2) {
 		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
@@ -162,12 +162,10 @@ func TestRequestNonceFailAuth(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, _, err2 := RequestNonce(serverInstance,
-		make([]byte, 0), "", clientDHPub.Bytes(), make([]byte, 0),
-		make([]byte, 0), &connect.Auth{
-			IsAuthenticated: false, // This is the crux of the test
-			Sender:          gwHost,
-		})
+	_, err2 := RequestNonce(serverInstance, &pb.NonceRequest{}, &connect.Auth{
+		IsAuthenticated: false, // This is the crux of the test
+		Sender:          gwHost,
+	})
 
 	if !connect.IsAuthError(err2) {
 		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
@@ -211,12 +209,19 @@ func TestRequestNonce(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	result, _, err2 := RequestNonce(serverInstance, salt,
-		string(clientRSAPubKeyPEM), clientDHPub.Bytes(), sigReg, sigClient,
-		&connect.Auth{
-			IsAuthenticated: true,
-			Sender:          gwHost,
-		})
+	request := &pb.NonceRequest{
+		Salt:salt,
+		ClientRSAPubKey:string(clientRSAPubKeyPEM),
+		ClientSignedByServer:&messages.RSASignature{Signature:sigReg},
+		ClientDHPubKey:clientDHPub.Bytes(),
+		RequestSignature:&messages.RSASignature{Signature:sigClient},
+
+	}
+
+	result, err2 := RequestNonce(serverInstance, request, &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	})
 
 	if result == nil || err2 != nil {
 		t.Errorf("Error in RequestNonce: %+v", err2)
@@ -255,12 +260,20 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
-	_, _, err2 := RequestNonce(serverInstance, salt, string(clientRSAPubKeyPEM),
-		clientDHPub.Bytes(), sigReg, sigClient,
-		&connect.Auth{
-			IsAuthenticated: true,
-			Sender:          gwHost,
-		})
+
+	request := &pb.NonceRequest{
+		Salt:salt,
+		ClientRSAPubKey:string(clientRSAPubKeyPEM),
+		ClientSignedByServer:&messages.RSASignature{Signature:sigReg},
+		ClientDHPubKey:clientDHPub.Bytes(),
+		RequestSignature:&messages.RSASignature{Signature:sigClient},
+
+	}
+
+	_, err2 := RequestNonce(serverInstance,  request, &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	})
 
 	if err2 == nil {
 		t.Errorf("Error in RequestNonce, did not fail with bad "+
@@ -298,12 +311,19 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
-	_, _, err2 := RequestNonce(serverInstance, salt, string(clientRSAPubKeyPEM),
-		clientDHPub.Bytes(), sigReg, sigClient,
-		&connect.Auth{
-			IsAuthenticated: true,
-			Sender:          gwHost,
-		})
+
+	request := &pb.NonceRequest{
+		Salt:salt,
+		ClientRSAPubKey:string(clientRSAPubKeyPEM),
+		ClientSignedByServer:&messages.RSASignature{Signature:sigReg},
+		ClientDHPubKey:clientDHPub.Bytes(),
+		RequestSignature:&messages.RSASignature{Signature:sigClient},
+
+	}
+	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	})
 
 	if err2 == nil {
 		t.Errorf("Error in RequestNonce, did not fail with bad "+

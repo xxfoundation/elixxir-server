@@ -74,14 +74,12 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
-	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
-		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte, auth *connect.Auth) ([]byte, []byte, error) {
-		nonce, dhPub, err := RequestNonce(instance, salt, RSAPubKey, DHPubKey,
-			RSASignedByRegistration, DHSignedByClientRSA, auth)
+	impl.Functions.RequestNonce = func(nonceRequest *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
+		nonce, err := RequestNonce(instance, nonceRequest, auth)
 		if err != nil {
 			jww.ERROR.Printf("RequestNonce error: %+v, %+v", auth, err)
 		}
-		return nonce, dhPub, err
+		return nonce, err
 	}
 
 	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, []byte, error) {
