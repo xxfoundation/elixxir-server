@@ -353,6 +353,7 @@ func TestConfirmRegistration(t *testing.T) {
 
 	h := sha.New()
 	h.Write(user.Nonce.Bytes())
+	h.Write(user.ID.Bytes())
 	data := h.Sum(nil)
 
 	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
