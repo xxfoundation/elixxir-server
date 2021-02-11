@@ -42,7 +42,7 @@ func RequestNonce(instance *internal.Instance,
 
 	regPubKey := instance.GetRegServerPubKey()
 	h := sha.New()
-	h.Write([]byte(request.ClientRSAPubKey))
+	h.Write([]byte(request.GetClientRSAPubKey()))
 	data := h.Sum(nil)
 
 	err := rsa.Verify(regPubKey, sha, data, request.GetClientSignedByServer().Signature, nil)
@@ -54,7 +54,7 @@ func RequestNonce(instance *internal.Instance,
 	}
 
 	// Assemble Client public key
-	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(request.ClientRSAPubKey))
+	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(request.GetClientRSAPubKey()))
 
 	if err != nil {
 		return &pb.Nonce{},
@@ -63,7 +63,7 @@ func RequestNonce(instance *internal.Instance,
 
 	//Check that the Client DH public key is signed correctly
 	h = sha.New()
-	h.Write(request.ClientDHPubKey)
+	h.Write(request.GetClientDHPubKey())
 	data = h.Sum(nil)
 
 	err = rsa.Verify(userPublicKey, sha, data, request.GetRequestSignature().Signature, nil)
@@ -74,7 +74,7 @@ func RequestNonce(instance *internal.Instance,
 	}
 
 	// Generate UserID
-	userId, err := xx.NewID(userPublicKey, request.Salt, id.User)
+	userId, err := xx.NewID(userPublicKey, request.GetSalt(), id.User)
 
 	if err != nil {
 		return &pb.Nonce{},
@@ -91,7 +91,7 @@ func RequestNonce(instance *internal.Instance,
 	//Generate an ephemeral DH key pair
 	DHPriv := grp.RandomCoprime(grp.NewInt(1))
 	DHPub := grp.ExpG(DHPriv, grp.NewInt(1))
-	clientDHPub := grp.NewIntFromBytes(request.ClientDHPubKey)
+	clientDHPub := grp.NewIntFromBytes(request.GetClientDHPubKey())
 
 	// Generate user CMIX baseKey
 	b, _ := hash2.NewCMixHash()
@@ -106,15 +106,14 @@ func RequestNonce(instance *internal.Instance,
 	newUser.IsRegistered = false
 	instance.GetUserRegistry().UpsertUser(newUser)
 
-
 	h.Reset()
 	h.Write(userId.Bytes())
 	h.Write(userNonce.Bytes())
 
 	// Return nonce to Client with empty error field
 	return &pb.Nonce{
-		Nonce:    userNonce.Bytes(),
-		DHPubKey: DHPub.Bytes(),
+		Nonce:        userNonce.Bytes(),
+		DHPubKey:     DHPub.Bytes(),
 		IdentityHash: h.Sum(nil),
 	}, nil
 }
