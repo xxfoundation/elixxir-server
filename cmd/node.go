@@ -53,8 +53,12 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	}
 
 	ps := fmt.Sprintf("Loaded params: %+v", params)
-	ps = strings.ReplaceAll(ps, params.Database.Password, "[dbpass]")
-	ps = strings.ReplaceAll(ps, params.RegistrationCode, "[regcode]")
+	ps = strings.ReplaceAll(ps,
+		"Password:"+params.Database.Password,
+		"Password:[dbpass]")
+	ps = strings.ReplaceAll(ps,
+		"RegistrationCode:"+params.RegistrationCode,
+		"RegistrationCode:[regcode]")
 	jww.INFO.Printf(ps)
 
 	// Initialize the backend
