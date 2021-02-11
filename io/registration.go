@@ -107,15 +107,10 @@ func RequestNonce(instance *internal.Instance,
 	newUser.IsRegistered = false
 	instance.GetUserRegistry().UpsertUser(newUser)
 
-	h.Reset()
-	h.Write(userId.Bytes())
-	h.Write(userNonce.Bytes())
-
 	// Return nonce to Client with empty error field
 	return &pb.Nonce{
 		Nonce:        userNonce.Bytes(),
 		DHPubKey:     DHPub.Bytes(),
-		IdentityHash: h.Sum(nil),
 	}, nil
 }
 
@@ -151,11 +146,12 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 			errors.Errorf("Unable to confirm registration, Nonce is expired")
 	}
 
-	// Verify signed nonce using Client public key
+	// Verify signed nonce and ID using Client public key
 	sha := crypto.SHA256
 
 	h := sha.New()
 	h.Write(user.Nonce.Bytes())
+	h.Write(user.ID.Bytes())
 	data := h.Sum(nil)
 
 	err = rsa.Verify(user.RsaPublicKey, sha, data, Signature, nil)
@@ -164,6 +160,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 		return &pb.RegistrationConfirmation{},
 			errors.Errorf("Unable to confirm registration, signature invalid")
 	}
+
 
 	//todo: re-enable this and use it to simplify registration
 
