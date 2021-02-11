@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/crypto/nonce"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/xx"
@@ -119,27 +120,34 @@ func RequestNonce(instance *internal.Instance,
 }
 
 // Handles nonce confirmation during the client registration process
-func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature []byte,
-	auth *connect.Auth) ([]byte, []byte, error) {
+func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRegistrationConfirmation,
+	auth *connect.Auth) (*pb.RegistrationConfirmation, error) {
 
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
-		return nil, nil, connect.AuthError(auth.Sender.GetId())
+		return &pb.RegistrationConfirmation{}, connect.AuthError(auth.Sender.GetId())
 	}
+
+	UserID, err := id.Unmarshal(confirmation.GetUserID())
+	if err != nil {
+		return &pb.RegistrationConfirmation{}, errors.Errorf("Unable to unmarshal user ID: %+v", err)
+	}
+
+	Signature := confirmation.NonceSignedByClient.Signature
 
 	// Obtain the user from the database
 	user, err := instance.GetUserRegistry().GetUser(UserID, instance.GetConsensus().GetCmixGroup())
 
 	if err != nil {
 		// Invalid nonce, return an error
-		return make([]byte, 0), make([]byte, 0),
+		return &pb.RegistrationConfirmation{},
 			errors.Errorf("Unable to confirm registration, could not "+
 				"find a user: %+v", err)
 	}
 
 	// Verify nonce has not expired
 	if !user.Nonce.IsValid() {
-		return make([]byte, 0), make([]byte, 0),
+		return &pb.RegistrationConfirmation{},
 			errors.Errorf("Unable to confirm registration, Nonce is expired")
 	}
 
@@ -153,7 +161,7 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 	err = rsa.Verify(user.RsaPublicKey, sha, data, Signature, nil)
 
 	if err != nil {
-		return make([]byte, 0), make([]byte, 0),
+		return &pb.RegistrationConfirmation{},
 			errors.Errorf("Unable to confirm registration, signature invalid")
 	}
 
@@ -178,5 +186,11 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 	user.IsRegistered = true
 	instance.GetUserRegistry().UpsertUser(user)
 	// Fixme: what is going on here? RSA signature has been blank?
-	return make([]byte, 0), hashedData, nil
+	response := &pb.RegistrationConfirmation{
+		ClientSignedByServer: &messages.RSASignature{
+			Signature: make([]byte, 0),
+		},
+		ClientGatewayKey: hashedData,
+	}
+	return response, nil
 }

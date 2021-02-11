@@ -365,8 +365,15 @@ func TestConfirmRegistration(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
+	msg := &pb.RequestRegistrationConfirmation{
+		UserID:user.ID.Bytes(),
+		NonceSignedByClient: &messages.RSASignature{
+			Signature:            sign,
+		},
+	}
+
 	//call confirm
-	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	_, err2 := ConfirmRegistration(serverInstance, msg,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -413,7 +420,14 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	msg := &pb.RequestRegistrationConfirmation{
+		UserID:user.ID.Bytes(),
+		NonceSignedByClient: &messages.RSASignature{
+			Signature:            sign,
+		},
+	}
+
+	_, err2 := ConfirmRegistration(serverInstance, msg,
 		&connect.Auth{
 			IsAuthenticated: false, // This is the crux of the test
 			Sender:          gwHost,
@@ -450,7 +464,14 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	msg := &pb.RequestRegistrationConfirmation{
+		UserID:user.ID.Bytes(),
+		NonceSignedByClient: &messages.RSASignature{
+			Signature:            sign,
+		},
+	}
+
+	_, err2 := ConfirmRegistration(serverInstance, msg,
 		&connect.Auth{
 			IsAuthenticated: true, // True for this test, we want bad sender ID
 			Sender:          gwHost,
@@ -487,7 +508,14 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	msg := &pb.RequestRegistrationConfirmation{
+		UserID:user.ID.Bytes(),
+		NonceSignedByClient: &messages.RSASignature{
+			Signature:            sign,
+		},
+	}
+
+	_, err2 := ConfirmRegistration(serverInstance, msg,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -531,7 +559,14 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, _, err2 := ConfirmRegistration(serverInstance, user.ID, sign,
+	msg := &pb.RequestRegistrationConfirmation{
+		UserID:user.ID.Bytes(),
+		NonceSignedByClient: &messages.RSASignature{
+			Signature:            sign,
+		},
+	}
+
+	_, err2 := ConfirmRegistration(serverInstance, msg,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
@@ -556,7 +591,14 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, _, err = ConfirmRegistration(serverInstance, user.ID, []byte("test"),
+	msg := &pb.RequestRegistrationConfirmation{
+		UserID:user.ID.Bytes(),
+		NonceSignedByClient: &messages.RSASignature{
+			Signature:            []byte("test"),
+		},
+	}
+
+	_, err = ConfirmRegistration(serverInstance, msg,
 		&connect.Auth{
 			IsAuthenticated: true,
 			Sender:          gwHost,
