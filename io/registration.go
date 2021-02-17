@@ -10,7 +10,6 @@
 package io
 
 import (
-	"crypto"
 	"fmt"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/crypto/cmix"
@@ -38,14 +37,14 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	}
 
 	grp := instance.GetConsensus().GetCmixGroup()
-	sha := crypto.SHA256
 
 	regPubKey := instance.GetRegServerPubKey()
-	h := sha.New()
+	h, _ := hash2.NewCMixHash()
 	h.Write([]byte(RSAPubKey))
 	data := h.Sum(nil)
 
-	err := rsa.Verify(regPubKey, sha, data, RSASignedByRegistration, nil)
+	err := rsa.Verify(regPubKey, hash2.CMixHash, data,
+		RSASignedByRegistration, nil)
 	if err != nil {
 		// Invalid signed Client public key, return an error
 		return []byte{}, []byte{},
@@ -62,11 +61,12 @@ func RequestNonce(instance *internal.Instance, salt []byte, RSAPubKey string,
 	}
 
 	//Check that the Client DH public key is signed correctly
-	h = sha.New()
+	h, _ = hash2.NewCMixHash()
 	h.Write(DHPubKey)
 	data = h.Sum(nil)
 
-	err = rsa.Verify(userPublicKey, sha, data, DHSignedByClientRSA, nil)
+	err = rsa.Verify(userPublicKey, hash2.CMixHash, data,
+		DHSignedByClientRSA, nil)
 
 	if err != nil {
 		return []byte{}, []byte{},
@@ -136,13 +136,11 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 	}
 
 	// Verify signed nonce using Client public key
-	sha := crypto.SHA256
-
-	h := sha.New()
+	h, _ := hash2.NewCMixHash()
 	h.Write(user.Nonce.Bytes())
 	data := h.Sum(nil)
 
-	err = rsa.Verify(user.RsaPublicKey, sha, data, Signature, nil)
+	err = rsa.Verify(user.RsaPublicKey, hash2.CMixHash, data, Signature, nil)
 
 	if err != nil {
 		return make([]byte, 0), make([]byte, 0),
@@ -156,7 +154,7 @@ func ConfirmRegistration(instance *internal.Instance, UserID *id.ID, Signature [
 	h.Reset()
 	h.Write(userPubKeyPEM)
 	data = h.Sum(nil)
-	sig, err := rsa.Sign(csprng.NewSystemRNG(), instance.GetPrivKey(), sha, data, nil)
+	sig, err := rsa.Sign(csprng.NewSystemRNG(), instance.GetPrivKey(), hash2.CMixHash, data, nil)
 	if err != nil {
 		// Unable to sign public key, return an error
 		jww.ERROR.Printf("Error signing client public key: %s", err)
