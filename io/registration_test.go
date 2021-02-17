@@ -8,11 +8,11 @@
 package io
 
 import (
-	"crypto"
 	"fmt"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
@@ -182,7 +182,7 @@ func TestRequestNonce(t *testing.T) {
 	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(clientRSAPub)
 
 	//sign the client's RSA key by registration
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 	h := sha.New()
 	h.Write(clientRSAPubKeyPEM)
 	data := h.Sum(nil)
@@ -231,7 +231,7 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(clientRSAPub)
 
 	//dont sign the client's RSA key by registration
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 	h := sha.New()
 
 	sigReg := make([]byte, 69)
@@ -276,7 +276,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(clientRSAPub)
 
 	//sign the client's RSA key by registration
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 	h := sha.New()
 	h.Write(clientRSAPubKeyPEM)
 	data := h.Sum(nil)
@@ -329,7 +329,7 @@ func TestConfirmRegistration(t *testing.T) {
 	serverInstance.GetUserRegistry().UpsertUser(user)
 
 	//hash and sign nonce
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 
 	h := sha.New()
 	h.Write(user.Nonce.Bytes())
@@ -374,7 +374,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 	user.RsaPublicKey = clientRSAPub
 
 	//hash and sign nonce
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 
 	h := sha.New()
 	h.Write(user.Nonce.Bytes())
@@ -411,7 +411,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 	user.RsaPublicKey = clientRSAPub
 
 	//hash and sign nonce
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 
 	h := sha.New()
 	h.Write(user.Nonce.Bytes())
@@ -448,7 +448,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 	user.RsaPublicKey = clientRSAPub
 
 	//hash and sign nonce
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 
 	h := sha.New()
 	h.Write(user.Nonce.Bytes())
@@ -486,7 +486,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	user.RsaPublicKey = clientRSAPub
 
 	//hash and sign nonce
-	sha := crypto.SHA256
+	sha := hash.CMixHash
 
 	h := sha.New()
 	h.Write(user.Nonce.Bytes())
