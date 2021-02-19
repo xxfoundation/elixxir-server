@@ -10,7 +10,6 @@
 package io
 
 import (
-	"crypto"
 	"fmt"
 	"github.com/pkg/errors"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -39,14 +38,14 @@ func RequestNonce(instance *internal.Instance,
 	}
 
 	grp := instance.GetConsensus().GetCmixGroup()
-	sha := crypto.SHA256
 
 	regPubKey := instance.GetRegServerPubKey()
-	h := sha.New()
+	h, _ := hash2.NewCMixHash()
 	h.Write([]byte(request.GetClientRSAPubKey()))
 	data := h.Sum(nil)
 
-	err := rsa.Verify(regPubKey, sha, data, request.GetClientSignedByServer().Signature, nil)
+	err := rsa.Verify(regPubKey, hash2.CMixHash, data,
+		request.GetClientSignedByServer().Signature, nil)
 	if err != nil {
 		// Invalid signed Client public key, return an error
 		return &pb.Nonce{},
@@ -63,11 +62,12 @@ func RequestNonce(instance *internal.Instance,
 	}
 
 	//Check that the Client DH public key is signed correctly
-	h = sha.New()
+	h, _ = hash2.NewCMixHash()
 	h.Write(request.GetClientDHPubKey())
 	data = h.Sum(nil)
 
-	err = rsa.Verify(userPublicKey, sha, data, request.GetRequestSignature().Signature, nil)
+	err = rsa.Verify(userPublicKey, hash2.CMixHash, data,
+		request.GetRequestSignature().Signature, nil)
 
 	if err != nil {
 		return &pb.Nonce{},
@@ -147,14 +147,12 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	}
 
 	// Verify signed nonce and ID using Client public key
-	sha := crypto.SHA256
-
-	h := sha.New()
+	h, _ := hash2.NewCMixHash()
 	h.Write(user.Nonce.Bytes())
 	h.Write(user.ID.Bytes())
 	data := h.Sum(nil)
 
-	err = rsa.Verify(user.RsaPublicKey, sha, data, Signature, nil)
+	err = rsa.Verify(user.RsaPublicKey, hash2.CMixHash, data, Signature, nil)
 
 	if err != nil {
 		return &pb.RegistrationConfirmation{},
@@ -169,7 +167,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	h.Reset()
 	h.Write(userPubKeyPEM)
 	data = h.Sum(nil)
-	sig, err := rsa.Sign(csprng.NewSystemRNG(), instance.GetPrivKey(), sha, data, nil)
+	sig, err := rsa.Sign(csprng.NewSystemRNG(), instance.GetPrivKey(), hash2.CMixHash, data, nil)
 	if err != nil {
 		// Unable to sign public key, return an error
 		jww.ERROR.Printf("Error signing client public key: %s", err)
