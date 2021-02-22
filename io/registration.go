@@ -146,10 +146,10 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 			errors.Errorf("Unable to confirm registration, Nonce is expired")
 	}
 
-	// Verify signed nonce and ID using Client public key
+	// Verify signed nonce and our ID using Client public key
 	h, _ := hash2.NewCMixHash()
 	h.Write(user.Nonce.Bytes())
-	h.Write(user.ID.Bytes())
+	h.Write(instance.GetID().Bytes())
 	data := h.Sum(nil)
 
 	err = rsa.Verify(user.RsaPublicKey, hash2.CMixHash, data, Signature, nil)
