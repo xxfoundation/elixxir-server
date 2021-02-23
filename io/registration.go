@@ -153,7 +153,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	h.Write(instance.GetID().Bytes())
 	data := h.Sum(nil)
 	// todo: remove this print
-	jww.INFO.Printf("ConfirmRegistration hashedData: %v", data)
+	jww.INFO.Printf("ConfirmRegistration hashedData from user [%v]: %v", user.ID, data)
 	err = rsa.Verify(user.RsaPublicKey, hash2.CMixHash, data, Signature, nil)
 
 	if err != nil {
