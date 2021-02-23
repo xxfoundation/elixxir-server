@@ -128,7 +128,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 		return &pb.RegistrationConfirmation{}, errors.Errorf("Unable to unmarshal user ID: %+v", err)
 	}
 
-	Signature := confirmation.SignedData.Signature
+	Signature := confirmation.NonceSignedByClient.Signature
 
 	// Obtain the user from the database
 	user, err := instance.GetUserRegistry().GetUser(UserID, instance.GetConsensus().GetCmixGroup())
