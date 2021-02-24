@@ -9,8 +9,9 @@ node:
     key:  "~/.elixxir/key.pem"
     log:  "~/.elixxir/server.log"
     errOutput: "~/.elixxir/error.out"
-  listeningAddress: "127.0.0.1"
   port: 80
+  overridePublicIP: "127.0.0.1"
+  overrideInternalIP: "0.0.0.0"
   interconnectPort: 0
 database:
   name: "name"

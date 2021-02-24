@@ -102,16 +102,16 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
 	cnt++
 	def := internal.Definition{
-		ID:              nid,
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-		PrivateKey:      serverRSAPriv,
-		PublicKey:       serverRSAPub,
-		TlsCert:         cert,
-		TlsKey:          key,
-		FullNDF:         testUtil.NDF,
-		PartialNDF:      testUtil.NDF,
-		Address:         nodeAddr,
+		ID:               nid,
+		UserRegistry:     &globals.UserMap{},
+		ResourceMonitor:  &measure.ResourceMonitor{},
+		PrivateKey:       serverRSAPriv,
+		PublicKey:        serverRSAPub,
+		TlsCert:          cert,
+		TlsKey:           key,
+		FullNDF:          testUtil.NDF,
+		PartialNDF:       testUtil.NDF,
+		ListeningAddress: nodeAddr,
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()
@@ -618,7 +618,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 		Gateway: internal.GW{
 			ID: &id.TempGateway,
 		},

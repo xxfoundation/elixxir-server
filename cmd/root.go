@@ -35,7 +35,6 @@ var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
-var disableIpOverride bool
 
 // If true, runs pprof http server
 var profile bool
@@ -135,11 +134,6 @@ func init() {
 	handleBindingError(err, "profile")
 	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
 	handleBindingError(err, "profile")
-
-	rootCmd.Flags().BoolVar(&disableIpOverride, "disableIpOverride", false,
-		"Disable override of local node IP address in the NDF.")
-	err = viper.BindPFlag("disableIpOverride", rootCmd.Flags().Lookup("disableIpOverride"))
-	handleBindingError(err, "disableIpOverride")
 
 	rootCmd.Flags().StringP("registrationCode", "", "",
 		"Registration code used for first time registration. Required field.")

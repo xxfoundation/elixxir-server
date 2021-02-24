@@ -690,7 +690,7 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 			ResourceMonitor:    &measure.ResourceMonitor{},
 			FullNDF:            networkDef,
 			PartialNDF:         networkDef,
-			Address:            nodeLst[i].Address,
+			ListeningAddress:   nodeLst[i].Address,
 			MetricsHandler:     func(i *internal.Instance, roundID id.Round) error { return nil },
 			RecoveredErrorPath: fmt.Sprintf("/tmp/err_%d", i),
 			GraphGenerator:     services.NewGraphGenerator(4, 1, 4, 1.0),

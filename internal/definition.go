@@ -42,8 +42,10 @@ type Definition struct {
 	TlsCert []byte
 	//PEM file containing the TLS Key
 	TlsKey []byte
-	//String containing the local address and port to connect to
-	Address string
+	// The local address and port of this server
+	ListeningAddress string
+	// The public address and port of this server
+	PublicAddress string
 	// Interconnect port
 	InterconnectPort int
 
@@ -99,8 +101,8 @@ type Flags struct {
 	KeepBuffers bool
 	// If true, use GPU acceleration for precomputation
 	UseGPU bool
-	// If true, disable overriding of local node IP in NDF
-	DisableIpOverride bool
+	// If set, it should be used to overwrite the local address
+	OverrideInternalIP string
 }
 
 //Holds information about another node in the network

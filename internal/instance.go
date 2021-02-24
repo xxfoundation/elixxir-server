@@ -150,7 +150,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	//Start local node
 
-	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
+	instance.network = node.StartNode(instance.definition.ID, instance.definition.ListeningAddress,
 		instance.definition.InterconnectPort, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
@@ -164,9 +164,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Handle overriding local IP
-	if !instance.GetDefinition().DisableIpOverride {
+	if instance.GetDefinition().OverrideInternalIP != "" {
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
-			ID, instance.GetDefinition().Address)
+			ID, instance.GetDefinition().OverrideInternalIP)
 	}
 
 	// Connect to our gateway
@@ -364,9 +364,9 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
 }
 
-// GetIP returns the IP of the node from the instance
+// GetIP returns the internal IP of the node from the instance
 func (i *Instance) GetIP() string {
-	return i.definition.Address
+	return i.definition.ListeningAddress
 }
 
 // GetResourceMonitor returns the resource monitoring object
@@ -520,9 +520,7 @@ func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
 // FIXME: This function needs to be replaced
 func GenerateId(i interface{}) *id.ID {
 	switch i.(type) {
-	case *testing.T:
-		break
-	case *testing.M:
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
 		break
 	default:
 		jww.FATAL.Panicf("GenerateId is restricted to testing only. Got %T", i)
