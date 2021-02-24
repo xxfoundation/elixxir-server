@@ -95,43 +95,42 @@ Note: YAML prohibits the use of tabs because whitespace has meaning.
 
 ```yaml
 # Registration code used for first time registration. This is a unique code
-# provided by xx network.
+# provided by xx network. (Required)
 registrationCode: "abc123"
 
-# Toggles use of the GPU.
+# Toggles use of the GPU. (Default false)
 useGPU: false
 
-# Level of debugging to print (0 = info, 1 = debug, >1 = trace).
+# Level of debugging to print (0 = info, 1 = debug, >1 = trace). (Default info)
 logLevel: 1
 
 node:
   paths:
     # Path where an error file will be placed in the event of a fatal error.
-    # This path is used by the Wrapper Script
+    # This path is used by the Wrapper Script. (Required)
     errOutput: "/opt/xxnetwork/node-logs/node-err.log"
-    # Path where the ID will be stored after the ID is created on first run.
-    # This path is used by the Wrapper Script.
-    idf:  "/opt/xxnetwork/node-logs/nodeIDF.json"
+    # Path where the ID will be stored after the it is created on first run.
+    # This path is used by the Wrapper Script. (Required)
+    idf: "/opt/xxnetwork/node-logs/nodeIDF.json"
     # Path to the self-signed TLS certificate for Node. Expects PEM format.
-    # Required field.
+    # (Required)
     cert: "/opt/xxnetwork/creds/node_cert.crt"
-    # Path to the private key for the self signed TLS cert
     # Path to the private key associated with the self-signed TLS certificate.
-    # Required field.
-    key:  "/opt/xxnetwork/creds/node_key.key"
+    # (Required)
+    key: "/opt/xxnetwork/creds/node_key.key"
     # Path where log file will be saved.
-    log:  "/opt/xxnetwork/node-logs/node.log"
+    log: "/opt/xxnetwork/node-logs/node.log"
     # Path where the list of node addresses is saved to.
-    # Optional field; defaults to "/opt/xxnetwork/node-logs/ipList.txt".
-    ipListOutput:  "/opt/xxnetwork/node-logs/ipList.txt"
-  # Port that the Node will communicate on.
+    # (Default "/opt/xxnetwork/node-logs/ipList.txt")
+    ipListOutput: "/opt/xxnetwork/node-logs/ipList.txt"
+  # Port that the Node will communicate on. (Required)
   port: 42069
-  # Local IP address of the Server, used for internal listening. Expects an IPv4
+  # Local IP address of the Node, used for internal listening. Expects an IPv4
   # address without a port. (default "0.0.0.0")
   listeningAddress: ""
-  # The public IPv4 address of the Server, as reported to the network, to be
-  # used instead of dynamically looking up Server's own IP address. If a port is
-  # not included, then the port from the port flag is used instead.
+  # The public IPv4 address of the Node, as reported to the network, to be used
+  # instead of dynamically looking up Node's own IP address. If a port is not
+  # included, then the port from the port flag is used instead.
   overridePublicIP: ""
   # If set, then it is used to override the internal IP address. Expects an IPv4
   # address with or without a port. If no port is included, then the port from
@@ -145,23 +144,26 @@ database:
   password: ""
   address: "0.0.0.0:3800"
 
-gateways:
+# Information to communicate with this Node's Gateway.
+gateway:
   paths:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
-    # Required field.
+    # (Required)
     cert: "/opt/xxnetwork/creds/gateway-cert.crt"
 
 permissioning:
   paths:
     # Path to the self-signed TLS certificate for the Permissioning server.
-    # Expects PEM format. Required field.
+    # Expects PEM format. (Required)
     cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
-  # IP Address of the Permissioning server, provided by xx network.
+  # IP Address of the Permissioning server, provided by xx network. (Required)
   address: ""
 
 metrics:
-  # Location of stored metrics data.
-  log:  "/opt/xxnetwork/server-logs/metrics.log"
+  # Path to store metrics logs.
+  log: "/opt/xxnetwork/server-logs/metrics.log"
+
+
 ```
 
 ## Project Structure
