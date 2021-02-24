@@ -44,7 +44,6 @@ Flags:
   -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
       --registrationCode string   Registration code used for first time registration. Required field.
       --useGPU                    Toggle use of GPU. (Must be built or run with -tags gpu, and gpumathsnative must be installed)
-      --disableIpOverride         Toggle use of local IP override
 
 Use "server [command] --help" for more information about a command.
 ```
@@ -125,11 +124,19 @@ node:
     # Path where the list of node addresses is saved to.
     # Optional field; defaults to "/opt/xxnetwork/node-logs/ipList.txt".
     ipListOutput:  "/opt/xxnetwork/node-logs/ipList.txt"
-  # If set, this address (host and port required) will be used for the node's
-  # public IP address instead of the automatically determined address. Optional.
-  addressOverride: ""
   # Port that the Node will communicate on.
   port: 42069
+  # Local IP address of the Server, used for internal listening. Expects an IPv4
+  # address without a port. (default "0.0.0.0")
+  listeningAddress: ""
+  # The public IPv4 address of the Server, as reported to the network, to be
+  # used instead of dynamically looking up Server's own IP address. If a port is
+  # not included, then the port from the port flag is used instead.
+  overridePublicIP: ""
+  # If set, then it is used to override the internal IP address. Expects an IPv4
+  # address with or without a port. If no port is included, then the port from
+  # the port flag is used.
+  overrideInternalIP: ""
 
 # Information to connect to the Postgres database storing keys.
 database:

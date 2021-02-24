@@ -63,14 +63,15 @@ func TestRegisterNode(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:      internal.Flags{},
-		ID:         nodeId,
-		PublicKey:  nil,
-		PrivateKey: nil,
-		TlsCert:    cert,
-		TlsKey:     key,
-		Address:    nodeAddr,
-		LogPath:    "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		PublicAddress:    nodeAddr,
+		LogPath:          "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
@@ -669,15 +670,16 @@ func TestRegistration(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:         internal.Flags{},
-		ID:            nodeId,
-		PublicKey:     nil,
-		PrivateKey:    nil,
-		TlsCert:       cert,
-		TlsKey:        key,
-		Address:       nodeAddr,
-		LogPath:       "",
-		MetricLogPath: "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		PublicAddress:    nodeAddr,
+		LogPath:          "",
+		MetricLogPath:    "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
@@ -902,14 +904,14 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:      internal.Flags{},
-		ID:         nodeId,
-		PublicKey:  nil,
-		PrivateKey: nil,
-		TlsCert:    cert,
-		TlsKey:     key,
-		Address:    nodeAddr,
-		LogPath:    "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		LogPath:          "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,

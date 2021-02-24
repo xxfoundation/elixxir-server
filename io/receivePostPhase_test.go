@@ -35,7 +35,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)

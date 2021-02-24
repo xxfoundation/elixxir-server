@@ -31,8 +31,12 @@ import (
 // Perform the Node registration process with the Permissioning Server
 func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
-	node := strings.Split(def.Address, ":")
-	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
+	node, nodePort, err := net.SplitHostPort(def.PublicAddress)
+	if err != nil {
+		return errors.Errorf("Failed to split host and port of public address "+
+			"%s: %+v", def.PublicAddress, err)
+	}
+	nodePortInt, _ := strconv.ParseUint(nodePort, 10, 32)
 
 	// Get the gateway's address
 	gwAddr, _ := instance.GetGatewayData()
@@ -56,8 +60,8 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
 			GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
 			GatewayPort:      uint32(gwPort),
-			ServerAddress:    node[0],
-			ServerPort:       uint32(nodePort),
+			ServerAddress:    node,
+			ServerPort:       uint32(nodePortInt),
 			RegistrationCode: def.RegistrationCode,
 		})
 	if err != nil {

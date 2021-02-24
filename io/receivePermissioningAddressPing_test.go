@@ -20,7 +20,7 @@ func TestReceivePermissioningAddressPing(t *testing.T) {
 	def := internal.Definition{
 		FullNDF:       testUtil.NDF,
 		PartialNDF:    testUtil.NDF,
-		Flags:         internal.Flags{DisableIpOverride: true},
+		Flags:         internal.Flags{},
 		Gateway:       internal.GW{ID: &id.TempGateway},
 		Permissioning: internal.Perm{Address: "0.0.0.0:10"},
 	}

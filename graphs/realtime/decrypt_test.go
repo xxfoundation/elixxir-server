@@ -586,7 +586,7 @@ func mockServerInstance(i interface{}) *internal.Instance {
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 	}
 	def.Gateway.ID = nid.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

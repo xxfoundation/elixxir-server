@@ -55,7 +55,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		Gateway: internal.GW{
 			Address: "0.0.0.0:11420",
 		},
-		Address: "0.0.0.0:11421",
+		ListeningAddress: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()
