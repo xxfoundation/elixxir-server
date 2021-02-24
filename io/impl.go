@@ -17,7 +17,6 @@ import (
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/interconnect"
-	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"time"
 )
@@ -74,22 +73,21 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
-	impl.Functions.RequestNonce = func(salt []byte, RSAPubKey string,
-		DHPubKey, RSASignedByRegistration, DHSignedByClientRSA []byte, auth *connect.Auth) ([]byte, []byte, error) {
-		nonce, dhPub, err := RequestNonce(instance, salt, RSAPubKey, DHPubKey,
-			RSASignedByRegistration, DHSignedByClientRSA, auth)
+	impl.Functions.RequestNonce = func(nonceRequest *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
+		nonce, err := RequestNonce(instance, nonceRequest, auth)
 		if err != nil {
 			jww.ERROR.Printf("RequestNonce error: %+v, %+v", auth, err)
 		}
-		return nonce, dhPub, err
+		return nonce, err
 	}
 
-	impl.Functions.ConfirmRegistration = func(UserID *id.ID, Signature []byte, auth *connect.Auth) ([]byte, []byte, error) {
-		bytes, clientGWKey, err := ConfirmRegistration(instance, UserID, Signature, auth)
+	impl.Functions.ConfirmRegistration = func(confirmationRequest *pb.RequestRegistrationConfirmation,
+		auth *connect.Auth) (*pb.RegistrationConfirmation, error) {
+		response, err := ConfirmRegistration(instance, confirmationRequest, auth)
 		if err != nil {
 			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
 		}
-		return bytes, clientGWKey, err
+		return response, err
 	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
 		err := ReceivePostPrecompResult(instance, roundID, slots, auth)

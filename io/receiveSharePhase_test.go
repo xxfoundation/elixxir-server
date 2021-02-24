@@ -83,29 +83,51 @@ func TestSharePhaseRound(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
+	// Build an instance and dummy host.
+	// Dummy blocks final key logic from executing
 	instance, nodeAddr := mockInstance(t, mockSharePhaseImpl)
-	// Fill with extra ID to avoid final Key generation codepath for this test
-	mockId := id.NewIdFromBytes([]byte("test"), t)
-	t.Logf("mockID: %v", mockId)
-	topology := connect.NewCircuit([]*id.ID{instance.GetID(), mockId})
+	dummyNode, dummyAddr := mockInstance(t, dummySharePhaseImpl)
 
+	// Fill with extra ID to avoid final Key generation codepath for this test
+	topology := connect.NewCircuit([]*id.ID{instance.GetID(), dummyNode.GetID()})
+
+	// Create host objects off of the nodes
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
 	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
-	mockHost, _ := connect.NewHost(mockId, nodeAddr, cert, connect.GetDefaultHostParams())
+	mockHost, _ := connect.NewHost(dummyNode.GetID(), dummyAddr, cert, connect.GetDefaultHostParams())
 
+	// Add both to the topology
 	topology.AddHost(nodeHost)
 	topology.AddHost(mockHost)
+
+	// Add to instance itself and the dummy node as hosts
 	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
+	_, err = instance.GetNetwork().AddHost(dummyNode.GetID(), dummyAddr, cert, connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Failed to add host to instance: %v", err)
+	}
 
+	// Add to dummy itself and the instance as hosts
+	_, err = dummyNode.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Failed to add host to dummy node: %v", err)
+	}
+	_, err = dummyNode.GetNetwork().AddHost(dummyNode.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Failed to add host to dummy node: %v", err)
+	}
+
+	// Build phase handling
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
 	responseMap[phase.PrecompShare.String()] =
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
+	// Build round and add it to the manager
 	rnd, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
@@ -114,7 +136,6 @@ func TestSharePhaseRound(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(rnd)
 
-	ri := &mixmessages.RoundInfo{ID: uint64(roundID)}
 	params := connect.GetDefaultHostParams()
 	params.MaxRetries = 0
 
@@ -127,10 +148,6 @@ func TestSharePhaseRound(t *testing.T) {
 
 	instance.GetPhaseShareMachine().Update(state.STARTED)
 
-	err = signature.Sign(ri, instance.GetPrivKey())
-	if err != nil {
-		t.Errorf("couldn't sign info message: %+v", err)
-	}
 
 	// Generate a share to send
 	msg := &pb.SharePiece{
@@ -144,7 +161,7 @@ func TestSharePhaseRound(t *testing.T) {
 	}
 	// Manually fudge participant list so
 	// our instance is not in the list
-	piece.Participants = [][]byte{mockId.Bytes()}
+	piece.Participants = [][]byte{dummyNode.GetID().Bytes()}
 
 	err = ReceiveSharePhasePiece(piece, auth, instance)
 	if err != nil {
@@ -315,3 +332,20 @@ func mockSharePhaseImpl(instance *internal.Instance) *node.Implementation {
 
 	return impl
 }
+
+func dummySharePhaseImpl(instance *internal.Instance) *node.Implementation {
+	impl := node.NewImplementation()
+	impl.Functions.SharePhaseRound = func(sharedPiece *mixmessages.SharePiece,
+		auth *connect.Auth) error {
+		return nil
+	}
+	impl.Functions.StartSharePhase = func(ri *mixmessages.RoundInfo, auth *connect.Auth) error {
+		return nil
+	}
+	impl.Functions.ShareFinalKey = func(sharedPiece *mixmessages.SharePiece, auth *connect.Auth) error {
+		return nil
+	}
+
+	return impl
+}
+
