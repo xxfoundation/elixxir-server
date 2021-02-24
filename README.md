@@ -33,17 +33,23 @@ Usage:
 
 Available Commands:
   benchmark   Server benchmarking tests
-  generate    Generates version and dependency information for the Elixxir binary
+  generate    Generates version and dependency information for the xx network binary
   help        Help about any command
-  version     Print the version and dependency information for the Elixxir binary
+  version     Print the version and dependency information for the xx network binary
 
 Flags:
-  -c, --config string             Path to load the Node configuration file from. If not set, this file must be named gateway.yaml and must be located in ~/.xxnetwork/, /opt/xxnetwork, or /etc/xxnetwork.
+  -c, --config string             Path to load the Node configuration file from.
+                                  If not set, this file must be named gateway.yaml
+                                  and must be located in ~/.xxnetwork/,
+                                  /opt/xxnetwork, or /etc/xxnetwork.
       --disableStreaming          Disables streaming comms.
   -h, --help                      help for server
-  -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
-      --registrationCode string   Registration code used for first time registration. Required field.
-      --useGPU                    Toggle use of GPU. (Must be built or run with -tags gpu, and gpumathsnative must be installed)
+  -l, --logLevel uint             Level of debugging to print (0 = info,
+                                  1 = debug, >1 = trace).
+      --registrationCode string   Registration code used for first time
+                                  registration. This is a unique code provided
+                                  by xx network. (Required)
+      --useGPU                    Toggles use of the GPU.
 
 Use "server [command] --help" for more information about a command.
 ```
@@ -162,8 +168,6 @@ permissioning:
 metrics:
   # Path to store metrics logs.
   log: "/opt/xxnetwork/server-logs/metrics.log"
-
-
 ```
 
 ## Project Structure
