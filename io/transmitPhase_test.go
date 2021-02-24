@@ -200,16 +200,16 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 	cnt++
 
 	def := internal.Definition{
-		ID:              nid,
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-		PrivateKey:      privKey,
-		PublicKey:       privKey.GetPublic(),
-		TlsCert:         cert,
-		TlsKey:          key,
-		FullNDF:         testUtil.NDF,
-		PartialNDF:      testUtil.NDF,
-		Address:         nodeAddr,
+		ID:               nid,
+		UserRegistry:     &globals.UserMap{},
+		ResourceMonitor:  &measure.ResourceMonitor{},
+		PrivateKey:       privKey,
+		PublicKey:        privKey.GetPublic(),
+		TlsCert:          cert,
+		TlsKey:           key,
+		FullNDF:          testUtil.NDF,
+		PartialNDF:       testUtil.NDF,
+		ListeningAddress: nodeAddr,
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()

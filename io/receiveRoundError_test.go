@@ -291,7 +291,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 		Gateway: internal.GW{
 			ID: &id.TempGateway,
 		},

@@ -170,7 +170,7 @@ func mockServerDef(i interface{}) *Definition {
 		ResourceMonitor: &resourceMonitor,
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           Flags{DisableIpOverride: true},
+		Flags:           Flags{OverrideInternalIP: "0.0.0.0"},
 	}
 
 	def.Gateway.ID = nid.DeepCopy()

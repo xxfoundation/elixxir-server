@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/publicAddress"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
@@ -37,7 +38,7 @@ const defaultIpListPath = "/opt/xxnetwork/node-logs/ipList.txt"
 type Params struct {
 	KeepBuffers           bool
 	UseGPU                bool
-	DisableIpOverride     bool
+	OverrideInternalIP    string
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
@@ -62,6 +63,8 @@ type Params struct {
 // unless it fails to parse in which it case returns error
 func NewParams(vip *viper.Viper) (*Params, error) {
 
+	var err error
+
 	var require = func(s string, key string) {
 		if s == "" {
 			jww.FATAL.Panicf("%s must be set in params", key)
@@ -73,14 +76,35 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.RegistrationCode = vip.GetString("registrationCode")
 	require(params.RegistrationCode, "registrationCode")
 
-	params.Node.AddressOverride = vip.GetString("node.addressOverride")
 	params.Node.Port = vip.GetInt("node.Port")
 	if params.Node.Port == 0 {
 		jww.FATAL.Panic("Must specify a port to run on")
 	}
-	params.Node.InterconnectPort = vip.GetInt("node.interconnectPort")
 
-	params.DisableIpOverride = vip.GetBool("disableIpOverride")
+	// Get server's public IP address or use the override IP, if set
+	overridePublicIP := vip.GetString("node.overridePublicIP")
+	params.Node.PublicAddress, err = publicAddress.GetIpOverride(overridePublicIP, params.Node.Port)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to get public override IP \"%s\": %+v",
+			overridePublicIP, err)
+	}
+
+	// Construct listening address; defaults to 0.0.0.0 if not set
+	listeningIP := vip.GetString("node.listeningAddress")
+	if listeningIP == "" {
+		listeningIP = "0.0.0.0"
+	}
+	params.Node.ListeningAddress = net.JoinHostPort(listeningIP, strconv.Itoa(params.Node.Port))
+
+	// Construct server's override internal IP address, if set
+	overrideInternalIP := vip.GetString("node.overrideInternalIP")
+	params.OverrideInternalIP, err = publicAddress.JoinIpPort(overrideInternalIP, params.Node.Port)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to get public override IP \"%s\": %+v",
+			overrideInternalIP, err)
+	}
+
+	params.Node.InterconnectPort = vip.GetInt("node.interconnectPort")
 
 	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
 	require(params.Node.Paths.Idf, "node.paths.idf")
@@ -157,7 +181,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
-	def.Flags.DisableIpOverride = p.DisableIpOverride
+	def.Flags.OverrideInternalIP = p.OverrideInternalIP
 	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
@@ -179,7 +203,8 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 	}
 
-	def.Address = net.JoinHostPort(p.Node.AddressOverride, strconv.Itoa(p.Node.Port))
+	def.ListeningAddress = p.Node.ListeningAddress
+	def.PublicAddress = p.Node.PublicAddress
 	def.InterconnectPort = p.Node.InterconnectPort
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
@@ -308,7 +333,7 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 	// Build our node
 	ourNode := ndf.Node{
 		ID:             def.ID.Marshal(),
-		Address:        def.Address,
+		Address:        def.PublicAddress,
 		TlsCertificate: string(def.TlsCert),
 	}
 

@@ -123,7 +123,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           Flags{DisableIpOverride: true},
+		Flags:           Flags{OverrideInternalIP: "0.0.0.0"},
 	}
 	def.Gateway.ID = nid.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
