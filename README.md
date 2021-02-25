@@ -49,9 +49,10 @@ Flags:
       --registrationCode string   Registration code used for first time
                                   registration. This is a unique code provided
                                   by xx network. (Required)
-      --useGPU                    Toggles use of the GPU.
+      --useGPU                    Toggles use of the GPU. (default true)
 
 Use "server [command] --help" for more information about a command.
+
 ```
 
 All of those flags, except `--config`, override values in the configuration
@@ -104,8 +105,8 @@ Note: YAML prohibits the use of tabs because whitespace has meaning.
 # provided by xx network. (Required)
 registrationCode: "abc123"
 
-# Toggles use of the GPU. (Default false)
-useGPU: false
+# Toggles use of the GPU. (Default true)
+useGPU: true
 
 # Level of debugging to print (0 = info, 1 = debug, >1 = trace). (Default info)
 logLevel: 1
@@ -115,8 +116,8 @@ node:
     # Path where an error file will be placed in the event of a fatal error.
     # This path is used by the Wrapper Script. (Required)
     errOutput: "/opt/xxnetwork/node-logs/node-err.log"
-    # Path where the ID will be stored after the it is created on first run.
-    # This path is used by the Wrapper Script. (Required)
+    # Path to where the identity file (IDF) is saved. The IDF stores the Node's
+    # network identity. This is used by the wrapper management script. (Required)
     idf: "/opt/xxnetwork/node-logs/nodeIDF.json"
     # Path to the self-signed TLS certificate for Node. Expects PEM format.
     # (Required)
@@ -126,17 +127,15 @@ node:
     key: "/opt/xxnetwork/creds/node_key.key"
     # Path where log file will be saved.
     log: "/opt/xxnetwork/node-logs/node.log"
-    # Path where the list of node addresses is saved to.
-    # (Default "/opt/xxnetwork/node-logs/ipList.txt")
-    ipListOutput: "/opt/xxnetwork/node-logs/ipList.txt"
   # Port that the Node will communicate on. (Required)
   port: 42069
   # Local IP address of the Node, used for internal listening. Expects an IPv4
   # address without a port. (default "0.0.0.0")
   listeningAddress: ""
   # The public IPv4 address of the Node, as reported to the network, to be used
-  # instead of dynamically looking up Node's own IP address. If a port is not
-  # included, then the port from the port flag is used instead.
+  # instead of dynamically looking up Node's own IP address via pinging external
+  # services. If a port is not included, then the port from the port flag is
+  # used instead.
   overridePublicIP: ""
   # If set, then it is used to override the internal IP address. Expects an IPv4
   # address with or without a port. If no port is included, then the port from
