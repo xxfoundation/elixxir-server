@@ -364,9 +364,9 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
 }
 
-// GetIP returns the internal IP of the node from the instance
+// GetIP returns the public IP of the node from the instance
 func (i *Instance) GetIP() string {
-	return i.definition.ListeningAddress
+	return i.definition.PublicAddress
 }
 
 // GetResourceMonitor returns the resource monitoring object
