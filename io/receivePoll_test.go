@@ -31,18 +31,16 @@ import (
 func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *pb.ServerPoll,
 	[]byte, *rsa.PrivateKey) {
 	//Get a new ndf
-	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	testNdf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf")
-		t.Fail()
+		t.Error("Failed to decode ndf")
 	}
 
 	// Since no deep copy of ndf exists we create a new object entirely for second ndf that
 	// We use to test against
-	test2Ndf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	test2Ndf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf 2")
-		t.Fail()
+		t.Fatal("Failed to decode ndf 2")
 	}
 
 	// Change the time of the ndf so we can generate a different hash for use in comparisons

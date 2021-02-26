@@ -51,10 +51,9 @@ func assertPanic(t *testing.T, f func()) {
 
 func setupStartNode(t *testing.T) *internal.Instance {
 	//Get a new ndf
-	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	testNdf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf")
-		t.Fail()
+		t.Errorf("Failed to decode ndf")
 	}
 
 	// We need to create a server.Definition so we can create a server instance.
