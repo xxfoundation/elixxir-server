@@ -159,7 +159,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&disableStreaming, "disableStreaming", false,
 		"Disables streaming comms.")
 
-	rootCmd.Flags().BoolVar(&useGPU, "useGPU", false, "Toggles use of the GPU.")
+	rootCmd.Flags().BoolVar(&useGPU, "useGPU", true, "Toggles use of the GPU.")
 	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
 	handleBindingError(err, "useGPU")
 
