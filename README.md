@@ -103,7 +103,7 @@ Note: YAML prohibits the use of tabs because whitespace has meaning.
 ```yaml
 # Registration code used for first time registration. This is a unique code
 # provided by xx network. (Required)
-registrationCode: "abc123"
+registrationCode: ""
 
 # Toggles use of the GPU. (Default true)
 useGPU: true
@@ -142,12 +142,12 @@ node:
   # the port flag is used.
   overrideInternalIP: ""
 
-# Information to connect to the Postgres database storing keys.
+# Information to connect to the Postgres database storing keys. (Required)
 database:
-  name: "nodedb"
-  username: "node"
+  name: "cmix_node"
+  address: "0.0.0.0:5432"
+  username: "cmix"
   password: ""
-  address: "0.0.0.0:3800"
 
 # Information to communicate with this Node's Gateway.
 gateway:
