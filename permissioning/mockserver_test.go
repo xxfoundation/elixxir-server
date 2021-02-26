@@ -314,7 +314,7 @@ func setupFullNdf(key []byte) (*pb.NDF, error) {
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
 	f := &mixmessages.NDF{}
-	tmpNdf, _, err := ndf.DecodeNDF(testUtil.ExampleJSON)
+	tmpNdf, err := ndf.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
 		return nil, errors.Errorf("Failed to decode NDF: %+v", err)
 	}
