@@ -163,7 +163,7 @@ func NotStarted(instance *internal.Instance) error {
 	jww.INFO.Printf("Adding dummy gateway sending user")
 	//Add a dummy user for gateway
 	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = &id.DummyUser
+	dummy.ID = id.DummyUser.DeepCopy()
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
 	dummy.IsRegistered = true
 	userDatabase.UpsertUser(dummy)

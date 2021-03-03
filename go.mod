@@ -27,7 +27,7 @@ require (
 	gitlab.com/elixxir/crypto v0.0.7-0.20210226175801-f490fc89ffdd
 	gitlab.com/elixxir/gpumathsgo v0.0.2-0.20210126215525-7262661491c7
 	gitlab.com/elixxir/primitives v0.0.3-0.20210226175744-d424cb7261fd
-	gitlab.com/xx_network/comms v0.0.4-0.20210226175738-04b6c562dd2f
+	gitlab.com/xx_network/comms v0.0.4-0.20210303175419-d244a9576345
 	gitlab.com/xx_network/crypto v0.0.5-0.20210226175725-80576a407b2d
 	gitlab.com/xx_network/primitives v0.0.4-0.20210226175628-2b2742ebb772
 	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
