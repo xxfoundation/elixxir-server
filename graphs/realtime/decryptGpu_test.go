@@ -114,7 +114,8 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 		stream.Salts[i] = testSalt
 		stream.Users[i] = u.ID
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey, kmacHash)}
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey,
+			stream.RoundId, kmacHash)}
 	}
 	// Here's the actual data for the test
 
@@ -134,12 +135,14 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 			user, _ := registry.GetUser(stream.Users[i], grp)
 
-			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, keyA)
+			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, stream.RoundId,
+				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), user.BaseKey, keyB)
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.BaseKey,
+				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA
 			if stream.KeysPayloadA.Get(i).Cmp(keyA) != 0 {
