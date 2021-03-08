@@ -447,8 +447,8 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 		msg.SetPayloadB(payloadB)
 
 		// Encrypt the message
-		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
-		kmacs := cmix.GenerateKMACs(salt, baseKeys, kmacHash)
+		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys, id.Round(ri.ID))
+		kmacs := cmix.GenerateKMACs(salt, baseKeys, id.Round(ri.ID), kmacHash)
 
 		// Make the slot
 		ecrSlot := &mixmessages.Slot{}

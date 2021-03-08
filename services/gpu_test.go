@@ -12,9 +12,9 @@ package services
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/gpumathsgo"
-	"gitlab.com/elixxir/server/cryptops"
 	"math/rand"
 	"runtime"
 	"testing"

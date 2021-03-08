@@ -12,9 +12,9 @@ package realtime
 import (
 	"fmt"
 	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/cryptops"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
-	"gitlab.com/elixxir/server/cryptops"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
@@ -114,7 +114,8 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 		stream.Salts[i] = testSalt
 		stream.Users[i] = u.ID
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey, kmacHash)}
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey,
+			stream.RoundId, kmacHash)}
 	}
 	// Here's the actual data for the test
 
@@ -134,12 +135,14 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 			user, _ := registry.GetUser(stream.Users[i], grp)
 
-			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, keyA)
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.BaseKey,
+				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), user.BaseKey, keyB)
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.BaseKey,
+				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA
 			if stream.KeysPayloadA.Get(i).Cmp(keyA) != 0 {

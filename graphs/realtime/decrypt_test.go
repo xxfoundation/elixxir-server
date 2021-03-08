@@ -437,7 +437,7 @@ func TestDecryptStream_CommsInterface(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestDecryptStreamInGraph(t *testing.T) {
-
+	rid := id.Round(42)
 	instance := mockServerInstance(t)
 	grp := instance.GetConsensus().GetCmixGroup()
 	registry := instance.GetUserRegistry()
@@ -496,6 +496,9 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 
+	//set the round ID
+	stream.RoundId = rid
+
 	expectedPayloadA := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 	expectedPayloadB := grp.NewIntBuffer(batchSize, grp.NewInt(1))
 
@@ -520,7 +523,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 		stream.Salts[i] = testSalt
 		stream.Users[i] = u.ID
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey, kmacHash)}
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey, rid, kmacHash)}
 	}
 	// Here's the actual data for the test
 
@@ -540,12 +543,14 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 			user, _ := registry.GetUser(stream.Users[i], grp)
 
-			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, keyA)
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.BaseKey,
+				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), user.BaseKey, keyB)
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.BaseKey,
+				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA
 			if stream.KeysPayloadA.Get(i).Cmp(keyA) != 0 {

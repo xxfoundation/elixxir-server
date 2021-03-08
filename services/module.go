@@ -10,7 +10,7 @@ package services
 import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/server/cryptops"
+	"gitlab.com/elixxir/crypto/cryptops"
 	"math"
 )
 
