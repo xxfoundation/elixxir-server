@@ -10,10 +10,10 @@ package graphs
 import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/server/cryptops"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -62,6 +62,8 @@ func TestClientServer(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
+
+	rid := id.Round(42)
 
 	//Generate everything needed to make a user
 	nid := internal.GenerateId(t)
@@ -140,7 +142,7 @@ func TestClientServer(t *testing.T) {
 	inputMsg := makeMsg(grp)
 
 	//Encrypt the input message
-	encryptedMsg := cmix.ClientEncrypt(grp, *inputMsg, testSalt, userBaseKeys)
+	encryptedMsg := cmix.ClientEncrypt(grp, *inputMsg, testSalt, userBaseKeys, rid)
 
 	//Generate an encrypted message using the keys manually, test output agains encryptedMsg above
 	hash, err := blake2b.New256(nil)
@@ -151,8 +153,8 @@ func TestClientServer(t *testing.T) {
 	hash.Reset()
 	hash.Write(testSalt)
 
-	keyA := cmix.ClientKeyGen(grp, testSalt, userBaseKeys)
-	keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), userBaseKeys)
+	keyA := cmix.ClientKeyGen(grp, testSalt, rid, userBaseKeys)
+	keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), rid, userBaseKeys)
 	keyA_Inv := grp.Inverse(keyA, grp.NewInt(1))
 	keyB_Inv := grp.Inverse(keyB, grp.NewInt(1))
 

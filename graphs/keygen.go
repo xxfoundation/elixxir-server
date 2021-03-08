@@ -12,9 +12,9 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
+	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
-	"gitlab.com/elixxir/server/cryptops"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
@@ -38,7 +38,7 @@ type KeygenSubStream struct {
 	KeysB *cyclic.IntBuffer
 
 	userErrors *round.ClientReport
-	roundId    id.Round
+	RoundId    id.Round
 	batchSize  uint32
 }
 
@@ -49,7 +49,8 @@ type KeygenSubStream struct {
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, userReg globals.UserRegistry,
 	inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID, outKeysA,
-	outKeysB *cyclic.IntBuffer, reporter *round.ClientReport, roundID id.Round, batchSize uint32) {
+	outKeysB *cyclic.IntBuffer, reporter *round.ClientReport, roundID id.Round,
+	batchSize uint32) {
 	k.Grp = grp
 	k.userReg = userReg
 	k.salts = inSalts
@@ -58,7 +59,7 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, userReg globals.UserRegi
 	k.KeysA = outKeysA
 	k.KeysB = outKeysB
 	k.userErrors = reporter
-	k.roundId = roundID
+	k.RoundId = roundID
 	k.batchSize = batchSize
 }
 
@@ -88,7 +89,8 @@ var Keygen = services.Module{
 		salthash, err := blake2b.New256(nil)
 
 		if err != nil {
-			jww.FATAL.Panicf("Could not get blake2b hash: %s", err.Error())
+			jww.FATAL.Panicf("Could not get blake2b hash: %s",
+				err.Error())
 		}
 
 		kmacHash, err := hash.NewCMixHash()
@@ -97,7 +99,7 @@ var Keygen = services.Module{
 			jww.FATAL.Panicf("Could not get CMIX hash: %s", err.Error())
 		}
 
-		kss.userErrors.InitErrorChan(kss.roundId, kss.batchSize)
+		kss.userErrors.InitErrorChan(kss.RoundId, kss.batchSize)
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			user, err := kss.userReg.GetUser(kss.users[i], kss.Grp)
@@ -105,16 +107,18 @@ var Keygen = services.Module{
 			if err != nil {
 				if err.Error() == "pg: no rows in result set" ||
 					err == globals.ErrNonexistantUser {
-					jww.INFO.Printf("No user %s found for slot %d", kss.users[i], i)
+					jww.INFO.Printf("No user %s found for slot %d",
+						kss.users[i], i)
 					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
-					errMsg := fmt.Sprintf("%s [%v] in storage:%v", services.UserNotFound, kss.users[i], err)
+					errMsg := fmt.Sprintf("%s [%v] in storage:%v",
+						services.UserNotFound, kss.users[i], err)
 					clientError := &pb.ClientError{
 						Error:    errMsg,
 						ClientId: kss.users[i].Bytes(),
 					}
 
-					err = kss.userErrors.Send(kss.roundId, clientError)
+					err = kss.userErrors.Send(kss.RoundId, clientError)
 					if err != nil {
 						return err
 					}
@@ -126,18 +130,21 @@ var Keygen = services.Module{
 			success := false
 			if user.IsRegistered && len(kss.kmacs[i]) != 0 {
 				//check the KMAC
-				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], user.BaseKey, kmacHash) {
-					keygen(kss.Grp, kss.salts[i],
+				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], user.BaseKey,
+					kss.RoundId, kmacHash) {
+					keygen(kss.Grp, kss.salts[i], kss.RoundId,
 						user.BaseKey, kss.KeysA.Get(i))
 
 					salthash.Reset()
 					salthash.Write(kss.salts[i])
 
-					keygen(kss.Grp, salthash.Sum(nil),
+					keygen(kss.Grp, salthash.Sum(nil), kss.RoundId,
 						user.BaseKey, kss.KeysB.Get(i))
 					success = true
 				} else {
-					jww.INFO.Printf("KMAC ERR: %v not the same as %v", kss.kmacs[i][0], cmix.GenerateKMAC(kss.salts[i], user.BaseKey, kmacHash))
+					jww.INFO.Printf("KMAC ERR: %v not the same as %v",
+						kss.kmacs[i][0], cmix.GenerateKMAC(kss.salts[i],
+							user.BaseKey, kss.RoundId, kmacHash))
 				}
 				//pop the used KMAC
 				kss.kmacs[i] = kss.kmacs[i][1:]
@@ -148,16 +155,16 @@ var Keygen = services.Module{
 				kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
 				jww.DEBUG.Printf("User: %#v", user)
 				jww.DEBUG.Printf("KMACS: %#v", kss.kmacs[i])
-				jww.DEBUG.Printf("User %v on slot %v could not be validated",
-					user.ID, i)
-				errMsg := fmt.Sprintf("%s. UserID [%v] failed on slot %d", services.InvalidMAC,
-					user.ID, i)
+				jww.DEBUG.Printf("User %v on slot %v could not be "+
+					"validated", user.ID, i)
+				errMsg := fmt.Sprintf("%s. UserID [%v] failed on "+
+					"slot %d", services.InvalidMAC, user.ID, i)
 				clientError := &pb.ClientError{
 					Error:    errMsg,
 					ClientId: kss.users[i].Bytes(),
 				}
 
-				err = kss.userErrors.Send(kss.roundId, clientError)
+				err = kss.userErrors.Send(kss.RoundId, clientError)
 				if err != nil {
 					return err
 				}
