@@ -135,7 +135,7 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 			user, _ := registry.GetUser(stream.Users[i], grp)
 
-			cryptops.Keygen(grp, stream.Salts[i], user.BaseKey, stream.RoundId,
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.BaseKey,
 				keyA)
 
 			hash.Reset()
