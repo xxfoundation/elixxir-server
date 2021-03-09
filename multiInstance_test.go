@@ -21,6 +21,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	nodeComms "gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/comms/testutils"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
@@ -40,7 +41,6 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/crypto/signature/rsa"
@@ -499,7 +499,7 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 
 	wg.Wait()
 	// Mocking permissioning server signing message
-	signRoundInfo(roundInfoMsg)
+	testutils.SignRoundInfo(roundInfoMsg, t)
 
 	// Get starting time for benchmark
 	start := time.Now()
@@ -570,19 +570,6 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 
 	wg.Wait()
 	done <- start
-}
-
-// Utility function which signs a round info message
-func signRoundInfo(ri *pb.RoundInfo) error {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
-	if err != nil {
-		return errors.Errorf("Couldn't load private key: %+v", err)
-	}
-
-	ourPrivateKey := &rsa.PrivateKey{PrivateKey: *pk}
-
-	signature.Sign(ri, ourPrivateKey)
-	return nil
 }
 
 // generateCert eturns a self-signed cert and key for dummy tls comms,
