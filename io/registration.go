@@ -110,8 +110,8 @@ func RequestNonce(instance *internal.Instance,
 
 	// Return nonce to Client with empty error field
 	return &pb.Nonce{
-		Nonce:        userNonce.Bytes(),
-		DHPubKey:     DHPub.Bytes(),
+		Nonce:    userNonce.Bytes(),
+		DHPubKey: DHPub.Bytes(),
 	}, nil
 }
 
@@ -158,9 +158,8 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 
 	if err != nil {
 		return &pb.RegistrationConfirmation{},
-			errors.Errorf("Unable to confirm registration, signature invalid")
+			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %s", user.ID)
 	}
-
 
 	//todo: re-enable this and use it to simplify registration
 
