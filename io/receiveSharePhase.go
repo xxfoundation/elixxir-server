@@ -34,7 +34,6 @@ import (
 // calling TransmitPhaseShare
 func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	instance *internal.Instance) error {
-	// todo: check phase here, figure out how to do that. maybe use handlecomm func
 
 	curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
@@ -93,8 +92,9 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 
 	// Generate and sign the  message to be shared with the team
 	if err = TransmitPhaseShare(instance, r, msg); err != nil {
-		jww.FATAL.Panicf("ReceiveStartSharePhase Error: "+
+		roundErr := errors.Errorf("ReceiveStartSharePhase Error: "+
 			"Could not send our shared piece of the key: %v", err)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 	}
 
 	return nil
@@ -157,14 +157,17 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 		// If we are a participant, then our piece has come full circle.
 		// send out final key to all members
 		if err := TransmitFinalShare(instance, r, piece); err != nil {
-			jww.FATAL.Panicf("ReceiveSharePhasePiece Error: "+
+			roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
 				"Could not send our final key: %s", err)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+
 		}
 	} else {
 		// If not a participant, send message to neighboring node
 		if err = TransmitPhaseShare(instance, r, piece); err != nil {
-			jww.FATAL.Panicf("ReceiveSharePhasePiece Error: "+
-				"Could not send our shared piece of the key: %s", err)
+			roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
+			"Could not send our shared piece of the key: %s", err)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 		}
 	}
 
@@ -223,8 +226,8 @@ func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 
 	// Check the validity
 	if err = updateFinalKeys(piece, r, senderId, instance); err != nil {
-		jww.FATAL.Panicf("ReceiveFinalKey Error: Could not verify final key received: %v", err)
-
+		roundErr := errors.Errorf("ReceiveFinalKey Error: Could not verify final key received: %v", err)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 	}
 	return nil
 }
