@@ -164,7 +164,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 
 	if err != nil {
 		return &pb.RegistrationConfirmation{},
-			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %s", user.ID)
+			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %+v", user.ID, err)
 	}
 
 	//todo: re-enable this and use it to simplify registration
