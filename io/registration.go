@@ -24,6 +24,7 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/xx"
 	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
 )
 
 // Handles a client request for a nonce during the client registration process
@@ -38,7 +39,12 @@ func RequestNonce(instance *internal.Instance,
 		return &pb.Nonce{}, connect.AuthError(auth.Sender.GetId())
 	}
 
+	// get the group, if it cant be found return an error because we are not
+	// ready
 	grp := instance.GetConsensus().GetCmixGroup()
+	if grp == nil {
+		return &pb.Nonce{}, errors.New(ndf.NO_NDF)
+	}
 
 	regPubKey := instance.GetRegServerPubKey()
 	h, _ := hash2.NewCMixHash()
@@ -158,7 +164,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 
 	if err != nil {
 		return &pb.RegistrationConfirmation{},
-			errors.Errorf("Unable to confirm registration, signature invalid")
+			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %+v", user.ID, err)
 	}
 
 	//todo: re-enable this and use it to simplify registration
