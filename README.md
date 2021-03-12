@@ -132,14 +132,13 @@ node:
   # Local IP address of the Node, used for internal listening. Expects an IPv4
   # address without a port. (default "0.0.0.0")
   listeningAddress: ""
-  # The public IPv4 address of the Node, as reported to the network, to be used
-  # instead of dynamically looking up Node's own IP address via pinging external
-  # services. If a port is not included, then the port from the port flag is
-  # used instead.
+  # The public IPv4 address of the Node, as reported to the network. When not
+  # set, external IP address lookup services are used to set this value. If a
+  # port is not included, then the port from the port flag is used instead.
   overridePublicIP: ""
-  # If set, then it is used to override the internal IP address. Expects an IPv4
-  # address with or without a port. If no port is included, then the port from
-  # the port flag is used.
+  # If set, then it is used to override the internal IP address used to contact
+  # yourself. Expects an IPv4 address with or without a port. If no port is
+  # included, then the port from the port flag is used.
   overrideInternalIP: ""
 
 # Information to connect to the Postgres database storing keys. (Required)
