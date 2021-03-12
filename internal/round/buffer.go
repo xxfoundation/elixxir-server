@@ -11,7 +11,12 @@ package round
 // and constructors
 
 import (
+	"github.com/pkg/errors"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/xx_network/primitives/id"
+	"sync"
+	"sync/atomic"
 )
 
 type Buffer struct {
@@ -46,6 +51,12 @@ type Buffer struct {
 	// To reuse in the Identify phase because the Reveal phase does not use the data
 	PermutedPayloadAKeys []*cyclic.Int
 	PermutedPayloadBKeys []*cyclic.Int
+
+	// Multiparty DH Keys
+	FinalKeys          []*cyclic.Int
+	FinalShareMessages map[*id.ID]*pb.SharePiece
+	SharesReceived     *uint32
+	SharePhaseMux      sync.RWMutex
 }
 
 // Function to initialize a new round
@@ -55,7 +66,8 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 	for i := uint32(0); i < expandedBatchSize; i++ {
 		permutations[i] = i
 	}
-
+	newSharedMessageMap := make(map[*id.ID]*pb.SharePiece)
+	sharedReceived := uint32(0)
 	return &Buffer{
 		R: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		S: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
@@ -78,6 +90,11 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 
 		PayloadAPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		PayloadBPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
+
+		FinalKeys:          make([]*cyclic.Int, 0),
+		SharesReceived:     &sharedReceived,
+		FinalShareMessages: newSharedMessageMap,
+		SharePhaseMux:      sync.RWMutex{},
 	}
 }
 
@@ -122,4 +139,48 @@ func (r *Buffer) Erase() {
 
 	r.PermutedPayloadAKeys = nil
 	r.PermutedPayloadBKeys = nil
+
+	atomic.SwapUint32(r.SharesReceived, 0)
+	r.FinalKeys = nil
+	for key := range r.FinalShareMessages {
+		delete(r.FinalShareMessages, key)
+	}
+
+}
+
+// AddFinalShareMessage adds to the message tracker final share piece from the sender
+// If we have a message in there already, we error
+func (r *Buffer) AddFinalShareMessage(piece *pb.SharePiece, origin *id.ID) error {
+	r.SharePhaseMux.Lock()
+	defer r.SharePhaseMux.Unlock()
+	// Check that we have not already received a final piece message from the sender
+	if r.FinalShareMessages[origin] != nil {
+		return errors.Errorf("Received final key from [%s] multiple times",
+			origin)
+	}
+	r.FinalShareMessages[origin] = piece
+	return nil
+}
+
+// GetPieceMessagesByNode gets final share piece message received by the
+// specified nodeID
+func (r *Buffer) GetPieceMessagesByNode(origin *id.ID) *pb.SharePiece {
+	r.SharePhaseMux.RLock()
+	messages := r.FinalShareMessages[origin]
+	r.SharePhaseMux.RUnlock()
+	return messages
+}
+
+// UpdateFinalKeys adds a new key to the list of final keys
+func (r *Buffer) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
+	r.SharePhaseMux.Lock()
+	defer r.SharePhaseMux.Unlock()
+	r.FinalKeys = append(r.FinalKeys, piece)
+	return r.FinalKeys
+}
+
+// Increments the number of shares received
+// as part of phaseShare
+func (r *Buffer) IncrementShares() uint32 {
+	return atomic.AddUint32(r.SharesReceived, 1)
 }

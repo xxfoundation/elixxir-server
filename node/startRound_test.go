@@ -10,21 +10,21 @@ package node
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/large"
 
-	//"gitlab.com/elixxir/crypto/signature/rsa"
+	//"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
-	ndf2 "gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/primitives/id"
+	ndf2 "gitlab.com/xx_network/primitives/ndf"
 	"testing"
 )
 
@@ -51,10 +51,9 @@ func assertPanic(t *testing.T, f func()) {
 
 func setupStartNode(t *testing.T) *internal.Instance {
 	//Get a new ndf
-	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	testNdf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf")
-		t.Fail()
+		t.Errorf("Failed to decode ndf")
 	}
 
 	// We need to create a server.Definition so we can create a server instance.
@@ -64,7 +63,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -141,7 +140,7 @@ func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *r
 
 	r, err := round.New(grp, &globals.UserMap{}, roundId, []phase.Phase{mockPhase},
 		responseMap, top, top.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)

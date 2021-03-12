@@ -14,12 +14,12 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/primitives/id"
 	"io"
 	"strings"
 )
@@ -38,7 +38,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		return errors.Errorf("Could not retrieve round %d from"+
 			" manager %s", roundID, err)
 	}
-
+	rType := r.GetCurrentPhaseType()
 	topology := r.GetTopology()
 	nodeID := instance.GetID()
 
@@ -46,8 +46,6 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	recipientID := topology.GetNextNode(nodeID)
 	recipientIndex := topology.GetNodeLocation(recipientID)
 	recipient := topology.GetHostAtIndex(recipientIndex)
-	fmt.Printf("***recipient: %+v\n", recipient.String())
-	fmt.Printf("***instance ID: %+v\n", instance.GetID())
 	header := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
@@ -98,7 +96,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		topology.Len())
 
 	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\""+
-		" COMPLETE/SEND", name, roundID, r.GetCurrentPhaseType())
+		" COMPLETE/SEND", name, roundID, rType)
 
 	cancel()
 

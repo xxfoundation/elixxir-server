@@ -9,8 +9,8 @@ cache:
 variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
-  DOCKER_IMAGE: elixxirlabs/cuda-go:latest
-  MIN_CODE_COVERAGE: "50.0"
+  DOCKER_IMAGE: elixxirlabs/cuda-go:go1.13-cuda11.1-mc
+  MIN_CODE_COVERAGE: "81.0"
 
 before_script:
   ##
@@ -42,16 +42,21 @@ build:
     - gpu
   script:
     - git clean -ffdx
-    # Because gpumaths is no longer one repository, let's get the native library with the release branch now
-    # Branch switching for the native library should be added shortly
-    - GPUMATHS_VERSION=release
+    # Clone a specific gpumaths branch if the pipeline has variable set
+    # Otherwise clone release gpumathsnative
+    - GPUMATHS_CLONE_VERSION=${GPUMATHS_VERSION-release}
+    # If server pipeline branch is master, get master branch of gpumathsnative
+    - if [ "$CI_COMMIT_BRANCH" == "master" ]; then
+    -   GPUMATHS_CLONE_VERSION=master
+    - fi
     - echo $GPUMATHS_VERSION
+    - echo $GPUMATHS_CLONE_VERSION
     - rm -fr gpumathsnative
-    - git clone -b $GPUMATHS_VERSION git@gitlab.com:elixxir/gpumathsnative.git
+    - git clone -b $GPUMATHS_CLONE_VERSION git@gitlab.com:elixxir/gpumathsnative.git
     - pushd gpumathsnative
     - git clean -ffdx
     - pushd cgbnBindings/powm
-    - make turing
+    - make fatbin
     - make install
     - ls
     - ls /opt/xxnetwork/lib
@@ -61,7 +66,7 @@ build:
     - go build ./...
     - go mod tidy
 
-    - cat /usr/local/cuda/version.txt
+    - nvcc --version
     - nvidia-smi
 
     - mkdir -p testdata
@@ -98,9 +103,12 @@ build:
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
     - GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win32 main.go
     - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
+    - mkdir upload
+    - cp release/* upload/
     - cp /opt/xxnetwork/lib/* release/
     - cp /opt/xxnetwork/include/* release/
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/xxnetwork/lib' -o release/server-cuda.linux64 main.go
+    - /upload-artifacts.sh upload/
   artifacts:
     paths:
       - vendor/

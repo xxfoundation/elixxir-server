@@ -9,31 +9,36 @@ package conf
 
 import (
 	gorsa "crypto/rsa"
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/publicAddress"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/crypto/csprng"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
-	"gitlab.com/elixxir/crypto/xx"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/id/idf"
-	"gitlab.com/elixxir/primitives/ndf"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/crypto/tls"
+	"gitlab.com/xx_network/crypto/xx"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/id/idf"
+	"gitlab.com/xx_network/primitives/ndf"
+	"gitlab.com/xx_network/primitives/utils"
+	"net"
 	"runtime"
+	"strconv"
 	"time"
 )
+
+// The default path to save the list of node IP addresses
+const defaultIpListPath = "/opt/xxnetwork/node-logs/ipList.txt"
 
 // This object is used by the server instance.
 // It should be constructed using a viper object
 type Params struct {
 	KeepBuffers           bool
 	UseGPU                bool
-	DisableIpOverride     bool
+	OverrideInternalIP    string
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
 	SignedGatewayCertPath string
@@ -49,12 +54,16 @@ type Params struct {
 	PhaseOverrides   []int
 	OverrideRound    int
 	RecoveredErrPath string
+
+	DevMode bool
 }
 
 // NewParams gets elements of the viper object
 // and updates the params object. It returns params
 // unless it fails to parse in which it case returns error
 func NewParams(vip *viper.Viper) (*Params, error) {
+
+	var err error
 
 	var require = func(s string, key string) {
 		if s == "" {
@@ -67,14 +76,35 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.RegistrationCode = vip.GetString("registrationCode")
 	require(params.RegistrationCode, "registrationCode")
 
-	vip.SetDefault("node.listeningAddress", "0.0.0.0")
-	params.Node.ListeningAddress = vip.GetString("node.listeningAddress")
 	params.Node.Port = vip.GetInt("node.Port")
 	if params.Node.Port == 0 {
 		jww.FATAL.Panic("Must specify a port to run on")
 	}
 
-	params.DisableIpOverride = vip.GetBool("disableIpOverride")
+	// Get server's public IP address or use the override IP, if set
+	overridePublicIP := vip.GetString("node.overridePublicIP")
+	params.Node.PublicAddress, err = publicAddress.GetIpOverride(overridePublicIP, params.Node.Port)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to get public override IP \"%s\": %+v",
+			overridePublicIP, err)
+	}
+
+	// Construct listening address; defaults to 0.0.0.0 if not set
+	listeningIP := vip.GetString("node.listeningAddress")
+	if listeningIP == "" {
+		listeningIP = "0.0.0.0"
+	}
+	params.Node.ListeningAddress = net.JoinHostPort(listeningIP, strconv.Itoa(params.Node.Port))
+
+	// Construct server's override internal IP address, if set
+	overrideInternalIP := vip.GetString("node.overrideInternalIP")
+	params.OverrideInternalIP, err = publicAddress.JoinIpPort(overrideInternalIP, params.Node.Port)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to get public override IP \"%s\": %+v",
+			overrideInternalIP, err)
+	}
+
+	params.Node.InterconnectPort = vip.GetInt("node.interconnectPort")
 
 	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
 	require(params.Node.Paths.Idf, "node.paths.idf")
@@ -88,6 +118,12 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
 	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
 	require(params.RecoveredErrPath, "node.paths.errOutput")
+
+	// If no path was supplied, then use the default
+	params.Node.Paths.ipListOutput = vip.GetString("node.paths.ipListOutput")
+	if params.Node.Paths.ipListOutput == "" {
+		params.Node.Paths.ipListOutput = defaultIpListPath
+	}
 
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
@@ -133,12 +169,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.Metrics.Log = vip.GetString("metrics.log")
 
-	params.Gateway.useNodeIp = vip.GetBool("gateway.useNodeIp")
-	params.Gateway.advertisedIP = vip.GetString("gateway.advertisedIP")
-	if params.Gateway.useNodeIp && params.Gateway.advertisedIP != "" {
-		jww.FATAL.Panicf("Cannot set both gateway.useNodeIp and " +
-			"gateway.advertisedIP at the same time.")
-	}
+	params.DevMode = viper.GetBool("devMode")
 
 	return &params, nil
 }
@@ -150,7 +181,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
-	def.Flags.DisableIpOverride = p.DisableIpOverride
+	def.Flags.OverrideInternalIP = p.OverrideInternalIP
 	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
@@ -172,12 +203,15 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 	}
 
-	def.Address = fmt.Sprintf("%s:%d", p.Node.ListeningAddress, p.Node.Port)
+	def.ListeningAddress = p.Node.ListeningAddress
+	def.PublicAddress = p.Node.PublicAddress
+	def.InterconnectPort = p.Node.InterconnectPort
 	def.TlsCert = tlsCert
 	def.TlsKey = tlsKey
 	def.LogPath = p.Node.Paths.Log
 	def.MetricLogPath = p.Metrics.Log
 	def.RecoveredErrorPath = p.RecoveredErrPath
+	def.IpListOutput = p.Node.Paths.ipListOutput
 
 	var GwTlsCerts []byte
 
@@ -289,9 +323,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.GraphGenerator = services.NewGraphGenerator(p.GraphGen.minInputSize,
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
-	def.Gateway.UseNodeIp = p.Gateway.useNodeIp
-	def.Gateway.AdvertisedIP = p.Gateway.advertisedIP
-
+	def.DevMode = p.DevMode
 	return def, nil
 }
 
@@ -301,7 +333,7 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 	// Build our node
 	ourNode := ndf.Node{
 		ID:             def.ID.Marshal(),
-		Address:        def.Address,
+		Address:        def.PublicAddress,
 		TlsCertificate: string(def.TlsCert),
 	}
 

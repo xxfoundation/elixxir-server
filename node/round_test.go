@@ -8,9 +8,9 @@
 package node
 
 import (
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
 )
@@ -27,8 +27,11 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(0)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second, nil, false)
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
+		100, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -45,7 +48,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 }
 
 func TestNewRoundComponents_MiddleNode(t *testing.T) {
-	expectedMiddleNodeResponses := 10
+	expectedMiddleNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -54,8 +57,11 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(1)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second, nil, false)
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
+		100, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -71,7 +77,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 }
 
 func TestNewRoundComponents_LastNode(t *testing.T) {
-	expectedLastNodeResponses := 10
+	expectedLastNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -80,8 +86,11 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(2)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second, nil, false)
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
+		100, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -106,8 +115,11 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(0)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second, nil, true)
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
+		100, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -124,7 +136,7 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 }
 
 func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
-	expectedMiddleNodeResponses := 10
+	expectedMiddleNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -133,8 +145,11 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(1)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second, nil, true)
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
+		100, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -150,7 +165,7 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 }
 
 func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
-	expectedLastNodeResponses := 10
+	expectedLastNodeResponses := 9
 
 	gc := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
@@ -159,8 +174,11 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 
 	nodeID := topology.GetNodeAtIndex(2)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, nil,
-		100, 2*time.Second, nil, true)
+	// Dummy instance to prevent segfault
+	instance, _, _, _, _, _, _ := createServerInstance(t)
+
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
+		100, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+

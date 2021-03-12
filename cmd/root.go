@@ -15,7 +15,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/xx_network/primitives/utils"
 	"os"
 	"runtime"
 	"strings"
@@ -35,7 +35,6 @@ var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
-var disableIpOverride bool
 
 // If true, runs pprof http server
 var profile bool
@@ -136,13 +135,9 @@ func init() {
 	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
 	handleBindingError(err, "profile")
 
-	rootCmd.Flags().BoolVar(&disableIpOverride, "disableIpOverride", false,
-		"Disable override of local node IP address in the NDF.")
-	err = viper.BindPFlag("disableIpOverride", rootCmd.Flags().Lookup("disableIpOverride"))
-	handleBindingError(err, "disableIpOverride")
-
-	rootCmd.Flags().StringP("registrationCode", "", "",
-		"Registration code used for first time registration. Required field.")
+	rootCmd.Flags().String("registrationCode", "",
+		"Registration code used for first time registration. This is a unique "+
+			"code provided by xx network. (Required)")
 	err = viper.BindPFlag("registrationCode", rootCmd.Flags().Lookup("registrationCode"))
 	handleBindingError(err, "registrationCode")
 
@@ -161,16 +156,26 @@ func init() {
 	err = rootCmd.Flags().MarkHidden("MaxProcsOverride")
 	handleBindingError(err, "MaxProcsOverride")
 
-	rootCmd.Flags().BoolVarP(&disableStreaming, "disableStreaming", "", false,
+	rootCmd.Flags().BoolVar(&disableStreaming, "disableStreaming", false,
 		"Disables streaming comms.")
 
-	rootCmd.Flags().BoolVarP(&useGPU, "useGPU", "", false, "Toggle use of GPU.")
+	rootCmd.Flags().BoolVar(&useGPU, "useGPU", true, "Toggles use of the GPU.")
 	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
 	handleBindingError(err, "useGPU")
 
 	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
-	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+
-		"the multi-instance GPU test.")
+	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0,
+		"The batch size used in the multi-instance GPU test.")
+
+	// NOTE: Meant for use by developer team ONLY. The development/maintenance
+	// team are NOT responsible for any issues encountered by any users
+	// who modify this logic or who run on the network with this option
+	rootCmd.Flags().Bool("devMode", false,
+		"Run in development/testing mode. Do not use on beta or main nets.")
+	err = rootCmd.Flags().MarkHidden("devMode")
+	handleBindingError(err, "devMode")
+	err = viper.BindPFlag("devMode", rootCmd.Flags().Lookup("devMode"))
+	handleBindingError(err, "devMode")
 
 }
 
@@ -182,7 +187,7 @@ func handleBindingError(err error, flag string) {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	//Use default config location if none is passed
+	// Use default config location if none is passed
 	if cfgFile == "" {
 		var err error
 		cfgFile, err = utils.SearchDefaultLocations("node.yaml", "xxnetwork")

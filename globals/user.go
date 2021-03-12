@@ -14,9 +14,9 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/nonce"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/xx_network/crypto/nonce"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
 	"strconv"
 	"sync"
 )
@@ -104,7 +104,7 @@ func (m *UserMap) NewUser(grp *cyclic.Group) *User {
 	usr.ID.SetType(id.User)
 
 	h.Reset()
-	h.Write([]byte(strconv.Itoa(int(40000 + i))))
+	h.Write([]byte(strconv.Itoa(int(4000 + i))))
 	usr.BaseKey = grp.NewIntFromBytes(h.Sum(nil))
 	usr.RsaPublicKey = nil
 

@@ -5,7 +5,7 @@
 
 ## Running the Server
 
-To run the server in cpu development mode:
+To run the server in CPU development mode:
 
 ```
 go run main.go --config [configuration-filename]
@@ -33,20 +33,26 @@ Usage:
 
 Available Commands:
   benchmark   Server benchmarking tests
-  generate    Generates version and dependency information for the Elixxir binary
+  generate    Generates version and dependency information for the xx network binary
   help        Help about any command
-  version     Print the version and dependency information for the Elixxir binary
+  version     Print the version and dependency information for the xx network binary
 
 Flags:
-  -c, --config string             Path to load the Node configuration file from. If not set, this file must be named gateway.yaml and must be located in ~/.xxnetwork/, /opt/xxnetwork, or /etc/xxnetwork.
+  -c, --config string             Path to load the Node configuration file from.
+                                  If not set, this file must be named gateway.yaml
+                                  and must be located in ~/.xxnetwork/,
+                                  /opt/xxnetwork, or /etc/xxnetwork.
       --disableStreaming          Disables streaming comms.
   -h, --help                      help for server
-  -l, --logLevel uint             Level of debugging to print (0 = info, 1 = debug, >1 = trace).
-      --registrationCode string   Registration code used for first time registration. Required field.
-      --useGPU                    Toggle use of GPU. (Must be built or run with -tags gpu, and gpumathsnative must be installed)
-      --disableIpOverride         Toggle use of local IP override
+  -l, --logLevel uint             Level of debugging to print (0 = info,
+                                  1 = debug, >1 = trace).
+      --registrationCode string   Registration code used for first time
+                                  registration. This is a unique code provided
+                                  by xx network. (Required)
+      --useGPU                    Toggles use of the GPU. (default true)
 
 Use "server [command] --help" for more information about a command.
+
 ```
 
 All of those flags, except `--config`, override values in the configuration
@@ -89,73 +95,78 @@ following directories:
 2. `/opt/xxnetwork/`
 3. `/etc/xxnetwork/`
 
-Server searches for the YAML file in that order and uses the first occurance
+Server searches for the YAML file in that order and uses the first occurrence
 found.
 
 Note: YAML prohibits the use of tabs because whitespace has meaning.
 
 ```yaml
 # Registration code used for first time registration. This is a unique code
-# provided by xx network.
-registrationCode: "abc123"
+# provided by xx network. (Required)
+registrationCode: ""
 
-# Toggles use of the GPU.
-useGPU: false
+# Toggles use of the GPU. (Default true)
+useGPU: true
 
-# Level of debugging to print (0 = info, 1 = debug, >1 = trace).
+# Level of debugging to print (0 = info, 1 = debug, >1 = trace). (Default info)
 logLevel: 1
 
 node:
   paths:
     # Path where an error file will be placed in the event of a fatal error.
-    # This path is used by the Wrapper Script
+    # This path is used by the Wrapper Script. (Required)
     errOutput: "/opt/xxnetwork/node-logs/node-err.log"
-    # Path where the ID will be stored after the ID is created on first run.
-    # This path is used by the Wrapper Script.
-    idf:  "/opt/xxnetwork/node-logs/nodeIDF.json"
+    # Path to where the identity file (IDF) is saved. The IDF stores the Node's
+    # network identity. This is used by the wrapper management script. (Required)
+    idf: "/opt/xxnetwork/node-logs/nodeIDF.json"
     # Path to the self-signed TLS certificate for Node. Expects PEM format.
-    # Required field.
+    # (Required)
     cert: "/opt/xxnetwork/creds/node_cert.crt"
-    # Path to the private key for the self signed TLS cert
     # Path to the private key associated with the self-signed TLS certificate.
-    # Required field.
-    key:  "/opt/xxnetwork/creds/node_key.key"
-    #  Path where log file will be saved.
-    log:  "/opt/xxnetwork/node-logs/node.log"
-  # Port that the Node will communicate on.
+    # (Required)
+    key: "/opt/xxnetwork/creds/node_key.key"
+    # Path where log file will be saved.
+    log: "/opt/xxnetwork/node-logs/node.log"
+  # Port that the Node will communicate on. (Required)
   port: 42069
+  # Local IP address of the Node, used for internal listening. Expects an IPv4
+  # address without a port. (default "0.0.0.0")
+  listeningAddress: ""
+  # The public IPv4 address of the Node, as reported to the network, to be used
+  # instead of dynamically looking up Node's own IP address via pinging external
+  # services. If a port is not included, then the port from the port flag is
+  # used instead.
+  overridePublicIP: ""
+  # If set, then it is used to override the internal IP address. Expects an IPv4
+  # address with or without a port. If no port is included, then the port from
+  # the port flag is used.
+  overrideInternalIP: ""
 
-# Information to conenct to the Postgres database storing keys.
+# Information to connect to the Postgres database storing keys. (Required)
 database:
-  name: "nodedb"
-  username: "node"
+  name: "cmix_node"
+  address: "0.0.0.0:5432"
+  username: "cmix"
   password: ""
-  address: "0.0.0.0:3800"
 
-gateways:
+# Information to communicate with this Node's Gateway.
+gateway:
   paths:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
-    # Required field.
+    # (Required)
     cert: "/opt/xxnetwork/creds/gateway-cert.crt"
-  # When set to true, the Node's public IP is used for Gateway. For use when the
-  # Gateway communicates to the Node via a local IP address.
-  # useNodeIp and AdvertisedIP cannot be set at the same time.
-  useNodeIp: false
-  # The address and port set here are used as the Gateway's public IP address.
-  # useNodeIp and AdvertisedIP cannot be set at the same time.
-  advertisedIP: ""
 
 permissioning:
   paths:
     # Path to the self-signed TLS certificate for the Permissioning server.
-    # Expects PEM format. Required field.
+    # Expects PEM format. (Required)
     cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
-  # IP Address of the Permissioning server, provided by xx network.
+  # IP Address of the Permissioning server, provided by xx network. (Required)
   address: ""
 
 metrics:
-  # Location of stored metrics data.
-  log:  "/opt/xxnetowkr/server-logs/metrics.log"
+  # Path to store metrics logs.
+  log: "/opt/xxnetwork/server-logs/metrics.log"
 ```
 
 ## Project Structure
@@ -189,7 +200,7 @@ dispatcher that allocates cryptop work to different goroutines.
 
 `node` contains node business logic.
 
-`permissioning` contins logic for dealing with the permissioning server
+`permissioning` contains logic for dealing with the permissioning server
 (the current source of consensus).
 
 ## Compiling the Binary

@@ -11,11 +11,7 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network/dataStructures"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
-	ndf2 "gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -24,6 +20,10 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/signature"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
+	ndf2 "gitlab.com/xx_network/primitives/ndf"
 	"testing"
 	"time"
 )
@@ -31,18 +31,16 @@ import (
 func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *pb.ServerPoll,
 	[]byte, *rsa.PrivateKey) {
 	//Get a new ndf
-	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	testNdf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf")
-		t.Fail()
+		t.Error("Failed to decode ndf")
 	}
 
 	// Since no deep copy of ndf exists we create a new object entirely for second ndf that
 	// We use to test against
-	test2Ndf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	test2Ndf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf 2")
-		t.Fail()
+		t.Fatal("Failed to decode ndf 2")
 	}
 
 	// Change the time of the ndf so we can generate a different hash for use in comparisons
@@ -63,7 +61,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 		Gateway:         ourGateway,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -128,12 +126,13 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 
 	fullHash1 := instance.GetConsensus().GetFullNdf().GetHash()
 
-	//Push a round update that can be used for the test:
+	// Push a round update that can be used for the test:
 	poll := pb.ServerPoll{
-		Full:       &pb.NDFHash{Hash: fullHash1},
-		Partial:    &pb.NDFHash{Hash: fullHash1},
-		LastUpdate: 0,
-		Error:      "",
+		Full:           &pb.NDFHash{Hash: fullHash1},
+		Partial:        &pb.NDFHash{Hash: fullHash1},
+		LastUpdate:     0,
+		Error:          "",
+		GatewayAddress: "1.2.3.4:11420",
 	}
 
 	fullHash2, err := dataStructures.GenerateNDFHash(test2Ndf)
@@ -170,7 +169,7 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		t.Fail()
@@ -180,8 +179,8 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		t.Fail()
 	}
 
-	if res.Slots != nil {
-		t.Errorf("ServerPollResponse.Slots is not nil")
+	if res.Batch != nil {
+		t.Errorf("ServerPollResponse.Batch is not nil")
 		t.Fail()
 	}
 	if res.BatchRequest != nil {
@@ -216,7 +215,7 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -229,7 +228,7 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 }
 
 // Test that when the fulll ndf hash is the same as the
-// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
+// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestReceivePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
@@ -242,7 +241,7 @@ func TestReceivePoll_SameFullNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -269,7 +268,7 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -295,7 +294,7 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -322,7 +321,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error: %v", err)
 		t.Fail()
@@ -330,7 +329,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	t.Logf("ROUND Updates: %v", res.Updates)
 	if len(res.Updates) == 0 {
-		t.Logf("We did not recieve any updates")
+		t.Logf("We did not receive any updates")
 		t.Fail()
 	}
 
@@ -367,7 +366,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -389,7 +388,7 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err = ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err = ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -454,19 +453,19 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
 
-	if len(res.Slots) != 10 {
-		t.Logf("We did not recieve the expected amount of slots")
+	if len(res.Batch.Slots) != 10 {
+		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 
 	for k := uint32(0); k < 10; k++ {
-		if res.Slots[k].Index != k {
+		if res.Batch.Slots[k].Index != k {
 			t.Logf("Slots did not match expected index")
 		}
 	}
@@ -491,7 +490,7 @@ func TestReceivePoll_Unauthenticated(t *testing.T) {
 	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
 
 	// Call ReceivePoll with bad auth
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err.Error() != expectedError {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -518,7 +517,7 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 	// Reset auth error
 	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
 
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err.Error() != expectedError {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -543,7 +542,7 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	}
 
 	// Happy path of 1st receive poll for auth
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err != nil {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -562,7 +561,7 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	}
 
 	// Attempt second poll with new, expected parameters
-	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err = ReceivePoll(pollMsg, &instance, auth)
 	if err != nil {
 		t.Errorf("Expected happy path, received error: %v", err)
 	}

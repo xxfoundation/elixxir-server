@@ -15,14 +15,9 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -32,6 +27,11 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/comms/signature"
+	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/crypto/large"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"reflect"
@@ -194,7 +194,7 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 		PartialNDF: testUtil.NDF,
 		FullNDF:    testUtil.NDF,
-		Flags:      internal.Flags{DisableIpOverride: true},
+		Flags:      internal.Flags{OverrideInternalIP: "0.0.0.0"},
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = &id.TempGateway
@@ -437,6 +437,7 @@ func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
+func (*MockPhase) GetAlternate() (bool, func())           { return false, nil }
 
 func buildTestNetworkComponents(impls []*node.Implementation, portStart int,
 	t *testing.T) ([]*node.Comms, *connect.Circuit) {
@@ -462,7 +463,7 @@ func buildTestNetworkComponents(impls []*node.Implementation, portStart int,
 	for index, impl := range impls {
 		nodeID := id.NewIdFromUInt(uint64(index), id.Node, t)
 		comms = append(comms,
-			node.StartNode(nodeID, addrLst[index], impl, nil, nil))
+			node.StartNode(nodeID, addrLst[index], 0, impl, nil, nil))
 	}
 
 	//Connect the comms

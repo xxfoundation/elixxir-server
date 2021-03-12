@@ -12,10 +12,10 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/primitives/id"
 	"runtime"
 	"testing"
 	"time"
@@ -104,6 +104,7 @@ func (*MockPhase) Cmp(phase.Phase) bool                   { return false }
 func (*MockPhase) String() string                         { return "" }
 func (*MockPhase) Measure(string)                         { return }
 func (*MockPhase) GetMeasure() measure.Metrics            { return *new(measure.Metrics) }
+func (*MockPhase) GetAlternate() (bool, func())           { return false, nil }
 
 func InitMockPhase(t *testing.T) *MockPhase {
 	if t == nil {

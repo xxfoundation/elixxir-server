@@ -11,12 +11,12 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
 )
@@ -70,7 +70,7 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil)
+		"0.0.0.0", nil, nil)
 	if err != nil {
 		t.Error()
 	}
@@ -103,7 +103,7 @@ func TestSendFinishRealtime(t *testing.T) {
 	}
 
 	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
+		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
 			"number of chunks; expected: %v, received: %v", numSlots,
 			len(cr.Round))
 	}
@@ -171,7 +171,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil)
+		"0.0.0.0", nil, nil)
 	if err != nil {
 		t.Error()
 	}
@@ -207,7 +207,7 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	}
 
 	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not recieve the correct: "+
+		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
 			"number of chunks; expected: %v, received: %v", numSlots,
 			len(cr.Round))
 	}

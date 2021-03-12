@@ -9,8 +9,8 @@ package phase
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/primitives/id"
 	"strings"
 	"testing"
 	"time"
@@ -146,8 +146,13 @@ func TestPhase_ConnectToRound(t *testing.T) {
 
 	timeout := 50 * time.Second
 
-	pFace := New(Definition{nil, RealPermute, nil,
-		timeout, false})
+	pFace := New(Definition{
+		Graph:               nil,
+		Alternate:           nil,
+		Type:                RealPermute,
+		TransmissionHandler: nil,
+		Timeout:             timeout,
+		DoVerification:      false})
 
 	p := pFace.(*phase)
 
@@ -207,8 +212,12 @@ func TestNew(t *testing.T) {
 		return nil
 	}
 
-	phase := New(Definition{g, RealPermute, transmit,
-		timeout, false})
+	phase := New(Definition{
+		Graph:               g,
+		Type:                RealPermute,
+		TransmissionHandler: transmit,
+		Timeout:             timeout,
+		DoVerification:      false})
 	err := phase.GetTransmissionHandler()(0, nil, nil, nil)
 
 	if err != nil {

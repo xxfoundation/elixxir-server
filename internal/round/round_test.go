@@ -10,15 +10,15 @@ package round
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/primitives/id"
 	"reflect"
 	"runtime"
 	"testing"
@@ -72,7 +72,7 @@ func TestNew(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -146,7 +146,7 @@ func TestRound_GetMeasurements(t *testing.T) {
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil,
 		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil,
-		"0.0.0.0", nil)
+		"0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -194,7 +194,7 @@ func TestRound_StartRoundTrip(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -225,7 +225,7 @@ func TestRound_StopRoundTrip(t *testing.T) {
 
 	round, err := New(grp, &globals.UserMap{}, roundId, phases, nil, topology,
 		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil)
+			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

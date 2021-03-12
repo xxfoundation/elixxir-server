@@ -8,8 +8,9 @@
 package conf
 
 var ExpectedPaths = Paths{
-	Idf:  "nodeID.json",
-	Cert: "~/.elixxir/cert.crt",
-	Key:  "~/.elixxir/key.pem",
-	Log:  "~/.elixxir/server.log",
+	Idf:          "nodeID.json",
+	Cert:         "~/.elixxir/cert.crt",
+	Key:          "~/.elixxir/key.pem",
+	Log:          "~/.elixxir/server.log",
+	ipListOutput: "/opt/xxnetwork/node-logs/ipList.txt",
 }

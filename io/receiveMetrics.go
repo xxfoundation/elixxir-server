@@ -12,15 +12,17 @@ package io
 import (
 	"encoding/json"
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"time"
 )
 
 // ReceiveGetMeasure finds the round in msg and response with a RoundMetrics message
-func ReceiveGetMeasure(instance *internal.Instance, msg *mixmessages.RoundInfo) (*mixmessages.RoundMetrics, error) {
+func ReceiveGetMeasure(instance *internal.Instance, msg *mixmessages.RoundInfo, auth *connect.Auth) (*mixmessages.RoundMetrics, error) {
 	roundID := id.Round(msg.ID)
 
 	rm := instance.GetRoundManager()
@@ -29,6 +31,16 @@ func ReceiveGetMeasure(instance *internal.Instance, msg *mixmessages.RoundInfo) 
 	r, err := rm.GetRound(roundID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Verify that auth is good and sender is last node
+	expectedID := r.GetTopology().GetNodeAtIndex(0)
+	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(expectedID) {
+		jww.INFO.Printf("[%v]: RID %d ReceiveGetMeasure failed auth "+
+			"(expected ID: %s, received ID: %s, auth: %v)",
+			instance, roundID, expectedID, auth.Sender.GetId(),
+			auth.IsAuthenticated)
+		return nil, connect.AuthError(auth.Sender.GetId())
 	}
 
 	t := time.NewTimer(500 * time.Millisecond)

@@ -9,9 +9,9 @@ package graphs
 
 import (
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/large"
 	"runtime"
 	"testing"
 )

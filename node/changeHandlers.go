@@ -18,9 +18,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -28,6 +25,9 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
+	"gitlab.com/xx_network/primitives/utils"
 	"strings"
 	"time"
 )
@@ -67,14 +67,15 @@ func NotStarted(instance *internal.Instance) error {
 	// If the certificates were retrieved from file, so do not need to register
 	if !isRegistered {
 		instance.IsFirstRun()
-		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
 		// Blocking call which waits until gateway
 		// has first contacted its node
 		// This ensures we have the correct gateway information
+		jww.INFO.Printf("Waiting on contact from gateway...")
 		instance.GetGatewayFirstContact().Receive()
 
 		// Blocking call: begin Node registration
+		jww.INFO.Printf("Registering with permissioning...")
 		err = permissioning.RegisterNode(ourDef, instance, permHost)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
@@ -151,14 +152,18 @@ func NotStarted(instance *internal.Instance) error {
 	}
 
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
-	//populate the dummy precanned users
-	jww.INFO.Printf("Adding dummy users to registry")
-	userDatabase := instance.GetUserRegistry()
-	PopulateDummyUsers(userDatabase, cmixGrp)
 
+	userDatabase := instance.GetUserRegistry()
+	if instance.GetDefinition().DevMode {
+		//populate the dummy precanned users
+		jww.INFO.Printf("Adding dummy users to registry")
+		PopulateDummyUsers(userDatabase, cmixGrp)
+	}
+
+	jww.INFO.Printf("Adding dummy gateway sending user")
 	//Add a dummy user for gateway
 	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = &id.DummyUser
+	dummy.ID = id.DummyUser.DeepCopy()
 	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
 	dummy.IsRegistered = true
 	userDatabase.UpsertUser(dummy)
@@ -268,7 +273,8 @@ func Precomputing(instance *internal.Instance) error {
 		instance,
 		roundInfo.GetBatchSize(),
 		roundTimeout, instance.GetStreamPool(),
-		instance.GetDisableStreaming())
+		instance.GetDisableStreaming(),
+		roundID)
 
 	var override = func() {
 		phaseOverrides := instance.GetPhaseOverrides()
@@ -295,7 +301,8 @@ func Precomputing(instance *internal.Instance) error {
 		instance.GetRngStreamGen(),
 		instance.GetStreamPool(),
 		instance.GetIP(),
-		GetDefaultPanicHanlder(instance, roundID))
+		GetDefaultPanicHandler(instance, roundID),
+		instance.GetClientReport())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}

@@ -13,15 +13,15 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
 	"strings"
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
 	// Check that the sender is authenticated and is either their gateway or the temporary gateway
@@ -32,11 +32,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	res := mixmessages.ServerPollResponse{}
 
-	jww.TRACE.Printf("Gateway Info: %s, %s", gatewayAddress,
-		poll.GatewayVersion)
-
-	// Form gateway address and put it into gateway data in instance
-	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
+	// Put gateway address and version into gateway data in instance
+	instance.UpsertGatewayData(poll.GatewayAddress, poll.GatewayVersion)
 
 	// Asynchronously indicate that gateway has successfully contacted
 	// its node
@@ -69,12 +66,16 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 		//get a completed batch if it exists and pass it to the gateway
 		cr, err := instance.GetCompletedBatchQueue().Receive()
-		if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+		if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
 		if cr != nil {
-			res.Slots = cr.Round
+			batch := &mixmessages.CompletedBatch{
+				RoundID: uint64(cr.RoundID),
+				Slots:   cr.Round,
+			}
+			res.Batch = batch
 		}
 
 		// denote that gateway has received info,

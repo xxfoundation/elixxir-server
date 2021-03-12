@@ -10,7 +10,6 @@ package io
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -19,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
 )
@@ -74,7 +74,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	rnd, err := round.New(grp,
 		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -122,7 +122,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			ResourceMonitor: &measure.ResourceMonitor{},
 			FullNDF:         testUtil.NDF,
 			PartialNDF:      testUtil.NDF,
-			Flags:           internal.Flags{DisableIpOverride: true},
+			Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 		}
 		def.ID = topology.GetNodeAtIndex(1)
 		def.Gateway.ID = def.ID.DeepCopy()
@@ -134,7 +134,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			m, "1.1.0")
 		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-			3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+			3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
@@ -158,7 +158,8 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		rnd, err := round.New(grp,
 			instances[i].GetUserRegistry(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
-			3, instances[i].GetRngStreamGen(), nil, "0.0.0.0", nil)
+			3, instances[i].GetRngStreamGen(), nil,
+			"0.0.0.0", nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}

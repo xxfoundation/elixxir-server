@@ -22,18 +22,11 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	nodeComms "gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/crypto/tls"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/ndf"
 	"gitlab.com/elixxir/server/cmd"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
@@ -47,6 +40,13 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/signature"
+	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/crypto/large"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/crypto/tls"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
 	"math/big"
 	"math/rand"
 	"net"
@@ -279,7 +279,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 
 	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
-	if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+	if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
 		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 	}
 	if cr != nil {
@@ -447,8 +447,8 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 		msg.SetPayloadB(payloadB)
 
 		// Encrypt the message
-		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys)
-		kmacs := cmix.GenerateKMACs(salt, baseKeys, kmacHash)
+		ecrMsg := cmix.ClientEncrypt(grp, msg, salt, baseKeys, id.Round(ri.ID))
+		kmacs := cmix.GenerateKMACs(salt, baseKeys, id.Round(ri.ID), kmacHash)
 
 		// Make the slot
 		ecrSlot := &mixmessages.Slot{}
@@ -690,7 +690,7 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 			ResourceMonitor:    &measure.ResourceMonitor{},
 			FullNDF:            networkDef,
 			PartialNDF:         networkDef,
-			Address:            nodeLst[i].Address,
+			ListeningAddress:   nodeLst[i].Address,
 			MetricsHandler:     func(i *internal.Instance, roundID id.Round) error { return nil },
 			RecoveredErrorPath: fmt.Sprintf("/tmp/err_%d", i),
 			GraphGenerator:     services.NewGraphGenerator(4, 1, 4, 1.0),

@@ -12,18 +12,18 @@ import (
 	"github.com/jinzhu/copier"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/crypto/signature/rsa"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/crypto/large"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -798,13 +798,12 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 		users[i] = &id.ID{}
 	}
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf,
-		userRegistry, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize,
-			grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
-		make([][]byte, batchSize), make([][][]byte, batchSize))
+	testReport := round.NewClientFailureReport()
 
-	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, ecrPayloadA, ecrPayloadB,
+	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize,
+		grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0)
+
+	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)
 }
 

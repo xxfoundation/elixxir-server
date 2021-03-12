@@ -19,14 +19,9 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -35,7 +30,11 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
-	"net"
+	"gitlab.com/xx_network/comms/signature"
+	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/utils"
 	"os"
 	"strings"
 	"sync"
@@ -43,21 +42,18 @@ import (
 	"testing"
 )
 
-// The placeholder for the host in the Gateway address that is used to indicate
-// to permissioning to replace it with the Node's host.
-const gatewayReplaceIpPlaceholder = "CHANGE_TO_PUBLIC_IP"
-
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
 // Holds long-lived server state
 type Instance struct {
-	Online        bool
-	definition    *Definition
-	roundManager  *round.Manager
-	resourceQueue *ResourceQueue
-	network       *node.Comms
-	streamPool    *gpumaths.StreamPool
-	machine       state.Machine
+	Online            bool
+	definition        *Definition
+	roundManager      *round.Manager
+	resourceQueue     *ResourceQueue
+	network           *node.Comms
+	streamPool        *gpumaths.StreamPool
+	machine           state.Machine
+	phaseStateMachine state.GenericMachine
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -70,6 +66,7 @@ type Instance struct {
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
+	clientErrors        *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -84,11 +81,9 @@ type Instance struct {
 	overrideRound  int
 	panicWrapper   func(s string)
 
-	gatewayAddress      string
-	gatewayVersion      string
-	gatewayMutex        sync.RWMutex
-	useNodeIpForGateway bool
-	gatewayAdvertisedIP string
+	gatewayAddress string
+	gatewayVersion string
+	gatewayMutex   sync.RWMutex
 
 	serverVersion string
 
@@ -125,19 +120,19 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		useNodeIpForGateway: def.Gateway.UseNodeIp,
-		gatewayAdvertisedIP: def.Gateway.AdvertisedIP,
-		serverVersion:       version,
-		firstRun:            &firstRun,
-		firstPoll:           &firstPoll,
-		gatewayFirstPoll:    NewFirstTime(),
+		serverVersion:     version,
+		firstRun:          &firstRun,
+		firstPoll:         &firstPoll,
+		gatewayFirstPoll:  NewFirstTime(),
+		clientErrors:      round.NewClientFailureReport(),
+		phaseStateMachine: state.NewGenericMachine(),
 	}
 
 	// Create stream pool if instructed to use GPU
 	if def.UseGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
-		memSize := 268435456
+		memSize := 200000
 		jww.INFO.Printf("Initializing GPU maths, CUDA backend, with memory size %v", memSize)
 		var err error
 		// It could be better to configure the amount of memory used in a configuration file instead
@@ -155,21 +150,23 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	//Start local node
 
-	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
-		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
+	instance.network = node.StartNode(instance.definition.ID, instance.definition.ListeningAddress,
+		instance.definition.InterconnectPort, makeImplementation(instance),
+		instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
 
 	// Initializes the network state tracking on this server instance
 	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF)
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
+		def.PartialNDF, def.FullNDF, nil)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
 
 	// Handle overriding local IP
-	if !instance.GetDefinition().DisableIpOverride {
+	if instance.GetDefinition().OverrideInternalIP != "" {
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
-			ID, instance.GetDefinition().Address)
+			ID, instance.GetDefinition().OverrideInternalIP)
 	}
 
 	// Connect to our gateway
@@ -256,9 +253,15 @@ func (i *Instance) GetConsensus() *network.Instance {
 	return i.consensus
 }
 
-// GetStateMachine returns the consensus object
+// GetStateMachine returns the round tracking state machine
 func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
+}
+
+// GetStateMachine returns state machine tracking the phase share status
+// todo: consider removing, may not be needed for final phase share design
+func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
+	return i.phaseStateMachine
 }
 
 // GetGateway returns the id of the node's gateway
@@ -361,9 +364,9 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
 }
 
-// GetIP returns the IP of the node from the instance
+// GetIP returns the public IP of the node from the instance
 func (i *Instance) GetIP() string {
-	return i.definition.Address
+	return i.definition.PublicAddress
 }
 
 // GetResourceMonitor returns the resource monitoring object
@@ -385,6 +388,10 @@ func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
+}
+
+func (i *Instance) GetClientReport() *round.ClientReport {
+	return i.clientErrors
 }
 
 func (i *Instance) GetRoundError() *mixmessages.RoundError {
@@ -448,45 +455,22 @@ func (i *Instance) GetGatewayData() (addr string, ver string) {
 	return i.gatewayAddress, i.gatewayVersion
 }
 
+// UpsertGatewayData saves the gateway address and version to the instance, if
+// they differ. Panics if the gateway address is empty.
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
+	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
+
+	if addr == "" {
+		jww.FATAL.Panicf("Faild to upsert gateway data, gateway address is empty.")
+	}
+
 	i.gatewayMutex.Lock()
 	defer i.gatewayMutex.Unlock()
 
-	addr = i.getGatewayAdvertisedIP(addr)
-
-	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
 	if i.gatewayAddress != addr || i.gatewayVersion != ver {
 		(*i).gatewayAddress = addr
 		(*i).gatewayVersion = ver
 	}
-}
-
-// getGatewayAdvertisedIP returns the correct advertised IP for Gateway. If
-// useNodeIpForGateway is set, then a placeholder with the Gateway's IP is
-// returned. If gatewayAdvertisedIP is set, then it is returned. If neither is
-// set, then the original Gateway IP is returned.
-func (i *Instance) getGatewayAdvertisedIP(gatewayAddr string) string {
-	if gatewayAddr != "" {
-		if i.useNodeIpForGateway {
-			_, port, err := net.SplitHostPort(gatewayAddr)
-			if err != nil {
-				jww.FATAL.Panicf("Error parsing Gateway address %#v: %v", gatewayAddr, err)
-			}
-			addr := net.JoinHostPort(gatewayReplaceIpPlaceholder, port)
-			jww.TRACE.Printf("useNodeIpForGateway flag is set. Modified Gateway's "+
-				"address to %s", addr)
-
-			return addr
-		}
-
-		if i.gatewayAdvertisedIP != "" {
-			jww.TRACE.Printf("gatewayAdvertisedIP flag is set. Modified Gateway's "+
-				"address to %s", i.gatewayAdvertisedIP)
-			return i.gatewayAdvertisedIP
-		}
-	}
-
-	return gatewayAddr
 }
 
 /* TESTING FUNCTIONS */
@@ -536,9 +520,7 @@ func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
 // FIXME: This function needs to be replaced
 func GenerateId(i interface{}) *id.ID {
 	switch i.(type) {
-	case *testing.T:
-		break
-	case *testing.M:
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
 		break
 	default:
 		jww.FATAL.Panicf("GenerateId is restricted to testing only. Got %T", i)
@@ -577,8 +559,8 @@ func (i *Instance) ReportRemoteFailure(roundErr *mixmessages.RoundError) {
 	i.reportFailure(roundErr)
 }
 
-// Create a round error, pass the error over the chanel and update the state to ERROR state
-// In situations that cause critical panic level errors.
+// Create a round error, pass the error over the channel and update the state to
+// ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
 
 	//truncate the error if it is too long
@@ -603,8 +585,8 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 	i.reportFailure(&roundErr)
 }
 
-// Create a round error, pass the error over the chanel and update the state to ERROR state
-// In situations that cause critical panic level errors.
+// Create a round error, pass the error over the channel and update the state to
+// ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()

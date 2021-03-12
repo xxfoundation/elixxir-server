@@ -14,12 +14,8 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/crypto/signature"
-	"gitlab.com/elixxir/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/primitives/states"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
@@ -27,6 +23,10 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/signature"
+	"gitlab.com/xx_network/crypto/signature/rsa"
+	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/utils"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -63,14 +63,15 @@ func TestRegisterNode(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:      internal.Flags{},
-		ID:         nodeId,
-		PublicKey:  nil,
-		PrivateKey: nil,
-		TlsCert:    cert,
-		TlsKey:     key,
-		Address:    nodeAddr,
-		LogPath:    "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		PublicAddress:    nodeAddr,
+		LogPath:          "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
@@ -669,15 +670,16 @@ func TestRegistration(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:         internal.Flags{},
-		ID:            nodeId,
-		PublicKey:     nil,
-		PrivateKey:    nil,
-		TlsCert:       cert,
-		TlsKey:        key,
-		Address:       nodeAddr,
-		LogPath:       "",
-		MetricLogPath: "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		PublicAddress:    nodeAddr,
+		LogPath:          "",
+		MetricLogPath:    "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
@@ -902,14 +904,14 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:      internal.Flags{},
-		ID:         nodeId,
-		PublicKey:  nil,
-		PrivateKey: nil,
-		TlsCert:    cert,
-		TlsKey:     key,
-		Address:    nodeAddr,
-		LogPath:    "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		LogPath:          "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,

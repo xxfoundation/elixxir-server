@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/id"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
@@ -25,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/primitives/id"
 	"runtime"
 	"testing"
 	"time"
@@ -55,7 +55,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		Gateway: internal.GW{
 			Address: "0.0.0.0:11420",
 		},
-		Address: "0.0.0.0:11421",
+		ListeningAddress: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()

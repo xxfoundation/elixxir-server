@@ -8,7 +8,7 @@
 package conf
 
 import (
-	"gitlab.com/elixxir/primitives/id"
+	"gitlab.com/xx_network/primitives/id"
 )
 
 var nodeID = id.ID([33]byte{82, 253, 252, 7, 33, 130, 101, 79, 22, 63, 95, 15,
@@ -17,8 +17,9 @@ var nodeID = id.ID([33]byte{82, 253, 252, 7, 33, 130, 101, 79, 22, 63, 95, 15,
 
 var ExpectedNode = Node{
 	Paths:            ExpectedPaths,
-	ListeningAddress: "127.0.0.1",
 	Port:             80,
+	PublicAddress:    "127.0.0.1:80",
+	ListeningAddress: "0.0.0.0:80",
 }
 
 /*
