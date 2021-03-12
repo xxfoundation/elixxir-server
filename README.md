@@ -128,7 +128,7 @@ node:
     # Path where log file will be saved.
     log: "/opt/xxnetwork/node-logs/node.log"
   # Port that the Node will communicate on. (Required)
-  port: 42069
+  port: 11420
   # Local IP address of the Node, used for internal listening. Expects an IPv4
   # address without a port. (default "0.0.0.0")
   listeningAddress: ""
@@ -154,7 +154,7 @@ gateway:
   paths:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
     # (Required)
-    cert: "/opt/xxnetwork/creds/gateway-cert.crt"
+    cert: "/opt/xxnetwork/creds/gateway_cert.crt"
 
 permissioning:
   paths:
@@ -166,7 +166,7 @@ permissioning:
 
 metrics:
   # Path to store metrics logs.
-  log: "/opt/xxnetwork/server-logs/metrics.log"
+  log: "/opt/xxnetwork/node-logs/metrics.log"
 ```
 
 ## Project Structure
