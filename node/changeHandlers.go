@@ -115,40 +115,42 @@ func NotStarted(instance *internal.Instance) error {
 	cannotPingErr := "cannot be contacted"
 	permissioningShuttingDownError := "transport is closing"
 
-	pollDelay := 1 * time.Second
+	pollDelay := 10 * time.Second
 
-	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(), cannotPingErr)) {
-		time.After(pollDelay)
+	for err != nil {
+		time.Sleep(pollDelay)
 
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			//find certs in NDF if they are nto already had
-			if !isRegistered {
+			//update NDF
+			err = permissioning.UpdateNDf(permResponse, instance)
+
+			if err == nil {
+				// find certs in NDF in order to detect that permissioning views
+				// this server as online
 				err = permissioning.FindSelfInNdf(ourDef,
 					instance.GetConsensus().GetFullNdf().Get())
-				if err != nil {
-					//if certs are not in NDF, redo the poll
-					continue
-				}
 			}
-
-			err = permissioning.UpdateNDf(permResponse, instance)
 		}
-	}
 
-	// Check for unexpected errors (ie errors from polling other than NO_NDF)
-	if err != nil {
-		return errors.Errorf("Failed to get ndf: %+v", err)
+		if err != nil {
+			jww.WARN.Printf("Poll of permissioning failed, will "+
+				"try again in %s: %s", pollDelay, err)
+		}
 	}
 
 	// Then we ping the server and attempt on that port
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
 	if exists && host.IsOnline() {
 		jww.DEBUG.Printf("Successfully contacted local address!")
+	} else if exists {
+		return errors.Errorf("unable to contact local address: %s",
+			host.GetAddress())
 	} else {
-		return errors.New("unable to contact local address")
+		return errors.Errorf("unable to find host to try contacting " +
+			"the local address")
 	}
 
 	cmixGrp := instance.GetConsensus().GetCmixGroup()

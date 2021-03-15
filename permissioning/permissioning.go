@@ -407,5 +407,6 @@ func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) erro
 			return nil
 		}
 	}
-	return errors.New("Failed to find node in ndf, maybe node registration failed?")
+	return errors.New("Failed to find node in ndf, may be " +
+		"considered offline")
 }
