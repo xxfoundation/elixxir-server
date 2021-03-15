@@ -166,7 +166,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 		// If not a participant, send message to neighboring node
 		if err = TransmitPhaseShare(instance, r, piece); err != nil {
 			roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
-			"Could not send our shared piece of the key: %s", err)
+				"Could not send our shared piece of the key: %s", err)
 			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 		}
 	}
