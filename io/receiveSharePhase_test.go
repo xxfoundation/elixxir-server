@@ -148,7 +148,6 @@ func TestSharePhaseRound(t *testing.T) {
 
 	instance.GetPhaseShareMachine().Update(state.STARTED)
 
-
 	// Generate a share to send
 	msg := &pb.SharePiece{
 		Piece:        grp.GetG().Bytes(),
@@ -348,4 +347,3 @@ func dummySharePhaseImpl(instance *internal.Instance) *node.Implementation {
 
 	return impl
 }
-
