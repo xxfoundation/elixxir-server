@@ -210,12 +210,11 @@ func TestRequestNonce(t *testing.T) {
 	}
 
 	request := &pb.NonceRequest{
-		Salt:salt,
-		ClientRSAPubKey:string(clientRSAPubKeyPEM),
-		ClientSignedByServer:&messages.RSASignature{Signature:sigReg},
-		ClientDHPubKey:clientDHPub.Bytes(),
-		RequestSignature:&messages.RSASignature{Signature:sigClient},
-
+		Salt:                 salt,
+		ClientRSAPubKey:      string(clientRSAPubKeyPEM),
+		ClientSignedByServer: &messages.RSASignature{Signature: sigReg},
+		ClientDHPubKey:       clientDHPub.Bytes(),
+		RequestSignature:     &messages.RSASignature{Signature: sigClient},
 	}
 
 	result, err2 := RequestNonce(serverInstance, request, &connect.Auth{
@@ -262,15 +261,14 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 	}
 
 	request := &pb.NonceRequest{
-		Salt:salt,
-		ClientRSAPubKey:string(clientRSAPubKeyPEM),
-		ClientSignedByServer:&messages.RSASignature{Signature:sigReg},
-		ClientDHPubKey:clientDHPub.Bytes(),
-		RequestSignature:&messages.RSASignature{Signature:sigClient},
-
+		Salt:                 salt,
+		ClientRSAPubKey:      string(clientRSAPubKeyPEM),
+		ClientSignedByServer: &messages.RSASignature{Signature: sigReg},
+		ClientDHPubKey:       clientDHPub.Bytes(),
+		RequestSignature:     &messages.RSASignature{Signature: sigClient},
 	}
 
-	_, err2 := RequestNonce(serverInstance,  request, &connect.Auth{
+	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
@@ -313,12 +311,11 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	}
 
 	request := &pb.NonceRequest{
-		Salt:salt,
-		ClientRSAPubKey:string(clientRSAPubKeyPEM),
-		ClientSignedByServer:&messages.RSASignature{Signature:sigReg},
-		ClientDHPubKey:clientDHPub.Bytes(),
-		RequestSignature:&messages.RSASignature{Signature:sigClient},
-
+		Salt:                 salt,
+		ClientRSAPubKey:      string(clientRSAPubKeyPEM),
+		ClientSignedByServer: &messages.RSASignature{Signature: sigReg},
+		ClientDHPubKey:       clientDHPub.Bytes(),
+		RequestSignature:     &messages.RSASignature{Signature: sigClient},
 	}
 	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
@@ -367,9 +364,9 @@ func TestConfirmRegistration(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID:user.ID.Bytes(),
+		UserID: user.ID.Bytes(),
 		NonceSignedByClient: &messages.RSASignature{
-			Signature:            sign,
+			Signature: sign,
 		},
 	}
 
@@ -422,9 +419,9 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID:user.ID.Bytes(),
+		UserID: user.ID.Bytes(),
 		NonceSignedByClient: &messages.RSASignature{
-			Signature:            sign,
+			Signature: sign,
 		},
 	}
 
@@ -466,9 +463,9 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID:user.ID.Bytes(),
+		UserID: user.ID.Bytes(),
 		NonceSignedByClient: &messages.RSASignature{
-			Signature:            sign,
+			Signature: sign,
 		},
 	}
 
@@ -510,9 +507,9 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID:user.ID.Bytes(),
+		UserID: user.ID.Bytes(),
 		NonceSignedByClient: &messages.RSASignature{
-			Signature:            sign,
+			Signature: sign,
 		},
 	}
 
@@ -561,9 +558,9 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID:user.ID.Bytes(),
+		UserID: user.ID.Bytes(),
 		NonceSignedByClient: &messages.RSASignature{
-			Signature:            sign,
+			Signature: sign,
 		},
 	}
 
@@ -593,9 +590,9 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID:user.ID.Bytes(),
+		UserID: user.ID.Bytes(),
 		NonceSignedByClient: &messages.RSASignature{
-			Signature:            []byte("test"),
+			Signature: []byte("test"),
 		},
 	}
 

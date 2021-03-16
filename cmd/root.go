@@ -189,15 +189,7 @@ func handleBindingError(err error, flag string) {
 func initConfig() {
 	// Use default config location if none is passed
 	if cfgFile == "" {
-		var err error
-		cfgFile, err = utils.SearchDefaultLocations("node.yaml", "xxnetwork")
-		if err != nil {
-			cfgFile, err = utils.SearchDefaultLocations("server.yaml", "xxnetwork")
-		}
-		if err != nil {
-			jww.FATAL.Panicf("No config provided and non found at default paths")
-		}
-
+		jww.FATAL.Panicf("No config file provided.")
 	}
 
 	f, err := os.Open(cfgFile)
