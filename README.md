@@ -125,10 +125,10 @@ node:
     # Path to the private key associated with the self-signed TLS certificate.
     # (Required)
     key: "/opt/xxnetwork/creds/node_key.key"
-    # Path where log file will be saved.
+    # Path where log file will be saved. (Default "./node.log")
     log: "/opt/xxnetwork/node-logs/node.log"
   # Port that the Node will communicate on. (Required)
-  port: 42069
+  port: 11420
   # Local IP address of the Node, used for internal listening. Expects an IPv4
   # address without a port. (default "0.0.0.0")
   listeningAddress: ""
