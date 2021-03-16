@@ -399,13 +399,13 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 }
 
 // FindSelfInNdf parses the ndf to determine if we exist in the ndf.
-func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) error {
+func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) bool {
 	// Find this node's place in the newNDF
 	for _, newNode := range newNdf.Nodes {
 		// If we exist in the ndf, return no error
-		if bytes.Compare(newNode.ID, def.ID.Bytes()) == 0 {
-			return nil
+		if bytes.Equal(newNode.ID, def.ID.Bytes()) {
+			return true
 		}
 	}
-	return errors.New("Failed to find node in ndf, maybe node registration failed?")
+	return false
 }
