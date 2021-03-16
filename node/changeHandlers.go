@@ -115,23 +115,29 @@ func NotStarted(instance *internal.Instance) error {
 	cannotPingErr := "cannot be contacted"
 	permissioningShuttingDownError := "transport is closing"
 
-	pollDelay := 10 * time.Second
+	pollDelay := 1 * time.Second
 
 	for err != nil {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			//update NDF
-			err = permissioning.UpdateNDf(permResponse, instance)
-			// find certs in NDF in order to detect that permissioning views
-			// this server as online
-			if err == nil && !permissioning.FindSelfInNdf(ourDef,
-				instance.GetConsensus().GetFullNdf().Get()) {
-				err = errors.New("Could not find self in NDF, polling" +
-					" again")
+			//check if an NDF is returned
+			if permResponse == nil || permResponse.FullNDF == nil || len(permResponse.FullNDF.Ndf) == 0 {
+				err = errors.New("NDF returned incomplete")
+			} else {
+				//update NDF
+				err = permissioning.UpdateNDf(permResponse, instance)
+				// find certs in NDF in order to detect that permissioning views
+				// this server as online
+				if err == nil && !permissioning.FindSelfInNdf(ourDef,
+					instance.GetConsensus().GetFullNdf().Get()) {
+					err = errors.New("Could not find self in NDF, polling" +
+						" again")
+				}
 			}
 		}
+
 		//if there is an error, print it
 		if err != nil {
 			jww.WARN.Printf("Poll of permissioning failed, will "+
