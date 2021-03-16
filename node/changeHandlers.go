@@ -118,30 +118,30 @@ func NotStarted(instance *internal.Instance) error {
 	pollDelay := 10 * time.Second
 
 	for err != nil {
-		time.Sleep(pollDelay)
-
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
 			//update NDF
 			err = permissioning.UpdateNDf(permResponse, instance)
-
-			if err == nil {
-				// find certs in NDF in order to detect that permissioning views
-				// this server as online
-				err = permissioning.FindSelfInNdf(ourDef,
-					instance.GetConsensus().GetFullNdf().Get())
+			// find certs in NDF in order to detect that permissioning views
+			// this server as online
+			if err == nil && !permissioning.FindSelfInNdf(ourDef,
+				instance.GetConsensus().GetFullNdf().Get()) {
+				err = errors.New("Could not find self in NDF, polling" +
+					" again")
 			}
 		}
-
+		//if there is an error, print it
 		if err != nil {
 			jww.WARN.Printf("Poll of permissioning failed, will "+
 				"try again in %s: %s", pollDelay, err)
 		}
+		//sleep in order to not overwhelm permissioning
+		time.Sleep(pollDelay)
 	}
 
-	// Then we ping the server and attempt on that port
+	// Then we ping ourselfs to make sure we can communicate
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
 	if exists && host.IsOnline() {
 		jww.DEBUG.Printf("Successfully contacted local address!")
@@ -153,6 +153,7 @@ func NotStarted(instance *internal.Instance) error {
 			"the local address")
 	}
 
+	//init the database
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
 	userDatabase := instance.GetUserRegistry()
