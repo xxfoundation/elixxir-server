@@ -86,11 +86,9 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	if topology.IsFirstNode(nodeID) {
 		precompShareDefinition.Alternate = func() {
-			jww.INFO.Println("RUNNING ALTERNATE")
 			if err := io.TransmitStartSharePhase(roundID, instance); err != nil {
 				jww.FATAL.Panicf("Failed to start share phase: %+v", err)
 			}
-
 		}
 	}
 
