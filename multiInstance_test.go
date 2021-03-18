@@ -572,19 +572,6 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	done <- start
 }
 
-// Utility function which signs a round info message
-func signRoundInfo(ri *pb.RoundInfo) error {
-	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
-	if err != nil {
-		return errors.Errorf("Couldn't load private key: %+v", err)
-	}
-
-	ourPrivateKey := &rsa.PrivateKey{PrivateKey: *pk}
-
-	signature.Sign(ri, ourPrivateKey)
-	return nil
-}
-
 // generateCert eturns a self-signed cert and key for dummy tls comms,
 // this is mostly cribbed from:
 //   https://golang.org/src/crypto/tls/generate_cert.go
@@ -760,4 +747,17 @@ func buildNdf(nodeLst []internal.Node, grp *cyclic.Group) *ndf.NetworkDefinition
 		CMIX:      group,
 	}
 
+}
+
+// Utility function which signs a round info message
+func signRoundInfo(ri *pb.RoundInfo) error {
+	pk, err := tls.LoadRSAPrivateKey(testUtil.RegPrivKey)
+	if err != nil {
+		return errors.Errorf("Couldn't load private key: %+v", err)
+	}
+
+	ourPrivateKey := &rsa.PrivateKey{PrivateKey: *pk}
+
+	signature.Sign(ri, ourPrivateKey)
+	return nil
 }

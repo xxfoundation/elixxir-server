@@ -117,40 +117,49 @@ func NotStarted(instance *internal.Instance) error {
 
 	pollDelay := 1 * time.Second
 
-	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(), cannotPingErr)) {
-		time.After(pollDelay)
-
+	for err != nil {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			//find certs in NDF if they are nto already had
-			if !isRegistered {
-				err = permissioning.FindSelfInNdf(ourDef,
-					instance.GetConsensus().GetFullNdf().Get())
-				if err != nil {
-					//if certs are not in NDF, redo the poll
-					continue
+			//check if an NDF is returned
+			if permResponse == nil || permResponse.FullNDF == nil || len(permResponse.FullNDF.Ndf) == 0 {
+				err = errors.New("NDF returned incomplete")
+			} else {
+				//update NDF
+				err = permissioning.UpdateNDf(permResponse, instance)
+				// find certs in NDF in order to detect that permissioning views
+				// this server as online
+				if err == nil && !permissioning.FindSelfInNdf(ourDef,
+					instance.GetConsensus().GetFullNdf().Get()) {
+					err = errors.New("Could not find self in NDF, polling" +
+						" again")
 				}
 			}
-
-			err = permissioning.UpdateNDf(permResponse, instance)
 		}
+
+		//if there is an error, print it
+		if err != nil {
+			jww.WARN.Printf("Poll of permissioning failed, will "+
+				"try again in %s: %s", pollDelay, err)
+		}
+		//sleep in order to not overwhelm permissioning
+		time.Sleep(pollDelay)
 	}
 
-	// Check for unexpected errors (ie errors from polling other than NO_NDF)
-	if err != nil {
-		return errors.Errorf("Failed to get ndf: %+v", err)
-	}
-
-	// Then we ping the server and attempt on that port
+	// Then we ping ourselfs to make sure we can communicate
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
 	if exists && host.IsOnline() {
 		jww.DEBUG.Printf("Successfully contacted local address!")
+	} else if exists {
+		return errors.Errorf("unable to contact local address: %s",
+			host.GetAddress())
 	} else {
-		return errors.New("unable to contact local address")
+		return errors.Errorf("unable to find host to try contacting " +
+			"the local address")
 	}
 
+	//init the database
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
 	userDatabase := instance.GetUserRegistry()

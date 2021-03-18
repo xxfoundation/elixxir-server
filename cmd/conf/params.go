@@ -116,6 +116,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	require(params.Node.Paths.Key, "node.paths.key")
 
 	params.Node.Paths.Log = vip.GetString("node.paths.log")
+	if params.Node.Paths.Log == "" {
+		params.Node.Paths.Log = "./node.log"
+	}
 	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
 	require(params.RecoveredErrPath, "node.paths.errOutput")
 
