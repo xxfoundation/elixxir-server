@@ -259,6 +259,7 @@ github.com/zeebo/assert v1.1.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN
 github.com/zeebo/blake3 v0.0.4/go.mod h1:YOZo8A49yNqM0X/Y+JmDUZshJWLt1laHsNSn5ny2i34=
 github.com/zeebo/blake3 v0.1.0 h1:sP3n5SxSbzU8x4Svc4ZcQv7SmQOqCkiKBeAZWP+hePo=
 github.com/zeebo/blake3 v0.1.0/go.mod h1:YOZo8A49yNqM0X/Y+JmDUZshJWLt1laHsNSn5ny2i34=
+github.com/zeebo/blake3 v0.1.1/go.mod h1:G9pM4qQwjRzF1/v7+vabMj/c5mWpGZ2Wzo3Eb4z0pb4=
 github.com/zeebo/pcg v0.0.0-20181207190024-3cdc6b625a05/go.mod h1:Gr+78ptB0MwXxm//LBaEvBiaXY7hXJ6KGe2V32X2F6E=
 github.com/zeebo/pcg v1.0.0 h1:dt+dx+HvX8g7Un32rY9XWoYnd0NmKmrIzpHF7qiTDj0=
 github.com/zeebo/pcg v1.0.0/go.mod h1:09F0S9iiKrwn9rlI5yjLkmrug154/YRW6KnnXVDM/l4=
@@ -288,6 +289,8 @@ gitlab.com/elixxir/comms v0.0.4-0.20210318223653-0d4e0688da7e h1:BNRr8HEaD9K2fk8
 gitlab.com/elixxir/comms v0.0.4-0.20210318223653-0d4e0688da7e/go.mod h1:lvnV9TBQJa/PCXJ1dOleX3JZzh4bAkgGxIJPKSe4jZQ=
 gitlab.com/elixxir/comms v0.0.4-0.20210319222146-3935426d5cd0 h1:6eo87/uJC+o96nmMKHicYzlB66nXCQ5O2Ifx5CTtxQM=
 gitlab.com/elixxir/comms v0.0.4-0.20210319222146-3935426d5cd0/go.mod h1:gWWr3pd9eGCGgeTwHAWG2Gr3W4/bjNKe71zMmI7r5wY=
+gitlab.com/elixxir/comms v0.0.4-0.20210319231719-9a044394c8c3 h1:+DFYvgbPhxeMiKW33F69Z8LY2fcqpKCLM3NyK3Cd//A=
+gitlab.com/elixxir/comms v0.0.4-0.20210319231719-9a044394c8c3/go.mod h1:3yOQzjNPjxcxX2z3mB1Jb5rmykKGqG/UHMgx9S3MNbw=
 gitlab.com/elixxir/crypto v0.0.0-20200804182833-984246dea2c4/go.mod h1:ucm9SFKJo+K0N2GwRRpaNr+tKXMIOVWzmyUD0SbOu2c=
 gitlab.com/elixxir/crypto v0.0.3/go.mod h1:ZNgBOblhYToR4m8tj4cMvJ9UsJAUKq+p0gCp07WQmhA=
 gitlab.com/elixxir/crypto v0.0.6/go.mod h1:V8lricBRpa8v1ySymXQ1/lsb+8/lSak5S7ZWRT6OACY=
@@ -302,6 +305,8 @@ gitlab.com/elixxir/crypto v0.0.7-0.20210310223119-f6784b2fa32f h1:JY+UPtys8Opacy
 gitlab.com/elixxir/crypto v0.0.7-0.20210310223119-f6784b2fa32f/go.mod h1:TMZMB24OsjF6y3LCyBMzDucbOx1cGQCCeuKV9lJA/DU=
 gitlab.com/elixxir/crypto v0.0.7-0.20210316212419-025ba777a80b h1:YpXzYPgkV22hVS2q1Ni3wLjFeQZKpY9UjPKoa/IQDlQ=
 gitlab.com/elixxir/crypto v0.0.7-0.20210316212419-025ba777a80b/go.mod h1:3SqRFi6QwGRBuQ4on0gJmPI4jpJdgnPIWPBwK/TnY5g=
+gitlab.com/elixxir/crypto v0.0.7-0.20210319231554-b73b6e62ddbc h1:r2nJ1opPnvaY/46nqOHxBEh/QlbNH3O7hurfDtJC0Wk=
+gitlab.com/elixxir/crypto v0.0.7-0.20210319231554-b73b6e62ddbc/go.mod h1:Th9bJRvEQecOFW0coD21AzzIBoNDOXcP3+hIGXELCXE=
 gitlab.com/elixxir/gpumathsgo v0.0.2-0.20210126215525-7262661491c7 h1:X3UiIX7EsyEVqBI9aZ3k3NIpbHWLjSQk+3zkJgeEvxo=
 gitlab.com/elixxir/gpumathsgo v0.0.2-0.20210126215525-7262661491c7/go.mod h1:rlTvOgZ7h7NCj3VskHDYRfafe7NyljjF5Svx7WyuLJE=
 gitlab.com/elixxir/gpumathsgo v0.1.0 h1:ZUmwNvbKERbxzbt4ZPJVKDk2/PQ42Gz1Ioc7MwFZ8HA=
@@ -328,6 +333,8 @@ gitlab.com/xx_network/comms v0.0.4-0.20210318220114-fddcc4e1445d h1:N8kVPT7EDfUn
 gitlab.com/xx_network/comms v0.0.4-0.20210318220114-fddcc4e1445d/go.mod h1:+4Qb4c5K0yj9Je0b8fxxw+aKZdM5y3PrpQ+ZXUwdUsI=
 gitlab.com/xx_network/comms v0.0.4-0.20210319033117-b91d7e8f22d0 h1:FO8+gWPGmNS9l9PUK7Sz24ULIb6u62v1wv2a7I97TgQ=
 gitlab.com/xx_network/comms v0.0.4-0.20210319033117-b91d7e8f22d0/go.mod h1:+4Qb4c5K0yj9Je0b8fxxw+aKZdM5y3PrpQ+ZXUwdUsI=
+gitlab.com/xx_network/comms v0.0.4-0.20210319231451-770f527d2e37 h1:X8Nm+kNPUBFc6qJmgj7HDhBxRlmsP1/GNzsqTA4dDtA=
+gitlab.com/xx_network/comms v0.0.4-0.20210319231451-770f527d2e37/go.mod h1:0Hx+zO3Pr4uYw4RZXFnPM3ocjY6bPIKDiHCjWTZLOSI=
 gitlab.com/xx_network/crypto v0.0.3/go.mod h1:DF2HYvvCw9wkBybXcXAgQMzX+MiGbFPjwt3t17VRqRE=
 gitlab.com/xx_network/crypto v0.0.4/go.mod h1:+lcQEy+Th4eswFgQDwT0EXKp4AXrlubxalwQFH5O0Mk=
 gitlab.com/xx_network/crypto v0.0.5-0.20201124194022-366c10b1bce0/go.mod h1:+lcQEy+Th4eswFgQDwT0EXKp4AXrlubxalwQFH5O0Mk=
@@ -338,6 +345,8 @@ gitlab.com/xx_network/crypto v0.0.5-0.20210309192854-cf32117afb96 h1:VZGJNhuU6Yu
 gitlab.com/xx_network/crypto v0.0.5-0.20210309192854-cf32117afb96/go.mod h1:TtaHpuX0lcuTTtcq+pz+lMusjyTgvSohIHFOlVwN1uU=
 gitlab.com/xx_network/crypto v0.0.5-0.20210316212152-504c0a1e0da0 h1:3ZuCXkP5sH23xUFdNhatIN2YX+EOl8G4jrewKQHsNnk=
 gitlab.com/xx_network/crypto v0.0.5-0.20210316212152-504c0a1e0da0/go.mod h1:rSBB1QLVgUQoaUvWXQTDCGNV9fGjgJahvted+7DEqSw=
+gitlab.com/xx_network/crypto v0.0.5-0.20210319231335-249c6b1aa323 h1:SR65X97KUaNdOQIX1SItNjPcQZ2oqznKM4g0UWpu+BI=
+gitlab.com/xx_network/crypto v0.0.5-0.20210319231335-249c6b1aa323/go.mod h1:T2IjHhuTSvaX9qHXfX8qsjbRKsqEzZ73NNHvY3QR6CQ=
 gitlab.com/xx_network/primitives v0.0.0-20200803231956-9b192c57ea7c/go.mod h1:wtdCMr7DPePz9qwctNoAUzZtbOSHSedcK++3Df3psjA=
 gitlab.com/xx_network/primitives v0.0.0-20200804183002-f99f7a7284da/go.mod h1:OK9xevzWCaPO7b1wiluVJGk7R5ZsuC7pHY5hteZFQug=
 gitlab.com/xx_network/primitives v0.0.2 h1:r45yKenJ9e7PylI1ZXJ1Es09oYNaYXjxVy9+uYlwo7Y=
@@ -438,11 +447,13 @@ golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200519105757-fe76b779f299/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201014080544-cc95f250f6bc/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201029080932-201ba4db2418 h1:HlFl4V6pEMziuLXyRkm5BIYq1y1GAbb02pRlWvI54OM=
 golang.org/x/sys v0.0.0-20201029080932-201ba4db2418/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210105210732-16f7687f5001 h1:/dSxr6gT0FNI1MO5WLJo8mTmItROeOKTkDn+7OwWBos=
 golang.org/x/sys v0.0.0-20210105210732-16f7687f5001/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210319071255-635bc2c9138d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
