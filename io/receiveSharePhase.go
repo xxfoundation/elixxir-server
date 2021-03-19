@@ -154,21 +154,25 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 
 	participants := piece.Participants
 	if isAlreadyParticipant(participants, instance.GetID().Bytes()) {
-		// If we are a participant, then our piece has come full circle.
-		// send out final key to all members
-		if err := TransmitFinalShare(instance, r, piece); err != nil {
-			roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
-				"Could not send our final key: %s", err)
-			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
-
-		}
+		go func() {
+			// If we are a participant, then our piece has come full circle.
+			// send out final key to all members
+			if err := TransmitFinalShare(instance, r, piece); err != nil {
+				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
+					"Could not send our final key: %s", err)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+			}
+		}()
 	} else {
-		// If not a participant, send message to neighboring node
-		if err = TransmitPhaseShare(instance, r, piece); err != nil {
-			roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
-				"Could not send our shared piece of the key: %s", err)
-			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
-		}
+		go func() {
+
+			// If not a participant, send message to neighboring node
+			if err = TransmitPhaseShare(instance, r, piece); err != nil {
+				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
+					"Could not send our shared piece of the key: %s", err)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+			}
+		}()
 	}
 
 	return nil
