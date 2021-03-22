@@ -95,6 +95,7 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 		if err = TransmitPhaseShare(instance, r, msg); err != nil {
 			roundErr := errors.Errorf("ReceiveStartSharePhase Error: "+
 				"Could not send our shared piece of the key: %v", err)
+			time.Sleep(time.Second)
 			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 		}
 	}()
@@ -161,6 +162,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 			if err := TransmitFinalShare(instance, r, piece); err != nil {
 				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
 					"Could not send our final key: %s", err)
+				time.Sleep(time.Second)
 				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 			}
 		}()
@@ -171,7 +173,9 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 			if err = TransmitPhaseShare(instance, r, piece); err != nil {
 				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
 					"Could not send our shared piece of the key: %s", err)
+				time.Sleep(time.Second)
 				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+
 			}
 		}()
 	}
