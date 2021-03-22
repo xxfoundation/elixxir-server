@@ -35,7 +35,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"net"
 	"os"
 	"strings"
 	"sync"
