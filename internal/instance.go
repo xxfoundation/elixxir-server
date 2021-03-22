@@ -35,6 +35,7 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
+	"net"
 	"os"
 	"strings"
 	"sync"
@@ -165,6 +166,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Handle overriding local IP
 	if instance.GetDefinition().OverrideInternalIP != "" {
+
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
 			ID, instance.GetDefinition().OverrideInternalIP)
 	}
