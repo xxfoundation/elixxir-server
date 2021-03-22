@@ -47,7 +47,8 @@ func TransmitStartSharePhase(roundID id.Round, instance *internal.Instance) erro
 			h := topology.GetHostAtIndex(localIndex)
 			ack, err := instance.GetNetwork().SendStartSharePhase(h, ri)
 			if err != nil {
-				errChan <- errors.Wrapf(err, "")
+				errChan <- errors.Wrapf(err, "Received an error in "+
+					"sending SendStartSharePhase to %s", h)
 			}
 
 			if ack != nil && ack.Error != "" {

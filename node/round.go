@@ -87,7 +87,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	if topology.IsFirstNode(nodeID) {
 		precompShareDefinition.Alternate = func() {
 			if err := io.TransmitStartSharePhase(roundID, instance); err != nil {
-				roundErr := errors.Wrap(err, "NewRoundComponents Error")
+				roundErr := errors.WithMessage(err, "NewRoundComponents Error")
 				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 			}
 		}
