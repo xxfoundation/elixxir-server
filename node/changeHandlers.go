@@ -217,7 +217,7 @@ func NotStarted(instance *internal.Instance) error {
 
 		// Periodically re-poll permissioning
 		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(50 * time.Millisecond)
+		ticker := time.NewTicker(200 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
