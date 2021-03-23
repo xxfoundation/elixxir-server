@@ -234,7 +234,7 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 		t.Errorf("Error in happy path: %v", err)
 	}
 
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 
 	// Check that the key has been modified in the round
 	expectedKey := grp.NewIntFromBytes(piece.Piece)

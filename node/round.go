@@ -9,6 +9,8 @@ package node
 
 import (
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -39,6 +41,24 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	// Used to determine usage of GPU maths in certain phases
 	useGPU := instance.GetDefinition().UseGPU
+
+	nodeList := make([][]byte, 0)
+	for i := 0; i < topology.Len() - 1; i++ {
+		nodeList = append(nodeList, topology.GetNodeAtIndex(i).Bytes())
+	}
+	
+	pingRequest := &pb.GatewayPingRequest{
+		RoundId:            uint64(roundID),
+		Topology:           nodeList,
+	}
+
+	err := instance.SendPingRequest(pingRequest)
+	if err != nil {
+		jww.WARN.Printf("Error sending over ping request, round may fail " +
+			"due to poor gateway set ups")
+	}
+	
+	
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 

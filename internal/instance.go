@@ -91,6 +91,9 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
+
+	// Channel to send along gateway ping request to polling logic
+	pingRequestChannel chan *mixmessages.GatewayPingRequest
 }
 
 // Create a server instance. To actually kick off the server,
@@ -120,12 +123,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion:     version,
-		firstRun:          &firstRun,
-		firstPoll:         &firstPoll,
-		gatewayFirstPoll:  NewFirstTime(),
-		clientErrors:      round.NewClientFailureReport(),
-		phaseStateMachine: state.NewGenericMachine(),
+		serverVersion:      version,
+		firstRun:           &firstRun,
+		firstPoll:          &firstPoll,
+		gatewayFirstPoll:   NewFirstTime(),
+		clientErrors:       round.NewClientFailureReport(),
+		phaseStateMachine:  state.NewGenericMachine(),
+		pingRequestChannel: make(chan *mixmessages.GatewayPingRequest),
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -248,6 +252,28 @@ func (i *Instance) Run() error {
 func (i *Instance) GetDefinition() *Definition {
 	return i.definition
 }
+
+// SendPingRequest sends a ping request over the request channel
+func (i *Instance) SendPingRequest(request *mixmessages.GatewayPingRequest) error {
+	select {
+	case i.pingRequestChannel <- request:
+		return nil
+	default:
+		return errors.New("Could not send to ping request channel")
+	}
+}
+
+// GetPingRequest returns either a request over the channel if populated
+// or nil if not populated
+func (i *Instance) GetPingRequest() *mixmessages.GatewayPingRequest {
+	select {
+	case  request := <- i.pingRequestChannel:
+		return request
+	default:
+		return nil
+	}
+}
+
 
 // GetTopology returns the consensus object
 func (i *Instance) GetConsensus() *network.Instance {

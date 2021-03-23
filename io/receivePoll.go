@@ -85,6 +85,11 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 		return &res, nil
 	}
 
+	// Retrieve a ping request in a non-blocking manner
+	// If non-existent, we send a nil request which gateway handles as a no-op
+	// If there is a request, gateway will handle pinging
+	res.PingRequest = instance.GetPingRequest()
+
 	// If node has not gotten a response from permissioning, return an empty message
 	return &res, errors.New(ndf.NO_NDF)
 }

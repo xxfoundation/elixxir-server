@@ -159,5 +159,9 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return ReceiveFinalKey(sharedPiece, auth, instance)
 	}
 
+	impl.Functions.ReportGatewayPings = func(report *pb.GatewayPingReport, auth *connect.Auth) error {
+		return ReceiveGatewayPingReport(report, auth, instance)
+	}
+
 	return impl
 }

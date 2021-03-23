@@ -395,6 +395,3 @@ func (r *Round) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
 	return r.buffer.UpdateFinalKeys(piece)
 }
 
-func (r *Round) IncrementShares() uint32 {
-	return r.buffer.IncrementShares()
-}
