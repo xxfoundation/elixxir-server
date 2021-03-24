@@ -39,8 +39,6 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 	roundID := id.Round(report.RoundId)
 	latestRound := instance.GetRoundManager().GetLatestRound()
 	if latestRound != roundID {
-		if len(report.FailedGateways) != 0 {
-		}
 		return nil
 	}
 
@@ -54,7 +52,13 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 			return nil
 		}
 
-		nodeList := constructPrintableNodeIds(gwIdList)
+		nodeList, err := constructPrintableNodeIds(report)
+		if err != nil {
+			jww.WARN.Printf("ReceiveGatewayPingReport: %v", err)
+			return nil
+
+		}
+
 		if len(report.FailedGateways) != 0 {
 			jww.WARN.Printf("ReceiveGatewayPingReport: Round %d has "+
 				"progressed too far "+
@@ -66,20 +70,17 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 
 	// Initiate round error if there are un-pingable gateways
 	if len(report.FailedGateways) != 0 {
-		// Parse the gateway Id list
-		gwIdList, err := id.NewIDListFromBytes(report.FailedGateways)
+		nodeList, err := constructPrintableNodeIds(report)
 		if err != nil {
-			jww.WARN.Printf("ReceiveGatewayPingReport: " +
-				"Could not parse list of un-pingable gateways sent by our gateway.")
+			jww.WARN.Printf("ReceiveGatewayPingReport: %v", err)
 			roundErr := errors.Errorf("ReceiveGatewayPingReport: "+
 				"Round %d failed due to team node(s) having "+
 				"un-contactable gateway(s). Could not construct list of nodes.",
 				roundID)
 			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 			return nil
-		}
 
-		nodeList := constructPrintableNodeIds(gwIdList)
+		}
 		roundErr := errors.Errorf("ReceiveGatewayPingReport: "+
 			"Round %d failed due to team node(s) having "+
 			"un-contactable gateway(s). Problematic node ID(s) as follows: [%v]",
@@ -92,7 +93,13 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 
 // Helper function which gets the node Ids of the un-contactable gateways,
 // returning a human readable list for use in printing to a log
-func constructPrintableNodeIds(gwIdList []*id.ID) string {
+func constructPrintableNodeIds(report *pb.GatewayPingReport) (string, error) {
+	// Parse the gateway Id list
+	gwIdList, err := id.NewIDListFromBytes(report.FailedGateways)
+	if err != nil {
+		return "", errors.New("Could not parse list of un-pingable gateways sent by our gateway.")
+	}
+
 	// Collect list of nodeId's that had un-pingable gateways
 	nodeList := make([]string, 0)
 	for _, gwId := range gwIdList {
@@ -102,6 +109,6 @@ func constructPrintableNodeIds(gwIdList []*id.ID) string {
 	}
 
 	// Reformat node list to a human readable format
-	return strings.Join(nodeList, ", ")
+	return strings.Join(nodeList, ", "), nil
 
 }
