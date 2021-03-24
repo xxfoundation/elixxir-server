@@ -42,23 +42,23 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Used to determine usage of GPU maths in certain phases
 	useGPU := instance.GetDefinition().UseGPU
 
+	// Construct a ping request for gateway to complete
 	nodeList := make([][]byte, 0)
-	for i := 0; i < topology.Len() - 1; i++ {
+	for i := 0; i < topology.Len()-1; i++ {
 		nodeList = append(nodeList, topology.GetNodeAtIndex(i).Bytes())
 	}
-	
+
 	pingRequest := &pb.GatewayPingRequest{
-		RoundId:            uint64(roundID),
-		Topology:           nodeList,
+		RoundId:  uint64(roundID),
+		Topology: nodeList,
 	}
 
+	// Send it over to be received in gateway polling
 	err := instance.SendPingRequest(pingRequest)
 	if err != nil {
 		jww.WARN.Printf("Error sending over ping request, round may fail " +
 			"due to poor gateway set ups")
 	}
-	
-	
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 

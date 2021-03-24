@@ -39,13 +39,15 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 	roundID := id.Round(report.RoundId)
 	ri, err := instance.GetConsensus().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Could not get round %d from consensus", roundID)
+		jww.WARN.Printf("Could not get round %d from consensus\", roundID")
+		return errors.Errorf("Internal issue on node: "+
+			"Could not get round %d from instance", roundID)
 	}
 
-	roundState := states.Round(ri.GetState())
 
 	// Check if the round has already finished
-	// (either due to completion or failure)
+	// (either due to completion or failure). If so do nothing
+	roundState := states.Round(ri.GetState())
 	if roundState == states.FAILED ||
 		roundState == states.COMPLETED {
 		return nil
@@ -53,12 +55,15 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 
 	// Initiate round error if there are un-pingable gateays
 	if len(report.FailedGateways) != 0 {
+		// Parse the gateway Id list
 		gwIdList, err := id.NewIDListFromBytes(report.FailedGateways)
 		if err != nil {
 			jww.WARN.Printf("ReceiveGatewayPingReport: " +
 				"Could not parse list of un-pingable gateways sent by our gateway.")
-			roundErr := errors.Errorf("Round %d failed due to team node(s) having "+
-				"un-contactable gateway(s). Could not construct list of nodes.", roundID)
+			roundErr := errors.Errorf("ReceiveGatewayPingReport: "+
+				"Round %d failed due to team node(s) having "+
+				"un-contactable gateway(s). Could not construct list of nodes.",
+				roundID)
 			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 			return nil
 		}
@@ -71,10 +76,12 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 			nodeList = append(nodeList, nodeId.String())
 		}
 
-		// Reformat node list to a human readProblematic node IDs as followsable format
+		// Reformat node list to a human readable format
 		nodeListErr := strings.Join(nodeList, ", ")
-		roundErr := errors.Errorf("Round %d failed due to team node(s) having "+
-			"un-contactable gateway(s). Problematic node IDs as follows: %v", roundID, nodeListErr)
+		roundErr := errors.Errorf("ReceiveGatewayPingReport: "+
+			"Round %d failed due to team node(s) having "+
+			"un-contactable gateway(s). Problematic node ID(s) as follows: [%v]",
+			roundID, nodeListErr)
 		instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 	}
 

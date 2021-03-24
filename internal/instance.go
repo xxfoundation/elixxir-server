@@ -267,13 +267,12 @@ func (i *Instance) SendPingRequest(request *mixmessages.GatewayPingRequest) erro
 // or nil if not populated
 func (i *Instance) GetPingRequest() *mixmessages.GatewayPingRequest {
 	select {
-	case  request := <- i.pingRequestChannel:
+	case request := <-i.pingRequestChannel:
 		return request
 	default:
 		return nil
 	}
 }
-
 
 // GetTopology returns the consensus object
 func (i *Instance) GetConsensus() *network.Instance {

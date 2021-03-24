@@ -394,4 +394,3 @@ func (r *Round) GetPieceMessagesByNode(origin *id.ID) *pb.SharePiece {
 func (r *Round) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
 	return r.buffer.UpdateFinalKeys(piece)
 }
-
