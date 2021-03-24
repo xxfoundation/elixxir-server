@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
@@ -41,7 +42,13 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 		return nil
 	}
 
-	// Initiate round error if there are un-pingable gateays
+	// Check if we are past precomputing stage. If so,
+	// it's too late to fail, so we return
+	if instance.GetStateMachine().Get() != current.PRECOMPUTING {
+		return nil
+	}
+
+	// Initiate round error if there are un-pingable gateways
 	if len(report.FailedGateways) != 0 {
 		// Parse the gateway Id list
 		gwIdList, err := id.NewIDListFromBytes(report.FailedGateways)
