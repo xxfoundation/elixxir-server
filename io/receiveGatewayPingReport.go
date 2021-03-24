@@ -45,13 +45,6 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 	// Check if we are past precomputing stage. If so,
 	// it's too late to fail, so we return
 	if instance.GetStateMachine().Get() != current.PRECOMPUTING {
-		gwIdList, err := id.NewIDListFromBytes(report.FailedGateways)
-		if err != nil {
-			jww.WARN.Printf("ReceiveGatewayPingReport: " +
-				"Could not parse list of un-pingable gateways sent by our gateway.")
-			return nil
-		}
-
 		nodeList, err := constructPrintableNodeIds(report)
 		if err != nil {
 			jww.WARN.Printf("ReceiveGatewayPingReport: %v", err)
