@@ -268,6 +268,7 @@ func (i *Instance) SendPingRequest(request *mixmessages.GatewayPingRequest) erro
 func (i *Instance) GetPingRequest() *mixmessages.GatewayPingRequest {
 	select {
 	case request := <-i.pingRequestChannel:
+		jww.TRACE.Printf("Pulling ping request for round %d out of pingRequestChannel", request.RoundId)
 		return request
 	default:
 		return nil
