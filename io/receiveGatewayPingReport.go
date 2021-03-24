@@ -39,11 +39,10 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 	roundID := id.Round(report.RoundId)
 	ri, err := instance.GetConsensus().GetRound(roundID)
 	if err != nil {
-		jww.WARN.Printf("Could not get round %d from consensus\", roundID")
+		jww.WARN.Printf("Could not get round %d from consensus", roundID)
 		return errors.Errorf("Internal issue on node: "+
 			"Could not get round %d from instance", roundID)
 	}
-
 
 	// Check if the round has already finished
 	// (either due to completion or failure). If so do nothing
