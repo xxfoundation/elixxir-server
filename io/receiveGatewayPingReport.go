@@ -56,7 +56,7 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 			jww.WARN.Printf("ReceiveGatewayPingReport: Round %d has "+
 				"progressed too far "+
 				"to handle a non-pingable gateway error."+
-				"Problematic node ID(s) as follows: [%v]", nodeList)
+				"Problematic node ID(s) as follows: [%v]", roundID, nodeList)
 		}
 		return nil
 	}
