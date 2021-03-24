@@ -12,7 +12,6 @@ import (
 	"gitlab.com/xx_network/crypto/large"
 	"math/rand"
 	"reflect"
-	"sync/atomic"
 	"testing"
 )
 
@@ -423,13 +422,6 @@ func TestBuffer_Erase(t *testing.T) {
 			r.FinalShareMessages, nil)
 	}
 
-	sharesReceived := atomic.LoadUint32(r.SharesReceived)
-	if sharesReceived != 0 {
-		t.Errorf("Erase() did not properly delete the buffer's SharesReceived"+
-			"\n\treceived: %v\n\texpected: %v",
-			r.SharesReceived, 0)
-	}
-
 }
 
 // Full test of methods handling FinalKeys in Buffer
@@ -463,33 +455,4 @@ func TestBuffer_FinalKeys(t *testing.T) {
 			"\n\treceived: [%v]\n\texpected: [%v]", r.FinalKeys[0], expectedKey)
 	}
 
-}
-
-// Full test of IncrementShares
-func TestBuffer_IncrementShares(t *testing.T) {
-	rng := rand.New(rand.NewSource(42))
-	batchSize := rng.Uint32() % 1000
-	expandedBatchSize := uint32(float64(batchSize) * (float64(rng.Uint32()%1000) / 100.00))
-
-	r := NewBuffer(grp, batchSize, expandedBatchSize)
-
-	// Check that returned value consistently increments
-	// (note that we index at 1 here, as receivedShares in first iteration
-	// increments from 0 to 1)
-	totalIncrements := 5
-	for expectedNum := 1; expectedNum < totalIncrements+1; expectedNum++ {
-		retrievedVal := r.IncrementShares()
-		if retrievedVal != uint32(expectedNum) {
-			t.Errorf("Number returned from IncrementShares not expected."+
-				"\n\treceived: [%v]\n\texpected: [%v]", retrievedVal, expectedNum)
-		}
-	}
-
-	// Check that the final value is the expected number
-	finalValue := atomic.LoadUint32(r.SharesReceived)
-	if finalValue != uint32(totalIncrements) {
-		t.Errorf("Final value of SharesReceived not expected."+
-			"\n\treceived: [%v]\n\texpected: [%v]", finalValue, totalIncrements)
-
-	}
 }

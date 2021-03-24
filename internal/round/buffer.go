@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/xx_network/primitives/id"
 	"sync"
-	"sync/atomic"
 )
 
 type Buffer struct {
@@ -55,7 +54,6 @@ type Buffer struct {
 	// Multiparty DH Keys
 	FinalKeys          []*cyclic.Int
 	FinalShareMessages map[*id.ID]*pb.SharePiece
-	SharesReceived     *uint32
 	SharePhaseMux      sync.RWMutex
 }
 
@@ -67,7 +65,6 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 		permutations[i] = i
 	}
 	newSharedMessageMap := make(map[*id.ID]*pb.SharePiece)
-	sharedReceived := uint32(0)
 	return &Buffer{
 		R: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 		S: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
@@ -92,7 +89,6 @@ func NewBuffer(g *cyclic.Group, batchSize, expandedBatchSize uint32) *Buffer {
 		PayloadBPrecomputation: g.NewIntBuffer(expandedBatchSize, g.NewInt(1)),
 
 		FinalKeys:          make([]*cyclic.Int, 0),
-		SharesReceived:     &sharedReceived,
 		FinalShareMessages: newSharedMessageMap,
 		SharePhaseMux:      sync.RWMutex{},
 	}
@@ -140,7 +136,6 @@ func (r *Buffer) Erase() {
 	r.PermutedPayloadAKeys = nil
 	r.PermutedPayloadBKeys = nil
 
-	atomic.SwapUint32(r.SharesReceived, 0)
 	r.FinalKeys = nil
 	for key := range r.FinalShareMessages {
 		delete(r.FinalShareMessages, key)
@@ -177,10 +172,4 @@ func (r *Buffer) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
 	defer r.SharePhaseMux.Unlock()
 	r.FinalKeys = append(r.FinalKeys, piece)
 	return r.FinalKeys
-}
-
-// Increments the number of shares received
-// as part of phaseShare
-func (r *Buffer) IncrementShares() uint32 {
-	return atomic.AddUint32(r.SharesReceived, 1)
 }
