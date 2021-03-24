@@ -13,6 +13,9 @@ import (
 	"gitlab.com/elixxir/comms/testutils"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/states"
+	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
@@ -70,7 +73,7 @@ func TestReceiveGatewayPingReport(t *testing.T) {
 
 // Happy path: handles a failed round due to gateway issues
 func TestReceiveGatewayPingReport_FailedGateway(t *testing.T) {
-	instance, _ := mockInstance(t, mockSharePhaseImpl)
+	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
 
 	// Add the certs to our network instance
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
@@ -80,10 +83,31 @@ func TestReceiveGatewayPingReport_FailedGateway(t *testing.T) {
 		t.Fail()
 	}
 
-	// Add to consensus
-	roundId := uint64(7)
+	// Set up a round first node
+	roundID := id.Round(45)
+
+	response := phase.NewResponse(phase.ResponseDefinition{
+		PhaseAtSource:  phase.RealPermute,
+		ExpectedStates: []phase.State{phase.Active},
+		PhaseToExecute: phase.RealPermute})
+
+	responseMap := make(phase.ResponseMap)
+	responseMap["RealPermuteVerification"] = response
+
+	p := testUtil.InitMockPhase(t)
+	p.Ptype = phase.RealPermute
+
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
+		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
+		"0.0.0.0", nil, nil)
+	if err != nil {
+		t.Errorf("Failed to create new round: %+v", err)
+	}
+
+	instance.GetRoundManager().AddRound(rnd)
+
 	newRoundInfo := &pb.RoundInfo{
-		ID: roundId,
+		ID: uint64(roundID),
 	}
 
 	// Mocking permissioning server signing message
@@ -101,7 +125,7 @@ func TestReceiveGatewayPingReport_FailedGateway(t *testing.T) {
 
 	// Call ReceiveGatewayPingReport with bad auth
 	report := &pb.GatewayPingReport{
-		RoundId:        roundId,
+		RoundId:        uint64(roundID),
 		FailedGateways: [][]byte{failedGateway.Bytes()},
 	}
 

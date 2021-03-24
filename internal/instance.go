@@ -129,7 +129,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayFirstPoll:   NewFirstTime(),
 		clientErrors:       round.NewClientFailureReport(),
 		phaseStateMachine:  state.NewGenericMachine(),
-		pingRequestChannel: make(chan *mixmessages.GatewayPingRequest),
+		pingRequestChannel: make(chan *mixmessages.GatewayPingRequest, 1),
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -602,6 +602,8 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 	}
 
 	//sign the round error
+	fmt.Printf("roundErr: %v\n", roundErr)
+	fmt.Printf("privKey: %v\n", i.GetPrivKey())
 	err := signature.Sign(&roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+

@@ -33,6 +33,7 @@ func NewManager() *Manager {
 
 // AddRound adds the round to the round manager's tracking
 func (rm *Manager) AddRound(round *Round) {
+	rm.latestRound = round.id
 	rm.roundMap.Store(round.id, round)
 }
 

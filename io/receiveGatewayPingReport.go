@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
@@ -35,20 +34,10 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	// Get round from consensus
+	// Check if the round is our latest round. If it is not, do nothing
 	roundID := id.Round(report.RoundId)
-	ri, err := instance.GetConsensus().GetRound(roundID)
-	if err != nil {
-		jww.WARN.Printf("Could not get round %d from consensus", roundID)
-		return errors.Errorf("Internal issue on node: "+
-			"Could not get round %d from instance", roundID)
-	}
-
-	// Check if the round has already finished
-	// (either due to completion or failure). If so do nothing
-	roundState := states.Round(ri.GetState())
-	if roundState == states.FAILED ||
-		roundState == states.COMPLETED {
+	latestRound := instance.GetRoundManager().GetLatestRound()
+	if latestRound != roundID {
 		return nil
 	}
 

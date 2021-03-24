@@ -608,6 +608,10 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 
 func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
+	//make server rsa key pair
+	pk, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+
+	privKey, _ := rsa.LoadPrivateKeyFromPem(pk)
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
@@ -615,6 +619,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
+		PrivateKey:      privKey,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 		Gateway: internal.GW{
 			ID: &id.TempGateway,
