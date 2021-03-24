@@ -39,12 +39,28 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 	roundID := id.Round(report.RoundId)
 	latestRound := instance.GetRoundManager().GetLatestRound()
 	if latestRound != roundID {
+		if len(report.FailedGateways) != 0 {
+		}
 		return nil
 	}
 
 	// Check if we are past precomputing stage. If so,
 	// it's too late to fail, so we return
 	if instance.GetStateMachine().Get() != current.PRECOMPUTING {
+		gwIdList, err := id.NewIDListFromBytes(report.FailedGateways)
+		if err != nil {
+			jww.WARN.Printf("ReceiveGatewayPingReport: " +
+				"Could not parse list of un-pingable gateways sent by our gateway.")
+			return nil
+		}
+
+		nodeList := constructPrintableNodeIds(gwIdList)
+		if len(report.FailedGateways) != 0 {
+			jww.WARN.Printf("ReceiveGatewayPingReport: Round %d has "+
+				"progressed too far "+
+				"to handle a non-pingable gateway error."+
+				"Problematic node ID(s) as follows: [%v]", nodeList)
+		}
 		return nil
 	}
 
@@ -63,22 +79,29 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 			return nil
 		}
 
-		// Collect list of nodeId's that had un-pingable gateways
-		nodeList := make([]string, 0)
-		for _, gwId := range gwIdList {
-			nodeId := gwId.DeepCopy()
-			nodeId.SetType(id.Node)
-			nodeList = append(nodeList, nodeId.String())
-		}
-
-		// Reformat node list to a human readable format
-		nodeListErr := strings.Join(nodeList, ", ")
+		nodeList := constructPrintableNodeIds(gwIdList)
 		roundErr := errors.Errorf("ReceiveGatewayPingReport: "+
 			"Round %d failed due to team node(s) having "+
 			"un-contactable gateway(s). Problematic node ID(s) as follows: [%v]",
-			roundID, nodeListErr)
+			roundID, nodeList)
 		instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 	}
 
 	return nil
+}
+
+// Helper function which gets the node Ids of the un-contactable gateways,
+// returning a human readable list for use in printing to a log
+func constructPrintableNodeIds(gwIdList []*id.ID) string {
+	// Collect list of nodeId's that had un-pingable gateways
+	nodeList := make([]string, 0)
+	for _, gwId := range gwIdList {
+		nodeId := gwId.DeepCopy()
+		nodeId.SetType(id.Node)
+		nodeList = append(nodeList, nodeId.String())
+	}
+
+	// Reformat node list to a human readable format
+	return strings.Join(nodeList, ", ")
+
 }

@@ -73,7 +73,7 @@ func TestReceiveGatewayPingReport(t *testing.T) {
 
 // Happy path: handles a failed round due to gateway issues
 func TestReceiveGatewayPingReport_FailedGateway(t *testing.T) {
-	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
+	instance, topology, grp := createMockInstance(t, 0, current.PRECOMPUTING)
 
 	// Add the certs to our network instance
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())

@@ -56,8 +56,9 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	// Send it over to be received in gateway polling
 	err := instance.SendPingRequest(pingRequest)
 	if err != nil {
-		jww.WARN.Printf("Error sending over ping request, round may fail " +
-			"due to poor gateway set ups")
+		jww.WARN.Printf("NewRoundComponents: "+
+			"Error sending over ping request, round %d may fail "+
+			"due to a bad gateway configuration from a team member.", roundID)
 	}
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
