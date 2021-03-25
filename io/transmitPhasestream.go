@@ -103,13 +103,13 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	end := time.Now()
 
-	jww.INFO.Printf("\tbwLogging: " +
+	jww.INFO.Printf("\tbwLogging: Round %d, " +
 		"transmitted phase: %s, " +
 		"from: %s, to: %s, " +
 		"started: %v, " +
 		"ended: %v, " +
 		"duration: %v,",
-		r.GetCurrentPhase().,
+		roundID, r.GetCurrentPhase().GetType(),
 		instance.GetID(), recipientID,
 		start, end, end.Sub(start))
 
