@@ -60,6 +60,7 @@ func ReceiveGatewayPingReport(report *pb.GatewayPingReport, auth *connect.Auth,
 		}
 		return nil
 	}
+	jww.TRACE.Printf("Failed to ping %d gateways for round %d", len(report.FailedGateways))
 
 	// Initiate round error if there are un-pingable gateways
 	if len(report.FailedGateways) != 0 {
