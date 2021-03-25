@@ -22,11 +22,14 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"io"
 	"strings"
+	"time"
 )
 
 // StreamTransmitPhase streams slot messages to the provided Node.
 func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
 	getMessage phase.GetMessage) error {
+
+	start := time.Now()
 
 	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
@@ -97,6 +100,19 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\""+
 		" COMPLETE/SEND", name, roundID, rType)
+
+	end := time.Now()
+
+	jww.INFO.Printf("\tbwLogging: Round %d, " +
+		"transmitted phase: %s, " +
+		"from: %s, to: %s, " +
+		"started: %v, " +
+		"ended: %v, " +
+		"duration: %v,",
+		roundID, r.GetCurrentPhase(),
+		instance.GetID(), recipientID,
+		start, end, end.Sub(start))
+
 
 	cancel()
 

@@ -107,6 +107,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *internal.Instance, auth *connect.Auth) error {
 
+	start := time.Now()
+
 	// Get batch info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
@@ -169,6 +171,17 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
 	strmErr := StreamPostPhase(p, batchInfo.BatchSize, streamServer)
+
+	end := time.Now()
+	jww.INFO.Printf("\tbwLogging: Round %d, " +
+		"received phase: %s, " +
+		"from: %s, to: %s, " +
+		"started: %v, " +
+		"ended: %v, " +
+		"duration: %v,",
+		roundID, r.GetCurrentPhase(),
+		auth.Sender.GetId().String(), instance.GetID(),
+		start, end, end.Sub(start))
 
 	return strmErr
 
