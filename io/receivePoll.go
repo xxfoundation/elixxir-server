@@ -72,9 +72,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 			isSame = network.GetFullNdf().CompareHash(
 				poll.GetFull().Hash)
 			if isSame {
-				// Populate the id field
-				res.Id = instance.GetID().Bytes()
-
 				//Check if any updates where made and get them
 				res.Updates = network.GetRoundUpdates(
 					int(poll.LastUpdate))
@@ -82,6 +79,9 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 				res.FullNDF = network.GetFullNdf().GetPb()
 			}
 		}
+
+		// Populate the id field
+		res.Id = instance.GetID().Bytes()
 
 		// denote that gateway has received info,
 		// only does something the first time
