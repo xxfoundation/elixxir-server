@@ -110,7 +110,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		"started: %v, "+
 		"ended: %v, "+
 		"duration: %v,",
-		roundID, r.GetCurrentPhase().GetType(),
+		roundID, currentPhase.GetType(),
 		instance.GetID(), recipientID,
 		start, end, end.Sub(start))
 
