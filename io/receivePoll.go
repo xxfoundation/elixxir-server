@@ -49,18 +49,6 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 			res.PartialNDF = network.GetPartialNdf().GetPb()
 		}
 
-		//Compare Full NDF hash with instance and return the new one if they do not match
-		isSame = network.GetFullNdf().CompareHash(poll.GetFull().Hash)
-		if !isSame {
-			res.FullNDF = network.GetFullNdf().GetPb()
-		}
-
-		// Populate the id field
-		res.Id = instance.GetID().Bytes()
-
-		//Check if any updates where made and get them
-		res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
-
 		// Get the request for a new batch que and store it into res
 		res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
 
@@ -70,12 +58,29 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
+		// Send the batch only if it is ready
 		if cr != nil {
 			batch := &mixmessages.CompletedBatch{
 				RoundID: uint64(cr.RoundID),
 				Slots:   cr.Round,
 			}
 			res.Batch = batch
+		} else {
+			//Compare Full NDF hash with instance and
+			// return the new one if they do not match
+			// otherwise return round updates
+			isSame = network.GetFullNdf().CompareHash(
+				poll.GetFull().Hash)
+			if isSame {
+				// Populate the id field
+				res.Id = instance.GetID().Bytes()
+
+				//Check if any updates where made and get them
+				res.Updates = network.GetRoundUpdates(
+					int(poll.LastUpdate))
+			} else {
+				res.FullNDF = network.GetFullNdf().GetPb()
+			}
 		}
 
 		// denote that gateway has received info,
