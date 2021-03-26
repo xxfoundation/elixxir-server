@@ -29,8 +29,6 @@ import (
 func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
 	getMessage phase.GetMessage) error {
 
-	start := time.Now()
-
 	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
 		return errors.Errorf("Invalid server instance passed in")
@@ -73,8 +71,19 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 			"client: %+v", err)
 	}
 
+	//pull the first chunk reception out so it can be timestmaped
+	chunk, finish := getChunk()
+	start := time.Now()
+	for i := chunk.Begin(); i < chunk.End(); i++ {
+		msg := getMessage(i)
+		err = streamClient.Send(msg)
+		if err != nil {
+			return errors.Errorf("Error on comm, not able to send "+
+				"slot: %+v", err)
+		}
+	}
 	// For each message chunk (slot) stream it out
-	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
+	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 			err = streamClient.Send(msg)
@@ -103,16 +112,15 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	end := time.Now()
 
-	jww.INFO.Printf("\tbwLogging: Round %d, " +
-		"transmitted phase: %s, " +
-		"from: %s, to: %s, " +
-		"started: %v, " +
-		"ended: %v, " +
+	jww.INFO.Printf("\tbwLogging: Round %d, "+
+		"transmitted phase: %s, "+
+		"from: %s, to: %s, "+
+		"started: %v, "+
+		"ended: %v, "+
 		"duration: %v,",
 		roundID, r.GetCurrentPhase().GetType(),
 		instance.GetID(), recipientID,
 		start, end, end.Sub(start))
-
 
 	cancel()
 
