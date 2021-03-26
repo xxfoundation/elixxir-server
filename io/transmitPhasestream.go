@@ -74,14 +74,6 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	//pull the first chunk reception out so it can be timestmaped
 	chunk, finish := getChunk()
 	start := time.Now()
-	for i := chunk.Begin(); i < chunk.End(); i++ {
-		msg := getMessage(i)
-		err = streamClient.Send(msg)
-		if err != nil {
-			return errors.Errorf("Error on comm, not able to send "+
-				"slot: %+v", err)
-		}
-	}
 	// For each message chunk (slot) stream it out
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
