@@ -3,6 +3,7 @@ module gitlab.com/elixxir/server
 go 1.13
 
 require (
+	github.com/aws/aws-lambda-go v1.8.1 // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/golang/protobuf v1.4.3
@@ -23,11 +24,11 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20210405224735-cff3ab4d7d66
-	gitlab.com/elixxir/crypto v0.0.7-0.20210405224356-e2748985102a
+	gitlab.com/elixxir/comms v0.0.4-0.20210407162937-a2d7ebd9cacd
+	gitlab.com/elixxir/crypto v0.0.7-0.20210407162800-3e6c0c204107
 	gitlab.com/elixxir/gpumathsgo v0.1.0
-	gitlab.com/elixxir/primitives v0.0.3-0.20210405224302-03092a268566
-	gitlab.com/xx_network/comms v0.0.4-0.20210405224241-5447394f79d7
+	gitlab.com/elixxir/primitives v0.0.3-0.20210406002149-ae7bd4896baf
+	gitlab.com/xx_network/comms v0.0.4-0.20210406210737-45d1e87d294a
 	gitlab.com/xx_network/crypto v0.0.5-0.20210405224157-2b1f387b42c1
 	gitlab.com/xx_network/primitives v0.0.4-0.20210402222416-37c1c4d3fac4
 	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
