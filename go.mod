@@ -3,7 +3,6 @@ module gitlab.com/elixxir/server
 go 1.13
 
 require (
-	github.com/aws/aws-lambda-go v1.8.1 // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/golang/protobuf v1.4.3
