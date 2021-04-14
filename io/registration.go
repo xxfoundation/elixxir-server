@@ -12,7 +12,6 @@ package io
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	hash2 "gitlab.com/elixxir/crypto/hash"
@@ -158,8 +157,6 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	h.Write(user.Nonce.Bytes())
 	h.Write(instance.GetID().Bytes())
 	data := h.Sum(nil)
-	// todo: remove this print
-	jww.INFO.Printf("ConfirmRegistration hashedData from user [%v]: %v", user.ID, data)
 	err = rsa.Verify(user.RsaPublicKey, hash2.CMixHash, data, Signature, nil)
 
 	if err != nil {

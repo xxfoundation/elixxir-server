@@ -11,7 +11,6 @@ import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"math"
 	"sync"
@@ -87,7 +86,7 @@ func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 
 	integers = append(integers, g.generator.minInputSize)
 	integers = append(integers, g.outputSize)
-	lcm := globals.LCM(integers)
+	lcm := LCM(integers)
 
 	expandBatchSize := uint32(math.Ceil(float64(batchSize)/float64(lcm))) * lcm
 
