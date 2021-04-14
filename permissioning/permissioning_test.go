@@ -11,6 +11,11 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"fmt"
+	"math/rand"
+	"reflect"
+	"testing"
+	"time"
+
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -27,10 +32,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"math/rand"
-	"reflect"
-	"testing"
-	"time"
 )
 
 //// Full-stack happy path test for the node registration logic
@@ -975,7 +976,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to load PK from pem: %+v", err)
 	}
-	err = signature.Sign(update, loadedKey)
+	err = signature.SignRsa(update, loadedKey)
 	if err != nil {
 		t.Errorf("Failed to sign update: %+v", err)
 	}

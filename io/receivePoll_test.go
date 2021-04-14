@@ -8,6 +8,9 @@
 package io
 
 import (
+	"testing"
+	"time"
+
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network/dataStructures"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -24,8 +27,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	ndf2 "gitlab.com/xx_network/primitives/ndf"
-	"testing"
-	"time"
 )
 
 func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *pb.ServerPoll,
@@ -105,7 +106,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		t.Log(err)
 		t.Fail()
 	}
-	err = signature.Sign(&f, privKey)
+	err = signature.SignRsa(&f, privKey)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
@@ -417,7 +418,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		ID: uint64(23),
 	}
 
-	err = signature.Sign(newRound, privKey)
+	err = signature.SignRsa(newRound, privKey)
 	if err != nil {
 		t.Logf("Could not sign RoundInfo: %v", err)
 		t.Fail()

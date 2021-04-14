@@ -9,6 +9,10 @@ package io
 
 import (
 	"crypto/rand"
+	"strings"
+	"testing"
+	"time"
+
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
@@ -23,9 +27,6 @@ import (
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
-	"strings"
-	"testing"
-	"time"
 )
 
 // Happy path: Test if a properly crafted error message results in an error state
@@ -76,7 +77,7 @@ func TestReceiveRoundError(t *testing.T) {
 		t.Errorf("couldn't load privKey: %+v", err)
 	}
 
-	err = signature.Sign(errMsg, pk)
+	err = signature.SignRsa(errMsg, pk)
 	if err != nil {
 		t.Errorf("couldn't sign error message: %+v", err)
 	}

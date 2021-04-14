@@ -13,6 +13,12 @@ package internal
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -20,7 +26,7 @@ import (
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/gpumathsgo"
+	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -35,11 +41,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"os"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"testing"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
@@ -158,7 +159,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network state tracking on this server instance
 	var err error
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
-		def.PartialNDF, def.FullNDF, nil, network.Strict)
+		def.PartialNDF, def.FullNDF, nil, network.Strict, false)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -577,7 +578,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 	}
 
 	//sign the round error
-	err := signature.Sign(&roundErr, i.GetPrivKey())
+	err := signature.SignRsa(&roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)
@@ -595,7 +596,7 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	nodeId, _ := id.Unmarshal(roundErr.NodeId)
 
 	//sign the round error
-	err := signature.Sign(roundErr, i.GetPrivKey())
+	err := signature.SignRsa(roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)

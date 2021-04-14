@@ -15,6 +15,15 @@ import (
 	"encoding/binary"
 	"encoding/pem"
 	"fmt"
+	"math/big"
+	"math/rand"
+	"net"
+	"runtime"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -47,14 +56,6 @@ import (
 	"gitlab.com/xx_network/crypto/tls"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
-	"math/big"
-	"math/rand"
-	"net"
-	"runtime"
-	"strings"
-	"sync"
-	"testing"
-	"time"
 )
 
 var errWg = sync.WaitGroup{}
@@ -758,6 +759,6 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 
 	ourPrivateKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	signature.Sign(ri, ourPrivateKey)
+	signature.SignRsa(ri, ourPrivateKey)
 	return nil
 }
