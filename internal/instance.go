@@ -578,7 +578,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 	}
 
 	//sign the round error
-	err := signature.Sign(&roundErr, i.GetPrivKey())
+	err := signature.SignRsa(&roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)
@@ -596,7 +596,7 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	nodeId, _ := id.Unmarshal(roundErr.NodeId)
 
 	//sign the round error
-	err := signature.Sign(roundErr, i.GetPrivKey())
+	err := signature.SignRsa(roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)
