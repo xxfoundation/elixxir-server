@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -103,7 +102,6 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 	cnt++
 	def := internal.Definition{
 		ID:               nid,
-		UserRegistry:     &globals.UserMap{},
 		ResourceMonitor:  &measure.ResourceMonitor{},
 		PrivateKey:       serverRSAPriv,
 		PublicKey:        serverRSAPub,
@@ -331,7 +329,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 // Test confirm nonce
 func TestConfirmRegistration(t *testing.T) {
 	//make new user
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
+	user := serverInstance.GetStorage().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 	user.IsRegistered = false
 	user.RsaPublicKey = clientRSAPub
@@ -343,7 +341,7 @@ func TestConfirmRegistration(t *testing.T) {
 	}
 	user.ID = userID
 
-	serverInstance.GetUserRegistry().UpsertUser(user)
+	serverInstance.GetStorage().UpsertUser(user)
 
 	//hash and sign nonce
 	sha := hash.CMixHash
@@ -380,7 +378,7 @@ func TestConfirmRegistration(t *testing.T) {
 		t.Errorf("Error in ConfirmRegistration: %+v", err2)
 	}
 
-	regUser, err := serverInstance.GetUserRegistry().GetUser(user.ID, serverInstance.GetConsensus().GetCmixGroup())
+	regUser, err := serverInstance.GetStorage().GetUser(user.ID, serverInstance.GetConsensus().GetCmixGroup())
 
 	if err != nil {
 		t.Errorf("User could not be found: %+v", err)
@@ -393,7 +391,7 @@ func TestConfirmRegistration(t *testing.T) {
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuth(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
+	user := serverInstance.GetStorage().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -437,7 +435,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuthId(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
+	user := serverInstance.GetStorage().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -481,7 +479,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 
 // Test confirm nonce that doesn't exist
 func TestConfirmRegistration_NonExistant(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
+	user := serverInstance.GetStorage().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
 
 	user.RsaPublicKey = clientRSAPub
@@ -525,9 +523,9 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 
 // Test confirm nonce expired
 func TestConfirmRegistration_Expired(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
+	user := serverInstance.GetStorage().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(1)
-	serverInstance.GetUserRegistry().UpsertUser(user)
+	serverInstance.GetStorage().UpsertUser(user)
 
 	user.RsaPublicKey = clientRSAPub
 
@@ -576,9 +574,9 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 
 // Test confirm nonce with invalid signature
 func TestConfirmRegistration_BadSignature(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
+	user := serverInstance.GetStorage().NewUser(serverInstance.GetConsensus().GetCmixGroup())
 	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
-	serverInstance.GetUserRegistry().UpsertUser(user)
+	serverInstance.GetStorage().UpsertUser(user)
 	user.RsaPublicKey = clientRSAPub
 
 	gwID := nodeId.DeepCopy()

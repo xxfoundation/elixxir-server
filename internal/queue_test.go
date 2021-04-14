@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
@@ -119,7 +118,6 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{nid})
 	def := Definition{
 		ID:              nid,
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
@@ -143,7 +141,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	myGrp := cyclic.NewGroup(pPrime, g)
 
-	r, err := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
+	r, err := round.New(myGrp, instance.GetStorage(), roundID, []phase.Phase{p},
 		responseMap, topology, instance.GetID(), 1,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {

@@ -274,7 +274,7 @@ func TestInstance_GetRoundManager(t *testing.T) {
 func TestInstance_GetUserRegistry(t *testing.T) {
 	instance, def := createInstance(t)
 
-	if def.UserRegistry != instance.GetUserRegistry() {
+	if def.UserRegistry != instance.GetStorage() {
 		t.Logf("GetTopology returned unexpected value")
 		t.Fail()
 	}

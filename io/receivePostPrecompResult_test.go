@@ -10,7 +10,6 @@ package io
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -72,7 +71,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.PrecompReveal
 	rnd, err := round.New(grp,
-		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
+		instance.GetStorage(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
@@ -118,7 +117,6 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	topology := connect.NewCircuit(nodeIDs)
 	for i := 0; i < numNodes; i++ {
 		def := internal.Definition{
-			UserRegistry:    &globals.UserMap{},
 			ResourceMonitor: &measure.ResourceMonitor{},
 			FullNDF:         testUtil.NDF,
 			PartialNDF:      testUtil.NDF,
@@ -156,7 +154,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		p := testUtil.InitMockPhase(t)
 		p.Ptype = phase.PrecompReveal
 		rnd, err := round.New(grp,
-			instances[i].GetUserRegistry(), roundID,
+			instances[i].GetStorage(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
 			3, instances[i].GetRngStreamGen(), nil,
 			"0.0.0.0", nil, nil)

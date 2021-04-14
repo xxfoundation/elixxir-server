@@ -14,7 +14,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
@@ -70,7 +69,6 @@ func TestClientServer(t *testing.T) {
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		PartialNDF:      testUtil.NDF,
 		FullNDF:         testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
@@ -108,7 +106,7 @@ func TestClientServer(t *testing.T) {
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
 		"1.1.0")
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	usr := registry.NewUser(grp)
 	registry.UpsertUser(usr)
 

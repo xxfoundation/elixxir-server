@@ -55,7 +55,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// Well, this round needs to at least be on the precomp queue?
 	// If it's not on the precomp queue,
 	// that would let us test the error being returned.
-	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetStorage(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		nil, "0.0.0.0", nil, nil)
@@ -225,7 +225,7 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 // that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
 	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 
 	// Make and register a user
 	sender := registry.NewUser(grp)
@@ -257,7 +257,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	})
 
 	// We need this round to be on the precomp queue
-	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetStorage(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		nil, "0.0.0.0", nil, nil)

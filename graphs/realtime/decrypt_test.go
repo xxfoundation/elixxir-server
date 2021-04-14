@@ -17,7 +17,6 @@ import (
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -54,7 +53,7 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
 
@@ -98,7 +97,7 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
 
@@ -161,7 +160,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
 
@@ -231,7 +230,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
 
@@ -266,7 +265,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
 
@@ -313,7 +312,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
 
@@ -360,7 +359,7 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	registry.UpsertUser(u)
 
@@ -440,7 +439,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	rid := id.Round(42)
 	instance := mockServerInstance(t)
 	grp := instance.GetConsensus().GetCmixGroup()
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	u.IsRegistered = true
 	registry.UpsertUser(u)

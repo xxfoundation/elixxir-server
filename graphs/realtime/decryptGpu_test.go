@@ -30,7 +30,7 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 	instance := mockServerInstance(t)
 	grp := instance.GetConsensus().GetCmixGroup()
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	u := registry.NewUser(grp)
 	u.IsRegistered = true
 	registry.UpsertUser(u)

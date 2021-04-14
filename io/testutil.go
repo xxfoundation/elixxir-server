@@ -18,7 +18,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -186,7 +185,6 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 
 	topology := connect.NewCircuit(nodeIDs)
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		GraphGenerator: services.NewGraphGenerator(2,
 			2, 2, 0),

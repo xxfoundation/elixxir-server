@@ -10,8 +10,8 @@
 package storage
 
 import (
-	"github.com/pkg/errors"
 	"gitlab.com/xx_network/primitives/id"
+	"gorm.io/gorm"
 )
 
 // GetClient returns a Client from Map with the given ID
@@ -23,7 +23,7 @@ func (m *MapImpl) GetClient(id *id.ID) (*Client, error) {
 	if val, ok := m.clients[*id]; ok {
 		return val, nil
 	} else {
-		return nil, errors.Errorf("Unable to locate Client for ID %s", id.String())
+		return nil, gorm.ErrRecordNotFound
 	}
 }
 

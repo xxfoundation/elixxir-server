@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/cmd/conf"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -61,31 +60,11 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		"RegistrationCode:[regcode]")
 	jww.INFO.Printf(ps)
 
-	// Initialize the backend
-	jww.INFO.Printf("Initalizing the backend...")
-	dbAddress := params.Database.Address
-
-	//Initialize the user database
-	userDatabase, err := globals.NewUserRegistry(params.Database.Username,
-		params.Database.Password, params.Database.Name, dbAddress)
-	if err != nil {
-		eMsg := fmt.Sprintf("Could not initialize database: "+
-			"psql://%s@%s/%s: %v", params.Database.Username,
-			params.Database.Address, params.Database.Name, err)
-
-		if params.DevMode {
-			jww.WARN.Printf(eMsg)
-		} else {
-			jww.FATAL.Panicf(eMsg)
-		}
-	}
-
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
 	if err != nil {
 		return nil, errors.Errorf("Failed to convert params to definition: %+v", err)
 	}
-	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
 	def.DisableStreaming = disableStreaming

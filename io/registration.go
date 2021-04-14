@@ -17,6 +17,7 @@ import (
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/server/internal"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/crypto/nonce"
@@ -26,7 +27,7 @@ import (
 	"gitlab.com/xx_network/primitives/ndf"
 )
 
-// Handles a client request for a nonce during the client registration process
+// RequestNonce handles a client request for a nonce during the client registration process
 func RequestNonce(instance *internal.Instance,
 	request *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
 
@@ -105,13 +106,18 @@ func RequestNonce(instance *internal.Instance,
 	baseKey := registration.GenerateBaseKey(grp, clientDHPub, DHPriv, b)
 
 	// Store user information in the database
-	newUser := instance.GetUserRegistry().NewUser(grp)
-	newUser.Nonce = userNonce
-	newUser.ID = userId
-	newUser.RsaPublicKey = userPublicKey
-	newUser.BaseKey = baseKey
-	newUser.IsRegistered = false
-	instance.GetUserRegistry().UpsertUser(newUser)
+	newClient := &storage.Client{
+		Id:             userId.Bytes(),
+		BaseKey:        baseKey.Bytes(),
+		PublicKey:      rsa.CreatePublicKeyPem(userPublicKey),
+		Nonce:          userNonce.Bytes(),
+		NonceTimestamp: userNonce.GenTime,
+		IsRegistered:   false,
+	}
+	err = instance.GetStorage().UpsertClient(newClient)
+	if err != nil {
+		return nil, err
+	}
 
 	// Return nonce to Client with empty error field
 	return &pb.Nonce{
@@ -120,7 +126,7 @@ func RequestNonce(instance *internal.Instance,
 	}, nil
 }
 
-// Handles nonce confirmation during the client registration process
+// ConfirmRegistration handles nonce confirmation during the client registration process
 func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRegistrationConfirmation,
 	auth *connect.Auth) (*pb.RegistrationConfirmation, error) {
 
@@ -131,43 +137,49 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 
 	UserID, err := id.Unmarshal(confirmation.GetUserID())
 	if err != nil {
-		return &pb.RegistrationConfirmation{}, errors.Errorf("Unable to unmarshal user ID: %+v", err)
+		return &pb.RegistrationConfirmation{}, errors.Errorf("Unable to unmarshal client ID: %+v", err)
 	}
 
 	Signature := confirmation.NonceSignedByClient.Signature
 
-	// Obtain the user from the database
-	user, err := instance.GetUserRegistry().GetUser(UserID, instance.GetConsensus().GetCmixGroup())
+	// Obtain the client from the database
+	client, err := instance.GetStorage().GetClient(UserID)
 
 	if err != nil {
 		// Invalid nonce, return an error
 		return &pb.RegistrationConfirmation{},
 			errors.Errorf("Unable to confirm registration, could not "+
-				"find a user: %+v", err)
+				"find a client: %+v", err)
 	}
 
 	// Verify nonce has not expired
-	if !user.Nonce.IsValid() {
+	clientNonce := client.GetNonce()
+	if !clientNonce.IsValid() {
 		return &pb.RegistrationConfirmation{},
 			errors.Errorf("Unable to confirm registration, Nonce is expired")
 	}
 
 	// Verify signed nonce and our ID using Client public key
 	h, _ := hash2.NewCMixHash()
-	h.Write(user.Nonce.Bytes())
+	h.Write(clientNonce.Bytes())
 	h.Write(instance.GetID().Bytes())
 	data := h.Sum(nil)
-	err = rsa.Verify(user.RsaPublicKey, hash2.CMixHash, data, Signature, nil)
 
+	pubKey, err := client.GetPublicKey()
+	if err != nil {
+		return nil, err
+	}
+
+	err = rsa.Verify(pubKey, hash2.CMixHash, data, Signature, nil)
 	if err != nil {
 		return &pb.RegistrationConfirmation{},
-			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %+v", user.ID, err)
+			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %+v", client.Id, err)
 	}
 
 	//todo: re-enable this and use it to simplify registration
 
 	/*// Use  Server private key to sign Client public key
-	userPubKeyPEM := rsa.CreatePublicKeyPem(user.RsaPublicKey)
+	userPubKeyPEM := rsa.CreatePublicKeyPem(client.RsaPublicKey)
 	h.Reset()
 	h.Write(userPubKeyPEM)
 	data = h.Sum(nil)
@@ -179,11 +191,13 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	}*/
 
 	// Hash the basekey
-	hashedData := cmix.GenerateClientGatewayKey(user.BaseKey)
-	user.BaseKey.Bytes()
-	//update the user's state to registered
-	user.IsRegistered = true
-	instance.GetUserRegistry().UpsertUser(user)
+	hashedData := cmix.GenerateClientGatewayKey(client.GetBaseKey(instance.GetConsensus().GetCmixGroup()))
+	//update the client's state to registered
+	client.IsRegistered = true
+	err = instance.GetStorage().UpsertClient(client)
+	if err != nil {
+		return nil, err
+	}
 	// Fixme: what is going on here? RSA signature has been blank?
 	response := &pb.RegistrationConfirmation{
 		ClientSignedByServer: &messages.RSASignature{

@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
@@ -47,7 +46,7 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.KeygenSubStream.LinkStream(grp, instance.GetUserRegistry(), make([][]byte, batchSize),
+	s.KeygenSubStream.LinkStream(grp, instance.GetStorage(), make([][]byte, batchSize),
 		make([][][]byte, batchSize), make([]*id.ID, batchSize),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		round.NewClientFailureReport(), 0, batchSize)
@@ -138,7 +137,7 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 // do other things
 func TestKeygenStreamInGraph(t *testing.T) {
 	instance := mockServerInstance(t)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	grp := instance.GetConsensus().GetCmixGroup()
 	u := registry.NewUser(grp)
 	u.IsRegistered = true
@@ -256,7 +255,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 // do other things
 func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 	instance := mockServerInstance(t)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	grp := instance.GetConsensus().GetCmixGroup()
 	u := registry.NewUser(grp)
 	u.IsRegistered = false
@@ -368,7 +367,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 // do other things
 func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	instance := mockServerInstance(t)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	grp := instance.GetConsensus().GetCmixGroup()
 	u := registry.NewUser(grp)
 	u.IsRegistered = true
@@ -489,7 +488,6 @@ func mockServerInstance(i interface{}) *internal.Instance {
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
