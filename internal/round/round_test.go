@@ -221,7 +221,7 @@ func TestRound_StopRoundTrip(t *testing.T) {
 			1, 1)),
 		Type: phase.RealPermute, TransmissionHandler: nil, Timeout: time.Minute}))
 
-	topology := connect.NewCircuit([]*id.ID{})
+	topology := connect.NewCircuit([]*id.ID{{}})
 
 	round, err := New(grp, &storage.Storage{}, roundId, phases, nil, topology,
 		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,

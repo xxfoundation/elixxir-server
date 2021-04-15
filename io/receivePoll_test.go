@@ -60,6 +60,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		PartialNDF:      testNdf,
 		Gateway:         ourGateway,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

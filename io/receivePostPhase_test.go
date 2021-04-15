@@ -35,6 +35,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)

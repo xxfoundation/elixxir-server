@@ -677,6 +677,7 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 			GraphGenerator:     services.NewGraphGenerator(4, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
+			DevMode: true,
 		}
 
 		cryptoPrivRSAKey, _ := tls.LoadRSAPrivateKey(string(privKey))

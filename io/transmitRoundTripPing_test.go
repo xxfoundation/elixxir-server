@@ -80,6 +80,7 @@ func TestTransmitRoundTripPing(t *testing.T) {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

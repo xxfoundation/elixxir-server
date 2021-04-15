@@ -296,6 +296,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
 		},
+		DevMode: true,
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)

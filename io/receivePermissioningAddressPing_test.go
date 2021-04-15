@@ -23,6 +23,7 @@ func TestReceivePermissioningAddressPing(t *testing.T) {
 		Flags:         internal.Flags{},
 		Gateway:       internal.GW{ID: &id.TempGateway},
 		Permissioning: internal.Perm{Address: "0.0.0.0:10"},
+		DevMode:       true,
 	}
 	m := state.NewTestMachine(dummyStates, current.ERROR, t)
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "")

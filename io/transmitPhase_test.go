@@ -208,6 +208,7 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 		FullNDF:          testUtil.NDF,
 		PartialNDF:       testUtil.NDF,
 		ListeningAddress: nodeAddr,
+		DevMode:          true,
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()
