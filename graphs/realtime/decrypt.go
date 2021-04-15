@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/primitives/id"
 )
 
@@ -56,7 +57,7 @@ func (s *KeygenDecryptStream) GetName() string {
 //Link creates the stream's internal buffers and
 func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuf := source[RoundBuff].(*round.Buffer)
-	userRegistry := source[Registry].(globals.UserRegistry)
+	userRegistry := source[Registry].(*storage.Storage)
 	users := make([]*id.ID, batchSize)
 	var clientReporter *round.ClientReport
 	var roundID id.Round
@@ -93,7 +94,7 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 
 //Connects the internal buffers in the stream to the passed
 func (s *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32,
-	round *round.Buffer, userRegistry globals.UserRegistry, pool *gpumaths.StreamPool, ecrPayloadA, ecrPayloadB,
+	round *round.Buffer, storage *storage.Storage, pool *gpumaths.StreamPool, ecrPayloadA, ecrPayloadB,
 	keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte,
 	clientReporter *round.ClientReport, roundId id.Round) {
 
@@ -111,7 +112,7 @@ func (s *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batch
 	s.Salts = salts
 	s.KMACS = kmacs
 
-	s.KeygenSubStream.LinkStream(s.Grp, userRegistry, s.Salts, s.KMACS, s.Users, s.KeysPayloadA,
+	s.KeygenSubStream.LinkStream(s.Grp, storage, s.Salts, s.KMACS, s.Users, s.KeysPayloadA,
 		s.KeysPayloadB, clientReporter, roundId, batchSize)
 }
 
@@ -120,7 +121,7 @@ type RealtimeDecryptSubStreamInterface interface {
 	GetRealtimeDecryptSubStream() *KeygenDecryptStream
 }
 
-// getPermuteSubStream returns the sub-stream, used to return an embedded struct
+// GetRealtimeDecryptSubStream returns the sub-stream, used to return an embedded struct
 // off an interface.
 func (s *KeygenDecryptStream) GetRealtimeDecryptSubStream() *KeygenDecryptStream {
 	return s
@@ -138,12 +139,12 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 
 	// Check that the user id is formatted correctly
 	if len(slot.SenderID) != id.ArrIDLen {
-		return globals.ErrUserIDTooShort
+		return services.ErrUserIDTooShort
 	}
 
 	// Check that the salt is formatted correctly
 	if len(slot.Salt) != 32 {
-		return globals.ErrSaltIncorrectLength
+		return services.ErrSaltIncorrectLength
 	}
 
 	//copy the user id

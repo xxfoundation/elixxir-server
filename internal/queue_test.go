@@ -122,6 +122,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = nid.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

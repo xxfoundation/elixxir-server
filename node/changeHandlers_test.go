@@ -58,6 +58,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
+	def.DevMode = true
 
 	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{

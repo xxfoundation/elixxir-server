@@ -130,7 +130,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	// Obtain database connection info
-	rawAddr := viper.GetString("database.address")
+	rawAddr := vip.GetString("database.address")
 	var addr, port string
 	if rawAddr != "" {
 		addr, port, err = net.SplitHostPort(rawAddr)

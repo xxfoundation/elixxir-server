@@ -9,6 +9,7 @@ package services
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -18,10 +19,14 @@ import (
 )
 
 const (
-	OutputIsBatchsize = InputIsBatchSize
-	AutoOutputSize    = AutoInputSize
-	AutoNumThreads    = 0
+	AutoOutputSize = AutoInputSize
+	AutoNumThreads = 0
 )
+
+var ErrNonexistantUser = errors.New("user not found in user registry")
+var errTooManySalts = "user %v must rekey, has stored too many salts"
+var ErrSaltIncorrectLength = errors.New("salt of incorrect length, must be 256 bits")
+var ErrUserIDTooShort = errors.New("User id length too short")
 
 type Graph struct {
 	generator   GraphGenerator

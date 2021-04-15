@@ -63,6 +63,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
