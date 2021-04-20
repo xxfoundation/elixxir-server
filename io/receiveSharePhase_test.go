@@ -24,6 +24,7 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
 	"testing"
+	"time"
 )
 
 func TestStartSharePhase(t *testing.T) {
@@ -232,6 +233,8 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error in happy path: %v", err)
 	}
+
+	time.Sleep(5*time.Second)
 
 	// Check that the key has been modified in the round
 	expectedKey := grp.NewIntFromBytes(piece.Piece)

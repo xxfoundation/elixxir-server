@@ -27,6 +27,7 @@ import (
 	"net"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -184,7 +185,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
-	def.Flags.OverrideInternalIP = p.OverrideInternalIP
 	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
@@ -215,6 +215,11 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.MetricLogPath = p.Metrics.Log
 	def.RecoveredErrorPath = p.RecoveredErrPath
 	def.IpListOutput = p.Node.Paths.ipListOutput
+	def.Flags.OverrideInternalIP = p.OverrideInternalIP
+
+	if def.Flags.OverrideInternalIP != "" && !strings.Contains(def.Flags.OverrideInternalIP, ":") {
+		def.Flags.OverrideInternalIP = net.JoinHostPort(def.Flags.OverrideInternalIP, strconv.Itoa(p.Node.Port))
+	}
 
 	var GwTlsCerts []byte
 

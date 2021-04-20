@@ -35,7 +35,7 @@ import (
 func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	instance *internal.Instance) error {
 
-	curActivity, err := instance.GetStateMachine().WaitFor(750*time.Millisecond, current.PRECOMPUTING)
+	curActivity, err := instance.GetStateMachine().WaitFor(2000*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
@@ -90,13 +90,15 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 		RoundID:      uint64(r.GetID()),
 	}
 
-	// Generate and sign the  message to be shared with the team
-	if err = TransmitPhaseShare(instance, r, msg); err != nil {
-		roundErr := errors.Errorf("ReceiveStartSharePhase Error: "+
-			"Could not send our shared piece of the key: %v", err)
-		instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
-	}
-
+	go func() {
+		// Generate and sign the  message to be shared with the team
+		if err = TransmitPhaseShare(instance, r, msg); err != nil {
+			roundErr := errors.Errorf("ReceiveStartSharePhase Error: "+
+				"Could not send our shared piece of the key: %v", err)
+			time.Sleep(time.Second)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+		}
+	}()
 	return nil
 }
 
@@ -114,7 +116,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 	}
 
 	// Check state machine for proper state
-	curActivity, err := instance.GetStateMachine().WaitFor(750*time.Millisecond, current.PRECOMPUTING)
+	curActivity, err := instance.GetStateMachine().WaitFor(2000*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}
@@ -123,7 +125,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 	}
 
 	// Check the local phase state machine for proper state
-	curStatus, err := instance.GetPhaseShareMachine().WaitFor(750*time.Millisecond, state.STARTED)
+	curStatus, err := instance.GetPhaseShareMachine().WaitFor(2000*time.Millisecond, state.STARTED)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, state.STARTED.String())
 	}
@@ -154,21 +156,28 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 
 	participants := piece.Participants
 	if isAlreadyParticipant(participants, instance.GetID().Bytes()) {
-		// If we are a participant, then our piece has come full circle.
-		// send out final key to all members
-		if err := TransmitFinalShare(instance, r, piece); err != nil {
-			roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
-				"Could not send our final key: %s", err)
-			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
-
-		}
+		go func() {
+			// If we are a participant, then our piece has come full circle.
+			// send out final key to all members
+			if err := TransmitFinalShare(instance, r, piece); err != nil {
+				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
+					"Could not send our final key: %s", err)
+				time.Sleep(time.Second)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+			}
+		}()
 	} else {
-		// If not a participant, send message to neighboring node
-		if err = TransmitPhaseShare(instance, r, piece); err != nil {
-			roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
-				"Could not send our shared piece of the key: %s", err)
-			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
-		}
+		go func() {
+
+			// If not a participant, send message to neighboring node
+			if err = TransmitPhaseShare(instance, r, piece); err != nil {
+				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
+					"Could not send our shared piece of the key: %s", err)
+				time.Sleep(time.Second)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+
+			}
+		}()
 	}
 
 	return nil
@@ -197,7 +206,7 @@ func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 	}
 
 	// Check the local phase state machine for proper state
-	curStatus, err := instance.GetPhaseShareMachine().WaitFor(750*time.Millisecond, state.STARTED)
+	curStatus, err := instance.GetPhaseShareMachine().WaitFor(2000*time.Millisecond, state.STARTED)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, state.STARTED.String())
 	}

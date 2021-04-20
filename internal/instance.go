@@ -165,6 +165,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Handle overriding local IP
 	if instance.GetDefinition().OverrideInternalIP != "" {
+
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
 			ID, instance.GetDefinition().OverrideInternalIP)
 	}

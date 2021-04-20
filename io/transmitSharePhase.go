@@ -47,7 +47,8 @@ func TransmitStartSharePhase(roundID id.Round, instance *internal.Instance) erro
 			h := topology.GetHostAtIndex(localIndex)
 			ack, err := instance.GetNetwork().SendStartSharePhase(h, ri)
 			if err != nil {
-				errChan <- errors.Wrapf(err, "")
+				errChan <- errors.Wrapf(err, "Received an error in "+
+					"sending SendStartSharePhase to %s", h)
 			}
 
 			if ack != nil && ack.Error != "" {
@@ -123,7 +124,7 @@ func TransmitFinalShare(instance *internal.Instance, r *round.Round,
 	for i := 0; i < topology.Len(); i++ {
 		wg.Add(1)
 		go func(localIndex int) {
-			// Send to every node other than ourself
+			// Send to every node in team
 			h := topology.GetHostAtIndex(localIndex)
 			ack, err := instance.GetNetwork().SendFinalKey(h, finalPiece)
 			if err != nil {

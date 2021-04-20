@@ -101,7 +101,7 @@ var Keygen = services.Module{
 
 		kss.userErrors.InitErrorChan(kss.RoundId, kss.batchSize)
 
-		for i := chunk.Begin(); i < chunk.End(); i++ {
+		for i := chunk.Begin(); i < chunk.End() && i < kss.batchSize; i++ {
 			user, err := kss.userReg.GetUser(kss.users[i], kss.Grp)
 
 			if err != nil {

@@ -124,7 +124,9 @@ func NotStarted(instance *internal.Instance) error {
 		if err == nil {
 			//check if an NDF is returned
 			if permResponse == nil || permResponse.FullNDF == nil || len(permResponse.FullNDF.Ndf) == 0 {
-				err = errors.New("NDF returned incomplete")
+				err = errors.New("The NDF was not returned, " +
+					"'permissioning is likely in the process of vetting the " +
+					"node")
 			} else {
 				//update NDF
 				err = permissioning.UpdateNDf(permResponse, instance)
@@ -132,8 +134,8 @@ func NotStarted(instance *internal.Instance) error {
 				// this server as online
 				if err == nil && !permissioning.FindSelfInNdf(ourDef,
 					instance.GetConsensus().GetFullNdf().Get()) {
-					err = errors.New("Could not find self in NDF, polling" +
-						" again")
+					err = errors.New("Waiting to be included in the " +
+						"network")
 				}
 			}
 		}
@@ -215,7 +217,7 @@ func NotStarted(instance *internal.Instance) error {
 
 		// Periodically re-poll permissioning
 		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(50 * time.Millisecond)
+		ticker := time.NewTicker(200 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {

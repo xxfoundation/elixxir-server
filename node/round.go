@@ -8,7 +8,7 @@
 package node
 
 import (
-	jww "github.com/spf13/jwalterweatherman"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
@@ -86,11 +86,10 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	if topology.IsFirstNode(nodeID) {
 		precompShareDefinition.Alternate = func() {
-			jww.INFO.Println("RUNNING ALTERNATE")
 			if err := io.TransmitStartSharePhase(roundID, instance); err != nil {
-				jww.FATAL.Panicf("Failed to start share phase: %+v", err)
+				roundErr := errors.WithMessage(err, "NewRoundComponents Error")
+				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
 			}
-
 		}
 	}
 
