@@ -8,6 +8,7 @@
 package io
 
 import (
+	"crypto/sha256"
 	"fmt"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -32,6 +33,7 @@ import (
 	"gitlab.com/xx_network/primitives/utils"
 	"math/rand"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -330,14 +332,19 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 // Test confirm nonce
 func TestConfirmRegistration(t *testing.T) {
 	//make new user
-	nonce, _ := nonce.NewNonce(nonce.RegistrationTTL)
+	n, _ := nonce.NewNonce(nonce.RegistrationTTL)
 	userID := id.NewIdFromString("test", id.User, t)
+	h := sha256.New()
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+	bk := serverInstance.GetConsensus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
+
 	user := &storage.Client{
 		Id:             userID.Marshal(),
-		BaseKey:        nil,
+		BaseKey:        bk.Bytes(),
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
-		Nonce:          nonce.Bytes(),
-		NonceTimestamp: nonce.GenTime,
+		Nonce:          n.Bytes(),
+		NonceTimestamp: n.GenTime,
 		IsRegistered:   false,
 	}
 
@@ -345,8 +352,7 @@ func TestConfirmRegistration(t *testing.T) {
 
 	//hash and sign nonce
 	sha := hash.CMixHash
-
-	h := sha.New()
+	h = sha.New()
 	h.Write(user.Nonce)
 	h.Write(serverInstance.GetID().Bytes())
 	data := h.Sum(nil)
@@ -379,8 +385,7 @@ func TestConfirmRegistration(t *testing.T) {
 		return
 	}
 
-	uid, _ := user.GetId()
-	regUser, err := serverInstance.GetStorage().GetClient(uid)
+	regUser, err := serverInstance.GetStorage().GetClient(userID)
 
 	if err != nil {
 		t.Errorf("User could not be found: %+v", err)

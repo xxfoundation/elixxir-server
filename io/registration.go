@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
-	hash2 "gitlab.com/elixxir/crypto/hash"
+	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/storage"
@@ -47,11 +47,11 @@ func RequestNonce(instance *internal.Instance,
 	}
 
 	regPubKey := instance.GetRegServerPubKey()
-	h, _ := hash2.NewCMixHash()
+	h, _ := hash.NewCMixHash()
 	h.Write([]byte(request.GetClientRSAPubKey()))
 	data := h.Sum(nil)
 
-	err := rsa.Verify(regPubKey, hash2.CMixHash, data,
+	err := rsa.Verify(regPubKey, hash.CMixHash, data,
 		request.GetClientSignedByServer().Signature, nil)
 	if err != nil {
 		// Invalid signed Client public key, return an error
@@ -69,11 +69,11 @@ func RequestNonce(instance *internal.Instance,
 	}
 
 	//Check that the Client DH public key is signed correctly
-	h, _ = hash2.NewCMixHash()
+	h, _ = hash.NewCMixHash()
 	h.Write(request.GetClientDHPubKey())
 	data = h.Sum(nil)
 
-	err = rsa.Verify(userPublicKey, hash2.CMixHash, data,
+	err = rsa.Verify(userPublicKey, hash.CMixHash, data,
 		request.GetRequestSignature().Signature, nil)
 
 	if err != nil {
@@ -102,7 +102,7 @@ func RequestNonce(instance *internal.Instance,
 	clientDHPub := grp.NewIntFromBytes(request.GetClientDHPubKey())
 
 	// Generate user CMIX baseKey
-	b, _ := hash2.NewCMixHash()
+	b, _ := hash.NewCMixHash()
 	baseKey := registration.GenerateBaseKey(grp, clientDHPub, DHPriv, b)
 
 	// Store user information in the database
@@ -160,7 +160,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	}
 
 	// Verify signed nonce and our ID using Client public key
-	h, _ := hash2.NewCMixHash()
+	h, _ := hash.NewCMixHash()
 	h.Write(clientNonce.Bytes())
 	h.Write(instance.GetID().Bytes())
 	data := h.Sum(nil)
@@ -170,7 +170,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 		return nil, err
 	}
 
-	err = rsa.Verify(pubKey, hash2.CMixHash, data, Signature, nil)
+	err = rsa.Verify(pubKey, hash.CMixHash, data, Signature, nil)
 	if err != nil {
 		return &pb.RegistrationConfirmation{},
 			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %+v", client.Id, err)
