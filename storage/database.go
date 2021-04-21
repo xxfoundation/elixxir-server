@@ -114,6 +114,19 @@ func newDatabase(username, password, dbName, address, port string, devMode bool)
 	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 	sqlDb.SetConnMaxLifetime(24 * time.Hour)
 
+	// Clear out old tables
+	// TODO: Eventually remove once prod has migrated
+	oldTables := []string{"users", "salts"}
+	for _, table := range oldTables {
+		if db.Migrator().HasTable(table) {
+			jww.INFO.Printf("Dropping old %s table...", table)
+			err = db.Migrator().DropTable(table)
+			if err != nil {
+				jww.WARN.Printf("Unable to drop %s table: %+v", table, err)
+			}
+		}
+	}
+
 	// Initialize the database schema
 	// WARNING: Order is important. Do not change without database testing
 	models := []interface{}{&Client{}}

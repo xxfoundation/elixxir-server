@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -287,7 +286,6 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
@@ -298,6 +296,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
 		},
+		DevMode: true,
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)

@@ -10,7 +10,9 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -18,16 +20,17 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -164,7 +167,7 @@ func NotStarted(instance *internal.Instance) error {
 	//init the database
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
-	userDatabase := instance.GetUserRegistry()
+	userDatabase := instance.GetStorage()
 	if instance.GetDefinition().DevMode {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
@@ -173,11 +176,15 @@ func NotStarted(instance *internal.Instance) error {
 
 	jww.INFO.Printf("Adding dummy gateway sending user")
 	//Add a dummy user for gateway
-	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = id.DummyUser.DeepCopy()
-	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
-	dummy.IsRegistered = true
-	userDatabase.UpsertUser(dummy)
+	dummy := &storage.Client{
+		Id:           id.DummyUser.Marshal(),
+		BaseKey:      cmixGrp.NewIntFromBytes(id.DummyUser.Marshal()[:]).Bytes(),
+		IsRegistered: true,
+	}
+	err = instance.GetStorage().UpsertClient(dummy)
+	if err != nil {
+		return err
+	}
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 
@@ -304,7 +311,7 @@ func Precomputing(instance *internal.Instance) error {
 	//Build the round
 	rnd, err := round.New(
 		instance.GetConsensus().GetCmixGroup(),
-		instance.GetUserRegistry(),
+		instance.GetStorage(),
 		roundID, phases, phaseResponses,
 		circuit,
 		instance.GetID(),
@@ -503,13 +510,23 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 
 }
 
-// Create dummy users to be manually inserted into the database
-func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
+// PopulateDummyUsers creates dummy users to be manually inserted into the database
+func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
-		u := ur.NewUser(grp)
-		u.IsRegistered = true
-		ur.UpsertUser(u)
+		h := sha256.New()
+		h.Reset()
+		h.Write([]byte(strconv.Itoa(4000 + i)))
+		usrID := new(id.ID)
+		binary.BigEndian.PutUint64(usrID[:], uint64(i))
+		usrID.SetType(id.User)
+
+		// Generate user parameters
+		ur.UpsertClient(&storage.Client{
+			Id:           usrID.Marshal(),
+			BaseKey:      grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+			IsRegistered: true,
+		})
 	}
 	return
 }

@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/comms/network/dataStructures"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
@@ -57,11 +56,11 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 		Gateway:         ourGateway,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

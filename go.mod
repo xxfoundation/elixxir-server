@@ -4,15 +4,11 @@ go 1.13
 
 require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
-	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/golang/protobuf v1.4.3
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20201025035756-632e723a6687
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
-	github.com/nxadm/tail v1.4.5 // indirect
-	github.com/onsi/ginkgo v1.14.2 // indirect
-	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
@@ -25,9 +21,9 @@ require (
 	gitlab.com/elixxir/comms v0.0.4-0.20210413160356-853e51fc18e5
 	gitlab.com/elixxir/crypto v0.0.7-0.20210412231025-6f75c577f803
 	gitlab.com/elixxir/gpumathsgo v0.1.0
-	gitlab.com/elixxir/primitives v0.0.3-0.20210409190923-7bf3cd8d97e7
+	gitlab.com/elixxir/primitives v0.0.3-0.20210421161736-07ce6bc737ad
 	gitlab.com/xx_network/comms v0.0.4-0.20210413212014-5e898f41f33a
-	gitlab.com/xx_network/crypto v0.0.5-0.20210405224157-2b1f387b42c1
+	gitlab.com/xx_network/crypto v0.0.5-0.20210420170153-2a6276844076
 	gitlab.com/xx_network/primitives v0.0.4-0.20210402222416-37c1c4d3fac4
 	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
@@ -38,7 +34,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.0.8
 	gorm.io/gorm v1.21.7
-	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
 )
 
 replace google.golang.org/grpc => github.com/grpc/grpc-go v1.27.1

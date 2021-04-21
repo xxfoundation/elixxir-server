@@ -13,4 +13,5 @@ type Database struct {
 	Username string
 	Password string
 	Address  string
+	Port     string
 }

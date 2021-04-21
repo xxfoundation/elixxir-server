@@ -45,9 +45,11 @@ func (c *Client) GetPublicKey() (*rsa.PublicKey, error) {
 }
 
 func (c *Client) GetNonce() nonce.Nonce {
-	return nonce.Nonce{
+	n := nonce.Nonce{
 		GenTime:    c.NonceTimestamp,
 		ExpiryTime: c.NonceTimestamp.Add(nonce.RegistrationTTL * time.Second),
 		TTL:        nonce.RegistrationTTL * time.Second,
 	}
+	copy(n.Value[:], c.Nonce)
+	return n
 }

@@ -14,20 +14,20 @@ import (
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/graphs/precomputation"
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
-	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"math/rand"
 	"runtime"
 	"sync"
 	"testing"
+	"time"
 )
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -294,34 +294,27 @@ func RootingTestTriple(grp *cyclic.Group, t *testing.T) {
 
 // createDummyUserList creates a user list with a user of id 123,
 // a base key of 1, and some random dsa params.
-func createDummyUserList(grp *cyclic.Group,
-	rng csprng.Source) *globals.UserMap {
+func createDummyUserList(grp *cyclic.Group) *storage.Storage {
 	// Create a user -- FIXME: Why are we doing this here? Graphs shouldn't
 	// need to be aware of users...it should be done and applied separately
 	// as a list of keys to apply. This approach leads to getting part way
 	// and then having time delays from user lookup and also sensitive
 	// keying material being spewed all over in copies..
-	registry := &globals.UserMap{}
-	var userList []*globals.User
-	u := new(globals.User)
-	t := testing.T{}
-	u.ID = id.NewIdFromUInt(uint64(123), id.User, &t)
-
-	baseKeyBytes := []byte{1}
-	u.BaseKey = grp.NewIntFromBytes(baseKeyBytes)
-	// FIXME: This should really not be necessary and this API is wonky
-	rsaPrivateKey, err := rsa.GenerateKey(csprng.NewSystemRNG(), 728)
-	if err != nil {
-		t.Errorf("Error getting RSA PK")
+	registry, _ := storage.NewStorage("", "", "", "", "", true)
+	u := &storage.Client{
+		Id:             id.NewIdFromUInt(uint64(123), id.User, &testing.T{}).Marshal(),
+		BaseKey:        grp.NewIntFromBytes([]byte{1}).Bytes(),
+		PublicKey:      nil,
+		Nonce:          nil,
+		NonceTimestamp: time.Time{},
+		IsRegistered:   false,
 	}
-	u.RsaPublicKey = rsaPrivateKey.GetPublic()
-	registry.UpsertUser(u)
-	userList = append(userList, u)
+	_ = registry.UpsertClient(u)
 	return registry
 }
 
 func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
-	roundBuf *round.Buffer, registry *globals.UserMap,
+	roundBuf *round.Buffer, registry *storage.Storage,
 	rngStreamGen fastRNG.StreamGenerator, streams map[string]*DebugStream,
 	t *testing.T) *services.Graph {
 	//make the graph
@@ -342,7 +335,7 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 }
 
 func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
-	roundBuf *round.Buffer, registry *globals.UserMap,
+	roundBuf *round.Buffer, registry *storage.Storage,
 	rngStreamGen *fastRNG.StreamGenerator, streams map[string]*DebugStream,
 	t *testing.T) *services.Graph {
 	//make the graph
@@ -384,13 +377,12 @@ func TestEndToEndCryptops(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4))
 
-	rngConstructor := NewPseudoRNG // FIXME: Why?
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 	batchSize := uint32(1)
 
-	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t), grp)
+	registry := createDummyUserList(grp)
+	dummyUser, _ := registry.GetClient(id.NewIdFromUInt(uint64(123), id.User, t))
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
@@ -413,9 +405,10 @@ func TestEndToEndCryptops(t *testing.T) {
 	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 
-	// Create messsages
+	// Create messages
+	dummyId, _ := dummyUser.GetId()
 	megaStream.KeygenDecryptStream.Salts[0] = []byte{0}
-	megaStream.KeygenDecryptStream.Users[0] = dummyUser.ID
+	megaStream.KeygenDecryptStream.Users[0] = dummyId
 	ecrPayloadA := grp.NewInt(31)
 	ecrPayloadB := grp.NewInt(1)
 
@@ -579,13 +572,12 @@ func TestBatchSize3(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4))
 
-	rngConstructor := NewPseudoRNG // FIXME: Why?
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
 	batchSize := uint32(4)
 
-	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t), grp)
+	registry := createDummyUserList(grp)
+	dummyUser, _ := registry.GetClient(id.NewIdFromUInt(uint64(123), id.User, t))
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
@@ -613,10 +605,11 @@ func TestBatchSize3(t *testing.T) {
 	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 
-	// Create messsages
+	// Create messages
+	dummyId, _ := dummyUser.GetId()
 	for i := uint32(0); i < batchSize; i++ {
 		megaStream.KeygenDecryptStream.Salts[i] = []byte{0}
-		megaStream.KeygenDecryptStream.Users[i] = dummyUser.ID
+		megaStream.KeygenDecryptStream.Users[i] = dummyId
 	}
 
 	// Send message through the graph
@@ -758,7 +751,7 @@ func (ds *DebugStream) DeepCopy() *DebugStream {
 func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	source ...interface{}) {
 	roundBuf := source[0].(*round.Buffer)
-	userRegistry := source[1].(*globals.UserMap)
+	userRegistry := source[1].(*storage.Storage)
 	rngStreamGen := source[2].(*fastRNG.StreamGenerator)
 
 	//Generate passthroughs for precomputation
@@ -962,7 +955,7 @@ func wrapAdapt(batchSize uint32, outIdx int, name string, dStrms []*DebugStream,
 
 func InitDbgGraph3(gc services.GraphGenerator, streams map[string]*DebugStream,
 	grp *cyclic.Group, batchSize uint32, roundBuf *round.Buffer,
-	registry *globals.UserMap, rngStreamGen *fastRNG.StreamGenerator,
+	registry *storage.Storage, rngStreamGen *fastRNG.StreamGenerator,
 	t *testing.T) *services.Graph {
 	dStrms := make([]*DebugStream, 3)
 	for i := 1; i < 3; i++ {
@@ -1044,24 +1037,23 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 
 	//instance := server.CreateServerInstance(grp, nid, &globals.UserMap{})
 
-	registry := &globals.UserMap{}
-	var userList []*globals.User
+	registry, _ := storage.NewStorage("", "", "", "", "", true)
 
-	var salts [][]byte
+	var userList []*storage.Client
 
 	rng := rngConstructor()
 
 	//make the user IDs and their base keys and the salts
 	for i := uint32(0); i < batchSize; i++ {
-		u := registry.NewUser(grp)
-		u.ID = id.NewIdFromUInt(uint64(i), id.User, t)
-
-		u.BaseKey = grp.NewInt(1)
-		registry.UpsertUser(u)
-
-		salt := make([]byte, 32)
-		salts = append(salts, salt)
-
+		u := &storage.Client{
+			Id:             id.NewIdFromUInt(uint64(i), id.User, t).Marshal(),
+			BaseKey:        grp.NewInt(1).Bytes(),
+			PublicKey:      nil,
+			Nonce:          nil,
+			NonceTimestamp: time.Time{},
+			IsRegistered:   false,
+		}
+		_ = registry.UpsertClient(u)
 		userList = append(userList, u)
 	}
 
@@ -1137,8 +1129,8 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 	go func() {
 		t.Log("Beginning test")
 		for i := uint32(0); i < batchSize; i++ {
-			megaStream.KeygenDecryptStream.Salts[i] = salts[i]
-			megaStream.KeygenDecryptStream.Users[i] = userList[i].ID
+			thisId, _ := userList[i].GetId()
+			megaStream.KeygenDecryptStream.Users[i] = thisId
 			grp.Set(megaStream.IdentifyStream.EcrPayloadA.Get(i),
 				ecrPayloadAs[i])
 			grp.Set(megaStream.IdentifyStream.EcrPayloadB.Get(i),
@@ -1202,7 +1194,7 @@ func Test_DebugStream(t *testing.T) {
 	roundBuf := round.NewBuffer(grp, batchSize,
 		dGrph.GetExpandedBatchSize())
 
-	dGrph.Link(grp, roundBuf, &globals.UserMap{},
+	dGrph.Link(grp, roundBuf, &storage.Storage{},
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
 			csprng.NewSystemRNG))
 
@@ -1260,11 +1252,10 @@ func Test3NodeE2E(t *testing.T) {
 	batchSize := uint32(1)
 	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
 		large.NewInt(4))
-	rngConstructor := NewPseudoRNG // FIXME: Why?
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)
-	registry := createDummyUserList(grp, rngConstructor())
-	dummyUser, _ := registry.GetUser(id.NewIdFromUInt(uint64(123), id.User, t), grp)
+	registry := createDummyUserList(grp)
+	dummyUser, _ := registry.GetClient(id.NewIdFromUInt(uint64(123), id.User, t))
 
 	//make the round buffer and manually set the round keys
 	roundBuf := round.NewBuffer(grp, batchSize, batchSize)
@@ -1294,9 +1285,10 @@ func Test3NodeE2E(t *testing.T) {
 	megaStream := dGrph.GetStream().(*DebugStream)
 	streams["END"] = megaStream
 
-	// Create messsages
+	// Create messages
+	dummyId, _ := dummyUser.GetId()
 	megaStream.KeygenDecryptStream.Salts[0] = []byte{0}
-	megaStream.KeygenDecryptStream.Users[0] = dummyUser.ID
+	megaStream.KeygenDecryptStream.Users[0] = dummyId
 	ecrPayloadA := grp.NewInt(31)
 	ecrPayloadB := grp.NewInt(1)
 

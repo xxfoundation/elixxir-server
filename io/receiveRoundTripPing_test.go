@@ -12,11 +12,11 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/primitives/id"
 	"testing"
@@ -33,7 +33,6 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	// Set instance for first node
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &resourceMonitor,
 	}
 	def.ID = newRound.GetTopology().GetNodeAtIndex(0)
@@ -57,7 +56,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	batchSize := uint32(11)
 
-	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
 		responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
