@@ -10,6 +10,7 @@
 package realtime
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -18,9 +19,11 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
+	"strconv"
 	"testing"
 )
 
@@ -31,16 +34,25 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 	instance := mockServerInstance(t)
 	grp := instance.GetConsensus().GetCmixGroup()
 	registry := instance.GetStorage()
-	u := registry.NewUser(grp)
-	u.IsRegistered = true
-	registry.UpsertUser(u)
+	h := sha256.New()
+
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+	bk := grp.NewIntFromBytes(h.Sum(nil))
+
+	u := &storage.Client{
+		Id:           id.NewIdFromString("test", id.User, t).Marshal(),
+		BaseKey:      bk.Bytes(),
+		IsRegistered: true,
+	}
+	_ = registry.UpsertClient(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+	if u.GetBaseKey(grp).BitLen() < 248 || u.GetBaseKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.BaseKey.BitLen())
+			u.GetBaseKey(grp).BitLen())
 	}
 
 	//var stream DecryptStream
@@ -112,9 +124,10 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		grp.SetUint64(expectedPayloadA.Get(uint32(i)), uint64(i+1))
 		grp.SetUint64(expectedPayloadB.Get(uint32(i)), uint64(1000+i))
 
+		uid, _ := u.GetId()
 		stream.Salts[i] = testSalt
-		stream.Users[i] = u.ID
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey,
+		stream.Users[i] = uid
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.GetBaseKey(grp),
 			stream.RoundId, kmacHash)}
 	}
 	// Here's the actual data for the test
@@ -133,15 +146,15 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 			keyA := grp.NewInt(1)
 			keyB := grp.NewInt(1)
 
-			user, _ := registry.GetUser(stream.Users[i], grp)
+			user, _ := registry.GetClient(stream.Users[i])
 
-			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.BaseKey,
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.GetBaseKey(grp),
 				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.BaseKey,
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.GetBaseKey(grp),
 				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA
