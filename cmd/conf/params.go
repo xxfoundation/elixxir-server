@@ -230,7 +230,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.DbPassword = p.Database.Password
 	def.DbName = p.Database.Name
 	def.DbAddress = p.Database.Address
-	def.DbPort = p.Database.Password
+	def.DbPort = p.Database.Port
 
 	if def.Flags.OverrideInternalIP != "" && !strings.Contains(def.Flags.OverrideInternalIP, ":") {
 		def.Flags.OverrideInternalIP = net.JoinHostPort(def.Flags.OverrideInternalIP, strconv.Itoa(p.Node.Port))
