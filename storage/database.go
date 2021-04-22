@@ -45,14 +45,14 @@ type MapImpl struct {
 type Client struct {
 	Id []byte `gorm:"primaryKey"`
 
-	// Base Key for message encryption
-	BaseKey []byte `gorm:"not null"`
+	// Diffie-Hellman key for message encryption
+	DhKey []byte `gorm:"not null"`
 
 	// Used for Client registration
-	PublicKey      []byte    `gorm:"not null"`
-	Nonce          []byte    `gorm:"not null"`
-	NonceTimestamp time.Time `gorm:"not null"`
-	IsRegistered   bool      `gorm:"not null"`
+	PublicKey      []byte
+	Nonce          []byte
+	NonceTimestamp time.Time
+	IsRegistered   bool `gorm:"not null"`
 }
 
 // Initialize the database interface with database backend

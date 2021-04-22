@@ -341,7 +341,7 @@ func TestConfirmRegistration(t *testing.T) {
 
 	user := &storage.Client{
 		Id:             userID.Marshal(),
-		BaseKey:        bk.Bytes(),
+		DhKey:          bk.Bytes(),
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
 		Nonce:          n.Bytes(),
 		NonceTimestamp: n.GenTime,
@@ -402,7 +402,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 
 	user := &storage.Client{
 		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
-		BaseKey:        nil,
+		DhKey:          nil,
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
 		Nonce:          n.Bytes(),
 		NonceTimestamp: n.GenTime,
@@ -452,7 +452,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 
 	user := &storage.Client{
 		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
-		BaseKey:        nil,
+		DhKey:          nil,
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
 		Nonce:          n.Bytes(),
 		NonceTimestamp: n.GenTime,
@@ -502,7 +502,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 
 	user := &storage.Client{
 		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
-		BaseKey:        nil,
+		DhKey:          nil,
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
 		Nonce:          n.Bytes(),
 		NonceTimestamp: n.GenTime,
@@ -552,7 +552,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 
 	user := &storage.Client{
 		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
-		BaseKey:        nil,
+		DhKey:          nil,
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
 		Nonce:          n.Bytes(),
 		NonceTimestamp: n.GenTime,
@@ -610,7 +610,7 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 
 	user := &storage.Client{
 		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
-		BaseKey:        nil,
+		DhKey:          nil,
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
 		Nonce:          n.Bytes(),
 		NonceTimestamp: n.GenTime,

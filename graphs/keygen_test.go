@@ -151,7 +151,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	u := &storage.Client{
 		Id:           uid.Marshal(),
-		BaseKey:      grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
 		IsRegistered: true,
 	}
 	_ = registry.UpsertClient(u)
@@ -160,10 +160,10 @@ func TestKeygenStreamInGraph(t *testing.T) {
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.GetBaseKey(grp).BitLen() < 250 || u.GetBaseKey(grp).BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.GetBaseKey(grp).BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -194,7 +194,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		t.Errorf("Could not get a hash for kmacs: %+v", err)
 	}
 
-	kmac := cmix.GenerateKMAC(testSalt, u.GetBaseKey(grp), rid, cmixHash)
+	kmac := cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, cmixHash)
 
 	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
@@ -252,11 +252,11 @@ func TestKeygenStreamInGraph(t *testing.T) {
 			}
 
 			// Check result and base key. They should be equal
-			if !bytes.Equal(resultABytes, u.BaseKey) {
+			if !bytes.Equal(resultABytes, u.DhKey) {
 				t.Error("Keygen: Base key and result key A weren't equal")
 			}
 
-			if !bytes.Equal(resultBBytes, u.BaseKey) {
+			if !bytes.Equal(resultBBytes, u.DhKey) {
 				t.Error("Keygen: Base key and result key B weren't equal")
 			}
 		}
@@ -279,17 +279,17 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 
 	u := &storage.Client{
 		Id:           uid.Marshal(),
-		BaseKey:      grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
 		IsRegistered: false,
 	}
 	_ = registry.UpsertClient(u)
 	rid := id.Round(42)
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.GetBaseKey(grp).BitLen() < 250 || u.GetBaseKey(grp).BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.GetBaseKey(grp).BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -314,7 +314,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		t.Errorf("Could not get a hash for kmacs: %+v", err)
 	}
 
-	kmac := cmix.GenerateKMAC(testSalt, u.GetBaseKey(grp), rid, cmixHash)
+	kmac := cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, cmixHash)
 
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
@@ -400,17 +400,17 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 
 	u := &storage.Client{
 		Id:           uid.Marshal(),
-		BaseKey:      grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
 		IsRegistered: true,
 	}
 	_ = registry.UpsertClient(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.GetBaseKey(grp).BitLen() < 250 || u.GetBaseKey(grp).BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.GetBaseKey(grp).BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	var stream KeygenTestStream

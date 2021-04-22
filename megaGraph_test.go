@@ -303,7 +303,7 @@ func createDummyUserList(grp *cyclic.Group) *storage.Storage {
 	registry, _ := storage.NewStorage("", "", "", "", "", true)
 	u := &storage.Client{
 		Id:             id.NewIdFromUInt(uint64(123), id.User, &testing.T{}).Marshal(),
-		BaseKey:        grp.NewIntFromBytes([]byte{1}).Bytes(),
+		DhKey:          grp.NewIntFromBytes([]byte{1}).Bytes(),
 		PublicKey:      nil,
 		Nonce:          nil,
 		NonceTimestamp: time.Time{},
@@ -1047,7 +1047,7 @@ func RunDbgGraph(batchSize uint32, rngConstructor func() csprng.Source,
 	for i := uint32(0); i < batchSize; i++ {
 		u := &storage.Client{
 			Id:             id.NewIdFromUInt(uint64(i), id.User, t).Marshal(),
-			BaseKey:        grp.NewInt(1).Bytes(),
+			DhKey:          grp.NewInt(1).Bytes(),
 			PublicKey:      nil,
 			Nonce:          nil,
 			NonceTimestamp: time.Time{},

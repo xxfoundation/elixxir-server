@@ -29,7 +29,7 @@ import (
 //
 //	err = db.UpsertClient(&Client{
 //		Id:             testId.Marshal(),
-//		BaseKey:        make([]byte, 0),
+//		DhKey:        make([]byte, 0),
 //		PublicKey:      make([]byte, 0),
 //		Nonce:          make([]byte, 0),
 //		NonceTimestamp: time.Now(),
@@ -41,7 +41,7 @@ import (
 //	}
 //	err = db.UpsertClient(&Client{
 //		Id:             testId.Marshal(),
-//		BaseKey:        testId.Marshal(),
+//		DhKey:        testId.Marshal(),
 //		PublicKey:      testId.Marshal(),
 //		Nonce:          testId.Marshal(),
 //		NonceTimestamp: time.Now(),
@@ -101,7 +101,7 @@ func TestMapImpl_UpsertClient(t *testing.T) {
 
 	testClient := &Client{
 		Id:             testId.Marshal(),
-		BaseKey:        nil,
+		DhKey:          nil,
 		PublicKey:      nil,
 		Nonce:          nil,
 		NonceTimestamp: time.Now(),
@@ -120,7 +120,7 @@ func TestMapImpl_UpsertClient(t *testing.T) {
 
 	newClient := &Client{
 		Id:             testId.Marshal(),
-		BaseKey:        testId.Marshal(),
+		DhKey:          testId.Marshal(),
 		PublicKey:      testId.Marshal(),
 		Nonce:          testId.Marshal(),
 		NonceTimestamp: time.Now().Add(1 * time.Second),

@@ -111,7 +111,7 @@ func TestClientServer(t *testing.T) {
 	registry := instance.GetStorage()
 	usr := &storage.Client{
 		Id:           nil,
-		BaseKey:      grp.NewInt(5).Bytes(),
+		DhKey:        grp.NewInt(5).Bytes(),
 		IsRegistered: false,
 	}
 	_ = registry.UpsertClient(usr)
@@ -130,7 +130,7 @@ func TestClientServer(t *testing.T) {
 	usrId, _ := usr.GetId()
 	usrs = append(usrs, usrId)
 	//generate an array of keys for linking
-	keys := grp.NewIntBuffer(1, usr.GetBaseKey(grp))
+	keys := grp.NewIntBuffer(1, usr.GetDhKey(grp))
 	kmacs := make([][][]byte, 1)
 	reporter := round.NewClientFailureReport()
 	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32)
@@ -141,7 +141,7 @@ func TestClientServer(t *testing.T) {
 	//Create an array of basekeys to prepare for encryption
 	userBaseKeys := make([]*cyclic.Int, 0)
 	//FIXME: This is probably wrong
-	userBaseKeys = append(userBaseKeys, usr.GetBaseKey(grp))
+	userBaseKeys = append(userBaseKeys, usr.GetDhKey(grp))
 
 	//Generate a mock message
 	inputMsg := makeMsg(grp)

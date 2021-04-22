@@ -130,7 +130,7 @@ var Keygen = services.Module{
 
 			success := false
 			if user.IsRegistered && len(kss.kmacs[i]) != 0 {
-				clientBaseKey := user.GetBaseKey(kss.Grp)
+				clientBaseKey := user.GetDhKey(kss.Grp)
 				//check the KMAC
 				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], clientBaseKey,
 					kss.RoundId, kmacHash) {

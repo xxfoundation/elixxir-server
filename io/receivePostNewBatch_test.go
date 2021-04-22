@@ -231,7 +231,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	// Make and register a user
 	sender := &storage.Client{
 		Id:             id.NewIdFromString("test", id.User, &testing.T{}).Marshal(),
-		BaseKey:        nil,
+		DhKey:          nil,
 		PublicKey:      nil,
 		Nonce:          nil,
 		NonceTimestamp: time.Time{},

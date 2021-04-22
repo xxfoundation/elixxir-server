@@ -108,7 +108,7 @@ func RequestNonce(instance *internal.Instance,
 	// Store user information in the database
 	newClient := &storage.Client{
 		Id:             userId.Bytes(),
-		BaseKey:        baseKey.Bytes(),
+		DhKey:          baseKey.Bytes(),
 		PublicKey:      rsa.CreatePublicKeyPem(userPublicKey),
 		Nonce:          userNonce.Bytes(),
 		NonceTimestamp: userNonce.GenTime,
@@ -191,7 +191,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	}*/
 
 	// Hash the basekey
-	hashedData := cmix.GenerateClientGatewayKey(client.GetBaseKey(instance.GetConsensus().GetCmixGroup()))
+	hashedData := cmix.GenerateClientGatewayKey(client.GetDhKey(instance.GetConsensus().GetCmixGroup()))
 	//update the client's state to registered
 	client.IsRegistered = true
 	err = instance.GetStorage().UpsertClient(client)

@@ -451,17 +451,17 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	u := &storage.Client{
 		Id:           id.NewIdFromString("test", id.User, t).Marshal(),
-		BaseKey:      bk.Bytes(),
+		DhKey:        bk.Bytes(),
 		IsRegistered: true,
 	}
 	_ = registry.UpsertClient(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.GetBaseKey(grp).BitLen() < 248 || u.GetBaseKey(grp).BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 248 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.GetBaseKey(grp).BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	//var stream DecryptStream
@@ -535,7 +535,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 		uid, _ := u.GetId()
 		stream.Salts[i] = testSalt
 		stream.Users[i] = uid
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.GetBaseKey(grp), rid, kmacHash)}
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, kmacHash)}
 	}
 	// Here's the actual data for the test
 
@@ -555,13 +555,13 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 			user, _ := registry.GetClient(stream.Users[i])
 
-			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.GetBaseKey(grp),
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.GetDhKey(grp),
 				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.GetBaseKey(grp),
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.GetDhKey(grp),
 				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA

@@ -178,7 +178,7 @@ func NotStarted(instance *internal.Instance) error {
 	//Add a dummy user for gateway
 	dummy := &storage.Client{
 		Id:           id.DummyUser.Marshal(),
-		BaseKey:      cmixGrp.NewIntFromBytes(id.DummyUser.Marshal()[:]).Bytes(),
+		DhKey:        cmixGrp.NewIntFromBytes(id.DummyUser.Marshal()[:]).Bytes(),
 		IsRegistered: true,
 	}
 	err = instance.GetStorage().UpsertClient(dummy)
@@ -524,7 +524,7 @@ func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
 		// Generate user parameters
 		ur.UpsertClient(&storage.Client{
 			Id:           usrID.Marshal(),
-			BaseKey:      grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+			DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
 			IsRegistered: true,
 		})
 	}

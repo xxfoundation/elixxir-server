@@ -36,8 +36,8 @@ func (c *Client) GetId() (*id.ID, error) {
 	return id.Unmarshal(c.Id)
 }
 
-func (c *Client) GetBaseKey(grp *cyclic.Group) *cyclic.Int {
-	return grp.NewIntFromBytes(c.BaseKey)
+func (c *Client) GetDhKey(grp *cyclic.Group) *cyclic.Int {
+	return grp.NewIntFromBytes(c.DhKey)
 }
 
 func (c *Client) GetPublicKey() (*rsa.PublicKey, error) {

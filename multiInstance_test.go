@@ -172,7 +172,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 			"1.1.0")
 		client := storage.Client{
 			Id:           userID.Marshal(),
-			BaseKey:      baseKeys[i].Bytes(),
+			DhKey:        baseKeys[i].Bytes(),
 			IsRegistered: true,
 		}
 		err := instance.GetStorage().UpsertClient(&client)
