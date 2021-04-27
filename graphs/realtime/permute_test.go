@@ -9,6 +9,7 @@ package realtime
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -255,6 +256,7 @@ func TestPermuteStream_CommsInterface(t *testing.T) {
 }
 
 func TestPermuteStream_InGraph(t *testing.T) {
+	viper.Set("useGPU", false)
 	primeString :=
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
