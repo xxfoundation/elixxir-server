@@ -178,7 +178,7 @@ var PermuteMul2Chunk = services.Module{
 // InitPermuteGraph initializes and returns a new graph.
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using realtime permute graph running on CPU instead of equivalent GPU graph")
+		jww.FATAL.Panicf("Using realtime permute graph running on CPU instead of equivalent GPU graph")
 	}
 	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
 	g := gcPermute.NewGraph("RealtimePermute", &PermuteStream{})

@@ -195,7 +195,7 @@ var StripMul2 = services.Module{
 // InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using precomp strip graph running on CPU instead of equivalent GPU graph")
+		jww.FATAL.Panicf("Using precomp strip graph running on CPU instead of equivalent GPU graph")
 	}
 	graph := gc.NewGraph("PrecompStrip", &StripStream{})
 

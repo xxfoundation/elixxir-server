@@ -193,7 +193,7 @@ var DecryptElgamalChunk = services.Module{
 // InitDecryptGraph is called to initialize the graph. Conforms to graphs.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using precomp decrypt graph running on CPU instead of equivalent GPU graph")
+		jww.FATAL.Panicf("Using precomp decrypt graph running on CPU instead of equivalent GPU graph")
 	}
 	g := gc.NewGraph("PrecompDecrypt", &DecryptStream{})
 
