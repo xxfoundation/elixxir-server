@@ -244,6 +244,13 @@ func (i *Instance) Run() error {
 	return i.machine.Start()
 }
 
+// Shutdown releases any reserved GPU resources
+func (i *Instance) Shutdown() {
+	if i.streamPool != nil {
+		i.streamPool.Destroy()
+	}
+}
+
 // GetDefinition returns the server.Definition object
 func (i *Instance) GetDefinition() *Definition {
 	return i.definition

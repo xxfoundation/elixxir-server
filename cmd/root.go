@@ -69,6 +69,9 @@ var rootCmd = &cobra.Command{
 
 		for {
 			instance, err := StartServer(viper.GetViper())
+			if instance != nil {
+				defer instance.Shutdown()
+			}
 			if err == nil {
 				break
 			}
