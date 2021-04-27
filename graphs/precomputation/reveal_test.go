@@ -9,6 +9,7 @@ package precomputation
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -219,6 +220,7 @@ func TestRevealStream_Interface(t *testing.T) {
 }
 
 func TestReveal_Graph(t *testing.T) {
+	viper.Set("useGPU", false)
 
 	grp := initRevealGroup()
 
