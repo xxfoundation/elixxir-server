@@ -140,9 +140,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		// An instance without a stream pool is still valid
 		// Always panic when we can't do what was intended with the GPU
 		if err != nil {
-			jww.FATAL.Panicf("Couldn't initialize GPU. Set useGPU "
-				"to false in configuration to ignore. "
-				"Error: %v", err.Error())
+			jww.FATAL.Panicf("Couldn't initialize GPU. Set "+
+				"useGPU to false in configuration to "+
+				"ignore. Error: %v", err.Error())
 		}
 	} else {
 		jww.INFO.Printf("Using CPU maths, rather than CUDA")
