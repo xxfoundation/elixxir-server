@@ -49,7 +49,7 @@ Flags:
       --registrationCode string   Registration code used for first time
                                   registration. This is a unique code provided
                                   by xx network. (Required)
-      --useGpu                    Toggles use of the GPU. (default true)
+      --useGPU                    Toggles use of the GPU. (default true)
 
 Use "server [command] --help" for more information about a command.
 
@@ -106,7 +106,7 @@ Note: YAML prohibits the use of tabs because whitespace has meaning.
 registrationCode: ""
 
 # Toggles use of the GPU. (Default true)
-useGpu: true
+useGPU: true
 
 # Level of debugging to print (0 = info, 1 = debug, >1 = trace). (Default info)
 logLevel: 1

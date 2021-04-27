@@ -85,7 +85,7 @@ func Test_MultiInstance_PhaseErr(t *testing.T) {
 		"instance test: %s", elapsed)
 }
 
-func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGpu, errorPhase bool, t *testing.T) time.Duration {
+func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, errorPhase bool, t *testing.T) time.Duration {
 	if errorPhase {
 		defer func() {
 			if r := recover(); r != nil {
@@ -103,9 +103,9 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGpu, error
 
 	// Get parameters
 	portOffset := int(rand.Uint32() % 2000)
-	viper.Set("useGpu", useGpu)
+	viper.Set("useGPU", useGPU)
 
-	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, grp, useGpu, t)
+	defsLst := makeMultiInstanceParams(numNodes, 20000+portOffset, grp, useGPU, t)
 
 	// Make user for sending messages
 	userID := id.NewIdFromUInt(42, id.User, t)
@@ -628,7 +628,7 @@ func generateCert() ([]byte, []byte) {
 	return crtOut, privOut
 }
 
-func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGpu bool, t *testing.T) []*internal.Definition {
+func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU bool, t *testing.T) []*internal.Definition {
 
 	// Generate IDs and addresses
 	var nidLst []*id.ID
@@ -666,7 +666,7 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGpu 
 			ID: nidLst[i],
 			Flags: internal.Flags{
 				KeepBuffers: true,
-				UseGPU:      useGpu,
+				useGPU:      useGPU,
 			},
 			TlsCert: cert,
 			Gateway: internal.GW{

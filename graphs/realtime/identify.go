@@ -185,7 +185,7 @@ var IdentifyMul2Chunk = services.Module{
 
 // InitIdentifyGraph initializes and returns a new graph.
 func InitIdentifyGraph(gc services.GraphGenerator) *services.Graph {
-	if viper.GetBool("useGpu") {
+	if viper.GetBool("useGPU") {
 		jww.FATAL.Panicf("Using realtime identify graph running on CPU instead of equivalent GPU graph")
 	}
 	g := gc.NewGraph("RealtimeIdentify", &IdentifyStream{})
@@ -202,7 +202,7 @@ func InitIdentifyGraph(gc services.GraphGenerator) *services.Graph {
 
 // InitIdentifyGraph initializes and returns a new graph.
 func InitIdentifyGPUGraph(gc services.GraphGenerator) *services.Graph {
-	if !viper.GetBool("useGpu") {
+	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using realtime identify graph running on GPU instead of equivalent CPU graph")
 	}
 	g := gc.NewGraph("RealtimeIdentifyGPU", &IdentifyStream{})

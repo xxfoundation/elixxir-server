@@ -129,7 +129,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Create stream pool if instructed to use GPU
-	if def.UseGPU {
+	if def.useGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
 		memSize := 200000
