@@ -23,6 +23,7 @@ import (
 	// to automatically initialize its http handlers
 	"net/http"
 	_ "net/http/pprof"
+	"os/signal"
 	"time"
 )
 
@@ -67,11 +68,9 @@ var rootCmd = &cobra.Command{
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
 
+		instance, err := StartServer(viper.GetViper())
+		// Retry to start the instance on certain errors
 		for {
-			instance, err := StartServer(viper.GetViper())
-			if instance != nil {
-				defer instance.Shutdown()
-			}
 			if err == nil {
 				break
 			}
@@ -87,14 +86,21 @@ var rootCmd = &cobra.Command{
 				jww.ERROR.Print("Cannot start, permissioning " +
 					"is unavailable, retrying in 10s...")
 				time.Sleep(10 * time.Second)
+				instance, err = StartServer(viper.GetViper())
 				continue
 			}
 			jww.FATAL.Panicf("Failed to start server: %+v",
 				err)
 		}
-
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		signal.Notify(c, os.Kill)
 		// Prevent node from exiting
-		select {}
+		select {
+		case <-c:
+			jww.ERROR.Printf("Exiting due to an exit signal...")
+			instance.Shutdown()
+		}
 	},
 }
 
