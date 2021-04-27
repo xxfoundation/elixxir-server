@@ -38,7 +38,7 @@ const defaultIpListPath = "/opt/xxnetwork/node-logs/ipList.txt"
 // It should be constructed using a viper object
 type Params struct {
 	KeepBuffers           bool
-	useGPU                bool
+	UseGPU                bool
 	OverrideInternalIP    string
 	RngScalingFactor      uint `yaml:"rngScalingFactor"`
 	SignedCertPath        string
@@ -159,7 +159,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.GraphGen.outputThreshold = float32(vip.GetFloat64("graphgen.outputthreshold"))
 
 	params.KeepBuffers = vip.GetBool("keepBuffers")
-	params.useGPU = vip.GetBool("useGPU")
+	params.UseGPU = vip.GetBool("useGPU")
 	params.RngScalingFactor = vip.GetUint("rngScalingFactor")
 	// If RngScalingFactor is not set, then set default value
 	if params.RngScalingFactor == 0 {
@@ -184,7 +184,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def := &internal.Definition{}
 
 	def.Flags.KeepBuffers = p.KeepBuffers
-	def.Flags.useGPU = p.useGPU
+	def.Flags.UseGPU = p.UseGPU
 	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte

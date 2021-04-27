@@ -666,7 +666,7 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 			ID: nidLst[i],
 			Flags: internal.Flags{
 				KeepBuffers: true,
-				useGPU:      useGPU,
+				UseGPU:      useGPU,
 			},
 			TlsCert: cert,
 			Gateway: internal.GW{

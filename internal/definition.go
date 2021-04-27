@@ -100,7 +100,7 @@ type Flags struct {
 	// Denotes if the server is to store all round keys indefinably
 	KeepBuffers bool
 	// If true, use GPU acceleration for precomputation
-	useGPU bool
+	UseGPU bool
 	// If set, it should be used to overwrite the local address
 	OverrideInternalIP string
 }

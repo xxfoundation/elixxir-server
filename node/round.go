@@ -38,7 +38,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	transmissionHandler := io.StreamTransmitPhase
 
 	// Used to determine usage of GPU maths in certain phases
-	useGPU := instance.GetDefinition().useGPU
+	useGPU := instance.GetDefinition().UseGPU
 
 	/*--PRECOMP GENERATE------------------------------------------------------*/
 
