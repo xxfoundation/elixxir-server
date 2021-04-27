@@ -9,6 +9,7 @@ package precomputation
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -216,6 +217,7 @@ func TestStripStream_Interface(t *testing.T) {
 }
 
 func TestStrip_Graph(t *testing.T) {
+	viper.Set("useGPU", false)
 	grp := initStripGroup()
 
 	batchSize := uint32(100)
