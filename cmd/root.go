@@ -33,7 +33,7 @@ var keepBuffers bool
 var logPath = "cmix-server.log"
 var maxProcsOverride int
 var disableStreaming bool
-var useGPU bool
+var useGpu bool
 var BatchSizeGPUTest int
 
 // If true, runs pprof http server
@@ -159,9 +159,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&disableStreaming, "disableStreaming", false,
 		"Disables streaming comms.")
 
-	rootCmd.Flags().BoolVar(&useGPU, "useGPU", true, "Toggles use of the GPU.")
-	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
-	handleBindingError(err, "useGPU")
+	rootCmd.Flags().BoolVar(&useGpu, "useGpu", true, "Toggles use of the GPU.")
+	err = viper.BindPFlag("useGpu", rootCmd.Flags().Lookup("useGpu"))
+	handleBindingError(err, "useGpu")
 
 	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
 	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0,

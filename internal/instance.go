@@ -141,7 +141,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		// Always panic when we can't do what was intended with the GPU
 		if err != nil {
 			jww.FATAL.Panicf("Couldn't initialize GPU. Set "+
-				"useGPU to false in configuration to "+
+				"useGpu to false in configuration to "+
 				"ignore. Error: %v", err.Error())
 		}
 	} else {
