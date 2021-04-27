@@ -24,7 +24,7 @@ import (
 // Shows that results from the strip GPU kernel are the same as those that
 // should be expected from running Strip phase manually
 func TestStripGPU_Graph(t *testing.T) {
-	viper.Set("useGpu", true)
+	viper.Set("useGPU", true)
 	grp := initStripGroup()
 
 	batchSize := uint32(100)

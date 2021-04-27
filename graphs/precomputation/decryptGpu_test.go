@@ -23,7 +23,7 @@ import (
 
 // Runs precomp decrypt test with GPU stream pool and graphs
 func TestDecryptGPUGraph(t *testing.T) {
-	viper.Set("useGpu", true)
+	viper.Set("useGPU", true)
 	grp := initDecryptGroup()
 
 	batchSize := uint32(100)
