@@ -23,7 +23,7 @@ import (
 )
 
 func TestRevealGpuGraph(t *testing.T) {
-	viper.Set("useGpu", true)
+	viper.Set("useGPU", true)
 	grp := initRevealGroup()
 
 	batchSize := uint32(100)

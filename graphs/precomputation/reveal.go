@@ -166,8 +166,8 @@ var RevealRootCoprimeChunk = services.Module{
 
 // InitRevealGraph called to initialize the graph. Conforms to graphs.Initialize function type
 func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
-	if viper.GetBool("useGpu") {
-		jww.WARN.Printf("Using precomp reveal graph running on CPU instead of equivalent GPU graph")
+	if viper.GetBool("useGPU") {
+		jww.FATAL.Panicf("Using precomp reveal graph running on CPU instead of equivalent GPU graph")
 	}
 	graph := gc.NewGraph("PrecompReveal", &RevealStream{})
 
@@ -180,7 +180,7 @@ func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 }
 
 func InitRevealGPUGraph(gc services.GraphGenerator) *services.Graph {
-	if !viper.GetBool("useGpu") {
+	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using precomp reveal graph running on GPU instead of equivalent CPU graph")
 	}
 	g := gc.NewGraph("PrecompRevealGPU", &RevealStream{})
