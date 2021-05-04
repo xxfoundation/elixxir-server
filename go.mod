@@ -23,11 +23,11 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20210429182303-0edbda5e1b2c
-	gitlab.com/elixxir/crypto v0.0.7-0.20210429182057-898c75770293
+	gitlab.com/elixxir/comms v0.0.4-0.20210504184209-7e9032b90d90
+	gitlab.com/elixxir/crypto v0.0.7-0.20210504183505-c35bd0f7fcc3
 	gitlab.com/elixxir/gpumathsgo v0.1.0
 	gitlab.com/elixxir/primitives v0.0.3-0.20210429180244-cdbb97da0c16
-	gitlab.com/xx_network/comms v0.0.4-0.20210426213447-82674e09e402
+	gitlab.com/xx_network/comms v0.0.4-0.20210430221801-bee65fba1071
 	gitlab.com/xx_network/crypto v0.0.5-0.20210420170153-2a6276844076
 	gitlab.com/xx_network/primitives v0.0.4-0.20210402222416-37c1c4d3fac4
 	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
