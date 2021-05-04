@@ -45,7 +45,7 @@ type mockPermission struct {
 	key  []byte
 }
 
-func (i *mockPermission) PollNdf([]byte) ([]byte, error) {
+func (i *mockPermission) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, nil
 }
 
@@ -98,7 +98,7 @@ type mockPermissionMultipleRounds struct {
 	key  []byte
 }
 
-func (i *mockPermissionMultipleRounds) PollNdf([]byte) ([]byte, error) {
+func (i *mockPermissionMultipleRounds) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, nil
 }
 
