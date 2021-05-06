@@ -42,7 +42,7 @@ type mockPermission struct {
 	err error
 }
 
-func (i *mockPermission) PollNdf([]byte) ([]byte, error) {
+func (i *mockPermission) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, i.err
 }
 
