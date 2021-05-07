@@ -27,7 +27,7 @@ import (
 // This test is largely similar to TestPermuteStreamInGraph,
 // except it uses the GPU graph instead.
 func TestPermuteStream_InGraphGPU(t *testing.T) {
-	viper.Set("useGpu", true)
+	viper.Set("useGPU", true)
 	primeString :=
 		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 			"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +

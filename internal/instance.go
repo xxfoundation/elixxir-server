@@ -159,9 +159,10 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		// It could be better to configure the amount of memory used in a configuration file instead
 		instance.streamPool, err = gpumaths.NewStreamPool(2, memSize)
 		// An instance without a stream pool is still valid
-		// So, log the error here instead of returning it, because we didn't fail to create the server instance here
+		// Always panic when we can't do what was intended with the GPU
 		if err != nil {
-			jww.ERROR.Printf("Couldn't initialize GPU. Falling back to CPU math. Error: %v", err.Error())
+			jww.FATAL.Panicf("Couldn't initialize GPU. Error: %v",
+				err.Error())
 		}
 	} else {
 		jww.INFO.Printf("Using CPU maths, rather than CUDA")

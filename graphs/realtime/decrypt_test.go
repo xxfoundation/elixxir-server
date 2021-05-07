@@ -10,6 +10,7 @@ package realtime
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
@@ -439,6 +440,7 @@ func TestDecryptStream_CommsInterface(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestDecryptStreamInGraph(t *testing.T) {
+	viper.Set("useGPU", false)
 	rid := id.Round(42)
 	instance := mockServerInstance(t)
 	grp := instance.GetConsensus().GetCmixGroup()
