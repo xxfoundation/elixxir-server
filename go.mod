@@ -21,10 +21,10 @@ require (
 	gitlab.com/elixxir/comms v0.0.4-0.20210506225017-37485f5ba063
 	gitlab.com/elixxir/crypto v0.0.7-0.20210506223047-3196e4301110
 	gitlab.com/elixxir/gpumathsgo v0.1.0
-	gitlab.com/elixxir/primitives v0.0.3-0.20210421161736-07ce6bc737ad
-	gitlab.com/xx_network/comms v0.0.4-0.20210413212014-5e898f41f33a
-	gitlab.com/xx_network/crypto v0.0.5-0.20210420170153-2a6276844076
-	gitlab.com/xx_network/primitives v0.0.4-0.20210402222416-37c1c4d3fac4
+	gitlab.com/elixxir/primitives v0.0.3-0.20210504210415-34cf31c2816e
+	gitlab.com/xx_network/comms v0.0.4-0.20210505205155-48daa8448ad7
+	gitlab.com/xx_network/crypto v0.0.5-0.20210504210244-9ddabbad25fd
+	gitlab.com/xx_network/primitives v0.0.4-0.20210504205835-db68f11de78a
 	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
