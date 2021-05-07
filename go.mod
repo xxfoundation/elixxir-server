@@ -18,8 +18,8 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20210506225017-37485f5ba063
-	gitlab.com/elixxir/crypto v0.0.7-0.20210506223047-3196e4301110
+	gitlab.com/elixxir/comms v0.0.4-0.20210506182024-53912623ddd7
+	gitlab.com/elixxir/crypto v0.0.7-0.20210506212855-370e7ae2fe9d
 	gitlab.com/elixxir/gpumathsgo v0.1.0
 	gitlab.com/elixxir/primitives v0.0.3-0.20210504210415-34cf31c2816e
 	gitlab.com/xx_network/comms v0.0.4-0.20210505205155-48daa8448ad7
@@ -30,6 +30,7 @@ require (
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
 	google.golang.org/genproto v0.0.0-20210105202744-fe13368bc0e1 // indirect
 	google.golang.org/grpc v1.34.0
+	google.golang.org/protobuf v1.26.0-rc.1 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.0.8
