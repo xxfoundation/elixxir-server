@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
+	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -185,8 +186,14 @@ func TestRequestNonce(t *testing.T) {
 	h := sha.New()
 	h.Write(clientRSAPubKeyPEM)
 	data := h.Sum(nil)
-
-	sigReg, err := rsa.Sign(csprng.NewSystemRNG(), regPrivKey, sha, data, nil)
+	// Generate a pre-canned time for consistent testing
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
+	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(), regPrivKey, testTime.UnixNano(), string(clientRSAPubKeyPEM))
 
 	if err != nil {
 		t.Errorf("Could not sign client's RSA key with registration's "+
@@ -216,6 +223,7 @@ func TestRequestNonce(t *testing.T) {
 		ClientSignedByServer: &messages.RSASignature{Signature: sigReg},
 		ClientDHPubKey:       clientDHPub.Bytes(),
 		RequestSignature:     &messages.RSASignature{Signature: sigClient},
+		TimeStamp: testTime.UnixNano(),
 	}
 
 	result, err2 := RequestNonce(serverInstance, request, &connect.Auth{
