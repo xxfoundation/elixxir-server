@@ -101,12 +101,12 @@ func RequestNonce(instance *internal.Instance,
 
 	// Store user information in the database
 	newClient := &storage.Client{
-		Id:             userId.Bytes(),
-		DhKey:          baseKey.Bytes(),
-		PublicKey:      rsa.CreatePublicKeyPem(userPublicKey),
-		Nonce:          userNonce.Bytes(),
-		NonceTimestamp: userNonce.GenTime,
-		IsRegistered:   false,
+		Id:                    userId.Bytes(),
+		DhKey:                 baseKey.Bytes(),
+		PublicKey:             rsa.CreatePublicKeyPem(userPublicKey),
+		Nonce:                 userNonce.Bytes(),
+		NonceTimestamp:        userNonce.GenTime,
+		IsRegistered:          false,
 		RegistrationTimestamp: time.Unix(0, request.TimeStamp),
 	}
 	err = instance.GetStorage().UpsertClient(newClient)
@@ -139,7 +139,6 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 
 	// Obtain the client from the database
 	client, err := instance.GetStorage().GetClient(UserID)
-
 	if err != nil {
 		// Invalid nonce, return an error
 		return &pb.RegistrationConfirmation{},

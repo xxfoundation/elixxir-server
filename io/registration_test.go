@@ -223,14 +223,14 @@ func TestRequestNonce(t *testing.T) {
 		ClientSignedByServer: &messages.RSASignature{Signature: sigReg},
 		ClientDHPubKey:       clientDHPub.Bytes(),
 		RequestSignature:     &messages.RSASignature{Signature: sigClient},
-		TimeStamp: testTime.UnixNano(),
+		TimeStamp:            testTime.UnixNano(),
 	}
 
 	result, err2 := RequestNonce(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
-
+	t.Logf("err2: %v", err2)
 	if result == nil || err2 != nil {
 		t.Errorf("Error in RequestNonce: %+v", err2)
 	}
@@ -261,10 +261,7 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 			"key: %+v", err)
 	}
 
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -295,14 +292,15 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 
 	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(clientRSAPub)
 
-	//sign the client's RSA key by registration
-	sha := hash.CMixHash
-	h := sha.New()
-	h.Write(clientRSAPubKeyPEM)
-	data := h.Sum(nil)
-
-	sigReg, err := rsa.Sign(csprng.NewSystemRNG(), regPrivKey, sha, data, nil)
-
+	// Generate a pre-canned time for consistent testing
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
+	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(), regPrivKey,
+		testTime.UnixNano(), string(clientRSAPubKeyPEM))
 	if err != nil {
 		t.Errorf("Could not sign client's RSA key with registration's "+
 			"key: %+v", err)
@@ -310,11 +308,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 
 	//dont sign the client's DH key with client's RSA key pair
 	sigClient := make([]byte, 42)
-
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -325,12 +319,13 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 		ClientSignedByServer: &messages.RSASignature{Signature: sigReg},
 		ClientDHPubKey:       clientDHPub.Bytes(),
 		RequestSignature:     &messages.RSASignature{Signature: sigClient},
+		TimeStamp:            testTime.UnixNano(),
 	}
 	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
-
+	t.Logf("err2: %v", err2)
 	if err2 == nil {
 		t.Errorf("Error in RequestNonce, did not fail with bad "+
 			"registartion signature: %+v", err2)
@@ -429,10 +424,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 		t.Errorf("Error signing data")
 	}
 
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -529,10 +521,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 		t.Errorf("Error signing data")
 	}
 
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -556,14 +545,25 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 
 // Test confirm nonce expired
 func TestConfirmRegistration_Expired(t *testing.T) {
-	n, _ := nonce.NewNonce(1)
-
+	//make new user
+	n, _ := nonce.NewNonce(nonce.RegistrationTTL)
+	userID := id.NewIdFromString("test", id.User, t)
+	h := sha256.New()
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+	bk := serverInstance.GetConsensus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
 	user := &storage.Client{
-		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
-		DhKey:          nil,
+		Id:             userID.Bytes(),
+		DhKey:          bk.Bytes(),
 		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
 		Nonce:          n.Bytes(),
-		NonceTimestamp: n.GenTime,
+		NonceTimestamp: testTime,
 		IsRegistered:   false,
 	}
 
@@ -572,8 +572,9 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	//hash and sign nonce
 	sha := hash.CMixHash
 
-	h := sha.New()
+	h = sha.New()
 	h.Write(user.Nonce)
+	h.Write(serverInstance.GetID().Bytes())
 	data := h.Sum(nil)
 
 	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
@@ -587,10 +588,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	case <-wait:
 	}
 
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
@@ -607,6 +605,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 			IsAuthenticated: true,
 			Sender:          gwHost,
 		})
+	t.Logf("err2: %v", err2)
 	if err2 == nil {
 		t.Errorf("ConfirmRegistration: Expected expired nonce")
 	}
@@ -626,11 +625,7 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 	}
 
 	_ = serverInstance.GetStorage().UpsertClient(user)
-
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-
-	gwHost, err := connect.NewHost(gwID, "", make([]byte, 0), connect.GetDefaultHostParams())
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
