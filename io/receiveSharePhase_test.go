@@ -12,11 +12,11 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/signature"
@@ -49,7 +49,7 @@ func TestStartSharePhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	rnd, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	rnd, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
@@ -129,7 +129,7 @@ func TestSharePhaseRound(t *testing.T) {
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
 	// Build round and add it to the manager
-	rnd, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	rnd, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
@@ -196,7 +196,7 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 
 	phases := []phase.Phase{mockPhaseShare, mockPhaseDecrypt}
 
-	rnd, err := round.New(grp, &globals.UserMap{}, roundID, phases,
+	rnd, err := round.New(grp, &storage.Storage{}, roundID, phases,
 		responseMap, topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
@@ -234,7 +234,7 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 		t.Errorf("Error in happy path: %v", err)
 	}
 
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 
 	// Check that the key has been modified in the round
 	expectedKey := grp.NewIntFromBytes(piece.Piece)
@@ -273,7 +273,7 @@ func TestReceiveFinalKey(t *testing.T) {
 
 	phases := []phase.Phase{mockPhaseShare, mockPhaseDecrypt}
 
-	rnd, err := round.New(grp, &globals.UserMap{}, roundID, phases,
+	rnd, err := round.New(grp, &storage.Storage{}, roundID, phases,
 		responseMap, topology, topology.GetNodeAtIndex(0), 3,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {

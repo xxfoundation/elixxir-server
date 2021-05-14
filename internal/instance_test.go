@@ -171,11 +171,11 @@ func mockServerDef(i interface{}) *Definition {
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 
 	def.Gateway.ID = nid.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
-
 	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)
 
 	return &def
@@ -267,15 +267,6 @@ func TestInstance_GetRoundManager(t *testing.T) {
 
 	if instance.roundManager != instance.GetRoundManager() {
 		t.Logf("GetMetricLog returned unexpected value")
-		t.Fail()
-	}
-}
-
-func TestInstance_GetUserRegistry(t *testing.T) {
-	instance, def := createInstance(t)
-
-	if def.UserRegistry != instance.GetUserRegistry() {
-		t.Logf("GetTopology returned unexpected value")
 		t.Fail()
 	}
 }

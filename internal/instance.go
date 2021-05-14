@@ -8,7 +8,7 @@
 package internal
 
 // instance.go contains the logic for the internal.Instance object along with
-// constructors and it's methods
+// constructors and its methods
 
 import (
 	"encoding/base64"
@@ -22,12 +22,12 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/comms/signature"
@@ -44,7 +44,7 @@ import (
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
-// Holds long-lived server state
+// Instance holds long-lived server state
 type Instance struct {
 	Online            bool
 	definition        *Definition
@@ -54,6 +54,9 @@ type Instance struct {
 	streamPool        *gpumaths.StreamPool
 	machine           state.Machine
 	phaseStateMachine state.GenericMachine
+
+	// Persistent storage object
+	storage *storage.Storage
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -93,7 +96,7 @@ type Instance struct {
 	firstPoll *uint32
 }
 
-// Create a server instance. To actually kick off the server,
+// CreateServerInstance creates a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 // After the network object is created, you still need to use it to connect
 // to other servers in the network
@@ -101,6 +104,8 @@ type Instance struct {
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
+	var err error
+
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
 	firstPoll := uint32(0)
@@ -126,6 +131,22 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayFirstPoll:  NewFirstTime(),
 		clientErrors:      round.NewClientFailureReport(),
 		phaseStateMachine: state.NewGenericMachine(),
+	}
+
+	// Initialize the backend
+	jww.INFO.Printf("Initializing the backend...")
+	instance.storage, err = storage.NewStorage(
+		def.DbUsername, def.DbPassword, def.DbName,
+		def.DbAddress, def.DbPort, def.DevMode)
+	if err != nil {
+		eMsg := fmt.Sprintf("Could not initialize database: psql://%s@%s:%s/%s: %v",
+			def.DbUsername, def.DbAddress, def.DbPort, def.DbName, err)
+
+		if def.DevMode {
+			jww.WARN.Printf(eMsg)
+		} else {
+			jww.FATAL.Panicf(eMsg)
+		}
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -157,7 +178,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	instance.roundErrFunc = instance.network.SendRoundError
 
 	// Initializes the network state tracking on this server instance
-	var err error
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
 		def.PartialNDF, def.FullNDF, nil, network.Strict)
 	if err != nil {
@@ -271,27 +291,27 @@ func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
-//GetUserRegistry returns the user registry used by the server
-func (i *Instance) GetUserRegistry() globals.UserRegistry {
-	return i.definition.UserRegistry
+// GetStorage returns the user registry used by the server
+func (i *Instance) GetStorage() *storage.Storage {
+	return i.storage
 }
 
-//GetRoundManager returns the round manager
+// GetRoundManager returns the round manager
 func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
 }
 
-//GetResourceQueue returns the resource queue used by the server
+// GetResourceQueue returns the resource queue used by the server
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
 
-//GetGatewayFirstPoll returns the structure which denotes if the node has been fully polled by the gateway
+// GetGatewayFirstPoll returns the structure which denotes if the node has been fully polled by the gateway
 func (i *Instance) GetGatewayFirstPoll() *FirstTime {
 	return i.gatewayPoll
 }
 
-//GetGatewayFirstPoll returns the structure which denotes if the node has been contacted by the gateway
+// GetGatewayFirstContact returns the structure which denotes if the node has been contacted by the gateway
 func (i *Instance) GetGatewayFirstContact() *FirstTime {
 	return i.gatewayFirstPoll
 }
@@ -301,27 +321,27 @@ func (i *Instance) GetNetwork() *node.Comms {
 	return i.network
 }
 
-//GetID returns this node's ID
+// GetID returns this node's ID
 func (i *Instance) GetID() *id.ID {
 	return i.definition.ID
 }
 
-//GetPubKey returns the server DSA public key
+// GetPubKey returns the server DSA public key
 func (i *Instance) GetPubKey() *rsa.PublicKey {
 	return i.definition.PublicKey
 }
 
-//GetPrivKey returns the server DSA private key
+// GetPrivKey returns the server DSA private key
 func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }
 
-// Sets that this is the first time the node has run
+// IsFirstRun Sets that this is the first time the node has run
 func (i *Instance) IsFirstRun() {
 	atomic.StoreUint32(i.firstRun, 1)
 }
 
-// Gets if this is the first time the node has run
+// GetFirstRun Gets if this is the first time the node has run
 func (i *Instance) GetFirstRun() bool {
 	return atomic.LoadUint32(i.firstRun) == 1
 }

@@ -8,6 +8,7 @@
 package io
 
 import (
+	"crypto/sha256"
 	"fmt"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -15,12 +16,12 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
@@ -28,11 +29,11 @@ import (
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/crypto/nonce"
 	"gitlab.com/xx_network/crypto/signature/rsa"
-	"gitlab.com/xx_network/crypto/xx"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
 	"math/rand"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -103,7 +104,6 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 	cnt++
 	def := internal.Definition{
 		ID:               nid,
-		UserRegistry:     &globals.UserMap{},
 		ResourceMonitor:  &measure.ResourceMonitor{},
 		PrivateKey:       serverRSAPriv,
 		PublicKey:        serverRSAPub,
@@ -112,6 +112,7 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 		FullNDF:          testUtil.NDF,
 		PartialNDF:       testUtil.NDF,
 		ListeningAddress: nodeAddr,
+		DevMode:          true,
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()
@@ -331,25 +332,28 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 // Test confirm nonce
 func TestConfirmRegistration(t *testing.T) {
 	//make new user
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
-	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
-	user.IsRegistered = false
-	user.RsaPublicKey = clientRSAPub
-	salt := cmix.NewSalt(csprng.NewSystemRNG(), 32)
+	n, _ := nonce.NewNonce(nonce.RegistrationTTL)
+	userID := id.NewIdFromString("test", id.User, t)
+	h := sha256.New()
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+	bk := serverInstance.GetConsensus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
 
-	userID, err := xx.NewID(clientRSAPub, salt, id.User)
-	if err != nil {
-		t.Errorf("Error creating new user ID: %+v", err)
+	user := &storage.Client{
+		Id:             userID.Marshal(),
+		DhKey:          bk.Bytes(),
+		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
+		Nonce:          n.Bytes(),
+		NonceTimestamp: n.GenTime,
+		IsRegistered:   false,
 	}
-	user.ID = userID
 
-	serverInstance.GetUserRegistry().UpsertUser(user)
+	_ = serverInstance.GetStorage().UpsertClient(user)
 
 	//hash and sign nonce
 	sha := hash.CMixHash
-
-	h := sha.New()
-	h.Write(user.Nonce.Bytes())
+	h = sha.New()
+	h.Write(user.Nonce)
 	h.Write(serverInstance.GetID().Bytes())
 	data := h.Sum(nil)
 
@@ -364,7 +368,7 @@ func TestConfirmRegistration(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID: user.ID.Bytes(),
+		UserID: user.Id,
 		NonceSignedByClient: &messages.RSASignature{
 			Signature: sign,
 		},
@@ -378,31 +382,38 @@ func TestConfirmRegistration(t *testing.T) {
 		})
 	if err2 != nil {
 		t.Errorf("Error in ConfirmRegistration: %+v", err2)
+		return
 	}
 
-	regUser, err := serverInstance.GetUserRegistry().GetUser(user.ID, serverInstance.GetConsensus().GetCmixGroup())
+	regUser, err := serverInstance.GetStorage().GetClient(userID)
 
 	if err != nil {
 		t.Errorf("User could not be found: %+v", err)
 	}
 
 	if !regUser.IsRegistered {
-		t.Errorf("User's registation was not sucesfully confirmed: %+v", regUser)
+		t.Errorf("User's registation was not sucessfully confirmed: %+v", regUser)
 	}
 }
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuth(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
-	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
+	n, _ := nonce.NewNonce(nonce.RegistrationTTL)
 
-	user.RsaPublicKey = clientRSAPub
+	user := &storage.Client{
+		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
+		DhKey:          nil,
+		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
+		Nonce:          n.Bytes(),
+		NonceTimestamp: n.GenTime,
+		IsRegistered:   false,
+	}
 
 	//hash and sign nonce
 	sha := hash.CMixHash
 
 	h := sha.New()
-	h.Write(user.Nonce.Bytes())
+	h.Write(user.Nonce)
 	data := h.Sum(nil)
 
 	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
@@ -419,7 +430,7 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID: user.ID.Bytes(),
+		UserID: user.Id,
 		NonceSignedByClient: &messages.RSASignature{
 			Signature: sign,
 		},
@@ -437,16 +448,22 @@ func TestConfirmRegistrationFailAuth(t *testing.T) {
 
 // Test confirm nonce with bad auth boolean but good ID
 func TestConfirmRegistrationFailAuthId(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
-	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
+	n, _ := nonce.NewNonce(nonce.RegistrationTTL)
 
-	user.RsaPublicKey = clientRSAPub
+	user := &storage.Client{
+		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
+		DhKey:          nil,
+		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
+		Nonce:          n.Bytes(),
+		NonceTimestamp: n.GenTime,
+		IsRegistered:   false,
+	}
 
 	//hash and sign nonce
 	sha := hash.CMixHash
 
 	h := sha.New()
-	h.Write(user.Nonce.Bytes())
+	h.Write(user.Nonce)
 	data := h.Sum(nil)
 
 	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
@@ -463,7 +480,7 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID: user.ID.Bytes(),
+		UserID: user.Id,
 		NonceSignedByClient: &messages.RSASignature{
 			Signature: sign,
 		},
@@ -481,16 +498,22 @@ func TestConfirmRegistrationFailAuthId(t *testing.T) {
 
 // Test confirm nonce that doesn't exist
 func TestConfirmRegistration_NonExistant(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
-	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
+	n, _ := nonce.NewNonce(nonce.RegistrationTTL)
 
-	user.RsaPublicKey = clientRSAPub
+	user := &storage.Client{
+		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
+		DhKey:          nil,
+		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
+		Nonce:          n.Bytes(),
+		NonceTimestamp: n.GenTime,
+		IsRegistered:   false,
+	}
 
 	//hash and sign nonce
 	sha := hash.CMixHash
 
 	h := sha.New()
-	h.Write(user.Nonce.Bytes())
+	h.Write(user.Nonce)
 	data := h.Sum(nil)
 
 	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
@@ -507,7 +530,7 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID: user.ID.Bytes(),
+		UserID: user.Id,
 		NonceSignedByClient: &messages.RSASignature{
 			Signature: sign,
 		},
@@ -525,17 +548,24 @@ func TestConfirmRegistration_NonExistant(t *testing.T) {
 
 // Test confirm nonce expired
 func TestConfirmRegistration_Expired(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
-	user.Nonce, _ = nonce.NewNonce(1)
-	serverInstance.GetUserRegistry().UpsertUser(user)
+	n, _ := nonce.NewNonce(1)
 
-	user.RsaPublicKey = clientRSAPub
+	user := &storage.Client{
+		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
+		DhKey:          nil,
+		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
+		Nonce:          n.Bytes(),
+		NonceTimestamp: n.GenTime,
+		IsRegistered:   false,
+	}
+
+	_ = serverInstance.GetStorage().UpsertClient(user)
 
 	//hash and sign nonce
 	sha := hash.CMixHash
 
 	h := sha.New()
-	h.Write(user.Nonce.Bytes())
+	h.Write(user.Nonce)
 	data := h.Sum(nil)
 
 	sign, err := rsa.Sign(csprng.NewSystemRNG(), clientRSAPriv, sha, data, nil)
@@ -558,7 +588,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID: user.ID.Bytes(),
+		UserID: user.Id,
 		NonceSignedByClient: &messages.RSASignature{
 			Signature: sign,
 		},
@@ -576,10 +606,18 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 
 // Test confirm nonce with invalid signature
 func TestConfirmRegistration_BadSignature(t *testing.T) {
-	user := serverInstance.GetUserRegistry().NewUser(serverInstance.GetConsensus().GetCmixGroup())
-	user.Nonce, _ = nonce.NewNonce(nonce.RegistrationTTL)
-	serverInstance.GetUserRegistry().UpsertUser(user)
-	user.RsaPublicKey = clientRSAPub
+	n, _ := nonce.NewNonce(nonce.RegistrationTTL)
+
+	user := &storage.Client{
+		Id:             id.NewIdFromString("test", id.User, t).Marshal(),
+		DhKey:          nil,
+		PublicKey:      rsa.CreatePublicKeyPem(clientRSAPub),
+		Nonce:          n.Bytes(),
+		NonceTimestamp: n.GenTime,
+		IsRegistered:   false,
+	}
+
+	_ = serverInstance.GetStorage().UpsertClient(user)
 
 	gwID := nodeId.DeepCopy()
 	gwID.SetType(id.Gateway)
@@ -590,7 +628,7 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 	}
 
 	msg := &pb.RequestRegistrationConfirmation{
-		UserID: user.ID.Bytes(),
+		UserID: user.Id,
 		NonceSignedByClient: &messages.RSASignature{
 			Signature: []byte("test"),
 		},
@@ -611,7 +649,6 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
@@ -622,6 +659,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
 		},
+		DevMode: true,
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 
