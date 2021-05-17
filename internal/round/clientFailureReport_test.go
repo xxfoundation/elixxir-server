@@ -15,10 +15,10 @@ import (
 
 // Smoke test of new clientReport
 func TestNewClientReport(t *testing.T) {
-	ourNewReport := NewClientFailureReport()
+	ourNewReport := NewClientFailureReport(id.NewIdFromString("myNodeID", id.Node, t))
 
 	if ourNewReport == nil {
-		t.Errorf("New Client report should not be nil: %+v", ourNewReport)
+		t.Fatalf("New Client report should not be nil: %+v", ourNewReport)
 	}
 
 	rndId := id.Round(0)
@@ -41,7 +41,7 @@ func TestNewClientReport(t *testing.T) {
 
 // Happy path
 func TestClientReport_Send(t *testing.T) {
-	ourNewReport := NewClientFailureReport()
+	ourNewReport := NewClientFailureReport(id.NewIdFromString("myNodeID", id.Node, t))
 	rndId := id.Round(0)
 
 	ourNewReport.ErrorTracker[rndId] = make(chan *pb.ClientError, 8)
@@ -66,15 +66,13 @@ func TestClientReport_Send(t *testing.T) {
 	if len(ourNewReport.ErrorTracker[rndId]) != 2 {
 		t.Errorf("Error tracker should be two after a send! "+
 			"Length is: %+v", len(ourNewReport.ErrorTracker[rndId]))
-
 	}
-
 }
 
 //
 //// Happy path
-func TestClientReport_Receive_Receive(t *testing.T) {
-	ourNewReport := NewClientFailureReport()
+func TestClientReport_Send_Receive(t *testing.T) {
+	ourNewReport := NewClientFailureReport(id.NewIdFromString("myNodeID", id.Node, t))
 	testId := id.NewIdFromBytes([]byte("test"), t)
 	testErr := "I failed due to an invalid KMAC"
 	ce := &pb.ClientError{
@@ -111,7 +109,7 @@ func TestClientReport_Receive_Receive(t *testing.T) {
 
 // Error path: Attempt to receive from an empty queue
 func TestClientReport_Receive_Error(t *testing.T) {
-	ourNewReport := NewClientFailureReport()
+	ourNewReport := NewClientFailureReport(id.NewIdFromString("myNodeID", id.Node, t))
 	rndID := id.Round(0)
 	_, err := ourNewReport.Receive(rndID)
 

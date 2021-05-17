@@ -12,6 +12,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"reflect"
+	"runtime"
+	"testing"
+	"time"
+
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -32,11 +38,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"google.golang.org/grpc/metadata"
-	"io"
-	"reflect"
-	"runtime"
-	"testing"
-	"time"
 )
 
 const testGatewayAddress = "0.0.0.0:8201"
@@ -248,7 +249,7 @@ func PushNRoundUpdates(n int, instance internal.Instance, key *rsa.PrivateKey, t
 			UpdateID: uint64(i),
 		}
 
-		err := signature.Sign(newRound, key)
+		err := signature.SignRsa(newRound, key)
 		if err != nil {
 			t.Logf("Failed to sign: %v", err)
 			t.Fail()

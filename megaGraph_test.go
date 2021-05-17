@@ -791,7 +791,11 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 		users[i] = &id.ID{}
 	}
 
-	testReport := round.NewClientFailureReport()
+	fakeNodeID := &id.ID{}
+	copy(fakeNodeID[:], "fakeNodeID")
+	fakeNodeID.SetType(id.Node)
+
+	testReport := round.NewClientFailureReport(fakeNodeID)
 
 	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize,
 		grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0)

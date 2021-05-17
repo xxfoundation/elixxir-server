@@ -62,7 +62,7 @@ func TestDecryptStream_Link(t *testing.T) {
 	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReporter := round.NewClientFailureReport()
+	testReporter := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, testReporter)
@@ -106,7 +106,7 @@ func TestDecryptStream_Input(t *testing.T) {
 	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReporter := round.NewClientFailureReport()
+	testReporter := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -169,7 +169,7 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReporter := round.NewClientFailureReport()
+	testReporter := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -239,7 +239,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReport := round.NewClientFailureReport()
+	testReport := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -274,7 +274,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReport := round.NewClientFailureReport()
+	testReport := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -323,7 +323,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
-	reporter := round.NewClientFailureReport()
+	reporter := round.NewClientFailureReport(instance.GetID())
 	stream.Link(grp, batchSize, roundBuffer, registry, nil, streamPool, rng, reporter)
 
 	msg := &mixmessages.Slot{
@@ -370,7 +370,7 @@ func TestDecryptStream_Output(t *testing.T) {
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
-	reporter := round.NewClientFailureReport()
+	reporter := round.NewClientFailureReport(instance.GetID())
 	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, reporter)
 
 	for b := uint32(0); b < batchSize; b++ {
@@ -503,7 +503,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	}
 
-	clientReport := round.NewClientFailureReport()
+	clientReport := round.NewClientFailureReport(instance.GetID())
 
 	g.Link(grp, roundBuffer, registry, clientReport)
 

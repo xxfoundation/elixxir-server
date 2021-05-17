@@ -10,6 +10,10 @@ package permissioning
 import (
 	crand "crypto/rand"
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -31,9 +35,6 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
-	"sync"
-	"testing"
-	"time"
 )
 
 var count = 0
@@ -280,7 +281,7 @@ func signNdf(ourNdf *pb.NDF, key []byte) error {
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	err = signature.Sign(ourNdf, ourPrivKey)
+	err = signature.SignRsa(ourNdf, ourPrivKey)
 	if err != nil {
 		return errors.Errorf("Failed to sign ndf: %+v", err)
 	}
@@ -297,7 +298,7 @@ func signRoundInfo(ri *pb.RoundInfo, key []byte) error {
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	err = signature.Sign(ri, ourPrivKey)
+	err = signature.SignRsa(ri, ourPrivKey)
 	if err != nil {
 		return errors.Errorf("Failed to sign round info: %+v", err)
 	}
@@ -323,7 +324,7 @@ func setupFullNdf(key []byte) (*pb.NDF, error) {
 		return nil, errors.Errorf("Failed to marshal ndf: %+v", err)
 	}
 
-	err = signature.Sign(f, ourPrivKey)
+	err = signature.SignRsa(f, ourPrivKey)
 
 	return f, nil
 }
@@ -346,7 +347,7 @@ func setupPartialNdf(key []byte) (*pb.NDF, error) {
 		return nil, errors.Errorf("Could not generate serialized ndf: %s", err)
 	}
 
-	err = signature.Sign(f, ourPrivKey)
+	err = signature.SignRsa(f, ourPrivKey)
 
 	return f, nil
 }

@@ -52,7 +52,7 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	s.KeygenSubStream.LinkStream(grp, instance.GetStorage(), make([][]byte, batchSize),
 		make([][][]byte, batchSize), make([]*id.ID, batchSize),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		round.NewClientFailureReport(), 0, batchSize)
+		round.NewClientFailureReport(instance.GetID()), 0, batchSize)
 }
 
 func (s *KeygenTestStream) Input(index uint32,
