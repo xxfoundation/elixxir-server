@@ -25,7 +25,6 @@ import (
 	"gitlab.com/xx_network/crypto/xx"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
-	"time"
 )
 
 // RequestNonce handles a client request for a nonce during the client registration process
@@ -107,7 +106,6 @@ func RequestNonce(instance *internal.Instance,
 		Nonce:                 userNonce.Bytes(),
 		NonceTimestamp:        userNonce.GenTime,
 		IsRegistered:          false,
-		RegistrationTimestamp: time.Unix(0, request.TimeStamp),
 	}
 	err = instance.GetStorage().UpsertClient(newClient)
 	if err != nil {

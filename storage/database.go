@@ -48,10 +48,6 @@ type Client struct {
 	// Diffie-Hellman key for message encryption
 	DhKey []byte `gorm:"not null"`
 
-	// Time in which Client registered with network (ie permissioning)
-	// Not to be confused with Client's registration with this node
-	RegistrationTimestamp time.Time
-
 	// Used for Client registration
 	PublicKey      []byte
 	Nonce          []byte
