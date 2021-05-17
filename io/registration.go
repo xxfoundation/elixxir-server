@@ -100,12 +100,12 @@ func RequestNonce(instance *internal.Instance,
 
 	// Store user information in the database
 	newClient := &storage.Client{
-		Id:                    userId.Bytes(),
-		DhKey:                 baseKey.Bytes(),
-		PublicKey:             rsa.CreatePublicKeyPem(userPublicKey),
-		Nonce:                 userNonce.Bytes(),
-		NonceTimestamp:        userNonce.GenTime,
-		IsRegistered:          false,
+		Id:             userId.Bytes(),
+		DhKey:          baseKey.Bytes(),
+		PublicKey:      rsa.CreatePublicKeyPem(userPublicKey),
+		Nonce:          userNonce.Bytes(),
+		NonceTimestamp: userNonce.GenTime,
+		IsRegistered:   false,
 	}
 	err = instance.GetStorage().UpsertClient(newClient)
 	if err != nil {

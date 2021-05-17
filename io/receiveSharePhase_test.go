@@ -123,7 +123,7 @@ func TestReceiveStartSharePhase_BadAuth(t *testing.T) {
 		Sender:          testHost,
 	}
 
-	err = signature.Sign(ri, instance.GetPrivKey())
+	err = signature.SignRsa(ri, instance.GetPrivKey())
 	if err != nil {
 		t.Errorf("couldn't sign info message: %+v", err)
 	}
