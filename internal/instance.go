@@ -129,7 +129,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		firstRun:          &firstRun,
 		firstPoll:         &firstPoll,
 		gatewayFirstPoll:  NewFirstTime(),
-		clientErrors:      round.NewClientFailureReport(),
+		clientErrors:      round.NewClientFailureReport(def.ID),
 		phaseStateMachine: state.NewGenericMachine(),
 	}
 

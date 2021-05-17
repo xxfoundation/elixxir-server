@@ -98,7 +98,7 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g.Link(grp, roundBuffer, registry, round.NewClientFailureReport(), streamPool)
+	g.Link(grp, roundBuffer, registry, round.NewClientFailureReport(instance.GetID()), streamPool)
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 
