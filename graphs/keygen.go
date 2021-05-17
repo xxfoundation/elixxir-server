@@ -115,8 +115,8 @@ var Keygen = services.Module{
 					errMsg := fmt.Sprintf("%s [%v] in storage:%v",
 						services.UserNotFound, kss.users[i], err)
 					clientError := &pb.ClientError{
-						Error:    errMsg,
 						ClientId: kss.users[i].Bytes(),
+						Error:    errMsg,
 					}
 
 					err = kss.userErrors.Send(kss.RoundId, clientError)
@@ -162,8 +162,8 @@ var Keygen = services.Module{
 				errMsg := fmt.Sprintf("%s. UserID [%v] failed on "+
 					"slot %d", services.InvalidMAC, user.Id, i)
 				clientError := &pb.ClientError{
-					Error:    errMsg,
 					ClientId: kss.users[i].Bytes(),
+					Error:    errMsg,
 				}
 
 				err = kss.userErrors.Send(kss.RoundId, clientError)

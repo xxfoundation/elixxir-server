@@ -132,7 +132,7 @@ func TestClientServer(t *testing.T) {
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, usr.GetDhKey(grp))
 	kmacs := make([][][]byte, 1)
-	reporter := round.NewClientFailureReport()
+	reporter := round.NewClientFailureReport(nid)
 	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
