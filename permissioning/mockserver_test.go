@@ -377,7 +377,6 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 		ListeningAddress: nodeAddr,
 		LogPath:          "",
 		MetricLogPath:    "",
-		UserRegistry:     nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -388,6 +387,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 	def.Gateway.ID = nodeId.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

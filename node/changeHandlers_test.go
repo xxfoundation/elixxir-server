@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -46,7 +45,6 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	gg := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 	def := internal.Definition{
-		UserRegistry:       &globals.UserMap{},
 		ResourceMonitor:    &measure.ResourceMonitor{},
 		FullNDF:            testUtil.NDF,
 		PartialNDF:         testUtil.NDF,
@@ -60,6 +58,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
+	def.DevMode = true
 
 	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{

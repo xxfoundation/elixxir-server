@@ -78,8 +78,6 @@ func TestRegisterNode(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -90,6 +88,7 @@ func TestRegisterNode(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	// Create state machine
@@ -686,7 +685,6 @@ func TestRegistration(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -696,6 +694,7 @@ func TestRegistration(t *testing.T) {
 		ResourceMonitor:  nil,
 		FullNDF:          emptyNdf,
 		PartialNDF:       emptyNdf,
+		DevMode:          true,
 	}
 
 	// Create state machine
@@ -918,8 +917,6 @@ func TestUpdateRounds_Failed(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: []byte(testUtil.RegCert),
 			Address: pAddr,
@@ -930,6 +927,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)

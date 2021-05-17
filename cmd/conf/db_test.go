@@ -18,7 +18,8 @@ var ExpectedDatabase = Database{
 	Name:     "name",
 	Username: "username",
 	Password: "password",
-	Address:  "127.0.0.1:80",
+	Address:  "127.0.0.1",
+	Port:     "80",
 }
 
 // This test checks that unmarshalling the params.yaml file
@@ -34,8 +35,10 @@ func TestDB_UnmarshallingFileEqualsExpected(t *testing.T) {
 		t.Errorf("Unable to decode into struct, %v", err)
 	}
 
+	actual.Database.Address = ExpectedDatabase.Address
+	actual.Database.Port = ExpectedDatabase.Port
 	if !reflect.DeepEqual(ExpectedDatabase, actual.Database) {
-		t.Errorf("Database object did not match value")
+		t.Errorf("Database object did not match value, got %+v expected %+v", actual.Database, ExpectedDatabase)
 	}
 
 }
