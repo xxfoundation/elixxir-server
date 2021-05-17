@@ -10,6 +10,8 @@
 package io
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -18,7 +20,6 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/primitives/id"
-	"sync"
 )
 
 // Triggers the multi-party communication in which generation of the
@@ -114,7 +115,7 @@ func TransmitFinalShare(instance *internal.Instance, r *round.Round,
 	topology := r.GetTopology()
 
 	// Sign our message for other nodes to verify
-	if err := signature.Sign(finalPiece, instance.GetPrivKey()); err != nil {
+	if err := signature.SignRsa(finalPiece, instance.GetPrivKey()); err != nil {
 		return errors.Errorf("Could not sign message: %s", err)
 	}
 
@@ -179,7 +180,7 @@ func generateShare(theirPiece *pb.SharePiece, grp *cyclic.Group,
 	}
 
 	// Sign our message for other nodes to verify
-	if err := signature.Sign(ourPiece, instance.GetPrivKey()); err != nil {
+	if err := signature.SignRsa(ourPiece, instance.GetPrivKey()); err != nil {
 		return nil, errors.Errorf("Could not sign message: %s", err)
 	}
 

@@ -7,6 +7,9 @@
 package io
 
 import (
+	"testing"
+	"time"
+
 	"gitlab.com/elixxir/comms/mixmessages"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -23,8 +26,6 @@ import (
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"testing"
-	"time"
 )
 
 func TestStartSharePhase(t *testing.T) {
@@ -67,7 +68,7 @@ func TestStartSharePhase(t *testing.T) {
 		Sender:          testHost,
 	}
 
-	err = signature.Sign(ri, instance.GetPrivKey())
+	err = signature.SignRsa(ri, instance.GetPrivKey())
 	if err != nil {
 		t.Errorf("couldn't sign info message: %+v", err)
 	}
