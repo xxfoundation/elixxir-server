@@ -47,12 +47,10 @@ func RequestNonce(instance *internal.Instance,
 	}
 
 	regPubKey := instance.GetRegServerPubKey()
-	h, _ := hash.NewCMixHash()
-	h.Write([]byte(request.GetClientRSAPubKey()))
-	data := h.Sum(nil)
 
-	err := rsa.Verify(regPubKey, hash.CMixHash, data,
-		request.GetClientSignedByServer().Signature, nil)
+	// Verify the registration signature provided by the user
+	err := registration.VerifyWithTimestamp(regPubKey, request.TimeStamp,
+		request.GetClientRSAPubKey(), request.GetClientSignedByServer().Signature)
 	if err != nil {
 		// Invalid signed Client public key, return an error
 		return &pb.Nonce{},
@@ -62,20 +60,17 @@ func RequestNonce(instance *internal.Instance,
 
 	// Assemble Client public key
 	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(request.GetClientRSAPubKey()))
-
 	if err != nil {
 		return &pb.Nonce{},
 			errors.Errorf("Unable to decode client RSA Pub Key: %+v", err)
 	}
 
 	//Check that the Client DH public key is signed correctly
-	h, _ = hash.NewCMixHash()
+	h, _ := hash.NewCMixHash()
 	h.Write(request.GetClientDHPubKey())
-	data = h.Sum(nil)
-
+	data := h.Sum(nil)
 	err = rsa.Verify(userPublicKey, hash.CMixHash, data,
 		request.GetRequestSignature().Signature, nil)
-
 	if err != nil {
 		return &pb.Nonce{},
 			errors.Errorf("Client signature on DH key could not be verified: %+v", err)
@@ -83,7 +78,6 @@ func RequestNonce(instance *internal.Instance,
 
 	// Generate UserID
 	userId, err := xx.NewID(userPublicKey, request.GetSalt(), id.User)
-
 	if err != nil {
 		return &pb.Nonce{},
 			errors.Errorf("Failed to generate new ID: %+v", err)
@@ -91,7 +85,6 @@ func RequestNonce(instance *internal.Instance,
 
 	// Generate a nonce with a timestamp
 	userNonce, err := nonce.NewNonce(nonce.RegistrationTTL)
-
 	if err != nil {
 		return &pb.Nonce{}, err
 	}
@@ -144,7 +137,6 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 
 	// Obtain the client from the database
 	client, err := instance.GetStorage().GetClient(UserID)
-
 	if err != nil {
 		// Invalid nonce, return an error
 		return &pb.RegistrationConfirmation{},
