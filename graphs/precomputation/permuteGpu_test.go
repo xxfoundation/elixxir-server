@@ -23,7 +23,7 @@ import (
 )
 
 func TestPermuteGpuGraph(t *testing.T) {
-	viper.Set("useGpu", true)
+	viper.Set("useGPU", true)
 	grp := initPermuteGroup()
 
 	batchSize := uint32(100)
