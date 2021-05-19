@@ -5,7 +5,7 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-package globals
+package services
 
 // Do we have to pull in another dependency just for LCM?
 import (

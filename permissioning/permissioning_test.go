@@ -11,6 +11,11 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"fmt"
+	"math/rand"
+	"reflect"
+	"testing"
+	"time"
+
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -27,10 +32,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"math/rand"
-	"reflect"
-	"testing"
-	"time"
 )
 
 //// Full-stack happy path test for the node registration logic
@@ -77,8 +78,6 @@ func TestRegisterNode(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -89,6 +88,7 @@ func TestRegisterNode(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	// Create state machine
@@ -685,7 +685,6 @@ func TestRegistration(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -695,6 +694,7 @@ func TestRegistration(t *testing.T) {
 		ResourceMonitor:  nil,
 		FullNDF:          emptyNdf,
 		PartialNDF:       emptyNdf,
+		DevMode:          true,
 	}
 
 	// Create state machine
@@ -917,8 +917,6 @@ func TestUpdateRounds_Failed(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: []byte(testUtil.RegCert),
 			Address: pAddr,
@@ -929,6 +927,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
@@ -975,7 +974,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to load PK from pem: %+v", err)
 	}
-	err = signature.Sign(update, loadedKey)
+	err = signature.SignRsa(update, loadedKey)
 	if err != nil {
 		t.Errorf("Failed to sign update: %+v", err)
 	}

@@ -8,11 +8,13 @@
 package io
 
 import (
+	"testing"
+	"time"
+
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network/dataStructures"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
@@ -24,8 +26,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	ndf2 "gitlab.com/xx_network/primitives/ndf"
-	"testing"
-	"time"
 )
 
 func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *pb.ServerPoll,
@@ -57,11 +57,11 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 		Gateway:         ourGateway,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -105,7 +105,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		t.Log(err)
 		t.Fail()
 	}
-	err = signature.Sign(&f, privKey)
+	err = signature.SignRsa(&f, privKey)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
@@ -417,7 +417,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		ID: uint64(23),
 	}
 
-	err = signature.Sign(newRound, privKey)
+	err = signature.SignRsa(newRound, privKey)
 	if err != nil {
 		t.Logf("Could not sign RoundInfo: %v", err)
 		t.Fail()

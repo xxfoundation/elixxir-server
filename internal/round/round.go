@@ -18,10 +18,10 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/gpumathsgo"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"sync/atomic"
@@ -60,9 +60,9 @@ type Round struct {
 	rtEndTime   time.Time
 }
 
-// Creates and initializes a new round, including all phases, topology,
-// and batchsize
-func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
+// New creates and initializes a new round, including all phases, topology,
+// and batch size
+func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
@@ -164,10 +164,10 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 		// If in realDecrypt, we need to handle client specific errors
 		if p.GetGraph() != nil {
 			if p.GetType() == phase.RealDecrypt {
-				p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool, clientErr, id)
+				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool, clientErr, id)
 			} else {
 				// Other phases can operate normally
-				p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
+				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool)
 
 			}
 		}
