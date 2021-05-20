@@ -46,6 +46,7 @@ build_gpumaths:
     # Clone a specific gpumaths branch if the pipeline has variable set
     # Otherwise clone release gpumathsnative
     - mkdir -p /opt/xxnetwork/lib
+    - mkdir -p /opt/xxnetwork/include
     - GPUMATHS_CLONE_VERSION=${GPUMATHS_VERSION-release}
     # If server pipeline branch is master, get master branch of gpumathsnative
     - if [ "$CI_COMMIT_BRANCH" == "master" ]; then
@@ -56,12 +57,16 @@ build_gpumaths:
     - BASE_URL="https://gitlab.com/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
     - POWMOSM_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpowmosm75.so?job=build"
     - FATBIN_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpow.fatbin?job=build"
+    - INCLUDE_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/include/powm_odd_export.h?job=build"
     - HEADER="PRIVATE-TOKEN:$GITLAB_ACCESS_TOKEN"
     - echo $POWMOSM_URL
     - echo $FATBIN_URL
+    - echo $INCLUDE_URL
     - curl -s -f -L -H $HEADER -v -o /opt/xxnetwork/lib/libpowmosm75.so $POWMOSM_URL
     - curl -s -f -L -H $HEADER -v -o /opt/xxnetwork/lib/libpow.fatbin $FATBIN_URL
+    - curl -s -f -L -H $HEADER -v -o /opt/xxnetwork/include/powm_odd_export.h $INCLUDE_URL
     - ls /opt/xxnetwork/lib
+    - ls /opt/xxnetwork/include
     - go mod vendor -v
     - go build ./...
     - go mod tidy
