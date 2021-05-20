@@ -69,7 +69,8 @@ build_gpumaths:
 
     - nvcc --version
     - nvidia-smi
-    - cp -ra /opt/xxnetwork/*
+    - mkdir libraries
+    - cp -ra /opt/xxnetwork/* libraries/
   artifacts:
     paths:
       - vendor/
