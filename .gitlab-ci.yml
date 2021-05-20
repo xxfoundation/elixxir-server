@@ -56,7 +56,7 @@ build_gpumaths:
     - BASE_URL="https://gitlab.com/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
     - POWMOSM_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpowmosm75.so?job=build"
     - FATBIN_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpow.fatbin?job=build"
-    - HEADER="PRIVATE-TOKEN:\ $GITLAB_ACCESS_TOKEN"
+    - HEADER="PRIVATE-TOKEN:$GITLAB_ACCESS_TOKEN"
     - curl -s -f -L -H $HEADER -v -o /opt/xxnetwork/lib/libpowmosm75.so $POWMOSM_URL
     - curl -s -f -L -H $HEADER -v -o /opt/xxnetwork/lib/libpow.fatbin $FATBIN_URL
     - ls /opt/xxnetwork/lib
