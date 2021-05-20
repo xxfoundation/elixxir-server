@@ -45,6 +45,7 @@ build_gpumaths:
     - git clean -ffdx
     # Clone a specific gpumaths branch if the pipeline has variable set
     # Otherwise clone release gpumathsnative
+    - mkdir -p /opt/xxnetwork/lib
     - GPUMATHS_CLONE_VERSION=${GPUMATHS_VERSION-release}
     # If server pipeline branch is master, get master branch of gpumathsnative
     - if [ "$CI_COMMIT_BRANCH" == "master" ]; then
@@ -52,17 +53,12 @@ build_gpumaths:
     - fi
     - echo $GPUMATHS_VERSION
     - echo $GPUMATHS_CLONE_VERSION
-    - rm -fr gpumathsnative
-    - git clone -b $GPUMATHS_CLONE_VERSION git@gitlab.com:elixxir/gpumathsnative.git
-    - pushd gpumathsnative
-    - git clean -ffdx
-    - pushd cgbnBindings/powm
-    - make fatbin
-    - make install
-    - ls
+    - BASE_URL="https://gitlab.com/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
+    - POWMOSM_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpowmosm75.so?job=build"
+    - FATBIN_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpow.fatbin?job=build"
+    - curl -s -f -L -o /opt/xxnetwork/lib/libpowmosm75.so $POWMOSM_URL
+    - curl -s -f -L -o /opt/xxnetwork/lib/libpow.fatbin $FATBIN_URL
     - ls /opt/xxnetwork/lib
-    - popd
-    - popd
     - go mod vendor -v
     - go build ./...
     - go mod tidy
@@ -83,6 +79,7 @@ build:
   tags:
     - gpu
   script:
+    - mkdir -p /opt/xxnetwork
     - cp -ra libraries/* /opt/xxnetwork/
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
@@ -108,6 +105,7 @@ test:
   tags:
     - gpu
   script:
+    - mkdir -p /opt/xxnetwork
     - cp -ra libraries/* /opt/xxnetwork/
     - mkdir -p testdata
 
