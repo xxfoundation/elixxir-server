@@ -69,11 +69,12 @@ build_gpumaths:
 
     - nvcc --version
     - nvidia-smi
+    - cp -ra /opt/xxnetwork/*
   artifacts:
     paths:
       - vendor/
       - gpumathsnative/
-      - /opt/xxnetwork/
+      - libraries/
 
 build_binaries:
   stage: release
@@ -81,6 +82,7 @@ build_binaries:
   tags:
     - gpu
   script:
+    - cp -ra libraries/* /opt/xxnetwork/
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
@@ -97,7 +99,7 @@ build_binaries:
       - vendor/
       - gpumathsnative/
       - release/
-      - /opt/xxnetwork
+      - libraries
 
 test:
   stage: release
@@ -105,6 +107,7 @@ test:
   tags:
     - gpu
   script:
+    - cp -ra libraries/* /opt/xxnetwork/
     - mkdir -p testdata
 
     # Test coverage
@@ -137,7 +140,7 @@ test:
       - vendor/
       - testdata/
       - gpumathsnative/
-      - /opt/xxnetwork
+      - libraries/
 
 tag_and_trigger:
   stage: trigger_integration
