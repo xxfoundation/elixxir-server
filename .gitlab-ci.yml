@@ -76,7 +76,7 @@ build_gpumaths:
       - gpumathsnative/
       - libraries/
 
-build_binaries:
+build:
   stage: release
   image: $DOCKER_IMAGE
   tags:
