@@ -50,8 +50,8 @@ func (i *mockPermission) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, nil
 }
 
-func (i *mockPermission) RegisterUser(registrationCode, test, test2 string) (hash []byte, has2 []byte, err error) {
-	return nil, nil, nil
+func (i *mockPermission) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+	return nil, nil
 }
 
 func (i *mockPermission) RegisterNode([]byte, string, string, string, string, string) error {
@@ -103,8 +103,8 @@ func (i *mockPermissionMultipleRounds) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, nil
 }
 
-func (i *mockPermissionMultipleRounds) RegisterUser(registrationCode, test, test2 string) (hash []byte, hash2 []byte, err error) {
-	return nil, nil, nil
+func (i *mockPermissionMultipleRounds) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+	return nil, nil
 }
 
 func (i *mockPermissionMultipleRounds) RegisterNode([]byte, string, string, string, string, string) error {
