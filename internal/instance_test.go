@@ -10,7 +10,6 @@ package internal
 import (
 	"crypto/rand"
 	"errors"
-	"github.com/golang/protobuf/proto"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
@@ -22,7 +21,6 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
-	"gitlab.com/xx_network/primitives/utils"
 	"os"
 	"reflect"
 	"runtime"
@@ -63,33 +61,6 @@ func TestMain(m *testing.M) {
 	sm := state.NewMachine(dummyStates)
 	instance, _ = CreateServerInstance(def, impl, sm, "1.1.0")
 	os.Exit(m.Run())
-}
-
-func TestRecoverInstance(t *testing.T) {
-	impl := func(*Instance) *node.Implementation {
-		return node.NewImplementation()
-	}
-	def := mockServerDef(t)
-	sm := state.NewMachine(dummyStates)
-
-	msg := &mixmessages.RoundError{
-		Id:     0,
-		NodeId: id.NewIdFromUInt(uint64(0), id.Node, t).Marshal(),
-		Error:  "test",
-	}
-	b, err := proto.Marshal(msg)
-	if err != nil {
-		t.Errorf("Failed to marshal test proto: %+v", err)
-	}
-
-	def.RecoveredErrorPath = "/tmp/test_err"
-
-	err = utils.WriteFile(def.RecoveredErrorPath, b, utils.FilePerms, utils.DirPerms)
-	if err != nil {
-		t.Errorf("Failed to write to test file: %+v", err)
-	}
-
-	instance, _ = RecoverInstance(def, impl, sm, "1.1.0")
 }
 
 func TestInstance_GetResourceQueue(t *testing.T) {

@@ -421,10 +421,20 @@ func (i *Instance) GetRoundError() *mixmessages.RoundError {
 	return i.roundError
 }
 
+func (i *Instance) ClearRoundError() {
+	i.roundError = nil
+}
+
 func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
 	return i.recoveredError
+}
+
+func (i *Instance) ClearRecoveredError() {
+	i.errLck.Lock()
+	defer i.errLck.Unlock()
+	i.recoveredError = nil
 }
 
 // only use if you already have the error lock
@@ -435,12 +445,6 @@ func (i *Instance) GetRecoveredErrorUnsafe() *mixmessages.RoundError {
 
 func (i *Instance) GetServerVersion() string {
 	return i.serverVersion
-}
-
-func (i *Instance) ClearRecoveredError() {
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
-	i.recoveredError = nil
 }
 
 func (i *Instance) IsReadyForGateway() bool {

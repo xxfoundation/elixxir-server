@@ -11,10 +11,7 @@ package node
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/binary"
-	"fmt"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -29,7 +26,6 @@ import (
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
-	"gitlab.com/xx_network/primitives/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -205,21 +201,11 @@ func NotStarted(instance *internal.Instance) error {
 			roundErr := errors.Errorf("Server never transitioned to %v state: %+v", current.NOT_STARTED, err)
 			instance.ReportNodeFailure(roundErr)
 		}
-
-		// if error passed in go to error
-		if instance.GetRecoveredError() != nil {
-			ok, err := instance.GetStateMachine().Update(current.ERROR)
-			if !ok || err != nil {
-				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
-				instance.ReportNodeFailure(roundErr)
-			}
-		} else {
-			// Transition state machine into waiting state
-			ok, err := instance.GetStateMachine().Update(current.WAITING)
-			if !ok || err != nil {
-				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
-				instance.ReportNodeFailure(roundErr)
-			}
+		// Transition state machine into waiting state
+		ok, err := instance.GetStateMachine().Update(current.WAITING)
+		if !ok || err != nil {
+			roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
+			instance.ReportNodeFailure(roundErr)
 		}
 
 		// Periodically re-poll permissioning
@@ -390,84 +376,22 @@ func Error(instance *internal.Instance) error {
 	// Check for error message on server instance
 	msg := instance.GetRoundError()
 	if msg == nil {
-		jww.FATAL.Panic("No error found on instance")
+		jww.ERROR.Println("No error found on instance")
 	}
-	/*
-		nid, err := id.Unmarshal(msg.NodeId)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to get node id from error")
-		}
 
-		wg := sync.WaitGroup{}
-		numResponces := uint32(0)
-		// If the error originated with us, send broadcast to other nodes
-		if nid.Cmp(instance.GetID()) && msg.Id != 0 {
-			r, err := instance.GetRoundManager().GetRound(id.Round(msg.Id))
-			if err != nil {
-				return errors.WithMessage(err, "Failed to get round id")
-			}
-			top := r.GetTopology()
-			for i := 0; i < top.Len(); i++ {
-				// Send to all nodes except self
-				n := top.GetNodeAtIndex(i)
-				if !instance.GetID().Cmp(n) {
-					wg.Add(1)
-					go func() {
-						h, ok := instance.GetNetwork().GetHost(n)
-						if !ok {
-							jww.ERROR.Printf("Could not get host for node %s", n.String())
-						}
-
-						_, err := instance.SendRoundError(h, msg)
-						if err != nil {
-							err = errors.WithMessagef(err, "Failed to send error to node %s", n.String())
-							jww.ERROR.Printf(err.Error())
-						}
-						atomic.AddUint32(&numResponces,1)
-						wg.Done()
-					}()
-				}
-			}
-
-			// Wait until the error messages are sent, or timeout after 3 minutes
-			notifyTeamMembers := make(chan struct{})
-			notifyTimeout := 15 * time.Second
-			timeout := time.NewTimer(notifyTimeout)
-
-			go func() {
-				wg.Wait()
-				notifyTeamMembers <- struct{}{}
-			}()
-
-			select {
-			case <-notifyTeamMembers:
-			case <-timeout.C:
-				jww.ERROR.Printf("Only %v/%v team members responded to the "+
-					"error broadcast, timed out after %s",
-					atomic.LoadUint32(&numResponces), top.Len(), notifyTimeout)
-			}
-		}
-	*/
-	b, err := proto.Marshal(msg)
+	rnd, err := instance.GetRoundManager().GetRound(instance.GetRoundManager().GetCurrentRound())
 	if err != nil {
-		return errors.WithMessage(err, "Failed to marshal message into bytes")
+		return errors.WithMessage(err, "Failed to get current round")
 	}
 
-	bEncoded := base64.StdEncoding.EncodeToString(b)
+	p := rnd.GetCurrentPhase()
+	ok := p.GetGraph().Kill()
+	if !ok {
 
-	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to write error to file")
 	}
 
-	err = instance.GetResourceQueue().Kill(5 * time.Second)
-	if err != nil {
-		return errors.WithMessage(err, "Resource queue kill timed out")
-	}
+	instance.GetRoundManager().DeleteRound(rnd.GetID())
 
-	instance.GetPanicWrapper()(fmt.Sprintf(
-		"Error encountered - closing server & writing error to %s: %s",
-		instance.GetDefinition().RecoveredErrorPath, msg.Error))
 	return nil
 }
 

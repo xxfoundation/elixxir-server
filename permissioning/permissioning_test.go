@@ -239,10 +239,6 @@ func TestPoll_ErrState(t *testing.T) {
 	if instance.GetStateMachine().Get() != current.WAITING {
 		t.Error("Failed to properly update state")
 	}
-
-	if instance.GetRecoveredError() != nil {
-		t.Error("Did not properly clear recovered error")
-	}
 }
 
 // Happy path: Pings the mock registration server for a poll response

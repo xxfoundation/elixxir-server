@@ -16,6 +16,7 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 const (
@@ -62,6 +63,7 @@ type Graph struct {
 	metrics measure.Metrics
 
 	errorHandler ErrorCallback
+	dispatchers  map[uint64]chan chan bool
 }
 
 // This is too long of a function
@@ -239,9 +241,40 @@ func (g *Graph) Run() {
 	for i, m := range g.modules {
 		i = i << 8 // high part of int
 		for j := uint8(0); j < m.NumThreads; j++ {
-			go dispatch(g, m, i+uint64(j))
+			kc := make(chan chan bool)
+			go dispatch(g, m, i+uint64(j), kc)
+			g.dispatchers[i+uint64(j)] = kc
+
 		}
 	}
+}
+
+func (g *Graph) Kill() bool {
+	jww.INFO.Printf("Killing graph %+v", g.name)
+	for i, m := range g.modules {
+		i = i << 8 // high part of int
+		for j := uint8(0); j < m.NumThreads; j++ {
+			id := i + uint64(j)
+			jww.INFO.Printf("Killing dispatcher %d", id)
+			kc, ok := g.dispatchers[id]
+			if ok {
+				akc := make(chan bool)
+				kc <- akc
+				timeout := time.NewTimer(10 * time.Second)
+
+				// Wait for acknowledgement of kill signal or log timeout
+				select {
+				case <-akc:
+					continue
+				case <-timeout.C:
+					jww.WARN.Printf("Kill on dispatcher %d timed out", id)
+					continue
+				}
+			}
+		}
+	}
+	return true
+
 }
 
 func (g *Graph) Connect(a, b *Module) {

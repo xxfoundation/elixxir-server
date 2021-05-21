@@ -180,9 +180,8 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			roundErr := errors.Errorf("Resource Queue has timed out killing Round %v after %s", rid, runningPhase.GetTimeout())
 
 			server.ReportRoundFailure(roundErr, server.GetID(), rid)
-			break
 			//FIXME: also killChan the transmission handler
-			/*kill := rq.activePhase.GetGraph().Kill()
+			kill := rq.activePhase.GetGraph().Kill()
 			if kill {
 				jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s killed"+
 					" due to timeout",
@@ -194,7 +193,8 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 					" be killed after timeout",
 					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 					rq.activePhase.GetType().String())
-			}*/
+			}
+			break
 		}
 
 		//check that the correct phase is ending

@@ -83,6 +83,7 @@ func (gc *GraphGenerator) NewGraph(name string, stream Stream) *Graph {
 
 	g.outputSize = gc.outputSize
 	g.outputThreshold = gc.outputThreshold
+	g.dispatchers = map[uint64]chan chan bool{}
 
 	return &g
 }
