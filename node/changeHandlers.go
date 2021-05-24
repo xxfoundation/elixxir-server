@@ -11,7 +11,10 @@ package node
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/binary"
+	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -26,6 +29,7 @@ import (
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
+	"gitlab.com/xx_network/primitives/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -202,10 +206,20 @@ func NotStarted(instance *internal.Instance) error {
 			instance.ReportNodeFailure(roundErr)
 		}
 		// Transition state machine into waiting state
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if !ok || err != nil {
-			roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
-			instance.ReportNodeFailure(roundErr)
+		// if error passed in go to error
+		if instance.GetRecoveredError() != nil {
+			ok, err := instance.GetStateMachine().Update(current.ERROR)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
+				instance.ReportNodeFailure(roundErr)
+			}
+		} else {
+			// Transition state machine into waiting state
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if !ok || err != nil {
+				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.WAITING, err)
+				instance.ReportNodeFailure(roundErr)
+			}
 		}
 
 		// Periodically re-poll permissioning
@@ -376,18 +390,40 @@ func Error(instance *internal.Instance) error {
 	// Check for error message on server instance
 	msg := instance.GetRoundError()
 	if msg == nil {
-		jww.ERROR.Println("No error found on instance")
+		jww.FATAL.Panicf("No error found on instance")
+	}
+
+	fatal := func(externalError error) {
+		b, err := proto.Marshal(msg)
+		if err != nil {
+			jww.FATAL.Panicf("Failed to marshal message to bytes: %+v", err)
+		}
+
+		bEncoded := base64.StdEncoding.EncodeToString(b)
+		err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
+		if err != nil {
+			jww.FATAL.Panicf("Failed to write error to file: %+v", err)
+		}
+
+		err = instance.GetResourceQueue().Kill(5 * time.Second)
+		if err != nil {
+			jww.FATAL.Panicf("Resource queue kill timed out: %+v", err)
+		}
+
+		instance.GetPanicWrapper()(fmt.Sprintf(
+			"Error encountered during standard recovery [%+v] - closing server & writing error to %s: %s",
+			externalError, instance.GetDefinition().RecoveredErrorPath, msg.Error))
 	}
 
 	rnd, err := instance.GetRoundManager().GetRound(instance.GetRoundManager().GetCurrentRound())
 	if err != nil {
-		return errors.WithMessage(err, "Failed to get current round")
+		fatal(err)
 	}
 
 	p := rnd.GetCurrentPhase()
 	ok := p.GetGraph().Kill()
 	if !ok {
-
+		fatal(nil)
 	}
 
 	instance.GetRoundManager().DeleteRound(rnd.GetID())

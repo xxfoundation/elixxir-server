@@ -181,14 +181,20 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		uint32(port))
 
 	if reportedActivity == current.ERROR {
-		pollMsg.Error = instance.GetRoundError()
+		recovered := instance.GetRecoveredError()
+		if recovered != nil {
+			pollMsg.Error = recovered
+			instance.ClearRecoveredError()
+		} else {
+			pollMsg.Error = instance.GetRoundError()
+			instance.ClearRoundError()
+		}
 		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
 			return nil, err
 		}
-		instance.ClearRoundError()
 	}
 
 	// Send the message to permissioning
