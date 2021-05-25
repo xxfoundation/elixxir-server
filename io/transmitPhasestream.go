@@ -64,14 +64,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	// This gets the streaming client which used to send slots
 	// using the recipient node id and the batch info header
 	// It's context must be canceled after receiving an ack
-	openClientStart := time.Now()
 	streamClient, cancel, err := instance.GetNetwork().GetPostPhaseStreamClient(
 		recipient, header)
 	if err != nil {
 		return errors.Errorf("Error on comm, unable to get streaming "+
 			"client: %+v", err)
 	}
-	openClientDelta := time.Now().Sub(openClientStart)
 
 	//pull the first chunk reception out so it can be timestmaped
 	chunk, finish := getChunk()
@@ -126,10 +124,10 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		"from: %s, to: %s, "+
 		"started: %v, "+
 		"ended: %v, "+
-		"duration: %d, connectionDuration: %d",
+		"duration: %d",
 		roundID, currentPhase.GetType(),
 		instance.GetID(), recipientID,
-		start, end, end.Sub(start).Milliseconds(), openClientDelta.Milliseconds())
+		start, end, end.Sub(start).Milliseconds())
 
 	cancel()
 
