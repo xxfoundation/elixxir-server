@@ -73,22 +73,37 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	//pull the first chunk reception out so it can be timestmaped
 	chunk, finish := getChunk()
+
+	messageSendingChannel := make(chan *mixmessages.Slot, r.GetBatchSize())
+	messageSendingCompletion := make(chan error)
+	go func() {
+		var errLocal error
+		for msg := range messageSendingChannel {
+			if errLocal == nil {
+				errLocal = streamClient.Send(msg)
+			}
+		}
+		messageSendingCompletion <- errLocal
+	}()
+
 	start := time.Now()
 	// For each message chunk (slot) stream it out
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
-			err = streamClient.Send(msg)
-			if err != nil {
-				return errors.Errorf("Error on comm, not able to send "+
-					"slot: %+v", err)
-			}
+			messageSendingChannel <- msg
 		}
 	}
 
 	measureFunc := currentPhase.Measure
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
+	}
+
+	sendingResponse := <-messageSendingCompletion
+	if sendingResponse != nil {
+		return errors.Errorf("Error on comm, not able to send "+
+			"slot: %+v", sendingResponse)
 	}
 
 	// Receive ack and cancel client streaming context
@@ -137,19 +152,29 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	slot, err := stream.Recv()
 	start := time.Now()
 	slotsReceived := uint32(0)
-	for ; err == nil; slot, err = stream.Recv() {
-		index := slot.Index
 
-		phaseErr := p.Input(index, slot)
-		if phaseErr != nil {
-			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
-				index, slot, phaseErr)
-			return start, phaseErr
+	messageReceptionChannel := make(chan *mixmessages.Slot, batchSize)
+	messageReceptionCompletion := make(chan error)
+	go func() {
+		var errLocal error
+		for localSlot := range messageReceptionChannel {
+			if errLocal == nil {
+				index := localSlot.Index
+
+				errLocal = p.Input(index, localSlot)
+				if errLocal != nil {
+					errLocal = errors.WithMessagef(errLocal, "Failed on phase input %v for slot %v",
+						index, slot)
+				}
+				chunk := services.NewChunk(index, index+1)
+				p.Send(chunk)
+			}
 		}
+		messageReceptionCompletion <- errLocal
+	}()
 
-		chunk := services.NewChunk(index, index+1)
-		p.Send(chunk)
-
+	for ; err == nil; slot, err = stream.Recv() {
+		messageReceptionChannel <- slot
 		slotsReceived++
 	}
 
@@ -163,6 +188,11 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	} else if slotsReceived != batchSize {
 		ack.Error = fmt.Sprintf("Mismatch between batch size %v"+
 			"and received num slots %v, no error", slotsReceived, batchSize)
+	}
+
+	receptionResponse := <-messageReceptionCompletion
+	if receptionResponse != nil {
+		return start, errors.WithMessage(receptionResponse, "Error on comm, failed on processing received slots")
 	}
 
 	// Close the stream by sending ack
