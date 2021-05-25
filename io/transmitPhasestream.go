@@ -101,7 +101,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
 	}
-
+	close(messageSendingChannel)
 	sendingResponse := <-messageSendingCompletion
 	if sendingResponse != nil {
 		return errors.Errorf("Error on comm, not able to send "+
@@ -191,7 +191,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		ack.Error = fmt.Sprintf("Mismatch between batch size %v"+
 			"and received num slots %v, no error", slotsReceived, batchSize)
 	}
-
+	close(messageReceptionChannel)
 	receptionResponse := <-messageReceptionCompletion
 	if receptionResponse != nil {
 		return start, errors.WithMessage(receptionResponse, "Error on comm, failed on processing received slots")
