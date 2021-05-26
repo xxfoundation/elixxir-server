@@ -97,7 +97,7 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 			roundErr := errors.Errorf("ReceiveStartSharePhase Error: "+
 				"Could not send our shared piece of the key: %v", err)
 			time.Sleep(time.Second)
-			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), roundID, false)
 		}
 	}()
 	return nil
@@ -164,7 +164,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
 					"Could not send our final key: %s", err)
 				time.Sleep(time.Second)
-				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID, false)
 			}
 		}()
 	} else {
@@ -175,7 +175,7 @@ func ReceiveSharePhasePiece(piece *pb.SharePiece, auth *connect.Auth,
 				roundErr := errors.Errorf("ReceiveSharePhasePiece Error: "+
 					"Could not send our shared piece of the key: %s", err)
 				time.Sleep(time.Second)
-				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+				instance.ReportRoundFailure(roundErr, instance.GetID(), roundID, false)
 
 			}
 		}()
@@ -237,7 +237,7 @@ func ReceiveFinalKey(piece *pb.SharePiece, auth *connect.Auth,
 	// Check the validity
 	if err = updateFinalKeys(piece, r, senderId, instance); err != nil {
 		roundErr := errors.Errorf("ReceiveFinalKey Error: Could not verify final key received: %v", err)
-		instance.ReportRoundFailure(roundErr, instance.GetID(), roundID)
+		instance.ReportRoundFailure(roundErr, instance.GetID(), roundID, false)
 	}
 	return nil
 }

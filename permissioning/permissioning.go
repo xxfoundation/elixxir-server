@@ -71,6 +71,35 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	return nil
 }
 
+func StartPolling(instance *internal.Instance, pollDelay time.Duration) {
+	jww.INFO.Println("Start permissioning polling")
+	// Periodically re-poll permissioning
+	// fixme we need to review the performance implications and possibly make this programmable
+	ticker := time.NewTicker(200 * time.Millisecond)
+	// String to look for the check for a reverse contact error.
+	// not panicking on these errors allows for better debugging
+	cannotPingErr := "cannot be contacted"
+	permissioningShuttingDownError := "transport is closing"
+	for range ticker.C {
+		err := Poll(instance)
+		if err != nil {
+			// do not error if the poll failed due to contact issues,
+			// this allows for better debugging
+			if strings.Contains(err.Error(), cannotPingErr) ||
+				strings.Contains(err.Error(), permissioningShuttingDownError) {
+
+				jww.ERROR.Printf("Your node is not online: %s", err.Error())
+				time.Sleep(pollDelay)
+			} else {
+				// If we receive an error polling here, panic this thread
+				roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
+				instance.ReportNodeFailure(roundErr)
+			}
+
+		}
+	}
+}
+
 // Poll is used to retrieve updated state information from permissioning
 //  and update our internal state accordingly
 func Poll(instance *internal.Instance) error {
@@ -181,11 +210,14 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		uint32(port))
 
 	if reportedActivity == current.ERROR {
+		jww.ERROR.Printf("Poll found node in error state")
 		recovered := instance.GetRecoveredError()
 		if recovered != nil {
+			jww.ERROR.Printf("Recovered error found")
 			pollMsg.Error = recovered
 			instance.ClearRecoveredError()
 		} else {
+			jww.ERROR.Printf("Round error found")
 			pollMsg.Error = instance.GetRoundError()
 			instance.ClearRoundError()
 		}
@@ -355,7 +387,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				} else if r.GetCurrentPhaseType() != phase.Complete && r.GetID() == rid {
 					jww.WARN.Printf("Received participatory fail in round %v which is in progress", roundInfo.ID)
 					instance.ReportRoundFailure(errors.Errorf("Notified of round failure for participatory round: %s", errStr),
-						instance.GetID(), rid)
+						instance.GetID(), rid, false)
 					// if the node is working on a different round, do nothing, the error is likely old
 				} else {
 					jww.WARN.Printf("Received participatory fail from old round %v", rid)

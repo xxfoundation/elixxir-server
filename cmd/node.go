@@ -117,7 +117,7 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	}
 
 	ourChangeList[current.CRASH] = func(from current.Activity) error {
-		return node.Crash(from)
+		return node.Crash(instance)
 	}
 
 	// Create the machine with these state functions

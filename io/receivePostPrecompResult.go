@@ -77,11 +77,11 @@ func ReceivePostPrecompResult(instance *internal.Instance, roundID uint64,
 		ok, err := instance.GetStateMachine().Update(current.STANDBY)
 		if err != nil {
 			roundErr := errors.Errorf("Failed to transition to state STANDBY: %+v", err)
-			instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), rid, false)
 		}
 		if !ok {
 			roundErr := errors.Errorf("Could not transition to state STANDBY")
-			instance.ReportRoundFailure(roundErr, instance.GetID(), rid)
+			instance.ReportRoundFailure(roundErr, instance.GetID(), rid, false)
 		}
 	}()
 	return nil

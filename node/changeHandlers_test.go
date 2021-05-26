@@ -221,7 +221,7 @@ func TestPrecomputing(t *testing.T) {
 		t.Errorf("Failed to send roundInfo: %v", err)
 	}
 
-	err = instance.GetResourceQueue().Kill(time.Millisecond * 10)
+	err = instance.GetResourceQueue().Kill(time.Second)
 	if err != nil {
 		t.Errorf("Failed to kill resource queue: %+v", err)
 	}

@@ -48,13 +48,13 @@ func dispatch(g *Graph, m *Module, threadID uint64, kc chan chan bool) {
 	keepLooping := true
 	for keepLooping {
 		select {
-		case <-timeout.C:
-			keepLooping = false
-			jww.WARN.Printf("Graph %v in module %v timed out thread %v", g.GetName(), m.Name, threadID)
 		case rc := <-kc:
 			jww.WARN.Printf("Graph %v in module %v killed dispatcher %d...", g.GetName(), m.Name, threadID)
 			rc <- true // Acknowledge the kill signal
-			return
+			keepLooping = false
+		case <-timeout.C:
+			keepLooping = false
+			jww.WARN.Printf("Graph %v in module %v timed out thread %v", g.GetName(), m.Name, threadID)
 		case chunk, ok = <-m.input:
 			if ok {
 				g.Lock()

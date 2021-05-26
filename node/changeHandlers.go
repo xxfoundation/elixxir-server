@@ -113,10 +113,6 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Retry polling until an ndf is returned
 	err = errors.Errorf(ndf.NO_NDF)
-	// String to look for the check for a reverse contact error.
-	// not panicking on these errors allows for better debugging
-	cannotPingErr := "cannot be contacted"
-	permissioningShuttingDownError := "transport is closing"
 
 	pollDelay := 1 * time.Second
 
@@ -222,27 +218,7 @@ func NotStarted(instance *internal.Instance) error {
 			}
 		}
 
-		// Periodically re-poll permissioning
-		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(200 * time.Millisecond)
-		for range ticker.C {
-			err := permissioning.Poll(instance)
-			if err != nil {
-				// do not error if the poll failed due to contact issues,
-				// this allows for better debugging
-				if strings.Contains(err.Error(), cannotPingErr) ||
-					strings.Contains(err.Error(), permissioningShuttingDownError) {
-
-					jww.ERROR.Printf("Your node is not online: %s", err.Error())
-					time.Sleep(pollDelay)
-				} else {
-					// If we receive an error polling here, panic this thread
-					roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
-					instance.ReportNodeFailure(roundErr)
-				}
-
-			}
-		}
+		permissioning.StartPolling(instance, pollDelay)
 	}()
 
 	return nil
@@ -386,53 +362,66 @@ func Error(instance *internal.Instance) error {
 	if instance.GetRecoveredErrorUnsafe() != nil {
 		return nil
 	}
+	jww.INFO.Printf("Error state was recovered from crash: %+v", instance.GetRecoveredErrorUnsafe())
 
 	// Check for error message on server instance
 	msg := instance.GetRoundError()
 	if msg == nil {
 		jww.FATAL.Panicf("No error found on instance")
 	}
+	jww.INFO.Printf("Round error: %+v", msg)
 
-	fatal := func(externalError error) {
-		b, err := proto.Marshal(msg)
+	cr := instance.GetRoundManager().GetCurrentRound()
+	jww.INFO.Printf("Current round: %+v", cr)
+	if cr != 0 {
+		rnd, err := instance.GetRoundManager().GetRound(cr)
 		if err != nil {
-			jww.FATAL.Panicf("Failed to marshal message to bytes: %+v", err)
+			jww.ERROR.Printf("Did not find round %+v: %+v", cr, err)
+			go func() {
+				ok, err := instance.GetStateMachine().Update(current.CRASH)
+				if !ok || err != nil {
+					jww.FATAL.Panicf("Failed to transition to crash state: %+v", err)
+				}
+			}()
 		}
-
-		bEncoded := base64.StdEncoding.EncodeToString(b)
-		err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
-		if err != nil {
-			jww.FATAL.Panicf("Failed to write error to file: %+v", err)
-		}
-
-		err = instance.GetResourceQueue().Kill(5 * time.Second)
-		if err != nil {
-			jww.FATAL.Panicf("Resource queue kill timed out: %+v", err)
-		}
-
-		instance.GetPanicWrapper()(fmt.Sprintf(
-			"Error encountered during standard recovery [%+v] - closing server & writing error to %s: %s",
-			externalError, instance.GetDefinition().RecoveredErrorPath, msg.Error))
+		instance.GetRoundManager().DeleteRound(rnd.GetID())
 	}
 
-	rnd, err := instance.GetRoundManager().GetRound(instance.GetRoundManager().GetCurrentRound())
+	err := instance.GetResourceQueue().StopActivePhase(100 * time.Millisecond)
 	if err != nil {
-		fatal(err)
+		go func() {
+			jww.ERROR.Printf("Failed to stop active phase: %+v", err)
+			ok, err := instance.GetStateMachine().Update(current.CRASH)
+			if !ok || err != nil {
+				jww.FATAL.Panicf("Failed to transition to crash state: %+v", err)
+			}
+		}()
 	}
-
-	p := rnd.GetCurrentPhase()
-	ok := p.GetGraph().Kill()
-	if !ok {
-		fatal(nil)
-	}
-
-	instance.GetRoundManager().DeleteRound(rnd.GetID())
-
 	return nil
 }
 
-func Crash(from current.Activity) error {
-	// start error
+func Crash(instance *internal.Instance) error {
+	// Check for error message on server instance
+	jww.INFO.Printf("")
+	msg := instance.GetRoundError()
+	if msg == nil {
+		jww.FATAL.Panicf("No error found on instance")
+	}
+
+	b, err := proto.Marshal(msg)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to marshal message to bytes: %+v", err)
+	}
+
+	bEncoded := base64.StdEncoding.EncodeToString(b)
+	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
+	if err != nil {
+		jww.FATAL.Panicf("Failed to write error to file: %+v", err)
+	}
+
+	instance.GetPanicWrapper()(fmt.Sprintf(
+		"Standard error recovery failed - exiting server & writing error to %s: %s",
+		instance.GetDefinition().RecoveredErrorPath, msg.Error))
 	return nil
 }
 

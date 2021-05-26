@@ -415,6 +415,43 @@ func TestGraph(t *testing.T) {
 	<-endCh
 }
 
+func TestGraph_Kill(t *testing.T) {
+	grp := initDispatchGroup()
+
+	batchSize := uint32(1000)
+
+	gc := NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 0)
+
+	g := gc.NewGraph("test", &Stream1{})
+
+	moduleA := ModuleA.DeepCopy()
+	moduleB := ModuleB.DeepCopy()
+	moduleC := ModuleC.DeepCopy()
+	moduleD := ModuleD.DeepCopy()
+
+	g.First(moduleA)
+	g.Connect(moduleA, moduleB)
+	g.Connect(moduleB, moduleD)
+	g.Connect(moduleA, moduleC)
+	g.Connect(moduleC, moduleD)
+	g.Last(moduleD)
+
+	g.Build(batchSize, PanicHandler)
+
+	roundSize := uint32(math.Ceil(1.2 * float64(g.GetExpandedBatchSize())))
+	roundBuf := RoundBuffer{}
+	roundBuf.Build(roundSize)
+
+	g.Link(grp, &roundBuf)
+
+	g.Run()
+
+	ok := g.Kill()
+	if !ok {
+		t.Errorf("This should not be possible?")
+	}
+}
+
 type AddPrototype func(X, Y int) int
 
 var Add AddPrototype = func(X, Y int) int {

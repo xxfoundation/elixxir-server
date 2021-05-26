@@ -276,7 +276,7 @@ func TestInstance_ReportCriticalError(t *testing.T) {
 
 	roundID := id.Round(987432)
 	testErr := errors.New("Test error")
-	instance.ReportRoundFailure(testErr, id.NewIdFromUInt(uint64(1), id.Node, t), roundID)
+	instance.ReportRoundFailure(testErr, id.NewIdFromUInt(uint64(1), id.Node, t), roundID, false)
 	//Test happy path
 
 	//Test that if we send a different error it changes as expected

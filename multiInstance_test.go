@@ -66,22 +66,14 @@ func Test_MultiInstance_N3_B8(t *testing.T) {
 		"instance test: %s", elapsed)
 }
 
-func Test_MultiInstance_PhaseErr(t *testing.T) {
-	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, true, t)
-
-	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
-		"instance test: %s", elapsed)
-}
+//func Test_MultiInstance_PhaseErr(t *testing.T) {
+//	elapsed := MultiInstanceTest(3, 32, makeMultiInstanceGroup(), false, true, t)
+//
+//	t.Logf("Computational elapsed time for 3 Node, batch size 32, error multi-"+
+//		"instance test: %s", elapsed)
+//}
 
 func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, errorPhase bool, t *testing.T) time.Duration {
-	if errorPhase {
-		defer func() {
-			if r := recover(); r != nil {
-				return
-			}
-		}()
-	}
-
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	if numNodes < 3 {
@@ -508,20 +500,20 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 
 	}
 
-	if errorPhase {
-		fmt.Println("GGGGGGG")
-		errWg.Wait()
-		fmt.Println("BBBBBB")
-		for _, nodeInstance := range nodes {
-			err := nodeInstance.GetResourceQueue().Kill(1 * time.Second)
-			if err != nil {
-				t.Errorf("Node failed to kill: %s", err)
-			}
-		}
-
-		done <- start
-		return
-	}
+	//if errorPhase {
+	//	fmt.Println("GGGGGGG")
+	//	errWg.Wait()
+	//	fmt.Println("BBBBBB")
+	//	for _, nodeInstance := range nodes {
+	//		err := nodeInstance.GetResourceQueue().Kill(1 * time.Second)
+	//		if err != nil {
+	//			t.Errorf("Node failed to kill: %s", err)
+	//		}
+	//	}
+	//
+	//	done <- start
+	//	return
+	//}
 
 	// Read to look in permissioning, manually do steps
 	// Parse through the nodes prepping them for rounds

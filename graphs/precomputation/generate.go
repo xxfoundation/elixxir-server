@@ -8,6 +8,7 @@
 package precomputation
 
 import (
+	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -111,7 +112,7 @@ var Generate = services.Module{
 		}
 
 		gs := gssi.GetGenerateSubStream()
-
+		fmt.Println(gs.RngStreamGen)
 		stream := gs.RngStreamGen.GetStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {

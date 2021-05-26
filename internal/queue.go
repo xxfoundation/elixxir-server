@@ -26,7 +26,8 @@ type ResourceQueue struct {
 	phaseQueue  chan phase.Phase
 	finishChan  chan phase.Phase
 	timer       *time.Timer
-	killChan    chan chan bool
+	kill        chan interface{}
+	stop        chan interface{}
 	running     *uint32
 }
 
@@ -38,9 +39,10 @@ func initQueue() *ResourceQueue {
 		phaseQueue: make(chan phase.Phase, 5000),
 		// there will only active phase, and this channel is used to killChan it
 		finishChan: make(chan phase.Phase, 1),
-		// this channel will be used to killChan the queue
-		killChan: make(chan chan bool, 1),
-		running:  &running,
+		// this channel will be used to stop the current operation
+		stop:    make(chan interface{}),
+		kill:    make(chan interface{}),
+		running: &running,
 	}
 }
 
@@ -63,25 +65,23 @@ func (rq *ResourceQueue) GetQueue(t *testing.T) chan phase.Phase {
 	return rq.phaseQueue
 }
 
-func (rq *ResourceQueue) Kill(t time.Duration) error {
-	wasRunning := atomic.SwapUint32(rq.running, 0)
-	if wasRunning == 1 {
-		why := make(chan bool)
-		select {
-		case rq.killChan <- why:
-		default:
-			return errors.New("Node should be able to send kill on timeout")
-		}
-
-		timer := time.NewTimer(t)
-		select {
-		case <-why:
-			return nil
-		case <-timer.C:
-			return errors.New("Signal denoting kill of resource queue kill was not received")
-		}
+// StopActivePhase the current phase from executing
+func (rq *ResourceQueue) StopActivePhase(timeout time.Duration) error {
+	select {
+	case rq.stop <- struct{}{}:
+		return nil
+	case <-time.After(timeout):
+		return errors.Errorf("StopActivePhase of current resource queue phase failed after %s", timeout)
 	}
-	return nil
+}
+
+func (rq *ResourceQueue) Kill(timeout time.Duration) error {
+	select {
+	case rq.kill <- struct{}{}:
+		return nil
+	case <-time.After(timeout):
+		return errors.Errorf("Resource queue kill failed after %s", timeout)
+	}
 }
 
 func (rq *ResourceQueue) run(server *Instance) {
@@ -92,18 +92,23 @@ func (rq *ResourceQueue) run(server *Instance) {
 
 func (rq *ResourceQueue) internalRunner(server *Instance) {
 	for true {
+		/*PHASE 1: wait for a phase to execute*/
 		//get the next phase to execute
-		select {
-		case why := <-rq.killChan:
-			go func() { why <- true }()
-			return
-		case rq.activePhase = <-rq.phaseQueue:
-			rq.activePhase.Measure(measure.TagActive)
+		rq.activePhase = nil
+		for rq.activePhase == nil {
+			select {
+			case rq.activePhase = <-rq.phaseQueue:
+				rq.activePhase.Measure(measure.TagActive)
+			case <-rq.kill:
+				return
+			case <-rq.stop:
+			}
 		}
 
 		jww.INFO.Printf("[%s]: RID %d Beginning execution of Phase \"%s\"", server,
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType())
 
+		/* PHASE 2: prepare the execution*/
 		runningPhase := rq.activePhase
 
 		numChunks := uint32(0)
@@ -135,7 +140,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 		if err != nil {
 			rid := runningPhase.GetRoundID()
 			roundErr := errors.Errorf("Round %d does not exist!", rid)
-			server.ReportRoundFailure(roundErr, server.GetID(), rid)
+			server.ReportRoundFailure(roundErr, server.GetID(), rid, false)
 			break
 		}
 
@@ -150,28 +155,38 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 				rid := runningPhase.GetRoundID()
 				roundErr := errors.Errorf("Transmission Handler for phase %s of round %v errored: %+v",
 					runningPhase.GetType(), rid, err)
-				server.ReportRoundFailure(roundErr, server.GetID(), rid)
+				server.ReportRoundFailure(roundErr, server.GetID(), rid, false)
 			}
 		}()
 
+		/* PHASE 3: Execute the phase */
+
 		//start the phase's graphs
 		runningPhase.GetGraph().Run()
-		//start phases's the timeout timer
+
+		/* PHASE 4: Wait for results */
+		//start phases' the timeout timer
 		rq.timer = time.NewTimer(runningPhase.GetTimeout())
 
 		var rtnPhase phase.Phase
 		timeout := false
 
 		select {
-		case why := <-rq.killChan:
-			go func() { why <- true }()
+		case <-rq.kill:
 			return
+		case <-rq.stop:
+			ok := rq.activePhase.GetGraph().Kill()
+			if !ok {
+				jww.WARN.Printf("RID %d Failed to kill graph for phase %+v", rq.activePhase.GetRoundID(), rq.activePhase.GetType().String())
+			}
+			continue
 		case rtnPhase = <-rq.finishChan:
 		case <-rq.timer.C:
 			timeout = true
 		}
 
-		//process timeout
+		/* PHASE 5: Handle results */
+		// process timeout
 		if timeout {
 			jww.ERROR.Printf("[%v]: RID %d Graph %s of phase %s has timed out",
 				server.GetID(), rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
@@ -179,22 +194,16 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			rid := curRound.GetID()
 			roundErr := errors.Errorf("Resource Queue has timed out killing Round %v after %s", rid, runningPhase.GetTimeout())
 
-			server.ReportRoundFailure(roundErr, server.GetID(), rid)
-			//FIXME: also killChan the transmission handler
 			kill := rq.activePhase.GetGraph().Kill()
-			if kill {
+			if !kill {
 				jww.ERROR.Printf("[%s]: RID %d Graph %s of phase %s killed"+
 					" due to timeout",
 					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
 					rq.activePhase.GetType().String())
-				//FIXME: send killChan round message
-			} else {
-				jww.FATAL.Panicf("[%s]: RID %d Graph %s of phase %s could not"+
-					" be killed after timeout",
-					server, rq.activePhase.GetRoundID(), rq.activePhase.GetGraph().GetName(),
-					rq.activePhase.GetType().String())
+				server.ReportRoundFailure(roundErr, server.GetID(), rid, true)
 			}
-			break
+			server.ReportRoundFailure(roundErr, server.GetID(), rid, false)
+			continue
 		}
 
 		//check that the correct phase is ending
@@ -204,7 +213,7 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 				"round %v is currently running, a completion signal of %s "+
 				" cannot be processed", rq.activePhase.GetType(),
 				rid, rtnPhase.GetType())
-			server.ReportRoundFailure(roundErr, server.GetID(), rid)
+			server.ReportRoundFailure(roundErr, server.GetID(), rid, false)
 		}
 
 		// Aggregate the runtimes of the individual threads

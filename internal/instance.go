@@ -576,20 +576,20 @@ func GenerateId(i interface{}) *id.ID {
 	return nid
 }
 
-//reports an error from the node which is not associated with a round
+// ReportNodeFailure reports an error from the node which is not associated with a round
 func (i *Instance) ReportNodeFailure(errIn error) {
-	i.ReportRoundFailure(errIn, i.GetID(), 0)
+	i.ReportRoundFailure(errIn, i.GetID(), 0, false)
 }
 
-//reports an error from a different node in the round the node is participating in
+// ReportRemoteFailure reports an error from a different node in the round the node is participating in
 func (i *Instance) ReportRemoteFailure(roundErr *mixmessages.RoundError) {
-	i.reportFailure(roundErr)
+	i.reportFailure(roundErr, false)
 }
 
-// Create a round error, pass the error over the channel and update the state to
+// ReportRoundFailure creates a round error, pass the error over the channel and update the state to
 // ERROR state. In situations that cause critical panic level errors.
-func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
-
+func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round, fatal bool) {
+	jww.ERROR.Printf("Error in round reported: %+v", errIn)
 	//truncate the error if it is too long
 	errStr := errIn.Error()
 	if len(errStr) > 5000 {
@@ -609,12 +609,12 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 			"\n roundError: %+v", err, roundErr)
 	}
 
-	i.reportFailure(&roundErr)
+	i.reportFailure(&roundErr, fatal)
 }
 
 // Create a round error, pass the error over the channel and update the state to
 // ERROR state. In situations that cause critical panic level errors.
-func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
+func (i *Instance) reportFailure(roundErr *mixmessages.RoundError, fatal bool) {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
 
@@ -646,14 +646,24 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	i.roundError = roundErr
 
 	// Otherwise, change instance's state to ERROR
-	ok, err := sm.Update(current.ERROR)
-	if err != nil {
-		jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
+	if fatal {
+		ok, err := sm.Update(current.CRASH)
+		if err != nil {
+			jww.FATAL.Panicf("Failed to change state to CRASH state: %v", err)
+		}
+		if !ok {
+			jww.FATAL.Panicf("Failed to change state to CRASH state")
+		}
+	} else {
+		ok, err := sm.Update(current.ERROR)
+		if err != nil {
+			jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
+		}
+		if !ok {
+			jww.FATAL.Panicf("Failed to change state to ERROR state")
+		}
 	}
 
-	if !ok {
-		jww.FATAL.Panicf("Failed to change state to ERROR state")
-	}
 }
 
 func (i *Instance) String() string {
