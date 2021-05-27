@@ -176,10 +176,10 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 		"from: %s, to: %s, "+
 		"started: %v, "+
 		"ended: %v, "+
-		"duration: %v,",
+		"duration: %d,",
 		roundID, phaseTy,
 		auth.Sender.GetId().String(), instance.GetID(),
-		start, end, end.Sub(start))
+		start, end, end.Sub(start).Milliseconds())
 
 	return strmErr
 
