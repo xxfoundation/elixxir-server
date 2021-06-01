@@ -131,7 +131,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 // StreamPostPhase implements the server gRPC handler for posting a
 // phase from another node
 func StreamPostPhase(p phase.Phase, batchSize uint32,
-	stream mixmessages.Node_StreamPostPhaseServer) (time.Time, error) {
+	stream mixmessages.Node_StreamPostPhaseServer) (time.Time, time.Time, error) {
 	// Send a chunk for each slot received along with
 	// its index until an error is received
 	slot, err := stream.Recv()
@@ -144,7 +144,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		if phaseErr != nil {
 			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
 				index, slot, phaseErr)
-			return start, phaseErr
+			return start, time.Time{}, phaseErr
 		}
 
 		chunk := services.NewChunk(index, index+1)
@@ -152,6 +152,8 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 
 		slotsReceived++
 	}
+
+	end := time.Now()
 
 	// Set error in ack message if we didn't receive all slots
 	ack := messages.Ack{
@@ -170,10 +172,10 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	errClose := stream.SendAndClose(&ack)
 
 	if errClose != nil && ack.Error != "" {
-		return start, errors.WithMessage(errClose, ack.Error)
+		return start, end, errors.WithMessage(errClose, ack.Error)
 	} else if errClose == nil && ack.Error != "" {
-		return start, errors.New(ack.Error)
+		return start, end, errors.New(ack.Error)
 	} else {
-		return start, errClose
+		return start, end, errClose
 	}
 }
