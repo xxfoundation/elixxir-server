@@ -86,6 +86,8 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		}
 	}
 
+	end := time.Now()
+
 	measureFunc := currentPhase.Measure
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
@@ -101,8 +103,6 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\""+
 		" COMPLETE/SEND", name, roundID, rType)
-
-	end := time.Now()
 
 	jww.INFO.Printf("\tbwLogging: Round %d, "+
 		"transmitted phase: %s, "+
