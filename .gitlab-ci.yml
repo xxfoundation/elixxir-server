@@ -9,7 +9,7 @@ cache:
 variables:
   REPO_DIR: gitlab.com/elixxir
   REPO_NAME: server
-  DOCKER_IMAGE: elixxirlabs/cuda-go:go1.13-cuda11.1-mc
+  DOCKER_IMAGE: elixxirlabs/cuda-go:go1.16-cuda11.1
   MIN_CODE_COVERAGE: "80.0"
 
 before_script:
@@ -142,6 +142,19 @@ test:
     - go tool cover -func=testdata/coverage-real.out | grep "total:" | awk '{print $3}' | sed 's/\%//g' > testdata/coverage-percentage.txt
     - export CODE_CHECK=$(echo "$(cat testdata/coverage-percentage.txt) >= $MIN_CODE_COVERAGE" | bc -l)
     - (if [ "$CODE_CHECK" == "1" ]; then echo "Minimum coverage of $MIN_CODE_COVERAGE succeeded"; else echo "Minimum coverage of $MIN_CODE_COVERAGE failed"; exit 1; fi);
+
+    - mkdir -p release
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
+    - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
+    #- GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win32 main.go
+    - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
+    - mkdir upload
+    - cp release/* upload/
+    - cp /opt/xxnetwork/lib/* release/
+    - cp /opt/xxnetwork/include/* release/
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/xxnetwork/lib' -o release/server-cuda.linux64 main.go
+    - /upload-artifacts.sh upload/
   artifacts:
     paths:
       - vendor/
