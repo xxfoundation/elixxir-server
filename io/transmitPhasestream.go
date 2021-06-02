@@ -135,9 +135,8 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	// Send a chunk for each slot received along with
 	// its index until an error is received
 	slot, err := stream.Recv()
-	start := time.Now()
 	slotsReceived := uint32(0)
-	var end time.Time
+	var start, end time.Time
 	for ; err == nil; slot, err = stream.Recv() {
 		index := slot.Index
 
@@ -154,6 +153,8 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		slotsReceived++
 		if slotsReceived >= batchSize && end.Equal(time.Time{}) {
 			end = time.Now()
+		} else if slotsReceived == 1 {
+			start = time.Now()
 		}
 	}
 
