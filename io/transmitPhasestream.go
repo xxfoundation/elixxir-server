@@ -137,6 +137,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	slot, err := stream.Recv()
 	start := time.Now()
 	slotsReceived := uint32(0)
+	var end time.Time
 	for ; err == nil; slot, err = stream.Recv() {
 		index := slot.Index
 
@@ -151,9 +152,10 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		p.Send(chunk)
 
 		slotsReceived++
+		if slotsReceived >= batchSize && end.Equal(time.Time{}) {
+			end = time.Now()
+		}
 	}
-
-	end := time.Now()
 
 	// Set error in ack message if we didn't receive all slots
 	ack := messages.Ack{
