@@ -59,8 +59,9 @@ var rootCmd = &cobra.Command{
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
 
+		instance, err := StartServer(viper.GetViper())
+		// Retry to start the instance on certain errors
 		for {
-			instance, err := StartServer(viper.GetViper())
 			if err == nil {
 				break
 			}
@@ -76,6 +77,7 @@ var rootCmd = &cobra.Command{
 				jww.ERROR.Print("Cannot start, permissioning " +
 					"is unavailable, retrying in 10s...")
 				time.Sleep(10 * time.Second)
+				instance, err = StartServer(viper.GetViper())
 				continue
 			}
 			jww.FATAL.Panicf("Failed to start server: %+v",
