@@ -44,6 +44,10 @@ func (rm *Manager) GetCurrentRound() id.Round {
 	return rm.currentRound
 }
 
+func (rm *Manager) ClearCurrentRound() {
+	rm.currentRound = 0
+}
+
 // GetRound returns the round if it exists, or an error if it doesn't
 func (rm *Manager) GetRound(id id.Round) (*Round, error) {
 	r, ok := rm.roundMap.Load(id)
