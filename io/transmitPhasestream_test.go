@@ -40,13 +40,13 @@ func (stream MockTransmitStream) SendAndClose(*messages.Ack) error {
 	return errors.New("stream closed without all slots being received")
 }
 
-func (stream MockTransmitStream) Recv() (*mixmessages.Slot, error) {
+func (stream MockTransmitStream) Recv() (*mixmessages.Slots, error) {
 	if mockIndex >= len(stream.batch.Slots) {
 		return nil, io.EOF
 	}
 	slot := stream.batch.Slots[mockIndex]
 	mockIndex++
-	return slot, nil
+	return &mixmessages.Slots{Messages: []*mixmessages.Slot{slot}}, nil
 }
 
 func (MockTransmitStream) SetHeader(metadata.MD) error {
@@ -214,7 +214,7 @@ func mockStreamPostPhase(stream mixmessages.Node_StreamPostPhaseServer) error {
 	var slots []*mixmessages.Slot
 	index := uint32(0)
 	for {
-		slot, err := stream.Recv()
+		newSlots, err := stream.Recv()
 		// If we are at end of receiving
 		// send ack and finish
 		if err == io.EOF {
@@ -245,7 +245,10 @@ func mockStreamPostPhase(stream mixmessages.Node_StreamPostPhaseServer) error {
 		}
 
 		// Store slot received into temporary buffer
-		slots = append(slots, slot)
+
+		for i := range newSlots.Messages {
+			slots = append(slots, newSlots.Messages[i])
+		}
 
 		index++
 	}

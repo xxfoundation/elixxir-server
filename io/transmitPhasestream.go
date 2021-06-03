@@ -25,6 +25,8 @@ import (
 	"time"
 )
 
+const blockSize = 16
+
 // StreamTransmitPhase streams slot messages to the provided Node.
 func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
 	getMessage phase.GetMessage) error {
@@ -75,14 +77,30 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	chunk, finish := getChunk()
 	start := time.Now()
 	// For each message chunk (slot) stream it out
+	sendBuff := make([]*mixmessages.Slot, 0, blockSize)
+
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
-			err = streamClient.Send(msg)
-			if err != nil {
-				return errors.Errorf("Error on comm, not able to send "+
-					"slot: %+v", err)
+
+			sendBuff = append(sendBuff, msg)
+
+			if len(sendBuff) == blockSize {
+				err = streamClient.Send(&mixmessages.Slots{Messages: sendBuff})
+				if err != nil {
+					return errors.Errorf("Error on comm, not able to send "+
+						"slot: %+v", err)
+				}
+				sendBuff = make([]*mixmessages.Slot, 0, blockSize)
 			}
+		}
+	}
+
+	if len(sendBuff) > 0 {
+		err = streamClient.Send(&mixmessages.Slots{Messages: sendBuff})
+		if err != nil {
+			return errors.Errorf("Error on comm, not able to send "+
+				"slot: %+v", err)
 		}
 	}
 
@@ -134,28 +152,32 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	stream mixmessages.Node_StreamPostPhaseServer) (time.Time, time.Time, error) {
 	// Send a chunk for each slot received along with
 	// its index until an error is received
-	slot, err := stream.Recv()
+	slots, err := stream.Recv()
 	slotsReceived := uint32(0)
 	var start, end time.Time
-	for ; err == nil; slot, err = stream.Recv() {
-		index := slot.Index
+	for ; err == nil; slots, err = stream.Recv() {
 
-		phaseErr := p.Input(index, slot)
-		if phaseErr != nil {
-			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
-				index, slot, phaseErr)
-			return start, time.Time{}, phaseErr
+		for i := range slots.Messages {
+			slot := slots.Messages[i]
+			index := slot.Index
+			phaseErr := p.Input(index, slot)
+			if phaseErr != nil {
+				err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
+					index, slot, phaseErr)
+				return start, time.Time{}, phaseErr
+			}
+
+			chunk := services.NewChunk(index, index+1)
+			p.Send(chunk)
+
+			slotsReceived++
+			if slotsReceived >= batchSize && end.Equal(time.Time{}) {
+				end = time.Now()
+			} else if slotsReceived == 1 {
+				start = time.Now()
+			}
 		}
 
-		chunk := services.NewChunk(index, index+1)
-		p.Send(chunk)
-
-		slotsReceived++
-		if slotsReceived >= batchSize && end.Equal(time.Time{}) {
-			end = time.Now()
-		} else if slotsReceived == 1 {
-			start = time.Now()
-		}
 	}
 
 	// Set error in ack message if we didn't receive all slots

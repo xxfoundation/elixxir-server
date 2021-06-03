@@ -336,13 +336,13 @@ func (stream MockStreamPostPhaseServer) SendAndClose(*messages.Ack) error {
 	return errors.New("stream closed without all slots being received")
 }
 
-func (stream MockStreamPostPhaseServer) Recv() (*mixmessages.Slot, error) {
+func (stream MockStreamPostPhaseServer) Recv() (*mixmessages.Slots, error) {
 	if mockStreamSlotIndex >= len(stream.batch.Slots) {
 		return nil, io.EOF
 	}
 	slot := stream.batch.Slots[mockStreamSlotIndex]
 	mockStreamSlotIndex++
-	return slot, nil
+	return &mixmessages.Slots{Messages: []*mixmessages.Slot{slot}}, nil
 }
 
 func (MockStreamPostPhaseServer) SetHeader(metadata.MD) error {
