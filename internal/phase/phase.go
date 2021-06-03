@@ -47,7 +47,7 @@ type Phase interface {
 type phase struct {
 	graph               *services.Graph
 	alternate           func()
-	tYpe                Type
+	phaseType           Type
 	transmissionHandler Transmit
 	timeout             time.Duration
 
@@ -76,7 +76,7 @@ func New(def Definition) Phase {
 	numSentChunks := uint32(0)
 	return &phase{
 		graph:               def.Graph,
-		tYpe:                def.Type,
+		phaseType:           def.Type,
 		alternate:           def.Alternate,
 		transmissionHandler: def.TransmissionHandler,
 		timeout:             def.Timeout,
@@ -120,7 +120,7 @@ func (p *phase) GetRoundID() id.Round {
 }
 
 func (p *phase) GetType() Type {
-	return p.tYpe
+	return p.phaseType
 }
 
 // GetState returns the current state of the phase
@@ -163,7 +163,7 @@ func (p *phase) UpdateFinalStates() {
 
 		if !success {
 			jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
-				"to be transitioned to Computed", p.tYpe, p.roundID)
+				"to be transitioned to Computed", p.phaseType, p.roundID)
 		}
 	} else {
 		success := p.transitionToState(Active, Computed)
@@ -173,7 +173,7 @@ func (p *phase) UpdateFinalStates() {
 			success = p.transitionToState(Computed, Verified)
 			if !success {
 				jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
-					"to be transitioned to Computed or Verified", p.tYpe, p.roundID)
+					"to be transitioned to Computed or Verified", p.phaseType, p.roundID)
 			}
 		}
 	}
@@ -192,13 +192,13 @@ func (p *phase) GetTimeout() time.Duration {
 /*Utility*/
 // Cmp checks if two phases are the same
 func (p *phase) Cmp(p2 Phase) bool {
-	return p.roundID == p2.GetRoundID() && p.tYpe == p2.GetType()
+	return p.roundID == p2.GetRoundID() && p.phaseType == p2.GetType()
 }
 
 //String adheres to the string interface
 func (p *phase) String() string {
 	return fmt.Sprintf("phase.phase{roundID: %v, phaseType: %s}",
-		p.roundID, p.tYpe)
+		p.roundID, p.phaseType)
 }
 
 // Send via the graph. This function allows for this graph function
@@ -236,7 +236,7 @@ func getMeasureInfo(p *phase, tag string) string {
 	// Format string to return
 	result := fmt.Sprintf("Recorded phase measurement:\n\tround ID: %d\n\tphase: %d\n\t"+
 		"tag: %s\n\ttimestamp: %s\n\tdelta: %s",
-		p.roundID, p.tYpe, tag, timestamp.String(), delta.String())
+		p.roundID, p.phaseType, tag, timestamp.String(), delta.String())
 	return result
 }
 
