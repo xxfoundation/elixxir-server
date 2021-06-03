@@ -9,7 +9,6 @@ package internal
 
 import (
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/crypto/signature/rsa"
@@ -17,14 +16,14 @@ import (
 	"gitlab.com/xx_network/primitives/ndf"
 )
 
-// in cmd/node.go, it is filling this out
+// Definition in cmd/node.go, it is filling this out
 // polling is an ongoing process, and ..
 // remove from this anything not about node
 // move removed fields into comms network instance
 // need to worry about nodes, gateways, perm
-// nodes/gw's have id's, add func in prim/ndf to get those
-// integrate usage of netwk
-// nodes/gw's as id types
+// nodes/gws have id's, add func in prim/ndf to get those
+// integrate usage of network
+// nodes/gws as id types
 type Definition struct {
 	// Holds input flags
 	Flags
@@ -71,8 +70,6 @@ type Definition struct {
 	FullNDF    *ndf.NetworkDefinition
 	PartialNDF *ndf.NetworkDefinition
 
-	//Links to the database holding user keys
-	UserRegistry globals.UserRegistry
 	//Defines the properties of graphs in the node
 	GraphGenerator services.GraphGenerator
 	//Holds the ResourceMonitor object
@@ -92,7 +89,13 @@ type Definition struct {
 	// Path for outputting errors to file for recovery
 	RecoveredErrorPath string
 
-	DevMode bool
+	// Database parameters
+	DbUsername string
+	DbPassword string
+	DbName     string
+	DbAddress  string
+	DbPort     string
+	DevMode    bool
 }
 
 // Holds all input flags to the system.
@@ -115,7 +118,7 @@ type Node struct {
 	Address string
 }
 
-// Holds information about the permissioning server
+// Perm Holds information about the permissioning server
 type Perm struct {
 	// PEM file containing the TLS cert
 	TlsCert []byte

@@ -9,10 +9,13 @@ package io
 
 import (
 	"crypto/rand"
+	"strings"
+	"testing"
+	"time"
+
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -23,9 +26,6 @@ import (
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
-	"strings"
-	"testing"
-	"time"
 )
 
 // Happy path: Test if a properly crafted error message results in an error state
@@ -76,7 +76,7 @@ func TestReceiveRoundError(t *testing.T) {
 		t.Errorf("couldn't load privKey: %+v", err)
 	}
 
-	err = signature.Sign(errMsg, pk)
+	err = signature.SignRsa(errMsg, pk)
 	if err != nil {
 		t.Errorf("couldn't sign error message: %+v", err)
 	}
@@ -287,7 +287,6 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
@@ -298,6 +297,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
 		},
+		DevMode: true,
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 	def.PrivateKey, _ = rsa.GenerateKey(rand.Reader, 1024)

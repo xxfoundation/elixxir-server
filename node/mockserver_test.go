@@ -10,6 +10,10 @@ package node
 import (
 	crand "crypto/rand"
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/pkg/errors"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
@@ -28,9 +32,6 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
-	"sync"
-	"testing"
-	"time"
 )
 
 var count = 0
@@ -41,12 +42,12 @@ type mockPermission struct {
 	err error
 }
 
-func (i *mockPermission) PollNdf([]byte) ([]byte, error) {
+func (i *mockPermission) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, i.err
 }
 
-func (i *mockPermission) RegisterUser(registrationCode, test, test2 string) (hash []byte, hash2 []byte, err error) {
-	return nil, nil, i.err
+func (i *mockPermission) RegisterUser(*pb.UserRegistration) (*pb.UserRegistrationConfirmation, error) {
+	return nil, i.err
 }
 
 func (i *mockPermission) RegisterNode([]byte, string, string, string, string, string) error {
@@ -118,7 +119,7 @@ func signNdf(ourNdf *pb.NDF) error {
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	err = signature.Sign(ourNdf, ourPrivKey)
+	err = signature.SignRsa(ourNdf, ourPrivKey)
 	if err != nil {
 		return errors.Errorf("Could not sign ndf: %+v", err)
 	}
@@ -135,7 +136,7 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 
 	ourPrivKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	err = signature.Sign(ri, ourPrivKey)
+	err = signature.SignRsa(ri, ourPrivKey)
 	if err != nil {
 		return errors.Errorf("Could not sign round info: %+v", err)
 	}
@@ -167,7 +168,6 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 		ListeningAddress: nodeAddr,
 		LogPath:          "",
 		MetricLogPath:    "",
-		UserRegistry:     nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -178,6 +178,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 	def.Gateway.ID = nodeId.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

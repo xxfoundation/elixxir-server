@@ -20,21 +20,24 @@ import (
 // to a round ID
 type ClientReport struct {
 	ErrorTracker map[id.Round]chan *pb.ClientError
+	SourceId     *id.ID // Node ID of the source of the error
 	sync.RWMutex
 }
 
 // Initiates a new client failure reporter.
-func NewClientFailureReport() *ClientReport {
+func NewClientFailureReport(sourceID *id.ID) *ClientReport {
 	m := make(map[id.Round]chan *pb.ClientError)
 	return &ClientReport{
 		ErrorTracker: m,
+		SourceId:     sourceID,
 		RWMutex:      sync.RWMutex{},
 	}
-	//m := make(map[id.Round]chan *pb.ClientError)
-	//m[0] = make(chan *pb.ClientError, 32)
-	//return &ClientReport{
+
+	// m := make(map[id.Round]chan *pb.ClientError)
+	// m[0] = make(chan *pb.ClientError, 32)
+	// return &ClientReport{
 	//	UserErrorTracker: m,
-	//}
+	// }
 }
 
 // Initializes a channel within the client error map
@@ -51,6 +54,9 @@ func (cr *ClientReport) Send(rndID id.Round, clientError *pb.ClientError) error 
 	cr.RWMutex.RLock()
 	tracker := cr.ErrorTracker[rndID]
 	cr.RWMutex.RUnlock()
+
+	// Add source ID
+	clientError.Source = cr.SourceId.Marshal()
 
 	// Send to channel
 	select {

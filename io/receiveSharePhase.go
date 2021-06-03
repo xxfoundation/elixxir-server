@@ -11,6 +11,8 @@ package io
 
 import (
 	"bytes"
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -25,7 +27,6 @@ import (
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/primitives/id"
-	"time"
 )
 
 // ReceiveStartSharePhase is a reception handler for TransmitStartSharePhase.
@@ -443,7 +444,7 @@ func checkSignatures(r *round.Round) error {
 		// Check every message from every node in team
 		// Check if theSending Start Share Phase message... signature for this message is valid
 		if nodeInfo.GetPubKey() != nil {
-			if err := signature.Verify(msg, nodeInfo.GetPubKey()); err != nil {
+			if err := signature.VerifyRsa(msg, nodeInfo.GetPubKey()); err != nil {
 				return errors.Errorf("Could not verify signature for node [%s]: %v",
 					nodeInfo.GetId(), err)
 			}

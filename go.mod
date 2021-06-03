@@ -4,16 +4,11 @@ go 1.13
 
 require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
-	github.com/go-pg/pg v8.0.7+incompatible
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/jinzhu/copier v0.0.0-20201025035756-632e723a6687
-	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
-	github.com/nxadm/tail v1.4.5 // indirect
-	github.com/onsi/ginkgo v1.14.2 // indirect
-	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
@@ -23,21 +18,18 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20210427005410-7ae183abda2a
-	gitlab.com/elixxir/crypto v0.0.7-0.20210427005255-4fe1bcf69c5a
-	gitlab.com/elixxir/gpumathsgo v0.1.1-0.20210427010724-20c515011433
-	gitlab.com/elixxir/primitives v0.0.3-0.20210427004615-c68ecf15fcf3
-	gitlab.com/xx_network/comms v0.0.4-0.20210426213447-82674e09e402
-	gitlab.com/xx_network/crypto v0.0.5-0.20210420170153-2a6276844076
-	gitlab.com/xx_network/primitives v0.0.4-0.20210402222416-37c1c4d3fac4
-	gitlab.com/xx_network/ring v0.0.3-0.20201120004140-b0e268db06d1 // indirect
+	gitlab.com/elixxir/comms v0.0.4-0.20210601204639-8c1c1537eb9a
+	gitlab.com/elixxir/crypto v0.0.7-0.20210601193549-039f62f2d81a
+	gitlab.com/elixxir/gpumathsgo v0.1.1-0.20210524170529-eb336d81a1c8
+	gitlab.com/elixxir/primitives v0.0.3-0.20210601193429-3279a7c13c83
+	gitlab.com/xx_network/comms v0.0.4-0.20210601204435-c2acad947bd5
+	gitlab.com/xx_network/crypto v0.0.5-0.20210601193257-27ba5d088733
+	gitlab.com/xx_network/primitives v0.0.4-0.20210601193218-658388fcaa81
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
 	google.golang.org/genproto v0.0.0-20210105202744-fe13368bc0e1 // indirect
-	google.golang.org/grpc v1.34.0
+	google.golang.org/grpc v1.38.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	mellium.im/sasl v0.0.0-20190815210834-e27ea4901008 // indirect
+	gorm.io/driver/postgres v1.0.8
+	gorm.io/gorm v1.21.7
 )
-
-replace google.golang.org/grpc => github.com/grpc/grpc-go v1.27.1

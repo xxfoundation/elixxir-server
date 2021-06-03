@@ -129,10 +129,20 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 		params.Node.Paths.ipListOutput = defaultIpListPath
 	}
 
+	// Obtain database connection info
+	rawAddr := vip.GetString("database.address")
+	var addr, port string
+	if rawAddr != "" {
+		addr, port, err = net.SplitHostPort(rawAddr)
+		if err != nil {
+			jww.FATAL.Panicf("Unable to get database port from %s: %+v", rawAddr, err)
+		}
+	}
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
-	params.Database.Address = vip.GetString("database.address")
+	params.Database.Address = addr
+	params.Database.Port = port
 
 	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
 	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
@@ -216,6 +226,11 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.RecoveredErrorPath = p.RecoveredErrPath
 	def.IpListOutput = p.Node.Paths.ipListOutput
 	def.Flags.OverrideInternalIP = p.OverrideInternalIP
+	def.DbUsername = p.Database.Username
+	def.DbPassword = p.Database.Password
+	def.DbName = p.Database.Name
+	def.DbAddress = p.Database.Address
+	def.DbPort = p.Database.Port
 
 	if def.Flags.OverrideInternalIP != "" && !strings.Contains(def.Flags.OverrideInternalIP, ":") {
 		def.Flags.OverrideInternalIP = net.JoinHostPort(def.Flags.OverrideInternalIP, strconv.Itoa(p.Node.Port))

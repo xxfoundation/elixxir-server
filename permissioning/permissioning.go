@@ -147,9 +147,16 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	}
 
 	var clientReport []*pb.ClientError
-	latestRound := instance.GetRoundManager().GetLatestRound()
+	latestRound := instance.GetRoundManager().GetCurrentRound()
 	if reportedActivity == current.COMPLETED {
-		clientReport, _ = instance.GetClientReport().Receive(latestRound)
+		clientReport, err = instance.GetClientReport().Receive(latestRound)
+		if err != nil {
+			jww.ERROR.Printf("Unable to receive client report: %+v", err)
+		}
+		if len(clientReport) > 0 {
+			jww.WARN.Printf("Client error reports found for"+
+				" round %v: %d reports found", latestRound, len(clientReport))
+		}
 
 	}
 

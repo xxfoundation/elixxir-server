@@ -17,13 +17,11 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/xx_network/primitives/utils"
 	"os"
-	"runtime"
-	"strings"
-	// net/http must be imported before net/http/pprof for the pprof import
-	// to automatically initialize its http handlers
-	"net/http"
-	_ "net/http/pprof"
 	"os/signal"
+	"runtime"
+	"runtime/pprof"
+	"strings"
+	"syscall"
 	"time"
 )
 
@@ -37,9 +35,6 @@ var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
 
-// If true, runs pprof http server
-var profile bool
-
 // rootCmd represents the base command when called without any sub-commands
 var rootCmd = &cobra.Command{
 	Use:   "server",
@@ -52,18 +47,14 @@ var rootCmd = &cobra.Command{
 		if !validConfig {
 			jww.FATAL.Panicf("Invalid Config File: %s", cfgFile)
 		}
-		if profile {
-			go func() {
-				// Do not expose this port over the
-				// network by serving on ":8087" or
-				// "0.0.0.0:8087". If you wish to profile
-				// production servers, do it by SSHing
-				// into the server and using go tool
-				// pprof. This provides simple access
-				// control for the profiling
-				jww.FATAL.Println(http.ListenAndServe(
-					"0.0.0.0:8087", nil))
-			}()
+
+		profileOut := viper.GetString("profile-cpu")
+		if profileOut != "" {
+			f, err := os.Create(profileOut)
+			if err != nil {
+				jww.FATAL.Panicf("%+v", err)
+			}
+			pprof.StartCPUProfile(f)
 		}
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
@@ -92,16 +83,33 @@ var rootCmd = &cobra.Command{
 			jww.FATAL.Panicf("Failed to start server: %+v",
 				err)
 		}
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
-		signal.Notify(c, os.Kill)
-		// Prevent node from exiting
+
+		// Block forever on Signal Handler for safe program exit
+		stopCh := ReceiveExitSignal()
+
+		// Block forever to prevent the program ending
+		// Block until a signal is received, then call the function
+		// provided
 		select {
-		case <-c:
-			jww.ERROR.Printf("Exiting due to an exit signal...")
-			instance.Shutdown()
+		case <-stopCh:
+			jww.INFO.Printf(
+				"Received Exit (SIGTERM or SIGINT) signal...\n")
+			if profileOut != "" {
+				pprof.StopCPUProfile()
+			}
 		}
 	},
+}
+
+// ReceiveExitSignal signals a stop chan when it receives
+// SIGTERM or SIGINT
+func ReceiveExitSignal() chan os.Signal {
+	// Set up channel on which to send signal notifications.
+	// We must use a buffered channel or risk missing the signal
+	// if we're not ready to receive when the signal is sent.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	return c
 }
 
 // Execute adds all child commands to the root command and sets flags
@@ -137,12 +145,9 @@ func init() {
 	err := viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
 	handleBindingError(err, "logLevel")
 
-	rootCmd.Flags().BoolVar(&profile, "profile", false,
-		"Runs a pprof server at 0.0.0.0:8087 for profiling.")
-	err = rootCmd.Flags().MarkHidden("profile")
-	handleBindingError(err, "profile")
-	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
-	handleBindingError(err, "profile")
+	rootCmd.Flags().String("profile-cpu", "",
+		"Enable cpu profiling to this file")
+	viper.BindPFlag("profile-cpu", rootCmd.Flags().Lookup("profile-cpu"))
 
 	rootCmd.Flags().String("registrationCode", "",
 		"Registration code used for first time registration. This is a unique "+
