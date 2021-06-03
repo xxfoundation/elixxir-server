@@ -12,7 +12,9 @@ package internal
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
+	"gitlab.com/elixxir/crypto/hash"
 	"os"
 	"strings"
 	"sync"
@@ -95,6 +97,10 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
+
+	//shotgun map
+	shotgunMap map[string]phase.Phase
+	shotgunMux sync.RWMutex
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -132,6 +138,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayFirstPoll:  NewFirstTime(),
 		clientErrors:      round.NewClientFailureReport(def.ID),
 		phaseStateMachine: state.NewGenericMachine(),
+		shotgunMap:        make(map[string]phase.Phase),
 	}
 
 	// Initialize the backend
@@ -187,7 +194,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Handle overriding local IP
 	if instance.GetDefinition().OverrideInternalIP != "" {
-
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
 			ID, instance.GetDefinition().OverrideInternalIP)
 	}
@@ -290,6 +296,52 @@ func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
 // GetGateway returns the id of the node's gateway
 func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
+}
+
+// GetGateway returns the id of the node's gateway
+func (i *Instance) CheckShotgun(sender *id.ID, roundID id.Round, phase int32, checker func() (phase.Phase, error)) (phase.Phase, error) {
+	i.shotgunMux.RLock()
+	p, has := i.shotgunMap[calcShotgunID(sender, roundID, phase)]
+	i.shotgunMux.RUnlock()
+	if has {
+		return p, nil
+	}
+	i.shotgunMux.Lock()
+	defer i.shotgunMux.Unlock()
+	p, has = i.shotgunMap[calcShotgunID(sender, roundID, phase)]
+	if has {
+		return p, nil
+	}
+	p, checkResult := checker()
+	if checkResult != nil {
+		return nil, nil
+	}
+	i.shotgunMap[calcShotgunID(sender, roundID, phase)] = p
+	return p, nil
+}
+
+func (i *Instance) DeleteShotgun(sender *id.ID, roundID id.Round, phase int32) {
+	i.shotgunMux.Lock()
+	defer i.shotgunMux.Unlock()
+	delete(i.shotgunMap, calcShotgunID(sender, roundID, phase))
+}
+
+func calcShotgunID(sender *id.ID, roundID id.Round, phase int32) string {
+	h, _ := hash.NewCMixHash()
+	h.Write(sender.Bytes())
+
+	ridBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(ridBytes, uint64(roundID))
+
+	h.Write(ridBytes)
+
+	phaseBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(ridBytes, uint64(phase))
+
+	h.Write(phaseBytes)
+
+	sid := h.Sum(nil)
+	return base64.StdEncoding.EncodeToString(sid)
 }
 
 // GetStorage returns the user registry used by the server

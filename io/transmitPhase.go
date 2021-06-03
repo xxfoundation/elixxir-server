@@ -21,7 +21,11 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/primitives/id"
 	"strings"
+	"sync"
+	"time"
 )
+
+const shotgunSize = 16
 
 // TransmitPhase sends a cMix Batch of messages to the provided Node.
 func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
@@ -45,7 +49,8 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 	//fixme: for precompShare r.getBatchsize is not the correct value of the batch size and
 	// results in nil slots being sent out. Possibily need to update on the fly
 	//  alternatively, just use this and it works. Does the reviewer have any thoughts?
-	batchSize := r.GetCurrentPhase().GetGraph().GetBatchSize()
+	//batchSize := r.GetCurrentPhase().GetGraph().GetBatchSize()
+	currentPhase := r.GetCurrentPhase()
 
 	// Pull the particular server host object from the commManager
 	recipientID := topology.GetNextNode(nodeId)
@@ -58,20 +63,65 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 			ID: uint64(roundID),
 		},
 		FromPhase: int32(r.GetCurrentPhaseType()),
-		Slots:     make([]*mixmessages.Slot, batchSize),
+		Slots:     make([]*mixmessages.Slot, 0, shotgunSize),
 	}
 
 	// For each message chunk (slot), fill the slots buffer
 	// Note that this will panic if there are more slots than batchSize
 	// (shouldn't be possible?)
 	cnt := 0
+	wg := sync.WaitGroup{}
+	start := time.Now()
 	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
-			batch.Slots[i] = msg
+			batch.Slots = append(batch.Slots, msg)
 			cnt++
+			if len(batch.Slots) == shotgunSize {
+				localBatch := batch
+				wg.Add(1)
+				go func() {
+					// Make sure the comm doesn't return an Ack with an error message
+					ack, err := instance.GetNetwork().SendPostPhase(recipient, localBatch)
+					if ack != nil && ack.Error != "" {
+						err = errors.Errorf("Remote Server Error: %s", ack.Error)
+					}
+					if err != nil {
+						jww.ERROR.Printf("Error on phase transmit: %s", err.Error())
+					}
+					wg.Done()
+
+				}()
+				batch = &mixmessages.Batch{
+					Round: &mixmessages.RoundInfo{
+						ID: uint64(roundID),
+					},
+					FromPhase: int32(r.GetCurrentPhaseType()),
+					Slots:     make([]*mixmessages.Slot, 0, shotgunSize),
+				}
+			}
 		}
 	}
+
+	if len(batch.Slots) > 0 {
+		localBatch := batch
+		wg.Add(1)
+		go func() {
+			// Make sure the comm doesn't return an Ack with an error message
+			ack, err := instance.GetNetwork().SendPostPhase(recipient, localBatch)
+			if ack != nil && ack.Error != "" {
+				err = errors.Errorf("Remote Server Error: %s", ack.Error)
+			}
+			if err != nil {
+				jww.ERROR.Printf("Error on phase transmit: %s", err.Error())
+			}
+			wg.Done()
+
+		}()
+	}
+
+	wg.Wait()
+	end := time.Now()
 
 	localServer := instance.GetNetwork().String()
 	port := strings.Split(localServer, ":")[1]
@@ -85,11 +135,15 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 	jww.INFO.Printf("[%s]: RID %d TransmitPhase FOR \"%s\" COMPLETE/SEND",
 		name, roundID, rType)
 
-	// Make sure the comm doesn't return an Ack with an error message
-	ack, err := instance.GetNetwork().SendPostPhase(recipient, batch)
-	if ack != nil && ack.Error != "" {
-		err = errors.Errorf("Remote Server Error: %s", ack.Error)
-	}
+	jww.INFO.Printf("\tbwLogging shotgun: Round %d, "+
+		"transmitted phase: %s, "+
+		"from: %s, to: %s, "+
+		"started: %v, "+
+		"ended: %v, "+
+		"duration: %d",
+		roundID, currentPhase.GetType(),
+		instance.GetID(), recipientID,
+		start, end, end.Sub(start).Milliseconds())
 
 	return err
 }

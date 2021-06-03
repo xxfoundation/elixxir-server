@@ -59,36 +59,44 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
+	checker := func() (phase.Phase, error) {
+		ptype := r.GetCurrentPhaseType()
+		toWait := shouldWait(ptype)
+		if toWait == current.ERROR {
+			return nil, errors.Errorf("Phase %+s has not associated node activity", ptype)
+		} else if toWait != curActivity {
+			return nil, errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
+				toWait, curActivity, phaseTy)
+		}
+
+		//Check if the operation can be done and get the correct phase if it can
+		_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
+		if err != nil {
+			roundErr := errors.Errorf("[%v]: Error on reception of "+
+				"PostPhase comm, should be able to return: \n %+v",
+				instance, err)
+			return nil, roundErr
+		}
+		p.Measure(measure.TagReceiveOnReception)
+
+		jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECEIVE/START", instance,
+			roundID, phaseTy, p.GetType())
+		//if the phase has an alternate action, use that
+		if has, alternate := p.GetAlternate(); has {
+			go alternate()
+			return nil, nil
+		}
+
+		//queue the phase to be operated on if it is not queued yet
+		p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
+		return p, nil
+	}
+
 	// Waiting for correct phase
-	ptype := r.GetCurrentPhaseType()
-	toWait := shouldWait(ptype)
-	if toWait == current.ERROR {
-		return errors.Errorf("Phase %+s has not associated node activity", ptype)
-	} else if toWait != curActivity {
-		return errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
-			toWait, curActivity, phaseTy)
-	}
-
-	//Check if the operation can be done and get the correct phase if it can
-	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
+	p, err := instance.CheckShotgun(auth.Sender.GetId(), roundID, batch.FromPhase, checker)
 	if err != nil {
-		roundErr := errors.Errorf("[%v]: Error on reception of "+
-			"PostPhase comm, should be able to return: \n %+v",
-			instance, err)
-		return roundErr
+		return err
 	}
-	p.Measure(measure.TagReceiveOnReception)
-
-	jww.INFO.Printf("[%v]: RID %d PostPhase FROM \"%s\" FOR \"%s\" RECEIVE/START", instance,
-		roundID, phaseTy, p.GetType())
-	//if the phase has an alternate action, use that
-	if has, alternate := p.GetAlternate(); has {
-		go alternate()
-		return nil
-	}
-
-	//queue the phase to be operated on if it is not queued yet
-	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
 	batch.FromPhase = int32(p.GetType())
 	//send the data to the phase
