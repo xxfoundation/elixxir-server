@@ -263,7 +263,8 @@ func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using realtime decrypt graph running on GPU instead of equivalent CPU graph")
 	}
-	g := gc.NewGraph("RealtimeDecryptGPU", &KeygenDecryptStream{})
+	gcBlocked := graphs.ModifyGraphGeneratorForPermute(gc)
+	g := gcBlocked.NewGraph("RealtimeDecryptGPU", &KeygenDecryptStream{})
 
 	decryptKeygen := graphs.Keygen.DeepCopy()
 	decryptMul3Chunk := DecryptMul3Chunk.DeepCopy()

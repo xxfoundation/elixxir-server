@@ -20,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
+	"google.golang.org/protobuf/proto"
 	"io"
 	"strings"
 	"time"
@@ -79,10 +80,13 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	// For each message chunk (slot) stream it out
 	sendBuff := make([]*mixmessages.Slot, 0, blockSize)
 
+	packetSizeSum := 0
+
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
-
+			marshaled, _ := proto.Marshal(msg)
+			packetSizeSum += len(marshaled)
 			sendBuff = append(sendBuff, msg)
 
 			if len(sendBuff) == blockSize {
@@ -127,10 +131,11 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		"from: %s, to: %s, "+
 		"started: %v, "+
 		"ended: %v, "+
-		"duration: %d,",
+		"duration: %d, packetSize: %d",
 		roundID, currentPhase.GetType(),
 		instance.GetID(), recipientID,
-		start, end, end.Sub(start).Milliseconds())
+		start, end, end.Sub(start).Milliseconds(),
+		packetSizeSum/int(r.GetBatchSize()))
 
 	cancel()
 
