@@ -26,7 +26,7 @@ import (
 	"time"
 )
 
-const blockSize = 16
+const blockSize = 1
 
 // StreamTransmitPhase streams slot messages to the provided Node.
 func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
@@ -160,8 +160,13 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	slots, err := stream.Recv()
 	slotsReceived := uint32(0)
 	var start, end time.Time
-	for ; err == nil; slots, err = stream.Recv() {
 
+	last := time.Now()
+
+	for ; err == nil; slots, err = stream.Recv() {
+		now := time.Now()
+		jww.INFO.Printf("Reception Delta: %d ns", now.Sub(last).Nanoseconds())
+		last = now
 		for i := range slots.Messages {
 			slot := slots.Messages[i]
 			index := slot.Index
