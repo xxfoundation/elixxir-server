@@ -173,7 +173,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 			}
 
 			chunk := services.NewChunk(index, index+1)
-			p.Send(chunk)
+			go p.Send(chunk)
 
 			slotsReceived++
 			if slotsReceived >= batchSize && end.Equal(time.Time{}) {
