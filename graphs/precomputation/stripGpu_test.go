@@ -11,6 +11,7 @@ package precomputation
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/graphs"
@@ -23,6 +24,7 @@ import (
 // Shows that results from the strip GPU kernel are the same as those that
 // should be expected from running Strip phase manually
 func TestStripGPU_Graph(t *testing.T) {
+	viper.Set("useGPU", true)
 	grp := initStripGroup()
 
 	batchSize := uint32(100)

@@ -15,14 +15,13 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/utils"
+	"gitlab.com/xx_network/primitives/utils"
 	"os"
+	"os/signal"
 	"runtime"
+	"runtime/pprof"
 	"strings"
-	// net/http must be imported before net/http/pprof for the pprof import
-	// to automatically initialize its http handlers
-	"net/http"
-	_ "net/http/pprof"
+	"syscall"
 	"time"
 )
 
@@ -35,10 +34,6 @@ var maxProcsOverride int
 var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
-var disableIpOverride bool
-
-// If true, runs pprof http server
-var profile bool
 
 // rootCmd represents the base command when called without any sub-commands
 var rootCmd = &cobra.Command{
@@ -52,48 +47,69 @@ var rootCmd = &cobra.Command{
 		if !validConfig {
 			jww.FATAL.Panicf("Invalid Config File: %s", cfgFile)
 		}
-		if profile {
-			go func() {
-				// Do not expose this port over the
-				// network by serving on ":8087" or
-				// "0.0.0.0:8087". If you wish to profile
-				// production servers, do it by SSHing
-				// into the server and using go tool
-				// pprof. This provides simple access
-				// control for the profiling
-				jww.FATAL.Println(http.ListenAndServe(
-					"0.0.0.0:8087", nil))
-			}()
+
+		profileOut := viper.GetString("profile-cpu")
+		if profileOut != "" {
+			f, err := os.Create(profileOut)
+			if err != nil {
+				jww.FATAL.Panicf("%+v", err)
+			}
+			pprof.StartCPUProfile(f)
 		}
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
 
+		instance, err := StartServer(viper.GetViper())
+		// Retry to start the instance on certain errors
 		for {
-			instance, err := StartServer(viper.GetViper())
 			if err == nil {
 				break
 			}
 			errMsg := err.Error()
-			transport := strings.Contains(errMsg,
-				"transport is closing")
+			transport := strings.Contains(errMsg, "transport is closing")
 			cde := strings.Contains(errMsg, "DeadlineExceeded")
 			ndf := strings.Contains(errMsg, "ndf")
-			if ndf && (cde || transport) {
+			iot := strings.Contains(errMsg, "i/o timeout")
+			if (ndf && (cde || transport)) || iot {
 				if instance != nil && instance.GetNetwork() != nil {
 					instance.GetNetwork().Shutdown()
 				}
 				jww.ERROR.Print("Cannot start, permissioning " +
 					"is unavailable, retrying in 10s...")
 				time.Sleep(10 * time.Second)
+				instance, err = StartServer(viper.GetViper())
 				continue
 			}
 			jww.FATAL.Panicf("Failed to start server: %+v",
 				err)
 		}
 
-		// Prevent node from exiting
-		select {}
+		// Block forever on Signal Handler for safe program exit
+		stopCh := ReceiveExitSignal()
+
+		// Block forever to prevent the program ending
+		// Block until a signal is received, then call the function
+		// provided
+		select {
+		case <-stopCh:
+			jww.INFO.Printf(
+				"Received Exit (SIGTERM or SIGINT) signal...\n")
+			if profileOut != "" {
+				pprof.StopCPUProfile()
+			}
+		}
 	},
+}
+
+// ReceiveExitSignal signals a stop chan when it receives
+// SIGTERM or SIGINT
+func ReceiveExitSignal() chan os.Signal {
+	// Set up channel on which to send signal notifications.
+	// We must use a buffered channel or risk missing the signal
+	// if we're not ready to receive when the signal is sent.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	return c
 }
 
 // Execute adds all child commands to the root command and sets flags
@@ -129,20 +145,13 @@ func init() {
 	err := viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
 	handleBindingError(err, "logLevel")
 
-	rootCmd.Flags().BoolVar(&profile, "profile", false,
-		"Runs a pprof server at 0.0.0.0:8087 for profiling.")
-	err = rootCmd.Flags().MarkHidden("profile")
-	handleBindingError(err, "profile")
-	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
-	handleBindingError(err, "profile")
+	rootCmd.Flags().String("profile-cpu", "",
+		"Enable cpu profiling to this file")
+	viper.BindPFlag("profile-cpu", rootCmd.Flags().Lookup("profile-cpu"))
 
-	rootCmd.Flags().BoolVar(&disableIpOverride, "disableIpOverride", false,
-		"Disable override of local node IP address in the NDF.")
-	err = viper.BindPFlag("disableIpOverride", rootCmd.Flags().Lookup("disableIpOverride"))
-	handleBindingError(err, "disableIpOverride")
-
-	rootCmd.Flags().StringP("registrationCode", "", "",
-		"Registration code used for first time registration. Required field.")
+	rootCmd.Flags().String("registrationCode", "",
+		"Registration code used for first time registration. This is a unique "+
+			"code provided by xx network. (Required)")
 	err = viper.BindPFlag("registrationCode", rootCmd.Flags().Lookup("registrationCode"))
 	handleBindingError(err, "registrationCode")
 
@@ -161,16 +170,26 @@ func init() {
 	err = rootCmd.Flags().MarkHidden("MaxProcsOverride")
 	handleBindingError(err, "MaxProcsOverride")
 
-	rootCmd.Flags().BoolVarP(&disableStreaming, "disableStreaming", "", false,
+	rootCmd.Flags().BoolVar(&disableStreaming, "disableStreaming", false,
 		"Disables streaming comms.")
 
-	rootCmd.Flags().BoolVarP(&useGPU, "useGPU", "", false, "Toggle use of GPU.")
+	rootCmd.Flags().BoolVar(&useGPU, "useGPU", true, "Toggles use of the GPU.")
 	err = viper.BindPFlag("useGPU", rootCmd.Flags().Lookup("useGPU"))
 	handleBindingError(err, "useGPU")
 
 	// Gets flag for the batch size used in Test_MultiInstance_N3_B32_GPU
-	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0, "The batch size used in "+
-		"the multi-instance GPU test.")
+	flag.IntVar(&BatchSizeGPUTest, "batchSize", 0,
+		"The batch size used in the multi-instance GPU test.")
+
+	// NOTE: Meant for use by developer team ONLY. The development/maintenance
+	// team are NOT responsible for any issues encountered by any users
+	// who modify this logic or who run on the network with this option
+	rootCmd.Flags().Bool("devMode", false,
+		"Run in development/testing mode. Do not use on beta or main nets.")
+	err = rootCmd.Flags().MarkHidden("devMode")
+	handleBindingError(err, "devMode")
+	err = viper.BindPFlag("devMode", rootCmd.Flags().Lookup("devMode"))
+	handleBindingError(err, "devMode")
 
 }
 
@@ -182,17 +201,9 @@ func handleBindingError(err error, flag string) {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	//Use default config location if none is passed
+	// Use default config location if none is passed
 	if cfgFile == "" {
-		var err error
-		cfgFile, err = utils.SearchDefaultLocations("node.yaml", "xxnetwork")
-		if err != nil {
-			cfgFile, err = utils.SearchDefaultLocations("server.yaml", "xxnetwork")
-		}
-		if err != nil {
-			jww.FATAL.Panicf("No config provided and non found at default paths")
-		}
-
+		jww.FATAL.Panicf("No config file provided.")
 	}
 
 	f, err := os.Open(cfgFile)

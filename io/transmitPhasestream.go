@@ -22,6 +22,7 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"io"
 	"strings"
+	"time"
 )
 
 // StreamTransmitPhase streams slot messages to the provided Node.
@@ -35,9 +36,10 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	//get the round so you can get its batch size
 	r, err := instance.GetRoundManager().GetRound(roundID)
 	if err != nil {
-		return errors.Errorf("Could not retrieve round %d from manager  %s", roundID, err)
+		return errors.Errorf("Could not retrieve round %d from"+
+			" manager %s", roundID, err)
 	}
-
+	rType := r.GetCurrentPhaseType()
 	topology := r.GetTopology()
 	nodeID := instance.GetID()
 
@@ -45,8 +47,6 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	recipientID := topology.GetNextNode(nodeID)
 	recipientIndex := topology.GetNodeLocation(recipientID)
 	recipient := topology.GetHostAtIndex(recipientIndex)
-	fmt.Printf("***recipient: %+v\n", recipient.String())
-	fmt.Printf("***instance ID: %+v\n", instance.GetID())
 	header := mixmessages.BatchInfo{
 		Round: &mixmessages.RoundInfo{
 			ID: uint64(roundID),
@@ -67,18 +67,21 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	streamClient, cancel, err := instance.GetNetwork().GetPostPhaseStreamClient(
 		recipient, header)
 	if err != nil {
-		return errors.Errorf("Error on comm, unable to get streaming client: %+v",
-			err)
+		return errors.Errorf("Error on comm, unable to get streaming "+
+			"client: %+v", err)
 	}
 
+	//pull the first chunk reception out so it can be timestmaped
+	chunk, finish := getChunk()
+	start := time.Now()
 	// For each message chunk (slot) stream it out
-	for chunk, finish := getChunk(); finish; chunk, finish = getChunk() {
+	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
 			err = streamClient.Send(msg)
 			if err != nil {
-				return errors.Errorf("Error on comm, not able to send slot: %+v",
-					err)
+				return errors.Errorf("Error on comm, not able to send "+
+					"slot: %+v", err)
 			}
 		}
 	}
@@ -93,10 +96,23 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	localServer := instance.GetNetwork().String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nodeID, port)
-	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID), topology.Len())
+	name := services.NameStringer(addr, topology.GetNodeLocation(nodeID),
+		topology.Len())
 
-	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\" COMPLETE/SEND",
-		name, roundID, r.GetCurrentPhaseType())
+	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\""+
+		" COMPLETE/SEND", name, roundID, rType)
+
+	end := time.Now()
+
+	jww.INFO.Printf("\tbwLogging: Round %d, "+
+		"transmitted phase: %s, "+
+		"from: %s, to: %s, "+
+		"started: %v, "+
+		"ended: %v, "+
+		"duration: %d,",
+		roundID, currentPhase.GetType(),
+		instance.GetID(), recipientID,
+		start, end, end.Sub(start).Milliseconds())
 
 	cancel()
 
@@ -115,10 +131,11 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 // StreamPostPhase implements the server gRPC handler for posting a
 // phase from another node
 func StreamPostPhase(p phase.Phase, batchSize uint32,
-	stream mixmessages.Node_StreamPostPhaseServer) error {
+	stream mixmessages.Node_StreamPostPhaseServer) (time.Time, error) {
 	// Send a chunk for each slot received along with
 	// its index until an error is received
 	slot, err := stream.Recv()
+	start := time.Now()
 	slotsReceived := uint32(0)
 	for ; err == nil; slot, err = stream.Recv() {
 		index := slot.Index
@@ -127,7 +144,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		if phaseErr != nil {
 			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
 				index, slot, phaseErr)
-			return phaseErr
+			return start, phaseErr
 		}
 
 		chunk := services.NewChunk(index, index+1)
@@ -141,18 +158,22 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		Error: "",
 	}
 	if err != io.EOF {
-		ack = messages.Ack{
-			Error: "failed to receive all slots: " + err.Error(),
-		}
-	}
-
-	if slotsReceived != batchSize {
-		err = errors.Errorf("Mismatch between batch size %v"+
-			"and received num slots %v", batchSize, slotsReceived)
-		return err
+		ack.Error = fmt.Sprintf("errors occurred, %v/%v slots "+
+			"recived: %s", slotsReceived, batchSize, err.Error())
+	} else if slotsReceived != batchSize {
+		ack.Error = fmt.Sprintf("Mismatch between batch size %v"+
+			"and received num slots %v, no error", slotsReceived, batchSize)
 	}
 
 	// Close the stream by sending ack
 	// and returning whether it succeeded
-	return stream.SendAndClose(&ack)
+	errClose := stream.SendAndClose(&ack)
+
+	if errClose != nil && ack.Error != "" {
+		return start, errors.WithMessage(errClose, ack.Error)
+	} else if errClose == nil && ack.Error != "" {
+		return start, errors.New(ack.Error)
+	} else {
+		return start, errClose
+	}
 }

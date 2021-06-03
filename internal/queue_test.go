@@ -13,8 +13,6 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
@@ -22,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"runtime"
 	"sync"
@@ -57,6 +56,10 @@ var grp = cyclic.NewGroup(pPrime, g)
 type MockPhase struct {
 	chunks  []services.Chunk
 	indices []uint32
+}
+
+func (mp *MockPhase) GetAlternate() (bool, func()) {
+	panic("implement me")
 }
 
 func (mp *MockPhase) Send(chunk services.Chunk) {
@@ -115,11 +118,11 @@ func TestResourceQueue_RunOne(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{nid})
 	def := Definition{
 		ID:              nid,
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           Flags{DisableIpOverride: true},
+		Flags:           Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = nid.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -139,9 +142,9 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	myGrp := cyclic.NewGroup(pPrime, g)
 
-	r, err := round.New(myGrp, instance.GetUserRegistry(), roundID, []phase.Phase{p},
+	r, err := round.New(myGrp, instance.GetStorage(), roundID, []phase.Phase{p},
 		responseMap, topology, instance.GetID(), 1,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -213,8 +216,12 @@ func makeTestPhase(instance *Instance, name phase.Type,
 		return nil
 	}
 	timeout := 500 * time.Millisecond
-	p := phase.New(phase.Definition{makeTestGraph(instance, 1), name, transmissionHandler,
-		timeout, false})
+	p := phase.New(phase.Definition{
+		Graph:               makeTestGraph(instance, 1),
+		Type:                name,
+		TransmissionHandler: transmissionHandler,
+		Timeout:             timeout,
+		DoVerification:      false})
 	return p
 }
 

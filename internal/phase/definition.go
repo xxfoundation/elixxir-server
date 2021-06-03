@@ -18,6 +18,7 @@ import (
 // phase type, handler and graph
 type Definition struct {
 	Graph               *services.Graph
+	Alternate           func()
 	Type                Type
 	TransmissionHandler Transmit
 	Timeout             time.Duration

@@ -21,7 +21,7 @@ import (
 )
 
 // Handles incoming Poll gateway responses, compares our NDF with the existing ndf
-func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gatewayAddress string,
+func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 	auth *connect.Auth) (*mixmessages.ServerPollResponse, error) {
 
 	// Check that the sender is authenticated and is either their gateway or the temporary gateway
@@ -32,11 +32,8 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 
 	res := mixmessages.ServerPollResponse{}
 
-	jww.TRACE.Printf("Gateway Info: %s, %s", gatewayAddress,
-		poll.GatewayVersion)
-
-	// Form gateway address and put it into gateway data in instance
-	instance.UpsertGatewayData(gatewayAddress, poll.GatewayVersion)
+	// Put gateway address and version into gateway data in instance
+	instance.UpsertGatewayData(poll.GatewayAddress, poll.GatewayVersion)
 
 	// Asynchronously indicate that gateway has successfully contacted
 	// its node
@@ -52,30 +49,39 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance, gate
 			res.PartialNDF = network.GetPartialNdf().GetPb()
 		}
 
-		//Compare Full NDF hash with instance and return the new one if they do not match
-		isSame = network.GetFullNdf().CompareHash(poll.GetFull().Hash)
-		if !isSame {
-			res.FullNDF = network.GetFullNdf().GetPb()
-		}
-
-		// Populate the id field
-		res.Id = instance.GetID().Bytes()
-
-		//Check if any updates where made and get them
-		res.Updates = network.GetRoundUpdates(int(poll.LastUpdate))
-
 		// Get the request for a new batch que and store it into res
 		res.BatchRequest, _ = instance.GetRequestNewBatchQueue().Receive()
 
 		//get a completed batch if it exists and pass it to the gateway
 		cr, err := instance.GetCompletedBatchQueue().Receive()
-		if err != nil && !strings.Contains(err.Error(), "Did not recieve a completed round") {
+		if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
+		// Send the batch only if it is ready
 		if cr != nil {
-			res.Slots = cr.Round
+			batch := &mixmessages.CompletedBatch{
+				RoundID: uint64(cr.RoundID),
+				Slots:   cr.Round,
+			}
+			res.Batch = batch
+		} else {
+			//Compare Full NDF hash with instance and
+			// return the new one if they do not match
+			// otherwise return round updates
+			isSame = network.GetFullNdf().CompareHash(
+				poll.GetFull().Hash)
+			if isSame {
+				//Check if any updates where made and get them
+				res.Updates = network.GetRoundUpdates(
+					int(poll.LastUpdate))
+			} else {
+				res.FullNDF = network.GetFullNdf().GetPb()
+			}
 		}
+
+		// Populate the id field
+		res.Id = instance.GetID().Bytes()
 
 		// denote that gateway has received info,
 		// only does something the first time

@@ -11,6 +11,7 @@ package precomputation
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/gpumathsgo"
@@ -22,6 +23,7 @@ import (
 )
 
 func TestPermuteGpuGraph(t *testing.T) {
+	viper.Set("useGPU", true)
 	grp := initPermuteGroup()
 
 	batchSize := uint32(100)

@@ -31,15 +31,19 @@ import (
 // Perform the Node registration process with the Permissioning Server
 func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
-	node := strings.Split(def.Address, ":")
-	nodePort, _ := strconv.ParseUint(node[1], 10, 32)
+	node, nodePort, err := net.SplitHostPort(def.PublicAddress)
+	if err != nil {
+		return errors.Errorf("Failed to split host and port of public address "+
+			"%s: %+v", def.PublicAddress, err)
+	}
+	nodePortInt, _ := strconv.ParseUint(nodePort, 10, 32)
 
 	// Get the gateway's address
 	gwAddr, _ := instance.GetGatewayData()
 	// Split the address into port and address for message
 	gwIP, gwPortStr, err := net.SplitHostPort(gwAddr)
 	if err != nil {
-		return errors.Errorf("Unable to parse gateway's address. Is it set up correctly?")
+		return errors.Errorf("Unable to parse gateway's address [%s]. Is it set up correctly?", gwAddr)
 	}
 
 	// Convert port to int to conform to message type
@@ -56,8 +60,8 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 			GatewayTlsCert:   string(def.Gateway.TlsCert),
 			GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
 			GatewayPort:      uint32(gwPort),
-			ServerAddress:    node[0],
-			ServerPort:       uint32(nodePort),
+			ServerAddress:    node,
+			ServerPort:       uint32(nodePortInt),
 			RegistrationCode: def.RegistrationCode,
 		})
 	if err != nil {
@@ -111,8 +115,9 @@ func Poll(instance *internal.Instance) error {
 	return err
 }
 
-// PollPermissioning polls the permissioning server for updates
-func PollPermissioning(permHost *connect.Host, instance *internal.Instance, reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
+// PollPermissioning  the permissioning server for updates
+func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
+	reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -141,6 +146,20 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		return nil, err
 	}
 
+	var clientReport []*pb.ClientError
+	latestRound := instance.GetRoundManager().GetCurrentRound()
+	if reportedActivity == current.COMPLETED {
+		clientReport, err = instance.GetClientReport().Receive(latestRound)
+		if err != nil {
+			jww.ERROR.Printf("Unable to receive client report: %+v", err)
+		}
+		if len(clientReport) > 0 {
+			jww.WARN.Printf("Client error reports found for"+
+				" round %v: %d reports found", latestRound, len(clientReport))
+		}
+
+	}
+
 	gatewayAddr, gatewayVer := instance.GetGatewayData()
 
 	// Construct a message for permissioning with above information
@@ -153,8 +172,9 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance, repo
 		GatewayVersion: gatewayVer,
 		GatewayAddress: gatewayAddr,
 
-		ServerPort:    uint32(port),
+		ServerAddress: instance.GetIP(),
 		ServerVersion: instance.GetServerVersion(),
+		ClientErrors:  clientReport,
 	}
 
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,
@@ -346,13 +366,21 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 }
 
 // Processes the polling response from permissioning for ndf updates,
-// installing any ndf changes if needed and connecting to new nodes
+// installing any ndf changes if needed and connecting to new nodes. Also saves
+// a list of node addresses found in the NDF to a separate file.
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
 		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {
 			return errors.Errorf("Could not update full ndf: %+v", err)
+		}
+
+		// Save the list of node IP addresses to file
+		err = SaveNodeIpList(instance.GetConsensus().GetFullNdf().Get(),
+			instance.GetDefinition().IpListOutput, instance.GetDefinition().ID)
+		if err != nil {
+			jww.ERROR.Printf("Failed to save list of IP addresses from NDF: %v", err)
 		}
 	}
 
@@ -378,13 +406,13 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 }
 
 // FindSelfInNdf parses the ndf to determine if we exist in the ndf.
-func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) error {
+func FindSelfInNdf(def *internal.Definition, newNdf *ndf.NetworkDefinition) bool {
 	// Find this node's place in the newNDF
 	for _, newNode := range newNdf.Nodes {
 		// If we exist in the ndf, return no error
-		if bytes.Compare(newNode.ID, def.ID.Bytes()) == 0 {
-			return nil
+		if bytes.Equal(newNode.ID, def.ID.Bytes()) {
+			return true
 		}
 	}
-	return errors.New("Failed to find node in ndf, maybe node registration failed?")
+	return false
 }

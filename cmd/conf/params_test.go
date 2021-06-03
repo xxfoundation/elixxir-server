@@ -47,12 +47,13 @@ func TestNewParams_ReturnsParamsWhenGivenValidViper(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedParams.Node, params.Node) {
-		t.Errorf("Params node value does not match expected value\nActual: %v"+
-			"\nExpected: %v", params.Node, expectedParams.Node)
+		t.Errorf("Params node value does not match expected value."+
+			"\nexpected: %+v\nreceived: %+v", expectedParams.Node, params.Node)
 	}
 
 	if !reflect.DeepEqual(expectedParams.Database, params.Database) {
-		t.Errorf("Params database value does not match expected value")
+		t.Errorf("Params database value does not match expected value, got %+v expected %+v",
+			params.Database, expectedParams.Database)
 	}
 
 	if expectedParams.KeepBuffers != params.KeepBuffers {

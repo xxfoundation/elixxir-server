@@ -14,13 +14,14 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/gpumathsgo"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"sync/atomic"
@@ -59,13 +60,13 @@ type Round struct {
 	rtEndTime   time.Time
 }
 
-// Creates and initializes a new round, including all phases, topology,
-// and batchsize
-func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
+// New creates and initializes a new round, including all phases, topology,
+// and batch size
+func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
-	localIP string, errorHandler services.ErrorCallback) (*Round, error) {
+	localIP string, errorHandler services.ErrorCallback, clientErr *ClientReport) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
@@ -83,9 +84,11 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	round.phaseStateUpdateSignal = make(chan struct{}, 1)
 
 	for index, p := range phases {
-		p.GetGraph().Build(batchSize, errorHandler)
-		if p.GetGraph().GetExpandedBatchSize() > maxBatchSize {
-			maxBatchSize = p.GetGraph().GetExpandedBatchSize()
+		if p.GetGraph() != nil {
+			p.GetGraph().Build(batchSize, errorHandler)
+			if p.GetGraph().GetExpandedBatchSize() > maxBatchSize {
+				maxBatchSize = p.GetGraph().GetExpandedBatchSize()
+			}
 		}
 
 		// the NumStates-2 exists because the Initialized and verified states
@@ -158,8 +161,19 @@ func New(grp *cyclic.Group, userDB globals.UserRegistry, id id.Round,
 	}
 
 	for index, p := range phases {
-		p.GetGraph().Link(grp, round.GetBuffer(), userDB, rngStreamGen, streamPool)
+		// If in realDecrypt, we need to handle client specific errors
+		if p.GetGraph() != nil {
+			if p.GetType() == phase.RealDecrypt {
+				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool, clientErr, id)
+			} else {
+				// Other phases can operate normally
+				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool)
+
+			}
+		}
+
 		round.phaseMap[p.GetType()] = index
+
 	}
 
 	round.phases = make([]phase.Phase, len(phases))
@@ -261,7 +275,8 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 
 	if err != nil {
 		jww.FATAL.Panicf("phase %s looked up up from response map "+
-			"does not exist in round", response.GetPhaseLookup())
+			"with tag %s does not exist in round", response.GetPhaseLookup(),
+			commTag)
 	}
 
 	t := time.NewTimer(15 * time.Second)
@@ -361,4 +376,25 @@ func (r *Round) GetRTEnd() time.Time {
 // GetRTPayload gets the payload info for the rt ping
 func (r *Round) GetRTPayload() string {
 	return r.roundMetrics.RTPayload
+}
+
+// AddFinalShareMessage adds to the message tracker final share piece from the sender
+// If we have a message in there already, we error
+func (r *Round) AddFinalShareMessage(piece *pb.SharePiece, origin *id.ID) error {
+	return r.buffer.AddFinalShareMessage(piece, origin)
+}
+
+// GetPieceMessagesByNode gets final share piece message received by the
+// specified nodeID
+func (r *Round) GetPieceMessagesByNode(origin *id.ID) *pb.SharePiece {
+	return r.buffer.GetPieceMessagesByNode(origin)
+}
+
+// UpdateFinalKeys adds a new key to the list of final keys
+func (r *Round) UpdateFinalKeys(piece *cyclic.Int) []*cyclic.Int {
+	return r.buffer.UpdateFinalKeys(piece)
+}
+
+func (r *Round) IncrementShares() uint32 {
+	return r.buffer.IncrementShares()
 }

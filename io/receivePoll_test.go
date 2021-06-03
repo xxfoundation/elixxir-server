@@ -8,11 +8,13 @@
 package io
 
 import (
+	"testing"
+	"time"
+
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network/dataStructures"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
@@ -20,29 +22,25 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	ndf2 "gitlab.com/xx_network/primitives/ndf"
-	"testing"
-	"time"
 )
 
 func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *pb.ServerPoll,
 	[]byte, *rsa.PrivateKey) {
 	//Get a new ndf
-	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	testNdf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf")
-		t.Fail()
+		t.Error("Failed to decode ndf")
 	}
 
 	// Since no deep copy of ndf exists we create a new object entirely for second ndf that
 	// We use to test against
-	test2Ndf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	test2Ndf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf 2")
-		t.Fail()
+		t.Fatal("Failed to decode ndf 2")
 	}
 
 	// Change the time of the ndf so we can generate a different hash for use in comparisons
@@ -59,11 +57,11 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
 		Gateway:         ourGateway,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -93,7 +91,9 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", cert, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", cert, params)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
@@ -105,7 +105,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		t.Log(err)
 		t.Fail()
 	}
-	err = signature.Sign(&f, privKey)
+	err = signature.SignRsa(&f, privKey)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
@@ -126,12 +126,13 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 
 	fullHash1 := instance.GetConsensus().GetFullNdf().GetHash()
 
-	//Push a round update that can be used for the test:
+	// Push a round update that can be used for the test:
 	poll := pb.ServerPoll{
-		Full:       &pb.NDFHash{Hash: fullHash1},
-		Partial:    &pb.NDFHash{Hash: fullHash1},
-		LastUpdate: 0,
-		Error:      "",
+		Full:           &pb.NDFHash{Hash: fullHash1},
+		Partial:        &pb.NDFHash{Hash: fullHash1},
+		LastUpdate:     0,
+		Error:          "",
+		GatewayAddress: "1.2.3.4:11420",
 	}
 
 	fullHash2, err := dataStructures.GenerateNDFHash(test2Ndf)
@@ -160,13 +161,15 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 	}()
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		t.Fail()
@@ -176,8 +179,8 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		t.Fail()
 	}
 
-	if res.Slots != nil {
-		t.Errorf("ServerPollResponse.Slots is not nil")
+	if res.Batch != nil {
+		t.Errorf("ServerPollResponse.Batch is not nil")
 		t.Fail()
 	}
 	if res.BatchRequest != nil {
@@ -204,13 +207,15 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 	poll.Full.Hash = fullHash2
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -223,18 +228,20 @@ func TestReceivePoll_DifferentFullNDF(t *testing.T) {
 }
 
 // Test that when the fulll ndf hash is the same as the
-// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestRecievePoll_SameFullNDF(t *testing.T) {
+// incomming ndf hash the ndf returned in the server poll is the same ndf we started out withfunc TestReceivePoll_SameFullNDF(t *testing.T) {
 func TestReceivePoll_SameFullNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -253,13 +260,15 @@ func TestReceivePoll_DifferentPartiallNDF(t *testing.T) {
 	poll.Partial.Hash = fullHash2
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -277,13 +286,15 @@ func TestReceivePoll_SamePartialNDF(t *testing.T) {
 	instance, poll, _, _ := setupTests(t, current.REALTIME)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -302,13 +313,15 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 	PushNRoundUpdates(10, instance, privKey, t)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error: %v", err)
 		t.Fail()
@@ -316,7 +329,7 @@ func TestReceivePoll_GetRoundUpdates(t *testing.T) {
 
 	t.Logf("ROUND Updates: %v", res.Updates)
 	if len(res.Updates) == 0 {
-		t.Logf("We did not recieve any updates")
+		t.Logf("We did not receive any updates")
 		t.Fail()
 	}
 
@@ -345,13 +358,15 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 	}
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -367,13 +382,13 @@ func TestReceivePoll_GetBatchRequest(t *testing.T) {
 		t.Logf("Failed to send roundInfo to que %v", err)
 	}
 
-	h, _ = connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	h, _ = connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err = ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err = ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
@@ -402,7 +417,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		ID: uint64(23),
 	}
 
-	err = signature.Sign(newRound, privKey)
+	err = signature.SignRsa(newRound, privKey)
 	if err != nil {
 		t.Logf("Could not sign RoundInfo: %v", err)
 		t.Fail()
@@ -430,25 +445,27 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 	}
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, testGatewayAddress, auth)
+	res, err := ReceivePoll(poll, &instance, auth)
 	if err != nil {
 		t.Logf("Unexpected error %v", err)
 		t.Fail()
 	}
 
-	if len(res.Slots) != 10 {
-		t.Logf("We did not recieve the expected amount of slots")
+	if len(res.Batch.Slots) != 10 {
+		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 
 	for k := uint32(0); k < 10; k++ {
-		if res.Slots[k].Index != k {
+		if res.Batch.Slots[k].Index != k {
 			t.Logf("Slots did not match expected index")
 		}
 	}
@@ -462,7 +479,9 @@ func TestReceivePoll_Unauthenticated(t *testing.T) {
 	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
@@ -471,7 +490,7 @@ func TestReceivePoll_Unauthenticated(t *testing.T) {
 	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
 
 	// Call ReceivePoll with bad auth
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err.Error() != expectedError {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -487,7 +506,9 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 	badGatewayId := id.NewIdFromString("bad", id.Gateway, t)
 
 	// Create host and auth
-	h, _ := connect.NewHost(badGatewayId, testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(badGatewayId, testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -496,7 +517,7 @@ func TestReceivePoll_Auth_BadId(t *testing.T) {
 	// Reset auth error
 	expectedError := connect.AuthError(auth.Sender.GetId()).Error()
 
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err.Error() != expectedError {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -512,14 +533,16 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	instance, pollMsg, _, _ := setupTests(t, current.REALTIME)
 
 	// Create host and auth
-	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), testGatewayAddress, nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
 	// Happy path of 1st receive poll for auth
-	_, err := ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err := ReceivePoll(pollMsg, &instance, auth)
 	if err != nil {
 		t.Errorf("Did not receive expected error!"+
 			"\n\tExpected: %v"+
@@ -531,14 +554,14 @@ func TestReceivePoll_Auth_DoublePoll(t *testing.T) {
 	newGatewayId.SetType(id.Gateway)
 
 	// Create host and auth with new parameters, namely a gateway id based off of the server id
-	h, _ = connect.NewHost(newGatewayId, testGatewayAddress, nil, false, false)
+	h, _ = connect.NewHost(newGatewayId, testGatewayAddress, nil, params)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
 	}
 
 	// Attempt second poll with new, expected parameters
-	_, err = ReceivePoll(pollMsg, &instance, testGatewayAddress, auth)
+	_, err = ReceivePoll(pollMsg, &instance, auth)
 	if err != nil {
 		t.Errorf("Expected happy path, received error: %v", err)
 	}

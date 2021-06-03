@@ -10,7 +10,6 @@ package io
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -31,7 +30,9 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -70,9 +71,9 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.PrecompReveal
 	rnd, err := round.New(grp,
-		instance.GetUserRegistry(), roundID, []phase.Phase{p}, responseMap,
+		instance.GetStorage(), roundID, []phase.Phase{p}, responseMap,
 		topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -81,7 +82,9 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -114,11 +117,11 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	topology := connect.NewCircuit(nodeIDs)
 	for i := 0; i < numNodes; i++ {
 		def := internal.Definition{
-			UserRegistry:    &globals.UserMap{},
 			ResourceMonitor: &measure.ResourceMonitor{},
 			FullNDF:         testUtil.NDF,
 			PartialNDF:      testUtil.NDF,
-			Flags:           internal.Flags{DisableIpOverride: true},
+			Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+			DevMode:         true,
 		}
 		def.ID = topology.GetNodeAtIndex(1)
 		def.Gateway.ID = def.ID.DeepCopy()
@@ -130,7 +133,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			m, "1.1.0")
 		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 			make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-			3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+			3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
@@ -152,9 +155,10 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		p := testUtil.InitMockPhase(t)
 		p.Ptype = phase.PrecompReveal
 		rnd, err := round.New(grp,
-			instances[i].GetUserRegistry(), roundID,
+			instances[i].GetStorage(), roundID,
 			[]phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i),
-			3, instances[i].GetRngStreamGen(), nil, "0.0.0.0", nil)
+			3, instances[i].GetRngStreamGen(), nil,
+			"0.0.0.0", nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
@@ -169,7 +173,9 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	// Build a host around the last node
 	lastNodeIndex := topology.Len() - 1
 	lastNodeId := topology.GetNodeAtIndex(lastNodeIndex)
-	fakeHost, err := connect.NewHost(lastNodeId, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(lastNodeId, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -210,7 +216,9 @@ func TestPostPrecompResultFunc(t *testing.T) {
 func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
 
-	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(topology.GetNodeAtIndex(0), "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}
@@ -231,7 +239,9 @@ func TestPostPrecompResult_WrongSender(t *testing.T) {
 	instance, _ := mockServerInstance(t, current.PRECOMPUTING)
 
 	newID := id.NewIdFromString("bad", id.Node, t)
-	fakeHost, err := connect.NewHost(newID, "", nil, true, true)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	fakeHost, err := connect.NewHost(newID, "", nil, params)
 	if err != nil {
 		t.Errorf("Failed to create fakeHost, %s", err)
 	}

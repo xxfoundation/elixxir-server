@@ -12,15 +12,16 @@ import (
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"math/rand"
@@ -32,17 +33,18 @@ import (
 
 // Fill part of message with random payloads
 // Fill part of message with random payloads
-func makeMsg() *format.Message {
+func makeMsg(grp *cyclic.Group) *format.Message {
+	primeLegnth := len(grp.GetPBytes())
 	rng := rand.New(rand.NewSource(21))
-	payloadA := make([]byte, format.PayloadLen)
-	payloadB := make([]byte, format.PayloadLen)
+	payloadA := make([]byte, primeLegnth)
+	payloadB := make([]byte, primeLegnth)
 	rng.Read(payloadA)
 	rng.Read(payloadB)
-	msg := format.NewMessage()
+	msg := format.NewMessage(primeLegnth)
 	msg.SetPayloadA(payloadA)
-	msg.SetDecryptedPayloadB(payloadB)
+	msg.SetPayloadB(payloadB)
 
-	return msg
+	return &msg
 }
 
 func TestClientServer(t *testing.T) {
@@ -61,15 +63,17 @@ func TestClientServer(t *testing.T) {
 	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(2))
 
+	rid := id.Round(42)
+
 	//Generate everything needed to make a user
 	nid := internal.GenerateId(t)
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		PartialNDF:      testUtil.NDF,
 		FullNDF:         testUtil.NDF,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = nid.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -104,9 +108,13 @@ func TestClientServer(t *testing.T) {
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
 		"1.1.0")
-	registry := instance.GetUserRegistry()
-	usr := registry.NewUser(grp)
-	registry.UpsertUser(usr)
+	registry := instance.GetStorage()
+	usr := &storage.Client{
+		Id:           nil,
+		DhKey:        grp.NewInt(5).Bytes(),
+		IsRegistered: false,
+	}
+	_ = registry.UpsertClient(usr)
 
 	//Generate the user's key
 	var chunk services.Chunk
@@ -119,11 +127,13 @@ func TestClientServer(t *testing.T) {
 	testSalts = append(testSalts, testSalt)
 	//Generate an array of users for linking
 	usrs := make([]*id.ID, 0)
-	usrs = append(usrs, usr.ID)
+	usrId, _ := usr.GetId()
+	usrs = append(usrs, usrId)
 	//generate an array of keys for linking
-	keys := grp.NewIntBuffer(1, usr.BaseKey)
+	keys := grp.NewIntBuffer(1, usr.GetDhKey(grp))
 	kmacs := make([][][]byte, 1)
-	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys)
+	reporter := round.NewClientFailureReport(nid)
+	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)
@@ -131,13 +141,13 @@ func TestClientServer(t *testing.T) {
 	//Create an array of basekeys to prepare for encryption
 	userBaseKeys := make([]*cyclic.Int, 0)
 	//FIXME: This is probably wrong
-	userBaseKeys = append(userBaseKeys, usr.BaseKey)
+	userBaseKeys = append(userBaseKeys, usr.GetDhKey(grp))
 
 	//Generate a mock message
-	inputMsg := makeMsg()
+	inputMsg := makeMsg(grp)
 
 	//Encrypt the input message
-	encryptedMsg := cmix.ClientEncrypt(grp, inputMsg, testSalt, userBaseKeys)
+	encryptedMsg := cmix.ClientEncrypt(grp, *inputMsg, testSalt, userBaseKeys, rid)
 
 	//Generate an encrypted message using the keys manually, test output agains encryptedMsg above
 	hash, err := blake2b.New256(nil)
@@ -148,8 +158,8 @@ func TestClientServer(t *testing.T) {
 	hash.Reset()
 	hash.Write(testSalt)
 
-	keyA := cmix.ClientKeyGen(grp, testSalt, userBaseKeys)
-	keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), userBaseKeys)
+	keyA := cmix.ClientKeyGen(grp, testSalt, rid, userBaseKeys)
+	keyB := cmix.ClientKeyGen(grp, hash.Sum(nil), rid, userBaseKeys)
 	keyA_Inv := grp.Inverse(keyA, grp.NewInt(1))
 	keyB_Inv := grp.Inverse(keyB, grp.NewInt(1))
 
@@ -158,11 +168,11 @@ func TestClientServer(t *testing.T) {
 
 	grp.Mul(keyA_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadA()), multPayloadA)
 	grp.Mul(keyB_Inv, grp.NewIntFromBytes(encryptedMsg.GetPayloadB()), multPayloadB)
-
-	testMsg := format.NewMessage()
+	primeLength := len(grp.GetPBytes())
+	testMsg := format.NewMessage(primeLength)
 
 	testMsg.SetPayloadA(multPayloadA.Bytes())
-	testMsg.SetDecryptedPayloadB(multPayloadB.LeftpadBytes(format.PayloadLen))
+	testMsg.SetPayloadB(multPayloadB.LeftpadBytes(uint64(primeLength)))
 
 	//Compare the payloads of the 2 messages
 	if !reflect.DeepEqual(testMsg.GetPayloadA(), inputMsg.GetPayloadA()) {

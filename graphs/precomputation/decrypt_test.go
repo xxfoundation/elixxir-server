@@ -9,13 +9,14 @@ package precomputation
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/large"
 	"reflect"
 	"runtime"
 	"testing"
@@ -243,6 +244,7 @@ func TestDecryptStream_Interface(t *testing.T) {
 }
 
 func TestDecryptGraph(t *testing.T) {
+	viper.Set("useGPU", false)
 
 	grp := initDecryptGroup()
 

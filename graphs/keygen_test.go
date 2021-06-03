@@ -9,6 +9,7 @@ package graphs
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
@@ -16,15 +17,17 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
+	"strconv"
 	"testing"
 )
 
@@ -46,14 +49,10 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.KeygenSubStream.LinkStream(grp,
-		instance.GetUserRegistry(),
-		make([][]byte, batchSize),
-		make([][][]byte, batchSize),
-		make([]*id.ID, batchSize),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-	)
+	s.KeygenSubStream.LinkStream(grp, instance.GetStorage(), make([][]byte, batchSize),
+		make([][][]byte, batchSize), make([]*id.ID, batchSize),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		round.NewClientFailureReport(instance.GetID()), 0, batchSize)
 }
 
 func (s *KeygenTestStream) Input(index uint32,
@@ -125,7 +124,7 @@ func TestKeygenStreamAdapt_Errors(t *testing.T) {
 	}
 }*/
 
-var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte, baseKey, key *cyclic.Int) {
+var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte, roundID id.Round, baseKey, key *cyclic.Int) {
 	// returns the base key XOR'd with the salt
 	// this is the easiest way to ensure both pieces of data are passed to the
 	// op from the adapter
@@ -141,18 +140,30 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 // do other things
 func TestKeygenStreamInGraph(t *testing.T) {
 	instance := mockServerInstance(t)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	grp := instance.GetConsensus().GetCmixGroup()
-	u := registry.NewUser(grp)
-	u.IsRegistered = true
-	registry.UpsertUser(u)
+	uid := id.NewIdFromString("test", id.User, t)
+
+	h := sha256.New()
+
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+
+	u := &storage.Client{
+		Id:           uid.Marshal(),
+		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+		IsRegistered: true,
+	}
+	_ = registry.UpsertClient(u)
+
+	rid := id.Round(42)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.BaseKey.BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -183,7 +194,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		t.Errorf("Could not get a hash for kmacs: %+v", err)
 	}
 
-	kmac := cmix.GenerateKMAC(testSalt, u.BaseKey, cmixHash)
+	kmac := cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, cmixHash)
 
 	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
@@ -197,6 +208,9 @@ func TestKeygenStreamInGraph(t *testing.T) {
 	g.Build(batchSize, PanicHandler)
 	//rb := round.NewBuffer(grp, batchSize, batchSize)
 	g.Link(grp, instance)
+	//set the round ID
+	stream.RoundId = rid
+
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
@@ -208,7 +222,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
 		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
 		stream.salts[i] = testSalt
-		stream.users[i] = u.ID
+		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
 	}
 	// Here's the actual data for the test
@@ -224,8 +238,8 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// inspect stream output: XORing the salt with the output should
 			// return the original base key
-			resultA := stream.KeysA.Get(uint32(i))
-			resultB := stream.KeysB.Get(uint32(i))
+			resultA := stream.KeysA.Get(i)
+			resultB := stream.KeysB.Get(i)
 			resultABytes := resultA.Bytes()
 			resultBBytes := resultB.Bytes()
 			// So, why is ResultBytes 256 bytes long,
@@ -238,11 +252,11 @@ func TestKeygenStreamInGraph(t *testing.T) {
 			}
 
 			// Check result and base key. They should be equal
-			if !bytes.Equal(resultABytes, u.BaseKey.Bytes()) {
+			if !bytes.Equal(resultABytes, u.DhKey) {
 				t.Error("Keygen: Base key and result key A weren't equal")
 			}
 
-			if !bytes.Equal(resultBBytes, u.BaseKey.Bytes()) {
+			if !bytes.Equal(resultBBytes, u.DhKey) {
 				t.Error("Keygen: Base key and result key B weren't equal")
 			}
 		}
@@ -254,18 +268,28 @@ func TestKeygenStreamInGraph(t *testing.T) {
 // do other things
 func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 	instance := mockServerInstance(t)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	grp := instance.GetConsensus().GetCmixGroup()
-	u := registry.NewUser(grp)
-	u.IsRegistered = false
-	registry.UpsertUser(u)
+	uid := id.NewIdFromString("test", id.User, t)
 
+	h := sha256.New()
+
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+
+	u := &storage.Client{
+		Id:           uid.Marshal(),
+		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+		IsRegistered: false,
+	}
+	_ = registry.UpsertClient(u)
+	rid := id.Round(42)
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.BaseKey.BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -290,7 +314,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		t.Errorf("Could not get a hash for kmacs: %+v", err)
 	}
 
-	kmac := cmix.GenerateKMAC(testSalt, u.BaseKey, cmixHash)
+	kmac := cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, cmixHash)
 
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
@@ -319,7 +343,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
 		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
 		stream.salts[i] = testSalt
-		stream.users[i] = u.ID
+		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
 	}
 	// Here's the actual data for the test
@@ -352,6 +376,13 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 			}
 		}
 	}
+
+	clientErrs, err := stream.userErrors.Receive(stream.RoundId)
+	if clientErrs == nil || err != nil {
+		t.Errorf("Expected to have errors in channel!"+
+			"\n\tError received: %v"+
+			"\n\tClient errors: %v", err, clientErrs)
+	}
 }
 
 // High-level test of the reception keygen adapter when the KMAC is invalid
@@ -359,18 +390,27 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 // do other things
 func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	instance := mockServerInstance(t)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 	grp := instance.GetConsensus().GetCmixGroup()
-	u := registry.NewUser(grp)
-	u.IsRegistered = true
-	registry.UpsertUser(u)
+	uid := id.NewIdFromString("test", id.User, t)
+
+	h := sha256.New()
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+
+	u := &storage.Client{
+		Id:           uid.Marshal(),
+		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+		IsRegistered: true,
+	}
+	_ = registry.UpsertClient(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.BaseKey.BitLen() < 250 || u.BaseKey.BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.BaseKey.BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -420,7 +460,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
 		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
 		stream.salts[i] = testSalt
-		stream.users[i] = u.ID
+		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
 	}
 	// Here's the actual data for the test
@@ -435,11 +475,12 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 
 	for ok {
 		chunk, ok = g.GetOutput()
+
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// inspect stream output: XORing the salt with the output should
 			// return the original base key
-			resultA := stream.KeysA.Get(uint32(i))
-			resultB := stream.KeysB.Get(uint32(i))
+			resultA := stream.KeysA.Get(i)
+			resultB := stream.KeysB.Get(i)
 			resultABytes := resultA.Bytes()
 			resultBBytes := resultB.Bytes()
 			// So, why is ResultBytes 256 bytes long,
@@ -463,6 +504,13 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 			}
 		}
 	}
+
+	clientErrs, err := stream.userErrors.Receive(stream.RoundId)
+	if clientErrs == nil || err != nil {
+		t.Errorf("Expected to have errors in channel!"+
+			"\n\tError received: %v"+
+			"\n\tClient errors: %v", err, clientErrs)
+	}
 }
 
 func mockServerInstance(i interface{}) *internal.Instance {
@@ -472,10 +520,10 @@ func mockServerInstance(i interface{}) *internal.Instance {
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

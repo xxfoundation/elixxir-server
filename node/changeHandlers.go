@@ -10,7 +10,9 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -18,16 +20,17 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/permissioning"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
+	"gitlab.com/xx_network/primitives/utils"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -49,12 +52,13 @@ func NotStarted(instance *internal.Instance) error {
 	// Get the Server and Gateway certificates from file, if they exist
 
 	// Connect to the Permissioning Server without authentication
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	permHost, err := network.AddHost(&id.Permissioning,
 		// instance.GetPermissioningAddress,
 		ourDef.Permissioning.Address,
 		ourDef.Permissioning.TlsCert,
-		true,
-		false)
+		params)
 
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -66,14 +70,15 @@ func NotStarted(instance *internal.Instance) error {
 	// If the certificates were retrieved from file, so do not need to register
 	if !isRegistered {
 		instance.IsFirstRun()
-		jww.INFO.Printf("Node is not registered, registering with permissioning!")
 
 		// Blocking call which waits until gateway
 		// has first contacted its node
 		// This ensures we have the correct gateway information
+		jww.INFO.Printf("Waiting on contact from gateway...")
 		instance.GetGatewayFirstContact().Receive()
 
 		// Blocking call: begin Node registration
+		jww.INFO.Printf("Registering with permissioning...")
 		err = permissioning.RegisterNode(ourDef, instance, permHost)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
@@ -83,10 +88,12 @@ func NotStarted(instance *internal.Instance) error {
 			}
 
 		}
-		// Disconnect the old Permissioning server to enable authentication
-		permHost.Disconnect()
 		jww.INFO.Printf("Node has registered with permissioning, waiting for network to continue")
 	}
+
+	// Disconnect the old Permissioning server to enable authentication
+	permHost.Disconnect()
+	network.RemoveHost(permHost.GetId())
 
 	// Connect to the Permissioning Server with authentication enabled
 	// the server does not have a signed cert, but the pemrissioning has its cert,
@@ -96,8 +103,10 @@ func NotStarted(instance *internal.Instance) error {
 	// full NDF
 	// do this even if you have the certs to ensure the permissioning server is
 	// ready for servers to connect to it
+	params = connect.GetDefaultHostParams()
+	params.MaxRetries = 0
 	permHost, err = network.AddHost(&id.Permissioning,
-		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, true, true)
+		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, params)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
@@ -111,52 +120,71 @@ func NotStarted(instance *internal.Instance) error {
 
 	pollDelay := 1 * time.Second
 
-	for err != nil && (strings.Contains(err.Error(), ndf.NO_NDF) || strings.Contains(err.Error(), cannotPingErr)) {
-		time.After(pollDelay)
-
+	for err != nil {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			//find certs in NDF if they are nto already had
-			if !isRegistered {
-				err = permissioning.FindSelfInNdf(ourDef,
-					instance.GetConsensus().GetFullNdf().Get())
-				if err != nil {
-					//if certs are not in NDF, redo the poll
-					continue
+			//check if an NDF is returned
+			if permResponse == nil || permResponse.FullNDF == nil || len(permResponse.FullNDF.Ndf) == 0 {
+				err = errors.New("The NDF was not returned, " +
+					"'permissioning is likely in the process of vetting the " +
+					"node")
+			} else {
+				//update NDF
+				err = permissioning.UpdateNDf(permResponse, instance)
+				// find certs in NDF in order to detect that permissioning views
+				// this server as online
+				if err == nil && !permissioning.FindSelfInNdf(ourDef,
+					instance.GetConsensus().GetFullNdf().Get()) {
+					err = errors.New("Waiting to be included in the " +
+						"network")
 				}
 			}
-
-			err = permissioning.UpdateNDf(permResponse, instance)
 		}
+
+		//if there is an error, print it
+		if err != nil {
+			jww.WARN.Printf("Poll of permissioning failed, will "+
+				"try again in %s: %s", pollDelay, err)
+		}
+		//sleep in order to not overwhelm permissioning
+		time.Sleep(pollDelay)
 	}
 
-	// Check for unexpected errors (ie errors from polling other than NO_NDF)
-	if err != nil {
-		return errors.Errorf("Failed to get ndf: %+v", err)
-	}
-
-	// Then we ping the server and attempt on that port
+	// Then we ping ourselfs to make sure we can communicate
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
 	if exists && host.IsOnline() {
 		jww.DEBUG.Printf("Successfully contacted local address!")
+	} else if exists {
+		return errors.Errorf("unable to contact local address: %s",
+			host.GetAddress())
 	} else {
-		return errors.New("unable to contact local address")
+		return errors.Errorf("unable to find host to try contacting " +
+			"the local address")
 	}
 
+	//init the database
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
-	//populate the dummy precanned users
-	jww.INFO.Printf("Adding dummy users to registry")
-	userDatabase := instance.GetUserRegistry()
-	PopulateDummyUsers(userDatabase, cmixGrp)
 
+	userDatabase := instance.GetStorage()
+	if instance.GetDefinition().DevMode {
+		//populate the dummy precanned users
+		jww.INFO.Printf("Adding dummy users to registry")
+		PopulateDummyUsers(userDatabase, cmixGrp)
+	}
+
+	jww.INFO.Printf("Adding dummy gateway sending user")
 	//Add a dummy user for gateway
-	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = &id.DummyUser
-	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
-	dummy.IsRegistered = true
-	userDatabase.UpsertUser(dummy)
+	dummy := &storage.Client{
+		Id:           id.DummyUser.Marshal(),
+		DhKey:        cmixGrp.NewIntFromBytes(id.DummyUser.Marshal()[:]).Bytes(),
+		IsRegistered: true,
+	}
+	err = instance.GetStorage().UpsertClient(dummy)
+	if err != nil {
+		return err
+	}
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 
@@ -196,7 +224,7 @@ func NotStarted(instance *internal.Instance) error {
 
 		// Periodically re-poll permissioning
 		// fixme we need to review the performance implications and possibly make this programmable
-		ticker := time.NewTicker(50 * time.Millisecond)
+		ticker := time.NewTicker(200 * time.Millisecond)
 		for range ticker.C {
 			err := permissioning.Poll(instance)
 			if err != nil {
@@ -263,7 +291,8 @@ func Precomputing(instance *internal.Instance) error {
 		instance,
 		roundInfo.GetBatchSize(),
 		roundTimeout, instance.GetStreamPool(),
-		instance.GetDisableStreaming())
+		instance.GetDisableStreaming(),
+		roundID)
 
 	var override = func() {
 		phaseOverrides := instance.GetPhaseOverrides()
@@ -282,7 +311,7 @@ func Precomputing(instance *internal.Instance) error {
 	//Build the round
 	rnd, err := round.New(
 		instance.GetConsensus().GetCmixGroup(),
-		instance.GetUserRegistry(),
+		instance.GetStorage(),
 		roundID, phases, phaseResponses,
 		circuit,
 		instance.GetID(),
@@ -290,7 +319,8 @@ func Precomputing(instance *internal.Instance) error {
 		instance.GetRngStreamGen(),
 		instance.GetStreamPool(),
 		instance.GetIP(),
-		GetDefaultPanicHanlder(instance, roundID))
+		GetDefaultPanicHandler(instance, roundID),
+		instance.GetClientReport())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}
@@ -480,13 +510,23 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 
 }
 
-// Create dummy users to be manually inserted into the database
-func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
+// PopulateDummyUsers creates dummy users to be manually inserted into the database
+func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
-		u := ur.NewUser(grp)
-		u.IsRegistered = true
-		ur.UpsertUser(u)
+		h := sha256.New()
+		h.Reset()
+		h.Write([]byte(strconv.Itoa(4000 + i)))
+		usrID := new(id.ID)
+		binary.BigEndian.PutUint64(usrID[:], uint64(i))
+		usrID.SetType(id.User)
+
+		// Generate user parameters
+		ur.UpsertClient(&storage.Client{
+			Id:           usrID.Marshal(),
+			DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+			IsRegistered: true,
+		})
 	}
 	return
 }

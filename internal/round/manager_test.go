@@ -8,12 +8,12 @@
 package round
 
 import (
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
@@ -30,10 +30,10 @@ func TestMain(m *testing.M) {
 
 func TestManager(t *testing.T) {
 	roundID := id.Round(58)
-	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
+	round, err := New(grp, &storage.Storage{}, roundID, nil, nil,
 		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), nil, "0.0.0.0", nil)
+			csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -61,10 +61,10 @@ func TestManager_GetPhase(t *testing.T) {
 	roundID := id.Round(42)
 
 	// Test round w/ nil phases
-	round, err := New(grp, &globals.UserMap{}, roundID, nil, nil,
+	round, err := New(grp, &storage.Storage{}, roundID, nil, nil,
 		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), nil, "0.0.0.0", nil)
+			csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -89,16 +89,19 @@ func TestManager_GetPhase(t *testing.T) {
 			1, 1, 1)
 
 		definition := phase.Definition{
-			initMockGraph(gc), phase.Type(uint32(i)), nil,
-			time.Second, false,
+			Graph:               initMockGraph(gc),
+			Type:                phase.Type(uint32(i)),
+			TransmissionHandler: nil,
+			Timeout:             time.Second,
+			DoVerification:      false,
 		}
 
 		phases[i] = phase.New(definition)
 	}
-	round, err = New(grp, &globals.UserMap{}, roundID, phases, nil,
+	round, err = New(grp, &storage.Storage{}, roundID, phases, nil,
 		connect.NewCircuit([]*id.ID{{}}), &id.ID{}, 1,
 		fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG), nil, "0.0.0.0", nil)
+			csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

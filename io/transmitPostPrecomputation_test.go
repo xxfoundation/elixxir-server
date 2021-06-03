@@ -12,15 +12,15 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/utils"
 	"reflect"
 	"testing"
 	"time"
@@ -98,10 +98,6 @@ func getMockPostPrecompSlot(i uint32) *mixmessages.Slot {
 	}
 }
 
-func postPrecompInstance() {
-
-}
-
 var roundReceiver chan uint64
 var precompReceiver chan []*mixmessages.Slot
 
@@ -147,16 +143,16 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
 
 	rnd, err := round.New(grp, nil, rndID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil)
+		"0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create round: %v", err)
 	}

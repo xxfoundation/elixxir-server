@@ -32,6 +32,7 @@ type Phase interface {
 	GetTimeout() time.Duration
 	GetState() State
 	UpdateFinalStates()
+	GetAlternate() (bool, func())
 	AttemptToQueue(queue chan<- Phase) bool
 	IsQueued() bool
 	Send(chunk services.Chunk)
@@ -45,6 +46,7 @@ type Phase interface {
 // Holds a single phase to be executed by the server in a round
 type phase struct {
 	graph               *services.Graph
+	alternate           func()
 	phaseType           Type
 	transmissionHandler Transmit
 	timeout             time.Duration
@@ -75,6 +77,7 @@ func New(def Definition) Phase {
 	return &phase{
 		graph:               def.Graph,
 		phaseType:           def.Type,
+		alternate:           def.Alternate,
 		transmissionHandler: def.TransmissionHandler,
 		timeout:             def.Timeout,
 		verification:        def.DoVerification,
@@ -106,6 +109,10 @@ func (p *phase) ConnectToRound(id id.Round, setState Transition,
 // GetGraph gets the graph associated with the phase
 func (p *phase) GetGraph() *services.Graph {
 	return p.graph
+}
+
+func (p *phase) GetAlternate() (bool, func()) {
+	return p.alternate != nil, p.alternate
 }
 
 func (p *phase) GetRoundID() id.Round {

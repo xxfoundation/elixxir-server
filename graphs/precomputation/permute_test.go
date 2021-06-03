@@ -9,14 +9,15 @@ package precomputation
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/crypto/shuffle"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/large"
 	"reflect"
 	"runtime"
 	"sync/atomic"
@@ -240,6 +241,7 @@ func TestPermuteStream_CommsInterface(t *testing.T) {
 }
 
 func TestPermuteGraph(t *testing.T) {
+	viper.Set("useGPU", false)
 	grp := initPermuteGroup()
 
 	batchSize := uint32(100)

@@ -11,25 +11,27 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"fmt"
+	"math/rand"
+	"reflect"
+	"testing"
+	"time"
+
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/states"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
-	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
-	"math/rand"
-	"reflect"
-	"testing"
-	"time"
+	"gitlab.com/xx_network/primitives/utils"
 )
 
 //// Full-stack happy path test for the node registration logic
@@ -62,21 +64,20 @@ func TestRegisterNode(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:      internal.Flags{},
-		ID:         nodeId,
-		PublicKey:  nil,
-		PrivateKey: nil,
-		TlsCert:    cert,
-		TlsKey:     key,
-		Address:    nodeAddr,
-		LogPath:    "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		PublicAddress:    nodeAddr,
+		LogPath:          "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -87,6 +88,7 @@ func TestRegisterNode(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	// Create state machine
@@ -119,8 +121,10 @@ func TestRegisterNode(t *testing.T) {
 	defer permComms.Shutdown()
 
 	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
+		def.Permissioning.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -666,21 +670,21 @@ func TestRegistration(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:         internal.Flags{},
-		ID:            nodeId,
-		PublicKey:     nil,
-		PrivateKey:    nil,
-		TlsCert:       cert,
-		TlsKey:        key,
-		Address:       nodeAddr,
-		LogPath:       "",
-		MetricLogPath: "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		PublicAddress:    nodeAddr,
+		LogPath:          "",
+		MetricLogPath:    "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
 			TlsCert: cert,
 		},
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
@@ -690,6 +694,7 @@ func TestRegistration(t *testing.T) {
 		ResourceMonitor:  nil,
 		FullNDF:          emptyNdf,
 		PartialNDF:       emptyNdf,
+		DevMode:          true,
 	}
 
 	// Create state machine
@@ -712,8 +717,10 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Add permissioning as a host
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, false, false)
+		def.Permissioning.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -748,7 +755,9 @@ func TestRegistration(t *testing.T) {
 	// Register the node in a separate thread and notify when finished
 	go func() {
 		// Fetch permissioning host
-		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, params)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
@@ -895,21 +904,19 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
-		Flags:      internal.Flags{},
-		ID:         nodeId,
-		PublicKey:  nil,
-		PrivateKey: nil,
-		TlsCert:    cert,
-		TlsKey:     key,
-		Address:    nodeAddr,
-		LogPath:    "",
+		Flags:            internal.Flags{},
+		ID:               nodeId,
+		PublicKey:        nil,
+		PrivateKey:       nil,
+		TlsCert:          cert,
+		TlsKey:           key,
+		ListeningAddress: nodeAddr,
+		LogPath:          "",
 		Gateway: internal.GW{
 			ID:      gwID,
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
 		Permissioning: internal.Perm{
 			TlsCert: []byte(testUtil.RegCert),
 			Address: pAddr,
@@ -920,6 +927,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
@@ -945,7 +953,9 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	instance.GetRoundManager().AddRound(round.NewDummyRound(id.Round(0), uint32(4), t))
 
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, false, false)
+	params := connect.GetDefaultHostParams()
+	params.MaxRetries = 0
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "0.0.0.0", cert, params)
 
 	now := time.Now()
 	timestamps := make([]uint64, states.NUM_STATES)
@@ -964,7 +974,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to load PK from pem: %+v", err)
 	}
-	err = signature.Sign(update, loadedKey)
+	err = signature.SignRsa(update, loadedKey)
 	if err != nil {
 		t.Errorf("Failed to sign update: %+v", err)
 	}

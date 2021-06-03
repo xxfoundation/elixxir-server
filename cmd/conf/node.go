@@ -10,6 +10,8 @@ package conf
 // Contains Node config params
 type Node struct {
 	Paths            Paths
-	ListeningAddress string
 	Port             int
+	PublicAddress    string // Server's public address (with port)
+	ListeningAddress string // Server's internal address (with port)
+	InterconnectPort int
 }

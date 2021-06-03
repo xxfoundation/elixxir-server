@@ -12,10 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -24,8 +21,10 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/utils"
 	"math/rand"
 	"testing"
 )
@@ -103,16 +102,16 @@ func TestTransmitPhase(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil)
+		"0.0.0.0", nil, nil)
 	if err != nil {
 		t.Error()
 	}
@@ -190,33 +189,32 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 	}
 
 	//make server rsa key pair
-	serverRSAPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
-	if err != nil {
-		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
-	}
+	pk, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
 
-	serverRSAPub := serverRSAPriv.GetPublic()
+	privKey, _ := rsa.LoadPrivateKeyFromPem(pk)
+
+	//serverRSAPub := serverRSAPriv.GetPublic()
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
 
 	cnt++
 
 	def := internal.Definition{
-		ID:              nid,
-		UserRegistry:    &globals.UserMap{},
-		ResourceMonitor: &measure.ResourceMonitor{},
-		PrivateKey:      serverRSAPriv,
-		PublicKey:       serverRSAPub,
-		TlsCert:         cert,
-		TlsKey:          key,
-		FullNDF:         testUtil.NDF,
-		PartialNDF:      testUtil.NDF,
-		Address:         nodeAddr,
+		ID:               nid,
+		ResourceMonitor:  &measure.ResourceMonitor{},
+		PrivateKey:       privKey,
+		PublicKey:        privKey.GetPublic(),
+		TlsCert:          cert,
+		TlsKey:           key,
+		FullNDF:          testUtil.NDF,
+		PartialNDF:       testUtil.NDF,
+		ListeningAddress: nodeAddr,
+		DevMode:          true,
 	}
 
 	def.Permissioning.PublicKey = regPKey.GetPublic()
 	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)
-	def.Gateway.ID = nodeId.DeepCopy()
+	def.Gateway.ID = &id.TempGateway
 	def.Gateway.ID.SetType(id.Gateway)
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)

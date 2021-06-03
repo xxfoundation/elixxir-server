@@ -22,8 +22,15 @@ type PermuteIO struct {
 // for use inside of a link function
 func PrecanPermute(permutations []uint32, IOs ...PermuteIO) {
 	// Ignore extra permutations if there are more of them than slots for input/output
+	// If there are more permutations than needed because an input size is larger,
+	// those permutation should be a no-op and outside the batch, so ignoring them
+	// is OK for buffers that are smaller
 	for _, io := range IOs {
-		for i := range io.Output {
+		n := len(io.Output)
+		if io.Input.Len() < n {
+			n = io.Input.Len()
+		}
+		for i := 0; i < n; i++ {
 			io.Output[permutations[i]] = io.Input.Get(uint32(i))
 		}
 	}

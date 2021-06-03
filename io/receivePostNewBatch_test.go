@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
@@ -55,10 +56,10 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// Well, this round needs to at least be on the precomp queue?
 	// If it's not on the precomp queue,
 	// that would let us test the error being returned.
-	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetStorage(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0", nil)
+		nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -89,7 +90,9 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -121,7 +124,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Slots:     []*mixmessages.Slot{},
 	}
 
-	h, _ = connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	h, _ = connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth = &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -152,7 +155,9 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: false,
 		Sender:          h,
@@ -195,7 +200,9 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 
 	newID := id.NewIdFromString("test", id.Node, t)
 
-	h, _ := connect.NewHost(newID, "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(newID, "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,
@@ -219,11 +226,18 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 // that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
 	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 
 	// Make and register a user
-	sender := registry.NewUser(grp)
-	registry.UpsertUser(sender)
+	sender := &storage.Client{
+		Id:             id.NewIdFromString("test", id.User, &testing.T{}).Marshal(),
+		DhKey:          nil,
+		PublicKey:      nil,
+		Nonce:          nil,
+		NonceTimestamp: time.Time{},
+		IsRegistered:   false,
+	}
+	_ = registry.UpsertClient(sender)
 
 	const batchSize = 1
 	const roundID = 2
@@ -251,10 +265,10 @@ func TestReceivePostNewBatch(t *testing.T) {
 	})
 
 	// We need this round to be on the precomp queue
-	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetStorage(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0", nil)
+		nil, "0.0.0.0", nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -278,7 +292,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 			{
 				// Do the fields need to be populated?
 				// Yes, but only to check if the batch made it to the phase
-				SenderID: sender.ID.Bytes(),
+				SenderID: sender.Id,
 				PayloadA: []byte{2},
 				PayloadB: []byte{3},
 				// Because the salt is just one byte,
@@ -289,7 +303,9 @@ func TestReceivePostNewBatch(t *testing.T) {
 		},
 	}
 
-	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
 	auth := &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          h,

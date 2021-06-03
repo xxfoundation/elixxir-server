@@ -8,56 +8,56 @@
 package internal
 
 // instance.go contains the logic for the internal.Instance object along with
-// constructors and it's methods
+// constructors and its methods
 
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/gpumathsgo"
+	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/primitives/utils"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
-	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/comms/signature"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
-	"net"
-	"os"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"testing"
+	"gitlab.com/xx_network/primitives/utils"
 )
-
-// The placeholder for the host in the Gateway address that is used to indicate
-// to permissioning to replace it with the Node's host.
-const gatewayReplaceIpPlaceholder = "CHANGE_TO_PUBLIC_IP"
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
-// Holds long-lived server state
+// Instance holds long-lived server state
 type Instance struct {
-	Online        bool
-	definition    *Definition
-	roundManager  *round.Manager
-	resourceQueue *ResourceQueue
-	network       *node.Comms
-	streamPool    *gpumaths.StreamPool
-	machine       state.Machine
+	Online            bool
+	definition        *Definition
+	roundManager      *round.Manager
+	resourceQueue     *ResourceQueue
+	network           *node.Comms
+	streamPool        *gpumaths.StreamPool
+	machine           state.Machine
+	phaseStateMachine state.GenericMachine
+
+	// Persistent storage object
+	storage *storage.Storage
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -70,6 +70,7 @@ type Instance struct {
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
 	realtimeRoundQueue  round.Queue
+	clientErrors        *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -84,11 +85,9 @@ type Instance struct {
 	overrideRound  int
 	panicWrapper   func(s string)
 
-	gatewayAddress      string
-	gatewayVersion      string
-	gatewayMutex        sync.RWMutex
-	useNodeIpForGateway bool
-	gatewayAdvertisedIP string
+	gatewayAddress string
+	gatewayVersion string
+	gatewayMutex   sync.RWMutex
 
 	serverVersion string
 
@@ -98,7 +97,7 @@ type Instance struct {
 	firstPoll *uint32
 }
 
-// Create a server instance. To actually kick off the server,
+// CreateServerInstance creates a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 // After the network object is created, you still need to use it to connect
 // to other servers in the network
@@ -106,6 +105,8 @@ type Instance struct {
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
+	var err error
+
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
 	firstPoll := uint32(0)
@@ -125,27 +126,44 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		useNodeIpForGateway: def.Gateway.UseNodeIp,
-		gatewayAdvertisedIP: def.Gateway.AdvertisedIP,
-		serverVersion:       version,
-		firstRun:            &firstRun,
-		firstPoll:           &firstPoll,
-		gatewayFirstPoll:    NewFirstTime(),
+		serverVersion:     version,
+		firstRun:          &firstRun,
+		firstPoll:         &firstPoll,
+		gatewayFirstPoll:  NewFirstTime(),
+		clientErrors:      round.NewClientFailureReport(def.ID),
+		phaseStateMachine: state.NewGenericMachine(),
+	}
+
+	// Initialize the backend
+	jww.INFO.Printf("Initializing the backend...")
+	instance.storage, err = storage.NewStorage(
+		def.DbUsername, def.DbPassword, def.DbName,
+		def.DbAddress, def.DbPort, def.DevMode)
+	if err != nil {
+		eMsg := fmt.Sprintf("Could not initialize database: psql://%s@%s:%s/%s: %v",
+			def.DbUsername, def.DbAddress, def.DbPort, def.DbName, err)
+
+		if def.DevMode {
+			jww.WARN.Printf(eMsg)
+		} else {
+			jww.FATAL.Panicf(eMsg)
+		}
 	}
 
 	// Create stream pool if instructed to use GPU
 	if def.UseGPU {
 		// Try to initialize the GPU
 		// GPU memory allocated in bytes (the same amount is allocated on the CPU side)
-		memSize := 268435456
+		memSize := 200000
 		jww.INFO.Printf("Initializing GPU maths, CUDA backend, with memory size %v", memSize)
 		var err error
 		// It could be better to configure the amount of memory used in a configuration file instead
 		instance.streamPool, err = gpumaths.NewStreamPool(2, memSize)
 		// An instance without a stream pool is still valid
-		// So, log the error here instead of returning it, because we didn't fail to create the server instance here
+		// Always panic when we can't do what was intended with the GPU
 		if err != nil {
-			jww.ERROR.Printf("Couldn't initialize GPU. Falling back to CPU math. Error: %v", err.Error())
+			jww.FATAL.Panicf("Couldn't initialize GPU. Error: %v",
+				err.Error())
 		}
 	} else {
 		jww.INFO.Printf("Using CPU maths, rather than CUDA")
@@ -155,33 +173,35 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	//Start local node
 
-	instance.network = node.StartNode(instance.definition.ID, instance.definition.Address,
-		makeImplementation(instance), instance.definition.TlsCert, instance.definition.TlsKey)
+	instance.network = node.StartNode(instance.definition.ID, instance.definition.ListeningAddress,
+		instance.definition.InterconnectPort, makeImplementation(instance),
+		instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
 
 	// Initializes the network state tracking on this server instance
-	var err error
-	instance.consensus, err = network.NewInstance(instance.network.ProtoComms, def.PartialNDF, def.FullNDF, nil)
+	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
+		def.PartialNDF, def.FullNDF, nil, network.Strict, false)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
 
 	// Handle overriding local IP
-	if !instance.GetDefinition().DisableIpOverride {
+	if instance.GetDefinition().OverrideInternalIP != "" {
+
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
-			ID, instance.GetDefinition().Address)
+			ID, instance.GetDefinition().OverrideInternalIP)
 	}
 
 	// Connect to our gateway
 	_, err = instance.network.AddHost(&id.TempGateway,
-		"", instance.definition.Gateway.TlsCert, false, true)
+		"", instance.definition.Gateway.TlsCert, connect.GetDefaultHostParams())
 	if err != nil {
 		errMsg := fmt.Sprintf("Count not add dummy gateway %s as host: %+v",
 			instance.definition.Gateway.ID, err)
 		return nil, errors.New(errMsg)
 	}
 	_, err = instance.network.AddHost(instance.GetGateway(),
-		"", instance.definition.Gateway.TlsCert, false, true)
+		"", instance.definition.Gateway.TlsCert, connect.GetDefaultHostParams())
 	if err != nil {
 		errMsg := fmt.Sprintf("Count not add real gateway %s as host: %+v",
 			instance.definition.Gateway.ID, err)
@@ -246,6 +266,13 @@ func (i *Instance) Run() error {
 	return i.machine.Start()
 }
 
+// Shutdown releases any reserved GPU resources
+func (i *Instance) Shutdown() {
+	if i.streamPool != nil {
+		i.streamPool.Destroy()
+	}
+}
+
 // GetDefinition returns the server.Definition object
 func (i *Instance) GetDefinition() *Definition {
 	return i.definition
@@ -256,9 +283,15 @@ func (i *Instance) GetConsensus() *network.Instance {
 	return i.consensus
 }
 
-// GetStateMachine returns the consensus object
+// GetStateMachine returns the round tracking state machine
 func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
+}
+
+// GetStateMachine returns state machine tracking the phase share status
+// todo: consider removing, may not be needed for final phase share design
+func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
+	return i.phaseStateMachine
 }
 
 // GetGateway returns the id of the node's gateway
@@ -266,27 +299,27 @@ func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
-//GetUserRegistry returns the user registry used by the server
-func (i *Instance) GetUserRegistry() globals.UserRegistry {
-	return i.definition.UserRegistry
+// GetStorage returns the user registry used by the server
+func (i *Instance) GetStorage() *storage.Storage {
+	return i.storage
 }
 
-//GetRoundManager returns the round manager
+// GetRoundManager returns the round manager
 func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
 }
 
-//GetResourceQueue returns the resource queue used by the server
+// GetResourceQueue returns the resource queue used by the server
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
 
-//GetGatewayFirstPoll returns the structure which denotes if the node has been fully polled by the gateway
+// GetGatewayFirstPoll returns the structure which denotes if the node has been fully polled by the gateway
 func (i *Instance) GetGatewayFirstPoll() *FirstTime {
 	return i.gatewayPoll
 }
 
-//GetGatewayFirstPoll returns the structure which denotes if the node has been contacted by the gateway
+// GetGatewayFirstContact returns the structure which denotes if the node has been contacted by the gateway
 func (i *Instance) GetGatewayFirstContact() *FirstTime {
 	return i.gatewayFirstPoll
 }
@@ -296,27 +329,27 @@ func (i *Instance) GetNetwork() *node.Comms {
 	return i.network
 }
 
-//GetID returns this node's ID
+// GetID returns this node's ID
 func (i *Instance) GetID() *id.ID {
 	return i.definition.ID
 }
 
-//GetPubKey returns the server DSA public key
+// GetPubKey returns the server DSA public key
 func (i *Instance) GetPubKey() *rsa.PublicKey {
 	return i.definition.PublicKey
 }
 
-//GetPrivKey returns the server DSA private key
+// GetPrivKey returns the server DSA private key
 func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }
 
-// Sets that this is the first time the node has run
+// IsFirstRun Sets that this is the first time the node has run
 func (i *Instance) IsFirstRun() {
 	atomic.StoreUint32(i.firstRun, 1)
 }
 
-// Gets if this is the first time the node has run
+// GetFirstRun Gets if this is the first time the node has run
 func (i *Instance) GetFirstRun() bool {
 	return atomic.LoadUint32(i.firstRun) == 1
 }
@@ -361,9 +394,9 @@ func (i *Instance) GetRngStreamGen() *fastRNG.StreamGenerator {
 	return i.definition.RngStreamGen
 }
 
-// GetIP returns the IP of the node from the instance
+// GetIP returns the public IP of the node from the instance
 func (i *Instance) GetIP() string {
-	return i.definition.Address
+	return i.definition.PublicAddress
 }
 
 // GetResourceMonitor returns the resource monitoring object
@@ -385,6 +418,10 @@ func (i *Instance) GetRealtimeRoundQueue() round.Queue {
 
 func (i *Instance) GetRequestNewBatchQueue() round.Queue {
 	return i.requestNewBatchQueue
+}
+
+func (i *Instance) GetClientReport() *round.ClientReport {
+	return i.clientErrors
 }
 
 func (i *Instance) GetRoundError() *mixmessages.RoundError {
@@ -448,45 +485,22 @@ func (i *Instance) GetGatewayData() (addr string, ver string) {
 	return i.gatewayAddress, i.gatewayVersion
 }
 
+// UpsertGatewayData saves the gateway address and version to the instance, if
+// they differ. Panics if the gateway address is empty.
 func (i *Instance) UpsertGatewayData(addr string, ver string) {
+	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
+
+	if addr == "" {
+		jww.FATAL.Panicf("Faild to upsert gateway data, gateway address is empty.")
+	}
+
 	i.gatewayMutex.Lock()
 	defer i.gatewayMutex.Unlock()
 
-	addr = i.getGatewayAdvertisedIP(addr)
-
-	jww.TRACE.Printf("Upserting Gateway: %s, %s", addr, ver)
 	if i.gatewayAddress != addr || i.gatewayVersion != ver {
 		(*i).gatewayAddress = addr
 		(*i).gatewayVersion = ver
 	}
-}
-
-// getGatewayAdvertisedIP returns the correct advertised IP for Gateway. If
-// useNodeIpForGateway is set, then a placeholder with the Gateway's IP is
-// returned. If gatewayAdvertisedIP is set, then it is returned. If neither is
-// set, then the original Gateway IP is returned.
-func (i *Instance) getGatewayAdvertisedIP(gatewayAddr string) string {
-	if gatewayAddr != "" {
-		if i.useNodeIpForGateway {
-			_, port, err := net.SplitHostPort(gatewayAddr)
-			if err != nil {
-				jww.FATAL.Panicf("Error parsing Gateway address %#v: %v", gatewayAddr, err)
-			}
-			addr := net.JoinHostPort(gatewayReplaceIpPlaceholder, port)
-			jww.TRACE.Printf("useNodeIpForGateway flag is set. Modified Gateway's "+
-				"address to %s", addr)
-
-			return addr
-		}
-
-		if i.gatewayAdvertisedIP != "" {
-			jww.TRACE.Printf("gatewayAdvertisedIP flag is set. Modified Gateway's "+
-				"address to %s", i.gatewayAdvertisedIP)
-			return i.gatewayAdvertisedIP
-		}
-	}
-
-	return gatewayAddr
 }
 
 /* TESTING FUNCTIONS */
@@ -536,9 +550,7 @@ func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
 // FIXME: This function needs to be replaced
 func GenerateId(i interface{}) *id.ID {
 	switch i.(type) {
-	case *testing.T:
-		break
-	case *testing.M:
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
 		break
 	default:
 		jww.FATAL.Panicf("GenerateId is restricted to testing only. Got %T", i)
@@ -577,8 +589,8 @@ func (i *Instance) ReportRemoteFailure(roundErr *mixmessages.RoundError) {
 	i.reportFailure(roundErr)
 }
 
-// Create a round error, pass the error over the chanel and update the state to ERROR state
-// In situations that cause critical panic level errors.
+// Create a round error, pass the error over the channel and update the state to
+// ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Round) {
 
 	//truncate the error if it is too long
@@ -594,7 +606,7 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 	}
 
 	//sign the round error
-	err := signature.Sign(&roundErr, i.GetPrivKey())
+	err := signature.SignRsa(&roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)
@@ -603,8 +615,8 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 	i.reportFailure(&roundErr)
 }
 
-// Create a round error, pass the error over the chanel and update the state to ERROR state
-// In situations that cause critical panic level errors.
+// Create a round error, pass the error over the channel and update the state to
+// ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	i.errLck.Lock()
 	defer i.errLck.Unlock()
@@ -612,7 +624,7 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	nodeId, _ := id.Unmarshal(roundErr.NodeId)
 
 	//sign the round error
-	err := signature.Sign(roundErr, i.GetPrivKey())
+	err := signature.SignRsa(roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)

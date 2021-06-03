@@ -1,0 +1,72 @@
+##
+# Node Configuration File
+##
+
+# Registration code used for first time registration. This is a unique code
+# provided by xx network. (Required)
+registrationCode: "[your registration code]"
+
+# Toggles use of the GPU. (Default true)
+useGPU: true
+
+# Level of debugging to print (0 = info, 1 = debug, >1 = trace). (Default info)
+logLevel: 0
+
+node:
+  paths:
+    # Path where an error file will be placed in the event of a fatal error.
+    # This path is used by the Wrapper Script. (Required)
+    errOutput: "/opt/xxnetwork/node-logs/node-err.log"
+    # Path to where the identity file (IDF) is saved. The IDF stores the Node's
+    # network identity. This is used by the wrapper management script. (Required)
+    idf: "/opt/xxnetwork/node-logs/nodeIDF.json"
+    # Path to the self-signed TLS certificate for Node. Expects PEM format.
+    # (Required)
+    cert: "/opt/xxnetwork/creds/node_cert.crt"
+    # Path to the private key associated with the self-signed TLS certificate.
+    # (Required)
+    key: "/opt/xxnetwork/creds/node_key.key"
+    # Path where log file will be saved. (Default "./node.log")
+    log: "/opt/xxnetwork/node-logs/node.log"
+  # Port that the Node will communicate on. (Required)
+  port: 11420
+  # Local IP address of the Node, used for internal listening. Expects an IPv4
+  # address without a port. (default "0.0.0.0")
+  # WARNING: Do not modify this option unless explicitly required.
+  #listeningAddress: "0.0.0.0"
+  # The public IPv4 address of the Node, as reported to the network. When not
+  # set, external IP address lookup services are used to set this value. If a
+  # port is not included, then the port from the port flag is used instead.
+  # WARNING: Do not modify this option unless explicitly required.
+  #overridePublicIP: "1.2.3.4"
+  # If set, then it is used to override the internal IP address used to contact
+  # yourself. Expects an IPv4 address with or without a port. If no port is
+  # included, then the port from the port flag is used.
+  # WARNING: Do not modify this option unless explicitly required.
+  #overrideInternalIP: "0.0.0.1"
+
+# Information to connect to the Postgres database storing keys. (Required)
+database:
+  name: "cmix_node"
+  address: "0.0.0.0:5432"
+  username: "cmix"
+  password: "[password for database]"
+
+# Information to communicate with this Node's Gateway.
+gateway:
+  paths:
+    # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
+    # (Required)
+    cert: "/opt/xxnetwork/creds/gateway_cert.crt"
+
+permissioning:
+  paths:
+    # Path to the self-signed TLS certificate for the Permissioning server.
+    # Expects PEM format. (Required)
+    cert: "/opt/xxnetwork/creds/permissioning_cert.crt"
+  # IP Address of the Permissioning server, provided by xx network. (Required)
+  address: "permissioning.prod.cmix.rip:11420"
+
+metrics:
+  # Path to store metrics logs.
+  log: "/opt/xxnetwork/node-logs/metrics.log"

@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/primitives/utils"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
@@ -22,6 +21,7 @@ import (
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/utils"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"testing"
@@ -93,7 +93,7 @@ func TestStreamPostPhase(t *testing.T) {
 	// receive the mockBatch into the mock stream 'buffer'
 	mockStreamServer := MockTransmitStream{batch: mockBatch}
 
-	err := StreamPostPhase(mockPhase, uint32(batchSize), mockStreamServer)
+	_, err := StreamPostPhase(mockPhase, uint32(batchSize), mockStreamServer)
 
 	if err != nil {
 		t.Errorf("StreamPostPhase: Unexpected error returned: %+v", err)
@@ -137,16 +137,16 @@ func TestStreamTransmitPhase(t *testing.T) {
 	topology := connect.NewCircuit([]*id.ID{instance.GetID()})
 
 	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, false, true)
+	nodeHost, _ := connect.NewHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	topology.AddHost(nodeHost)
-	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, false, true)
+	_, err := instance.GetNetwork().AddHost(instance.GetID(), nodeAddr, cert, connect.GetDefaultHostParams())
 	if err != nil {
 		t.Errorf("Failed to add host to instance: %v", err)
 	}
 
 	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil)
+		"0.0.0.0", nil, nil)
 	if err != nil {
 		t.Error()
 	}

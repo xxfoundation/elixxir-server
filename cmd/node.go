@@ -13,11 +13,9 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/crypto/csprng"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/cmd/conf"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -25,9 +23,11 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -51,26 +51,20 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		jww.FATAL.Panicf("Unable to load params from viper: %+v", err)
 	}
 
-	jww.INFO.Printf("Loaded params: %+v", params)
-
-	// Initialize the backend
-	jww.INFO.Printf("Initalizing the backend...")
-	dbAddress := params.Database.Address
-
-	//Initialize the user database
-	userDatabase := globals.NewUserRegistry(
-		params.Database.Username,
-		params.Database.Password,
-		params.Database.Name,
-		dbAddress,
-	)
+	ps := fmt.Sprintf("Loaded params: %+v", params)
+	ps = strings.ReplaceAll(ps,
+		"Password:"+params.Database.Password,
+		"Password:[dbpass]")
+	ps = strings.ReplaceAll(ps,
+		"RegistrationCode:"+params.RegistrationCode,
+		"RegistrationCode:[regcode]")
+	jww.INFO.Printf(ps)
 
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
 	if err != nil {
 		return nil, errors.Errorf("Failed to convert params to definition: %+v", err)
 	}
-	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
 	def.DisableStreaming = disableStreaming

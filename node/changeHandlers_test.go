@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -46,7 +45,6 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	gg := services.NewGraphGenerator(4, 1,
 		services.AutoOutputSize, 1.0)
 	def := internal.Definition{
-		UserRegistry:       &globals.UserMap{},
 		ResourceMonitor:    &measure.ResourceMonitor{},
 		FullNDF:            testUtil.NDF,
 		PartialNDF:         testUtil.NDF,
@@ -55,11 +53,12 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		Gateway: internal.GW{
 			Address: "0.0.0.0:11420",
 		},
-		Address: "0.0.0.0:11421",
+		ListeningAddress: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
+	def.DevMode = true
 
 	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{
@@ -76,8 +75,10 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
 		m, "1.1.0")
 
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
-		[]byte(testUtil.RegCert), false, false)
+		[]byte(testUtil.RegCert), params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -126,7 +127,9 @@ func TestError(t *testing.T) {
 
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -164,7 +167,9 @@ func TestError_RID0(t *testing.T) {
 
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
-		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -186,7 +191,9 @@ func TestPrecomputing(t *testing.T) {
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
@@ -255,7 +262,10 @@ func TestPrecomputing_override(t *testing.T) {
 	for i := 0; i < topology.Len(); i++ {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), true, false)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		params.AuthEnabled = false
+		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}

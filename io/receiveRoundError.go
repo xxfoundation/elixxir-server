@@ -8,15 +8,16 @@
 package io
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/crypto/signature"
+	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/primitives/id"
-	"time"
 )
 
 // ReceiveRoundError takes the round error message and checks if it's within the round
@@ -56,7 +57,7 @@ func ReceiveRoundError(msg *mixmessages.RoundError, auth *connect.Auth, instance
 	}
 
 	//check the signature on the round error is valid
-	err = signature.Verify(msg, auth.Sender.GetPubKey())
+	err = signature.VerifyRsa(msg, auth.Sender.GetPubKey())
 	if err != nil {
 		jww.WARN.Printf("Received an error for round %v from node %s "+
 			"that could not be authenticated: %s, %+v", r.GetID(),

@@ -10,14 +10,14 @@ package node
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/large"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/large"
 
 	//"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
@@ -51,20 +51,19 @@ func assertPanic(t *testing.T, f func()) {
 
 func setupStartNode(t *testing.T) *internal.Instance {
 	//Get a new ndf
-	testNdf, _, err := ndf2.DecodeNDF(testUtil.ExampleNDF)
+	testNdf, err := ndf2.Unmarshal(testUtil.ExampleNDF)
 	if err != nil {
-		t.Logf("Failed to decode ndf")
-		t.Fail()
+		t.Errorf("Failed to decode ndf")
 	}
 
 	// We need to create a server.Definition so we can create a server instance.
 	def := internal.Definition{
 		ID:              id.NewIdFromUInt(0, id.Node, t),
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testNdf,
 		PartialNDF:      testNdf,
-		Flags:           internal.Flags{DisableIpOverride: true},
+		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -88,7 +87,9 @@ func setupStartNode(t *testing.T) *internal.Instance {
 	}
 
 	// Add the certs to our network instance
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", []byte(cert), false, false)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, "", []byte(cert), params)
 	if err != nil {
 		t.Logf("Failed to create host, %v", err)
 		t.Fail()
@@ -137,9 +138,9 @@ func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *r
 
 	top := connect.NewCircuit(list)
 
-	r, err := round.New(grp, &globals.UserMap{}, roundId, []phase.Phase{mockPhase},
+	r, err := round.New(grp, &storage.Storage{}, roundId, []phase.Phase{mockPhase},
 		responseMap, top, top.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil)
+		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
