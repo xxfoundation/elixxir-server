@@ -28,8 +28,8 @@ import (
 	"time"
 )
 
-const blockSize = 4
-const numStreams = 75
+const blockSize = 1
+const numStreams = 100
 
 type streamClient struct {
 	client mixmessages.Node_StreamPostPhaseClient
