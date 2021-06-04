@@ -657,11 +657,12 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError, fatal bool) {
 	} else {
 		ok, err := sm.Update(current.ERROR)
 		if err != nil {
-			jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
+			jww.ERROR.Printf("Failed to change state to ERROR state: %v", err)
 		}
 		if !ok {
-			jww.FATAL.Panicf("Failed to change state to ERROR state")
+			jww.ERROR.Printf("Failed to change state to ERROR state")
 		}
+		return
 	}
 
 }

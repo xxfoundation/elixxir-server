@@ -372,7 +372,6 @@ func Error(instance *internal.Instance) error {
 	jww.INFO.Printf("Round error: %+v", msg)
 
 	cr := instance.GetRoundManager().GetCurrentRound()
-	instance.GetRoundManager().ClearCurrentRound()
 	jww.INFO.Printf("Current round: %+v", cr)
 	if cr != 0 {
 		rnd, err := instance.GetRoundManager().GetRound(cr)
@@ -402,6 +401,7 @@ func Error(instance *internal.Instance) error {
 		}()
 		return err
 	}
+	instance.GetRoundManager().ClearCurrentRound()
 	return nil
 }
 
