@@ -59,6 +59,8 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 		return errors.WithMessage(connect.AuthError(auth.Sender.GetId()), auth.Reason)
 	}
 
+	jww.INFO.Println(phaseTy)
+
 	checker := func() (phase.Phase, error) {
 		ptype := r.GetCurrentPhaseType()
 		toWait := shouldWait(ptype)
@@ -93,20 +95,15 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	}
 
 	// Waiting for correct phase
-	p, err := instance.CheckShotgun(auth.Sender.GetId(), roundID, batch.FromPhase, checker)
+	ch, err := instance.CheckShotgun(auth.Sender.GetId(), roundID, batch.FromPhase, r.GetBatchSize(), checker)
 	if err != nil {
 		return err
 	}
 
-	batch.FromPhase = int32(p.GetType())
-	//send the data to the phase
-	err = PostPhase(p, batch)
-
-	if err != nil {
-		roundErr := errors.Errorf("Error on PostPhase comm, should be"+
-			" able to return: %+v", err)
-		return roundErr
+	if ch != nil {
+		ch <- batch.Slots
 	}
+
 	return nil
 }
 

@@ -99,7 +99,7 @@ type Instance struct {
 	firstPoll *uint32
 
 	//shotgun map
-	shotgunMap map[string]phase.Phase
+	shotgunMap map[string]chan []*mixmessages.Slot
 	shotgunMux sync.RWMutex
 }
 
@@ -138,7 +138,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayFirstPoll:  NewFirstTime(),
 		clientErrors:      round.NewClientFailureReport(def.ID),
 		phaseStateMachine: state.NewGenericMachine(),
-		shotgunMap:        make(map[string]phase.Phase),
+		shotgunMap:        make(map[string]chan []*mixmessages.Slot),
 	}
 
 	// Initialize the backend
@@ -306,25 +306,61 @@ func (i *Instance) GetGateway() *id.ID {
 }
 
 // GetGateway returns the id of the node's gateway
-func (i *Instance) CheckShotgun(sender *id.ID, roundID id.Round, phase int32, checker func() (phase.Phase, error)) (phase.Phase, error) {
+func (i *Instance) CheckShotgun(sender *id.ID, roundID id.Round, phase int32, batchSize uint32, checker func() (phase.Phase, error)) (chan []*mixmessages.Slot, error) {
 	i.shotgunMux.RLock()
-	p, has := i.shotgunMap[calcShotgunID(sender, roundID, phase)]
+	ch, has := i.shotgunMap[calcShotgunID(sender, roundID, phase)]
 	i.shotgunMux.RUnlock()
 	if has {
-		return p, nil
+		jww.INFO.Println("1")
+		return ch, nil
 	}
 	i.shotgunMux.Lock()
 	defer i.shotgunMux.Unlock()
-	p, has = i.shotgunMap[calcShotgunID(sender, roundID, phase)]
+	ch, has = i.shotgunMap[calcShotgunID(sender, roundID, phase)]
 	if has {
-		return p, nil
+		jww.INFO.Println("2")
+		return ch, nil
 	}
 	p, checkResult := checker()
 	if checkResult != nil {
+		jww.INFO.Println("3")
+		return nil, checkResult
+	}
+
+	if p == nil {
+		jww.INFO.Println("4")
+		i.shotgunMap[calcShotgunID(sender, roundID, phase)] = nil
 		return nil, nil
 	}
-	i.shotgunMap[calcShotgunID(sender, roundID, phase)] = p
-	return p, nil
+
+	ch = make(chan []*mixmessages.Slot, batchSize)
+
+	go func() {
+		fromphase := p.GetType()
+		index := uint32(0)
+		for {
+			slots := <-ch
+			for _, slot := range slots {
+				index++
+				jww.INFO.Printf("index: %d at lost num %d", slot.Index, index)
+				err := p.Input(slot.Index, slot)
+				if err != nil {
+					jww.FATAL.Panicf("Error on Round %v, phase \"%s\" "+
+						"slot %d, contents: %v: %v", roundID, fromphase, slot.Index, slot, err)
+				}
+				chunk := services.NewChunk(slot.Index, slot.Index+1)
+				p.Send(chunk)
+				if index == batchSize {
+					jww.INFO.Printf("Completed rid %d phase %s", roundID, fromphase)
+					i.DeleteShotgun(sender, roundID, phase)
+				}
+			}
+		}
+	}()
+
+	i.shotgunMap[calcShotgunID(sender, roundID, phase)] = ch
+	jww.INFO.Println("5")
+	return ch, nil
 }
 
 func (i *Instance) DeleteShotgun(sender *id.ID, roundID id.Round, phase int32) {
@@ -343,12 +379,15 @@ func calcShotgunID(sender *id.ID, roundID id.Round, phase int32) string {
 	h.Write(ridBytes)
 
 	phaseBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(ridBytes, uint64(phase))
+	binary.BigEndian.PutUint64(phaseBytes, uint64(phase))
 
 	h.Write(phaseBytes)
 
 	sid := h.Sum(nil)
-	return base64.StdEncoding.EncodeToString(sid)
+	strsid := base64.StdEncoding.EncodeToString(sid)
+
+	jww.INFO.Printf("sender: %s, rid: %d, phase: %d, sid: %s", sender, roundID, phase, strsid)
+	return strsid
 }
 
 // GetStorage returns the user registry used by the server

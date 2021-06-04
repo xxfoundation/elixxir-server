@@ -152,15 +152,15 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 // phase from another node
 func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 	// Send a chunk per slot
-	for index, message := range batch.Slots {
-		curIdx := uint32(index)
-		err := p.Input(curIdx, message)
+	for _, message := range batch.Slots {
+		jww.INFO.Println(message.Index)
+		err := p.Input(message.Index, message)
 		if err != nil {
 			return errors.Errorf("Error on Round %v, phase \"%s\" "+
 				"slot %d, contents: %v: %v", batch.Round.ID, phase.Type(batch.FromPhase),
-				curIdx, message, err)
+				message.Index, message, err)
 		}
-		chunk := services.NewChunk(curIdx, curIdx+1)
+		chunk := services.NewChunk(message.Index, message.Index+1)
 		p.Send(chunk)
 	}
 

@@ -82,6 +82,10 @@ func HandleRealtimeBatch(instance *internal.Instance, newBatch *mixmessages.Batc
 	jww.INFO.Printf("[%v]: RID %d PostNewBatch START", instance,
 		ri.ID)
 
+	for i := range newBatch.Slots {
+		newBatch.Slots[i].Index = uint32(i)
+	}
+
 	if uint32(len(newBatch.Slots)) != rnd.GetBuffer().GetBatchSize() {
 		roundErr := errors.Errorf("[%v]: RID %d PostNewBatch ERROR - Gateway sent "+
 			"batch with improper size", instance, newBatch.Round.ID)

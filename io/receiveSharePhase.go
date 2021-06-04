@@ -36,6 +36,8 @@ import (
 func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	instance *internal.Instance) error {
 
+	jww.INFO.Printf("Start share phase")
+
 	curActivity, err := instance.GetStateMachine().WaitFor(2000*time.Millisecond, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
@@ -364,6 +366,7 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 
 		for i := uint32(0); i < batchSize; i++ {
 			blankBatch.Slots[i] = &pb.Slot{
+				Index:                     i,
 				EncryptedPayloadAKeys:     []byte{1},
 				EncryptedPayloadBKeys:     []byte{1},
 				PartialPayloadACypherText: []byte{1},

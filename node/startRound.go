@@ -42,7 +42,7 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 		},
 	}
 	for i := 0; i < int(batchSize); i++ {
-		newBatch.Slots[i] = &mixmessages.Slot{}
+		newBatch.Slots[i] = &mixmessages.Slot{Index: uint32(i)}
 	}
 
 	ourRoundInfo, err := instance.GetConsensus().GetRound(rid)

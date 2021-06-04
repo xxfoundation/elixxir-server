@@ -95,7 +95,7 @@ func (gs *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 // Output returns an empty cMixSlot message
 func (gs *GenerateStream) Output(index uint32) *mixmessages.Slot {
-	return &mixmessages.Slot{}
+	return &mixmessages.Slot{Index: index}
 }
 
 // Generate implements cryptops.Generate for precomputation
