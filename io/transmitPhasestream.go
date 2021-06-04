@@ -10,6 +10,7 @@ package io
 // transmitPhasestream.go contains the logic for streaming a phase comm
 
 import (
+	"context"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -23,10 +24,17 @@ import (
 	"google.golang.org/protobuf/proto"
 	"io"
 	"strings"
+	"sync"
 	"time"
 )
 
-const blockSize = 1
+const blockSize = 4
+const numStreams = 10
+
+type streamClient struct {
+	client mixmessages.Node_StreamPostPhaseClient
+	cancel context.CancelFunc
+}
 
 // StreamTransmitPhase streams slot messages to the provided Node.
 func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getChunk phase.GetChunk,
@@ -64,14 +72,25 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	// iterate phase before the measure code runs
 	currentPhase := r.GetCurrentPhase()
 
-	// This gets the streaming client which used to send slots
-	// using the recipient node id and the batch info header
-	// It's context must be canceled after receiving an ack
-	streamClient, cancel, err := instance.GetNetwork().GetPostPhaseStreamClient(
-		recipient, header)
-	if err != nil {
-		return errors.Errorf("Error on comm, unable to get streaming "+
-			"client: %+v", err)
+	streamClients := make([]streamClient, numStreams)
+	wg := sync.WaitGroup{}
+
+	for i := 0; i < numStreams; i++ {
+		wg.Add(1)
+		localI := i
+		go func() {
+			sc, c, err := instance.GetNetwork().GetPostPhaseStreamClient(
+				recipient, header)
+			if err != nil {
+				jww.FATAL.Panicf("Error on comm, unable to get streaming "+
+					"client: %+v", err)
+			}
+			streamClients[localI] = streamClient{
+				sc,
+				c,
+			}
+			wg.Done()
+		}()
 	}
 
 	//pull the first chunk reception out so it can be timestmaped
@@ -82,6 +101,8 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	packetSizeSum := 0
 
+	currentSC := 0
+
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			msg := getMessage(i)
@@ -90,23 +111,29 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 			sendBuff = append(sendBuff, msg)
 
 			if len(sendBuff) == blockSize {
-				err = streamClient.Send(&mixmessages.Slots{Messages: sendBuff})
+				err = streamClients[currentSC].client.Send(&mixmessages.Slots{Messages: sendBuff})
 				if err != nil {
 					return errors.Errorf("Error on comm, not able to send "+
 						"slot: %+v", err)
 				}
 				sendBuff = make([]*mixmessages.Slot, 0, blockSize)
+				currentSC++
+				if currentSC == numStreams {
+					currentSC = 0
+				}
 			}
 		}
 	}
 
 	if len(sendBuff) > 0 {
-		err = streamClient.Send(&mixmessages.Slots{Messages: sendBuff})
+		err = streamClients[currentSC].client.Send(&mixmessages.Slots{Messages: sendBuff})
 		if err != nil {
 			return errors.Errorf("Error on comm, not able to send "+
 				"slot: %+v", err)
 		}
 	}
+
+	wg.Wait()
 
 	end := time.Now()
 
@@ -115,8 +142,30 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		measureFunc(measure.TagTransmitLastSlot)
 	}
 
+	wg = sync.WaitGroup{}
 	// Receive ack and cancel client streaming context
-	ack, err := streamClient.CloseAndRecv()
+	for i := 0; i < numStreams; i++ {
+		localI := i
+		wg.Add(1)
+		go func() {
+			ack, err := streamClients[localI].client.CloseAndRecv()
+			if err != nil {
+				if err != nil {
+					jww.FATAL.Panicf("Received error from closing stream %d: %s", localI, err)
+				}
+
+				// Make sure the comm doesn't return an Ack with an error message
+				if ack != nil && ack.Error != "" {
+					jww.FATAL.Panicf("Received ack error from closing stream %d: %s", localI, ack.Error)
+				}
+			}
+			streamClients[localI].cancel()
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
 	localServer := instance.GetNetwork().String()
 	port := strings.Split(localServer, ":")[1]
 	addr := fmt.Sprintf("%s:%s", nodeID, port)
@@ -137,23 +186,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		start, end, end.Sub(start).Milliseconds(),
 		packetSizeSum/int(r.GetBatchSize()))
 
-	cancel()
-
-	if err != nil {
-		return err
-	}
-
-	// Make sure the comm doesn't return an Ack with an error message
-	if ack != nil && ack.Error != "" {
-		return errors.Errorf("Remote Server Error: %s", ack.Error)
-	}
-
 	return nil
 }
 
 // StreamPostPhase implements the server gRPC handler for posting a
 // phase from another node
-func StreamPostPhase(p phase.Phase, batchSize uint32,
+func StreamPostPhase(ch chan []*mixmessages.Slot, batchSize uint32,
 	stream mixmessages.Node_StreamPostPhaseServer) (time.Time, time.Time, error) {
 	// Send a chunk for each slot received along with
 	// its index until an error is received
@@ -168,18 +206,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		jww.INFO.Printf("Reception Delta: %d ns", now.Sub(last).Nanoseconds())
 		last = now
 		for i := range slots.Messages {
-			slot := slots.Messages[i]
-			index := slot.Index
-			phaseErr := p.Input(index, slot)
-			if phaseErr != nil {
-				err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
-					index, slot, phaseErr)
-				return start, time.Time{}, phaseErr
-			}
-
-			chunk := services.NewChunk(index, index+1)
-			go p.Send(chunk)
-
+			ch <- []*mixmessages.Slot{slots.Messages[i]}
 			slotsReceived++
 			if slotsReceived >= batchSize && end.Equal(time.Time{}) {
 				end = time.Now()
@@ -187,7 +214,6 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 				start = time.Now()
 			}
 		}
-
 	}
 
 	// Set error in ack message if we didn't receive all slots
@@ -197,10 +223,10 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	if err != io.EOF {
 		ack.Error = fmt.Sprintf("errors occurred, %v/%v slots "+
 			"recived: %s", slotsReceived, batchSize, err.Error())
-	} else if slotsReceived != batchSize {
+	} /*else if slotsReceived != batchSize {
 		ack.Error = fmt.Sprintf("Mismatch between batch size %v"+
 			"and received num slots %v, no error", slotsReceived, batchSize)
-	}
+	}*/
 
 	// Close the stream by sending ack
 	// and returning whether it succeeded

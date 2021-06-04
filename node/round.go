@@ -238,9 +238,9 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	/*--REALTIME DECRYPT------------------------------------------------------*/
 	// Swap the transmission handler if using streaming
-	//if disableStreaming {
-	transmissionHandler = io.TransmitPhase
-	//}
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Realtime Decrypt phase and response
 	realtimeDecryptDefinition := phase.Definition{
@@ -272,9 +272,9 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 
 	/*--REALTIME PERMUTE------------------------------------------------------*/
 	// Swap the transmission handler if using streaming
-	//if disableStreaming {
-	transmissionHandler = io.TransmitPhase
-	//}
+	if disableStreaming {
+		transmissionHandler = io.TransmitPhase
+	}
 
 	// Build Realtime Decrypt phase and response
 	realtimePermuteDefinition := phase.Definition{

@@ -138,42 +138,50 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 	}
 
-	// Waiting for correct phase
-	ptype := r.GetCurrentPhaseType()
-	toWait := shouldWait(ptype)
-
-	curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, toWait)
-	if err != nil {
-		return errors.WithMessagef(err, errFailedToWait, ptype)
-	}
-
-	if toWait == current.ERROR {
-		return errors.Errorf("Phase %+s has not associated node activity", ptype)
-	} else if toWait != curActivity {
-		return errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
-			toWait, curActivity, ptype)
-	}
-
 	phaseTy := phase.Type(batchInfo.FromPhase).String()
+	checker := func() (phase.Phase, error) {
+		// Waiting for correct phase
+		ptype := r.GetCurrentPhaseType()
+		toWait := shouldWait(ptype)
 
-	// Check if the operation can be done and get the correct
-	// phase if it can
-	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
-	if err != nil {
-		roundErr := errors.Errorf("[%v]: Error on reception of "+
-			"StreamPostPhase comm, should be able to return: \n %+v",
-			instance, err)
-		return roundErr
+		curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, toWait)
+		if err != nil {
+			return nil, errors.WithMessagef(err, errFailedToWait, ptype)
+		}
+
+		if toWait == current.ERROR {
+			return nil, errors.Errorf("Phase %+s has not associated node activity", ptype)
+		} else if toWait != curActivity {
+			return nil, errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
+				toWait, curActivity, ptype)
+		}
+
+		// Check if the operation can be done and get the correct
+		// phase if it can
+		_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
+		if err != nil {
+			roundErr := errors.Errorf("[%v]: Error on reception of "+
+				"StreamPostPhase comm, should be able to return: \n %+v",
+				instance, err)
+			return nil, roundErr
+		}
+		p.Measure(measure.TagReceiveOnReception)
+
+		jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECEIVE/START", instance,
+			roundID, phaseTy, p.GetType())
+
+		//queue the phase to be operated on if it is not queued yet
+		p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
+
+		return p, nil
 	}
-	p.Measure(measure.TagReceiveOnReception)
 
-	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECEIVE/START", instance,
-		roundID, phaseTy, p.GetType())
+	ch, err := instance.CheckShotgun(auth.Sender.GetId(), roundID, batchInfo.FromPhase, r.GetBatchSize(), checker)
+	if err != nil {
+		return err
+	}
 
-	//queue the phase to be operated on if it is not queued yet
-	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
-
-	start, end, strmErr := StreamPostPhase(p, batchInfo.BatchSize, streamServer)
+	start, end, strmErr := StreamPostPhase(ch, batchInfo.BatchSize, streamServer)
 
 	jww.INFO.Printf("\tbwLogging: Round %d, "+
 		"received phase: %s, "+
