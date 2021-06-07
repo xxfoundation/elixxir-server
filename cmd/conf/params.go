@@ -75,7 +75,9 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params := Params{}
 
 	params.RegistrationCode = vip.GetString("registrationCode")
-	require(params.RegistrationCode, "registrationCode")
+	if params.RegistrationCode == "" {
+		jww.DEBUG.Printf("registrationCode is not set in params, using hex encoded node ID")
+	}
 
 	params.Node.Port = vip.GetInt("node.Port")
 	if params.Node.Port == 0 {
@@ -195,7 +197,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
-	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
 	var err error
@@ -321,6 +322,13 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		}
 
 		def.ID = newID
+	}
+
+	// Registration code will be hex encoded nodeID if not specified
+	if p.RegistrationCode != "" {
+		def.RegistrationCode = p.RegistrationCode
+	} else {
+		def.RegistrationCode = def.ID.HexEncode()
 	}
 
 	def.Gateway.ID = def.ID.DeepCopy()
