@@ -135,8 +135,8 @@ func TestError(t *testing.T) {
 		}
 	}
 
-	instance.SetTestRoundError(rndErr, t)
-
+	errChan := instance.GetStateMachine().GetErrorChan()
+	errChan <- rndErr
 	err := Error(instance)
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
@@ -174,9 +174,8 @@ func TestError_RID0(t *testing.T) {
 			t.Errorf("Failed to add host: %+v", err)
 		}
 	}
-
-	instance.SetTestRoundError(rndErr, t)
-
+	errChan := instance.GetStateMachine().GetErrorChan()
+	errChan <- rndErr
 	err := Error(instance)
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)

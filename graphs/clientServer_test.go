@@ -8,6 +8,7 @@ package graphs
 
 /**/
 import (
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -104,7 +105,7 @@ func TestClientServer(t *testing.T) {
 		return nil
 	}
 
-	sm := state.NewMachine(stateChanges)
+	sm := state.NewMachine(stateChanges, make(chan *mixmessages.RoundError, 1))
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
 		"1.1.0")

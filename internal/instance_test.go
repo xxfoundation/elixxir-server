@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(m)
-	sm := state.NewMachine(dummyStates)
+	sm := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
 	instance, _ = CreateServerInstance(def, impl, sm, "1.1.0")
 	os.Exit(m.Run())
 }
@@ -70,7 +70,7 @@ func TestRecoverInstance(t *testing.T) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	sm := state.NewMachine(dummyStates)
+	sm := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
 
 	msg := &mixmessages.RoundError{
 		Id:     0,
@@ -129,7 +129,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	m := state.NewMachine(dummyStates)
+	m := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
 	tmpInstance, _ := CreateServerInstance(def, impl, m, "1.1.0")
 
 	rm := tmpInstance.GetResourceMonitor()
@@ -186,7 +186,7 @@ func TestCreateServerInstance(t *testing.T) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	m := state.NewMachine(dummyStates)
+	m := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
 	_, err := CreateServerInstance(def, impl, m, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
@@ -199,7 +199,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	m := state.NewMachine(dummyStates)
+	m := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
 	instance, err := CreateServerInstance(def, impl, m, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
@@ -292,22 +292,11 @@ func TestInstance_GetDisableStreaming(t *testing.T) {
 	}
 }
 
-func TestInstance_ClearRecoveredError(t *testing.T) {
-	instance := Instance{
-		recoveredError: &mixmessages.RoundError{Id: 3},
-	}
-	instance.ClearRecoveredError()
-	if instance.recoveredError != nil {
-		t.Error("Did not clear recovered error properly")
-	}
-}
-
 func panicHandler(g, m string, err error) {
 	panic(g)
 }
 
 func TestInstance_OverridePhases(t *testing.T) {
-
 	instance, _ := createInstance(t)
 	gc := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 0)

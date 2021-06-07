@@ -146,8 +146,13 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		testStates[current.ERROR] = func(from current.Activity) error {
 			return node.Error(instance)
 		}
+		testStates[current.CRASH] = func(from current.Activity) error {
+			panic("uh oh")
+		}
 
-		sm := state.NewMachine(testStates)
+		errChan := make(chan *mixmessages.RoundError, 1)
+
+		sm := state.NewMachine(testStates, errChan)
 
 		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm,
 			"1.1.0")

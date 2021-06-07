@@ -90,6 +90,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"sync"
 	"testing"
@@ -110,6 +111,7 @@ type Machine struct {
 	*sync.RWMutex
 	//hold the functions used to change to different states
 	changeList [current.NUM_STATES]Change
+	errorChan  chan *mixmessages.RoundError
 
 	//used to signal to waiting threads that a state change has occurred
 	signal chan current.Activity
@@ -128,20 +130,21 @@ func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activit
 		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
 	}
 
-	m := NewMachine(changeList)
+	m := NewMachine(changeList, make(chan *mixmessages.RoundError, 1))
 	*m.Activity = start
 
 	return m
 }
 
 // builds the stateObj  and sets valid transitions
-func NewMachine(changeList [current.NUM_STATES]Change) Machine {
+func NewMachine(changeList [current.NUM_STATES]Change, errChan chan *mixmessages.RoundError) Machine {
 	ss := current.NOT_STARTED
 
 	//builds the object
 	M := Machine{&ss,
 		&sync.RWMutex{},
 		changeList,
+		errChan,
 		make(chan current.Activity),
 		make([][]bool, current.NUM_STATES),
 		make(chan current.Activity, 100),
@@ -182,13 +185,29 @@ func (m Machine) addStateTransition(from current.Activity, to ...current.Activit
 // next state and updates any go routines waiting on the state update.
 // returns a boolean if the update cannot be done and an error explaining why
 // UPDATE CANNOT BE CALLED WITHIN STATE CHANGE FUNCTIONS
-func (m Machine) Update(nextState current.Activity) (bool, error) {
+func (m Machine) Update(nextState current.Activity, errs ...*mixmessages.RoundError) (bool, error) {
 	m.Lock()
 	defer m.Unlock()
 
 	// Errors tend to cascade, so we should ignore attempts to transition into error from error
 	if nextState == current.ERROR && *m.Activity == current.ERROR {
 		return true, nil
+	}
+
+	if nextState == current.ERROR || nextState == current.CRASH {
+		if len(errs) == 0 {
+			return false, errors.New("Cannot transition to ERROR or CRASH without an error message passed in")
+		} else if len(errs) > 1 {
+			jww.WARN.Printf("State transitions do not currently support more than one error; only index 0 of the list will be used")
+		}
+		timeout := time.Tick(200 * time.Millisecond)
+		select {
+		case m.errorChan <- errs[0]:
+			break
+		case <-timeout:
+			return false, errors.New("Attempt to add to error channel timed out")
+		}
+
 	}
 
 	jww.INFO.Printf("Updating to %v", nextState)
@@ -239,6 +258,21 @@ func (m Machine) GetActivityToReport() current.Activity {
 		reportedActivity = *m.Activity
 	}
 	return reportedActivity
+}
+
+func (m Machine) GetError(t time.Duration) (*mixmessages.RoundError, error) {
+	timeout := time.Tick(t)
+	var msg *mixmessages.RoundError
+	select {
+	case <-timeout:
+		return nil, errors.New("Receive on state machine error channel timed out")
+	case msg = <-m.errorChan:
+		return msg, nil
+	}
+}
+
+func (m Machine) GetErrorChan() chan *mixmessages.RoundError {
+	return m.errorChan
 }
 
 // if the the passed state is the next state update, waits until that update

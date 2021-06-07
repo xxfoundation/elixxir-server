@@ -92,7 +92,7 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates)
+	sm := state.NewMachine(dummyStates, make(chan *pb.RoundError, 1))
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		t.Errorf("Failed to prep state machine: %+v", err)
@@ -207,12 +207,7 @@ func TestPoll_ErrState(t *testing.T) {
 	if err != nil {
 		t.Errorf("Couldn't create instance: %+v", err)
 	}
-	instance.SetTestRecoveredError(&pb.RoundError{
-		Id:     0,
-		NodeId: id.NewIdFromString("", id.Node, t).Marshal(),
-		Error:  "",
-	}, t)
-	ok, err := instance.GetStateMachine().Update(current.ERROR)
+	ok, err := instance.GetStateMachine().Update(current.ERROR, &pb.RoundError{Error: "error"})
 	if !ok || err != nil {
 		t.Errorf("Failed to update to error state: %+v", err)
 	}
@@ -694,7 +689,7 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates)
+	sm := state.NewMachine(dummyStates, make(chan *pb.RoundError, 1))
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		t.Errorf("Failed to prep state machine: %+v", err)
@@ -929,7 +924,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates)
+	sm := state.NewMachine(dummyStates, make(chan *pb.RoundError, 1))
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		t.Errorf("Failed to prep state machine: %+v", err)

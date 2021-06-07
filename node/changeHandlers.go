@@ -203,8 +203,8 @@ func NotStarted(instance *internal.Instance) error {
 		}
 		// Transition state machine into waiting state
 		// if error passed in go to error
-		if instance.GetRecoveredError() != nil {
-			ok, err := instance.GetStateMachine().Update(current.ERROR)
+		if len(instance.GetRecoveredErrorChannel()) > 0 {
+			ok, err := instance.GetStateMachine().Update(current.CRASH, &mixmessages.RoundError{})
 			if !ok || err != nil {
 				roundErr := errors.Errorf("Unable to transition to %v state: %+v", current.ERROR, err)
 				instance.ReportNodeFailure(roundErr)
@@ -358,17 +358,11 @@ func Completed(from current.Activity) error {
 }
 
 func Error(instance *internal.Instance) error {
-	//If the error state was recovered from a restart, exit.
-	if instance.GetRecoveredErrorUnsafe() != nil {
-		return nil
+	msg, err := instance.GetStateMachine().GetError(200 * time.Millisecond)
+	if err != nil {
+		return errors.WithMessagef(err, "Error handler did not receive error")
 	}
-	jww.INFO.Printf("Error state was recovered from crash: %+v", instance.GetRecoveredErrorUnsafe())
 
-	// Check for error message on server instance
-	msg := instance.GetRoundError()
-	if msg == nil {
-		jww.FATAL.Panicf("No error found on instance")
-	}
 	jww.INFO.Printf("Round error: %+v", msg)
 
 	cr := instance.GetRoundManager().GetCurrentRound()
@@ -379,7 +373,7 @@ func Error(instance *internal.Instance) error {
 			err = errors.WithMessagef(err, "Did not find round %+v", cr)
 			jww.ERROR.Println(err)
 			go func() {
-				ok, err := instance.GetStateMachine().Update(current.CRASH)
+				ok, err := instance.GetStateMachine().Update(current.CRASH, msg)
 				if !ok || err != nil {
 					jww.FATAL.Panicf("Failed to transition to crash state: %+v", err)
 				}
@@ -389,28 +383,36 @@ func Error(instance *internal.Instance) error {
 		instance.GetRoundManager().DeleteRound(rnd.GetID())
 	}
 
-	err := instance.GetResourceQueue().StopActivePhase(100 * time.Millisecond)
+	err = instance.GetResourceQueue().StopActivePhase(100 * time.Millisecond)
 	if err != nil {
 		err = errors.WithMessagef(err, "Failed to stop active phase")
 		jww.ERROR.Println(err)
 		go func() {
-			ok, err := instance.GetStateMachine().Update(current.CRASH)
+			ok, err := instance.GetStateMachine().Update(current.CRASH, msg)
 			if !ok || err != nil {
 				jww.FATAL.Panicf("Failed to transition to crash state: %+v", err)
 			}
 		}()
 		return err
 	}
-	instance.GetRoundManager().ClearCurrentRound()
+	errChan := instance.GetStateMachine().GetErrorChan()
+	errChan <- msg
 	return nil
 }
 
 func Crash(instance *internal.Instance) error {
-	// Check for error message on server instance
-	jww.INFO.Printf("")
-	msg := instance.GetRoundError()
-	if msg == nil {
-		jww.FATAL.Panicf("No error found on instance")
+	//If the error state was recovered from a restart, exit.
+	recoverChan := instance.GetRecoveredErrorChannel()
+	select {
+	case recovered := <-recoverChan:
+		recoverChan <- recovered
+		return nil
+	default:
+	}
+
+	msg, err := instance.GetStateMachine().GetError(200 * time.Millisecond)
+	if err != nil {
+		return errors.WithMessagef(err, "Crash handler did not receive error")
 	}
 
 	b, err := proto.Marshal(msg)

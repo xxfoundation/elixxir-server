@@ -92,10 +92,11 @@ func TestReceiveRoundError(t *testing.T) {
 		t.Fail()
 	}
 
-	time.Sleep(200 * time.Millisecond)
-
 	// Check if error is passed along to channel
-	receivedError := instance.GetRoundError()
+	receivedError, err := instance.GetStateMachine().GetError(200 * time.Millisecond)
+	if err != nil {
+		t.Errorf("failed to get recovered error")
+	}
 
 	if receivedError == nil || strings.Compare(receivedError.Error, expectedError) != 0 {
 		t.Errorf("Received error did not match expected. Expected: %s\n\tReceived",

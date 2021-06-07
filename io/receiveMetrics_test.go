@@ -34,7 +34,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	topology := connect.NewCircuit(BuildMockNodeIDs(numNodes, t))
 	// Set instance for first node
 
-	m := state.NewMachine(dummyStates)
+	m := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
 
 	metric := measure.ResourceMetric{
 		SystemStartTime: time.Time{},

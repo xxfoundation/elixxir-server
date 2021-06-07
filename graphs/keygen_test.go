@@ -529,6 +529,7 @@ func mockServerInstance(i interface{}) *internal.Instance {
 	def.Gateway.ID.SetType(id.Gateway)
 
 	var stateChanges [current.NUM_STATES]state.Change
+	errChan := make(chan *mixmessages.RoundError, 1)
 	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
 		return nil
 	}
@@ -554,7 +555,7 @@ func mockServerInstance(i interface{}) *internal.Instance {
 		return nil
 	}
 
-	sm := state.NewMachine(stateChanges)
+	sm := state.NewMachine(stateChanges, errChan)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
 		"1.1.0")

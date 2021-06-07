@@ -9,6 +9,7 @@ package state_test
 
 import (
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal/state"
 	"testing"
@@ -38,9 +39,9 @@ func TestMockBusinessLoop(t *testing.T) {
 		//move to next state
 		_, err = m.Update(to)
 		if err != nil {
-			_, err := m.Update(current.ERROR)
+			_, err := m.Update(current.ERROR, &mixmessages.RoundError{})
 			if err != nil {
-				t.Errorf("Error on transition to error state")
+				t.Errorf("Error on transition to error state: %+v", err)
 			}
 		}
 	}
@@ -115,7 +116,9 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//ERROR State
+	errChan := make(chan *mixmessages.RoundError, 1)
 	stateChanges[current.ERROR] = func(from current.Activity) error {
+		<-errChan
 		activityCount[current.ERROR]++
 		// return an error if we have run the number of designated times
 		if activityCount[current.ERROR] == expectedActivity[current.ERROR] {
@@ -125,7 +128,7 @@ func TestMockBusinessLoop(t *testing.T) {
 				if curActivity != from {
 					t.Logf("State %s never came: %s", from, err)
 				}
-				b, err := m.Update(current.CRASH)
+				b, err := m.Update(current.CRASH, &mixmessages.RoundError{})
 				if !b {
 					t.Errorf("Failure when updating to %s: %s",
 						current.CRASH, err.Error())
@@ -135,17 +138,19 @@ func TestMockBusinessLoop(t *testing.T) {
 			// move to next state
 			go generalUpdate(current.ERROR, current.WAITING)
 		}
+
 		return nil
 	}
 
 	//CRASH State
 	stateChanges[current.CRASH] = func(from current.Activity) error {
+		<-errChan
 		activityCount[current.CRASH]++
 		done <- struct{}{}
 		return nil
 	}
 
-	m = state.NewMachine(stateChanges)
+	m = state.NewMachine(stateChanges, errChan)
 	err := m.Start()
 	//check if an error was returned
 	if err != nil {

@@ -77,9 +77,8 @@ type Instance struct {
 
 	roundErrFunc RoundErrBroadcastFunc
 
-	errLck         sync.Mutex
-	roundError     *mixmessages.RoundError
-	recoveredError *mixmessages.RoundError
+	errLock            sync.Mutex
+	recoveredErrorChan chan *mixmessages.RoundError
 
 	phaseOverrides map[int]phase.Phase
 	overrideRound  int
@@ -122,16 +121,16 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		gatewayPoll:          NewFirstTime(),
 		completedBatchQueue:  round.NewCompletedQueue(),
-		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion:     version,
-		firstRun:          &firstRun,
-		firstPoll:         &firstPoll,
-		gatewayFirstPoll:  NewFirstTime(),
-		clientErrors:      round.NewClientFailureReport(def.ID),
-		phaseStateMachine: state.NewGenericMachine(),
+		serverVersion:      version,
+		firstRun:           &firstRun,
+		firstPoll:          &firstPoll,
+		gatewayFirstPoll:   NewFirstTime(),
+		clientErrors:       round.NewClientFailureReport(def.ID),
+		phaseStateMachine:  state.NewGenericMachine(),
+		recoveredErrorChan: make(chan *mixmessages.RoundError, 1),
 	}
 
 	// Initialize the backend
@@ -253,9 +252,9 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
 		" file at %s", msg, i.definition.RecoveredErrorPath)
 
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
-	i.recoveredError = msg
+	i.errLock.Lock()
+	defer i.errLock.Unlock()
+	i.recoveredErrorChan <- msg
 
 	return i, nil
 }
@@ -417,30 +416,8 @@ func (i *Instance) GetClientReport() *round.ClientReport {
 	return i.clientErrors
 }
 
-func (i *Instance) GetRoundError() *mixmessages.RoundError {
-	return i.roundError
-}
-
-func (i *Instance) ClearRoundError() {
-	i.roundError = nil
-}
-
-func (i *Instance) GetRecoveredError() *mixmessages.RoundError {
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
-	return i.recoveredError
-}
-
-func (i *Instance) ClearRecoveredError() {
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
-	i.recoveredError = nil
-}
-
-// only use if you already have the error lock
-// TODO - find a way to remove
-func (i *Instance) GetRecoveredErrorUnsafe() *mixmessages.RoundError {
-	return i.recoveredError
+func (i *Instance) GetRecoveredErrorChannel() chan *mixmessages.RoundError {
+	return i.recoveredErrorChan
 }
 
 func (i *Instance) GetServerVersion() string {
@@ -516,24 +493,6 @@ func (i *Instance) SetRoundErrFunc(f RoundErrBroadcastFunc, t *testing.T) {
 		panic("Cannot call this outside of tests")
 	}
 	i.roundErrFunc = f
-}
-
-func (i *Instance) SetTestRecoveredError(m *mixmessages.RoundError, t *testing.T) {
-	if t == nil {
-		panic("This cannot be used outside of a test")
-	}
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
-	i.recoveredError = m
-}
-
-func (i *Instance) SetTestRoundError(m *mixmessages.RoundError, t *testing.T) {
-	if t == nil {
-		panic("This cannot be used outside of a test")
-	}
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
-	i.roundError = m
 }
 
 func (i *Instance) OverridePanicWrapper(f func(s string), t *testing.T) {
@@ -615,8 +574,8 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 // Create a round error, pass the error over the channel and update the state to
 // ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) reportFailure(roundErr *mixmessages.RoundError, fatal bool) {
-	i.errLck.Lock()
-	defer i.errLck.Unlock()
+	i.errLock.Lock()
+	defer i.errLock.Unlock()
 
 	nodeId, _ := id.Unmarshal(roundErr.NodeId)
 
@@ -641,13 +600,9 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError, fatal bool) {
 		return
 	}
 
-	// put the new error in the instance, since the node isn't currently in
-	// an error or crash state
-	i.roundError = roundErr
-
 	// Otherwise, change instance's state to ERROR
 	if fatal {
-		ok, err := sm.Update(current.CRASH)
+		ok, err := sm.Update(current.CRASH, roundErr)
 		if err != nil {
 			jww.FATAL.Panicf("Failed to change state to CRASH state: %v", err)
 		}
@@ -655,7 +610,7 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError, fatal bool) {
 			jww.FATAL.Panicf("Failed to change state to CRASH state")
 		}
 	} else {
-		ok, err := sm.Update(current.ERROR)
+		ok, err := sm.Update(current.ERROR, roundErr)
 		if err != nil {
 			jww.ERROR.Printf("Failed to change state to ERROR state: %v", err)
 		}

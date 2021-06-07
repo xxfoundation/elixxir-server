@@ -209,19 +209,18 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,
 		uint32(port))
 
-	if reportedActivity == current.ERROR {
+	if reportedActivity == current.ERROR || reportedActivity == current.CRASH {
 		jww.ERROR.Printf("Poll found node in error state")
-		recovered := instance.GetRecoveredError()
-		if recovered != nil {
-			jww.ERROR.Printf("Recovered error found")
-			pollMsg.Error = recovered
-			instance.ClearRecoveredError()
-		} else {
-			jww.ERROR.Printf("Round error found")
-			pollMsg.Error = instance.GetRoundError()
-			instance.ClearRoundError()
+		ticker := time.NewTicker(30 * time.Second)
+		select {
+		case <-ticker.C:
+			return nil, errors.New("Timed out waiting for error in error state")
+		case pollMsg.Error = <-instance.GetStateMachine().GetErrorChan():
+			jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
+		case pollMsg.Error = <-instance.GetRecoveredErrorChannel():
+			jww.INFO.Printf("Reporting recovered error to permissioning: %+v", pollMsg.Error)
+
 		}
-		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")

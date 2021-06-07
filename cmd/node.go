@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
+	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/cmd/conf"
@@ -120,8 +121,10 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		return node.Crash(instance)
 	}
 
+	errChan := make(chan *mixmessages.RoundError, 1)
+
 	// Create the machine with these state functions
-	ourMachine := state.NewMachine(ourChangeList)
+	ourMachine := state.NewMachine(ourChangeList, errChan)
 
 	// Check if the error recovery file exists
 	if _, err := os.Stat(params.RecoveredErrPath); os.IsNotExist(err) {
