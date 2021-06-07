@@ -75,9 +75,6 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params := Params{}
 
 	params.RegistrationCode = vip.GetString("registrationCode")
-	if params.RegistrationCode == "" {
-		jww.DEBUG.Printf("registrationCode is not set in params, using hex encoded node ID")
-	}
 
 	params.Node.Port = vip.GetInt("node.Port")
 	if params.Node.Port == 0 {
@@ -328,6 +325,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	if p.RegistrationCode != "" {
 		def.RegistrationCode = p.RegistrationCode
 	} else {
+		jww.DEBUG.Printf("registrationCode is not set in params, using hex encoded node ID")
 		def.RegistrationCode = def.ID.HexEncode()
 	}
 
