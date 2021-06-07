@@ -249,7 +249,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		Timeout:             newRoundTimeout,
 	}
 	if pool != nil && useGPU {
-		realtimeDecryptDefinition.Graph = realtime.InitDecryptGPUGraph(gc)
+		realtimeDecryptDefinition.Graph = realtime.InitDecryptGraph(gc)
 	} else {
 		realtimeDecryptDefinition.Graph = realtime.InitDecryptGraph(gc)
 	}
@@ -284,7 +284,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 		DoVerification:      true,
 	}
 	if pool != nil && useGPU {
-		realtimePermuteDefinition.Graph = realtime.InitPermuteGPUGraph(gc)
+		realtimePermuteDefinition.Graph = realtime.InitPermuteGraph(gc)
 	} else {
 		realtimePermuteDefinition.Graph = realtime.InitPermuteGraph(gc)
 	}
