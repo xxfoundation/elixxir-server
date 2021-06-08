@@ -104,6 +104,43 @@ func TestNewStateChanges(t *testing.T) {
 	}
 }
 
+func TestError(t *testing.T) {
+	instance, topology := setup(t)
+	rndErr := &mixmessages.RoundError{
+		Id:     1,
+		NodeId: instance.GetID().Marshal(),
+		Error:  "",
+	}
+	mockBroadcast := func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error) {
+		return nil, nil
+	}
+	instance.SetRoundErrFunc(mockBroadcast, t)
+
+	for i := 0; i < topology.Len(); i++ {
+		nid := topology.GetNodeAtIndex(i)
+		params := connect.GetDefaultHostParams()
+		params.MaxRetries = 0
+		_, err := instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
+		if err != nil {
+			t.Errorf("Failed to add host: %+v", err)
+		}
+	}
+
+	errChan := instance.GetStateMachine().GetErrorChan()
+	errChan <- rndErr
+	err := Error(instance)
+	if err != nil {
+		t.Errorf("Failed to error: %+v", err)
+	}
+
+	select {
+	case <-errChan:
+		break
+	default:
+		t.Errorf("didn't get error over chan")
+	}
+}
+
 func TestCrash(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
