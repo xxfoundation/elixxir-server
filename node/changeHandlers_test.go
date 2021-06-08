@@ -104,8 +104,6 @@ func TestNewStateChanges(t *testing.T) {
 	}
 }
 
-// TODO(jonah) - write error state test
-
 func TestCrash(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
