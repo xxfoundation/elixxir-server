@@ -104,7 +104,9 @@ func TestNewStateChanges(t *testing.T) {
 	}
 }
 
-func TestError(t *testing.T) {
+// TODO(jonah) - write error state test
+
+func TestCrash(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
 		Id:     1,
@@ -137,13 +139,13 @@ func TestError(t *testing.T) {
 
 	errChan := instance.GetStateMachine().GetErrorChan()
 	errChan <- rndErr
-	err := Error(instance)
+	err := Crash(instance)
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
 	}
 }
 
-func TestError_RID0(t *testing.T) {
+func TestCrash_RID0(t *testing.T) {
 	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
 		Id:     0,
@@ -176,7 +178,7 @@ func TestError_RID0(t *testing.T) {
 	}
 	errChan := instance.GetStateMachine().GetErrorChan()
 	errChan <- rndErr
-	err := Error(instance)
+	err := Crash(instance)
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
 	}
