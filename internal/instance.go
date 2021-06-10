@@ -169,6 +169,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	//Start local node
 	fmt.Println("11")
+	fmt.Println(instance.definition.ListeningAddress)
+	fmt.Println(instance.definition.InterconnectPort)
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.ListeningAddress,
 		instance.definition.InterconnectPort, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
