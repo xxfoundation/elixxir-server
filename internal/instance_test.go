@@ -31,14 +31,14 @@ import (
 )
 
 var dummyStates = [current.NUM_STATES]state.Change{
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
 }
 
 const MODP768 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(m)
-	sm := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	sm := state.NewMachine(dummyStates)
 	instance, _ = CreateServerInstance(def, impl, sm, "1.1.0")
 	os.Exit(m.Run())
 }
@@ -70,7 +70,7 @@ func TestRecoverInstance(t *testing.T) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	sm := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	sm := state.NewMachine(dummyStates)
 
 	msg := &mixmessages.RoundError{
 		Id:     0,
@@ -129,7 +129,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	m := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := state.NewMachine(dummyStates)
 	tmpInstance, _ := CreateServerInstance(def, impl, m, "1.1.0")
 
 	rm := tmpInstance.GetResourceMonitor()
@@ -186,7 +186,7 @@ func TestCreateServerInstance(t *testing.T) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	m := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := state.NewMachine(dummyStates)
 	_, err := CreateServerInstance(def, impl, m, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")
@@ -199,7 +199,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 		return node.NewImplementation()
 	}
 	def := mockServerDef(t)
-	m := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := state.NewMachine(dummyStates)
 	instance, err := CreateServerInstance(def, impl, m, "1.1.0")
 	if err != nil {
 		t.Logf("Failed to create a server instance")

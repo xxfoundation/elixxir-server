@@ -248,14 +248,14 @@ func (i *mockPermissionMultipleRounds) GetUpdatedNDF(clientNDFHash []byte) ([]by
 }
 
 var dummyStates = [current.NUM_STATES]state.Change{
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
 }
 
 // ------------------------------ Utility functions for testing purposes  ----------------------------------------------
@@ -395,7 +395,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	sm := state.NewMachine(dummyStates)
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		return

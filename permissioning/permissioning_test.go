@@ -92,7 +92,7 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates, make(chan *pb.RoundError, 1))
+	sm := state.NewMachine(dummyStates)
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		t.Errorf("Failed to prep state machine: %+v", err)
@@ -257,7 +257,7 @@ func TestRetrieveState(t *testing.T) {
 	permHost, _ := instance.GetNetwork().GetHost(&id.Permissioning)
 
 	// Ping permissioning for a state update
-	response, err := PollPermissioning(permHost, instance, instance.GetStateMachine().Get())
+	response, err := PollPermissioning(permHost, instance, state.StateChange{State: instance.GetStateMachine().Get()})
 	if err != nil {
 		t.Errorf("Failed to poll for ndf: %+v", err)
 	}
@@ -689,7 +689,7 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates, make(chan *pb.RoundError, 1))
+	sm := state.NewMachine(dummyStates)
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		t.Errorf("Failed to prep state machine: %+v", err)
@@ -924,7 +924,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates, make(chan *pb.RoundError, 1))
+	sm := state.NewMachine(dummyStates)
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		t.Errorf("Failed to prep state machine: %+v", err)

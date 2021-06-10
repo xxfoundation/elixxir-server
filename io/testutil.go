@@ -43,14 +43,14 @@ import (
 const testGatewayAddress = "0.0.0.0:8201"
 
 var dummyStates = [current.NUM_STATES]state.Change{
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
 }
 
 // batchEq compares two batches to see if they are equal

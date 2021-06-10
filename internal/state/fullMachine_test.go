@@ -50,7 +50,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	var stateChanges [current.NUM_STATES]state.Change
 
 	//NOT_STARTED state
-	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
+	stateChanges[current.NOT_STARTED] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.NOT_STARTED]++
 		// move to next state
 		go generalUpdate(current.NOT_STARTED, current.WAITING)
@@ -58,7 +58,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//WAITING State
-	stateChanges[current.WAITING] = func(from current.Activity) error {
+	stateChanges[current.WAITING] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.WAITING]++
 		// return an error if we have run the number of designated times
 		if activityCount[current.WAITING] == expectedActivity[current.WAITING] {
@@ -72,7 +72,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//PRECOMPUTING State
-	stateChanges[current.PRECOMPUTING] = func(from current.Activity) error {
+	stateChanges[current.PRECOMPUTING] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.PRECOMPUTING]++
 		// return an error if we have run the number of designated times
 		if activityCount[current.PRECOMPUTING] ==
@@ -89,7 +89,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//STANDBY State
-	stateChanges[current.STANDBY] = func(from current.Activity) error {
+	stateChanges[current.STANDBY] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.STANDBY]++
 		// move to next state
 		go generalUpdate(current.STANDBY, current.REALTIME)
@@ -98,7 +98,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//REALTIME State
-	stateChanges[current.REALTIME] = func(from current.Activity) error {
+	stateChanges[current.REALTIME] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.REALTIME]++
 		// move to next state
 		go generalUpdate(current.REALTIME, current.COMPLETED)
@@ -107,7 +107,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//COMPLETED State
-	stateChanges[current.COMPLETED] = func(from current.Activity) error {
+	stateChanges[current.COMPLETED] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.COMPLETED]++
 		// move to next state
 		go generalUpdate(current.COMPLETED, current.WAITING)
@@ -116,9 +116,7 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//ERROR State
-	errChan := make(chan *mixmessages.RoundError, 1)
-	stateChanges[current.ERROR] = func(from current.Activity) error {
-		<-errChan
+	stateChanges[current.ERROR] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.ERROR]++
 		// return an error if we have run the number of designated times
 		if activityCount[current.ERROR] == expectedActivity[current.ERROR] {
@@ -143,14 +141,13 @@ func TestMockBusinessLoop(t *testing.T) {
 	}
 
 	//CRASH State
-	stateChanges[current.CRASH] = func(from current.Activity) error {
-		<-errChan
+	stateChanges[current.CRASH] = func(from current.Activity, err *mixmessages.RoundError) error {
 		activityCount[current.CRASH]++
 		done <- struct{}{}
 		return nil
 	}
 
-	m = state.NewMachine(stateChanges, errChan)
+	m = state.NewMachine(stateChanges)
 	err := m.Start()
 	//check if an error was returned
 	if err != nil {

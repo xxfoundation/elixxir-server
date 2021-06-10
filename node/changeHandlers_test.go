@@ -29,9 +29,8 @@ import (
 	"time"
 )
 
-func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
+func setup(t *testing.T, testid string) (*internal.Instance, *connect.Circuit) {
 	var nodeIDs []*id.ID
-
 	//Build IDs
 	for i := 0; i < 5; i++ {
 		nodIDBytes := make([]byte, id.ArrIDLen)
@@ -49,7 +48,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		FullNDF:            testUtil.NDF,
 		PartialNDF:         testUtil.NDF,
 		GraphGenerator:     gg,
-		RecoveredErrorPath: "/tmp/recovered_error",
+		RecoveredErrorPath: "/tmp/recovered_error_" + testid,
 		Gateway: internal.GW{
 			Address: "0.0.0.0:11420",
 		},
@@ -59,22 +58,22 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
 	def.DevMode = true
-
 	var instance *internal.Instance
 	var dummyStates = [current.NUM_STATES]state.Change{
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
-		func(from current.Activity) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+	fmt.Println("1")
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
 		m, "1.1.0")
-
+	fmt.Println("2")
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
@@ -82,9 +81,11 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
+	fmt.Println("04")
 	r := round.NewDummyRoundWithTopology(id.Round(1), 3, topology, t)
 	instance.GetRoundManager().AddRound(r)
 	_ = instance.Run()
+	fmt.Println("05")
 	return instance, topology
 }
 
@@ -105,7 +106,7 @@ func TestNewStateChanges(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	instance, topology := setup(t)
+	instance, topology := setup(t, "error")
 	rndErr := &mixmessages.RoundError{
 		Id:     1,
 		NodeId: instance.GetID().Marshal(),
@@ -126,23 +127,14 @@ func TestError(t *testing.T) {
 		}
 	}
 
-	errChan := instance.GetStateMachine().GetErrorChan()
-	errChan <- rndErr
-	err := Error(instance)
+	err := Error(instance, rndErr)
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
-	}
-
-	select {
-	case <-errChan:
-		break
-	default:
-		t.Errorf("didn't get error over chan")
 	}
 }
 
 func TestCrash(t *testing.T) {
-	instance, topology := setup(t)
+	instance, topology := setup(t, "crash")
 	rndErr := &mixmessages.RoundError{
 		Id:     1,
 		NodeId: instance.GetID().Marshal(),
@@ -172,16 +164,14 @@ func TestCrash(t *testing.T) {
 		}
 	}
 
-	errChan := instance.GetStateMachine().GetErrorChan()
-	errChan <- rndErr
-	err := Crash(instance)
+	err := Crash(instance, rndErr)
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
 	}
 }
 
 func TestCrash_RID0(t *testing.T) {
-	instance, topology := setup(t)
+	instance, topology := setup(t, "crash_rid0")
 	rndErr := &mixmessages.RoundError{
 		Id:     0,
 		NodeId: instance.GetID().Marshal(),
@@ -211,9 +201,8 @@ func TestCrash_RID0(t *testing.T) {
 			t.Errorf("Failed to add host: %+v", err)
 		}
 	}
-	errChan := instance.GetStateMachine().GetErrorChan()
-	errChan <- rndErr
-	err := Crash(instance)
+
+	err := Crash(instance, rndErr)
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
 	}
@@ -221,7 +210,7 @@ func TestCrash_RID0(t *testing.T) {
 
 func TestPrecomputing(t *testing.T) {
 	var err error
-	instance, topology := setup(t)
+	instance, topology := setup(t, "precomp")
 
 	var top [][]byte
 	for i := 0; i < topology.Len(); i++ {
@@ -276,7 +265,7 @@ func TestPrecomputing(t *testing.T) {
 
 func TestPrecomputing_override(t *testing.T) {
 	var err error
-	instance, topology := setup(t)
+	instance, topology := setup(t, "precompor")
 	gc := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 0)
 	g := graphs.InitErrorGraph(gc)

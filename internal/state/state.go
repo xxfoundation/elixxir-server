@@ -101,7 +101,11 @@ import (
 
 // function which does a state change.  It should operate quickly, and cannot
 // instruct state changes itself without creating a deadlock
-type Change func(from current.Activity) error
+type Change func(from current.Activity, err *mixmessages.RoundError) error
+type StateChange struct {
+	State current.Activity
+	Err   *mixmessages.RoundError
+}
 
 //core state machine object
 type Machine struct {
@@ -111,14 +115,13 @@ type Machine struct {
 	*sync.RWMutex
 	//hold the functions used to change to different states
 	changeList [current.NUM_STATES]Change
-	errorChan  chan *mixmessages.RoundError
 
 	//used to signal to waiting threads that a state change has occurred
 	signal chan current.Activity
 	//holds valid state transitions
 	stateMap [][]bool
 	//changeChan
-	changebuffer chan current.Activity
+	changebuffer chan StateChange
 }
 
 func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t interface{}) Machine {
@@ -130,24 +133,23 @@ func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activit
 		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
 	}
 
-	m := NewMachine(changeList, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(changeList)
 	*m.Activity = start
 
 	return m
 }
 
 // builds the stateObj  and sets valid transitions
-func NewMachine(changeList [current.NUM_STATES]Change, errChan chan *mixmessages.RoundError) Machine {
+func NewMachine(changeList [current.NUM_STATES]Change) Machine {
 	ss := current.NOT_STARTED
 
 	//builds the object
 	M := Machine{&ss,
 		&sync.RWMutex{},
 		changeList,
-		errChan,
 		make(chan current.Activity),
 		make([][]bool, current.NUM_STATES),
-		make(chan current.Activity, 100),
+		make(chan StateChange, 100),
 	}
 
 	//finish populating the stateMap
@@ -168,7 +170,7 @@ func NewMachine(changeList [current.NUM_STATES]Change, errChan chan *mixmessages
 }
 
 func (m Machine) Start() error {
-	_, err := m.stateChange(*m.Activity)
+	_, err := m.stateChange(*m.Activity, nil)
 	return err
 }
 
@@ -194,20 +196,14 @@ func (m Machine) Update(nextState current.Activity, errs ...*mixmessages.RoundEr
 		return true, nil
 	}
 
+	var errMsg *mixmessages.RoundError = nil
 	if nextState == current.ERROR || nextState == current.CRASH {
 		if len(errs) == 0 {
 			return false, errors.New("Cannot transition to ERROR or CRASH without an error message passed in")
 		} else if len(errs) > 1 {
 			jww.WARN.Printf("State transitions do not currently support more than one error; only index 0 of the list will be used")
 		}
-		timeout := time.Tick(200 * time.Millisecond)
-		select {
-		case m.errorChan <- errs[0]:
-			break
-		case <-timeout:
-			return false, errors.New("Attempt to add to error channel timed out")
-		}
-
+		errMsg = errs[0]
 	}
 
 	jww.INFO.Printf("Updating to %v", nextState)
@@ -220,7 +216,7 @@ func (m Machine) Update(nextState current.Activity, errs ...*mixmessages.RoundEr
 	}
 
 	//execute the state change
-	success, err := m.stateChange(nextState)
+	success, err := m.stateChange(nextState, errMsg)
 	if !success {
 		return false, err
 	}
@@ -247,32 +243,17 @@ func (m Machine) Get() current.Activity {
 // Server can update state internally faster than it informs permissioning. This
 // buffers all updates to ensure none are missed by permissioning, and returns
 // the current state if there are no buffered changes
-func (m Machine) GetActivityToReport() current.Activity {
+func (m Machine) GetActivityToReport() StateChange {
 	m.RLock()
 	defer m.RUnlock()
-	var reportedActivity current.Activity
+	var reportedActivity StateChange
 
 	select {
 	case reportedActivity = <-m.changebuffer:
 	default:
-		reportedActivity = *m.Activity
+		reportedActivity = StateChange{*m.Activity, nil}
 	}
 	return reportedActivity
-}
-
-func (m Machine) GetError(t time.Duration) (*mixmessages.RoundError, error) {
-	timeout := time.Tick(t)
-	var msg *mixmessages.RoundError
-	select {
-	case <-timeout:
-		return nil, errors.New("Receive on state machine error channel timed out")
-	case msg = <-m.errorChan:
-		return msg, nil
-	}
-}
-
-func (m Machine) GetErrorChan() chan *mixmessages.RoundError {
-	return m.errorChan
 }
 
 // if the the passed state is the next state update, waits until that update
@@ -421,17 +402,17 @@ func (m Machine) WaitForUnsafe(expected current.Activity, timeout time.Duration,
 }
 
 // Internal function used to change states in NewMachine() and Machine.Update()
-func (m Machine) stateChange(nextState current.Activity) (bool, error) {
+func (m Machine) stateChange(nextState current.Activity, msg *mixmessages.RoundError) (bool, error) {
 	oldState := *m.Activity
 	*m.Activity = nextState
 
 	select {
-	case m.changebuffer <- nextState:
+	case m.changebuffer <- StateChange{nextState, msg}:
 	default:
 		return false, errors.New("State change buffer full")
 	}
 
-	err := m.changeList[*m.Activity](oldState)
+	err := m.changeList[*m.Activity](oldState, msg)
 
 	if err != nil {
 		return false, err

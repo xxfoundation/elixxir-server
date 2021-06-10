@@ -33,19 +33,19 @@ var expectedStateMap = [][]bool{
 }
 
 var dummyStates = [current.NUM_STATES]Change{
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
 }
 
 //tests that new Machiene works properly function creates a properly formed state object
 func TestNewMachine(t *testing.T) {
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	// check the state pointer is properly initialized
 	if m.Activity == nil {
@@ -94,12 +94,12 @@ func TestNewMachine_Error(t *testing.T) {
 	dummyStatesErr := dummyStates
 
 	dummyStatesErr[current.NOT_STARTED] =
-		func(from current.Activity) error { return nil }
+		func(from current.Activity, err *mixmessages.RoundError) error { return nil }
 
 	dummyStatesErr[current.WAITING] =
-		func(from current.Activity) error { return errors.New("mock error") }
+		func(from current.Activity, err *mixmessages.RoundError) error { return errors.New("mock error") }
 
-	m := NewMachine(dummyStatesErr, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStatesErr)
 	err := m.Start()
 	if err != nil {
 		t.Errorf("Failed to start state machine: %+v", err)
@@ -221,7 +221,7 @@ func TestAddStateTransition(t *testing.T) {
 
 //test that all state transitions occur as expected
 func TestUpdate_Transitions(t *testing.T) {
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 	//test invalid state transitions
 	for i := current.Activity(0); i < current.NUM_STATES; i++ {
 		for j := current.Activity(0); j < current.NUM_STATES; j++ {
@@ -231,9 +231,6 @@ func TestUpdate_Transitions(t *testing.T) {
 			var err error
 			if j == current.ERROR || j == current.CRASH {
 				success, err = m.Update(j, &mixmessages.RoundError{})
-				if !(i == current.ERROR && j == current.ERROR) {
-					<-m.errorChan
-				}
 			} else {
 				success, err = m.Update(j)
 			}
@@ -268,9 +265,9 @@ func TestUpdate_TransitionError(t *testing.T) {
 	dummyStatesErr := dummyStates
 
 	dummyStatesErr[current.STANDBY] =
-		func(from current.Activity) error { return errors.New("mock error") }
+		func(from current.Activity, err *mixmessages.RoundError) error { return errors.New("mock error") }
 
-	m := NewMachine(dummyStatesErr, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStatesErr)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -293,7 +290,7 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 	numNotifications := 10
 	timeout := 100 * time.Millisecond
 
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	//channel runners to be notified will return results on
 	completion := make(chan bool)
@@ -350,7 +347,7 @@ func TestUpdate_ManyNotifications(t *testing.T) {
 
 //test that get returns the correct value
 func TestGet_Happy(t *testing.T) {
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	numTest := 100
 	for i := 0; i < numTest; i++ {
@@ -368,7 +365,7 @@ func TestGet_Happy(t *testing.T) {
 func TestGet_Locked(t *testing.T) {
 
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	//set to waiting state
 	*m.Activity = current.WAITING
@@ -411,7 +408,7 @@ func TestGet_Locked(t *testing.T) {
 //test that WaitFor returns immediately when the state is already correct
 func TestWaitFor_CorrectState(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -432,7 +429,7 @@ func TestWaitFor_CorrectState(t *testing.T) {
 // reachable from the current
 func TestWaitFor_Unreachable(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -455,7 +452,7 @@ func TestWaitFor_Unreachable(t *testing.T) {
 //test the timeout for when the state change does not happen
 func TestWaitFor_Timeout(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -478,7 +475,7 @@ func TestWaitFor_Timeout(t *testing.T) {
 //tests when it takes time for the state to come
 func TestWaitFor_WaitForState(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -505,7 +502,7 @@ func TestWaitFor_WaitForState(t *testing.T) {
 //tests when it takes time for the state to come
 func TestWaitFor_WaitForBadState(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -536,7 +533,7 @@ func TestWaitFor_WaitForBadState(t *testing.T) {
 //test that WaitForUnsafe returns immediately when the state is already correct
 func TestWaitForUnsafe_CorrectState(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -556,7 +553,7 @@ func TestWaitForUnsafe_CorrectState(t *testing.T) {
 //test the timeout for when the state change does not happen
 func TestWaitForUnsafe_Timeout(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -579,7 +576,7 @@ func TestWaitForUnsafe_Timeout(t *testing.T) {
 //tests when it takes time for the state to come
 func TestWaitForUnsafe_WaitForState(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -606,7 +603,7 @@ func TestWaitForUnsafe_WaitForState(t *testing.T) {
 //tests when it takes time for the state to come
 func TestMachine_WaitForUnsafe_WaitForBadState(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	*m.Activity = current.PRECOMPUTING
 
@@ -637,7 +634,7 @@ func TestMachine_WaitForUnsafe_WaitForBadState(t *testing.T) {
 //tests when it takes time for the state to come
 func TestMachine_WaitForUnsafe_Panic(t *testing.T) {
 	//create a new state
-	m := NewMachine(dummyStates, make(chan *mixmessages.RoundError, 1))
+	m := NewMachine(dummyStates)
 
 	//catch the panic
 	defer func() {

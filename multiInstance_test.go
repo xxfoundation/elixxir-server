@@ -113,7 +113,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		// Construct the state machine
 		var testStates [current.NUM_STATES]state.Change
 		// Create not started
-		testStates[current.NOT_STARTED] = func(from current.Activity) error {
+		testStates[current.NOT_STARTED] = func(from current.Activity, msg *mixmessages.RoundError) error {
 			curActivity, err := instance.GetStateMachine().WaitFor(1*time.Second,
 				current.NOT_STARTED)
 			if curActivity != current.NOT_STARTED || err != nil {
@@ -131,28 +131,26 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 			return nil
 		}
 		// Create waiting
-		testStates[current.WAITING] = func(from current.Activity) error { return nil }
+		testStates[current.WAITING] = func(from current.Activity, msg *mixmessages.RoundError) error { return nil }
 		// Create precomputing
-		testStates[current.PRECOMPUTING] = func(from current.Activity) error {
+		testStates[current.PRECOMPUTING] = func(from current.Activity, msg *mixmessages.RoundError) error {
 			return node.Precomputing(instance)
 		}
 		// Create standby
-		testStates[current.STANDBY] = func(from current.Activity) error { return nil }
+		testStates[current.STANDBY] = func(from current.Activity, msg *mixmessages.RoundError) error { return nil }
 		// Create realtime
-		testStates[current.REALTIME] = func(from current.Activity) error {
+		testStates[current.REALTIME] = func(from current.Activity, msg *mixmessages.RoundError) error {
 			return node.Realtime(instance)
 		}
-		testStates[current.COMPLETED] = func(from current.Activity) error { return nil }
-		testStates[current.ERROR] = func(from current.Activity) error {
-			return node.Error(instance)
+		testStates[current.COMPLETED] = func(from current.Activity, msg *mixmessages.RoundError) error { return nil }
+		testStates[current.ERROR] = func(from current.Activity, msg *mixmessages.RoundError) error {
+			return node.Error(instance, msg)
 		}
-		testStates[current.CRASH] = func(from current.Activity) error {
+		testStates[current.CRASH] = func(from current.Activity, msg *mixmessages.RoundError) error {
 			panic("uh oh")
 		}
 
-		errChan := make(chan *mixmessages.RoundError, 1)
-
-		sm := state.NewMachine(testStates, errChan)
+		sm := state.NewMachine(testStates)
 
 		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm,
 			"1.1.0")

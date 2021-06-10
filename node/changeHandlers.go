@@ -38,7 +38,7 @@ import (
 // Number of hard-coded users to create
 var numDemoUsers = int(256)
 
-func Dummy(from current.Activity) error {
+func Dummy(from current.Activity, err *mixmessages.RoundError) error {
 	return nil
 }
 
@@ -119,7 +119,7 @@ func NotStarted(instance *internal.Instance) error {
 	for err != nil {
 		var permResponse *mixmessages.PermissionPollResponse
 		// Blocking call: Request ndf from permissioning
-		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
+		permResponse, err = permissioning.PollPermissioning(permHost, instance, state.StateChange{State: current.NOT_STARTED})
 		if err == nil {
 			//check if an NDF is returned
 			if permResponse == nil || permResponse.FullNDF == nil || len(permResponse.FullNDF.Ndf) == 0 {
@@ -357,12 +357,7 @@ func Completed(from current.Activity) error {
 	return nil
 }
 
-func Error(instance *internal.Instance) error {
-	msg, err := instance.GetStateMachine().GetError(200 * time.Millisecond)
-	if err != nil {
-		return errors.WithMessagef(err, "Error handler did not receive error")
-	}
-
+func Error(instance *internal.Instance, msg *mixmessages.RoundError) error {
 	jww.INFO.Printf("Round error: %+v", msg)
 
 	cr := instance.GetRoundManager().GetCurrentRound()
@@ -383,7 +378,7 @@ func Error(instance *internal.Instance) error {
 		instance.GetRoundManager().DeleteRound(rnd.GetID())
 	}
 
-	err = instance.GetResourceQueue().StopActivePhase(100 * time.Millisecond)
+	err := instance.GetResourceQueue().StopActivePhase(100 * time.Millisecond)
 	if err != nil {
 		err = errors.WithMessagef(err, "Failed to stop active phase")
 		jww.ERROR.Println(err)
@@ -395,12 +390,10 @@ func Error(instance *internal.Instance) error {
 		}()
 		return err
 	}
-	errChan := instance.GetStateMachine().GetErrorChan()
-	errChan <- msg
 	return nil
 }
 
-func Crash(instance *internal.Instance) error {
+func Crash(instance *internal.Instance, msg *mixmessages.RoundError) error {
 	//If the error state was recovered from a restart, exit.
 	recoverChan := instance.GetRecoveredErrorChannel()
 	select {
@@ -410,16 +403,10 @@ func Crash(instance *internal.Instance) error {
 	default:
 	}
 
-	msg, err := instance.GetStateMachine().GetError(200 * time.Millisecond)
-	if err != nil {
-		return errors.WithMessagef(err, "Crash handler did not receive error")
-	}
-
 	b, err := proto.Marshal(msg)
 	if err != nil {
 		jww.FATAL.Panicf("Failed to marshal message to bytes: %+v", err)
 	}
-
 	bEncoded := base64.StdEncoding.EncodeToString(b)
 	err = utils.WriteFile(instance.GetDefinition().RecoveredErrorPath, []byte(bEncoded), 0644, 0644)
 	if err != nil {

@@ -611,33 +611,32 @@ func mockServerInstance(i interface{}) *internal.Instance {
 	def.Gateway.ID.SetType(id.Gateway)
 
 	var stateChanges [current.NUM_STATES]state.Change
-	errChan := make(chan *mixmessages.RoundError, 1)
-	stateChanges[current.NOT_STARTED] = func(from current.Activity) error {
+	stateChanges[current.NOT_STARTED] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
-	stateChanges[current.WAITING] = func(from current.Activity) error {
+	stateChanges[current.WAITING] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
-	stateChanges[current.PRECOMPUTING] = func(from current.Activity) error {
+	stateChanges[current.PRECOMPUTING] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
-	stateChanges[current.STANDBY] = func(from current.Activity) error {
+	stateChanges[current.STANDBY] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
-	stateChanges[current.REALTIME] = func(from current.Activity) error {
+	stateChanges[current.REALTIME] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
-	stateChanges[current.COMPLETED] = func(from current.Activity) error {
+	stateChanges[current.COMPLETED] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
-	stateChanges[current.ERROR] = func(from current.Activity) error {
+	stateChanges[current.ERROR] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
-	stateChanges[current.CRASH] = func(from current.Activity) error {
+	stateChanges[current.CRASH] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return nil
 	}
 
-	sm := state.NewMachine(stateChanges, errChan)
+	sm := state.NewMachine(stateChanges)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
 		"1.1.0")

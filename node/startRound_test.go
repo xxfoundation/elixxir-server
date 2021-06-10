@@ -29,14 +29,14 @@ import (
 )
 
 var dummyStates = [current.NUM_STATES]state.Change{
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
-	func(from current.Activity) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
+	func(from current.Activity, err *mixmessages.RoundError) error { return nil },
 }
 
 func assertPanic(t *testing.T, f func()) {

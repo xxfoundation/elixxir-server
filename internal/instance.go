@@ -77,7 +77,6 @@ type Instance struct {
 
 	roundErrFunc RoundErrBroadcastFunc
 
-	errLock            sync.Mutex
 	recoveredErrorChan chan *mixmessages.RoundError
 
 	phaseOverrides map[int]phase.Phase
@@ -132,7 +131,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		phaseStateMachine:  state.NewGenericMachine(),
 		recoveredErrorChan: make(chan *mixmessages.RoundError, 1),
 	}
-
 	// Initialize the backend
 	jww.INFO.Printf("Initializing the backend...")
 	instance.storage, err = storage.NewStorage(
@@ -148,7 +146,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 			jww.FATAL.Panicf(eMsg)
 		}
 	}
-
 	// Create stream pool if instructed to use GPU
 	if def.UseGPU {
 		// Try to initialize the GPU
@@ -171,26 +168,24 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-
+	fmt.Println("11")
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.ListeningAddress,
 		instance.definition.InterconnectPort, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
+	fmt.Println("12")
 	instance.roundErrFunc = instance.network.SendRoundError
-
 	// Initializes the network state tracking on this server instance
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
 		def.PartialNDF, def.FullNDF, nil, network.Strict, false)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
-
 	// Handle overriding local IP
 	if instance.GetDefinition().OverrideInternalIP != "" {
 
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
 			ID, instance.GetDefinition().OverrideInternalIP)
 	}
-
 	// Connect to our gateway
 	_, err = instance.network.AddHost(&id.TempGateway,
 		"", instance.definition.Gateway.TlsCert, connect.GetDefaultHostParams())
@@ -252,8 +247,6 @@ func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.I
 	jww.INFO.Printf("Server instance was recovered from error %+v: removing"+
 		" file at %s", msg, i.definition.RecoveredErrorPath)
 
-	i.errLock.Lock()
-	defer i.errLock.Unlock()
 	i.recoveredErrorChan <- msg
 
 	return i, nil
@@ -581,9 +574,6 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 // Create a round error, pass the error over the channel and update the state to
 // ERROR state. In situations that cause critical panic level errors.
 func (i *Instance) reportFailure(roundErr *mixmessages.RoundError, fatal bool) {
-	i.errLock.Lock()
-	defer i.errLock.Unlock()
-
 	nodeId, _ := id.Unmarshal(roundErr.NodeId)
 
 	//sign the round error

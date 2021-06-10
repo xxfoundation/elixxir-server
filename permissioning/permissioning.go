@@ -19,6 +19,7 @@ import (
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
@@ -126,7 +127,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	// Once done and in a completed state, manually switch back into waiting
-	if reportedActivity == current.COMPLETED {
+	if reportedActivity.State == current.COMPLETED {
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			return errors.Errorf("Could not transition to WAITING state: %v", err)
@@ -146,7 +147,7 @@ func Poll(instance *internal.Instance) error {
 
 // PollPermissioning  the permissioning server for updates
 func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
-	reportedActivity current.Activity) (*pb.PermissionPollResponse, error) {
+	reportedActivity state.StateChange) (*pb.PermissionPollResponse, error) {
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
@@ -177,7 +178,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 
 	var clientReport []*pb.ClientError
 	latestRound := instance.GetRoundManager().GetCurrentRound()
-	if reportedActivity == current.COMPLETED {
+	if reportedActivity.State == current.COMPLETED {
 		clientReport, err = instance.GetClientReport().Receive(latestRound)
 		if err != nil {
 			jww.ERROR.Printf("Unable to receive client report: %+v", err)
@@ -196,7 +197,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		Full:       &pb.NDFHash{Hash: fullNdfHash},
 		Partial:    &pb.NDFHash{Hash: partialNdfHash},
 		LastUpdate: uint64(lastUpdateId),
-		Activity:   uint32(reportedActivity),
+		Activity:   uint32(reportedActivity.State),
 
 		GatewayVersion: gatewayVer,
 		GatewayAddress: gatewayAddr,
@@ -209,18 +210,9 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,
 		uint32(port))
 
-	if reportedActivity == current.ERROR || reportedActivity == current.CRASH {
+	if reportedActivity.State == current.ERROR || reportedActivity.State == current.CRASH {
 		jww.ERROR.Printf("Poll found node in error state")
-		ticker := time.NewTicker(30 * time.Second)
-		select {
-		case <-ticker.C:
-			return nil, errors.New("Timed out waiting for error in error state")
-		case pollMsg.Error = <-instance.GetStateMachine().GetErrorChan():
-			jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
-		case pollMsg.Error = <-instance.GetRecoveredErrorChannel():
-			jww.INFO.Printf("Reporting recovered error to permissioning: %+v", pollMsg.Error)
-
-		}
+		pollMsg.Error = reportedActivity.Err
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")

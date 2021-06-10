@@ -186,7 +186,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
 
 	// Create state machine
-	sm := state.NewMachine(dummyStates, make(chan *pb.RoundError, 1))
+	sm := state.NewMachine(dummyStates)
 	ok, err := sm.Update(current.WAITING)
 	if !ok || err != nil {
 		return

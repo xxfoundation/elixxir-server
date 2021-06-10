@@ -9,10 +9,6 @@ package io
 
 import (
 	"crypto/rand"
-	"strings"
-	"testing"
-	"time"
-
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
@@ -26,6 +22,9 @@ import (
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
+	"strings"
+	"testing"
+	"time"
 )
 
 // Happy path: Test if a properly crafted error message results in an error state
@@ -91,18 +90,7 @@ func TestReceiveRoundError(t *testing.T) {
 		t.Errorf("Received error in ReceiveRoundError: %v", err)
 		t.Fail()
 	}
-
-	// Check if error is passed along to channel
-	receivedError, err := instance.GetStateMachine().GetError(200 * time.Millisecond)
-	if err != nil {
-		t.Errorf("failed to get recovered error")
-	}
-
-	if receivedError == nil || strings.Compare(receivedError.Error, expectedError) != 0 {
-		t.Errorf("Received error did not match expected. Expected: %s\n\tReceived",
-			expectedError)
-		t.Fail()
-	}
+	time.Sleep(200 * time.Millisecond)
 
 	// Check if state has properly transition
 	if instance.GetStateMachine().Get() != current.ERROR {

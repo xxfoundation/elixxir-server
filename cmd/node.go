@@ -89,42 +89,40 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	ourChangeList := node.NewStateChanges()
 
 	// Update the changelist to contain state functions
-	ourChangeList[current.NOT_STARTED] = func(from current.Activity) error {
+	ourChangeList[current.NOT_STARTED] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return node.NotStarted(instance)
 	}
 
-	ourChangeList[current.WAITING] = func(from current.Activity) error {
+	ourChangeList[current.WAITING] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return node.Waiting(from)
 	}
 
-	ourChangeList[current.PRECOMPUTING] = func(from current.Activity) error {
+	ourChangeList[current.PRECOMPUTING] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return node.Precomputing(instance)
 	}
 
-	ourChangeList[current.STANDBY] = func(from current.Activity) error {
+	ourChangeList[current.STANDBY] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return node.Standby(from)
 	}
 
-	ourChangeList[current.REALTIME] = func(from current.Activity) error {
+	ourChangeList[current.REALTIME] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return node.Realtime(instance)
 	}
 
-	ourChangeList[current.COMPLETED] = func(from current.Activity) error {
+	ourChangeList[current.COMPLETED] = func(from current.Activity, err *mixmessages.RoundError) error {
 		return node.Completed(from)
 	}
 
-	ourChangeList[current.ERROR] = func(from current.Activity) error {
-		return node.Error(instance)
+	ourChangeList[current.ERROR] = func(from current.Activity, err *mixmessages.RoundError) error {
+		return node.Error(instance, err)
 	}
 
-	ourChangeList[current.CRASH] = func(from current.Activity) error {
-		return node.Crash(instance)
+	ourChangeList[current.CRASH] = func(from current.Activity, err *mixmessages.RoundError) error {
+		return node.Crash(instance, err)
 	}
-
-	errChan := make(chan *mixmessages.RoundError, 1)
 
 	// Create the machine with these state functions
-	ourMachine := state.NewMachine(ourChangeList, errChan)
+	ourMachine := state.NewMachine(ourChangeList)
 
 	// Check if the error recovery file exists
 	if _, err := os.Stat(params.RecoveredErrPath); os.IsNotExist(err) {
