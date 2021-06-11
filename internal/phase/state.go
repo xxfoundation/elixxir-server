@@ -7,6 +7,8 @@
 
 package phase
 
+import "math"
+
 // state.go contains the states for a phase
 
 //The state a phase is in
@@ -23,6 +25,8 @@ const (
 	Verified
 	// End of const block item: holds number of constants
 	NumStates
+	// Failed phase is failed, cannot progress further
+	Failed = math.MaxUint32
 )
 
 // Array used to get the phase Names for Printing

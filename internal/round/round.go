@@ -24,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
+	"math"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -257,6 +258,10 @@ func (r *Round) GetCurrentPhase() phase.Phase {
 
 func (r *Round) GetTopology() *connect.Circuit {
 	return r.topology
+}
+
+func (r *Round) Fail() {
+	atomic.StoreUint32(r.state, math.MaxUint32)
 }
 
 // HandleIncomingComm checks that the incoming state is valid for the round

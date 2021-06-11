@@ -362,8 +362,10 @@ func Error(instance *internal.Instance, msg *mixmessages.RoundError) error {
 
 	cr := instance.GetRoundManager().GetCurrentRound()
 	jww.INFO.Printf("Current round: %+v", cr)
+	var rnd *round.Round
+	var err error
 	if cr != 0 {
-		rnd, err := instance.GetRoundManager().GetRound(cr)
+		rnd, err = instance.GetRoundManager().GetRound(cr)
 		if err != nil {
 			err = errors.WithMessagef(err, "Did not find round %+v", cr)
 			jww.ERROR.Println(err)
@@ -375,21 +377,19 @@ func Error(instance *internal.Instance, msg *mixmessages.RoundError) error {
 			}()
 			return err
 		}
+		rnd.Fail()
+	}
+
+	err = instance.GetResourceQueue().StopActivePhase(100 * time.Millisecond)
+	if err != nil {
+		err = errors.WithMessagef(err, "Failed to stop active phase; this may or may not be a problem")
+		jww.ERROR.Println(err)
+	}
+
+	if cr != 0 {
 		instance.GetRoundManager().DeleteRound(rnd.GetID())
 	}
 
-	err := instance.GetResourceQueue().StopActivePhase(100 * time.Millisecond)
-	if err != nil {
-		err = errors.WithMessagef(err, "Failed to stop active phase")
-		jww.ERROR.Println(err)
-		go func() {
-			ok, err := instance.GetStateMachine().Update(current.CRASH, msg)
-			if !ok || err != nil {
-				jww.FATAL.Panicf("Failed to transition to crash state: %+v", err)
-			}
-		}()
-		return err
-	}
 	return nil
 }
 
