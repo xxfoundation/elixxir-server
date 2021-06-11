@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"time"
@@ -65,14 +66,14 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 	p.Measure(measure.TagVerification)
 	go func() {
 		p.UpdateFinalStates()
-		/*if !r.GetTopology().IsFirstNode(instance.GetID()) {
+		if !r.GetTopology().IsFirstNode(instance.GetID()) {
 			// Disconnect from all hosts that are not "you"
 			for i := 0; i < r.GetTopology().Len(); i++ {
 				if !r.GetTopology().GetNodeAtIndex(i).Cmp(instance.GetID()) {
-					r.GetTopology().GetHostAtIndex(i).Disconnect()
+					permissioning.HostList = append(permissioning.HostList, r.GetTopology().GetHostAtIndex(i))
 				}
 			}
-		}*/
+		}
 		if !instance.GetKeepBuffers() {
 			//Delete the round and its data from the manager
 			//Delay so it can be used by post round hanlders

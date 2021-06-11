@@ -71,9 +71,21 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	return nil
 }
 
+var HostList []*connect.Host
+var waitAndDisconnect bool
+
 // Poll is used to retrieve updated state information from permissioning
 //  and update our internal state accordingly
 func Poll(instance *internal.Instance) error {
+
+	if waitAndDisconnect {
+		time.Sleep(10 * time.Second)
+		for _, host := range HostList {
+			host.Disconnect()
+		}
+		waitAndDisconnect = false
+		HostList = make([]*connect.Host, 0)
+	}
 
 	// Fetch the host information from the network
 	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
@@ -98,6 +110,7 @@ func Poll(instance *internal.Instance) error {
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
+		waitAndDisconnect = true
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			return errors.Errorf("Could not transition to WAITING state: %v", err)
