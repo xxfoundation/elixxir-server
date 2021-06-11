@@ -79,7 +79,7 @@ var waitAndDisconnect bool
 func Poll(instance *internal.Instance) error {
 
 	if waitAndDisconnect {
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 		for _, host := range HostList {
 			host.Disconnect()
 		}
