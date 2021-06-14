@@ -73,10 +73,15 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	//pull the first chunk reception out so it can be timestmaped
 	chunk, finish := getChunk()
-	start := time.Now()
+	var start time.Time
+	numslots := 0
 	// For each message chunk (slot) stream it out
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
+			numslots++
+			if numslots == 1 {
+				start = time.Now()
+			}
 			msg := getMessage(i)
 			err = streamClient.Send(msg)
 			if err != nil {
@@ -136,6 +141,11 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	var start, end time.Time
 	slotsReceived := uint32(0)
 	for ; err == nil; slot, err = stream.Recv() {
+		slotsReceived++
+
+		if slotsReceived == 1 {
+			start = time.Now()
+		}
 		index := slot.Index
 
 		phaseErr := p.Input(index, slot)
@@ -148,11 +158,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
 
-		slotsReceived++
-
-		if slotsReceived == 1 {
-			start = time.Now()
-		} else if slotsReceived == batchSize {
+		if slotsReceived == batchSize {
 			end = time.Now()
 		}
 	}
