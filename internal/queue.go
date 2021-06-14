@@ -215,8 +215,8 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 		r.AddToDispatchDuration(adaptDur + outModsDur)
 
 		jww.INFO.Printf("[%v]: RID %d Finishing execution of Phase "+
-			"\"%s\" -- Adapt: %s, outMod: %s", server.GetID(),
+			"\"%s\" -- Adapt: %dms, outMod: %dms", server.GetID(),
 			rq.activePhase.GetRoundID(), rq.activePhase.GetType(),
-			adaptDur, outModsDur)
+			adaptDur.Milliseconds(), outModsDur.Milliseconds())
 	}
 }
