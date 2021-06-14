@@ -25,12 +25,11 @@ import (
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
 	"runtime"
-	"strconv"
 	"testing"
 	"time"
 )
 
-func setup(t *testing.T, testid int) (*internal.Instance, *connect.Circuit) {
+func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	var nodeIDs []*id.ID
 	//Build IDs
 	for i := 0; i < 5; i++ {
@@ -49,11 +48,11 @@ func setup(t *testing.T, testid int) (*internal.Instance, *connect.Circuit) {
 		FullNDF:            testUtil.NDF,
 		PartialNDF:         testUtil.NDF,
 		GraphGenerator:     gg,
-		RecoveredErrorPath: "/tmp/recovered_error_" + strconv.Itoa(testid),
+		RecoveredErrorPath: "/tmp/recovered_error",
 		Gateway: internal.GW{
 			Address: "0.0.0.0:11420",
 		},
-		ListeningAddress: "0.0.0.0:1142" + strconv.Itoa(testid),
+		ListeningAddress: "0.0.0.0:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()
@@ -107,7 +106,7 @@ func TestNewStateChanges(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	instance, topology := setup(t, 1)
+	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
 		Id:     1,
 		NodeId: instance.GetID().Marshal(),
@@ -132,10 +131,11 @@ func TestError(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to error: %+v", err)
 	}
+	instance.GetNetwork().Shutdown()
 }
 
 func TestCrash(t *testing.T) {
-	instance, topology := setup(t, 2)
+	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
 		Id:     1,
 		NodeId: instance.GetID().Marshal(),
@@ -172,7 +172,7 @@ func TestCrash(t *testing.T) {
 }
 
 func TestCrash_RID0(t *testing.T) {
-	instance, topology := setup(t, 3)
+	instance, topology := setup(t)
 	rndErr := &mixmessages.RoundError{
 		Id:     0,
 		NodeId: instance.GetID().Marshal(),
@@ -211,7 +211,7 @@ func TestCrash_RID0(t *testing.T) {
 
 func TestPrecomputing(t *testing.T) {
 	var err error
-	instance, topology := setup(t, 4)
+	instance, topology := setup(t)
 
 	var top [][]byte
 	for i := 0; i < topology.Len(); i++ {
@@ -266,7 +266,7 @@ func TestPrecomputing(t *testing.T) {
 
 func TestPrecomputing_override(t *testing.T) {
 	var err error
-	instance, topology := setup(t, 5)
+	instance, topology := setup(t)
 	gc := services.NewGraphGenerator(4,
 		uint8(runtime.NumCPU()), 1, 0)
 	g := graphs.InitErrorGraph(gc)

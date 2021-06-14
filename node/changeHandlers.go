@@ -358,16 +358,15 @@ func Completed(from current.Activity) error {
 }
 
 func Error(instance *internal.Instance, msg *mixmessages.RoundError) error {
-	jww.INFO.Printf("Round error: %+v", msg)
+	jww.ERROR.Printf("Round error: %+v", msg)
 
 	cr := instance.GetRoundManager().GetCurrentRound()
-	jww.INFO.Printf("Current round: %+v", cr)
 	var rnd *round.Round
 	var err error
 	if cr != 0 {
 		rnd, err = instance.GetRoundManager().GetRound(cr)
 		if err != nil {
-			err = errors.WithMessagef(err, "Did not find round %+v", cr)
+			err = errors.WithMessagef(err, "Could not find round %+v", cr)
 			jww.ERROR.Println(err)
 			go func() {
 				ok, err := instance.GetStateMachine().Update(current.CRASH, msg)
