@@ -102,7 +102,6 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			case <-rq.kill:
 				return
 			case <-rq.stop:
-				continue
 			}
 		}
 
