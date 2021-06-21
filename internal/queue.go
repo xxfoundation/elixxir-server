@@ -126,7 +126,10 @@ func (rq *ResourceQueue) internalRunner(server *Instance) {
 			//Fixme: add a method to killChan this directly
 			if !ok {
 				//send the phase into the channel to denote it is complete
-				runningPhase.UpdateFinalStates()
+				err := runningPhase.UpdateFinalStates()
+				if err != nil {
+					server.ReportRoundFailure(err, server.GetID(), runningPhase.GetRoundID(), true)
+				}
 				rq.DenotePhaseCompletion(runningPhase)
 				runningPhase.Measure(measure.TagFinishLastSlot)
 			}

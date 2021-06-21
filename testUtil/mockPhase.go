@@ -97,7 +97,7 @@ func (mp *MockPhase) AttemptToQueue(queue chan<- phase.Phase) bool {
 	return true
 }
 func (mp *MockPhase) IsQueued() bool                      { return true }
-func (*MockPhase) UpdateFinalStates()                     { return }
+func (*MockPhase) UpdateFinalStates() error               { return nil }
 func (*MockPhase) GetTransmissionHandler() phase.Transmit { return nil }
 func (*MockPhase) GetTimeout() time.Duration              { return 0 }
 func (*MockPhase) Cmp(phase.Phase) bool                   { return false }

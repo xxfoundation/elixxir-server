@@ -268,7 +268,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 	skipUpdates := instance.IsFirstPoll() && !instance.GetFirstRun()
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
-		jww.INFO.Printf("Looking at update %+v", roundInfo)
 		// Add the new information to the network instance
 		err := instance.GetConsensus().RoundUpdate(roundInfo)
 		if err != nil {

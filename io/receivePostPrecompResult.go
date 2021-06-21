@@ -70,7 +70,12 @@ func ReceivePostPrecompResult(instance *internal.Instance, roundID uint64,
 		return errors.Wrapf(err,
 			"Couldn't post precomp result for round %v", roundID)
 	}
-	p.UpdateFinalStates()
+	err = p.UpdateFinalStates()
+	if err != nil {
+		go func() {
+			instance.ReportRoundFailure(err, instance.GetID(), rid, true)
+		}()
+	}
 
 	// Update the state in a gofunc
 	go func() {

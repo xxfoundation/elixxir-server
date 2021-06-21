@@ -11,6 +11,7 @@ package phase
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -31,7 +32,7 @@ type Phase interface {
 	GetTransmissionHandler() Transmit
 	GetTimeout() time.Duration
 	GetState() State
-	UpdateFinalStates()
+	UpdateFinalStates() error
 	GetAlternate() (bool, func())
 	AttemptToQueue(queue chan<- Phase) bool
 	IsQueued() bool
@@ -156,27 +157,27 @@ func (p *phase) IsQueued() bool {
 // Fixme: find a better name that expresses it always moves towards
 // finishing, but doesnt always finish, even when it returns false
 // It it cannot move, it panics
-func (p *phase) UpdateFinalStates() {
+func (p *phase) UpdateFinalStates() error {
 
 	if !p.verification {
 		success := p.transitionToState(Active, Verified)
 
 		if !success {
-			jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
-				"to be transitioned to Computed", p.phaseType, p.roundID)
+			return errors.New(fmt.Sprintf("phase %s of round %v at incorrect state "+
+				"to be transitioned to Computed", p.phaseType, p.roundID))
 		}
 	} else {
 		success := p.transitionToState(Active, Computed)
 
 		if !success {
-
 			success = p.transitionToState(Computed, Verified)
 			if !success {
-				jww.FATAL.Panicf("phase %s of round %v at incorrect state"+
-					"to be transitioned to Computed or Verified", p.phaseType, p.roundID)
+				return errors.New(fmt.Sprintf("phase %s of round %v at incorrect state "+
+					"to be transitioned to Computed or Verified", p.phaseType, p.roundID))
 			}
 		}
 	}
+	return nil
 }
 
 // GetTransmissionHandler returns the phase's transmission handling function

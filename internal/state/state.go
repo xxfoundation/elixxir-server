@@ -165,6 +165,7 @@ func NewMachine(changeList [current.NUM_STATES]Change) Machine {
 	M.addStateTransition(current.REALTIME, current.COMPLETED, current.ERROR)
 	M.addStateTransition(current.COMPLETED, current.WAITING, current.ERROR)
 	M.addStateTransition(current.ERROR, current.WAITING, current.ERROR, current.CRASH)
+	M.addStateTransition(current.CRASH, current.WAITING, current.CRASH)
 
 	return M
 }
@@ -406,16 +407,16 @@ func (m Machine) stateChange(nextState current.Activity, msg *mixmessages.RoundE
 	oldState := *m.Activity
 	*m.Activity = nextState
 
-	select {
-	case m.changebuffer <- StateChange{nextState, msg}:
-	default:
-		return false, errors.New("State change buffer full")
-	}
-
 	err := m.changeList[*m.Activity](oldState, msg)
 
 	if err != nil {
 		return false, err
+	}
+
+	select {
+	case m.changebuffer <- StateChange{nextState, msg}:
+	default:
+		return false, errors.New("State change buffer full")
 	}
 
 	return true, nil

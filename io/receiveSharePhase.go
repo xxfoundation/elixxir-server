@@ -339,7 +339,10 @@ func transitionToPrecompDecrypt(instance *internal.Instance, r *round.Round) err
 	jww.INFO.Printf("[%v]: RID %d ReceiveSharePhasePiece PK is: %s",
 		instance, roundID, r.GetBuffer().CypherPublicKey.Text(16))
 
-	p.UpdateFinalStates()
+	err = p.UpdateFinalStates()
+	if err != nil {
+		instance.ReportRoundFailure(err, instance.GetID(), roundID, true)
+	}
 
 	jww.INFO.Printf("[%v]: RID %d ReceiveSharePhasePiece END", instance,
 		roundID)

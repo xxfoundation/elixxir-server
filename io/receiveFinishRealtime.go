@@ -64,7 +64,10 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 	}
 	p.Measure(measure.TagVerification)
 	go func() {
-		p.UpdateFinalStates()
+		err := p.UpdateFinalStates()
+		if err != nil {
+			instance.ReportRoundFailure(err, instance.GetID(), roundID, true)
+		}
 		/*if !r.GetTopology().IsFirstNode(instance.GetID()) {
 			// Disconnect from all hosts that are not "you"
 			for i := 0; i < r.GetTopology().Len(); i++ {
