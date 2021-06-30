@@ -5,6 +5,15 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
+// +build !windows
+
+// signals.go handles signals specific to the permissioning server:
+//   - SIGUSR1, which stops round creation
+//   - SIGTERM/SIGINT, which stops round creation and exits
+//
+// The functions are set up to receive arbitrary functions that handle
+// the necessary behaviors instead of implementing the behavior directly.
+
 package cmd
 
 import (
@@ -13,13 +22,6 @@ import (
 	"os/signal"
 	"syscall"
 )
-
-// signals.go handles signals specific to the permissioning server:
-//   - SIGUSR1, which stops round creation
-//   - SIGTERM/SIGINT, which stops round creation and exits
-//
-// The functions are set up to receive arbitrary functions that handle
-// the necessary behaviors instead of implementing the behavior directly.
 
 // ReceiveSignal calls the provided function when it receives a specific
 // signal. It will call the provided function every time it recieves the signal.
