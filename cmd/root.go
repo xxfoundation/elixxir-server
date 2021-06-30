@@ -87,7 +87,6 @@ var rootCmd = &cobra.Command{
 		// Set up signal handler for stopping after the current round has stopped
 		stopAfterRoundCompletion := func() {
 			k := make(chan struct{})
-
 			killChan <- k
 			jww.INFO.Printf("Waiting for round to complete before closing...")
 			select {

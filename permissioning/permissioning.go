@@ -267,7 +267,13 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PENDING:
-				// Don't do anything
+				// If a kill signal has been called for the server,
+				// kill server once not in an active round
+				select {
+				case killed := <-instance.GetKillChan():
+					killed <- struct{}{}
+				default:
+				}
 			case states.PRECOMPUTING: // Prepare for precomputing state
 
 				// Standby until in WAITING state to ensure a valid transition into precomputing
