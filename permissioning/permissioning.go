@@ -268,7 +268,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			switch states.Round(roundInfo.State) {
 			case states.PENDING:
 				// If a kill signal has been called for the server,
-				// kill server once not in an active round
+				// kill server once not in an active round. Otherwise do nothing
 				select {
 				case killed := <-instance.GetKillChan():
 					killed <- struct{}{}
