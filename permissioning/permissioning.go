@@ -226,7 +226,7 @@ func queueUntilRealtime(instance *internal.Instance, start time.Time) {
 	}
 }
 
-// Processes the polling response from permissioning for round updates,
+// UpdateRounds processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
 func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
