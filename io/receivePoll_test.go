@@ -70,7 +70,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	m := state.NewTestMachine(dummyStates, testState, t)
 
 	instance, err := internal.CreateServerInstance(&def, NewImplementation,
-		m, "1.1.0")
+		m, "1.1.0", make(chan chan struct{}))
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()

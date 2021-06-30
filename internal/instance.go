@@ -69,6 +69,7 @@ type Instance struct {
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
+	killInstance        chan chan struct{}
 	realtimeRoundQueue  round.Queue
 	clientErrors        *round.ClientReport
 
@@ -104,7 +105,7 @@ type Instance struct {
 // Additionally, to clean up the network object (especially in tests), call
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, version string) (*Instance, error) {
+	machine state.Machine, version string, killChan chan chan struct{}) (*Instance, error) {
 	var err error
 
 	isGwReady := uint32(0)
@@ -120,6 +121,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
+		killInstance:         killChan,
 		gatewayPoll:          NewFirstTime(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		roundError:           nil,
@@ -213,14 +215,14 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	return instance, nil
 }
 
-// Wrap CreateServerInstance, taking a recovered error file
+// RecoverInstance wraps CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
-	machine state.Machine, version string) (*Instance, error) {
+	machine state.Machine, version string, killChan chan chan struct{}) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
 	i, err = CreateServerInstance(def, makeImplementation, machine,
-		version)
+		version, killChan)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
@@ -288,7 +290,7 @@ func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
 }
 
-// GetStateMachine returns state machine tracking the phase share status
+// GetPhaseShareMachine returns state machine tracking the phase share status
 // todo: consider removing, may not be needed for final phase share design
 func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
 	return i.phaseStateMachine
@@ -384,7 +386,8 @@ func (i *Instance) GetGatewayCertPath() string {
 	return i.definition.GatewayCertPath
 }
 
-//Returns true if this is the first time this is called, otherwise returns false
+// IsFirstPoll returns true if this is the
+// first time this is called, otherwise returns false
 func (i *Instance) IsFirstPoll() bool {
 	return atomic.SwapUint32(i.firstPoll, 1) == 0
 }
@@ -406,6 +409,10 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 	return i.completedBatchQueue
+}
+
+func (i *Instance) GetKillChan() chan chan struct{} {
+	return i.killInstance
 }
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {

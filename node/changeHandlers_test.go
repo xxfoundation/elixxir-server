@@ -73,7 +73,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
-		m, "1.1.0")
+		m, "1.1.0", make(chan chan struct{}))
 
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false

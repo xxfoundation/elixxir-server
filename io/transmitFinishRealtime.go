@@ -107,5 +107,13 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 		}
 	}
 
+	// Handle killing instance after round has completed
+	select {
+	case killed := <-instance.GetKillChan():
+		killed <- struct{}{}
+	default:
+
+	}
+
 	return errs
 }

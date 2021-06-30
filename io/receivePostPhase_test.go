@@ -44,7 +44,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		"1.1.0")
+		"1.1.0", make(chan chan struct{}))
 
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)

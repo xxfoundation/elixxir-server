@@ -61,7 +61,7 @@ func TestMain(m *testing.M) {
 	}
 	def := mockServerDef(m)
 	sm := state.NewMachine(dummyStates)
-	instance, _ = CreateServerInstance(def, impl, sm, "1.1.0")
+	instance, _ = CreateServerInstance(def, impl, sm, "1.1.0", make(chan chan struct{}))
 	os.Exit(m.Run())
 }
 
@@ -89,7 +89,7 @@ func TestRecoverInstance(t *testing.T) {
 		t.Errorf("Failed to write to test file: %+v", err)
 	}
 
-	instance, _ = RecoverInstance(def, impl, sm, "1.1.0")
+	instance, _ = RecoverInstance(def, impl, sm, "1.1.0", make(chan chan struct{}))
 }
 
 func TestInstance_GetResourceQueue(t *testing.T) {
@@ -130,7 +130,7 @@ func TestInstance_GetResourceMonitor(t *testing.T) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	tmpInstance, _ := CreateServerInstance(def, impl, m, "1.1.0")
+	tmpInstance, _ := CreateServerInstance(def, impl, m, "1.1.0", make(chan chan struct{}))
 
 	rm := tmpInstance.GetResourceMonitor()
 
@@ -187,7 +187,7 @@ func TestCreateServerInstance(t *testing.T) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	_, err := CreateServerInstance(def, impl, m, "1.1.0")
+	_, err := CreateServerInstance(def, impl, m, "1.1.0", make(chan chan struct{}))
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()
@@ -200,7 +200,7 @@ func createInstance(t *testing.T) (*Instance, *Definition) {
 	}
 	def := mockServerDef(t)
 	m := state.NewMachine(dummyStates)
-	instance, err := CreateServerInstance(def, impl, m, "1.1.0")
+	instance, err := CreateServerInstance(def, impl, m, "1.1.0", make(chan chan struct{}))
 	if err != nil {
 		t.Logf("Failed to create a server instance")
 		t.Fail()

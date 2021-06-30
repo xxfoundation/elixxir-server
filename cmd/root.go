@@ -58,8 +58,8 @@ var rootCmd = &cobra.Command{
 		}
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
-
-		instance, err := StartServer(viper.GetViper())
+		killChan := make(chan chan struct{})
+		instance, err := StartServer(viper.GetViper(), killChan)
 		// Retry to start the instance on certain errors
 		for {
 			if err == nil {
@@ -77,11 +77,25 @@ var rootCmd = &cobra.Command{
 				jww.ERROR.Print("Cannot start, permissioning " +
 					"is unavailable, retrying in 10s...")
 				time.Sleep(10 * time.Second)
-				instance, err = StartServer(viper.GetViper())
+				instance, err = StartServer(viper.GetViper(), killChan)
 				continue
 			}
 			jww.FATAL.Panicf("Failed to start server: %+v",
 				err)
+		}
+
+		// Set up signal handler for stopping after the current round has stopped
+		stopAfterRoundCompletion := func() {
+			k := make(chan struct{})
+
+			killChan <- k
+			jww.INFO.Printf("Waiting for round to complete before closing...")
+			select {
+			case <-k:
+				jww.INFO.Printf("Round completed, closing!\n")
+			case <-time.After(60 * time.Second):
+				jww.ERROR.Print("Round took too long to complete, closing!")
+			}
 		}
 
 		// Block forever on Signal Handler for safe program exit
@@ -94,6 +108,7 @@ var rootCmd = &cobra.Command{
 		case <-stopCh:
 			jww.INFO.Printf(
 				"Received Exit (SIGTERM or SIGINT) signal...\n")
+			stopAfterRoundCompletion()
 			if profileOut != "" {
 				pprof.StopCPUProfile()
 			}

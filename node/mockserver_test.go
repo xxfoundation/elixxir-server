@@ -199,7 +199,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 
 	// Generate instance
 	instance, err = internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+		"1.1.0", make(chan chan struct{}))
 	if err != nil {
 		return
 	}

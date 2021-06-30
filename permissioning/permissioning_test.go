@@ -105,7 +105,7 @@ func TestRegisterNode(t *testing.T) {
 
 	// Generate instance
 	instance, err := internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+		"1.1.0", make(chan chan struct{}))
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -711,7 +711,7 @@ func TestRegistration(t *testing.T) {
 
 	// Generate instance
 	instance, err := internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+		"1.1.0", make(chan chan struct{}))
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -946,7 +946,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	// Generate instance
 	instance, err := internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+		"1.1.0", make(chan chan struct{}))
 	if err != nil {
 		t.Errorf("Failed to create instance: %+v", err)
 	}

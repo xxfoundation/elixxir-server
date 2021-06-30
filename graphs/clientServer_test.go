@@ -107,7 +107,7 @@ func TestClientServer(t *testing.T) {
 	sm := state.NewMachine(stateChanges)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
-		"1.1.0")
+		"1.1.0", make(chan chan struct{}))
 	registry := instance.GetStorage()
 	usr := &storage.Client{
 		Id:           nil,

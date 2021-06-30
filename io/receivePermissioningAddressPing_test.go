@@ -26,7 +26,7 @@ func TestReceivePermissioningAddressPing(t *testing.T) {
 		DevMode:       true,
 	}
 	m := state.NewTestMachine(dummyStates, current.ERROR, t)
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "")
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "", make(chan chan struct{}))
 
 	addr, err := ReceivePermissioningAddressPing(instance)
 	if err != nil {

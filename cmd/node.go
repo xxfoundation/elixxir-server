@@ -32,7 +32,7 @@ import (
 )
 
 // StartServer reads configuration options and starts the cMix server
-func StartServer(vip *viper.Viper) (*internal.Instance, error) {
+func StartServer(vip *viper.Viper, killChan chan chan struct{}) (*internal.Instance, error) {
 	vip.Debug()
 
 	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
@@ -127,7 +127,7 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	if _, err := os.Stat(params.RecoveredErrPath); os.IsNotExist(err) {
 		// If not, start normally
 		instance, err = internal.CreateServerInstance(def,
-			io.NewImplementation, ourMachine, currentVersion)
+			io.NewImplementation, ourMachine, currentVersion, killChan)
 		if err != nil {
 			return instance, errors.Errorf("Could not create server instance: %v", err)
 		}
@@ -135,7 +135,7 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		// Otherwise, start in recovery mode
 		jww.INFO.Println("Server has recovered from an error")
 		instance, err = internal.RecoverInstance(def, io.NewImplementation,
-			ourMachine, currentVersion)
+			ourMachine, currentVersion, killChan)
 		if err != nil {
 			return instance, errors.WithMessage(err, "Could not recover server instance")
 		}
