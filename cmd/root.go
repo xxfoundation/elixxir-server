@@ -17,11 +17,10 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/xx_network/primitives/utils"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"strings"
-	"syscall"
+	"sync"
 	"time"
 )
 
@@ -96,6 +95,9 @@ var rootCmd = &cobra.Command{
 				jww.ERROR.Print("Round took too long to complete, closing!")
 			}
 		}
+		var stopOnce sync.Once
+		ReceiveUSR1Signal(func() { stopOnce.Do(stopAfterRoundCompletion) })
+		ReceiveUSR2Signal(func() { stopOnce.Do(stopAfterRoundCompletion) })
 
 		// Block forever on Signal Handler for safe program exit
 		stopCh := ReceiveExitSignal()
@@ -107,23 +109,12 @@ var rootCmd = &cobra.Command{
 		case <-stopCh:
 			jww.INFO.Printf(
 				"Received Exit (SIGTERM or SIGINT) signal...\n")
-			stopAfterRoundCompletion()
+			stopOnce.Do(stopAfterRoundCompletion)
 			if profileOut != "" {
 				pprof.StopCPUProfile()
 			}
 		}
 	},
-}
-
-// ReceiveExitSignal signals a stop chan when it receives
-// SIGTERM or SIGINT
-func ReceiveExitSignal() chan os.Signal {
-	// Set up channel on which to send signal notifications.
-	// We must use a buffered channel or risk missing the signal
-	// if we're not ready to receive when the signal is sent.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	return c
 }
 
 // Execute adds all child commands to the root command and sets flags
