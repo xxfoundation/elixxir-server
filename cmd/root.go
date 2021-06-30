@@ -96,8 +96,6 @@ var rootCmd = &cobra.Command{
 			}
 		}
 		var stopOnce sync.Once
-		ReceiveUSR1Signal(func() { stopOnce.Do(stopAfterRoundCompletion) })
-		ReceiveUSR2Signal(func() { stopOnce.Do(stopAfterRoundCompletion) })
 
 		// Block forever on Signal Handler for safe program exit
 		stopCh := ReceiveExitSignal()

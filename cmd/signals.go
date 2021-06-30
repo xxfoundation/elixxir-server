@@ -5,8 +5,6 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-// +build !windows
-
 // signals.go handles signals specific to the permissioning server:
 //   - SIGUSR1, which stops round creation
 //   - SIGTERM/SIGINT, which stops round creation and exits
@@ -43,17 +41,6 @@ func ReceiveSignal(sigFn func(), sig os.Signal) {
 	}()
 }
 
-// ReceiveUSR1Signal calls the provided function when receiving SIGUSR1.
-// It will call the provided function every time it receives it
-func ReceiveUSR1Signal(usr1Fn func()) {
-	ReceiveSignal(usr1Fn, syscall.SIGUSR1)
-}
-
-// ReceiveUSR2Signal calls the provided function when receiving SIGUSR1.
-// It will call the provided function every time it receives it
-func ReceiveUSR2Signal(usr1Fn func()) {
-	ReceiveSignal(usr1Fn, syscall.SIGUSR2)
-}
 
 // ReceiveExitSignal signals a stop chan when it receives
 // SIGTERM or SIGINT
