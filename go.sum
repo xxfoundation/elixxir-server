@@ -327,6 +327,8 @@ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
+github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2/go.mod h1:4kyMkleCiLkgY6z8gK5BkI01ChBtxR0ro3I1ZDcGM3w=
+github.com/ttacon/libphonenumber v1.2.1/go.mod h1:E0TpmdVMq5dyVlQ7oenAkhsLu86OkUl+yR4OAxyEg/M=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/zeebo/assert v0.0.0-20181109011804-10f827ce2ed6/go.mod h1:yssERNPivllc1yU3BvpjYI5BUW+zglcz6QWqeVRL5t0=
 github.com/zeebo/assert v1.1.0 h1:hU1L1vLTHsnO8x8c9KAR5GmM5QscxHg5RNU5z5qbUWY=
@@ -354,6 +356,8 @@ gitlab.com/elixxir/primitives v0.0.1/go.mod h1:kNp47yPqja2lHSiS4DddTvFpB/4D9dB2Y
 gitlab.com/elixxir/primitives v0.0.3-0.20210309193003-ef42ebb4800b/go.mod h1:/e3a4KPqmA9V22qKSZ9prfYYNzIzvLI8xh7noVV091w=
 gitlab.com/elixxir/primitives v0.0.3-0.20210603164310-4bd6e45e65e1 h1:RZFD4TbJCBO36WYGVH7gakUKbumFsAUsuEqR8ryYF/A=
 gitlab.com/elixxir/primitives v0.0.3-0.20210603164310-4bd6e45e65e1/go.mod h1:1EFCSsERjE5RagCjys/70sqkAZC5PimEkWHcljh4bwQ=
+gitlab.com/elixxir/primitives v0.0.3-0.20210623165125-c395ff3484cc h1:LTxjZ4Ra69sQHgusXqpaBcb8FZZA+MHq8xGRsh4N0k8=
+gitlab.com/elixxir/primitives v0.0.3-0.20210623165125-c395ff3484cc/go.mod h1:ZlS7xZMG1T/TvnwfUuVOGHbPILtCNUuT5xOPORSQxRY=
 gitlab.com/xx_network/comms v0.0.0-20200805174823-841427dd5023/go.mod h1:owEcxTRl7gsoM8c3RQ5KAm5GstxrJp5tn+6JfQ4z5Hw=
 gitlab.com/xx_network/comms v0.0.4-0.20210603164237-d0c36076d7f0 h1:+/U+6Ra5pqDhIHCqMniESovsakooCFTv/omlpfvffU8=
 gitlab.com/xx_network/comms v0.0.4-0.20210603164237-d0c36076d7f0/go.mod h1:cpogFfWweZFzldGnRmgI9ilW2IFyeINDXpa1sAP950U=
@@ -374,6 +378,9 @@ gitlab.com/xx_network/primitives v0.0.4-0.20210607200110-b2a581035289 h1:WevI8ip
 gitlab.com/xx_network/primitives v0.0.4-0.20210607200110-b2a581035289/go.mod h1:9imZHvYwNFobxueSvVtHneZLk9wTK7HQTzxPm+zhFhE=
 gitlab.com/xx_network/primitives v0.0.4-0.20210607210557-8a9dbf7fbde4 h1:SAKO6/+q0gXZxB0AQb+gtdSeqX+NClraBz2am2Q+dlY=
 gitlab.com/xx_network/primitives v0.0.4-0.20210607210557-8a9dbf7fbde4/go.mod h1:9imZHvYwNFobxueSvVtHneZLk9wTK7HQTzxPm+zhFhE=
+gitlab.com/xx_network/primitives v0.0.4-0.20210617180018-6472489fd418/go.mod h1:9imZHvYwNFobxueSvVtHneZLk9wTK7HQTzxPm+zhFhE=
+gitlab.com/xx_network/primitives v0.0.4-0.20210630203216-cfd15ef03c33 h1:HednkpAlF2LWgK2ExOtF4bqsCZ4O0/EESJ5ek+F5HtM=
+gitlab.com/xx_network/primitives v0.0.4-0.20210630203216-cfd15ef03c33/go.mod h1:9imZHvYwNFobxueSvVtHneZLk9wTK7HQTzxPm+zhFhE=
 gitlab.com/xx_network/ring v0.0.3-0.20210527191221-ce3f170aabd5 h1:FY+4Rh1Q2rgLyv10aKJjhWApuKRCR/054XhreudfAvw=
 gitlab.com/xx_network/ring v0.0.3-0.20210527191221-ce3f170aabd5/go.mod h1:aLzpP2TiZTQut/PVHR40EJAomzugDdHXetbieRClXIM=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
