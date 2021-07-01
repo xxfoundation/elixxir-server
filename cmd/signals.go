@@ -41,7 +41,6 @@ func ReceiveSignal(sigFn func(), sig os.Signal) {
 	}()
 }
 
-
 // ReceiveExitSignal signals a stop chan when it receives
 // SIGTERM or SIGINT
 func ReceiveExitSignal() chan os.Signal {

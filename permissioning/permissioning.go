@@ -98,6 +98,13 @@ func Poll(instance *internal.Instance) error {
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
+		// If a kill signal has been called for the server,
+		// kill server once not in an active round. Otherwise do nothing
+		select {
+		case killed := <-instance.GetKillChan():
+			killed <- struct{}{}
+		default:
+		}
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			return errors.Errorf("Could not transition to WAITING state: %v", err)
@@ -267,13 +274,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PENDING:
-				// If a kill signal has been called for the server,
-				// kill server once not in an active round. Otherwise do nothing
-				select {
-				case killed := <-instance.GetKillChan():
-					killed <- struct{}{}
-				default:
-				}
+				// Do nothing
 			case states.PRECOMPUTING: // Prepare for precomputing state
 
 				// Standby until in WAITING state to ensure a valid transition into precomputing

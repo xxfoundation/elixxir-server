@@ -20,7 +20,6 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -57,7 +56,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
-		killChan := make(chan chan struct{})
+		killChan := make(chan chan struct{}, 1)
 		instance, err := StartServer(viper.GetViper(), killChan)
 		// Retry to start the instance on certain errors
 		for {
@@ -86,8 +85,9 @@ var rootCmd = &cobra.Command{
 		// Set up signal handler for stopping after the current round has stopped
 		stopAfterRoundCompletion := func() {
 			k := make(chan struct{})
-			killChan <- k
 			jww.INFO.Printf("Waiting for round to complete before closing...")
+			killChan <- k
+			jww.TRACE.Printf("Sent kill signal, waiting for response")
 			select {
 			case <-k:
 				jww.INFO.Printf("Round completed, closing!\n")
@@ -95,7 +95,6 @@ var rootCmd = &cobra.Command{
 				jww.ERROR.Print("Round took too long to complete, closing!")
 			}
 		}
-		var stopOnce sync.Once
 
 		// Block forever on Signal Handler for safe program exit
 		stopCh := ReceiveExitSignal()
@@ -107,7 +106,7 @@ var rootCmd = &cobra.Command{
 		case <-stopCh:
 			jww.INFO.Printf(
 				"Received Exit (SIGTERM or SIGINT) signal...\n")
-			stopOnce.Do(stopAfterRoundCompletion)
+			stopAfterRoundCompletion()
 			if profileOut != "" {
 				pprof.StopCPUProfile()
 			}
