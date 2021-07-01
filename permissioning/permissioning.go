@@ -98,7 +98,14 @@ func Poll(instance *internal.Instance) error {
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
-		checkKillSignal(instance)
+		// Sends the signal that this node is no longer in a round,
+		// and thus the node is ready to be killed. Signal is sent only if a SIGINT
+		// has already been sent.
+		select {
+		case killed := <-instance.GetKillChan():
+			killed <- struct{}{}
+		default:
+		}
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			return errors.Errorf("Could not transition to WAITING state: %v", err)
@@ -291,7 +298,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				}
 			case states.STANDBY:
 				// Don't do anything
-				checkKillSignal(instance)
 			case states.QUEUED: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
@@ -364,16 +370,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 		}
 	}
 	return nil
-}
-
-// checkKillSignal sends the signal that this node is no longer in a round,
-// and thus the node is ready to be killed. Signal is sent only if a SIGINT has been sent.
-func checkKillSignal(instance *internal.Instance) {
-	select {
-	case killed := <-instance.GetKillChan():
-		killed <- struct{}{}
-	default:
-	}
 }
 
 // UpdateNDf processes the polling response from permissioning for ndf updates,
