@@ -206,6 +206,7 @@ func initConfig() {
 		jww.FATAL.Panicf("No config file provided.")
 	}
 
+	cfgFile, _ = utils.ExpandPath(cfgFile)
 	f, err := os.Open(cfgFile)
 	if err != nil {
 		jww.ERROR.Printf("Could not open config file: %+v", err)
