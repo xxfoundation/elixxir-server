@@ -9,6 +9,12 @@ package conf
 
 import (
 	gorsa "crypto/rsa"
+	"net"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -24,11 +30,6 @@ import (
 	"gitlab.com/xx_network/primitives/id/idf"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
-	"net"
-	"runtime"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // The default path to save the list of node IP addresses
@@ -299,6 +300,11 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 			return nil, errors.Errorf("Could not unload IDF: %+v", err)
 		}
 	} else {
+		// Check that we are not in DevMode, if we aren't we crash
+		if !p.DevMode {
+			jww.FATAL.Panic("No IDF was detected and DevMode is not enabled")
+		}
+
 		// If the IDF does not exist, then generate a new ID, save it to an IDF,
 		// and save the ID to the definition
 
