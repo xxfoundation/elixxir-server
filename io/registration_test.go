@@ -123,8 +123,7 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 
 	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation,
-		mach, "1.1.0", make(chan chan struct{}))
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, mach, "1.1.0")
 
 	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid, nodeAddr
 }
@@ -668,8 +667,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 
 	m := state.NewTestMachine(dummyStates, s, t)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		"1.1.0", make(chan chan struct{}))
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
 	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
 		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
 		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
