@@ -687,6 +687,9 @@ func (i *Instance) GetDisableStreaming() bool {
 // WaitUntilRoundCompletes is called once a kill signal is received.
 // It returns on one of two conditions: Either the current round is completed,
 // or duration time units have occurred, causing a timeout.
+// Round completion is monitored by sending a channel through another
+// channel (chan chan struct{}), and on round completion,
+// we send to that channel and receive here.
 func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
 	k := make(chan struct{})
 	jww.INFO.Printf("Waiting for round to complete before closing...")
