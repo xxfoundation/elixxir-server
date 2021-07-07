@@ -71,8 +71,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
-	instance, err := internal.CreateServerInstance(&def,
-		io.NewImplementation, m, "1.1.0")
+	instance, err := internal.CreateServerInstance(&def, io.NewImplementation, m, "1.1.0")
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()

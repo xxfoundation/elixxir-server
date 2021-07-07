@@ -157,8 +157,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 		sm := state.NewMachine(testStates)
 
-		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm,
-			"1.1.0")
+		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, "1.1.0")
 		client := storage.Client{
 			Id:           userID.Marshal(),
 			DhKey:        baseKeys[i].Bytes(),

@@ -18,6 +18,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -69,6 +70,7 @@ type Instance struct {
 	// Channels
 	createRoundQueue    round.Queue
 	completedBatchQueue round.CompletedQueue
+	killInstance        chan chan struct{}
 	realtimeRoundQueue  round.Queue
 	clientErrors        *round.ClientReport
 
@@ -120,6 +122,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
+		killInstance:         make(chan chan struct{}, 1),
 		gatewayPoll:          NewFirstTime(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		roundError:           nil,
@@ -213,14 +216,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	return instance, nil
 }
 
-// Wrap CreateServerInstance, taking a recovered error file
+// RecoverInstance wraps CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine,
-		version)
+	i, err = CreateServerInstance(def, makeImplementation, machine, version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
@@ -288,7 +290,7 @@ func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
 }
 
-// GetStateMachine returns state machine tracking the phase share status
+// GetPhaseShareMachine returns state machine tracking the phase share status
 // todo: consider removing, may not be needed for final phase share design
 func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
 	return i.phaseStateMachine
@@ -384,7 +386,8 @@ func (i *Instance) GetGatewayCertPath() string {
 	return i.definition.GatewayCertPath
 }
 
-//Returns true if this is the first time this is called, otherwise returns false
+// IsFirstPoll returns true if this is the
+// first time this is called, otherwise returns false
 func (i *Instance) IsFirstPoll() bool {
 	return atomic.SwapUint32(i.firstPoll, 1) == 0
 }
@@ -406,6 +409,10 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 
 func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
 	return i.completedBatchQueue
+}
+
+func (i *Instance) GetKillChan() chan chan struct{} {
+	return i.killInstance
 }
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {
@@ -675,4 +682,23 @@ func (i *Instance) GetStreamPool() *gpumaths.StreamPool {
 // streaming will be used.
 func (i *Instance) GetDisableStreaming() bool {
 	return i.definition.DisableStreaming
+}
+
+// WaitUntilRoundCompletes is called once a kill signal is received.
+// It returns on one of two conditions: Either the current round is completed,
+// or duration time units have occurred, causing a timeout.
+// Round completion is monitored by sending a channel through another
+// channel (chan chan struct{}), and on round completion,
+// we send to that channel and receive here.
+func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
+	k := make(chan struct{})
+	jww.INFO.Printf("Waiting for round to complete before closing...")
+	i.killInstance <- k
+	jww.TRACE.Printf("Sent kill signal, waiting for response")
+	select {
+	case <-k:
+		jww.INFO.Printf("Round completed, closing!\n")
+	case <-time.After(duration):
+		jww.ERROR.Print("Round took too long to complete, closing!")
+	}
 }

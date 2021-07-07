@@ -98,6 +98,14 @@ func Poll(instance *internal.Instance) error {
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
+		// Sends the signal that this node is no longer in a round,
+		// and thus the node is ready to be killed. Signal is sent only if a SIGINT
+		// has already been sent.
+		select {
+		case killed := <-instance.GetKillChan():
+			killed <- struct{}{}
+		default:
+		}
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			return errors.Errorf("Could not transition to WAITING state: %v", err)
@@ -226,7 +234,7 @@ func queueUntilRealtime(instance *internal.Instance, start time.Time) {
 	}
 }
 
-// Processes the polling response from permissioning for round updates,
+// UpdateRounds processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
 func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
@@ -267,7 +275,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PENDING:
-				// Don't do anything
+				// Do nothing
 			case states.PRECOMPUTING: // Prepare for precomputing state
 
 				// Standby until in WAITING state to ensure a valid transition into precomputing
@@ -290,7 +298,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				}
 			case states.STANDBY:
 				// Don't do anything
-
 			case states.QUEUED: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
@@ -365,7 +372,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 	return nil
 }
 
-// Processes the polling response from permissioning for ndf updates,
+// UpdateNDf processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes. Also saves
 // a list of node addresses found in the NDF to a separate file.
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {

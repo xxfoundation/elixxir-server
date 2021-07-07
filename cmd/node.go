@@ -126,16 +126,14 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	// Check if the error recovery file exists
 	if _, err := os.Stat(params.RecoveredErrPath); os.IsNotExist(err) {
 		// If not, start normally
-		instance, err = internal.CreateServerInstance(def,
-			io.NewImplementation, ourMachine, currentVersion)
+		instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, currentVersion)
 		if err != nil {
 			return instance, errors.Errorf("Could not create server instance: %v", err)
 		}
 	} else {
 		// Otherwise, start in recovery mode
 		jww.INFO.Println("Server has recovered from an error")
-		instance, err = internal.RecoverInstance(def, io.NewImplementation,
-			ourMachine, currentVersion)
+		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, currentVersion)
 		if err != nil {
 			return instance, errors.WithMessage(err, "Could not recover server instance")
 		}

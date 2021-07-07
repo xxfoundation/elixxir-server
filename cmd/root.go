@@ -17,11 +17,9 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/xx_network/primitives/utils"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -58,7 +56,6 @@ var rootCmd = &cobra.Command{
 		}
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
-
 		instance, err := StartServer(viper.GetViper())
 		// Retry to start the instance on certain errors
 		for {
@@ -94,22 +91,12 @@ var rootCmd = &cobra.Command{
 		case <-stopCh:
 			jww.INFO.Printf(
 				"Received Exit (SIGTERM or SIGINT) signal...\n")
+			instance.WaitUntilRoundCompletes(60 * time.Second)
 			if profileOut != "" {
 				pprof.StopCPUProfile()
 			}
 		}
 	},
-}
-
-// ReceiveExitSignal signals a stop chan when it receives
-// SIGTERM or SIGINT
-func ReceiveExitSignal() chan os.Signal {
-	// Set up channel on which to send signal notifications.
-	// We must use a buffered channel or risk missing the signal
-	// if we're not ready to receive when the signal is sent.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	return c
 }
 
 // Execute adds all child commands to the root command and sets flags

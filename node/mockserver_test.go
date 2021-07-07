@@ -198,8 +198,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	}
 
 	// Generate instance
-	instance, err = internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+	instance, err = internal.CreateServerInstance(def, impl, sm, "1.1.0")
 	if err != nil {
 		return
 	}

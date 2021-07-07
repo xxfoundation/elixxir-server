@@ -72,8 +72,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		func(from current.Activity) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
-		m, "1.1.0")
+	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation, m, "1.1.0")
 
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
