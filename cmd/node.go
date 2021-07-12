@@ -35,7 +35,7 @@ import (
 func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
 
-	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
+	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("cmix.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
