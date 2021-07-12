@@ -2,7 +2,7 @@
 # Example yaml params file used for testing
 # the params object and its dependencies
 registrationCode: "123abc"
-node:
+cmix:
   paths:
     idf:  "nodeID.json"
     cert: "~/.elixxir/cert.crt"
@@ -22,7 +22,7 @@ gateway:
   paths:
     cert: "~/.elixxir/gateway.crt"
   address: "127.0.0.1:80"
-permissioning:
+scheduling:
   paths:
     cert: "~/.elixxir/permissioning.crt"
   address: "127.0.0.1:80"
