@@ -350,15 +350,8 @@ func TestSend(t *testing.T) {
 	}
 
 	sendFunc := func(host *connect.Host) (interface{}, error) {
-		registrationRequest := &pb.NodeRegistration{
-			Salt:             def.Salt,
-			ServerTlsCert:    string(def.TlsCert),
-			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			ServerAddress:    nodeAddr,
-			RegistrationCode: def.RegistrationCode,
-		}
-
-		return nil, instance.GetNetwork().SendNodeRegistration(host, registrationRequest)
+		pollMsg := &pb.PermissioningPoll{}
+		return instance.GetNetwork().SendPoll(host, pollMsg)
 
 	}
 
