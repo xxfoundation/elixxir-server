@@ -60,6 +60,8 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		"RegistrationCode:[regcode]")
 	jww.INFO.Printf(ps)
 
+	RecordPrivateKeyPath(params.Node.Paths.Key)
+
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
 	if err != nil {
