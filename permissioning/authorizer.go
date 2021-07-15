@@ -56,8 +56,9 @@ func Authorize(instance *internal.Instance) error {
 	return nil
 }
 
-// Send will attempt to send a message to permissioning. If the node cannot connect, it will attempt
-// to authorize itself with the authorizer. If successful, it will try to send the message again
+// Send will attempt to send a message to permissioning. If the node cannot connect,
+// it will attempt to authorize itself with the authorizer. If successful, it will
+// try to send the message again
 func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{}, err error) {
 
 	// Fetch the host information from the network

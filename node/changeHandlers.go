@@ -38,6 +38,7 @@ import (
 // Partial address of authorizer. Prepended to the provided
 // network address in the config in order to connect to the authorizer server
 const authorizerIp = "authorizer."
+
 // Partial address of permissioning. Prepended to the provided
 // network address in the config in order to connect to the permissioning server
 const permissioningIp = "permissioning."
