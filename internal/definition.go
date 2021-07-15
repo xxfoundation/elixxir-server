@@ -63,7 +63,7 @@ type Definition struct {
 	Gateway GW
 
 	// Information on permissioning server
-	Permissioning    Perm
+	Network          Perm
 	RegistrationCode string
 
 	// Our NDFs for both backend servers and front-ends

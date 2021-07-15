@@ -35,6 +35,9 @@ import (
 	"time"
 )
 
+const authorizerIp = "authorizer."
+const permissioningIp = "permissioning."
+
 // Number of hard-coded users to create
 var numDemoUsers = int(256)
 
@@ -48,16 +51,29 @@ func NotStarted(instance *internal.Instance) error {
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
 
-	jww.INFO.Printf("Loading certificates from disk")
-	// Get the Server and Gateway certificates from file, if they exist
+	// Request network access via the authorizer server
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	_, err := network.AddHost(&id.Authorizer,
+		authorizerIp+ourDef.Network.Address,
+		ourDef.Network.TlsCert,
+		params)
+	if err != nil {
+		return errors.Errorf("Unable to connect to registration server: %+v", err)
+	}
+
+	err = permissioning.Authorize(instance)
+	if err != nil {
+		return errors.Errorf("Could not authorize with network: %v", err)
+	}
 
 	// Connect to the Permissioning Server without authentication
-	params := connect.GetDefaultHostParams()
+	params = connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	permHost, err := network.AddHost(&id.Permissioning,
 		// instance.GetPermissioningAddress,
-		ourDef.Permissioning.Address,
-		ourDef.Permissioning.TlsCert,
+		permissioningIp+ourDef.Network.Address,
+		ourDef.Network.TlsCert,
 		params)
 
 	if err != nil {
@@ -106,7 +122,7 @@ func NotStarted(instance *internal.Instance) error {
 	params = connect.GetDefaultHostParams()
 	params.MaxRetries = 0
 	permHost, err = network.AddHost(&id.Permissioning,
-		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, params)
+		ourDef.Network.Address, ourDef.Network.TlsCert, params)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
@@ -493,18 +509,24 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
-// Pings permissioning server to see if our registration code has already been registered
+/// Checks with permissioning whether we are a network member already
 func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
+	regCheck := &mixmessages.RegisteredNodeCheck{
+		ID: serverInstance.GetID().Bytes(),
+	}
 
-	// Request a client ndf from the permissioning server
-	response, err := serverInstance.GetNetwork().SendRegistrationCheck(permHost,
-		&mixmessages.RegisteredNodeCheck{
-			ID: serverInstance.GetID().Bytes(),
-		})
+	sendFunc := func(h *connect.Host) (interface{}, error) {
+		return serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+	}
+
+	// Determine if node is registered
+	face, err := permissioning.Send(sendFunc, serverInstance)
 	if err != nil {
 		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
 		return false
 	}
+
+	response := face.(*mixmessages.RegisteredNodeConfirmation)
 
 	return response.IsRegistered
 

@@ -18,12 +18,12 @@ import (
 // Happy path.
 func TestReceivePermissioningAddressPing(t *testing.T) {
 	def := internal.Definition{
-		FullNDF:       testUtil.NDF,
-		PartialNDF:    testUtil.NDF,
-		Flags:         internal.Flags{},
-		Gateway:       internal.GW{ID: &id.TempGateway},
-		Permissioning: internal.Perm{Address: "0.0.0.0:10"},
-		DevMode:       true,
+		FullNDF:    testUtil.NDF,
+		PartialNDF: testUtil.NDF,
+		Flags:      internal.Flags{},
+		Gateway:    internal.GW{ID: &id.TempGateway},
+		Network:    internal.Perm{Address: "0.0.0.0:10"},
+		DevMode:    true,
 	}
 	m := state.NewTestMachine(dummyStates, current.ERROR, t)
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "")
@@ -32,10 +32,10 @@ func TestReceivePermissioningAddressPing(t *testing.T) {
 	if err != nil {
 		t.Errorf("ReceivePermissioningAddressPing returned an erro: %+v", err)
 	}
-	if def.Permissioning.Address != addr {
+	if def.Network.Address != addr {
 		t.Errorf("ReceivePermissioningAddressPing() failed to return the "+
 			"expected address for permissioning."+
-			"\n\texpected: %s\n\treceived: %s", def.Permissioning.Address, addr)
+			"\n\texpected: %s\n\treceived: %s", def.Network.Address, addr)
 	}
 	t.Log(addr)
 }

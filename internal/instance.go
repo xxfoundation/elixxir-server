@@ -363,7 +363,7 @@ func (i *Instance) GetKeepBuffers() bool {
 
 //GetRegServerPubKey returns the public key of the registration server
 func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
-	return i.definition.Permissioning.PublicKey
+	return i.definition.Network.PublicKey
 }
 
 // FIXME Populate this from the YAML or something
