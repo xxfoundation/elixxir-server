@@ -8,7 +8,6 @@
 package permissioning
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -70,10 +69,8 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 	// Attempt to send to permissioning
 	for i := 0; i < sendRetries; i++ {
 		// Attempt sending message to network
-		fmt.Printf("attempt %d\n", i)
 		response, err = sendFunc(permHost)
 		if err != nil &&
-			// todo: what is the error to check for?
 			(strings.Contains(err.Error(), "connection refused") ||
 				strings.Contains(err.Error(), "context deadline exceeded")) {
 			jww.WARN.Printf("Could not send to permissioning, "+
