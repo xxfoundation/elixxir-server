@@ -10,20 +10,16 @@
 package cmd
 
 import (
+	"crypto/tls"
+	"fmt"
+	"github.com/InfiniteLoopSpace/go_S-MIME/smime"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
-	// "gitlab.com/xx_network/crypto/signature/rsa"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	// cms "github.com/github/ietf-cms"
-	// "crypto/x509"
-	// "encoding/base64"
 	"strings"
-	// "gitlab.com/xx_network/crypto/tls"
-	"crypto/tls"
-	// "encoding/pem"
-	"github.com/InfiniteLoopSpace/go_S-MIME/smime"
+	"time"
 )
 
 func init() {
@@ -32,7 +28,7 @@ func init() {
 
 var signCmd = &cobra.Command{
 	Use:   "sign",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.MinimumNArgs(0),
 	Short: "Sign the provided file",
 	Long: `Use the XX Node private key to sign files. This produces a
 signature file that can be verified with openssl, e.g.:
@@ -41,18 +37,23 @@ openssl smime -verify -in [filename].signed -signer [nodecertificate] \
     -CAfile keys/cmix.rip.crt
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Note: API expects native rsa keys pointers
-		// privateKey := &readPrivateKey().PrivateKey
-		// cer := readCertificate()
-		// chain := []*x509.Certificate{cer}
+		if len(args) == 0 {
+			fmt.Printf("No filenames provided, signing " +
+				"default-statement.txt.signed\n")
+			out, _ := os.Create("default-statement.txt")
+			out.Write([]byte("I agree with all published betanet node " +
+				"agreements as of " + time.Now().String() +
+				"\n"))
+			out.Close()
+			args = []string{"default-statement.txt"}
+		}
 
 		fileData, err := ioutil.ReadFile(getKeyAndCertLocationsFile())
 		if err != nil {
-			jww.ERROR.Panicf("Unable to read key location %s",
+			jww.FATAL.Panicf("Unable to read key location %s",
 				err.Error())
 		}
 		keyPairPaths := strings.Split(string(fileData), ";")
-		jww.ERROR.Printf("keyPairPaths: %s\n", keyPairPaths)
 
 		keyPair, err := tls.LoadX509KeyPair(string(keyPairPaths[1]),
 			string(keyPairPaths[0]))
