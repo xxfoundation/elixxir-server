@@ -17,7 +17,6 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/xx_network/primitives/utils"
 	"os"
-	"path/filepath"
 	"runtime"
 	"runtime/pprof"
 	"strings"
@@ -109,30 +108,6 @@ func Execute() {
 		os.Exit(1)
 	}
 	jww.INFO.Printf("Node exiting without error...")
-}
-
-// RecordPrivateKeyPath determines the location of the binary running this
-// function using the os library and stores keyPath into
-// "binaryname-privatekeypath.txt"
-func RecordPrivateKeyPath(keyPath string) {
-	filename, err := os.Executable()
-	if err != nil {
-		jww.ERROR.Printf("Unable to write private key path, "+
-			"could not get binary path: %s", err.Error())
-	}
-
-	keyPathFile, err := os.Create(filename + "-privatekeypath.txt")
-	if err != nil {
-		jww.ERROR.Printf("Unable to write private key path, "+
-			"could open file for writing: %s", err.Error())
-	}
-
-	absKeyPath, err := filepath.Abs(keyPath)
-	if err != nil {
-		jww.ERROR.Printf("Unable to write private key path, "+
-			"could get absolute path: %s", err.Error())
-	}
-	keyPathFile.Write([]byte(absKeyPath))
 }
 
 // init is the initialization function for Cobra which defines commands
