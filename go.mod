@@ -3,6 +3,7 @@ module gitlab.com/elixxir/server
 go 1.13
 
 require (
+	github.com/InfiniteLoopSpace/go_S-MIME v0.0.0-20181221134359-3f58f9a4b2b6
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 	github.com/golang/protobuf v1.5.2
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
