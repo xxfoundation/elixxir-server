@@ -66,6 +66,8 @@ openssl smime -verify -in [filename].signed -signer [nodecertificate] \
 			jww.FATAL.Panicf("Could not load smime: %+v", err)
 		}
 
+		fmt.Printf("Please run the following commands to verify your " +
+			"signatures are correct:\n")
 		for _, f := range args {
 			filedata, err := ioutil.ReadFile(f)
 			if err != nil {
@@ -80,13 +82,19 @@ openssl smime -verify -in [filename].signed -signer [nodecertificate] \
 					f, err)
 			}
 
-			sigFile, err := os.Create(f + ".signed")
+			fname := f + ".signed"
+			sigFile, err := os.Create(fname)
 			if err != nil {
 				jww.FATAL.Panicf("Can't create sigfile %s: %s",
 					f, err.Error())
 			}
 
 			sigFile.Write(sig)
+			sigFile.Close()
+
+			fmt.Printf("  openssl smime -verify -in %s -signer %s "+
+				" -CAfile %s\n", fname, keyPairPaths[1],
+				keyPairPaths[1])
 		}
 
 	},
