@@ -96,11 +96,9 @@ build:
     - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/xxnetwork/lib' -o release/server-cuda.linux64 main.go
 
-    - mkdir -p upload
-    - cp release/* upload/
     - cp /opt/xxnetwork/lib/* release/
     - cp /opt/xxnetwork/include/* release/
-    - /upload-artifacts.sh upload/
+    - /upload-artifacts.sh release/
     - /upload-artifact.sh server release/server-cuda.linux64
     - /upload-artifact.sh server release/server.linux64
     - /upload-artifact.sh fatbin libraries/lib/libpow.fatbin
