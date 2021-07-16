@@ -99,6 +99,7 @@ build:
     - cp /opt/xxnetwork/lib/* release/
     - cp /opt/xxnetwork/include/* release/
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/xxnetwork/lib' -o release/server-cuda.linux64 main.go
+    - /upload-artifact.sh upload/
     - /upload-artifact.sh server release/server-cuda.linux64
     - /upload-artifact.sh server release/server.linux64
     - /upload-artifact.sh fatbin libraries/lib/libpow.fatbin
