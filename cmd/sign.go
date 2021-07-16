@@ -41,9 +41,8 @@ openssl smime -verify -in [filename].signed -signer [nodecertificate] \
 			fmt.Printf("No filenames provided, signing " +
 				"default-statement.txt.signed\n")
 			out, _ := os.Create("default-statement.txt")
-			out.Write([]byte("I will participate in the " +
-				"BetaNet Rollover program if selected, " +
-				"signed on " + time.Now().String() +
+			out.Write([]byte("I am applying to join the BetaNet" +
+				" Rollover Program: " + time.Now().String() +
 				"\n"))
 			out.Close()
 			args = []string{"default-statement.txt"}
@@ -67,8 +66,7 @@ openssl smime -verify -in [filename].signed -signer [nodecertificate] \
 			jww.FATAL.Panicf("Could not load smime: %+v", err)
 		}
 
-		fmt.Printf("Please run the following commands to verify your " +
-			"signatures are correct:\n")
+		fmt.Printf("Please copy & paste the following:\n\n")
 		for _, f := range args {
 			filedata, err := ioutil.ReadFile(f)
 			if err != nil {
@@ -93,9 +91,7 @@ openssl smime -verify -in [filename].signed -signer [nodecertificate] \
 			sigFile.Write(sig)
 			sigFile.Close()
 
-			fmt.Printf("  openssl smime -verify -in %s -signer %s "+
-				" -CAfile %s\n", fname, keyPairPaths[1],
-				keyPairPaths[1])
+			fmt.Printf("=====BEGIN=====\n%s\n=====END=====\n", sig)
 		}
 
 	},
