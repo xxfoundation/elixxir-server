@@ -54,7 +54,7 @@ build_gpumaths:
     - fi
     - echo $GPUMATHS_VERSION
     - echo $GPUMATHS_CLONE_VERSION
-    - BASE_URL="https://gitlab.com/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
+    - BASE_URL="https://$GITLAB_SERVER/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
     - POWMOSM_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpowmosm75.so?job=build"
     - FATBIN_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpow.fatbin?job=build"
     - INCLUDE_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/include/powm_odd_export.h?job=build"
@@ -159,8 +159,8 @@ tag_and_trigger:
     - master
   image: $DOCKER_IMAGE
   script:
-    - git remote add origin_tags git@gitlab.com:elixxir/server.git || true
-    - git remote set-url origin_tags git@gitlab.com:elixxir/server.git || true
+    - git remote add origin_tags git@$GITLAB_SERVER:elixxir/server.git || true
+    - git remote set-url origin_tags git@$GITLAB_SERVER:elixxir/server.git || true
     - git tag $(./release/server.linux64 version | grep "xx network Server v"| cut -d ' ' -f4) -f
     - git push origin_tags -f --tags
     - "curl -X POST -F token=3cd593ad56ec017e30254c9ec6c0ab -F ref=master https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
