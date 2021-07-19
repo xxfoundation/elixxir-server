@@ -30,28 +30,29 @@ import (
 	"time"
 )
 
-var mockStreamUnmixedBatchSlotIndex int
-
 /* MockStreamUnmixedBatchServer */
 type MockStreamUnmixedBatchServer struct {
-	batch *mixmessages.Batch
+	batch                           *mixmessages.Batch
+	mockStreamUnmixedBatchSlotIndex int
 }
 
+var mockUploadBatchIndex int
+
 func (stream MockStreamUnmixedBatchServer) SendAndClose(*messages.Ack) error {
-	if len(stream.batch.Slots) == mockStreamUnmixedBatchSlotIndex {
+	if len(stream.batch.Slots) == mockUploadBatchIndex {
 		return nil
 	}
 	return errors.Errorf("stream closed without all slots being received."+
 		"\n\tMockStreamSlotIndex: %v\n\tstream.batch.slots: %v",
-		mockStreamUnmixedBatchSlotIndex, len(stream.batch.Slots))
+		stream.mockStreamUnmixedBatchSlotIndex, len(stream.batch.Slots))
 }
 
 func (stream MockStreamUnmixedBatchServer) Recv() (*mixmessages.Slot, error) {
-	if mockStreamUnmixedBatchSlotIndex >= len(stream.batch.Slots) {
+	if mockUploadBatchIndex >= len(stream.batch.Slots) {
 		return nil, io.EOF
 	}
-	slot := stream.batch.Slots[mockStreamSlotIndex]
-	mockStreamUnmixedBatchSlotIndex++
+	slot := stream.batch.Slots[mockUploadBatchIndex]
+	mockUploadBatchIndex++
 	return slot, nil
 }
 
@@ -177,7 +178,8 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	}
 
 	mockStreamServer := MockStreamUnmixedBatchServer{
-		batch: mockBatch,
+		batch:                           mockBatch,
+		mockStreamUnmixedBatchSlotIndex: 0,
 	}
 
 	err = ReceiveUploadUnmixedBatchStream(instance, mockStreamServer, postPhase, auth)
@@ -212,10 +214,10 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		Sender:          h,
 	}
 
-	mockStreamUnmixedBatchSlotIndex = 0
-
+	mockUploadBatchIndex = 0
 	mockStreamServer = MockStreamUnmixedBatchServer{
-		batch: mockBatch,
+		batch:                           mockBatch,
+		mockStreamUnmixedBatchSlotIndex: 0,
 	}
 
 	err = ReceiveUploadUnmixedBatchStream(instance, mockStreamServer, postPhase, auth)
@@ -429,10 +431,9 @@ func TestReceivePostNewBatch(t *testing.T) {
 	}
 
 	mockStreamServer := MockStreamUnmixedBatchServer{
-		batch: mockBatch,
+		batch:                           mockBatch,
+		mockStreamUnmixedBatchSlotIndex: 0,
 	}
-
-	mockStreamUnmixedBatchSlotIndex = 0
 
 	// Actually, this should return an error because the batch has a malformed
 	// slot in it, so once we implement per-slot errors we can test all the
