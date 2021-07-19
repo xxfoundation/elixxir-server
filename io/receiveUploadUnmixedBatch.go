@@ -7,7 +7,7 @@
 
 package io
 
-// receivePostNewBatch.go contains the handler for the gateway <-> server postNewBatch comm
+// receiveUploadUnmixedBatch.go contains the handler for the gateway <-> server postNewBatch comm
 
 import (
 	"fmt"
