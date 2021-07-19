@@ -93,7 +93,7 @@ func TestStreamPostPhase(t *testing.T) {
 	// receive the mockBatch into the mock stream 'buffer'
 	mockStreamServer := MockTransmitStream{batch: mockBatch}
 
-	_, _, err := StreamPostPhase(mockPhase, uint32(batchSize), mockStreamServer)
+	_, err := StreamPostPhase(mockPhase, uint32(batchSize), mockStreamServer)
 
 	if err != nil {
 		t.Errorf("StreamPostPhase: Unexpected error returned: %+v", err)
