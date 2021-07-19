@@ -168,7 +168,7 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	//queue the phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
-	start, end, strmErr := StreamPostPhase(p, batchInfo.BatchSize, streamServer)
+	streamInfo, strmErr := StreamPostPhase(p, batchInfo.BatchSize, streamServer)
 
 	jww.INFO.Printf("\tbwLogging: Round %d, "+
 		"received phase: %s, "+
@@ -178,7 +178,8 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 		"duration: %d,",
 		roundID, phaseTy,
 		auth.Sender.GetId().String(), instance.GetID(),
-		start, end, end.Sub(start).Milliseconds())
+		streamInfo.Start, streamInfo.End,
+		streamInfo.End.Sub(streamInfo.Start).Milliseconds())
 
 	return strmErr
 
