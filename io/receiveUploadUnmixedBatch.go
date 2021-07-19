@@ -28,7 +28,7 @@ import (
 
 type GenericPostPhase func(p phase.Phase, batch *mixmessages.Batch) error
 
-// Receive PostNewBatch comm from the gateway
+// ReceiveUploadUnmixedBatchStream handler from the gateway
 // This should include an entire new batch that's ready for realtime processing
 func ReceiveUploadUnmixedBatchStream(instance *internal.Instance,
 	stream mixmessages.Node_UploadUnmixedBatchServer, postPhase GenericPostPhase,
@@ -95,7 +95,8 @@ func ReceiveUploadUnmixedBatchStream(instance *internal.Instance,
 	return nil
 }
 
-// todo: docstring
+// StreamUnmixedBatch is a helper function which receives the
+// streaming slots and builds a batch.
 func StreamUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 	batchInfo *mixmessages.BatchInfo) (*streamInfo, *mixmessages.Batch, error) {
 
