@@ -41,13 +41,15 @@ func ReceiveUploadUnmixedBatchStream(instance *internal.Instance,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
+	// Extract header information
 	batchInfo, err := node.GetUnmixedBatchStreamHeader(stream)
 	if err != nil {
 		return errors.WithMessage(err, "Could not get unmixed batch stream header")
 	}
-
 	phaseTy := phase.Type(batchInfo.FromPhase).String()
 	roundID := id.Round(batchInfo.Round.ID)
+
+	// Receive the stream
 	streamInfo, newBatch, strmErr := UploadUnmixedBatch(stream, batchInfo)
 	if strmErr != nil {
 		jww.ERROR.Printf("SteamUnmixedBatch error: %v", strmErr)
@@ -107,6 +109,7 @@ func UploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 
 	batchSize := batchInfo.BatchSize
 
+	// Receive the slots
 	slot, err := stream.Recv()
 	var start, end time.Time
 	slots := make([]*mixmessages.Slot, 0)
@@ -123,6 +126,8 @@ func UploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 	}
 
 	newBatch.Slots = slots
+
+	// Handle any errors
 	ack := &messages.Ack{Error: ""}
 	if err != io.EOF {
 		ack.Error = fmt.Sprintf("errors occurred, %v/%v slots "+
@@ -132,9 +137,9 @@ func UploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 			"and received num slots %v, no error", slotsReceived, batchSize)
 	}
 
-	si := &streamInfo{Start: start, End: end}
 
 	// Close the stream by sending ack and returning success or failure
+	si := &streamInfo{Start: start, End: end}
 	errClose := stream.SendAndClose(ack)
 	if errClose != nil && ack.Error != "" {
 		return si, newBatch, errors.WithMessage(errClose, ack.Error)
