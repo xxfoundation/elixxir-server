@@ -48,7 +48,7 @@ func ReceiveUploadUnmixedBatchStream(instance *internal.Instance,
 
 	phaseTy := phase.Type(batchInfo.FromPhase).String()
 	roundID := id.Round(batchInfo.Round.ID)
-	streamInfo, newBatch, strmErr := StreamUnmixedBatch(stream, batchInfo)
+	streamInfo, newBatch, strmErr := UploadUnmixedBatch(stream, batchInfo)
 	if strmErr != nil {
 		jww.ERROR.Printf("SteamUnmixedBatch error: %v", strmErr)
 		return strmErr
@@ -95,9 +95,9 @@ func ReceiveUploadUnmixedBatchStream(instance *internal.Instance,
 	return nil
 }
 
-// StreamUnmixedBatch is a helper function which receives the
+// UploadUnmixedBatch is a helper function which receives the
 // streaming slots and builds a batch.
-func StreamUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
+func UploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 	batchInfo *mixmessages.BatchInfo) (*streamInfo, *mixmessages.Batch, error) {
 
 	newBatch := &mixmessages.Batch{
