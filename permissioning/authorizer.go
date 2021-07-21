@@ -43,7 +43,7 @@ func Authorize(instance *internal.Instance) error {
 		NodeID:    instance.GetID().Bytes(),
 		Salt:      instance.GetDefinition().Salt,
 		PubkeyPem: instance.GetDefinition().TlsCert,
-		TimeStamp: authorizerTimestamp.Unix(),
+		TimeStamp: authorizerTimestamp.UnixNano(),
 		Signature: authorizerSig,
 	}
 
