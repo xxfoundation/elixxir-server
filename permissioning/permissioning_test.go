@@ -78,7 +78,7 @@ func TestRegisterNode(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
 		},
@@ -122,8 +122,8 @@ func TestRegisterNode(t *testing.T) {
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, params)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
+		def.Network.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -684,7 +684,7 @@ func TestRegistration(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
 		},
@@ -717,8 +717,8 @@ func TestRegistration(t *testing.T) {
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, params)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
+		def.Network.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -755,7 +755,7 @@ func TestRegistration(t *testing.T) {
 		// Fetch permissioning host
 		params := connect.GetDefaultHostParams()
 		params.MaxRetries = 0
-		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, params)
+		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address, def.Network.TlsCert, params)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
@@ -915,7 +915,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: []byte(testUtil.RegCert),
 			Address: pAddr,
 		},

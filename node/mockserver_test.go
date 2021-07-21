@@ -168,7 +168,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 		ListeningAddress: nodeAddr,
 		LogPath:          "",
 		MetricLogPath:    "",
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
 		},
@@ -206,8 +206,8 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, params)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
+		def.Network.TlsCert, params)
 	if err != nil {
 		return
 	}
