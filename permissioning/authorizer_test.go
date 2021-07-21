@@ -627,8 +627,8 @@ func TestSend_ErrorOnce(t *testing.T) {
 
 	_, err = Send(sendFunc, instance)
 	if err != nil {
-		t.Fatalf("Expected happy path: Should have authorized " +
-			"and returned no error")
+		t.Fatalf("Expected happy path: Should have authorized "+
+			"and returned no error. Returned error: %v", err)
 	}
 
 }
