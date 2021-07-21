@@ -37,11 +37,11 @@ import (
 
 // Partial address of authorizer. Prepended to the provided
 // network address in the config in order to connect to the authorizer server
-const authorizerIp = "authorizer."
+const authorizerIp = "auth."
 
 // Partial address of permissioning. Prepended to the provided
 // network address in the config in order to connect to the permissioning server
-const permissioningIp = "permissioning."
+const permissioningIp = "scheduling."
 
 // Number of hard-coded users to create
 var numDemoUsers = int(256)
