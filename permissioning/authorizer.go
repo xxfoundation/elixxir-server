@@ -88,7 +88,7 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 					return nil, errors.Errorf("Could not authorize with network: %v", err)
 				}
 			} else {
-				return nil, errors.Errorf("Failed to contact permissioning: %v", err)
+				return nil, err
 			}
 		}
 	}

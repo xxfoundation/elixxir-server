@@ -143,32 +143,32 @@ type mockPermission_ConnectionError struct {
 }
 
 func (i *mockPermission_ConnectionError) PollNdf([]byte) (*pb.NDF, error) {
-	return nil, errors.Errorf("Connection refused")
+	return nil, errors.Errorf("connection refused")
 }
 
 func (i *mockPermission_ConnectionError) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
-	return nil, errors.Errorf("Connection refused")
+	return nil, errors.Errorf("connection refused")
 }
 
 func (i *mockPermission_ConnectionError) RegisterNode([]byte, string, string, string, string, string) error {
-	return errors.Errorf("Connection refused")
+	return errors.Errorf("connection refused")
 }
 
 func (i *mockPermission_ConnectionError) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
 
-	return nil, errors.Errorf("Connection refused")
+	return nil, errors.Errorf("connection refused")
 }
 
 func (i *mockPermission_ConnectionError) CheckRegistration(msg *pb.RegisteredNodeCheck) (confirmation *pb.RegisteredNodeConfirmation, e error) {
-	return nil, errors.Errorf("Connection refused")
+	return nil, errors.Errorf("connection refused")
 }
 
 func (i *mockPermission_ConnectionError) GetCurrentClientVersion() (string, error) {
-	return "0.0.0", errors.Errorf("Connection refused")
+	return "0.0.0", errors.Errorf("connection refused")
 }
 
 func (i *mockPermission_ConnectionError) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
-	return nil, errors.Errorf("Connection refused")
+	return nil, errors.Errorf("connection refused")
 }
 
 // --------------------------------Dummy implementation of permissioning server w/ connection error  ----------------
