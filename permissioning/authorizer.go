@@ -22,7 +22,7 @@ import (
 
 type SendFunc func(host *connect.Host) (interface{}, error)
 
-const sendRetries = 2
+const sendRetries = 5
 
 // Authorize will send an authorization request with the authorizer server.
 func Authorize(instance *internal.Instance) error {
@@ -84,7 +84,7 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 					return nil, errors.Errorf("Could not authorize with network: %v", err)
 				}
 			} else {
-				return nil, err
+				return response, err
 			}
 		}
 	}
