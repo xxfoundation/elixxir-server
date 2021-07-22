@@ -127,7 +127,7 @@ func NotStarted(instance *internal.Instance) error {
 	params = connect.GetDefaultHostParams()
 	params.MaxRetries = 0
 	permHost, err = network.AddHost(&id.Permissioning,
-		ourDef.Network.Address, ourDef.Network.TlsCert, params)
+		permissioningIp+ourDef.Network.Address, ourDef.Network.TlsCert, params)
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
