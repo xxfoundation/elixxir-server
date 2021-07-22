@@ -69,7 +69,6 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 		return nil, instance.GetNetwork().SendNodeRegistration(h, registrationRequest)
 	}
 	_, err = Send(sendFunc, instance)
-
 	if err != nil {
 		return errors.Errorf("Unable to send Node registration: %+v", err)
 	}

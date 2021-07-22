@@ -22,7 +22,7 @@ import (
 
 type SendFunc func(host *connect.Host) (interface{}, error)
 
-const sendRetries = 5
+const authorizationFailure = "failed to authorize"
 
 // Authorize will send an authorization request with the authorizer server.
 func Authorize(instance *internal.Instance) error {
@@ -51,7 +51,7 @@ func Authorize(instance *internal.Instance) error {
 	// Send authorization request
 	_, err = instance.GetNetwork().SendAuthorizerAuth(authHost, authorizerMsg)
 	if err != nil {
-		return err
+		return errors.Errorf("%s: %v", authorizationFailure, err)
 	}
 
 	return nil
@@ -67,27 +67,21 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 	if !ok {
 		return nil, errors.New("Could not get permissioning host")
 	}
+	response, err = sendFunc(permHost)
+	// Attempt to authorize
+	retries := 0
+	for err != nil &&
+		(strings.Contains(strings.ToLower(err.Error()), "connection refused") ||
+			strings.Contains(strings.ToLower(err.Error()), context.DeadlineExceeded.Error()) ||
+			strings.Contains(err.Error(), authorizationFailure)) {
 
-	// Attempt to send to permissioning
-	for i := 0; i < sendRetries; i++ {
-		// Attempt sending message to network
-		response, err = sendFunc(permHost)
-		if err != nil {
-			if strings.Contains(strings.ToLower(err.Error()), "connection refused") ||
-				strings.Contains(strings.ToLower(err.Error()), context.DeadlineExceeded.Error()) {
-
-				// If failed, send authorization request
-				jww.WARN.Printf("Could not send to permissioning, "+
-					"attempt (%d/%d) to contact authorizer", i+1, sendRetries)
-				err = Authorize(instance)
-				if err != nil {
-					return nil, errors.Errorf("Could not authorize with network: %v", err)
-				}
-			} else {
-				return response, err
-			}
-		}
+		jww.WARN.Printf("Could not send to permissioning, "+
+			"attempt %d to contact authorizer", retries)
+		err = Authorize(instance)
+		retries++
 	}
+
+	response, err = sendFunc(permHost)
 
 	return response, err
 }
