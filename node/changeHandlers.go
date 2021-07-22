@@ -521,6 +521,7 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	}
 
 	sendFunc := func(h *connect.Host) (interface{}, error) {
+		jww.DEBUG.Printf("Sending registration check")
 		return serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
 	}
 
