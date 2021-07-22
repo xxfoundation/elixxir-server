@@ -76,7 +76,7 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 		if err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "connection refused") ||
 				strings.Contains(strings.ToLower(err.Error()),
-					context.DeadlineExceeded.Error()) || { // If failed to connect, may be an authorization issue
+					context.DeadlineExceeded.Error()) { // If failed to connect, may be an authorization issue
 
 				// If failed, send authorization request
 				jww.WARN.Printf("Could not send to permissioning, "+
