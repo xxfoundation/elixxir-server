@@ -367,138 +367,6 @@ func TestSend(t *testing.T) {
 	}
 }
 
-// Error path: Simulate connection refused by permissioning
-func TestSend_Error(t *testing.T) {
-	cert, err := utils.ReadFile(testkeys.GetNodeCertPath())
-	if err != nil {
-		t.Fatalf("Failed to read cert file: %+v", err)
-	}
-	key, err := utils.ReadFile(testkeys.GetNodeKeyPath())
-	if err != nil {
-		t.Fatalf("Failed to read key file: %+v", err)
-	}
-
-	// Set up id's and address
-	nodeId := id.NewIdFromUInt(0, id.Node, t)
-
-	countLock.Lock()
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7100+count)
-	pAddr := fmt.Sprintf("0.0.0.0:%d", 2100+count)
-	authAddr := fmt.Sprintf("0.0.0.0:%d", 2200+count)
-	gAddr := fmt.Sprintf("0.0.0.0:%d", 4100+count)
-	count++
-	countLock.Unlock()
-
-	gwID := nodeId.DeepCopy()
-	gwID.SetType(id.Gateway)
-
-	// Build the node
-	emptyNdf := builEmptydMockNdf()
-
-	//make server rsa key pair
-	pk, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
-	privKey, _ := rsa.LoadPrivateKeyFromPem(pk)
-
-	// Initialize definition
-	def := &internal.Definition{
-		Flags:            internal.Flags{},
-		ID:               nodeId,
-		PublicKey:        privKey.GetPublic(),
-		PrivateKey:       privKey,
-		TlsCert:          cert,
-		TlsKey:           key,
-		ListeningAddress: nodeAddr,
-		PublicAddress:    nodeAddr,
-		LogPath:          "",
-		Gateway: internal.GW{
-			ID:      gwID,
-			Address: gAddr,
-			TlsCert: cert,
-		},
-		Network: internal.Perm{
-			TlsCert: cert,
-			Address: pAddr,
-		},
-		RegistrationCode: "",
-
-		GraphGenerator:  services.GraphGenerator{},
-		ResourceMonitor: nil,
-		FullNDF:         emptyNdf,
-		PartialNDF:      emptyNdf,
-		DevMode:         true,
-		RngStreamGen: fastRNG.NewStreamGenerator(10000, uint(runtime.NumCPU()),
-			csprng.NewSystemRNG),
-	}
-
-	// Create state machine
-	sm := state.NewMachine(dummyStates)
-	ok, err := sm.Update(current.WAITING)
-	if !ok || err != nil {
-		t.Fatalf("Failed to prep state machine: %+v", err)
-	}
-
-	// Add handler for instance
-	impl := func(i *internal.Instance) *node.Implementation {
-		return io.NewImplementation(i)
-	}
-
-	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm, "1.1.0")
-	if err != nil {
-		t.Fatalf("Unable to create instance: %+v", err)
-	}
-
-	// Start up permissioning server
-	authComms, err := startAuthorizer(authAddr, nodeAddr, nodeId, cert, key)
-	if err != nil {
-		t.Fatalf("Couldn't create permissioning server: %+v", err)
-	}
-	defer authComms.Shutdown()
-
-	// Start up permissioning server
-	permComms, err := startPermissioning_ConnectionError(pAddr, nodeAddr, nodeId, cert, key)
-	if err != nil {
-		t.Errorf("Couldn't create permissioning server: %+v", err)
-	}
-	defer permComms.Shutdown()
-
-	// Add permissioning as a host
-	params := connect.GetDefaultHostParams()
-	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Authorizer, authAddr,
-		def.Network.TlsCert, params)
-	if err != nil {
-		t.Errorf("Failed to add permissioning host: %+v", err)
-	}
-
-	// Add permissioning as a host
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
-		def.Network.TlsCert, params)
-	if err != nil {
-		t.Errorf("Failed to add permissioning host: %+v", err)
-	}
-
-	// Send message
-	sendFunc := func(host *connect.Host) (interface{}, error) {
-		registrationRequest := &pb.NodeRegistration{
-			Salt:             def.Salt,
-			ServerTlsCert:    string(def.TlsCert),
-			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			ServerAddress:    nodeAddr,
-			RegistrationCode: def.RegistrationCode,
-		}
-
-		return nil, instance.GetNetwork().SendNodeRegistration(host, registrationRequest)
-
-	}
-
-	_, err = Send(sendFunc, instance)
-	if err == nil {
-		t.Fatalf("Expected error path: should receive connection refused")
-	}
-
-}
-
 // Error path: Simulate connection refused by permissioning,
 // followed by a successful authorization and successful resend
 func TestSend_ErrorOnce(t *testing.T) {
@@ -627,8 +495,8 @@ func TestSend_ErrorOnce(t *testing.T) {
 
 	_, err = Send(sendFunc, instance)
 	if err != nil {
-		t.Fatalf("Expected happy path: Should have authorized " +
-			"and returned no error")
+		t.Fatalf("Expected happy path: Should have authorized "+
+			"and returned no error. Returned error: %v", err)
 	}
 
 }

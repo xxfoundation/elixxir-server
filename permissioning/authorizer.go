@@ -8,6 +8,7 @@
 package permissioning
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -21,7 +22,7 @@ import (
 
 type SendFunc func(host *connect.Host) (interface{}, error)
 
-const sendRetries = 2
+const authorizationFailure = "failed to authorize"
 
 // Authorize will send an authorization request with the authorizer server.
 func Authorize(instance *internal.Instance) error {
@@ -50,7 +51,7 @@ func Authorize(instance *internal.Instance) error {
 	// Send authorization request
 	_, err = instance.GetNetwork().SendAuthorizerAuth(authHost, authorizerMsg)
 	if err != nil {
-		return err
+		return errors.Errorf("%s: %v", authorizationFailure, err)
 	}
 
 	return nil
@@ -66,25 +67,21 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 	if !ok {
 		return nil, errors.New("Could not get permissioning host")
 	}
+	response, err = sendFunc(permHost)
+	// Attempt to authorize
+	retries := 0
+	for err != nil &&
+		(strings.Contains(strings.ToLower(err.Error()), "connection refused") ||
+			strings.Contains(strings.ToLower(err.Error()), context.DeadlineExceeded.Error()) ||
+			strings.Contains(err.Error(), authorizationFailure)) {
 
-	// Attempt to send to permissioning
-	for i := 0; i < sendRetries; i++ {
-		// Attempt sending message to network
-		response, err = sendFunc(permHost)
-		if err != nil &&
-			(strings.Contains(err.Error(), "connection refused") ||
-				strings.Contains(err.Error(), "context deadline exceeded")) {
-			jww.WARN.Printf("Could not send to permissioning, "+
-				"attempt (%d/%d) to contact authorizer", i+1, sendRetries)
-
-			// If failed, send authorization request
-			err = Authorize(instance)
-			if err != nil {
-				return nil, errors.Errorf("Could not authorize with network: %v", err)
-			}
-		}
-
+		jww.WARN.Printf("Could not send to permissioning, "+
+			"attempt %d to contact authorizer", retries)
+		err = Authorize(instance)
+		retries++
 	}
+
+	response, err = sendFunc(permHost)
 
 	return response, err
 }
