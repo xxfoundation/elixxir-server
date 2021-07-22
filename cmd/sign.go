@@ -41,8 +41,8 @@ openssl smime -verify -in [filename].signed -signer [nodecertificate] \
 			fmt.Printf("No filenames provided, signing " +
 				"default-statement.txt.signed\n")
 			out, _ := os.Create("default-statement.txt")
-			out.Write([]byte("I am applying to join the BetaNet" +
-				" Rollover Program: " + time.Now().String() +
+			out.Write([]byte("I am applying to join the MainNet " +
+				"Transition Program: " + time.Now().String() +
 				"\n"))
 			out.Close()
 			args = []string{"default-statement.txt"}
