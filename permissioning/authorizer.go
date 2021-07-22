@@ -8,6 +8,7 @@
 package permissioning
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -71,13 +72,11 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 	for i := 0; i < sendRetries; i++ {
 		// Attempt sending message to network
 		response, err = sendFunc(permHost)
+
 		if err != nil {
-			if strings.Contains(err.Error(), "connection refused") ||
-				strings.Contains(err.Error(), "Connection refused") ||
-				strings.Contains(err.Error(),
-					"context deadline exceeded") ||
-				strings.Contains(err.Error(),
-					"Context deadline exceeded") { // If failed to connect, may be an authorization issue
+			if strings.Contains(strings.ToLower(err.Error()), "connection refused") ||
+				strings.Contains(strings.ToLower(err.Error()),
+					context.DeadlineExceeded.Error()) || { // If failed to connect, may be an authorization issue
 
 				// If failed, send authorization request
 				jww.WARN.Printf("Could not send to permissioning, "+
