@@ -68,11 +68,12 @@ type Instance struct {
 	gatewayFirstPoll *FirstTime
 
 	// Channels
-	createRoundQueue    round.Queue
-	completedBatchQueue round.CompletedQueue
-	killInstance        chan chan struct{}
-	realtimeRoundQueue  round.Queue
-	clientErrors        *round.ClientReport
+	createRoundQueue     round.Queue
+	completedBatchQueue  round.CompletedQueue
+	completedBatchSignal round.CompletedQueue
+	killInstance         chan chan struct{}
+	realtimeRoundQueue   round.Queue
+	clientErrors         *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -97,6 +98,9 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
+
+	// Map containing completed batches to pass back to gateway
+	completedBatch map[id.Round][]*mixmessages.Slot
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -125,6 +129,8 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		killInstance:         make(chan chan struct{}, 1),
 		gatewayPoll:          NewFirstTime(),
 		completedBatchQueue:  round.NewCompletedQueue(),
+		completedBatchSignal: round.NewCompletedQueue(),
+		completedBatch:       make(map[id.Round][]*mixmessages.Slot),
 		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
@@ -701,4 +707,26 @@ func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
 	case <-time.After(duration):
 		jww.ERROR.Print("Round took too long to complete, closing!")
 	}
+}
+
+func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
+	err := i.completedBatchSignal.Send(cr)
+	if err != nil {
+		return errors.Errorf("Could not prepare completed batch for sending: %v", err)
+	}
+
+	fmt.Printf("completedMap: %v\n", i.completedBatch)
+	fmt.Printf("completedRound: %v\n", cr)
+
+	i.completedBatch[cr.RoundID] = cr.Round
+	return nil
+}
+
+func (i *Instance) GetCompletedBatch(rid id.Round) ([]*mixmessages.Slot, bool) {
+	slots, ok := i.completedBatch[rid]
+	return slots, ok
+}
+
+func (i *Instance) GetCompletedBatchSignal() round.CompletedQueue {
+	return i.completedBatchSignal
 }

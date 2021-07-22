@@ -137,7 +137,6 @@ func UploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 			"and received num slots %v, no error", slotsReceived, batchSize)
 	}
 
-
 	// Close the stream by sending ack and returning success or failure
 	si := &streamInfo{Start: start, End: end}
 	errClose := stream.SendAndClose(ack)

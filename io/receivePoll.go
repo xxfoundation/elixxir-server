@@ -58,26 +58,24 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 			return nil, errors.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
 		}
 
-		// Send the batch only if it is ready
 		if cr != nil {
-			batch := &mixmessages.CompletedBatch{
-				RoundID: uint64(cr.RoundID),
-				Slots:   cr.Round,
+			// Add batch to send later
+			if err = instance.AddCompletedBatch(cr); err != nil {
+				return nil, errors.Errorf("Unable to send to CompletedBatchSignal: %v", err)
 			}
-			res.Batch = batch
+		}
+
+		//Compare Full NDF hash with instance and
+		// return the new one if they do not match
+		// otherwise return round updates
+		isSame = network.GetFullNdf().CompareHash(
+			poll.GetFull().Hash)
+		if isSame {
+			//Check if any updates where made and get them
+			res.Updates = network.GetRoundUpdates(
+				int(poll.LastUpdate))
 		} else {
-			//Compare Full NDF hash with instance and
-			// return the new one if they do not match
-			// otherwise return round updates
-			isSame = network.GetFullNdf().CompareHash(
-				poll.GetFull().Hash)
-			if isSame {
-				//Check if any updates where made and get them
-				res.Updates = network.GetRoundUpdates(
-					int(poll.LastUpdate))
-			} else {
-				res.FullNDF = network.GetFullNdf().GetPb()
-			}
+			res.FullNDF = network.GetFullNdf().GetPb()
 		}
 
 		// Populate the id field
@@ -106,4 +104,8 @@ func isValidID(sender *id.ID, valid ...*id.ID) bool {
 		}
 	}
 	return false
+}
+
+func CompleteBatchSend() {
+
 }

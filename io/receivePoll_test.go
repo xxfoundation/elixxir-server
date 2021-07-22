@@ -178,10 +178,6 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		t.Fail()
 	}
 
-	if res.Batch != nil {
-		t.Errorf("ServerPollResponse.Batch is not nil")
-		t.Fail()
-	}
 	if res.BatchRequest != nil {
 		t.Errorf("ServerPollResponse.BatchRequest is not nil")
 		t.Fail()
@@ -429,8 +425,9 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 
 	dr := round.NewDummyRound(23, 10, t)
 	instance.GetRoundManager().AddRound(dr)
+	rid := id.Round(32)
 	cr := round.CompletedRound{
-		RoundID: id.Round(23),
+		RoundID: rid,
 		Round:   make([]*pb.Slot, 10),
 	}
 
@@ -452,19 +449,23 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, auth)
+	_, err = ReceivePoll(poll, &instance, auth)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
-		t.Fail()
+		t.Fatalf("Unexpected error %v", err)
 	}
 
-	if len(res.Batch.Slots) != 10 {
+	receivedSlots, ok := instance.GetCompletedBatch(rid)
+	if !ok {
+		t.Errorf("Could not find completed batch in store")
+	}
+
+	if len(receivedSlots) != 10 {
 		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 
 	for k := uint32(0); k < 10; k++ {
-		if res.Batch.Slots[k].Index != k {
+		if receivedSlots[k].Index != k {
 			t.Logf("Slots did not match expected index")
 		}
 	}
