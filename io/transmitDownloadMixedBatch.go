@@ -32,12 +32,16 @@ func DownloadMixedBatch(instance *internal.Instance,
 		return errors.Errorf("Could not find completed batch for round %d", ready.RoundId)
 	}
 
+	jww.INFO.Printf("Sending mixed batch for round %d to gateway", cr.RoundID)
+
 	for i, slot := range cr.Round {
 		if err := stream.Send(slot); err != nil {
 			return errors.Errorf("Failed to send slot %d/%d for round %d",
 				i, len(cr.Round), cr.RoundID)
 		}
 	}
+
+	defer stream.Context().Done()
 
 	return nil
 }

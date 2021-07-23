@@ -9,7 +9,6 @@ package io
 
 import (
 	"context"
-	"encoding/base64"
 	"github.com/pkg/errors"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
@@ -97,22 +96,9 @@ func (MockStreamMixedBatchServer) SetTrailer(metadata.MD) {
 }
 
 func (stream MockStreamMixedBatchServer) Context() context.Context {
-	// Create mock batch info from mock batch
-	mockBatch := stream.batch
-	mockBatchInfo := pb.BatchInfo{
-		Round:     mockBatch.Round,
-		FromPhase: mockBatch.FromPhase,
-		BatchSize: uint32(len(mockBatch.Slots)),
-	}
 
 	// Create an incoming context from batch info metadata
 	ctx, _ := context.WithCancel(context.Background())
-
-	m := make(map[string]string)
-	m[pb.MixedBatchHeader] = base64.StdEncoding.EncodeToString([]byte(mockBatchInfo.String()))
-
-	md := metadata.New(m)
-	ctx = metadata.NewIncomingContext(ctx, md)
 
 	return ctx
 }
