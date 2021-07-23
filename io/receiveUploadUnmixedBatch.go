@@ -46,11 +46,9 @@ func ReceiveUploadUnmixedBatchStream(instance *internal.Instance,
 	if err != nil {
 		return errors.WithMessage(err, "Could not get unmixed batch stream header")
 	}
-	phaseTy := phase.Type(batchInfo.FromPhase).String()
-	roundID := id.Round(batchInfo.Round.ID)
 
 	// Receive the stream
-	streamInfo, newBatch, strmErr := UploadUnmixedBatch(stream, batchInfo)
+	_, newBatch, strmErr := receiveUploadUnmixedBatch(stream, batchInfo)
 	if strmErr != nil {
 		jww.ERROR.Printf("SteamUnmixedBatch error: %v", strmErr)
 		return strmErr
@@ -81,25 +79,28 @@ func ReceiveUploadUnmixedBatchStream(instance *internal.Instance,
 		}
 	}
 
-	jww.INFO.Printf("[%v]: RID %d UploadUnmixedBatch END", instance,
+	jww.INFO.Printf("[%v]: RID %d receiveUploadUnmixedBatch END", instance,
 		newBatch.Round.ID)
-	jww.INFO.Printf("\tbwLogging: Round %d, "+
-		"received phase: %s, "+
-		"from: %s, to: %s, "+
-		"started: %v, "+
-		"ended: %v, "+
-		"duration: %d,",
-		roundID, phaseTy,
-		auth.Sender.GetId().String(), instance.GetID(),
-		streamInfo.Start, streamInfo.End,
-		streamInfo.End.Sub(streamInfo.Start).Milliseconds())
+	// fixme: this is not for node -> node like streamPostPhase, but may be useful?
+	//phaseTy := phase.Type(batchInfo.FromPhase).String()
+	//roundID := id.Round(batchInfo.Round.ID)
+	//jww.INFO.Printf("\tbwLogging: Round %d, "+
+	//	"received phase: %s, "+
+	//	"from: %s, to: %s, "+
+	//	"started: %v, "+
+	//	"ended: %v, "+
+	//	"duration: %d,",
+	//	roundID, phaseTy,
+	//	auth.Sender.GetId().String(), instance.GetID(),
+	//	streamInfo.Start, streamInfo.End,
+	//	streamInfo.End.Sub(streamInfo.Start).Milliseconds())
 
 	return nil
 }
 
-// UploadUnmixedBatch is a helper function which receives the
+// receiveUploadUnmixedBatch is a helper function which receives the
 // streaming slots and builds a batch.
-func UploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
+func receiveUploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 	batchInfo *mixmessages.BatchInfo) (*streamInfo, *mixmessages.Batch, error) {
 
 	newBatch := &mixmessages.Batch{
@@ -136,7 +137,6 @@ func UploadUnmixedBatch(stream mixmessages.Node_UploadUnmixedBatchServer,
 		ack.Error = fmt.Sprintf("Mismatch between batch size %v "+
 			"and received num slots %v, no error", slotsReceived, batchSize)
 	}
-
 
 	// Close the stream by sending ack and returning success or failure
 	si := &streamInfo{Start: start, End: end}
