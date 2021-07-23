@@ -63,6 +63,9 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 			if err = instance.AddCompletedBatch(cr); err != nil {
 				return nil, errors.Errorf("Unable to send to CompletedBatchSignal: %v", err)
 			}
+
+			res.Batch = &mixmessages.BatchReady{RoundId: uint64(cr.RoundID)}
+
 		}
 
 		//Compare Full NDF hash with instance and
@@ -105,4 +108,3 @@ func isValidID(sender *id.ID, valid ...*id.ID) bool {
 	}
 	return false
 }
-
