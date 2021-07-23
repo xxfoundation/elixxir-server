@@ -106,6 +106,3 @@ func isValidID(sender *id.ID, valid ...*id.ID) bool {
 	return false
 }
 
-func CompleteBatchSend() {
-
-}
