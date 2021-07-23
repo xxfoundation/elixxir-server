@@ -454,18 +454,18 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		t.Fatalf("Unexpected error %v", err)
 	}
 
-	receivedSlots, ok := instance.GetCompletedBatch(rid)
+	completedRound, ok := instance.GetCompletedBatch(rid)
 	if !ok {
 		t.Errorf("Could not find completed batch in store")
 	}
 
-	if len(receivedSlots) != 10 {
+	if len(completedRound.Round) != 10 {
 		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 
 	for k := uint32(0); k < 10; k++ {
-		if receivedSlots[k].Index != k {
+		if completedRound.Round[k].Index != k {
 			t.Logf("Slots did not match expected index")
 		}
 	}

@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright © 2020 xx network SEZC                                          //
+//                                                                           //
+// Use of this source code is governed by a license that can be found in the //
+// LICENSE file                                                              //
+///////////////////////////////////////////////////////////////////////////////
+
 package io
 
 import (
@@ -9,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
+	"strings"
 )
 
 // StartDownloadMixedBatch is the handler for the gateway -> server comms.
@@ -23,8 +31,12 @@ func StartDownloadMixedBatch(instance *internal.Instance,
 		return connect.AuthError(auth.Sender.GetId())
 	}
 
-	cr := &round.CompletedRound{RoundID: id.Round(ready.RoundId)}
+	cr, ok := instance.GetCompletedBatch(id.Round(ready.RoundId))
+	if !ok {
+		return errors.Errorf("Could not find completed batch for round %d", ready.RoundId)
+	}
 
+	jww.INFO.Printf("Transmitting completed batch to gateway")
 	err := instance.GetCompletedBatchSignal().Send(cr)
 	if err != nil {
 		return errors.Errorf("Could not prepare completed batch for sending: %v", err)
@@ -36,9 +48,10 @@ func StartDownloadMixedBatch(instance *internal.Instance,
 // TransmitStreamDownloadBatch is a server -> gateway send function. This
 // streams the completed batch's slots over to the gateway. Called in a long running
 // thread, initiated by a gateway's request (StartDownloadMixedBatch)
-func TransmitStreamDownloadBatch(instance *internal.Instance, completedBatch *round.CompletedRound,
-	slots []*pb.Slot) error {
+func TransmitStreamDownloadBatch(instance *internal.Instance,
+	completedBatch *round.CompletedRound) error {
 
+	slots := completedBatch.Round
 	// Construct the header
 	rid := uint64(completedBatch.RoundID)
 	batchInfo := mixmessages.BatchInfo{Round: &mixmessages.RoundInfo{ID: rid}}
@@ -55,8 +68,8 @@ func TransmitStreamDownloadBatch(instance *internal.Instance, completedBatch *ro
 
 	// Stream the slots
 	err := instance.GetNetwork().DownloadMixedBatch(gwHost, batchInfo, batch)
-	if err != nil {
-		return errors.Errorf("Could not stream completed to gateway for round %d: %v", completedBatch.RoundID, err)
+	if err != nil && !strings.Contains(err.Error(), "Host address is blank") {
+		return errors.Errorf("Could not stream completed batch to gateway for round %d: %v", completedBatch.RoundID, err)
 	}
 
 	return nil

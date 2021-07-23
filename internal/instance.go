@@ -100,7 +100,7 @@ type Instance struct {
 	firstPoll *uint32
 
 	// Map containing completed batches to pass back to gateway
-	completedBatch map[id.Round][]*mixmessages.Slot
+	completedBatch map[id.Round]*round.CompletedRound
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -130,7 +130,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayPoll:          NewFirstTime(),
 		completedBatchQueue:  round.NewCompletedQueue(),
 		completedBatchSignal: round.NewCompletedQueue(),
-		completedBatch:       make(map[id.Round][]*mixmessages.Slot),
+		completedBatch:       make(map[id.Round]*round.CompletedRound),
 		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
@@ -715,16 +715,13 @@ func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
 		return errors.Errorf("Could not prepare completed batch for sending: %v", err)
 	}
 
-	fmt.Printf("completedMap: %v\n", i.completedBatch)
-	fmt.Printf("completedRound: %v\n", cr)
-
-	i.completedBatch[cr.RoundID] = cr.Round
+	i.completedBatch[cr.RoundID] = cr
 	return nil
 }
 
-func (i *Instance) GetCompletedBatch(rid id.Round) ([]*mixmessages.Slot, bool) {
-	slots, ok := i.completedBatch[rid]
-	return slots, ok
+func (i *Instance) GetCompletedBatch(rid id.Round) (*round.CompletedRound, bool) {
+	cr, ok := i.completedBatch[rid]
+	return cr, ok
 }
 
 func (i *Instance) GetCompletedBatchSignal() round.CompletedQueue {

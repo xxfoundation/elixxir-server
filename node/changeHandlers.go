@@ -211,13 +211,8 @@ func NotStarted(instance *internal.Instance) error {
 				continue
 			}
 
-			slots, ok := instance.GetCompletedBatch(cr.RoundID)
-			if !ok {
-				jww.ERROR.Printf("Could not get mixed batch for round %d", cr.RoundID)
-			}
-
 			// Start the transmitter for a batch
-			err = io.TransmitStreamDownloadBatch(instance, cr, slots)
+			err = io.TransmitStreamDownloadBatch(instance, cr)
 			if err != nil {
 				jww.ERROR.Printf("[%s] RID %d TransmitStreamDownloadBatch error: %v",
 					instance.GetID(), cr.RoundID, err)
