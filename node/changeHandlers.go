@@ -24,7 +24,6 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
-	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
@@ -197,29 +196,6 @@ func NotStarted(instance *internal.Instance) error {
 	instance.GetGatewayFirstPoll().Receive()
 
 	jww.INFO.Printf("Communication from gateway received")
-
-	// Ticker which checks if the gateway has polled and a batch is ready.
-	// Separated from polling to ensure a gateway does receive its polling information
-	// first ie does not receive a completed batch for a round the gateway's instance
-	// does not have yet
-	go func() {
-		ticker := time.NewTicker(100 * time.Millisecond)
-		for range ticker.C {
-			// Se if a completed batch is ready
-			cr, err := instance.GetCompletedBatchSignal().Receive()
-			if err != nil {
-				continue
-			}
-
-			// Start the transmitter for a batch
-			err = io.TransmitStreamDownloadBatch(instance, cr)
-			if err != nil {
-				jww.ERROR.Printf("[%s] RID %d TransmitStreamDownloadBatch error: %v",
-					instance.GetID(), cr.RoundID, err)
-			}
-		}
-
-	}()
 
 	// Once done with notStarted transition into waiting
 	go func() {

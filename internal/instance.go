@@ -68,12 +68,11 @@ type Instance struct {
 	gatewayFirstPoll *FirstTime
 
 	// Channels
-	createRoundQueue     round.Queue
-	completedBatchQueue  round.CompletedQueue
-	completedBatchSignal round.CompletedQueue
-	killInstance         chan chan struct{}
-	realtimeRoundQueue   round.Queue
-	clientErrors         *round.ClientReport
+	createRoundQueue    round.Queue
+	completedBatchQueue round.CompletedQueue
+	killInstance        chan chan struct{}
+	realtimeRoundQueue  round.Queue
+	clientErrors        *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -129,7 +128,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		killInstance:         make(chan chan struct{}, 1),
 		gatewayPoll:          NewFirstTime(),
 		completedBatchQueue:  round.NewCompletedQueue(),
-		completedBatchSignal: round.NewCompletedQueue(),
 		completedBatch:       make(map[id.Round]*round.CompletedRound),
 		roundError:           nil,
 		panicWrapper: func(s string) {
@@ -710,11 +708,6 @@ func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
 }
 
 func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
-	err := i.completedBatchSignal.Send(cr)
-	if err != nil {
-		return errors.Errorf("Could not prepare completed batch for sending: %v", err)
-	}
-
 	i.completedBatch[cr.RoundID] = cr
 	return nil
 }
@@ -722,8 +715,4 @@ func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
 func (i *Instance) GetCompletedBatch(rid id.Round) (*round.CompletedRound, bool) {
 	cr, ok := i.completedBatch[rid]
 	return cr, ok
-}
-
-func (i *Instance) GetCompletedBatchSignal() round.CompletedQueue {
-	return i.completedBatchSignal
 }

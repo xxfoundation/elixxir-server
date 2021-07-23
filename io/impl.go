@@ -37,8 +37,8 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
-	impl.Functions.StartDownloadMixedBatch = func(ready *pb.BatchReady, auth *connect.Auth) error {
-		return StartDownloadMixedBatch(instance, ready, auth)
+	impl.Functions.DownloadMixedBatch = func(stream pb.Node_DownloadMixedBatchServer, batchInfo *pb.BatchReady, auth *connect.Auth) error {
+		return DownloadMixedBatch(instance, batchInfo, stream, auth)
 	}
 
 	impl.Functions.GetNdf = func() (*interconnect.NDF, error) {
