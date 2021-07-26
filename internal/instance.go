@@ -99,7 +99,8 @@ type Instance struct {
 	firstPoll *uint32
 
 	// Map containing completed batches to pass back to gateway
-	completedBatch map[id.Round]*round.CompletedRound
+	completedBatch    map[id.Round]*round.CompletedRound
+	completedBatchMux sync.Mutex
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -708,11 +709,16 @@ func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
 }
 
 func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
+	i.completedBatchMux.Lock()
+	defer i.completedBatchMux.Unlock()
 	i.completedBatch[cr.RoundID] = cr
 	return nil
 }
 
 func (i *Instance) GetCompletedBatch(rid id.Round) (*round.CompletedRound, bool) {
+	i.completedBatchMux.Lock()
+	i.completedBatchMux.Unlock()
 	cr, ok := i.completedBatch[rid]
+	delete(i.completedBatch, rid)
 	return cr, ok
 }
