@@ -37,7 +37,8 @@ func TestPermissioning_UnmarshallingFileEqualsExpected(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(ExpectedPermissioning, actual.Permissioning) {
-		t.Errorf("Permissioning object did not match expected value")
+		t.Errorf("Permissioning object did not match expected value."+
+			"\nexpected: %+v\nreceived: %+v", ExpectedPermissioning, actual.Permissioning)
 	}
 
 }

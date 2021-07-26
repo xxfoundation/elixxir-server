@@ -257,9 +257,9 @@ func initLog() {
 		jww.SetStdoutThreshold(jww.LevelInfo)
 	}
 
-	if viper.Get("node.paths.log") != nil {
+	if viper.Get("cmix.paths.log") != nil {
 		// Create log file, overwrites if existing
-		logPath = viper.GetString("node.paths.log")
+		logPath = viper.GetString("cmix.paths.log")
 	} else {
 		fmt.Printf("Invalid or missing log path %s, "+
 			"default path used.\n", logPath)
