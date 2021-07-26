@@ -67,11 +67,6 @@ func NotStarted(instance *internal.Instance) error {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
-	//err = permissioning.Authorize(instance)
-	//if err != nil {
-	//	return errors.Errorf("Could not authorize with network: %v", err)
-	//}
-
 	// Connect to the Permissioning Server without authentication
 	params = connect.GetDefaultHostParams()
 	params.AuthEnabled = false
