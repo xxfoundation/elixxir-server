@@ -77,12 +77,14 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.RegistrationCode = vip.GetString("registrationCode")
 
+	vip.RegisterAlias("node.port", "cmix.port")
 	params.Node.Port = vip.GetInt("cmix.port")
 	if params.Node.Port == 0 {
 		jww.FATAL.Panic("Must specify a port to run on")
 	}
 
 	// Get server's public IP address or use the override IP, if set
+	vip.RegisterAlias("node.overridePublicIP", "cmix.overridePublicIP")
 	overridePublicIP := vip.GetString("cmix.overridePublicIP")
 	params.Node.PublicAddress, err = publicAddress.GetIpOverride(overridePublicIP, params.Node.Port)
 	if err != nil {
@@ -91,6 +93,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	// Construct listening address; defaults to 0.0.0.0 if not set
+	vip.RegisterAlias("node.listeningAddress", "cmix.listeningAddress")
 	listeningIP := vip.GetString("cmix.listeningAddress")
 	if listeningIP == "" {
 		listeningIP = "0.0.0.0"
@@ -98,6 +101,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Node.ListeningAddress = net.JoinHostPort(listeningIP, strconv.Itoa(params.Node.Port))
 
 	// Construct server's override internal IP address, if set
+	vip.RegisterAlias("node.overrideInternalIP", "cmix.overrideInternalIP")
 	overrideInternalIP := vip.GetString("cmix.overrideInternalIP")
 	params.OverrideInternalIP, err = publicAddress.JoinIpPort(overrideInternalIP, params.Node.Port)
 	if err != nil {
@@ -105,25 +109,33 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 			overrideInternalIP, err)
 	}
 
+	vip.RegisterAlias("node.interconnectPort", "cmix.interconnectPort")
 	params.Node.InterconnectPort = vip.GetInt("cmix.interconnectPort")
 
+	vip.RegisterAlias("node.paths.idf", "cmix.paths.idf")
 	params.Node.Paths.Idf = vip.GetString("cmix.paths.idf")
 	require(params.Node.Paths.Idf, "cmix.paths.idf")
 
+	vip.RegisterAlias("node.paths.cert", "cmix.paths.cert")
 	params.Node.Paths.Cert = vip.GetString("cmix.paths.cert")
 	require(params.Node.Paths.Cert, "cmix.paths.cert")
 
+	vip.RegisterAlias("node.paths.key", "cmix.paths.key")
 	params.Node.Paths.Key = vip.GetString("cmix.paths.key")
 	require(params.Node.Paths.Key, "cmix.paths.key")
 
+	vip.RegisterAlias("node.paths.log", "cmix.paths.log")
 	params.Node.Paths.Log = vip.GetString("cmix.paths.log")
 	if params.Node.Paths.Log == "" {
 		params.Node.Paths.Log = "log/cmix.log"
 	}
+
+	vip.RegisterAlias("node.paths.errOutput", "cmix.paths.errOutput")
 	params.RecoveredErrPath = vip.GetString("cmix.paths.errOutput")
 	require(params.RecoveredErrPath, "cmix.paths.errOutput")
 
 	// If no path was supplied, then use the default
+	vip.RegisterAlias("node.paths.ipListOutput", "cmix.paths.ipListOutput")
 	params.Node.Paths.ipListOutput = vip.GetString("cmix.paths.ipListOutput")
 	if params.Node.Paths.ipListOutput == "" {
 		params.Node.Paths.ipListOutput = defaultIpListPath
@@ -147,9 +159,11 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
 	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
 
+	vip.RegisterAlias("permissioning.paths.cert", "scheduling.paths.cert")
 	params.Permissioning.Paths.Cert = vip.GetString("scheduling.paths.cert")
 	require(params.Permissioning.Paths.Cert, "scheduling.paths.cert")
 
+	vip.RegisterAlias("permissioning.address", "scheduling.address")
 	params.Permissioning.Address = vip.GetString("scheduling.address")
 	require(params.Permissioning.Address, "scheduling.address")
 
