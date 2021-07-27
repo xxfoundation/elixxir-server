@@ -160,8 +160,8 @@ scheduling:
     # Path to the self-signed TLS certificate for the Scheduling server.
     # Expects PEM format. (Required)
     cert: "/opt/xxnetwork/cred/scheduling-cert.crt"
-  # IP Address of the Scheduling server, provided by xx network. (Required)
-  address: ""
+  # Partial IP Address of the network, provided by xx network. (Required)
+  address: "prod.cmix.rip:11420"
 
 metrics:
   # Path to store metrics logs.

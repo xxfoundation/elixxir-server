@@ -352,16 +352,16 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
 
-	def.Permissioning.TlsCert = PermTlsCert
-	def.Permissioning.Address = p.Permissioning.Address
-	if len(def.Permissioning.TlsCert) > 0 {
-		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
+	def.Network.TlsCert = PermTlsCert
+	def.Network.Address = p.Permissioning.Address
+	if len(def.Network.TlsCert) > 0 {
+		permCert, err := tls.LoadCertificate(string(def.Network.TlsCert))
 		if err != nil {
 			jww.FATAL.Panicf("Could not decode permissioning tls cert file "+
 				"into a tls cert: %v", err)
 		}
 
-		def.Permissioning.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
+		def.Network.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
 	}
 
 	//
@@ -395,8 +395,8 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 
 	// Build the perm server
 	ourPerm := ndf.Registration{
-		Address:        def.Permissioning.Address,
-		TlsCertificate: string(def.Permissioning.TlsCert),
+		Address:        def.Network.Address,
+		TlsCertificate: string(def.Network.TlsCert),
 	}
 
 	networkDef := &ndf.NetworkDefinition{
