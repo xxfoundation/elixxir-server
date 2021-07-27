@@ -71,14 +71,16 @@ func NotStarted(instance *internal.Instance) error {
 	params = connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	var permHost *connect.Host
-	if instance.GetDefinition().DevMode { // If we are running/testing a local network, no append is neccessary
-		// It is assumed the configurations are properly and explicitly set
+	if instance.GetDefinition().DevMode { // If we are running/testing a local network,
+		// no prepending is necessary. It is assumed the configurations are properly
+		// and explicitly set.
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
 			ourDef.Network.Address,
 			ourDef.Network.TlsCert,
 			params)
-	} else {
+	} else { // This is for live network execution, in which prepending the network address
+		// with a specific string allows you to communicate with the network
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
 			permissioningIp+ourDef.Network.Address,
@@ -131,14 +133,15 @@ func NotStarted(instance *internal.Instance) error {
 	// ready for servers to connect to it
 	params = connect.GetDefaultHostParams()
 	params.MaxRetries = 0
-	if instance.GetDefinition().DevMode { // If we are running/testing a local network, no append is neccessary
-		// It is assumed the configurations are properly and explicitly set
+	if instance.GetDefinition().DevMode { // If we are running/testing a local network,
+		// no prepending is necessary. It is assumed the configurations are properly
+		// and explicitly set.
 		permHost, err = network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
 			ourDef.Network.Address,
 			ourDef.Network.TlsCert,
 			params)
-	} else {
+	} else { // This is for live network execution, in which prepending the network address
+		// with a specific string allows you to communicate with the network
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
 			permissioningIp+ourDef.Network.Address,
