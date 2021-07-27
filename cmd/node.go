@@ -35,7 +35,7 @@ import (
 func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
 
-	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("cmix.paths.log"))
+	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
@@ -59,6 +59,9 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		"RegistrationCode:"+params.RegistrationCode,
 		"RegistrationCode:[regcode]")
 	jww.INFO.Printf(ps)
+
+	RecordPrivateKeyAndCertPaths(params.Node.Paths.Key,
+		params.Node.Paths.Cert)
 
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()

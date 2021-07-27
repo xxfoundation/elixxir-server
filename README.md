@@ -111,23 +111,23 @@ useGPU: true
 # Level of debugging to print (0 = info, 1 = debug, >1 = trace). (Default info)
 logLevel: 1
 
-cmix:
+node:
   paths:
     # Path where an error file will be placed in the event of a fatal error.
     # This path is used by the Wrapper Script. (Required)
-    errOutput: "/opt/xxnetwork/log/cmix-err.log"
+    errOutput: "/opt/xxnetwork/node-logs/node-err.log"
     # Path to where the identity file (IDF) is saved. The IDF stores the Node's
     # network identity. This is used by the wrapper management script. (Required)
-    idf: "/opt/xxnetwork/cred/cmix-IDF.json"
-    # Path to the self-signed TLS certificate for cMix. Expects PEM format.
+    idf: "/opt/xxnetwork/node-logs/nodeIDF.json"
+    # Path to the self-signed TLS certificate for Node. Expects PEM format.
     # (Required)
-    cert: "/opt/xxnetwork/cred/cmix-cert.crt"
+    cert: "/opt/xxnetwork/creds/node_cert.crt"
     # Path to the private key associated with the self-signed TLS certificate.
     # (Required)
-    key: "/opt/xxnetwork/cred/cmix-key.key"
-    # Path where log file will be saved. (Default "log/cmix.log")
-    log: "/opt/xxnetwork/log/cmix.log"
-  # Port that cMix will communicate on. (Required)
+    key: "/opt/xxnetwork/creds/node_key.key"
+    # Path where log file will be saved. (Default "./node.log")
+    log: "/opt/xxnetwork/node-logs/node.log"
+  # Port that the Node will communicate on. (Required)
   port: 11420
   # Local IP address of the Node, used for internal listening. Expects an IPv4
   # address without a port. (default "0.0.0.0")
@@ -148,16 +148,16 @@ database:
   username: "cmix"
   password: ""
 
-# Information to communicate with the Gateway.
+# Information to communicate with this Node's Gateway.
 gateway:
   paths:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
     # (Required)
-    cert: "/opt/xxnetwork/cred/gateway-cert.crt"
+    cert: "/opt/xxnetwork/creds/gateway_cert.crt"
 
-scheduling:
+permissioning:
   paths:
-    # Path to the self-signed TLS certificate for the Scheduling server.
+    # Path to the self-signed TLS certificate for the Permissioning server.
     # Expects PEM format. (Required)
     cert: "/opt/xxnetwork/cred/scheduling-cert.crt"
   # Partial IP Address of the network, provided by xx network. (Required)
@@ -165,7 +165,7 @@ scheduling:
 
 metrics:
   # Path to store metrics logs.
-  log: "/opt/xxnetwork/log/metrics.log"
+  log: "/opt/xxnetwork/node-logs/metrics.log"
 ```
 
 ## Project Structure
