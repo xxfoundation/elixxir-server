@@ -80,8 +80,8 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 		err = Authorize(instance)
 		retries++
 	}
-
-	response, err = sendFunc(permHost)
-
+	if retries != 0 {
+		response, err = sendFunc(permHost)
+	}
 	return response, err
 }

@@ -70,11 +70,21 @@ func NotStarted(instance *internal.Instance) error {
 	// Connect to the Permissioning Server without authentication
 	params = connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	permHost, err := network.AddHost(&id.Permissioning,
-		// instance.GetPermissioningAddress,
-		permissioningIp+ourDef.Network.Address,
-		ourDef.Network.TlsCert,
-		params)
+	var permHost *connect.Host
+	if instance.GetDefinition().DevMode {
+		permHost, err = network.AddHost(&id.Permissioning,
+			// instance.GetPermissioningAddress,
+			ourDef.Network.Address,
+			ourDef.Network.TlsCert,
+			params)
+	} else {
+		permHost, err = network.AddHost(&id.Permissioning,
+			// instance.GetPermissioningAddress,
+			permissioningIp+ourDef.Network.Address,
+			ourDef.Network.TlsCert,
+			params)
+	}
+
 
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -121,8 +131,19 @@ func NotStarted(instance *internal.Instance) error {
 	// ready for servers to connect to it
 	params = connect.GetDefaultHostParams()
 	params.MaxRetries = 0
-	permHost, err = network.AddHost(&id.Permissioning,
-		permissioningIp+ourDef.Network.Address, ourDef.Network.TlsCert, params)
+	if instance.GetDefinition().DevMode {
+		permHost, err = network.AddHost(&id.Permissioning,
+			// instance.GetPermissioningAddress,
+			ourDef.Network.Address,
+			ourDef.Network.TlsCert,
+			params)
+	} else {
+		permHost, err = network.AddHost(&id.Permissioning,
+			// instance.GetPermissioningAddress,
+			permissioningIp+ourDef.Network.Address,
+			ourDef.Network.TlsCert,
+			params)
+	}
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
