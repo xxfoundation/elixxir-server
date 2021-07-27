@@ -80,6 +80,9 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 		err = Authorize(instance)
 		retries++
 	}
+
+	// If we had to authorize, retry the comm again
+	// now that authorization was successful
 	if retries != 0 {
 		response, err = sendFunc(permHost)
 	}
