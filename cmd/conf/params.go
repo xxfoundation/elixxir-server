@@ -46,7 +46,7 @@ type Params struct {
 	SignedGatewayCertPath string
 	RegistrationCode      string
 
-	Node          Node
+	Node          Node `yaml:"cmix"`
 	Database      Database
 	Gateway       Gateway
 	Permissioning Permissioning `yaml:"scheduling"`
@@ -100,13 +100,11 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	// Construct listening address; defaults to 0.0.0.0 if not set
-	var listeningIP string
+	listeningIP := "0.0.0.0"
 	if vip.IsSet("cmix.listeningAddress") {
 		listeningIP = vip.GetString("cmix.listeningAddress")
 	} else if vip.IsSet("node.listeningAddress") {
 		listeningIP = vip.GetString("node.listeningAddress")
-	} else {
-		listeningIP = "0.0.0.0"
 	}
 	params.Node.ListeningAddress = net.JoinHostPort(listeningIP, strconv.Itoa(params.Node.Port))
 
