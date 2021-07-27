@@ -161,7 +161,7 @@ permissioning:
     # Expects PEM format. (Required)
     cert: "/opt/xxnetwork/cred/scheduling-cert.crt"
   # Partial IP Address of the network, provided by xx network. (Required)
-  address: ""
+  address: "prod.cmix.rip:11420"
 
 metrics:
   # Path to store metrics logs.
