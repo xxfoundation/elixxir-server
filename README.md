@@ -148,7 +148,7 @@ database:
   username: "cmix"
   password: ""
 
-# Information to communicate with the Gateway.
+# Information to communicate with this Node's Gateway.
 gateway:
   paths:
     # Path to the self-signed TLS certificate for Gateway. Expects PEM format.
