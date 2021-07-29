@@ -545,8 +545,11 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 
 	sendFunc := func(h *connect.Host) (interface{}, error) {
 		response, err := serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+		jww.WARN.Printf("error received on first regCheck: %v", err)
 		for err != nil &&
-			strings.Contains(strings.ToLower(err.Error()), "Unable to send") {
+			(strings.Contains(strings.ToLower(err.Error()), "unable to send") ||
+				strings.Contains(strings.ToLower(err.Error()), "failed to connect to host")) {
+			jww.WARN.Printf("retrying check cause err: %v", err)
 			response, err = serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
 		}
 
