@@ -68,11 +68,10 @@ type Instance struct {
 	gatewayFirstPoll *FirstTime
 
 	// Channels
-	createRoundQueue    round.Queue
-	completedBatchQueue round.CompletedQueue
-	killInstance        chan chan struct{}
-	realtimeRoundQueue  round.Queue
-	clientErrors        *round.ClientReport
+	createRoundQueue   round.Queue
+	killInstance       chan chan struct{}
+	realtimeRoundQueue round.Queue
+	clientErrors       *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -100,7 +99,7 @@ type Instance struct {
 
 	// Map containing completed batches to pass back to gateway
 	completedBatch    map[id.Round]*round.CompletedRound
-	completedBatchMux sync.Mutex
+	completedBatchMux sync.RWMutex
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -128,7 +127,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		killInstance:         make(chan chan struct{}, 1),
 		gatewayPoll:          NewFirstTime(),
-		completedBatchQueue:  round.NewCompletedQueue(),
 		completedBatch:       make(map[id.Round]*round.CompletedRound),
 		roundError:           nil,
 		panicWrapper: func(s string) {
@@ -410,10 +408,6 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
-}
-
-func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
-	return i.completedBatchQueue
 }
 
 func (i *Instance) GetKillChan() chan chan struct{} {
@@ -717,8 +711,30 @@ func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
 
 func (i *Instance) GetCompletedBatch(rid id.Round) (*round.CompletedRound, bool) {
 	i.completedBatchMux.Lock()
-	i.completedBatchMux.Unlock()
+
+	defer i.completedBatchMux.Unlock()
 	cr, ok := i.completedBatch[rid]
 	delete(i.completedBatch, rid)
 	return cr, ok
+}
+
+const NoCompletedBatch = "No round to report on"
+
+func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
+	i.completedBatchMux.RLock()
+	defer i.completedBatchMux.RUnlock()
+	if len(i.completedBatch) == 0 {
+		return 0, errors.New(NoCompletedBatch)
+	} else if len(i.completedBatch) != 1 {
+		return 0, errors.New("Unexpected amount of " +
+			"completed batches.")
+	}
+
+	var rid id.Round
+	for roundId := range i.completedBatch {
+		rid = roundId
+	}
+
+	return rid, nil
+
 }
