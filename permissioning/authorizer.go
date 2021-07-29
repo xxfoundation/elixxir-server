@@ -22,7 +22,7 @@ import (
 
 type SendFunc func(host *connect.Host) (interface{}, error)
 
-const authorizationFailure = "failed to authorize"
+const AuthorizationFailure = "failed to authorize"
 
 // Authorize will send an authorization request with the authorizer server.
 func Authorize(instance *internal.Instance) error {
@@ -51,7 +51,7 @@ func Authorize(instance *internal.Instance) error {
 	// Send authorization request
 	_, err = instance.GetNetwork().SendAuthorizerAuth(authHost, authorizerMsg)
 	if err != nil {
-		return errors.Errorf("%s: %v", authorizationFailure, err)
+		return errors.Errorf("%s: %v", AuthorizationFailure, err)
 	}
 
 	return nil
@@ -73,7 +73,7 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 	for err != nil &&
 		(strings.Contains(strings.ToLower(err.Error()), "connection refused") ||
 			strings.Contains(strings.ToLower(err.Error()), context.DeadlineExceeded.Error()) ||
-			strings.Contains(err.Error(), authorizationFailure)) {
+			strings.Contains(err.Error(), AuthorizationFailure)) {
 
 		jww.WARN.Printf("Could not send to permissioning, "+
 			"attempt %d to contact authorizer", retries)
@@ -84,6 +84,7 @@ func Send(sendFunc SendFunc, instance *internal.Instance) (response interface{},
 	// If we had to authorize, retry the comm again
 	// now that authorization was successful
 	if retries != 0 {
+		jww.WARN.Printf("Retrying send cause auth failed")
 		response, err = sendFunc(permHost)
 	}
 	return response, err

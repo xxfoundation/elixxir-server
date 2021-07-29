@@ -534,6 +534,8 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
+const regCheckError = "Check could not be processed"
+
 /// Checks with permissioning whether we are a network member already
 func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
 	regCheck := &mixmessages.RegisteredNodeCheck{
@@ -541,8 +543,13 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	}
 
 	sendFunc := func(h *connect.Host) (interface{}, error) {
-		jww.DEBUG.Printf("Sending registration check message")
-		return serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+		response, err := serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+		for err != nil &&
+			strings.Contains(strings.ToLower(err.Error()), "Unable to send") {
+			response, err = serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+		}
+
+		return response, err
 	}
 
 	// Determine if node is registered
