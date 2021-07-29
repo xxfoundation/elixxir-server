@@ -71,7 +71,8 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 		// fixme: remove these dummy prints when testing is complete
 		jww.WARN.Printf("error received on first send: %v", err)
 		for err != nil && // retry until a successful connection
-			strings.Contains(strings.ToLower(err.Error()), "unable to send") {
+			(strings.Contains(strings.ToLower(err.Error()), "unable to send") ||
+				strings.Contains(strings.ToLower(err.Error()), "failed to connect to host")) {
 			jww.WARN.Printf("retrying cause err: %v", err)
 			err = instance.GetNetwork().
 				SendNodeRegistration(h, registrationRequest)
