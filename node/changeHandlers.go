@@ -109,7 +109,8 @@ func NotStarted(instance *internal.Instance) error {
 		jww.INFO.Printf("Registering with permissioning...")
 		err = permissioning.RegisterNode(ourDef, instance, permHost)
 		if err != nil {
-			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
+			if strings.Contains(err.Error(), "Node with registration code") &&
+				strings.Contains(err.Error(), "has already been registered") {
 				jww.FATAL.Panic("Node is already registered, Attempting re-registration is NOT secure")
 			} else {
 				return errors.Errorf("Failed to register node: %+v", err)
