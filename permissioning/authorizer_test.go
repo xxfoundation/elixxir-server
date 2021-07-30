@@ -121,13 +121,13 @@ func TestAuthorize(t *testing.T) {
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Authorizer, def.Network.Address,
+	authHost, err := instance.GetNetwork().AddHost(&id.Authorizer, def.Network.Address,
 		def.Network.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
-	err = Authorize(instance)
+	err = Authorize(instance, authHost)
 	if err != nil {
 		t.Fatalf("Could not authorize: %v", err)
 	}
@@ -226,13 +226,13 @@ func TestAuthorize_Error(t *testing.T) {
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Authorizer, def.Network.Address,
+	authHost, err := instance.GetNetwork().AddHost(&id.Authorizer, def.Network.Address,
 		def.Network.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
-	err = Authorize(instance)
+	err = Authorize(instance, authHost)
 	if err == nil {
 		t.Fatalf("Expected error path did not return an error: %v", err)
 	}
@@ -349,13 +349,19 @@ func TestSend(t *testing.T) {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
+	// Construct sender interface
 	sendFunc := func(host *connect.Host) (interface{}, error) {
 		pollMsg := &pb.PermissioningPoll{}
 		return instance.GetNetwork().SendPoll(host, pollMsg)
 
 	}
 
-	response, err := Send(sendFunc, instance)
+	sender := Sender{
+		Send: sendFunc,
+		Name: "Test",
+	}
+
+	response, err := Send(sender, instance, nil)
 	if err != nil {
 		t.Fatalf("Send error: %v", err)
 	}
@@ -493,7 +499,12 @@ func TestSend_ErrorOnce(t *testing.T) {
 
 	}
 
-	_, err = Send(sendFunc, instance)
+	sender := Sender{
+		Send: sendFunc,
+		Name: "Test",
+	}
+
+	_, err = Send(sender, instance, nil)
 	if err != nil {
 		t.Fatalf("Expected happy path: Should have authorized "+
 			"and returned no error. Returned error: %v", err)
