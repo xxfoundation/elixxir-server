@@ -37,11 +37,11 @@ import (
 
 // Partial address of authorizer. Prepended to the provided
 // network address in the config in order to connect to the authorizer server
-const authorizerIp = "auth."
+const authorizerPrefix = "auth."
 
-// Partial address of permissioning. Prepended to the provided
-// network address in the config in order to connect to the permissioning server
-const permissioningIp = "scheduling."
+// Partial address of scheduling. Prepended to the provided
+// network address in the config in order to connect to the scheduling server
+const schedulingPrefix = "scheduling."
 
 // Number of hard-coded users to create
 var numDemoUsers = int(256)
@@ -55,16 +55,21 @@ func NotStarted(instance *internal.Instance) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
+	var err error
 
 	// Request network access via the authorizer server
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err := network.AddHost(&id.Authorizer,
-		authorizerIp+ourDef.Network.Address,
-		ourDef.Network.TlsCert,
-		params)
-	if err != nil {
-		return errors.Errorf("Unable to connect to registration server: %+v", err)
+	if !instance.GetDefinition().DevMode &&
+		!strings.HasPrefix(ourDef.Network.Address, "permissioning.") &&
+		!utils.IsIP(ourDef.Network.Address) { // Only have a valid authorizer in mainNet
+		_, err := network.AddHost(&id.Authorizer,
+			authorizerPrefix+ourDef.Network.Address,
+			ourDef.Network.TlsCert,
+			params)
+		if err != nil {
+			return errors.Errorf("Unable to connect to registration server: %+v", err)
+		}
 	}
 
 	// Connect to the Permissioning Server without authentication
@@ -86,7 +91,7 @@ func NotStarted(instance *internal.Instance) error {
 		// network
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
-			permissioningIp+ourDef.Network.Address,
+			schedulingPrefix+ourDef.Network.Address,
 			ourDef.Network.TlsCert,
 			params)
 	}
@@ -112,7 +117,8 @@ func NotStarted(instance *internal.Instance) error {
 		jww.INFO.Printf("Registering with permissioning...")
 		err = permissioning.RegisterNode(ourDef, instance, permHost)
 		if err != nil {
-			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
+			if strings.Contains(err.Error(), "Node with registration code") &&
+				strings.Contains(err.Error(), "has already been registered") {
 				jww.FATAL.Panic("Node is already registered, Attempting re-registration is NOT secure")
 			} else {
 				return errors.Errorf("Failed to register node: %+v", err)
@@ -150,7 +156,7 @@ func NotStarted(instance *internal.Instance) error {
 		// network
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
-			permissioningIp+ourDef.Network.Address,
+			schedulingPrefix+ourDef.Network.Address,
 			ourDef.Network.TlsCert,
 			params)
 	}
@@ -540,6 +546,8 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
+const regCheckError = "Check could not be processed"
+
 /// Checks with permissioning whether we are a network member already
 func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
 	regCheck := &mixmessages.RegisteredNodeCheck{
@@ -547,12 +555,25 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	}
 
 	sendFunc := func(h *connect.Host) (interface{}, error) {
-		jww.DEBUG.Printf("Sending registration check message")
-		return serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+		response, err := serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+		for err != nil &&
+			(strings.Contains(strings.ToLower(err.Error()), "unable to send") ||
+				strings.Contains(strings.ToLower(err.Error()), "failed to connect to host")) {
+			jww.WARN.Printf("retrying check cause err: %v", err)
+			response, err = serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+		}
+
+		return response, err
+	}
+
+	sender := permissioning.Sender{
+		Send: sendFunc,
+		Name: "RegistrationCheck",
 	}
 
 	// Determine if node is registered
-	face, err := permissioning.Send(sendFunc, serverInstance)
+	authHost, _ := serverInstance.GetNetwork().GetHost(&id.Authorizer)
+	face, err := permissioning.Send(sender, serverInstance, authHost)
 	if err != nil {
 		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
 		return false

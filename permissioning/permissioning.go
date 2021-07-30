@@ -63,12 +63,28 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 		RegistrationCode: def.RegistrationCode,
 	}
 
-	// Attempt Node registration
+	// Construct sender interface
 	sendFunc := func(h *connect.Host) (interface{}, error) {
 		jww.DEBUG.Printf("Sending registration messages")
-		return nil, instance.GetNetwork().SendNodeRegistration(h, registrationRequest)
+		err = instance.GetNetwork().
+			SendNodeRegistration(h, registrationRequest)
+		for err != nil && // retry until a successful connection
+			(strings.Contains(strings.ToLower(err.Error()), "unable to send") ||
+				strings.Contains(strings.ToLower(err.Error()), "failed to connect to host")) {
+			err = instance.GetNetwork().
+				SendNodeRegistration(h, registrationRequest)
+		}
+		return nil, err
 	}
-	_, err = Send(sendFunc, instance)
+
+	sender := Sender{
+		Send: sendFunc,
+		Name: "RegisterNode",
+	}
+
+	// Attempt Node registration
+	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
+	_, err = Send(sender, instance, authHost)
 	if err != nil {
 		return errors.Errorf("Unable to send Node registration: %+v", err)
 	}
@@ -204,17 +220,25 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		}
 	}
 
-	// Attempt Node registration
+	// Construct sender interface
 	sendFunc := func(h *connect.Host) (interface{}, error) {
 		return instance.GetNetwork().SendPoll(permHost, pollMsg)
 	}
-	face, err := Send(sendFunc, instance)
+
+	sender := Sender{
+		Send: sendFunc,
+		Name: "Poll",
+	}
+
+	// Attempt Node registration
+	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
+	face, err := Send(sender, instance, authHost)
 	if err != nil {
 		return nil, errors.Errorf("Unable to send Node registration: %+v", err)
 	}
 
+	// Process response
 	permissioningResponse := face.(*pb.PermissionPollResponse)
-
 	return permissioningResponse, err
 }
 
