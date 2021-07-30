@@ -723,18 +723,10 @@ const NoCompletedBatch = "No round to report on"
 func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
 	i.completedBatchMux.RLock()
 	defer i.completedBatchMux.RUnlock()
-	if len(i.completedBatch) == 0 {
-		return 0, errors.New(NoCompletedBatch)
-	} else if len(i.completedBatch) != 1 {
-		return 0, errors.New("Unexpected amount of " +
-			"completed batches.")
-	}
 
-	var rid id.Round
 	for roundId := range i.completedBatch {
-		rid = roundId
+		return roundId, nil
 	}
 
-	return rid, nil
-
+	return 0, errors.New(NoCompletedBatch)
 }
