@@ -318,7 +318,7 @@ func TestIsRegistered(t *testing.T) {
 	}
 
 	// Start up permissioning server
-	permComms, _, err := startPermissioning(pAddr, nAddr, nodeId, cert, key, t)
+	permComms, mockPermissioning, err := startPermissioning(pAddr, nAddr, nodeId, cert, key, t)
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
@@ -336,4 +336,12 @@ func TestIsRegistered(t *testing.T) {
 		t.Errorf("Expected response from mock permissioning to be %v. Got %v instead", expected, result)
 	}
 
+	// It should be possible to see this error in the test logs
+	expectedErr := errors.New("check could not be processed")
+	mockPermissioning.SetDesiredError(expectedErr)
+	result = isRegistered(instance, permHost)
+	const expectedWhenErr = false
+	if result != expectedWhenErr {
+		t.Error("isRegistered should return false when permissioning returns an error")
+	}
 }
