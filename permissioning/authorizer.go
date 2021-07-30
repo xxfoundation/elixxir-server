@@ -71,8 +71,8 @@ func Send(sender Sender, instance *internal.Instance, authHost *connect.Host) (r
 		return nil, errors.New("Could not get permissioning host")
 	}
 	response, err = sender.Send(permHost)
-	if authHost == nil || err != nil ||
-		(!strings.Contains(strings.ToLower(err.Error()), "connection refused") &&
+	if authHost == nil || (err != nil &&
+		!strings.Contains(strings.ToLower(err.Error()), "connection refused") &&
 			!strings.Contains(strings.ToLower(err.Error()), context.DeadlineExceeded.Error())) {
 		return response, err
 	}
