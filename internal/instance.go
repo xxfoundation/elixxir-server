@@ -175,7 +175,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.ListeningAddress,
 		instance.definition.InterconnectPort, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
