@@ -68,11 +68,10 @@ type Instance struct {
 	gatewayFirstPoll *FirstTime
 
 	// Channels
-	createRoundQueue    round.Queue
-	completedBatchQueue round.CompletedQueue
-	killInstance        chan chan struct{}
-	realtimeRoundQueue  round.Queue
-	clientErrors        *round.ClientReport
+	createRoundQueue   round.Queue
+	killInstance       chan chan struct{}
+	realtimeRoundQueue round.Queue
+	clientErrors       *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -97,6 +96,10 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
+
+	// Map containing completed batches to pass back to gateway
+	completedBatch    map[id.Round]*round.CompletedRound
+	completedBatchMux sync.RWMutex
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -124,7 +127,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		realtimeRoundQueue:   round.NewQueue(),
 		killInstance:         make(chan chan struct{}, 1),
 		gatewayPoll:          NewFirstTime(),
-		completedBatchQueue:  round.NewCompletedQueue(),
+		completedBatch:       make(map[id.Round]*round.CompletedRound),
 		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
@@ -405,10 +408,6 @@ func (i *Instance) GetIP() string {
 // GetResourceMonitor returns the resource monitoring object
 func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
-}
-
-func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
-	return i.completedBatchQueue
 }
 
 func (i *Instance) GetKillChan() chan chan struct{} {
@@ -701,4 +700,33 @@ func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
 	case <-time.After(duration):
 		jww.ERROR.Print("Round took too long to complete, closing!")
 	}
+}
+
+func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
+	i.completedBatchMux.Lock()
+	defer i.completedBatchMux.Unlock()
+	i.completedBatch[cr.RoundID] = cr
+	return nil
+}
+
+func (i *Instance) GetCompletedBatch(rid id.Round) (*round.CompletedRound, bool) {
+	i.completedBatchMux.Lock()
+
+	defer i.completedBatchMux.Unlock()
+	cr, ok := i.completedBatch[rid]
+	delete(i.completedBatch, rid)
+	return cr, ok
+}
+
+const NoCompletedBatch = "No round to report on"
+
+func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
+	i.completedBatchMux.RLock()
+	defer i.completedBatchMux.RUnlock()
+
+	for roundId := range i.completedBatch {
+		return roundId, nil
+	}
+
+	return 0, errors.New(NoCompletedBatch)
 }
