@@ -37,11 +37,11 @@ import (
 
 // Partial address of authorizer. Prepended to the provided
 // network address in the config in order to connect to the authorizer server
-const authorizerIp = "auth."
+const authorizerPrefix = "auth."
 
-// Partial address of permissioning. Prepended to the provided
-// network address in the config in order to connect to the permissioning server
-const permissioningIp = "scheduling."
+// Partial address of scheduling. Prepended to the provided
+// network address in the config in order to connect to the scheduling server
+const schedulingPrefix = "scheduling."
 
 // Number of hard-coded users to create
 var numDemoUsers = int(256)
@@ -64,7 +64,7 @@ func NotStarted(instance *internal.Instance) error {
 		!strings.HasPrefix(ourDef.Network.Address, "permissioning.") &&
 		!utils.IsIP(ourDef.Network.Address) { // Only have a valid authorizer in mainNet
 		_, err := network.AddHost(&id.Authorizer,
-			authorizerIp+ourDef.Network.Address,
+			authorizerPrefix+ourDef.Network.Address,
 			ourDef.Network.TlsCert,
 			params)
 		if err != nil {
@@ -88,7 +88,7 @@ func NotStarted(instance *internal.Instance) error {
 		// with a specific string allows you to communicate with the network
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
-			permissioningIp+ourDef.Network.Address,
+			schedulingPrefix+ourDef.Network.Address,
 			ourDef.Network.TlsCert,
 			params)
 	}
@@ -150,7 +150,7 @@ func NotStarted(instance *internal.Instance) error {
 		// with a specific string allows you to communicate with the network
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
-			permissioningIp+ourDef.Network.Address,
+			schedulingPrefix+ourDef.Network.Address,
 			ourDef.Network.TlsCert,
 			params)
 	}
