@@ -435,7 +435,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		cr.Round[i] = &pb.Slot{Index: uint32(i)}
 	}
 
-	err = instance.GetCompletedBatchQueue().Send(&cr)
+	err = instance.AddCompletedBatch(&cr)
 	if err != nil {
 		t.Logf("We failed to send a completed batch: %v", err)
 	}
