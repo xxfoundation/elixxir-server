@@ -66,15 +66,8 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	// Construct sender interface
 	sendFunc := func(h *connect.Host) (interface{}, error) {
 		jww.DEBUG.Printf("Sending registration messages")
-		err = instance.GetNetwork().
+		return nil, instance.GetNetwork().
 			SendNodeRegistration(h, registrationRequest)
-		for err != nil && // retry until a successful connection
-			(strings.Contains(strings.ToLower(err.Error()), "unable to send") ||
-				strings.Contains(strings.ToLower(err.Error()), "failed to connect to host")) {
-			err = instance.GetNetwork().
-				SendNodeRegistration(h, registrationRequest)
-		}
-		return nil, err
 	}
 
 	sender := Sender{

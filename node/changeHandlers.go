@@ -556,12 +556,6 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 
 	sendFunc := func(h *connect.Host) (interface{}, error) {
 		response, err := serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
-		for err != nil &&
-			(strings.Contains(strings.ToLower(err.Error()), "unable to send") ||
-				strings.Contains(strings.ToLower(err.Error()), "failed to connect to host")) {
-			jww.WARN.Printf("retrying check cause err: %v", err)
-			response, err = serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
-		}
 
 		return response, err
 	}
@@ -574,6 +568,10 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	// Determine if node is registered
 	authHost, _ := serverInstance.GetNetwork().GetHost(&id.Authorizer)
 	face, err := permissioning.Send(sender, serverInstance, authHost)
+	for err != nil &&
+		!strings.Contains(strings.ToLower(err.Error()), "check could not be processed") {
+		face, err = permissioning.Send(sender, serverInstance, authHost)
+	}
 	if err != nil {
 		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
 		return false
