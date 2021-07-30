@@ -55,16 +55,21 @@ func NotStarted(instance *internal.Instance) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
+	var err error
 
 	// Request network access via the authorizer server
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err := network.AddHost(&id.Authorizer,
-		authorizerIp+ourDef.Network.Address,
-		ourDef.Network.TlsCert,
-		params)
-	if err != nil {
-		return errors.Errorf("Unable to connect to registration server: %+v", err)
+	if !instance.GetDefinition().DevMode &&
+		!strings.HasPrefix(ourDef.Network.Address, "permissioning.") &&
+		!utils.IsIP(ourDef.Network.Address) { // Only have a valid authorizer in mainNet
+		_, err := network.AddHost(&id.Authorizer,
+			authorizerIp+ourDef.Network.Address,
+			ourDef.Network.TlsCert,
+			params)
+		if err != nil {
+			return errors.Errorf("Unable to connect to registration server: %+v", err)
+		}
 	}
 
 	// Connect to the Permissioning Server without authentication
@@ -545,7 +550,6 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 
 	sendFunc := func(h *connect.Host) (interface{}, error) {
 		response, err := serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
-		jww.WARN.Printf("error received on first regCheck: %v", err)
 		for err != nil &&
 			(strings.Contains(strings.ToLower(err.Error()), "unable to send") ||
 				strings.Contains(strings.ToLower(err.Error()), "failed to connect to host")) {
@@ -556,8 +560,14 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 		return response, err
 	}
 
+	sender := permissioning.Sender{
+		Send: sendFunc,
+		Name: "RegistrationCheck",
+	}
+
 	// Determine if node is registered
-	face, err := permissioning.Send(sendFunc, serverInstance)
+	authHost, _ := serverInstance.GetNetwork().GetHost(&id.Authorizer)
+	face, err := permissioning.Send(sender, serverInstance, authHost)
 	if err != nil {
 		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
 		return false
