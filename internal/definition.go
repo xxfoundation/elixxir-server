@@ -90,12 +90,13 @@ type Definition struct {
 	RecoveredErrorPath string
 
 	// Database parameters
-	DbUsername string
-	DbPassword string
-	DbName     string
-	DbAddress  string
-	DbPort     string
-	DevMode    bool
+	DbUsername  string
+	DbPassword  string
+	DbName      string
+	DbAddress   string
+	DbPort      string
+	DevMode     bool
+	RawPermAddr bool
 }
 
 // Holds all input flags to the system.

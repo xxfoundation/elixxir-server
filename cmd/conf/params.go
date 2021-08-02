@@ -57,7 +57,8 @@ type Params struct {
 	OverrideRound    int
 	RecoveredErrPath string
 
-	DevMode bool
+	DevMode     bool
+	RawPermAddr bool
 }
 
 // NewParams gets elements of the viper object
@@ -241,6 +242,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Metrics.Log = vip.GetString("metrics.log")
 
 	params.DevMode = viper.GetBool("devMode")
+	params.RawPermAddr = viper.GetBool("rawPermAddr")
 
 	return &params, nil
 }
@@ -416,6 +418,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
 	def.DevMode = p.DevMode
+	def.RawPermAddr = p.RawPermAddr
 	return def, nil
 }
 
