@@ -24,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/primitives/hw"
 	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
@@ -38,6 +39,12 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	jww.INFO.Printf("Log Filename (node.paths.log): %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Log Filename (cmix.paths.log): %v\n", vip.GetString("cmix.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
+
+	err := hw.LogHardware()
+	if err != nil {
+		jww.ERROR.Print(err)
+	}
+
 
 	//Set the max number of processes
 	runtime.GOMAXPROCS(maxProcsOverride)
