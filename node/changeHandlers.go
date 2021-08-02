@@ -76,7 +76,7 @@ func NotStarted(instance *internal.Instance) error {
 	params = connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	var permHost *connect.Host
-	if instance.GetDefinition().DevMode || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
+	if instance.GetDefinition().RawPermAddr || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
 		// If we are running/testing a local network, no prepending is
 		// necessary. It is assumed the configurations are properly and
 		// explicitly set.
