@@ -89,6 +89,7 @@ func NotStarted(instance *internal.Instance) error {
 		// This is for live network execution, in which prepending the network
 		// address with a specific string allows you to communicate with the
 		// network
+		params.MaxRetries = 3
 		permHost, err = network.AddHost(&id.Permissioning,
 			// instance.GetPermissioningAddress,
 			schedulingPrefix+ourDef.Network.Address,
