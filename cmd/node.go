@@ -36,15 +36,15 @@ import (
 func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
 
-	jww.INFO.Printf("Log Filename (node.paths.log): %v\n", vip.GetString("node.paths.log"))
-	jww.INFO.Printf("Log Filename (cmix.paths.log): %v\n", vip.GetString("cmix.paths.log"))
-	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
-
 	err := hw.LogHardware()
 	if err != nil {
 		jww.ERROR.Print(err)
 	}
 
+
+	jww.INFO.Printf("Log Filename (node.paths.log): %v\n", vip.GetString("node.paths.log"))
+	jww.INFO.Printf("Log Filename (cmix.paths.log): %v\n", vip.GetString("cmix.paths.log"))
+	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
 	runtime.GOMAXPROCS(maxProcsOverride)
