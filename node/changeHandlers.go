@@ -140,7 +140,7 @@ func NotStarted(instance *internal.Instance) error {
 	// ready for servers to connect to it
 	params = connect.GetDefaultHostParams()
 	params.MaxRetries = 0
-	if instance.GetDefinition().DevMode || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
+	if instance.GetDefinition().RawPermAddr || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
 		// If we are running/testing a local network, no prepending is
 		// necessary. It is assumed the configurations are properly and
 		// explicitly set.
@@ -219,7 +219,7 @@ func NotStarted(instance *internal.Instance) error {
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
 	userDatabase := instance.GetStorage()
-	if instance.GetDefinition().DevMode {
+	if instance.GetDefinition().RawPermAddr {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
 		PopulateDummyUsers(userDatabase, cmixGrp)
