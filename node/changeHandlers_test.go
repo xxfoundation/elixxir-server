@@ -324,13 +324,7 @@ func TestIsRegistered(t *testing.T) {
 	}
 	defer permComms.Shutdown()
 
-	// Add retrieve permissioning host from instance
-	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
-	if !ok {
-		t.Fatal("Didn't get a permissioning host. Failing now")
-	}
-
-	result := isRegistered(instance, permHost)
+	result := isRegistered(instance)
 	const expected = true
 	if result != expected {
 		t.Errorf("Expected response from mock permissioning to be %v. Got %v instead", expected, result)
@@ -339,7 +333,7 @@ func TestIsRegistered(t *testing.T) {
 	// It should be possible to see this error in the test logs
 	expectedErr := errors.New("check could not be processed")
 	mockPermissioning.SetDesiredError(expectedErr)
-	result = isRegistered(instance, permHost)
+	result = isRegistered(instance)
 	const expectedWhenErr = false
 	if result != expectedWhenErr {
 		t.Error("isRegistered should return false when permissioning returns an error")
