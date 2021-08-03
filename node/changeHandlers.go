@@ -60,7 +60,7 @@ func NotStarted(instance *internal.Instance) error {
 	// Request network access via the authorizer server
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	if !instance.GetDefinition().DevMode &&
+	if !instance.GetDefinition().RawPermAddr &&
 		!strings.HasPrefix(ourDef.Network.Address, "permissioning.") &&
 		!utils.IsIP(ourDef.Network.Address) { // Only have a valid authorizer in mainNet
 		_, err := network.AddHost(&id.Authorizer,
@@ -571,6 +571,7 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	face, err := permissioning.Send(sender, serverInstance, authHost)
 	for err != nil &&
 		!strings.Contains(strings.ToLower(err.Error()), "check could not be processed") {
+		jww.WARN.Printf("Error received while performing registration check, retrying: %+v", err)
 		face, err = permissioning.Send(sender, serverInstance, authHost)
 	}
 	if err != nil {
