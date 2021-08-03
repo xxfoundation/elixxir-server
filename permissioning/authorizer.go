@@ -70,8 +70,10 @@ func Send(sender Sender, instance *internal.Instance, authHost *connect.Host) (r
 		return nil, errors.New("Could not get permissioning host")
 	}
 	response, err = sender.Send(permHost)
-	if authHost == nil || (err != nil &&
-		!strings.Contains(strings.ToLower(err.Error()), "giving up")) {
+	if err == nil {
+		return response, nil
+	} else if authHost == nil || !strings.Contains(strings.ToLower(err.Error()),
+		"giving up") {
 		return response, err
 	}
 
@@ -80,6 +82,8 @@ func Send(sender Sender, instance *internal.Instance, authHost *connect.Host) (r
 		"due to potential authorization error, attempting to authorize...", sender.String())
 
 	for err = Authorize(instance, authHost); err != nil; {
+		jww.WARN.Printf("Failed to authorize with %s, trying again: %+v", authHost.GetAddress(), err)
+		time.Sleep(time.Second)
 	}
 
 	// If we had to authorize, retry the comm again
