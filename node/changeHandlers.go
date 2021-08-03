@@ -571,7 +571,7 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	face, err := permissioning.Send(sender, serverInstance, authHost)
 	for err != nil &&
 		!strings.Contains(strings.ToLower(err.Error()), "check could not be processed") {
-		jww.WARN.Printf("Error received while performing registration check: %+v", err)
+		jww.WARN.Printf("Error received while performing registration check, retrying: %+v", err)
 		face, err = permissioning.Send(sender, serverInstance, authHost)
 	}
 	if err != nil {
