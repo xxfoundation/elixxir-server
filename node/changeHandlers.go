@@ -101,11 +101,8 @@ func NotStarted(instance *internal.Instance) error {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
-	// Determine if the node has registered already
-	isRegistered := isRegistered(instance, permHost)
-
 	// If the certificates were retrieved from file, so do not need to register
-	if !isRegistered {
+	if !isRegistered(instance) {
 		instance.IsFirstRun()
 
 		// Blocking call which waits until gateway
@@ -143,7 +140,7 @@ func NotStarted(instance *internal.Instance) error {
 	// ready for servers to connect to it
 	params = connect.GetDefaultHostParams()
 	params.MaxRetries = 0
-	if instance.GetDefinition().DevMode || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
+	if instance.GetDefinition().RawPermAddr || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
 		// If we are running/testing a local network, no prepending is
 		// necessary. It is assumed the configurations are properly and
 		// explicitly set.
@@ -222,7 +219,7 @@ func NotStarted(instance *internal.Instance) error {
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
 	userDatabase := instance.GetStorage()
-	if instance.GetDefinition().DevMode {
+	if instance.GetDefinition().RawPermAddr {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
 		PopulateDummyUsers(userDatabase, cmixGrp)
@@ -550,7 +547,7 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 const regCheckError = "Check could not be processed"
 
 /// Checks with permissioning whether we are a network member already
-func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
+func isRegistered(serverInstance *internal.Instance) bool {
 	regCheck := &mixmessages.RegisteredNodeCheck{
 		ID: serverInstance.GetID().Bytes(),
 	}
