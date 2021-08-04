@@ -39,7 +39,7 @@ cmix:
   # yourself. Expects an IPv4 address with or without a port. If no port is
   # included, then the port from the port flag is used.
   # WARNING: Do not modify this option unless explicitly required.
-  #overrideInternalIP: "0.0.0.1"
+  #overrideInternalIP: "0.0.0.0"
 
 # Information to connect to the Postgres database storing keys. (Required)
 database:
