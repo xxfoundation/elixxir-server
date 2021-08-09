@@ -24,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
@@ -329,6 +330,12 @@ func Precomputing(instance *internal.Instance) error {
 	instance.GetRoundManager().AddRound(rnd)
 	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
+
+	err = io.VerifyServersOnline(instance.GetNetwork(), circuit,
+		roundTimeout)
+	if err != nil {
+		return err
+	}
 
 	if circuit.IsFirstNode(instance.GetID()) {
 		err := StartLocalPrecomp(instance, roundID)
