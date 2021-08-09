@@ -41,13 +41,13 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit,
 					serverID, i+1, servers.Len(),
 					err)
 				time.Sleep(250 * time.Millisecond)
-				continue
+				continue // retry
 			}
 			jww.INFO.Printf("cMix server %s (%d/%d) "+
 				"is online...",
 				serverID, i+1, servers.Len())
 			finished <- true
-			return
+			break // exit function
 		}
 	}
 
