@@ -21,7 +21,6 @@ import (
 // VerifyServersOnline Blocks until all given servers respond
 func VerifyServersOnline(network *node.Comms, servers *connect.Circuit,
 	timeoutDuration time.Duration) error {
-	var stop uint64
 	finished := make(chan bool, servers.Len())
 
 	// This helper runs until successfully connected or stop is not 0
@@ -33,21 +32,19 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit,
 		// Send AskOnline to all servers
 		jww.INFO.Printf("Waiting for cMix server %s (%d/%d)...",
 			serverID, i+1, servers.Len())
-		for atomic.LoadUint64(&stop) == 0 {
-			_, err := network.SendAskOnline(server)
-			if err != nil {
-				jww.WARN.Printf("Could not contact "+
-					"cMix server %s (%d/%d): %+v",
-					serverID, i+1, servers.Len(),
-					err)
-				time.Sleep(250 * time.Millisecond)
-				continue // retry
-			}
+		_, err := network.SendAskOnline(server)
+		if err != nil {
+			jww.WARN.Printf("Could not contact "+
+				"cMix server %s (%d/%d): %+v",
+				serverID, i+1, servers.Len(),
+				err)
+			// We don't report we finished because we
+			// error'd out and want to fail the function.
+		} else {
 			jww.INFO.Printf("cMix server %s (%d/%d) "+
 				"is online...",
 				serverID, i+1, servers.Len())
 			finished <- true
-			break // exit function
 		}
 	}
 
@@ -72,7 +69,5 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit,
 		}
 	}
 
-	// Close all goroutines
-	atomic.AddUint64(&stop, 1)
 	return err
 }
