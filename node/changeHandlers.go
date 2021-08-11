@@ -204,8 +204,15 @@ func NotStarted(instance *internal.Instance) error {
 	}
 
 	// Then we ping ourselfs to make sure we can communicate
+	start := time.Now()
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
+	delta := time.Since(start)
 	if exists && host.IsOnline() {
+		if delta > 2*time.Second {
+			return errors.Errorf("took too long to contact local address %s, took %s. "+
+				"Please change network settings or set flat OverrideInternalIP",
+				host.GetAddress(), delta)
+		}
 		jww.DEBUG.Printf("Successfully contacted local address!")
 	} else if exists {
 		return errors.Errorf("unable to contact local address: %s",
