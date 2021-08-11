@@ -14,14 +14,14 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/xx_network/comms/connect"
-	"sync/atomic"
+	"gitlab.com/xx_network/primitives/id"
 	"time"
 )
 
 // VerifyServersOnline Blocks until all given servers respond
 func VerifyServersOnline(network *node.Comms, servers *connect.Circuit,
 	timeoutDuration time.Duration) error {
-	finished := make(chan bool, servers.Len())
+	finished := make(chan int, servers.Len())
 
 	// This helper runs until successfully connected or stop is not 0
 	askOnline := func(i int) {
@@ -44,7 +44,7 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit,
 			jww.INFO.Printf("cMix server %s (%d/%d) "+
 				"is online...",
 				serverID, i+1, servers.Len())
-			finished <- true
+			finished <- i
 		}
 	}
 
@@ -56,15 +56,25 @@ func VerifyServersOnline(network *node.Comms, servers *connect.Circuit,
 	// Handle timeout and error reporting
 	var err error
 	err = nil
+	finishedNodes := make([]bool, servers.Len())
 	finishedCnt := 0
 	// We are done when all servers responded
 	for finishedCnt < servers.Len() && err == nil {
 		select {
-		case <-finished:
+		case i := <-finished:
+			finishedNodes[i] = true
 			finishedCnt++
 			break
 		case <-time.After(timeoutDuration):
-			err = errors.Errorf("Timed out connecting to nodes")
+			var unfinished []*id.ID
+			for i := 0; i < servers.Len(); i++ {
+				if finishedNodes[i] != true {
+					unfinished = append(unfinished,
+						servers.GetNodeAtIndex(i))
+				}
+			}
+			err = errors.Errorf("Timed out connecting to nodes: "+
+				"%+v", unfinished)
 			break
 		}
 	}
