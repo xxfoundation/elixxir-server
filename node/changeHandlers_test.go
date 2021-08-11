@@ -233,7 +233,7 @@ func TestPrecomputing(t *testing.T) {
 	}
 
 	err = Precomputing(instance)
-	if err != nil && err.Error() != "Timed out connecting to nodes" {
+	if err != nil && err.Error()[:29] != "Timed out connecting to nodes" {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
 
@@ -304,7 +304,7 @@ func TestPrecomputing_override(t *testing.T) {
 	}
 
 	err = Precomputing(instance)
-	if err != nil && err.Error() != "Timed out connecting to nodes" {
+	if err != nil && err.Error()[0:29] != "Timed out connecting to nodes" {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
 
