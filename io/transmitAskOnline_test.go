@@ -26,6 +26,7 @@ func TestVerifyServersOnline(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected timeout!")
 	}
+	t.Logf(err.Error())
 
 	err = VerifyServersOnline(comms[0], topology,
 		time.Duration(2*time.Second))
