@@ -204,10 +204,11 @@ func NotStarted(instance *internal.Instance) error {
 	}
 
 	// Then we ping ourselfs to make sure we can communicate
-	start := time.Now()
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
+	start := time.Now()
+	isOnline := host.IsOnline()
 	delta := time.Since(start)
-	if exists && host.IsOnline() {
+	if exists && isOnline {
 		if delta > 2*time.Second {
 			return errors.Errorf("took too long to contact local address %s, took %s. "+
 				"please change network settings or set flag OverrideInternalIP",
