@@ -210,7 +210,7 @@ func NotStarted(instance *internal.Instance) error {
 	if exists && host.IsOnline() {
 		if delta > 2*time.Second {
 			return errors.Errorf("took too long to contact local address %s, took %s. "+
-				"Please change network settings or set flat OverrideInternalIP",
+				"please change network settings or set flag OverrideInternalIP",
 				host.GetAddress(), delta)
 		}
 		jww.DEBUG.Printf("Successfully contacted local address!")
