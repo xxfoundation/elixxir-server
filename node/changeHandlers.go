@@ -226,7 +226,7 @@ func NotStarted(instance *internal.Instance) error {
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
 	userDatabase := instance.GetStorage()
-	if instance.GetDefinition().RawPermAddr {
+	if instance.GetDefinition().DevMode {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
 		PopulateDummyUsers(userDatabase, cmixGrp)
