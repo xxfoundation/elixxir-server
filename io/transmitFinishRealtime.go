@@ -56,9 +56,9 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 		}
 	}
 
-	err = instance.GetCompletedBatchQueue().Send(complete)
+	err = instance.AddCompletedBatch(complete)
 	if err != nil {
-		return errors.Errorf("Failed to send to CompletedBatch: %+v", err)
+		return errors.Errorf("Failed to add completed batch: %+v", err)
 	}
 
 	measureFunc := r.GetCurrentPhase().Measure

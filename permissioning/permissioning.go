@@ -29,7 +29,7 @@ import (
 	"time"
 )
 
-// Perform the Node registration process with the Permissioning Server
+// RegisterNode performs the Node registration with the network
 func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
 	node, nodePort, err := net.SplitHostPort(def.PublicAddress)
@@ -53,18 +53,32 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 		return errors.Errorf("Unable to parse gateway's port. Is it set up correctly?")
 	}
 
+	registrationRequest := &pb.NodeRegistration{
+		Salt:             def.Salt,
+		ServerTlsCert:    string(def.TlsCert),
+		GatewayTlsCert:   string(def.Gateway.TlsCert),
+		GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
+		GatewayPort:      uint32(gwPort),
+		ServerAddress:    node,
+		ServerPort:       uint32(nodePortInt),
+		RegistrationCode: def.RegistrationCode,
+	}
+
+	// Construct sender interface
+	sendFunc := func(h *connect.Host) (interface{}, error) {
+		jww.DEBUG.Printf("Sending registration messages")
+		return nil, instance.GetNetwork().
+			SendNodeRegistration(h, registrationRequest)
+	}
+
+	sender := Sender{
+		Send: sendFunc,
+		Name: "RegisterNode",
+	}
+
 	// Attempt Node registration
-	err = instance.GetNetwork().SendNodeRegistration(permHost,
-		&pb.NodeRegistration{
-			Salt:             def.Salt,
-			ServerTlsCert:    string(def.TlsCert),
-			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
-			GatewayPort:      uint32(gwPort),
-			ServerAddress:    node,
-			ServerPort:       uint32(nodePortInt),
-			RegistrationCode: def.RegistrationCode,
-		})
+	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
+	_, err = Send(sender, instance, authHost)
 	if err != nil {
 		return errors.Errorf("Unable to send Node registration: %+v", err)
 	}
@@ -200,12 +214,25 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		}
 	}
 
-	// Send the message to permissioning
-	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
-	if err != nil {
-		return nil, errors.Errorf("Issue polling permissioning: %+v", err)
+	// Construct sender interface
+	sendFunc := func(h *connect.Host) (interface{}, error) {
+		return instance.GetNetwork().SendPoll(permHost, pollMsg)
 	}
 
+	sender := Sender{
+		Send: sendFunc,
+		Name: "Poll",
+	}
+
+	// Attempt Node registration
+	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
+	face, err := Send(sender, instance, authHost)
+	if err != nil {
+		return nil, errors.Errorf("Unable to send Node registration: %+v", err)
+	}
+
+	// Process response
+	permissioningResponse := face.(*pb.PermissionPollResponse)
 	return permissioningResponse, err
 }
 

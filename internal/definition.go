@@ -63,7 +63,7 @@ type Definition struct {
 	Gateway GW
 
 	// Information on permissioning server
-	Permissioning    Perm
+	Network          Perm
 	RegistrationCode string
 
 	// Our NDFs for both backend servers and front-ends
@@ -90,12 +90,13 @@ type Definition struct {
 	RecoveredErrorPath string
 
 	// Database parameters
-	DbUsername string
-	DbPassword string
-	DbName     string
-	DbAddress  string
-	DbPort     string
-	DevMode    bool
+	DbUsername  string
+	DbPassword  string
+	DbName      string
+	DbAddress   string
+	DbPort      string
+	DevMode     bool
+	RawPermAddr bool
 }
 
 // Holds all input flags to the system.

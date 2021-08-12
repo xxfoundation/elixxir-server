@@ -1,21 +1,10 @@
-# From: https://about.gitlab.com/2017/09/21/how-to-create-ci-cd-pipeline-with-autodeploy-to-kubernetes-using-gitlab-and-helm/
-
 cache:
   untracked: true
   key: "$CI_BUILD_REF_NAME"
   paths:
     - vendor/
 
-variables:
-  REPO_DIR: gitlab.com/elixxir
-  REPO_NAME: server
-  DOCKER_IMAGE: elixxirlabs/cuda-go:go1.16-cuda11.1
-  MIN_CODE_COVERAGE: "80.0"
-
 before_script:
-  ##
-  ## Go Setup
-  ##
   - go version || echo "Go executable not found."
   - echo $CI_BUILD_REF
   - echo $CI_PROJECT_DIR
@@ -54,7 +43,7 @@ build_gpumaths:
     - fi
     - echo $GPUMATHS_VERSION
     - echo $GPUMATHS_CLONE_VERSION
-    - BASE_URL="https://gitlab.com/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
+    - BASE_URL="https://$GITLAB_SERVER/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
     - POWMOSM_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpowmosm75.so?job=build"
     - FATBIN_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpow.fatbin?job=build"
     - INCLUDE_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/include/powm_odd_export.h?job=build"
@@ -159,15 +148,16 @@ tag_and_trigger:
     - master
   image: $DOCKER_IMAGE
   script:
-    - git remote add origin_tags git@gitlab.com:elixxir/server.git || true
-    - git remote set-url origin_tags git@gitlab.com:elixxir/server.git || true
+    - git remote add origin_tags git@$GITLAB_SERVER:elixxir/server.git || true
+    - git remote set-url origin_tags git@$GITLAB_SERVER:elixxir/server.git || true
     - git tag $(./release/server.linux64 version | grep "xx network Server v"| cut -d ' ' -f4) -f
     - git push origin_tags -f --tags
-    - "curl -X POST -F token=3cd593ad56ec017e30254c9ec6c0ab -F ref=master https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
 
-trigger_release_integration:
-  stage: trigger_release_integration
-  script:
-    - "curl -X POST -F token=e34aa19ef1530e579c5d590873d3c6 -F ref=release -F \"variables[CLIENT_ID]=release\" -F \"variables[GATEWAY_ID]=release\" -F \"variables[REGISTRATION_ID]=release\" -F \"variables[SERVER_ID]=release\" -F \"variables[UDB_ID]=release\" https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
+trigger-integration:
+  stage: trigger_integration
+  trigger:
+    project: elixxir/integration
+    branch: $CI_COMMIT_REF_NAME
   only:
+    - master
     - release

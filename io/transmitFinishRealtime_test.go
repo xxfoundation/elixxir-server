@@ -98,7 +98,8 @@ func TestSendFinishRealtime(t *testing.T) {
 	var cr *round.CompletedRound
 
 	for cr == nil {
-		cr, _ = instance.GetCompletedBatchQueue().Receive()
+		rid, _ := instance.GetCompletedBatchRID()
+		cr, _ = instance.GetCompletedBatch(rid)
 		time.Sleep(1 * time.Millisecond)
 	}
 
@@ -202,7 +203,8 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 	var cr *round.CompletedRound
 
 	for cr == nil {
-		cr, _ = instance.GetCompletedBatchQueue().Receive()
+		rid, _ := instance.GetCompletedBatchRID()
+		cr, _ = instance.GetCompletedBatch(rid)
 		time.Sleep(1 * time.Millisecond)
 	}
 
