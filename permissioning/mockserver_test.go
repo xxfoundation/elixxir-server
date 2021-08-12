@@ -611,7 +611,7 @@ func startPermissioning_ConnectionError(pAddr, nAddr string, nodeId *id.ID, cert
 	})
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
 	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
@@ -629,7 +629,7 @@ func startPermissioning_ConnectionErrorOnce(pAddr, nAddr string, nodeId *id.ID, 
 	})
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
 	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
