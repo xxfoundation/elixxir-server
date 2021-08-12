@@ -9,7 +9,6 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/node"
-	"sync"
 	"testing"
 	"time"
 )
@@ -22,18 +21,16 @@ func TestVerifyServersOnline(t *testing.T) {
 			mockPostPhaseImplementation(nil)}, 10, t)
 	defer Shutdown(comms)
 
-	var dlck sync.Mutex
-	done := 0
-	go func(d *int) {
-		time.Sleep(2 * time.Second)
-		dlck.Lock()
-		defer dlck.Unlock()
-		*d = 1
-	}(&done)
-	VerifyServersOnline(comms[0], topology)
-	dlck.Lock()
-	if done == 1 {
-		t.Errorf("Could not verify servers in less than 2 seconds!")
+	err := VerifyServersOnline(comms[0], topology,
+		time.Duration(1*time.Nanosecond))
+	if err == nil {
+		t.Errorf("Expected timeout!")
 	}
-	dlck.Unlock()
+	t.Logf(err.Error())
+
+	err = VerifyServersOnline(comms[0], topology,
+		time.Duration(2*time.Second))
+	if err != nil {
+		t.Errorf("Unexpected error: %+v", err)
+	}
 }

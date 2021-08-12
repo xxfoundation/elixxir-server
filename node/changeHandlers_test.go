@@ -48,12 +48,14 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		ResourceMonitor:    &measure.ResourceMonitor{},
 		FullNDF:            testUtil.NDF,
 		PartialNDF:         testUtil.NDF,
+		TlsCert:            []byte(testUtil.RegCert),
+		TlsKey:             []byte(testUtil.RegPrivKey),
 		GraphGenerator:     gg,
 		RecoveredErrorPath: "/tmp/recovered_error",
 		Gateway: internal.GW{
-			Address: "0.0.0.0:11420",
+			Address: "127.0.0.1:11420",
 		},
-		ListeningAddress: "0.0.0.0:11421",
+		ListeningAddress: "127.0.0.1:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()
@@ -81,9 +83,11 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
+
 	r := round.NewDummyRoundWithTopology(id.Round(1), 3, topology, t)
 	instance.GetRoundManager().AddRound(r)
 	_ = instance.Run()
+	instance.Online = true
 	return instance, topology
 }
 
@@ -191,17 +195,20 @@ func TestPrecomputing(t *testing.T) {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
 		params := connect.GetDefaultHostParams()
-		params.MaxRetries = 0
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
+		params.MaxRetries = 1
+		instance.GetNetwork().RemoveHost(nid)
+		_, err = instance.GetNetwork().AddHost(nid, "127.0.0.1:11421",
+			[]byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
 	}
 
 	newRoundInfo := &mixmessages.RoundInfo{
-		ID:        0,
-		Topology:  top,
-		BatchSize: 32,
+		ID:                         0,
+		Topology:                   top,
+		BatchSize:                  32,
+		ResourceQueueTimeoutMillis: 2000,
 	}
 
 	// Mocking permissioning server signing message
@@ -226,7 +233,7 @@ func TestPrecomputing(t *testing.T) {
 	}
 
 	err = Precomputing(instance)
-	if err != nil {
+	if err != nil && err.Error()[:29] != "Timed out connecting to nodes" {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
 
@@ -297,7 +304,7 @@ func TestPrecomputing_override(t *testing.T) {
 	}
 
 	err = Precomputing(instance)
-	if err != nil {
+	if err != nil && err.Error()[0:29] != "Timed out connecting to nodes" {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
 
