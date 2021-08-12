@@ -11,6 +11,7 @@ package permissioning
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -416,6 +417,8 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		if err != nil {
 			jww.ERROR.Printf("Failed to save list of IP addresses from NDF: %v", err)
 		}
+
+		jww.INFO.Printf("New NDF Received, hash: %s", base64.StdEncoding.EncodeToString(instance.GetConsensus().GetFullNdf().GetHash()))
 	}
 
 	if permissioningResponse.PartialNDF != nil {
