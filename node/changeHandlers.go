@@ -75,27 +75,27 @@ func NotStarted(instance *internal.Instance) error {
 	// Connect to the Permissioning Server without authentication
 	params = connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	var permHost *connect.Host
-	if instance.GetDefinition().RawPermAddr || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
+	params.MaxRetries = 3
+
+	var permAddr string
+	if instance.GetDefinition().RawPermAddr || strings.Contains(ourDef.Network.Address, "permissioning.") {
 		// If we are running/testing a local network, no prepending is
 		// necessary. It is assumed the configurations are properly and
 		// explicitly set.
-		permHost, err = network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
-			ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
+		permAddr = ourDef.Network.Address
 	} else {
 		// This is for live network execution, in which prepending the network
 		// address with a specific string allows you to communicate with the
 		// network
-		params.MaxRetries = 3
-		permHost, err = network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
-			schedulingPrefix+ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
+		permAddr = schedulingPrefix + ourDef.Network.Address
 	}
+	jww.INFO.Printf("Connecting to scheduling with address: %s, from input %s", permAddr, ourDef.Network.Address)
+
+	permHost, err := network.AddHost(&id.Permissioning,
+		// instance.GetPermissioningAddress,
+		permAddr,
+		ourDef.Network.TlsCert,
+		params)
 
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
@@ -138,26 +138,12 @@ func NotStarted(instance *internal.Instance) error {
 	// full NDF
 	// do this even if you have the certs to ensure the permissioning server is
 	// ready for servers to connect to it
-	params = connect.GetDefaultHostParams()
-	params.MaxRetries = 0
-	if instance.GetDefinition().RawPermAddr || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
-		// If we are running/testing a local network, no prepending is
-		// necessary. It is assumed the configurations are properly and
-		// explicitly set.
-		permHost, err = network.AddHost(&id.Permissioning,
-			ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
-	} else {
-		// This is for live network execution, in which prepending the network
-		// address with a specific string allows you to communicate with the
-		// network
-		permHost, err = network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
-			schedulingPrefix+ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
-	}
+	params.AuthEnabled = true
+	permHost, err = network.AddHost(&id.Permissioning,
+		permAddr,
+		ourDef.Network.TlsCert,
+		params)
+
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
