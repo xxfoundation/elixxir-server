@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/elixxir/server/internal"
+	"git.xx.network/elixxir/server/internal"
 )
 
 // consensus.go contains handlers and senders for communication with

@@ -7,7 +7,7 @@
 
 package main
 
-import "gitlab.com/elixxir/server/cmd"
+import "git.xx.network/elixxir/server/cmd"
 
 func main() {
 	cmd.Execute()

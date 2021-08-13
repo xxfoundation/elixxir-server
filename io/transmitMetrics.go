@@ -14,11 +14,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
-	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/server/internal/measure"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/primitives/id"
+	pb "git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/comms/node"
+	"git.xx.network/elixxir/server/internal/measure"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/primitives/id"
 	"strings"
 )
 

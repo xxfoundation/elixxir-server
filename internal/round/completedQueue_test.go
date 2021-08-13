@@ -9,7 +9,7 @@ package round
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/comms/mixmessages"
 	"testing"
 )
 

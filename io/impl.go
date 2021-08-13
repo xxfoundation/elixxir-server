@@ -11,13 +11,13 @@ package io
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/mixmessages"
-	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/node"
-	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/comms/interconnect"
-	"gitlab.com/xx_network/primitives/ndf"
+	"git.xx.network/elixxir/comms/mixmessages"
+	pb "git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/comms/node"
+	"git.xx.network/elixxir/server/internal"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/comms/interconnect"
+	"git.xx.network/xx_network/primitives/ndf"
 	"time"
 )
 

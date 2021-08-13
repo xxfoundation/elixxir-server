@@ -7,16 +7,16 @@
 package io
 
 import (
-	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/comms/testkeys"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/internal/phase"
-	"gitlab.com/elixxir/server/internal/round"
-	"gitlab.com/elixxir/server/testUtil"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/crypto/large"
-	"gitlab.com/xx_network/primitives/id"
-	"gitlab.com/xx_network/primitives/utils"
+	pb "git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/comms/testkeys"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/server/internal/phase"
+	"git.xx.network/elixxir/server/internal/round"
+	"git.xx.network/elixxir/server/testUtil"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/crypto/large"
+	"git.xx.network/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/utils"
 	"testing"
 )
 

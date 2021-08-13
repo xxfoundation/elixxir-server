@@ -11,10 +11,10 @@
 package storage
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/xx_network/crypto/nonce"
-	"gitlab.com/xx_network/crypto/signature/rsa"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/xx_network/crypto/nonce"
+	"git.xx.network/xx_network/crypto/signature/rsa"
+	"git.xx.network/xx_network/primitives/id"
 	"time"
 )
 

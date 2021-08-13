@@ -10,15 +10,15 @@ package realtime
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cryptops"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/gpumathsgo"
-	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/internal/round"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/crypto/cryptops"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/gpumathsgo"
+	"git.xx.network/elixxir/server/graphs"
+	"git.xx.network/elixxir/server/internal/round"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/elixxir/server/storage"
+	"git.xx.network/xx_network/primitives/id"
 )
 
 const (

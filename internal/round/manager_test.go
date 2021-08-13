@@ -8,13 +8,13 @@
 package round
 
 import (
-	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/server/internal/phase"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/crypto/csprng"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/crypto/fastRNG"
+	"git.xx.network/elixxir/server/internal/phase"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/elixxir/server/storage"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/crypto/csprng"
+	"git.xx.network/xx_network/primitives/id"
 	"os"
 	"runtime"
 	"testing"

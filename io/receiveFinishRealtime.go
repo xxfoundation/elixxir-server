@@ -12,13 +12,13 @@ package io
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/elixxir/server/internal/measure"
-	"gitlab.com/elixxir/server/internal/phase"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/primitives/current"
+	"git.xx.network/elixxir/server/internal"
+	"git.xx.network/elixxir/server/internal/measure"
+	"git.xx.network/elixxir/server/internal/phase"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/primitives/id"
 	"time"
 )
 

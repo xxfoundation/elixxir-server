@@ -10,7 +10,7 @@ package measure
 // metrics.go contains the metrics object and its methods
 
 import (
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/id"
 	"sync"
 	"time"
 )

@@ -7,11 +7,11 @@
 package io
 
 import (
-	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/elixxir/server/internal/state"
-	"gitlab.com/elixxir/server/testUtil"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/primitives/current"
+	"git.xx.network/elixxir/server/internal"
+	"git.xx.network/elixxir/server/internal/state"
+	"git.xx.network/elixxir/server/testUtil"
+	"git.xx.network/xx_network/primitives/id"
 	"testing"
 )
 

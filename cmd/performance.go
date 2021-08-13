@@ -12,7 +12,7 @@ import (
 	"errors"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/server/internal/measure"
+	"git.xx.network/elixxir/server/internal/measure"
 	"os"
 	"runtime"
 	"strconv"

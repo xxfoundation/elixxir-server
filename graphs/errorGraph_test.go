@@ -8,7 +8,7 @@
 package graphs
 
 import (
-	"gitlab.com/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/comms/mixmessages"
 	"testing"
 )
 

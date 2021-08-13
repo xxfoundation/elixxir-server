@@ -9,12 +9,12 @@ package precomputation
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/graphs"
-	"gitlab.com/elixxir/server/internal/round"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/xx_network/crypto/large"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/server/graphs"
+	"git.xx.network/elixxir/server/internal/round"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/xx_network/crypto/large"
 	"reflect"
 	"runtime"
 	"testing"

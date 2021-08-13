@@ -9,7 +9,7 @@ package state
 
 import (
 	"errors"
-	"gitlab.com/elixxir/primitives/current"
+	"git.xx.network/elixxir/primitives/current"
 	"math/rand"
 	"reflect"
 	"strings"

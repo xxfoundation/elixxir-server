@@ -13,9 +13,9 @@ package permissioning
 import (
 	"bytes"
 	"github.com/pkg/errors"
-	"gitlab.com/xx_network/primitives/id"
-	"gitlab.com/xx_network/primitives/ndf"
-	"gitlab.com/xx_network/primitives/utils"
+	"git.xx.network/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/ndf"
+	"git.xx.network/xx_network/primitives/utils"
 	"net"
 	"strconv"
 	"strings"

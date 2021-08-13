@@ -8,10 +8,10 @@
 package graphs
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/shuffle"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/xx_network/crypto/large"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/crypto/shuffle"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/xx_network/crypto/large"
 	"runtime"
 	"testing"
 )

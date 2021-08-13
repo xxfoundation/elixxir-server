@@ -12,10 +12,10 @@ package phase
 import (
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/server/internal/measure"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/server/internal/measure"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/xx_network/primitives/id"
 	"sync/atomic"
 	"time"
 )

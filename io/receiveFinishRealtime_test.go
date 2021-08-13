@@ -8,14 +8,14 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/internal/measure"
-	"gitlab.com/elixxir/server/internal/phase"
-	"gitlab.com/elixxir/server/internal/round"
-	"gitlab.com/elixxir/server/testUtil"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/primitives/current"
+	"git.xx.network/elixxir/server/internal/measure"
+	"git.xx.network/elixxir/server/internal/phase"
+	"git.xx.network/elixxir/server/internal/round"
+	"git.xx.network/elixxir/server/testUtil"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/primitives/id"
 	"testing"
 )
 

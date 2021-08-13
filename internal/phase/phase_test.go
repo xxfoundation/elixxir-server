@@ -9,8 +9,8 @@ package phase
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/xx_network/primitives/id"
 	"strings"
 	"testing"
 	"time"

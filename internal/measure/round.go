@@ -10,7 +10,7 @@ package measure
 // measure/round.go contains the roundMetrics object, constructors and its methods
 
 import (
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/id"
 	"time"
 )
 

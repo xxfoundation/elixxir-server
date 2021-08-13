@@ -13,9 +13,9 @@ package internal
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/server/internal/measure"
-	"gitlab.com/elixxir/server/internal/phase"
-	"gitlab.com/elixxir/server/services"
+	"git.xx.network/elixxir/server/internal/measure"
+	"git.xx.network/elixxir/server/internal/phase"
+	"git.xx.network/elixxir/server/services"
 	"sync/atomic"
 	"testing"
 	"time"

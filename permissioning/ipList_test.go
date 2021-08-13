@@ -8,9 +8,9 @@
 package permissioning
 
 import (
-	"gitlab.com/xx_network/primitives/id"
-	"gitlab.com/xx_network/primitives/ndf"
-	"gitlab.com/xx_network/primitives/utils"
+	"git.xx.network/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/ndf"
+	"git.xx.network/xx_network/primitives/utils"
 	"os"
 	"strconv"
 	"testing"

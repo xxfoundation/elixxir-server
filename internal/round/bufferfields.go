@@ -10,8 +10,8 @@ package round
 // bufferFields.go contains the round.Buffer's InitCryptoFields method
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/crypto/shuffle"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/crypto/shuffle"
 )
 
 // InitCryptoFields sets the private key

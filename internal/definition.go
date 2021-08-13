@@ -8,12 +8,12 @@
 package internal
 
 import (
-	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/server/internal/measure"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/xx_network/crypto/signature/rsa"
-	"gitlab.com/xx_network/primitives/id"
-	"gitlab.com/xx_network/primitives/ndf"
+	"git.xx.network/elixxir/crypto/fastRNG"
+	"git.xx.network/elixxir/server/internal/measure"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/xx_network/crypto/signature/rsa"
+	"git.xx.network/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/ndf"
 )
 
 // Definition in cmd/node.go, it is filling this out

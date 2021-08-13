@@ -9,15 +9,15 @@ package node
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/gpumathsgo"
-	"gitlab.com/elixxir/server/graphs/precomputation"
-	"gitlab.com/elixxir/server/graphs/realtime"
-	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/elixxir/server/internal/phase"
-	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/gpumathsgo"
+	"git.xx.network/elixxir/server/graphs/precomputation"
+	"git.xx.network/elixxir/server/graphs/realtime"
+	"git.xx.network/elixxir/server/internal"
+	"git.xx.network/elixxir/server/internal/phase"
+	"git.xx.network/elixxir/server/io"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/primitives/id"
 	"time"
 )
 

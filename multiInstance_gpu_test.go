@@ -10,7 +10,7 @@
 package main
 
 import (
-	"gitlab.com/elixxir/server/cmd"
+	"git.xx.network/elixxir/server/cmd"
 	"testing"
 )
 

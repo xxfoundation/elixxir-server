@@ -8,8 +8,8 @@
 package io
 
 import (
-	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/internal/phase"
+	"git.xx.network/elixxir/primitives/current"
+	"git.xx.network/elixxir/server/internal/phase"
 	"testing"
 )
 

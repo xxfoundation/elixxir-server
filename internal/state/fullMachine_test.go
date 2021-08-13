@@ -9,8 +9,8 @@ package state_test
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/internal/state"
+	"git.xx.network/elixxir/primitives/current"
+	"git.xx.network/elixxir/server/internal/state"
 	"testing"
 	"time"
 )

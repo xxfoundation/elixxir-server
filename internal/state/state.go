@@ -90,7 +90,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/elixxir/primitives/current"
+	"git.xx.network/elixxir/primitives/current"
 	"sync"
 	"testing"
 	"time"

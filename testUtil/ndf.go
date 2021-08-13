@@ -8,7 +8,7 @@
 package testUtil
 
 import (
-	"gitlab.com/xx_network/primitives/ndf"
+	"git.xx.network/xx_network/primitives/ndf"
 )
 
 var (

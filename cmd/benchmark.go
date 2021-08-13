@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
-	//	"gitlab.com/elixxir/server/benchmark"
+	//	"git.xx.network/elixxir/server/benchmark"
 	"time"
 )
 

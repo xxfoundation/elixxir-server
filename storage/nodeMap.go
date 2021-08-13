@@ -10,7 +10,7 @@
 package storage
 
 import (
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/id"
 	"gorm.io/gorm"
 )
 

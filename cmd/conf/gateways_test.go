@@ -8,7 +8,7 @@
 package conf
 
 import (
-	"gitlab.com/xx_network/primitives/utils"
+	"git.xx.network/xx_network/primitives/utils"
 	"gopkg.in/yaml.v2"
 	"reflect"
 	"testing"

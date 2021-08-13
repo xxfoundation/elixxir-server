@@ -9,7 +9,7 @@
 package benchmark
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/crypto/cyclic"
 )
 
 var group *cyclic.Group

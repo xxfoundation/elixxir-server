@@ -9,8 +9,8 @@ package services
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/crypto/cyclic"
 )
 
 var ErrOutsideOfGroup = errors.New("cyclic int is outside of the prescribed group")

@@ -12,7 +12,7 @@ package round
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/comms/mixmessages"
 )
 
 type Queue chan *mixmessages.RoundInfo

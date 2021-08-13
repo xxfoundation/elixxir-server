@@ -13,7 +13,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/xx_network/primitives/utils"
+	"git.xx.network/xx_network/primitives/utils"
 )
 
 // Change this value to set the version for this build

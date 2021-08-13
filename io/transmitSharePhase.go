@@ -13,13 +13,13 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"gitlab.com/elixxir/comms/mixmessages"
-	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/elixxir/server/internal/round"
-	"gitlab.com/xx_network/comms/signature"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/comms/mixmessages"
+	pb "git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/server/internal"
+	"git.xx.network/elixxir/server/internal/round"
+	"git.xx.network/xx_network/comms/signature"
+	"git.xx.network/xx_network/primitives/id"
 )
 
 // Triggers the multi-party communication in which generation of the

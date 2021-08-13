@@ -7,7 +7,7 @@
 package io
 
 import (
-	"gitlab.com/elixxir/server/internal"
+	"git.xx.network/elixxir/server/internal"
 )
 
 // ReceivePermissioningAddressPing returns the permissioning server's address.

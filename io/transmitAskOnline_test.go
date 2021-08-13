@@ -8,7 +8,7 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/node"
+	"git.xx.network/elixxir/comms/node"
 	"testing"
 	"time"
 )

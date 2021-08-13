@@ -9,10 +9,10 @@ package services
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cryptops"
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/xx_network/crypto/large"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/crypto/cryptops"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/xx_network/crypto/large"
 	"math"
 	"math/rand"
 	"runtime"

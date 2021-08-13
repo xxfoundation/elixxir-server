@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/xx_network/primitives/id"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

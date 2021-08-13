@@ -8,8 +8,8 @@
 package graphs
 
 import (
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/elixxir/server/services"
+	"git.xx.network/elixxir/crypto/cyclic"
+	"git.xx.network/elixxir/server/services"
 )
 
 // PermuteIO used to convert input and output when streams are linked

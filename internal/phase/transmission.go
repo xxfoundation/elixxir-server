@@ -10,9 +10,9 @@ package phase
 // transmission contains the interface for transmission functions
 
 import (
-	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/server/services"
-	"gitlab.com/xx_network/primitives/id"
+	"git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/server/services"
+	"git.xx.network/xx_network/primitives/id"
 )
 
 type GetChunk func() (services.Chunk, bool)

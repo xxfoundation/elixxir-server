@@ -10,10 +10,10 @@ package io
 import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
-	pb "gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/server/internal"
-	"gitlab.com/xx_network/comms/connect"
-	"gitlab.com/xx_network/primitives/id"
+	pb "git.xx.network/elixxir/comms/mixmessages"
+	"git.xx.network/elixxir/server/internal"
+	"git.xx.network/xx_network/comms/connect"
+	"git.xx.network/xx_network/primitives/id"
 )
 
 // DownloadMixedBatch is the handler for the gateway -> server comms.
