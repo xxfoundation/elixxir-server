@@ -80,7 +80,7 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
 	_, err = Send(sender, instance, authHost)
 	if err != nil {
-		return errors.Errorf("Unable to send Node registration: %+v", err)
+		return errors.Errorf("Unable to send %s: %+v", sender.Name, err)
 	}
 
 	return nil
@@ -228,7 +228,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
 	face, err := Send(sender, instance, authHost)
 	if err != nil {
-		return nil, errors.Errorf("Unable to send Node registration: %+v", err)
+		return nil, errors.Errorf("Unable to send %s: %+v", sender.Name, err)
 	}
 
 	// Process response
