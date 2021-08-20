@@ -30,7 +30,7 @@ import (
 )
 
 // RegisterNode performs the Node registration with the network
-func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
+func RegisterNode(def *internal.Definition, instance *internal.Instance) error {
 	// We don't check validity here, because the registration server should.
 	node, nodePort, err := net.SplitHostPort(def.PublicAddress)
 	if err != nil {
@@ -224,7 +224,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		Name: "Poll",
 	}
 
-	// Attempt Node registration
+	// Attempt to send Permissioning Poll
 	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
 	face, err := Send(sender, instance, authHost)
 	if err != nil {
