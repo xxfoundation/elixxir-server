@@ -273,7 +273,10 @@ func (i *Instance) Run() error {
 // Shutdown releases any reserved GPU resources
 func (i *Instance) Shutdown() {
 	if i.streamPool != nil {
-		i.streamPool.Destroy()
+		err := i.streamPool.Destroy()
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -610,13 +613,6 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 		NodeId: nodeId.Marshal(),
 	}
 
-	//sign the round error
-	err := signature.SignRsa(&roundErr, i.GetPrivKey())
-	if err != nil {
-		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
-			"\n roundError: %+v", err, roundErr)
-	}
-
 	i.reportFailure(&roundErr)
 }
 
@@ -653,12 +649,11 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	// an error or crash state
 	i.roundError = roundErr
 
-	// Otherwise, change instance's state to ERROR
+	// Change instance state to ERROR
 	ok, err := sm.Update(current.ERROR)
 	if err != nil {
 		jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
 	}
-
 	if !ok {
 		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
