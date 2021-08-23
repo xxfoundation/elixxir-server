@@ -1,21 +1,10 @@
-# From: https://about.gitlab.com/2017/09/21/how-to-create-ci-cd-pipeline-with-autodeploy-to-kubernetes-using-gitlab-and-helm/
-
 cache:
   untracked: true
   key: "$CI_BUILD_REF_NAME"
   paths:
     - vendor/
 
-variables:
-  REPO_DIR: gitlab.com/elixxir
-  REPO_NAME: server
-  DOCKER_IMAGE: elixxirlabs/cuda-go:go1.16-cuda11.1
-  MIN_CODE_COVERAGE: "79.0"
-
 before_script:
-  ##
-  ## Go Setup
-  ##
   - go version || echo "Go executable not found."
   - echo $CI_BUILD_REF
   - echo $CI_PROJECT_DIR
@@ -25,10 +14,10 @@ before_script:
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
   - mkdir -p ~/.ssh
   - chmod 700 ~/.ssh
-  - ssh-keyscan -t rsa gitlab.com > ~/.ssh/known_hosts
-  - git config --global url."git@gitlab.com:".insteadOf "https://gitlab.com/"
+  - ssh-keyscan -t rsa $GITLAB_SERVER > ~/.ssh/known_hosts
+  - git config --global url."git@$GITLAB_SERVER:".insteadOf "https://gitlab.com/"
+  - git config --global url."git@$GITLAB_SERVER:".insteadOf "https://git.xx.network/"
   - export PATH=$HOME/go/bin:$PATH
-  - export GOPRIVATE=gitlab.com/elixxir/*,gitlab.com/xx_network/*
 
 stages:
   - gpumaths
@@ -54,7 +43,7 @@ build_gpumaths:
     - fi
     - echo $GPUMATHS_VERSION
     - echo $GPUMATHS_CLONE_VERSION
-    - BASE_URL="https://gitlab.com/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
+    - BASE_URL="https://$GITLAB_SERVER/api/v4/projects/elixxir%2Fgpumathsgo/jobs/artifacts"
     - POWMOSM_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpowmosm75.so?job=build"
     - FATBIN_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/lib/libpow.fatbin?job=build"
     - INCLUDE_URL="$BASE_URL/$GPUMATHS_CLONE_VERSION/raw/release/include/powm_odd_export.h?job=build"
@@ -94,12 +83,15 @@ build:
     - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win64 main.go
     # - GOOS=windows GOARCH=386 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.win32 main.go
     - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.darwin64 main.go
-    - mkdir -p upload
-    - cp release/* upload/
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/xxnetwork/lib' -o release/server-cuda.linux64 main.go
+
     - cp /opt/xxnetwork/lib/* release/
     - cp /opt/xxnetwork/include/* release/
-    - GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -tags gpu -ldflags '-w -s -L /opt/xxnetwork/lib' -o release/server-cuda.linux64 main.go
-    - /upload-artifacts.sh upload/
+    - /upload-artifacts.sh release/
+    - /upload-artifact.sh server release/server-cuda.linux64
+    - /upload-artifact.sh server release/server.linux64
+    - /upload-artifact.sh fatbin libraries/lib/libpow.fatbin
+    - /upload-artifact.sh libpow libraries/lib/libpowmosm75.so
   artifacts:
     paths:
       - vendor/
@@ -156,15 +148,16 @@ tag_and_trigger:
     - master
   image: $DOCKER_IMAGE
   script:
-    - git remote add origin_tags git@gitlab.com:elixxir/server.git || true
-    - git remote set-url origin_tags git@gitlab.com:elixxir/server.git || true
+    - git remote add origin_tags git@$GITLAB_SERVER:elixxir/server.git || true
+    - git remote set-url origin_tags git@$GITLAB_SERVER:elixxir/server.git || true
     - git tag $(./release/server.linux64 version | grep "xx network Server v"| cut -d ' ' -f4) -f
     - git push origin_tags -f --tags
-    - "curl -X POST -F token=3cd593ad56ec017e30254c9ec6c0ab -F ref=master https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
 
-trigger_release_integration:
-  stage: trigger_release_integration
-  script:
-    - "curl -X POST -F token=e34aa19ef1530e579c5d590873d3c6 -F ref=release -F \"variables[CLIENT_ID]=release\" -F \"variables[GATEWAY_ID]=release\" -F \"variables[REGISTRATION_ID]=release\" -F \"variables[SERVER_ID]=release\" -F \"variables[UDB_ID]=release\" https://gitlab.com/api/v4/projects/5615854/trigger/pipeline"
+trigger-integration:
+  stage: trigger_integration
+  trigger:
+    project: elixxir/integration
+    branch: $CI_COMMIT_REF_NAME
   only:
+    - master
     - release

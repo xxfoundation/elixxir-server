@@ -168,7 +168,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 		ListeningAddress: nodeAddr,
 		LogPath:          "",
 		MetricLogPath:    "",
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
 		},
@@ -198,8 +198,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	}
 
 	// Generate instance
-	instance, err = internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+	instance, err = internal.CreateServerInstance(def, impl, sm, "1.1.0")
 	if err != nil {
 		return
 	}
@@ -207,8 +206,8 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, params)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
+		def.Network.TlsCert, params)
 	if err != nil {
 		return
 	}
@@ -221,7 +220,7 @@ func startPermissioning(pAddr, nAddr string, nodeId *id.ID, cert, key []byte, t 
 	// Initialize permissioning server
 	mp := &mockPermission{}
 	pHandler := registration.Handler(mp)
-	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	_, err := permComms.AddHost(nodeId, nAddr, cert, params)

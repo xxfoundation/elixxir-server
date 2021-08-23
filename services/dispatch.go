@@ -122,17 +122,30 @@ func (g *Graph) GetMetrics() (time.Duration, time.Duration) {
 	g.Unlock()
 	times := make(map[string]time.Time)
 	deltas := make(map[string]time.Duration)
+
+	// NOTE: Metrics are ordered, but interleaved with each other.
+	// The following unrolls that, so e.g.:
+	//   Metric1, Metric2, Metric1, Metric1, Metric2
+	// Gets converted to: Delta(Metric1, Metric1), Delta(Metric2, Metric2)
+	//                    Delta(Metric1, Metric1), ...
+	// and so on, orderd by matching tags in the list.
 	for _, e := range events {
 		lastTime, ok := times[e.Tag]
-		if ok {
+		if ok { // lastTime condition
+			// If the tag exists, then we had a "previous" event
+			// of the same tag. Calculate the delta between
+			// this one and the last one.
 			deltas[e.Tag] = e.Timestamp.Sub(lastTime)
+			// Delete the tag, so we can detect the "startTime"
+			// condition.
 			delete(times, e.Tag)
-		} else {
+		} else { // startTime condition
 			times[e.Tag] = e.Timestamp
 		}
 	}
 
-	// Look at each delta and sum them by type
+	// Look at each delta and sum them by type. This collapses each
+	// thread's time spent into a single metric for that thread.
 	var modTime, adaptTime time.Duration
 	for k, v := range deltas {
 		if strings.Contains(k, AdaptMeasureName) {

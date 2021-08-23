@@ -11,6 +11,7 @@ package permissioning
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -29,7 +30,7 @@ import (
 	"time"
 )
 
-// Perform the Node registration process with the Permissioning Server
+// RegisterNode performs the Node registration with the network
 func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
 	// We don't check validity here, because the registration server should.
 	node, nodePort, err := net.SplitHostPort(def.PublicAddress)
@@ -53,20 +54,34 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 		return errors.Errorf("Unable to parse gateway's port. Is it set up correctly?")
 	}
 
+	registrationRequest := &pb.NodeRegistration{
+		Salt:             def.Salt,
+		ServerTlsCert:    string(def.TlsCert),
+		GatewayTlsCert:   string(def.Gateway.TlsCert),
+		GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
+		GatewayPort:      uint32(gwPort),
+		ServerAddress:    node,
+		ServerPort:       uint32(nodePortInt),
+		RegistrationCode: def.RegistrationCode,
+	}
+
+	// Construct sender interface
+	sendFunc := func(h *connect.Host) (interface{}, error) {
+		jww.DEBUG.Printf("Sending registration messages")
+		return nil, instance.GetNetwork().
+			SendNodeRegistration(h, registrationRequest)
+	}
+
+	sender := Sender{
+		Send: sendFunc,
+		Name: "RegisterNode",
+	}
+
 	// Attempt Node registration
-	err = instance.GetNetwork().SendNodeRegistration(permHost,
-		&pb.NodeRegistration{
-			Salt:             def.Salt,
-			ServerTlsCert:    string(def.TlsCert),
-			GatewayTlsCert:   string(def.Gateway.TlsCert),
-			GatewayAddress:   gwIP, // FIXME (Jonah): this is inefficient, but will work for now
-			GatewayPort:      uint32(gwPort),
-			ServerAddress:    node,
-			ServerPort:       uint32(nodePortInt),
-			RegistrationCode: def.RegistrationCode,
-		})
+	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
+	_, err = Send(sender, instance, authHost)
 	if err != nil {
-		return errors.Errorf("Unable to send Node registration: %+v", err)
+		return errors.Errorf("Unable to send %s: %+v", sender.Name, err)
 	}
 
 	return nil
@@ -128,6 +143,14 @@ func Poll(instance *internal.Instance) error {
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity.State == current.COMPLETED {
+		// Sends the signal that this node is no longer in a round,
+		// and thus the node is ready to be killed. Signal is sent only if a SIGINT
+		// has already been sent.
+		select {
+		case killed := <-instance.GetKillChan():
+			killed <- struct{}{}
+		default:
+		}
 		ok, err := instance.GetStateMachine().Update(current.WAITING)
 		if err != nil || !ok {
 			return errors.Errorf("Could not transition to WAITING state: %v", err)
@@ -220,12 +243,25 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		}
 	}
 
-	// Send the message to permissioning
-	permissioningResponse, err := instance.GetNetwork().SendPoll(permHost, pollMsg)
-	if err != nil {
-		return nil, errors.Errorf("Issue polling permissioning: %+v", err)
+	// Construct sender interface
+	sendFunc := func(h *connect.Host) (interface{}, error) {
+		return instance.GetNetwork().SendPoll(permHost, pollMsg)
 	}
 
+	sender := Sender{
+		Send: sendFunc,
+		Name: "Poll",
+	}
+
+	// Attempt Node registration
+	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
+	face, err := Send(sender, instance, authHost)
+	if err != nil {
+		return nil, errors.Errorf("Unable to send %s: %+v", sender.Name, err)
+	}
+
+	// Process response
+	permissioningResponse := face.(*pb.PermissionPollResponse)
 	return permissioningResponse, err
 }
 
@@ -255,7 +291,7 @@ func queueUntilRealtime(instance *internal.Instance, start time.Time) {
 	}
 }
 
-// Processes the polling response from permissioning for round updates,
+// UpdateRounds processes the polling response from permissioning for round updates,
 // installing any round changes if needed. It also parsed the message and
 // determines where to transition given context
 func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
@@ -297,7 +333,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 			// Depending on the state in the roundInfo
 			switch states.Round(roundInfo.State) {
 			case states.PENDING:
-				// Don't do anything
+				// Do nothing
 			case states.PRECOMPUTING: // Prepare for precomputing state
 
 				// Standby until in WAITING state to ensure a valid transition into precomputing
@@ -320,7 +356,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 				}
 			case states.STANDBY:
 				// Don't do anything
-
 			case states.QUEUED: // Prepare for realtime state
 				// Wait until in STANDBY to ensure a valid transition into precomputing
 				curActivity, err := instance.GetStateMachine().WaitFor(250*time.Millisecond, current.STANDBY)
@@ -395,7 +430,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 	return nil
 }
 
-// Processes the polling response from permissioning for ndf updates,
+// UpdateNDf processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes. Also saves
 // a list of node addresses found in the NDF to a separate file.
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
@@ -412,6 +447,8 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		if err != nil {
 			jww.ERROR.Printf("Failed to save list of IP addresses from NDF: %v", err)
 		}
+
+		jww.INFO.Printf("New NDF Received, hash: %s", base64.StdEncoding.EncodeToString(instance.GetConsensus().GetFullNdf().GetHash()))
 	}
 
 	if permissioningResponse.PartialNDF != nil {

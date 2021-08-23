@@ -12,5 +12,5 @@ import (
 
 // ReceivePermissioningAddressPing returns the permissioning server's address.
 func ReceivePermissioningAddressPing(instance *internal.Instance) (string, error) {
-	return instance.GetDefinition().Permissioning.Address, nil
+	return instance.GetDefinition().Network.Address, nil
 }

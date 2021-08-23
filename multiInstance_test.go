@@ -19,7 +19,6 @@ import (
 	"math/rand"
 	"net"
 	"runtime"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -152,8 +151,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 		sm := state.NewMachine(testStates)
 
-		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm,
-			"1.1.0")
+		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, "1.1.0")
 		client := storage.Client{
 			Id:           userID.Marshal(),
 			DhKey:        baseKeys[i].Bytes(),
@@ -257,12 +255,16 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 	// Wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 
-	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
-	if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
-		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
-	}
-	if cr != nil {
-		completedBatch.Slots = cr.Round
+	if !errorPhase {
+		rid, err := instances[numNodes-1].GetCompletedBatchRID()
+		if err != nil {
+			t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
+		}
+
+		cr, _ := instances[numNodes-1].GetCompletedBatch(rid)
+		if cr != nil {
+			completedBatch.Slots = cr.Round
+		}
 	}
 	// --- BUILD PROBING TOOLS -------------------------------------------------
 

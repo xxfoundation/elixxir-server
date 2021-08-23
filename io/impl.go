@@ -37,6 +37,10 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
+	impl.Functions.DownloadMixedBatch = func(stream pb.Node_DownloadMixedBatchServer, batchInfo *pb.BatchReady, auth *connect.Auth) error {
+		return DownloadMixedBatch(instance, batchInfo, stream, auth)
+	}
+
 	impl.Functions.GetNdf = func() (*interconnect.NDF, error) {
 		response, err := GetNdf(instance)
 		if err != nil {
@@ -97,10 +101,10 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return err
 	}
 
-	impl.Functions.PostNewBatch = func(newBatch *mixmessages.Batch, auth *connect.Auth) error {
-		err := ReceivePostNewBatch(instance, newBatch, PostPhase, auth)
+	impl.Functions.UploadUnmixedBatch = func(stream pb.Node_UploadUnmixedBatchServer, auth *connect.Auth) error {
+		err := ReceiveUploadUnmixedBatchStream(instance, stream, PostPhase, auth)
 		if err != nil {
-			jww.ERROR.Printf("ReceivePostNewBatch error: %+v, %+v", auth, err)
+			jww.ERROR.Printf("ReceiveUploadUnmixedBatchStream error: %+v, %+v", auth, err)
 		}
 		return err
 	}

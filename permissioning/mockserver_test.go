@@ -10,6 +10,7 @@ package permissioning
 import (
 	crand "crypto/rand"
 	"fmt"
+	"gitlab.com/elixxir/comms/authorizer"
 	"sync"
 	"testing"
 	"time"
@@ -39,6 +40,47 @@ import (
 
 var count = 0
 var countLock sync.Mutex
+
+// --------------------------------Dummy implementation of authorizer------------------------------------------
+type mockAuthorizer struct{}
+
+func (a *mockAuthorizer) Authorize(auth *pb.AuthorizerAuth, ipAddr string) (err error) {
+	return nil
+}
+
+type mockAuthorizerErrorPath struct{}
+
+func (a *mockAuthorizerErrorPath) Authorize(auth *pb.AuthorizerAuth, ipAddr string) (err error) {
+	return errors.Errorf("Could not authorize")
+}
+
+func startAuthorizer(addr, nAddr string, nodeId *id.ID, cert, key []byte) (*authorizer.Comms, error) {
+	mockHandler := authorizer.Handler(&mockAuthorizer{})
+	authComms := authorizer.StartAuthorizerServer(&id.Authorizer, addr, mockHandler, cert, key)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+
+	_, err := authComms.AddHost(nodeId, nAddr, cert, params)
+	if err != nil {
+		return nil, errors.Errorf("Authorizer could not connect to node: %v", err)
+	}
+
+	return authComms, nil
+}
+
+func startAuthorizerErrorPath(addr, nAddr string, nodeId *id.ID, cert, key []byte) (*authorizer.Comms, error) {
+	mockHandler := authorizer.Handler(&mockAuthorizerErrorPath{})
+	authComms := authorizer.StartAuthorizerServer(&id.Authorizer, addr, mockHandler, cert, key)
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+
+	_, err := authComms.AddHost(nodeId, nAddr, cert, params)
+	if err != nil {
+		return nil, errors.Errorf("Authorizer could not connect to node: %v", err)
+	}
+
+	return authComms, nil
+}
 
 // --------------------------------Dummy implementation of permissioning server --------------------------------
 type mockPermission struct {
@@ -90,6 +132,106 @@ func (i *mockPermission) GetCurrentClientVersion() (string, error) {
 }
 
 func (i *mockPermission) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
+	return nil, nil
+}
+
+// --------------------------------Dummy implementation of permissioning server w/ connection error  ----------------
+
+type mockPermission_ConnectionError struct {
+	cert []byte
+	key  []byte
+}
+
+func (i *mockPermission_ConnectionError) PollNdf([]byte) (*pb.NDF, error) {
+	return nil, errors.Errorf("connection refused")
+}
+
+func (i *mockPermission_ConnectionError) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+	return nil, errors.Errorf("connection refused")
+}
+
+func (i *mockPermission_ConnectionError) RegisterNode([]byte, string, string, string, string, string) error {
+	return errors.Errorf("connection refused")
+}
+
+func (i *mockPermission_ConnectionError) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
+
+	return nil, errors.Errorf("connection refused")
+}
+
+func (i *mockPermission_ConnectionError) CheckRegistration(msg *pb.RegisteredNodeCheck) (confirmation *pb.RegisteredNodeConfirmation, e error) {
+	return nil, errors.Errorf("connection refused")
+}
+
+func (i *mockPermission_ConnectionError) GetCurrentClientVersion() (string, error) {
+	return "0.0.0", errors.Errorf("connection refused")
+}
+
+func (i *mockPermission_ConnectionError) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
+	return nil, errors.Errorf("connection refused")
+}
+
+// --------------------------------Dummy implementation of permissioning server w/ connection error  ----------------
+
+type mockPermission_ConnectionErrorOnce struct {
+	count int
+	cert  []byte
+	key   []byte
+}
+
+func (i *mockPermission_ConnectionErrorOnce) PollNdf([]byte) (*pb.NDF, error) {
+	if i.count == 0 {
+		i.count++
+		return nil, errors.Errorf("connection refused")
+	}
+	return nil, nil
+}
+
+func (i *mockPermission_ConnectionErrorOnce) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+	if i.count == 0 {
+		i.count++
+		return nil, errors.Errorf("connection refused")
+	}
+	return nil, nil
+}
+
+func (i *mockPermission_ConnectionErrorOnce) RegisterNode([]byte, string, string, string, string, string) error {
+	if i.count == 0 {
+		i.count++
+		return errors.Errorf("connection refused")
+	}
+	return nil
+}
+
+func (i *mockPermission_ConnectionErrorOnce) Poll(*pb.PermissioningPoll, *connect.Auth) (*pb.PermissionPollResponse, error) {
+	if i.count == 0 {
+		i.count++
+		return nil, errors.Errorf("connection refused")
+	}
+	return nil, nil
+}
+
+func (i *mockPermission_ConnectionErrorOnce) CheckRegistration(msg *pb.RegisteredNodeCheck) (confirmation *pb.RegisteredNodeConfirmation, e error) {
+	if i.count == 0 {
+		i.count++
+		return nil, errors.Errorf("connection refused")
+	}
+	return nil, nil
+}
+
+func (i *mockPermission_ConnectionErrorOnce) GetCurrentClientVersion() (string, error) {
+	if i.count == 0 {
+		i.count++
+		return "nil", errors.Errorf("connection refused")
+	}
+	return "", nil
+}
+
+func (i *mockPermission_ConnectionErrorOnce) GetUpdatedNDF(clientNDFHash []byte) ([]byte, error) {
+	if i.count == 0 {
+		i.count++
+		return nil, errors.Errorf("connection refused")
+	}
 	return nil, nil
 }
 
@@ -377,7 +519,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 		ListeningAddress: nodeAddr,
 		LogPath:          "",
 		MetricLogPath:    "",
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
 		},
@@ -407,8 +549,7 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	}
 
 	// Generate instance
-	instance, err = internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+	instance, err = internal.CreateServerInstance(def, impl, sm, "1.1.0")
 	if err != nil {
 		return
 	}
@@ -416,8 +557,8 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, params)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
+		def.Network.TlsCert, params)
 	if err != nil {
 		return
 	}
@@ -433,7 +574,7 @@ func startPermissioning(pAddr, nAddr string, nodeId *id.ID, cert, key []byte) (*
 		cert: cert,
 		key:  key,
 	})
-	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
@@ -452,7 +593,7 @@ func startMultipleRoundUpdatesPermissioning(pAddr, nAddr string, nodeId *id.ID, 
 	})
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
 	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
 	if err != nil {
 		return nil, errors.Errorf("Permissioning could not connect to node")
@@ -460,4 +601,39 @@ func startMultipleRoundUpdatesPermissioning(pAddr, nAddr string, nodeId *id.ID, 
 
 	return permComms, nil
 
+}
+
+func startPermissioning_ConnectionError(pAddr, nAddr string, nodeId *id.ID, cert, key []byte) (*registration.Comms, error) {
+	// Initialize permissioning server
+	pHandler := registration.Handler(&mockPermission_ConnectionError{
+		cert: cert,
+		key:  key,
+	})
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
+	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
+	if err != nil {
+		return nil, errors.Errorf("Permissioning could not connect to node")
+	}
+
+	return permComms, nil
+
+}
+
+func startPermissioning_ConnectionErrorOnce(pAddr, nAddr string, nodeId *id.ID, cert, key []byte) (*registration.Comms, error) {
+	// Initialize permissioning server
+	pHandler := registration.Handler(&mockPermission_ConnectionErrorOnce{
+		cert: cert,
+		key:  key,
+	})
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
+	_, err := permComms.AddHost(nodeId, nAddr, cert, params)
+	if err != nil {
+		return nil, errors.Errorf("Permissioning could not connect to node")
+	}
+
+	return permComms, nil
 }

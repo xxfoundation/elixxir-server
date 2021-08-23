@@ -69,8 +69,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	// Here we create a server instance so that we can test the poll ndf.
 	m := state.NewTestMachine(dummyStates, testState, t)
 
-	instance, err := internal.CreateServerInstance(&def, NewImplementation,
-		m, "1.1.0")
+	instance, err := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
 	if err != nil {
 		t.Logf("failed to create server Instance")
 		t.Fail()
@@ -179,10 +178,6 @@ func TestReceivePoll_NoUpdates(t *testing.T) {
 		t.Fail()
 	}
 
-	if res.Batch != nil {
-		t.Errorf("ServerPollResponse.Batch is not nil")
-		t.Fail()
-	}
 	if res.BatchRequest != nil {
 		t.Errorf("ServerPollResponse.BatchRequest is not nil")
 		t.Fail()
@@ -430,8 +425,9 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 
 	dr := round.NewDummyRound(23, 10, t)
 	instance.GetRoundManager().AddRound(dr)
+	rid := id.Round(32)
 	cr := round.CompletedRound{
-		RoundID: id.Round(23),
+		RoundID: rid,
 		Round:   make([]*pb.Slot, 10),
 	}
 
@@ -439,7 +435,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		cr.Round[i] = &pb.Slot{Index: uint32(i)}
 	}
 
-	err = instance.GetCompletedBatchQueue().Send(&cr)
+	err = instance.AddCompletedBatch(&cr)
 	if err != nil {
 		t.Logf("We failed to send a completed batch: %v", err)
 	}
@@ -453,19 +449,23 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		Sender:          h,
 	}
 
-	res, err := ReceivePoll(poll, &instance, auth)
+	_, err = ReceivePoll(poll, &instance, auth)
 	if err != nil {
-		t.Logf("Unexpected error %v", err)
-		t.Fail()
+		t.Fatalf("Unexpected error %v", err)
 	}
 
-	if len(res.Batch.Slots) != 10 {
+	completedRound, ok := instance.GetCompletedBatch(rid)
+	if !ok {
+		t.Errorf("Could not find completed batch in store")
+	}
+
+	if len(completedRound.Round) != 10 {
 		t.Logf("We did not receive the expected amount of slots")
 		t.Fail()
 	}
 
 	for k := uint32(0); k < 10; k++ {
-		if res.Batch.Slots[k].Index != k {
+		if completedRound.Round[k].Index != k {
 			t.Logf("Slots did not match expected index")
 		}
 	}

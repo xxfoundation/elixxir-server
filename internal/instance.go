@@ -18,6 +18,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -67,10 +68,10 @@ type Instance struct {
 	gatewayFirstPoll *FirstTime
 
 	// Channels
-	createRoundQueue    round.Queue
-	completedBatchQueue round.CompletedQueue
-	realtimeRoundQueue  round.Queue
-	clientErrors        *round.ClientReport
+	createRoundQueue   round.Queue
+	killInstance       chan chan struct{}
+	realtimeRoundQueue round.Queue
+	clientErrors       *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -93,6 +94,10 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
+
+	// Map containing completed batches to pass back to gateway
+	completedBatch    map[id.Round]*round.CompletedRound
+	completedBatchMux sync.RWMutex
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -118,8 +123,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
+		killInstance:         make(chan chan struct{}, 1),
 		gatewayPoll:          NewFirstTime(),
-		completedBatchQueue:  round.NewCompletedQueue(),
+		completedBatch:       make(map[id.Round]*round.CompletedRound),
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
@@ -172,18 +178,21 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		instance.definition.InterconnectPort, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
+
 	// Initializes the network state tracking on this server instance
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
 		def.PartialNDF, def.FullNDF, nil, network.Strict, false)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
+
 	// Handle overriding local IP
 	if instance.GetDefinition().OverrideInternalIP != "" {
 
 		instance.consensus.GetIpOverrideList().Override(instance.GetDefinition().
 			ID, instance.GetDefinition().OverrideInternalIP)
 	}
+
 	// Connect to our gateway
 	_, err = instance.network.AddHost(&id.TempGateway,
 		"", instance.definition.Gateway.TlsCert, connect.GetDefaultHostParams())
@@ -205,14 +214,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	return instance, nil
 }
 
-// Wrap CreateServerInstance, taking a recovered error file
+// RecoverInstance wraps CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine,
-		version)
+	i, err = CreateServerInstance(def, makeImplementation, machine, version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
@@ -278,7 +286,7 @@ func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
 }
 
-// GetStateMachine returns state machine tracking the phase share status
+// GetPhaseShareMachine returns state machine tracking the phase share status
 // todo: consider removing, may not be needed for final phase share design
 func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
 	return i.phaseStateMachine
@@ -351,7 +359,7 @@ func (i *Instance) GetKeepBuffers() bool {
 
 //GetRegServerPubKey returns the public key of the registration server
 func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
-	return i.definition.Permissioning.PublicKey
+	return i.definition.Network.PublicKey
 }
 
 // FIXME Populate this from the YAML or something
@@ -374,7 +382,8 @@ func (i *Instance) GetGatewayCertPath() string {
 	return i.definition.GatewayCertPath
 }
 
-//Returns true if this is the first time this is called, otherwise returns false
+// IsFirstPoll returns true if this is the
+// first time this is called, otherwise returns false
 func (i *Instance) IsFirstPoll() bool {
 	return atomic.SwapUint32(i.firstPoll, 1) == 0
 }
@@ -394,8 +403,8 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
 }
 
-func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
-	return i.completedBatchQueue
+func (i *Instance) GetKillChan() chan chan struct{} {
+	return i.killInstance
 }
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {
@@ -633,4 +642,52 @@ func (i *Instance) GetStreamPool() *gpumaths.StreamPool {
 // streaming will be used.
 func (i *Instance) GetDisableStreaming() bool {
 	return i.definition.DisableStreaming
+}
+
+// WaitUntilRoundCompletes is called once a kill signal is received.
+// It returns on one of two conditions: Either the current round is completed,
+// or duration time units have occurred, causing a timeout.
+// Round completion is monitored by sending a channel through another
+// channel (chan chan struct{}), and on round completion,
+// we send to that channel and receive here.
+func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
+	k := make(chan struct{})
+	jww.INFO.Printf("Waiting for round to complete before closing...")
+	i.killInstance <- k
+	jww.TRACE.Printf("Sent kill signal, waiting for response")
+	select {
+	case <-k:
+		jww.INFO.Printf("Round completed, closing!\n")
+	case <-time.After(duration):
+		jww.ERROR.Print("Round took too long to complete, closing!")
+	}
+}
+
+func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
+	i.completedBatchMux.Lock()
+	defer i.completedBatchMux.Unlock()
+	i.completedBatch[cr.RoundID] = cr
+	return nil
+}
+
+func (i *Instance) GetCompletedBatch(rid id.Round) (*round.CompletedRound, bool) {
+	i.completedBatchMux.Lock()
+
+	defer i.completedBatchMux.Unlock()
+	cr, ok := i.completedBatch[rid]
+	delete(i.completedBatch, rid)
+	return cr, ok
+}
+
+const NoCompletedBatch = "No round to report on"
+
+func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
+	i.completedBatchMux.RLock()
+	defer i.completedBatchMux.RUnlock()
+
+	for roundId := range i.completedBatch {
+		return roundId, nil
+	}
+
+	return 0, errors.New(NoCompletedBatch)
 }

@@ -247,7 +247,7 @@ func TestInstance_GetPubKey(t *testing.T) {
 func TestInstance_GetRegServerPubKey(t *testing.T) {
 	instance, def := createInstance(t)
 
-	if def.Permissioning.PublicKey != instance.GetRegServerPubKey() {
+	if def.Network.PublicKey != instance.GetRegServerPubKey() {
 		t.Logf("GetMetricLog returned unexpected value")
 		t.Fail()
 	}

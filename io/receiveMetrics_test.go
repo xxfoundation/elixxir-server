@@ -59,8 +59,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		"1.1.0")
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
 
 	// Set up a round first node
 	roundID := id.Round(45)

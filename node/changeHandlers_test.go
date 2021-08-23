@@ -47,12 +47,14 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		ResourceMonitor:    &measure.ResourceMonitor{},
 		FullNDF:            testUtil.NDF,
 		PartialNDF:         testUtil.NDF,
+		TlsCert:            []byte(testUtil.RegCert),
+		TlsKey:             []byte(testUtil.RegPrivKey),
 		GraphGenerator:     gg,
 		RecoveredErrorPath: "/tmp/recovered_error",
 		Gateway: internal.GW{
-			Address: "0.0.0.0:11420",
+			Address: "127.0.0.1:11420",
 		},
-		ListeningAddress: "0.0.0.0:11421",
+		ListeningAddress: "127.0.0.1:11421",
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()
@@ -70,10 +72,8 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 		func(from current.Activity, err *mixmessages.RoundError) error { return nil },
 	}
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	fmt.Println("1")
-	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation,
-		m, "1.1.0")
-	fmt.Println("2")
+	instance, _ = internal.CreateServerInstance(&def, io.NewImplementation, m, "1.1.0")
+
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	_, err := instance.GetNetwork().AddHost(&id.Permissioning, testUtil.NDF.Registration.Address,
@@ -86,6 +86,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 	instance.GetRoundManager().AddRound(r)
 	_ = instance.Run()
 	fmt.Println("05")
+	instance.Online = true
 	return instance, topology
 }
 
@@ -218,17 +219,20 @@ func TestPrecomputing(t *testing.T) {
 		nid := topology.GetNodeAtIndex(i)
 		top = append(top, nid.Marshal())
 		params := connect.GetDefaultHostParams()
-		params.MaxRetries = 0
-		_, err = instance.GetNetwork().AddHost(nid, "0.0.0.0", []byte(testUtil.RegCert), params)
+		params.MaxRetries = 1
+		instance.GetNetwork().RemoveHost(nid)
+		_, err = instance.GetNetwork().AddHost(nid, "127.0.0.1:11421",
+			[]byte(testUtil.RegCert), params)
 		if err != nil {
 			t.Errorf("Failed to add host: %+v", err)
 		}
 	}
 
 	newRoundInfo := &mixmessages.RoundInfo{
-		ID:        0,
-		Topology:  top,
-		BatchSize: 32,
+		ID:                         0,
+		Topology:                   top,
+		BatchSize:                  32,
+		ResourceQueueTimeoutMillis: 2000,
 	}
 
 	// Mocking permissioning server signing message
@@ -253,7 +257,7 @@ func TestPrecomputing(t *testing.T) {
 	}
 
 	err = Precomputing(instance)
-	if err != nil {
+	if err != nil && err.Error()[:29] != "Timed out connecting to nodes" {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
 
@@ -324,7 +328,7 @@ func TestPrecomputing_override(t *testing.T) {
 	}
 
 	err = Precomputing(instance)
-	if err != nil {
+	if err != nil && err.Error()[0:29] != "Timed out connecting to nodes" {
 		t.Errorf("Failed to precompute: %+v", err)
 	}
 
@@ -346,27 +350,21 @@ func TestIsRegistered(t *testing.T) {
 
 	// Start up permissioning server
 	permComms, mockPermissioning, err := startPermissioning(pAddr, nAddr, nodeId, cert, key, t)
-
 	if err != nil {
 		t.Errorf("Couldn't create permissioning server: %+v", err)
 	}
 	defer permComms.Shutdown()
 
-	// Add retrieve permissioning host from instance
-	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
-	if !ok {
-		t.Fatal("Didn't get a permissioning host. Failing now")
-	}
-	result := isRegistered(instance, permHost)
+	result := isRegistered(instance)
 	const expected = true
 	if result != expected {
 		t.Errorf("Expected response from mock permissioning to be %v. Got %v instead", expected, result)
 	}
 
 	// It should be possible to see this error in the test logs
-	expectedErr := errors.New("mock error")
+	expectedErr := errors.New("check could not be processed")
 	mockPermissioning.SetDesiredError(expectedErr)
-	result = isRegistered(instance, permHost)
+	result = isRegistered(instance)
 	const expectedWhenErr = false
 	if result != expectedWhenErr {
 		t.Error("isRegistered should return false when permissioning returns an error")
