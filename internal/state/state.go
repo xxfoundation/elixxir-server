@@ -159,11 +159,11 @@ func NewMachine(changeList [current.NUM_STATES]Change) Machine {
 
 	//add state transitions
 	M.addStateTransition(current.NOT_STARTED, current.WAITING, current.ERROR, current.CRASH)
-	M.addStateTransition(current.WAITING, current.PRECOMPUTING, current.ERROR)
-	M.addStateTransition(current.PRECOMPUTING, current.STANDBY, current.ERROR)
-	M.addStateTransition(current.STANDBY, current.REALTIME, current.ERROR)
-	M.addStateTransition(current.REALTIME, current.COMPLETED, current.ERROR)
-	M.addStateTransition(current.COMPLETED, current.WAITING, current.ERROR)
+	M.addStateTransition(current.WAITING, current.PRECOMPUTING, current.ERROR, current.CRASH)
+	M.addStateTransition(current.PRECOMPUTING, current.STANDBY, current.ERROR, current.CRASH)
+	M.addStateTransition(current.STANDBY, current.REALTIME, current.ERROR, current.CRASH)
+	M.addStateTransition(current.REALTIME, current.COMPLETED, current.ERROR, current.CRASH)
+	M.addStateTransition(current.COMPLETED, current.WAITING, current.ERROR, current.CRASH)
 	M.addStateTransition(current.ERROR, current.WAITING, current.ERROR, current.CRASH)
 	M.addStateTransition(current.CRASH, current.WAITING, current.CRASH)
 
