@@ -195,7 +195,7 @@ func (m Machine) Update(nextState current.Activity) (bool, error) {
 
 	// check if the requested state change is valid
 	if !m.stateMap[*m.Activity][nextState] {
-		// return an error if state change if invalid
+		// return an error if state change is invalid
 		return false, errors.Errorf("not a valid state change from "+
 			"%s to %s", *m.Activity, nextState)
 	}

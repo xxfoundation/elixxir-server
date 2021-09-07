@@ -11,6 +11,7 @@ package permissioning
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -29,7 +30,7 @@ import (
 )
 
 // RegisterNode performs the Node registration with the network
-func RegisterNode(def *internal.Definition, instance *internal.Instance, permHost *connect.Host) error {
+func RegisterNode(def *internal.Definition, instance *internal.Instance) error {
 	// We don't check validity here, because the registration server should.
 	node, nodePort, err := net.SplitHostPort(def.PublicAddress)
 	if err != nil {
@@ -79,7 +80,7 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance, permHos
 	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
 	_, err = Send(sender, instance, authHost)
 	if err != nil {
-		return errors.Errorf("Unable to send Node registration: %+v", err)
+		return errors.Errorf("Unable to send %s: %+v", sender.Name, err)
 	}
 
 	return nil
@@ -223,11 +224,11 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		Name: "Poll",
 	}
 
-	// Attempt Node registration
+	// Attempt to send Permissioning Poll
 	authHost, _ := instance.GetNetwork().GetHost(&id.Authorizer)
 	face, err := Send(sender, instance, authHost)
 	if err != nil {
-		return nil, errors.Errorf("Unable to send Node registration: %+v", err)
+		return nil, errors.Errorf("Unable to send %s: %+v", sender.Name, err)
 	}
 
 	// Process response
@@ -416,6 +417,8 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		if err != nil {
 			jww.ERROR.Printf("Failed to save list of IP addresses from NDF: %v", err)
 		}
+
+		jww.INFO.Printf("New NDF Received, hash: %s", base64.StdEncoding.EncodeToString(instance.GetConsensus().GetFullNdf().GetHash()))
 	}
 
 	if permissioningResponse.PartialNDF != nil {

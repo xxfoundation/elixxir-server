@@ -8,7 +8,6 @@
 package permissioning
 
 import (
-	"context"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -71,18 +70,20 @@ func Send(sender Sender, instance *internal.Instance, authHost *connect.Host) (r
 		return nil, errors.New("Could not get permissioning host")
 	}
 	response, err = sender.Send(permHost)
-	if authHost == nil || (err != nil &&
-		!strings.Contains(strings.ToLower(err.Error()), "connection refused") &&
-			!strings.Contains(strings.ToLower(err.Error()), context.DeadlineExceeded.Error())) {
+	if err == nil {
+		return response, nil
+	} else if authHost == nil || !strings.Contains(strings.ToLower(err.Error()),
+		"giving up") {
 		return response, err
 	}
 
 	// Attempt to authorize
 	jww.WARN.Printf("Failed to send %s to permissioning "+
 		"due to potential authorization error, attempting to authorize...", sender.String())
-	err = errors.New("dummy")
-	for err != nil {
-		err = Authorize(instance, authHost)
+
+	for err = Authorize(instance, authHost); err != nil; {
+		jww.WARN.Printf("Failed to authorize with %s, trying again: %+v", authHost.GetAddress(), err)
+		time.Sleep(time.Second)
 	}
 
 	// If we had to authorize, retry the comm again

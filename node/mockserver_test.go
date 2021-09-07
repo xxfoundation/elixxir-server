@@ -220,7 +220,7 @@ func startPermissioning(pAddr, nAddr string, nodeId *id.ID, cert, key []byte, t 
 	// Initialize permissioning server
 	mp := &mockPermission{}
 	pHandler := registration.Handler(mp)
-	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key)
+	permComms := registration.StartRegistrationServer(&id.Permissioning, pAddr, pHandler, cert, key, nil)
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	_, err := permComms.AddHost(nodeId, nAddr, cert, params)

@@ -24,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
 	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
@@ -60,7 +61,7 @@ func NotStarted(instance *internal.Instance) error {
 	// Request network access via the authorizer server
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	if !instance.GetDefinition().DevMode &&
+	if !instance.GetDefinition().RawPermAddr &&
 		!strings.HasPrefix(ourDef.Network.Address, "permissioning.") &&
 		!utils.IsIP(ourDef.Network.Address) { // Only have a valid authorizer in mainNet
 		_, err := network.AddHost(&id.Authorizer,
@@ -75,36 +76,34 @@ func NotStarted(instance *internal.Instance) error {
 	// Connect to the Permissioning Server without authentication
 	params = connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	var permHost *connect.Host
-	if instance.GetDefinition().DevMode || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
+	params.MaxRetries = 3
+
+	var permAddr string
+	if instance.GetDefinition().RawPermAddr || strings.Contains(ourDef.Network.Address, "permissioning.") {
 		// If we are running/testing a local network, no prepending is
 		// necessary. It is assumed the configurations are properly and
 		// explicitly set.
-		permHost, err = network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
-			ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
+		permAddr = ourDef.Network.Address
 	} else {
 		// This is for live network execution, in which prepending the network
 		// address with a specific string allows you to communicate with the
 		// network
-		permHost, err = network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
-			schedulingPrefix+ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
+		permAddr = schedulingPrefix + ourDef.Network.Address
 	}
+	jww.INFO.Printf("Connecting to scheduling with address: %s, from input %s", permAddr, ourDef.Network.Address)
+
+	permHost, err := network.AddHost(&id.Permissioning,
+		// instance.GetPermissioningAddress,
+		permAddr,
+		ourDef.Network.TlsCert,
+		params)
 
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
-	// Determine if the node has registered already
-	isRegistered := isRegistered(instance, permHost)
-
 	// If the certificates were retrieved from file, so do not need to register
-	if !isRegistered {
+	if !isRegistered(instance) {
 		instance.IsFirstRun()
 
 		// Blocking call which waits until gateway
@@ -115,7 +114,7 @@ func NotStarted(instance *internal.Instance) error {
 
 		// Blocking call: begin Node registration
 		jww.INFO.Printf("Registering with permissioning...")
-		err = permissioning.RegisterNode(ourDef, instance, permHost)
+		err = permissioning.RegisterNode(ourDef, instance)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") &&
 				strings.Contains(err.Error(), "has already been registered") {
@@ -140,26 +139,12 @@ func NotStarted(instance *internal.Instance) error {
 	// full NDF
 	// do this even if you have the certs to ensure the permissioning server is
 	// ready for servers to connect to it
-	params = connect.GetDefaultHostParams()
-	params.MaxRetries = 0
-	if instance.GetDefinition().DevMode || strings.HasPrefix(ourDef.Network.Address, "permissioning.") {
-		// If we are running/testing a local network, no prepending is
-		// necessary. It is assumed the configurations are properly and
-		// explicitly set.
-		permHost, err = network.AddHost(&id.Permissioning,
-			ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
-	} else {
-		// This is for live network execution, in which prepending the network
-		// address with a specific string allows you to communicate with the
-		// network
-		permHost, err = network.AddHost(&id.Permissioning,
-			// instance.GetPermissioningAddress,
-			schedulingPrefix+ourDef.Network.Address,
-			ourDef.Network.TlsCert,
-			params)
-	}
+	params.AuthEnabled = true
+	permHost, err = network.AddHost(&id.Permissioning,
+		permAddr,
+		ourDef.Network.TlsCert,
+		params)
+
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
@@ -207,7 +192,15 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Then we ping ourselfs to make sure we can communicate
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
-	if exists && host.IsOnline() {
+	start := time.Now()
+	isOnline := host.IsOnline()
+	delta := time.Since(start)
+	if exists && isOnline {
+		if delta > 2*time.Second {
+			return errors.Errorf("took too long to contact local address %s, took %s. "+
+				"please change network settings or set flag OverrideInternalIP",
+				host.GetAddress(), delta)
+		}
 		jww.DEBUG.Printf("Successfully contacted local address!")
 	} else if exists {
 		return errors.Errorf("unable to contact local address: %s",
@@ -383,6 +376,14 @@ func Precomputing(instance *internal.Instance) error {
 	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
 
+	// If the other servers in the round do not respond in under 2 seconds
+	// then fail the round.
+	err = io.VerifyServersOnline(instance.GetNetwork(), circuit,
+		2*time.Second)
+	if err != nil {
+		return err
+	}
+
 	if circuit.IsFirstNode(instance.GetID()) {
 		err := StartLocalPrecomp(instance, roundID)
 		if err != nil {
@@ -549,7 +550,7 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 const regCheckError = "Check could not be processed"
 
 /// Checks with permissioning whether we are a network member already
-func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
+func isRegistered(serverInstance *internal.Instance) bool {
 	regCheck := &mixmessages.RegisteredNodeCheck{
 		ID: serverInstance.GetID().Bytes(),
 	}
@@ -570,6 +571,7 @@ func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) boo
 	face, err := permissioning.Send(sender, serverInstance, authHost)
 	for err != nil &&
 		!strings.Contains(strings.ToLower(err.Error()), "check could not be processed") {
+		jww.WARN.Printf("Error received while performing registration check, retrying: %+v", err)
 		face, err = permissioning.Send(sender, serverInstance, authHost)
 	}
 	if err != nil {
