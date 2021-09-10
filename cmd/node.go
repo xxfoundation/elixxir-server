@@ -24,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/primitives/hw"
 	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
@@ -34,6 +35,8 @@ import (
 // StartServer reads configuration options and starts the cMix server
 func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
+
+	hw.LogHardware()
 
 	jww.INFO.Printf("Log Filename (node.paths.log): %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Log Filename (cmix.paths.log): %v\n", vip.GetString("cmix.paths.log"))
