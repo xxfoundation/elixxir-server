@@ -36,11 +36,7 @@ import (
 func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
 
-	err := hw.LogHardware()
-	if err != nil {
-		jww.ERROR.Print(err)
-	}
-
+	hw.LogHardware()
 
 	jww.INFO.Printf("Log Filename (node.paths.log): %v\n", vip.GetString("node.paths.log"))
 	jww.INFO.Printf("Log Filename (cmix.paths.log): %v\n", vip.GetString("cmix.paths.log"))
