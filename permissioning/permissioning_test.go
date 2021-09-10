@@ -128,14 +128,8 @@ func TestRegisterNode(t *testing.T) {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
-	// Fetch permissioning host
-	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
-	if !ok {
-		t.Errorf("Could not get permissioning host. Was it added?")
-	}
-
 	// Register node with permissioning
-	err = RegisterNode(def, instance, permHost)
+	err = RegisterNode(def, instance)
 	if err != nil {
 		t.Errorf("Failed to register node: %+v", err)
 	}
@@ -746,13 +740,13 @@ func TestRegistration(t *testing.T) {
 		// Fetch permissioning host
 		params := connect.GetDefaultHostParams()
 		params.MaxRetries = 0
-		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address, def.Network.TlsCert, params)
+		_, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address, def.Network.TlsCert, params)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
 
 		// Register with node
-		err = RegisterNode(def, instance, permHost)
+		err = RegisterNode(def, instance)
 		if err != nil {
 			t.Error(err)
 		}

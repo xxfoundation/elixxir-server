@@ -114,7 +114,7 @@ func NotStarted(instance *internal.Instance) error {
 
 		// Blocking call: begin Node registration
 		jww.INFO.Printf("Registering with permissioning...")
-		err = permissioning.RegisterNode(ourDef, instance, permHost)
+		err = permissioning.RegisterNode(ourDef, instance)
 		if err != nil {
 			if strings.Contains(err.Error(), "Node with registration code") &&
 				strings.Contains(err.Error(), "has already been registered") {
