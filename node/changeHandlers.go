@@ -214,8 +214,9 @@ func NotStarted(instance *internal.Instance) error {
 	//init the database
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
+	// todo: remove this once all database-less realtime tickets are complete
 	userDatabase := instance.GetStorage()
-	if instance.GetDefinition().DevMode && instance.GetDefinition().UsePrecanKeys {
+	if instance.GetDefinition().DevMode {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
 		PopulateDummyUsers(userDatabase, cmixGrp)

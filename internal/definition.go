@@ -97,8 +97,9 @@ type Definition struct {
 	DbPort     string
 
 	// Miscellaneous parameters
-	DevMode       bool
-	RawPermAddr   bool
+	DevMode     bool
+	RawPermAddr bool
+	// todo: utilize this in registration
 	UsePrecanKeys bool
 }
 
