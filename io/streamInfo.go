@@ -5,13 +5,14 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-package conf
+package io
 
-// Contains Database config params
-type Database struct {
-	Name     string
-	Username string
-	Password string
-	Address  string
-	Port     string
+import "time"
+
+// StreamInfo is an object which tracks the start
+// and end of stream reception. Used for bandwidth logging
+// for streaming
+type streamInfo struct {
+	Start time.Time
+	End   time.Time
 }

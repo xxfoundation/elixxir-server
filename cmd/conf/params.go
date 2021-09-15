@@ -9,6 +9,12 @@ package conf
 
 import (
 	gorsa "crypto/rsa"
+	"net"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -24,11 +30,6 @@ import (
 	"gitlab.com/xx_network/primitives/id/idf"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
-	"net"
-	"runtime"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // The default path to save the list of node IP addresses
@@ -45,10 +46,10 @@ type Params struct {
 	SignedGatewayCertPath string
 	RegistrationCode      string
 
-	Node          Node
+	Node          Node `yaml:"cmix"`
 	Database      Database
 	Gateway       Gateway
-	Permissioning Permissioning
+	Permissioning Permissioning `yaml:"scheduling"`
 	Metrics       Metrics
 	GraphGen      GraphGen
 
@@ -56,7 +57,8 @@ type Params struct {
 	OverrideRound    int
 	RecoveredErrPath string
 
-	DevMode bool
+	DevMode     bool
+	RawPermAddr bool
 }
 
 // NewParams gets elements of the viper object
@@ -75,15 +77,23 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params := Params{}
 
 	params.RegistrationCode = vip.GetString("registrationCode")
-	require(params.RegistrationCode, "registrationCode")
 
-	params.Node.Port = vip.GetInt("node.Port")
-	if params.Node.Port == 0 {
+	if vip.IsSet("cmix.port") {
+		params.Node.Port = vip.GetInt("cmix.port")
+	} else if vip.IsSet("node.port") {
+		params.Node.Port = vip.GetInt("node.port")
+	} else {
 		jww.FATAL.Panic("Must specify a port to run on")
 	}
 
 	// Get server's public IP address or use the override IP, if set
-	overridePublicIP := vip.GetString("node.overridePublicIP")
+	var overridePublicIP string
+	if vip.IsSet("cmix.overridePublicIP") {
+		overridePublicIP = vip.GetString("cmix.overridePublicIP")
+	} else if vip.IsSet("node.overridePublicIP") {
+		overridePublicIP = vip.GetString("node.overridePublicIP")
+	}
+
 	params.Node.PublicAddress, err = publicAddress.GetIpOverride(overridePublicIP, params.Node.Port)
 	if err != nil {
 		jww.FATAL.Panicf("Failed to get public override IP \"%s\": %+v",
@@ -91,57 +101,115 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	}
 
 	// Construct listening address; defaults to 0.0.0.0 if not set
-	listeningIP := vip.GetString("node.listeningAddress")
-	if listeningIP == "" {
-		listeningIP = "0.0.0.0"
+	listeningIP := "0.0.0.0"
+	if vip.IsSet("cmix.listeningAddress") {
+		listeningIP = vip.GetString("cmix.listeningAddress")
+	} else if vip.IsSet("node.listeningAddress") {
+		listeningIP = vip.GetString("node.listeningAddress")
 	}
 	params.Node.ListeningAddress = net.JoinHostPort(listeningIP, strconv.Itoa(params.Node.Port))
 
 	// Construct server's override internal IP address, if set
-	overrideInternalIP := vip.GetString("node.overrideInternalIP")
+	var overrideInternalIP string
+	if vip.IsSet("cmix.overrideInternalIP") {
+		overrideInternalIP = vip.GetString("cmix.overrideInternalIP")
+	} else if vip.IsSet("node.overrideInternalIP") {
+		overrideInternalIP = vip.GetString("node.overrideInternalIP")
+	}
 	params.OverrideInternalIP, err = publicAddress.JoinIpPort(overrideInternalIP, params.Node.Port)
 	if err != nil {
 		jww.FATAL.Panicf("Failed to get public override IP \"%s\": %+v",
 			overrideInternalIP, err)
 	}
 
-	params.Node.InterconnectPort = vip.GetInt("node.interconnectPort")
-
-	params.Node.Paths.Idf = vip.GetString("node.paths.idf")
-	require(params.Node.Paths.Idf, "node.paths.idf")
-
-	params.Node.Paths.Cert = vip.GetString("node.paths.cert")
-	require(params.Node.Paths.Cert, "node.paths.cert")
-
-	params.Node.Paths.Key = vip.GetString("node.paths.key")
-	require(params.Node.Paths.Key, "node.paths.key")
-
-	params.Node.Paths.Log = vip.GetString("node.paths.log")
-	if params.Node.Paths.Log == "" {
-		params.Node.Paths.Log = "./node.log"
+	if vip.IsSet("cmix.interconnectPort") {
+		params.Node.InterconnectPort = vip.GetInt("cmix.interconnectPort")
+	} else if vip.IsSet("node.interconnectPort") {
+		params.Node.InterconnectPort = vip.GetInt("node.interconnectPort")
 	}
-	params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
-	require(params.RecoveredErrPath, "node.paths.errOutput")
+
+	if vip.IsSet("cmix.paths.idf") {
+		params.Node.Paths.Idf = vip.GetString("cmix.paths.idf")
+	} else if vip.IsSet("node.paths.idf") {
+		params.Node.Paths.Idf = vip.GetString("node.paths.idf")
+	} else {
+		require(params.Node.Paths.Idf, "cmix.paths.idf")
+	}
+
+	if vip.IsSet("cmix.paths.cert") {
+		params.Node.Paths.Cert = vip.GetString("cmix.paths.cert")
+	} else if vip.IsSet("node.paths.cert") {
+		params.Node.Paths.Cert = vip.GetString("node.paths.cert")
+	} else {
+		require(params.Node.Paths.Cert, "cmix.paths.cert")
+	}
+
+	if vip.IsSet("cmix.paths.key") {
+		params.Node.Paths.Key = vip.GetString("cmix.paths.key")
+	} else if vip.IsSet("node.paths.key") {
+		params.Node.Paths.Key = vip.GetString("node.paths.key")
+	} else {
+		require(params.Node.Paths.Key, "cmix.paths.key")
+	}
+
+	if vip.IsSet("cmix.paths.log") {
+		params.Node.Paths.Log = vip.GetString("cmix.paths.log")
+	} else if vip.IsSet("node.paths.log") {
+		params.Node.Paths.Log = vip.GetString("node.paths.log")
+	} else {
+		params.Node.Paths.Log = "log/cmix.log"
+	}
+
+	if vip.IsSet("cmix.paths.errOutput") {
+		params.RecoveredErrPath = vip.GetString("cmix.paths.errOutput")
+	} else if vip.IsSet("node.paths.errOutput") {
+		params.RecoveredErrPath = vip.GetString("node.paths.errOutput")
+	} else {
+		require(params.RecoveredErrPath, "cmix.paths.errOutput")
+	}
 
 	// If no path was supplied, then use the default
-	params.Node.Paths.ipListOutput = vip.GetString("node.paths.ipListOutput")
-	if params.Node.Paths.ipListOutput == "" {
+	if vip.IsSet("cmix.paths.ipListOutput") {
+		params.Node.Paths.ipListOutput = vip.GetString("cmix.paths.ipListOutput")
+	} else if vip.IsSet("node.paths.ipListOutput") {
+		params.Node.Paths.ipListOutput = vip.GetString("node.paths.ipListOutput")
+	} else {
 		params.Node.Paths.ipListOutput = defaultIpListPath
 	}
 
+	// Obtain database connection info
+	rawAddr := vip.GetString("database.address")
+	var addr, port string
+	if rawAddr != "" {
+		addr, port, err = net.SplitHostPort(rawAddr)
+		if err != nil {
+			jww.FATAL.Panicf("Unable to get database port from %s: %+v", rawAddr, err)
+		}
+	}
 	params.Database.Name = vip.GetString("database.name")
 	params.Database.Username = vip.GetString("database.username")
 	params.Database.Password = vip.GetString("database.password")
-	params.Database.Address = vip.GetString("database.address")
+	params.Database.Address = addr
+	params.Database.Port = port
 
 	params.Gateway.Paths.Cert = vip.GetString("gateway.paths.cert")
 	require(params.Gateway.Paths.Cert, "gateway.paths.cert")
 
-	params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
-	require(params.Permissioning.Paths.Cert, "permissioning.paths.cert")
+	if vip.IsSet("scheduling.paths.cert") {
+		params.Permissioning.Paths.Cert = vip.GetString("scheduling.paths.cert")
+	} else if vip.IsSet("permissioning.paths.cert") {
+		params.Permissioning.Paths.Cert = vip.GetString("permissioning.paths.cert")
+	} else {
+		require(params.Permissioning.Paths.Cert, "scheduling.paths.cert")
+	}
 
-	params.Permissioning.Address = vip.GetString("permissioning.address")
-	require(params.Permissioning.Address, "permissioning.address")
+	if vip.IsSet("scheduling.address") {
+		params.Permissioning.Address = vip.GetString("scheduling.address")
+	} else if vip.IsSet("permissioning.address") {
+		params.Permissioning.Address = vip.GetString("permissioning.address")
+	} else {
+		require(params.Permissioning.Address, "scheduling.address")
+	}
 
 	params.GraphGen.defaultNumTh = uint8(vip.GetUint("graphgen.defaultNumTh"))
 	if params.GraphGen.defaultNumTh == 0 {
@@ -174,6 +242,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 	params.Metrics.Log = vip.GetString("metrics.log")
 
 	params.DevMode = viper.GetBool("devMode")
+	params.RawPermAddr = viper.GetBool("rawPermAddr")
 
 	return &params, nil
 }
@@ -185,7 +254,6 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.Flags.KeepBuffers = p.KeepBuffers
 	def.Flags.UseGPU = p.UseGPU
-	def.RegistrationCode = p.RegistrationCode
 
 	var tlsCert, tlsKey []byte
 	var err error
@@ -216,6 +284,11 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.RecoveredErrorPath = p.RecoveredErrPath
 	def.IpListOutput = p.Node.Paths.ipListOutput
 	def.Flags.OverrideInternalIP = p.OverrideInternalIP
+	def.DbUsername = p.Database.Username
+	def.DbPassword = p.Database.Password
+	def.DbName = p.Database.Name
+	def.DbAddress = p.Database.Address
+	def.DbPort = p.Database.Port
 
 	if def.Flags.OverrideInternalIP != "" && !strings.Contains(def.Flags.OverrideInternalIP, ":") {
 		def.Flags.OverrideInternalIP = net.JoinHostPort(def.Flags.OverrideInternalIP, strconv.Itoa(p.Node.Port))
@@ -286,6 +359,11 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 			return nil, errors.Errorf("Could not unload IDF: %+v", err)
 		}
 	} else {
+		// Check that we are not in DevMode, if we aren't we crash
+		if !p.DevMode {
+			jww.FATAL.Panic("No IDF was detected and DevMode is not enabled")
+		}
+
 		// If the IDF does not exist, then generate a new ID, save it to an IDF,
 		// and save the ID to the definition
 
@@ -308,19 +386,27 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		def.ID = newID
 	}
 
+	// Registration code will be hex encoded nodeID if not specified
+	if p.RegistrationCode != "" {
+		def.RegistrationCode = p.RegistrationCode
+	} else {
+		jww.DEBUG.Printf("registrationCode is not set in params, using hex encoded node ID")
+		def.RegistrationCode = def.ID.HexEncode()
+	}
+
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
 
-	def.Permissioning.TlsCert = PermTlsCert
-	def.Permissioning.Address = p.Permissioning.Address
-	if len(def.Permissioning.TlsCert) > 0 {
-		permCert, err := tls.LoadCertificate(string(def.Permissioning.TlsCert))
+	def.Network.TlsCert = PermTlsCert
+	def.Network.Address = p.Permissioning.Address
+	if len(def.Network.TlsCert) > 0 {
+		permCert, err := tls.LoadCertificate(string(def.Network.TlsCert))
 		if err != nil {
 			jww.FATAL.Panicf("Could not decode permissioning tls cert file "+
 				"into a tls cert: %v", err)
 		}
 
-		def.Permissioning.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
+		def.Network.PublicKey = &rsa.PublicKey{PublicKey: *permCert.PublicKey.(*gorsa.PublicKey)}
 	}
 
 	//
@@ -332,6 +418,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 		p.GraphGen.defaultNumTh, p.GraphGen.outputSize, p.GraphGen.outputThreshold)
 
 	def.DevMode = p.DevMode
+	def.RawPermAddr = p.RawPermAddr
 	return def, nil
 }
 
@@ -354,8 +441,8 @@ func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition 
 
 	// Build the perm server
 	ourPerm := ndf.Registration{
-		Address:        def.Permissioning.Address,
-		TlsCertificate: string(def.Permissioning.TlsCert),
+		Address:        def.Network.Address,
+		TlsCertificate: string(def.Network.TlsCert),
 	}
 
 	networkDef := &ndf.NetworkDefinition{

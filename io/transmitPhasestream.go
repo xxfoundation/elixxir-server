@@ -73,10 +73,15 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 
 	//pull the first chunk reception out so it can be timestmaped
 	chunk, finish := getChunk()
-	start := time.Now()
+	var start time.Time
+	numslots := 0
 	// For each message chunk (slot) stream it out
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
+			numslots++
+			if numslots == 1 {
+				start = time.Now()
+			}
 			msg := getMessage(i)
 			err = streamClient.Send(msg)
 			if err != nil {
@@ -85,7 +90,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 			}
 		}
 	}
-
+	end := time.Now()
 	measureFunc := currentPhase.Measure
 	if measureFunc != nil {
 		measureFunc(measure.TagTransmitLastSlot)
@@ -102,17 +107,15 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	jww.INFO.Printf("[%s] RID %d StreamTransmitPhase FOR \"%s\""+
 		" COMPLETE/SEND", name, roundID, rType)
 
-	end := time.Now()
-
 	jww.INFO.Printf("\tbwLogging: Round %d, "+
 		"transmitted phase: %s, "+
 		"from: %s, to: %s, "+
 		"started: %v, "+
 		"ended: %v, "+
-		"duration: %v,",
+		"duration: %d,",
 		roundID, currentPhase.GetType(),
 		instance.GetID(), recipientID,
-		start, end, end.Sub(start))
+		start, end, end.Sub(start).Milliseconds())
 
 	cancel()
 
@@ -131,26 +134,33 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 // StreamPostPhase implements the server gRPC handler for posting a
 // phase from another node
 func StreamPostPhase(p phase.Phase, batchSize uint32,
-	stream mixmessages.Node_StreamPostPhaseServer) (time.Time, error) {
+	stream mixmessages.Node_StreamPostPhaseServer) (*streamInfo, error) {
 	// Send a chunk for each slot received along with
 	// its index until an error is received
 	slot, err := stream.Recv()
-	start := time.Now()
+	var start, end time.Time
 	slotsReceived := uint32(0)
 	for ; err == nil; slot, err = stream.Recv() {
+		slotsReceived++
+
+		if slotsReceived == 1 {
+			start = time.Now()
+		}
 		index := slot.Index
 
 		phaseErr := p.Input(index, slot)
 		if phaseErr != nil {
 			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
 				index, slot, phaseErr)
-			return start, phaseErr
+			return &streamInfo{Start: start, End: end}, phaseErr
 		}
 
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
 
-		slotsReceived++
+		if slotsReceived == batchSize {
+			end = time.Now()
+		}
 	}
 
 	// Set error in ack message if we didn't receive all slots
@@ -169,11 +179,13 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 	// and returning whether it succeeded
 	errClose := stream.SendAndClose(&ack)
 
+	si := &streamInfo{Start: start, End: end}
+
 	if errClose != nil && ack.Error != "" {
-		return start, errors.WithMessage(errClose, ack.Error)
+		return si, errors.WithMessage(errClose, ack.Error)
 	} else if errClose == nil && ack.Error != "" {
-		return start, errors.New(ack.Error)
+		return si, errors.New(ack.Error)
 	} else {
-		return start, errClose
+		return si, errClose
 	}
 }

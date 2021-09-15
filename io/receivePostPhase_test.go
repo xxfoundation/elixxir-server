@@ -10,12 +10,12 @@ package io
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
@@ -31,11 +31,11 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	topology := connect.NewCircuit(BuildMockNodeIDs(2, t))
 
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 
 	def.ID = topology.GetNodeAtIndex(0)
@@ -43,8 +43,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	def.Gateway.ID.SetType(id.Gateway)
 
 	m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		"1.1.0")
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
 
 	mockPhase := testUtil.InitMockPhase(t)
 	responseMap := make(phase.ResponseMap)
@@ -52,7 +51,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {
@@ -350,7 +349,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	r, err := round.New(grp, &globals.UserMap{}, roundID, []phase.Phase{mockPhase},
+	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
 		responseMap, topology, topology.GetNodeAtIndex(0), batchSize,
 		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
 	if err != nil {

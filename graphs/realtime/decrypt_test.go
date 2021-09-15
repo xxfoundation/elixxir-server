@@ -8,6 +8,7 @@
 package realtime
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -18,19 +19,20 @@ import (
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"reflect"
 	"runtime"
+	"strconv"
 	"testing"
 )
 
@@ -55,12 +57,12 @@ func TestDecryptStream_Link(t *testing.T) {
 
 	batchSize := uint32(100)
 
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	u := &storage.Client{Id: id.NewIdFromString("test", id.User, t).Marshal()}
+	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReporter := round.NewClientFailureReport()
+	testReporter := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, testReporter)
@@ -99,12 +101,12 @@ func TestDecryptStream_Input(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	u := &storage.Client{Id: id.NewIdFromString("test", id.User, t).Marshal()}
+	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReporter := round.NewClientFailureReport()
+	testReporter := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -162,12 +164,12 @@ func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	u := &storage.Client{Id: id.NewIdFromString("test", id.User, t).Marshal()}
+	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReporter := round.NewClientFailureReport()
+	testReporter := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -232,12 +234,12 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	u := &storage.Client{Id: id.NewIdFromString("test", id.User, t).Marshal()}
+	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReport := round.NewClientFailureReport()
+	testReport := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -267,12 +269,12 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	u := &storage.Client{Id: id.NewIdFromString("test", id.User, t).Marshal()}
+	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
-	testReport := round.NewClientFailureReport()
+	testReport := round.NewClientFailureReport(instance.GetID())
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
 
@@ -286,7 +288,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	err := stream.Input(batchSize-10, msg)
 
-	if err != globals.ErrUserIDTooShort {
+	if err != services.ErrUserIDTooShort {
 		t.Errorf("DecryptStream.Input() did not return an non existant user error when given non-existant user")
 	}
 
@@ -298,7 +300,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	err2 := stream.Input(batchSize-10, msg2)
 
-	if err2 == globals.ErrUserIDTooShort {
+	if err2 == services.ErrUserIDTooShort {
 		t.Errorf("DecryptStream.Input() returned an existant user error when given non-existant user")
 	}
 
@@ -314,14 +316,14 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	u := &storage.Client{Id: id.NewIdFromString("test", id.User, t).Marshal()}
+	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
-	reporter := round.NewClientFailureReport()
+	reporter := round.NewClientFailureReport(instance.GetID())
 	stream.Link(grp, batchSize, roundBuffer, registry, nil, streamPool, rng, reporter)
 
 	msg := &mixmessages.Slot{
@@ -333,7 +335,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	err := stream.Input(batchSize-10, msg)
 
-	if err != globals.ErrSaltIncorrectLength {
+	if err != services.ErrSaltIncorrectLength {
 		t.Errorf("DecryptStream.Input() did not return a salt incorrect length error when given non-existant user")
 	}
 
@@ -346,7 +348,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	err2 := stream.Input(batchSize-10, msg2)
 
-	if err2 == globals.ErrSaltIncorrectLength {
+	if err2 == services.ErrSaltIncorrectLength {
 		t.Errorf("DecryptStream.Input() returned a salt incorrect length error when given non-existant user")
 	}
 }
@@ -361,14 +363,14 @@ func TestDecryptStream_Output(t *testing.T) {
 
 	stream := &KeygenDecryptStream{}
 
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	u := &storage.Client{Id: id.NewIdFromString("test", id.User, t).Marshal()}
+	_ = registry.UpsertClient(u)
 
 	roundBuffer := round.NewBuffer(grp, batchSize, batchSize)
 	var streamPool *gpumaths.StreamPool
 	var rng *fastRNG.StreamGenerator
-	reporter := round.NewClientFailureReport()
+	reporter := round.NewClientFailureReport(instance.GetID())
 	stream.Link(grp, batchSize, roundBuffer, registry, rng, streamPool, reporter)
 
 	for b := uint32(0); b < batchSize; b++ {
@@ -442,17 +444,26 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	rid := id.Round(42)
 	instance := mockServerInstance(t)
 	grp := instance.GetConsensus().GetCmixGroup()
-	registry := instance.GetUserRegistry()
-	u := registry.NewUser(grp)
-	u.IsRegistered = true
-	registry.UpsertUser(u)
+	registry := instance.GetStorage()
+	h := sha256.New()
+
+	h.Reset()
+	h.Write([]byte(strconv.Itoa(4000)))
+	bk := grp.NewIntFromBytes(h.Sum(nil))
+
+	u := &storage.Client{
+		Id:           id.NewIdFromString("test", id.User, t).Marshal(),
+		DhKey:        bk.Bytes(),
+		IsRegistered: true,
+	}
+	_ = registry.UpsertClient(u)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.BaseKey.BitLen() < 248 || u.BaseKey.BitLen() > 256 {
+	if u.GetDhKey(grp).BitLen() < 248 || u.GetDhKey(grp).BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.BaseKey.BitLen())
+			u.GetDhKey(grp).BitLen())
 	}
 
 	//var stream DecryptStream
@@ -492,7 +503,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	}
 
-	clientReport := round.NewClientFailureReport()
+	clientReport := round.NewClientFailureReport(instance.GetID())
 
 	g.Link(grp, roundBuffer, registry, clientReport)
 
@@ -523,9 +534,10 @@ func TestDecryptStreamInGraph(t *testing.T) {
 		grp.SetUint64(expectedPayloadA.Get(uint32(i)), uint64(i+1))
 		grp.SetUint64(expectedPayloadB.Get(uint32(i)), uint64(1000+i))
 
+		uid, _ := u.GetId()
 		stream.Salts[i] = testSalt
-		stream.Users[i] = u.ID
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.BaseKey, rid, kmacHash)}
+		stream.Users[i] = uid
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, kmacHash)}
 	}
 	// Here's the actual data for the test
 
@@ -543,15 +555,15 @@ func TestDecryptStreamInGraph(t *testing.T) {
 			keyA := grp.NewInt(1)
 			keyB := grp.NewInt(1)
 
-			user, _ := registry.GetUser(stream.Users[i], grp)
+			user, _ := registry.GetClient(stream.Users[i])
 
-			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.BaseKey,
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.GetDhKey(grp),
 				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.BaseKey,
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.GetDhKey(grp),
 				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA
@@ -590,10 +602,10 @@ func mockServerInstance(i interface{}) *internal.Instance {
 	def := internal.Definition{
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = nid.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
@@ -626,8 +638,7 @@ func mockServerInstance(i interface{}) *internal.Instance {
 
 	sm := state.NewMachine(stateChanges)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm,
-		"1.1.0")
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, "1.1.0")
 
 	return instance
 }

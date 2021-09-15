@@ -17,7 +17,7 @@ import (
 )
 
 // Change this value to set the version for this build
-const currentVersion = "2.2.8"
+const currentVersion = "3.1.0"
 
 func printVersion() {
 	fmt.Printf("xx network Server v%s -- %s\n\n", SEMVER, GITVERSION)

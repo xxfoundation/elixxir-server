@@ -10,7 +10,9 @@ package node
 // ChangeHandlers contains the logic for every state within the state machine
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
@@ -18,19 +20,29 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
+	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/permissioning"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
+	"strconv"
 	"strings"
 	"time"
 )
+
+// Partial address of authorizer. Prepended to the provided
+// network address in the config in order to connect to the authorizer server
+const authorizerPrefix = "auth."
+
+// Partial address of scheduling. Prepended to the provided
+// network address in the config in order to connect to the scheduling server
+const schedulingPrefix = "scheduling."
 
 // Number of hard-coded users to create
 var numDemoUsers = int(256)
@@ -44,28 +56,54 @@ func NotStarted(instance *internal.Instance) error {
 	// Start comms network
 	ourDef := instance.GetDefinition()
 	network := instance.GetNetwork()
+	var err error
 
-	jww.INFO.Printf("Loading certificates from disk")
-	// Get the Server and Gateway certificates from file, if they exist
-
-	// Connect to the Permissioning Server without authentication
+	// Request network access via the authorizer server
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
+	if !instance.GetDefinition().RawPermAddr &&
+		!strings.HasPrefix(ourDef.Network.Address, "permissioning.") &&
+		!utils.IsIP(ourDef.Network.Address) { // Only have a valid authorizer in mainNet
+		_, err := network.AddHost(&id.Authorizer,
+			authorizerPrefix+ourDef.Network.Address,
+			ourDef.Network.TlsCert,
+			params)
+		if err != nil {
+			return errors.Errorf("Unable to connect to registration server: %+v", err)
+		}
+	}
+
+	// Connect to the Permissioning Server without authentication
+	params = connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	params.MaxRetries = 3
+
+	var permAddr string
+	if instance.GetDefinition().RawPermAddr || strings.Contains(ourDef.Network.Address, "permissioning.") {
+		// If we are running/testing a local network, no prepending is
+		// necessary. It is assumed the configurations are properly and
+		// explicitly set.
+		permAddr = ourDef.Network.Address
+	} else {
+		// This is for live network execution, in which prepending the network
+		// address with a specific string allows you to communicate with the
+		// network
+		permAddr = schedulingPrefix + ourDef.Network.Address
+	}
+	jww.INFO.Printf("Connecting to scheduling with address: %s, from input %s", permAddr, ourDef.Network.Address)
+
 	permHost, err := network.AddHost(&id.Permissioning,
 		// instance.GetPermissioningAddress,
-		ourDef.Permissioning.Address,
-		ourDef.Permissioning.TlsCert,
+		permAddr,
+		ourDef.Network.TlsCert,
 		params)
 
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
 
-	// Determine if the node has registered already
-	isRegistered := isRegistered(instance, permHost)
-
 	// If the certificates were retrieved from file, so do not need to register
-	if !isRegistered {
+	if !isRegistered(instance) {
 		instance.IsFirstRun()
 
 		// Blocking call which waits until gateway
@@ -76,9 +114,10 @@ func NotStarted(instance *internal.Instance) error {
 
 		// Blocking call: begin Node registration
 		jww.INFO.Printf("Registering with permissioning...")
-		err = permissioning.RegisterNode(ourDef, instance, permHost)
+		err = permissioning.RegisterNode(ourDef, instance)
 		if err != nil {
-			if strings.Contains(err.Error(), "Node with registration code") && strings.Contains(err.Error(), "has already been registered") {
+			if strings.Contains(err.Error(), "Node with registration code") &&
+				strings.Contains(err.Error(), "has already been registered") {
 				jww.FATAL.Panic("Node is already registered, Attempting re-registration is NOT secure")
 			} else {
 				return errors.Errorf("Failed to register node: %+v", err)
@@ -100,10 +139,12 @@ func NotStarted(instance *internal.Instance) error {
 	// full NDF
 	// do this even if you have the certs to ensure the permissioning server is
 	// ready for servers to connect to it
-	params = connect.GetDefaultHostParams()
-	params.MaxRetries = 0
+	params.AuthEnabled = true
 	permHost, err = network.AddHost(&id.Permissioning,
-		ourDef.Permissioning.Address, ourDef.Permissioning.TlsCert, params)
+		permAddr,
+		ourDef.Network.TlsCert,
+		params)
+
 	if err != nil {
 		return errors.Errorf("Unable to connect to registration server: %+v", err)
 	}
@@ -151,7 +192,15 @@ func NotStarted(instance *internal.Instance) error {
 
 	// Then we ping ourselfs to make sure we can communicate
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
-	if exists && host.IsOnline() {
+	start := time.Now()
+	isOnline := host.IsOnline()
+	delta := time.Since(start)
+	if exists && isOnline {
+		if delta > 2*time.Second {
+			return errors.Errorf("took too long to contact local address %s, took %s. "+
+				"please change network settings or set flag OverrideInternalIP",
+				host.GetAddress(), delta)
+		}
 		jww.DEBUG.Printf("Successfully contacted local address!")
 	} else if exists {
 		return errors.Errorf("unable to contact local address: %s",
@@ -164,7 +213,7 @@ func NotStarted(instance *internal.Instance) error {
 	//init the database
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
-	userDatabase := instance.GetUserRegistry()
+	userDatabase := instance.GetStorage()
 	if instance.GetDefinition().DevMode {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
@@ -173,11 +222,15 @@ func NotStarted(instance *internal.Instance) error {
 
 	jww.INFO.Printf("Adding dummy gateway sending user")
 	//Add a dummy user for gateway
-	dummy := userDatabase.NewUser(cmixGrp)
-	dummy.ID = id.DummyUser.DeepCopy()
-	dummy.BaseKey = cmixGrp.NewIntFromBytes((*dummy.ID)[:])
-	dummy.IsRegistered = true
-	userDatabase.UpsertUser(dummy)
+	dummy := &storage.Client{
+		Id:           id.DummyUser.Marshal(),
+		DhKey:        cmixGrp.NewIntFromBytes(id.DummyUser.Marshal()[:]).Bytes(),
+		IsRegistered: true,
+	}
+	err = instance.GetStorage().UpsertClient(dummy)
+	if err != nil {
+		return err
+	}
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 
@@ -304,7 +357,7 @@ func Precomputing(instance *internal.Instance) error {
 	//Build the round
 	rnd, err := round.New(
 		instance.GetConsensus().GetCmixGroup(),
-		instance.GetUserRegistry(),
+		instance.GetStorage(),
 		roundID, phases, phaseResponses,
 		circuit,
 		instance.GetID(),
@@ -322,6 +375,14 @@ func Precomputing(instance *internal.Instance) error {
 	instance.GetRoundManager().AddRound(rnd)
 	jww.INFO.Printf("[%+v]: RID %d CreateNewRound COMPLETE", instance,
 		roundID)
+
+	// If the other servers in the round do not respond in under 2 seconds
+	// then fail the round.
+	err = io.VerifyServersOnline(instance.GetNetwork(), circuit,
+		2*time.Second)
+	if err != nil {
+		return err
+	}
 
 	if circuit.IsFirstNode(instance.GetID()) {
 		err := StartLocalPrecomp(instance, roundID)
@@ -486,30 +547,61 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
-// Pings permissioning server to see if our registration code has already been registered
-func isRegistered(serverInstance *internal.Instance, permHost *connect.Host) bool {
+const regCheckError = "Check could not be processed"
 
-	// Request a client ndf from the permissioning server
-	response, err := serverInstance.GetNetwork().SendRegistrationCheck(permHost,
-		&mixmessages.RegisteredNodeCheck{
-			ID: serverInstance.GetID().Bytes(),
-		})
+/// Checks with permissioning whether we are a network member already
+func isRegistered(serverInstance *internal.Instance) bool {
+	regCheck := &mixmessages.RegisteredNodeCheck{
+		ID: serverInstance.GetID().Bytes(),
+	}
+
+	sendFunc := func(h *connect.Host) (interface{}, error) {
+		response, err := serverInstance.GetNetwork().SendRegistrationCheck(h, regCheck)
+
+		return response, err
+	}
+
+	sender := permissioning.Sender{
+		Send: sendFunc,
+		Name: "RegistrationCheck",
+	}
+
+	// Determine if node is registered
+	authHost, _ := serverInstance.GetNetwork().GetHost(&id.Authorizer)
+	face, err := permissioning.Send(sender, serverInstance, authHost)
+	for err != nil &&
+		!strings.Contains(strings.ToLower(err.Error()), "check could not be processed") {
+		jww.WARN.Printf("Error received while performing registration check, retrying: %+v", err)
+		face, err = permissioning.Send(sender, serverInstance, authHost)
+	}
 	if err != nil {
 		jww.WARN.Printf("Error returned from Registration when node is looked up: %s", err.Error())
 		return false
 	}
 
+	response := face.(*mixmessages.RegisteredNodeConfirmation)
+
 	return response.IsRegistered
 
 }
 
-// Create dummy users to be manually inserted into the database
-func PopulateDummyUsers(ur globals.UserRegistry, grp *cyclic.Group) {
+// PopulateDummyUsers creates dummy users to be manually inserted into the database
+func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
-		u := ur.NewUser(grp)
-		u.IsRegistered = true
-		ur.UpsertUser(u)
+		h := sha256.New()
+		h.Reset()
+		h.Write([]byte(strconv.Itoa(4000 + i)))
+		usrID := new(id.ID)
+		binary.BigEndian.PutUint64(usrID[:], uint64(i))
+		usrID.SetType(id.User)
+
+		// Generate user parameters
+		ur.UpsertClient(&storage.Client{
+			Id:           usrID.Marshal(),
+			DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
+			IsRegistered: true,
+		})
 	}
 	return
 }

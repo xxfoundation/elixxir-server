@@ -8,11 +8,18 @@
 package internal
 
 // instance.go contains the logic for the internal.Instance object along with
-// constructors and it's methods
+// constructors and its methods
 
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -20,14 +27,14 @@ import (
 	"gitlab.com/elixxir/comms/network"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/fastRNG"
-	"gitlab.com/elixxir/gpumathsgo"
+	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/comms/signature"
@@ -35,16 +42,11 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"os"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"testing"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
-// Holds long-lived server state
+// Instance holds long-lived server state
 type Instance struct {
 	Online            bool
 	definition        *Definition
@@ -55,6 +57,9 @@ type Instance struct {
 	machine           state.Machine
 	phaseStateMachine state.GenericMachine
 
+	// Persistent storage object
+	storage *storage.Storage
+
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
 	isGatewayReady *uint32
@@ -63,10 +68,10 @@ type Instance struct {
 	gatewayFirstPoll *FirstTime
 
 	// Channels
-	createRoundQueue    round.Queue
-	completedBatchQueue round.CompletedQueue
-	realtimeRoundQueue  round.Queue
-	clientErrors        *round.ClientReport
+	createRoundQueue   round.Queue
+	killInstance       chan chan struct{}
+	realtimeRoundQueue round.Queue
+	clientErrors       *round.ClientReport
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -91,9 +96,13 @@ type Instance struct {
 	firstRun *uint32
 	//This is set to 1 after the node has polled for the first time
 	firstPoll *uint32
+
+	// Map containing completed batches to pass back to gateway
+	completedBatch    map[id.Round]*round.CompletedRound
+	completedBatchMux sync.RWMutex
 }
 
-// Create a server instance. To actually kick off the server,
+// CreateServerInstance creates a server instance. To actually kick off the server,
 // call RunFirstNode() on the resulting ServerInstance.
 // After the network object is created, you still need to use it to connect
 // to other servers in the network
@@ -101,6 +110,8 @@ type Instance struct {
 // Shutdown() on the network object.
 func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
+	var err error
+
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
 	firstPoll := uint32(0)
@@ -114,8 +125,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		requestNewBatchQueue: round.NewQueue(),
 		createRoundQueue:     round.NewQueue(),
 		realtimeRoundQueue:   round.NewQueue(),
+		killInstance:         make(chan chan struct{}, 1),
 		gatewayPoll:          NewFirstTime(),
-		completedBatchQueue:  round.NewCompletedQueue(),
+		completedBatch:       make(map[id.Round]*round.CompletedRound),
 		roundError:           nil,
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
@@ -124,8 +136,24 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		firstRun:          &firstRun,
 		firstPoll:         &firstPoll,
 		gatewayFirstPoll:  NewFirstTime(),
-		clientErrors:      round.NewClientFailureReport(),
+		clientErrors:      round.NewClientFailureReport(def.ID),
 		phaseStateMachine: state.NewGenericMachine(),
+	}
+
+	// Initialize the backend
+	jww.INFO.Printf("Initializing the backend...")
+	instance.storage, err = storage.NewStorage(
+		def.DbUsername, def.DbPassword, def.DbName,
+		def.DbAddress, def.DbPort, def.DevMode)
+	if err != nil {
+		eMsg := fmt.Sprintf("Could not initialize database: psql://%s@%s:%s/%s: %v",
+			def.DbUsername, def.DbAddress, def.DbPort, def.DbName, err)
+
+		if def.DevMode {
+			jww.WARN.Printf(eMsg)
+		} else {
+			jww.FATAL.Panicf(eMsg)
+		}
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -150,16 +178,14 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	// Initializes the network on this server instance
 
 	//Start local node
-
 	instance.network = node.StartNode(instance.definition.ID, instance.definition.ListeningAddress,
 		instance.definition.InterconnectPort, makeImplementation(instance),
 		instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
 
 	// Initializes the network state tracking on this server instance
-	var err error
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
-		def.PartialNDF, def.FullNDF, nil, network.Strict)
+		def.PartialNDF, def.FullNDF, nil, network.Strict, false)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -192,14 +218,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	return instance, nil
 }
 
-// Wrap CreateServerInstance, taking a recovered error file
+// RecoverInstance wraps CreateServerInstance, taking a recovered error file
 func RecoverInstance(def *Definition, makeImplementation func(*Instance) *node.Implementation,
 	machine state.Machine, version string) (*Instance, error) {
 	// Create the server instance with normal constructor
 	var i *Instance
 	var err error
-	i, err = CreateServerInstance(def, makeImplementation, machine,
-		version)
+	i, err = CreateServerInstance(def, makeImplementation, machine, version)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create server instance")
 	}
@@ -245,6 +270,16 @@ func (i *Instance) Run() error {
 	return i.machine.Start()
 }
 
+// Shutdown releases any reserved GPU resources
+func (i *Instance) Shutdown() {
+	if i.streamPool != nil {
+		err := i.streamPool.Destroy()
+		if err != nil {
+			return
+		}
+	}
+}
+
 // GetDefinition returns the server.Definition object
 func (i *Instance) GetDefinition() *Definition {
 	return i.definition
@@ -260,7 +295,7 @@ func (i *Instance) GetStateMachine() state.Machine {
 	return i.machine
 }
 
-// GetStateMachine returns state machine tracking the phase share status
+// GetPhaseShareMachine returns state machine tracking the phase share status
 // todo: consider removing, may not be needed for final phase share design
 func (i *Instance) GetPhaseShareMachine() state.GenericMachine {
 	return i.phaseStateMachine
@@ -271,27 +306,27 @@ func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
-//GetUserRegistry returns the user registry used by the server
-func (i *Instance) GetUserRegistry() globals.UserRegistry {
-	return i.definition.UserRegistry
+// GetStorage returns the user registry used by the server
+func (i *Instance) GetStorage() *storage.Storage {
+	return i.storage
 }
 
-//GetRoundManager returns the round manager
+// GetRoundManager returns the round manager
 func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
 }
 
-//GetResourceQueue returns the resource queue used by the server
+// GetResourceQueue returns the resource queue used by the server
 func (i *Instance) GetResourceQueue() *ResourceQueue {
 	return i.resourceQueue
 }
 
-//GetGatewayFirstPoll returns the structure which denotes if the node has been fully polled by the gateway
+// GetGatewayFirstPoll returns the structure which denotes if the node has been fully polled by the gateway
 func (i *Instance) GetGatewayFirstPoll() *FirstTime {
 	return i.gatewayPoll
 }
 
-//GetGatewayFirstPoll returns the structure which denotes if the node has been contacted by the gateway
+// GetGatewayFirstContact returns the structure which denotes if the node has been contacted by the gateway
 func (i *Instance) GetGatewayFirstContact() *FirstTime {
 	return i.gatewayFirstPoll
 }
@@ -301,27 +336,27 @@ func (i *Instance) GetNetwork() *node.Comms {
 	return i.network
 }
 
-//GetID returns this node's ID
+// GetID returns this node's ID
 func (i *Instance) GetID() *id.ID {
 	return i.definition.ID
 }
 
-//GetPubKey returns the server DSA public key
+// GetPubKey returns the server DSA public key
 func (i *Instance) GetPubKey() *rsa.PublicKey {
 	return i.definition.PublicKey
 }
 
-//GetPrivKey returns the server DSA private key
+// GetPrivKey returns the server DSA private key
 func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }
 
-// Sets that this is the first time the node has run
+// IsFirstRun Sets that this is the first time the node has run
 func (i *Instance) IsFirstRun() {
 	atomic.StoreUint32(i.firstRun, 1)
 }
 
-// Gets if this is the first time the node has run
+// GetFirstRun Gets if this is the first time the node has run
 func (i *Instance) GetFirstRun() bool {
 	return atomic.LoadUint32(i.firstRun) == 1
 }
@@ -333,7 +368,7 @@ func (i *Instance) GetKeepBuffers() bool {
 
 //GetRegServerPubKey returns the public key of the registration server
 func (i *Instance) GetRegServerPubKey() *rsa.PublicKey {
-	return i.definition.Permissioning.PublicKey
+	return i.definition.Network.PublicKey
 }
 
 // FIXME Populate this from the YAML or something
@@ -356,7 +391,8 @@ func (i *Instance) GetGatewayCertPath() string {
 	return i.definition.GatewayCertPath
 }
 
-//Returns true if this is the first time this is called, otherwise returns false
+// IsFirstPoll returns true if this is the
+// first time this is called, otherwise returns false
 func (i *Instance) IsFirstPoll() bool {
 	return atomic.SwapUint32(i.firstPoll, 1) == 0
 }
@@ -376,8 +412,8 @@ func (i *Instance) GetResourceMonitor() *measure.ResourceMonitor {
 	return i.definition.ResourceMonitor
 }
 
-func (i *Instance) GetCompletedBatchQueue() round.CompletedQueue {
-	return i.completedBatchQueue
+func (i *Instance) GetKillChan() chan chan struct{} {
+	return i.killInstance
 }
 
 func (i *Instance) GetCreateRoundQueue() round.Queue {
@@ -577,13 +613,6 @@ func (i *Instance) ReportRoundFailure(errIn error, nodeId *id.ID, roundId id.Rou
 		NodeId: nodeId.Marshal(),
 	}
 
-	//sign the round error
-	err := signature.Sign(&roundErr, i.GetPrivKey())
-	if err != nil {
-		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
-			"\n roundError: %+v", err, roundErr)
-	}
-
 	i.reportFailure(&roundErr)
 }
 
@@ -596,7 +625,7 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	nodeId, _ := id.Unmarshal(roundErr.NodeId)
 
 	//sign the round error
-	err := signature.Sign(roundErr, i.GetPrivKey())
+	err := signature.SignRsa(roundErr, i.GetPrivKey())
 	if err != nil {
 		jww.FATAL.Panicf("Failed to sign round state update of: %s "+
 			"\n roundError: %+v", err, roundErr)
@@ -620,12 +649,11 @@ func (i *Instance) reportFailure(roundErr *mixmessages.RoundError) {
 	// an error or crash state
 	i.roundError = roundErr
 
-	// Otherwise, change instance's state to ERROR
+	// Change instance state to ERROR
 	ok, err := sm.Update(current.ERROR)
 	if err != nil {
 		jww.FATAL.Panicf("Failed to change state to ERROR state: %v", err)
 	}
-
 	if !ok {
 		jww.FATAL.Panicf("Failed to change state to ERROR state")
 	}
@@ -647,4 +675,52 @@ func (i *Instance) GetStreamPool() *gpumaths.StreamPool {
 // streaming will be used.
 func (i *Instance) GetDisableStreaming() bool {
 	return i.definition.DisableStreaming
+}
+
+// WaitUntilRoundCompletes is called once a kill signal is received.
+// It returns on one of two conditions: Either the current round is completed,
+// or duration time units have occurred, causing a timeout.
+// Round completion is monitored by sending a channel through another
+// channel (chan chan struct{}), and on round completion,
+// we send to that channel and receive here.
+func (i *Instance) WaitUntilRoundCompletes(duration time.Duration) {
+	k := make(chan struct{})
+	jww.INFO.Printf("Waiting for round to complete before closing...")
+	i.killInstance <- k
+	jww.TRACE.Printf("Sent kill signal, waiting for response")
+	select {
+	case <-k:
+		jww.INFO.Printf("Round completed, closing!\n")
+	case <-time.After(duration):
+		jww.ERROR.Print("Round took too long to complete, closing!")
+	}
+}
+
+func (i *Instance) AddCompletedBatch(cr *round.CompletedRound) error {
+	i.completedBatchMux.Lock()
+	defer i.completedBatchMux.Unlock()
+	i.completedBatch[cr.RoundID] = cr
+	return nil
+}
+
+func (i *Instance) GetCompletedBatch(rid id.Round) (*round.CompletedRound, bool) {
+	i.completedBatchMux.Lock()
+
+	defer i.completedBatchMux.Unlock()
+	cr, ok := i.completedBatch[rid]
+	delete(i.completedBatch, rid)
+	return cr, ok
+}
+
+const NoCompletedBatch = "No round to report on"
+
+func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
+	i.completedBatchMux.RLock()
+	defer i.completedBatchMux.RUnlock()
+
+	for roundId := range i.completedBatch {
+		return roundId, nil
+	}
+
+	return 0, errors.New(NoCompletedBatch)
 }

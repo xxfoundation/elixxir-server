@@ -13,7 +13,6 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -201,7 +200,6 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 
 	def := internal.Definition{
 		ID:               nid,
-		UserRegistry:     &globals.UserMap{},
 		ResourceMonitor:  &measure.ResourceMonitor{},
 		PrivateKey:       privKey,
 		PublicKey:        privKey.GetPublic(),
@@ -210,9 +208,10 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 		FullNDF:          testUtil.NDF,
 		PartialNDF:       testUtil.NDF,
 		ListeningAddress: nodeAddr,
+		DevMode:          true,
 	}
 
-	def.Permissioning.PublicKey = regPKey.GetPublic()
+	def.Network.PublicKey = regPKey.GetPublic()
 	nodeIDs := make([]*id.ID, 0)
 	nodeIDs = append(nodeIDs, nid)
 	def.Gateway.ID = &id.TempGateway

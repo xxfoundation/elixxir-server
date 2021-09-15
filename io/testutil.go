@@ -12,13 +12,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"reflect"
+	"runtime"
+	"testing"
+	"time"
+
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -33,11 +38,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"google.golang.org/grpc/metadata"
-	"io"
-	"reflect"
-	"runtime"
-	"testing"
-	"time"
 )
 
 const testGatewayAddress = "0.0.0.0:8201"
@@ -147,18 +147,6 @@ func buildMockNodeAddresses(numNodes int, t *testing.T) []string {
 }
 
 func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *connect.Circuit) {
-	//primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-	//	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-	//	"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-	//	"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-	//	"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-	//	"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-	//	"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-	//	"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-	//	"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-	//	"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-	//	"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-	//grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16), large.NewInt(2))
 
 	var nodeIDs []*id.ID
 
@@ -186,7 +174,6 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 
 	topology := connect.NewCircuit(nodeIDs)
 	def := internal.Definition{
-		UserRegistry:    &globals.UserMap{},
 		ResourceMonitor: &measure.ResourceMonitor{},
 		GraphGenerator: services.NewGraphGenerator(2,
 			2, 2, 0),
@@ -195,13 +182,13 @@ func mockServerInstance(t *testing.T, s current.Activity) (*internal.Instance, *
 		PartialNDF: testUtil.NDF,
 		FullNDF:    testUtil.NDF,
 		Flags:      internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:    true,
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = &id.TempGateway
 	def.Gateway.Address = testGatewayAddress
 	m := state.NewTestMachine(dummyStates, s, t)
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		"1.1.0")
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
 
 	return instance, topology
 }
@@ -261,7 +248,7 @@ func PushNRoundUpdates(n int, instance internal.Instance, key *rsa.PrivateKey, t
 			UpdateID: uint64(i),
 		}
 
-		err := signature.Sign(newRound, key)
+		err := signature.SignRsa(newRound, key)
 		if err != nil {
 			t.Logf("Failed to sign: %v", err)
 			t.Fail()

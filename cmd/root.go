@@ -18,11 +18,8 @@ import (
 	"gitlab.com/xx_network/primitives/utils"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"strings"
-	// net/http must be imported before net/http/pprof for the pprof import
-	// to automatically initialize its http handlers
-	"net/http"
-	_ "net/http/pprof"
 	"time"
 )
 
@@ -36,9 +33,6 @@ var disableStreaming bool
 var useGPU bool
 var BatchSizeGPUTest int
 
-// If true, runs pprof http server
-var profile bool
-
 // rootCmd represents the base command when called without any sub-commands
 var rootCmd = &cobra.Command{
 	Use:   "server",
@@ -51,24 +45,20 @@ var rootCmd = &cobra.Command{
 		if !validConfig {
 			jww.FATAL.Panicf("Invalid Config File: %s", cfgFile)
 		}
-		if profile {
-			go func() {
-				// Do not expose this port over the
-				// network by serving on ":8087" or
-				// "0.0.0.0:8087". If you wish to profile
-				// production servers, do it by SSHing
-				// into the server and using go tool
-				// pprof. This provides simple access
-				// control for the profiling
-				jww.FATAL.Println(http.ListenAndServe(
-					"0.0.0.0:8087", nil))
-			}()
+
+		profileOut := viper.GetString("profile-cpu")
+		if profileOut != "" {
+			f, err := os.Create(profileOut)
+			if err != nil {
+				jww.FATAL.Panicf("%+v", err)
+			}
+			pprof.StartCPUProfile(f)
 		}
 
 		jww.INFO.Printf("Starting xx network node (server) v%s", SEMVER)
-
+		instance, err := StartServer(viper.GetViper())
+		// Retry to start the instance on certain errors
 		for {
-			instance, err := StartServer(viper.GetViper())
 			if err == nil {
 				break
 			}
@@ -84,14 +74,28 @@ var rootCmd = &cobra.Command{
 				jww.ERROR.Print("Cannot start, permissioning " +
 					"is unavailable, retrying in 10s...")
 				time.Sleep(10 * time.Second)
+				instance, err = StartServer(viper.GetViper())
 				continue
 			}
 			jww.FATAL.Panicf("Failed to start server: %+v",
 				err)
 		}
 
-		// Prevent node from exiting
-		select {}
+		// Block forever on Signal Handler for safe program exit
+		stopCh := ReceiveExitSignal()
+
+		// Block forever to prevent the program ending
+		// Block until a signal is received, then call the function
+		// provided
+		select {
+		case <-stopCh:
+			jww.INFO.Printf(
+				"Received Exit (SIGTERM or SIGINT) signal...\n")
+			instance.WaitUntilRoundCompletes(60 * time.Second)
+			if profileOut != "" {
+				pprof.StopCPUProfile()
+			}
+		}
 	},
 }
 
@@ -128,12 +132,9 @@ func init() {
 	err := viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
 	handleBindingError(err, "logLevel")
 
-	rootCmd.Flags().BoolVar(&profile, "profile", false,
-		"Runs a pprof server at 0.0.0.0:8087 for profiling.")
-	err = rootCmd.Flags().MarkHidden("profile")
-	handleBindingError(err, "profile")
-	err = viper.BindPFlag("profile", rootCmd.Flags().Lookup("profile"))
-	handleBindingError(err, "profile")
+	rootCmd.Flags().String("profile-cpu", "",
+		"Enable cpu profiling to this file")
+	viper.BindPFlag("profile-cpu", rootCmd.Flags().Lookup("profile-cpu"))
 
 	rootCmd.Flags().String("registrationCode", "",
 		"Registration code used for first time registration. This is a unique "+
@@ -192,6 +193,7 @@ func initConfig() {
 		jww.FATAL.Panicf("No config file provided.")
 	}
 
+	cfgFile, _ = utils.ExpandPath(cfgFile)
 	f, err := os.Open(cfgFile)
 	if err != nil {
 		jww.ERROR.Printf("Could not open config file: %+v", err)
@@ -255,8 +257,10 @@ func initLog() {
 		jww.SetStdoutThreshold(jww.LevelInfo)
 	}
 
-	if viper.Get("node.paths.log") != nil {
-		// Create log file, overwrites if existing
+	// Create log file, overwrites if existing
+	if viper.IsSet("cmix.paths.log") {
+		logPath = viper.GetString("cmix.paths.log")
+	} else if viper.IsSet("node.paths.log") {
 		logPath = viper.GetString("node.paths.log")
 	} else {
 		fmt.Printf("Invalid or missing log path %s, "+

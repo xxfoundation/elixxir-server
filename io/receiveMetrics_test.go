@@ -10,7 +10,6 @@ package io
 import (
 	"encoding/json"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -52,16 +51,15 @@ func TestReceiveGetMeasure(t *testing.T) {
 	def := internal.Definition{
 		ID:              topology.GetNodeAtIndex(0),
 		ResourceMonitor: &monitor,
-		UserRegistry:    &globals.UserMap{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
+		DevMode:         true,
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)
 
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m,
-		"1.1.0")
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
 
 	// Set up a round first node
 	roundID := id.Round(45)

@@ -11,6 +11,11 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"fmt"
+	"math/rand"
+	"reflect"
+	"testing"
+	"time"
+
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -27,10 +32,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"math/rand"
-	"reflect"
-	"testing"
-	"time"
 )
 
 //// Full-stack happy path test for the node registration logic
@@ -77,9 +78,7 @@ func TestRegisterNode(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
 		},
@@ -89,6 +88,7 @@ func TestRegisterNode(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	// Create state machine
@@ -104,8 +104,7 @@ func TestRegisterNode(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, "1.1.0")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -123,20 +122,14 @@ func TestRegisterNode(t *testing.T) {
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, params)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
+		def.Network.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
 
-	// Fetch permissioning host
-	permHost, ok := instance.GetNetwork().GetHost(&id.Permissioning)
-	if !ok {
-		t.Errorf("Could not get permissioning host. Was it added?")
-	}
-
 	// Register node with permissioning
-	err = RegisterNode(def, instance, permHost)
+	err = RegisterNode(def, instance)
 	if err != nil {
 		t.Errorf("Failed to register node: %+v", err)
 	}
@@ -685,8 +678,7 @@ func TestRegistration(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-		UserRegistry: nil,
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: cert,
 			Address: pAddr,
 		},
@@ -695,6 +687,7 @@ func TestRegistration(t *testing.T) {
 		ResourceMonitor:  nil,
 		FullNDF:          emptyNdf,
 		PartialNDF:       emptyNdf,
+		DevMode:          true,
 	}
 
 	// Create state machine
@@ -710,8 +703,7 @@ func TestRegistration(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, "1.1.0")
 	if err != nil {
 		t.Errorf("Unable to create instance: %+v", err)
 	}
@@ -719,8 +711,8 @@ func TestRegistration(t *testing.T) {
 	// Add permissioning as a host
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
-	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address,
-		def.Permissioning.TlsCert, params)
+	_, err = instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address,
+		def.Network.TlsCert, params)
 	if err != nil {
 		t.Errorf("Failed to add permissioning host: %+v", err)
 	}
@@ -757,13 +749,13 @@ func TestRegistration(t *testing.T) {
 		// Fetch permissioning host
 		params := connect.GetDefaultHostParams()
 		params.MaxRetries = 0
-		permHost, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Permissioning.Address, def.Permissioning.TlsCert, params)
+		_, err := instance.GetNetwork().AddHost(&id.Permissioning, def.Network.Address, def.Network.TlsCert, params)
 		if err != nil {
 			t.Errorf("Unable to connect to registration server: %+v", err)
 		}
 
 		// Register with node
-		err = RegisterNode(def, instance, permHost)
+		err = RegisterNode(def, instance)
 		if err != nil {
 			t.Error(err)
 		}
@@ -917,9 +909,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 			Address: gAddr,
 			TlsCert: cert,
 		},
-
-		UserRegistry: nil,
-		Permissioning: internal.Perm{
+		Network: internal.Perm{
 			TlsCert: []byte(testUtil.RegCert),
 			Address: pAddr,
 		},
@@ -929,6 +919,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 		ResourceMonitor: nil,
 		FullNDF:         emptyNdf,
 		PartialNDF:      emptyNdf,
+		DevMode:         true,
 	}
 
 	def.PrivateKey, _ = rsa.GenerateKey(crand.Reader, 1024)
@@ -946,8 +937,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	}
 
 	// Generate instance
-	instance, err := internal.CreateServerInstance(def, impl, sm,
-		"1.1.0")
+	instance, err := internal.CreateServerInstance(def, impl, sm, "1.1.0")
 	if err != nil {
 		t.Errorf("Failed to create instance: %+v", err)
 	}
@@ -975,7 +965,7 @@ func TestUpdateRounds_Failed(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to load PK from pem: %+v", err)
 	}
-	err = signature.Sign(update, loadedKey)
+	err = signature.SignRsa(update, loadedKey)
 	if err != nil {
 		t.Errorf("Failed to sign update: %+v", err)
 	}

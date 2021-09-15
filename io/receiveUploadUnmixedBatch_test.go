@@ -8,20 +8,93 @@
 package io
 
 import (
+	"context"
+	"encoding/base64"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/graphs/realtime"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
+	"google.golang.org/grpc/metadata"
+	"io"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 )
+
+/* MockStreamUnmixedBatchServer */
+type MockStreamUnmixedBatchServer struct {
+	batch                           *mixmessages.Batch
+	mockStreamUnmixedBatchSlotIndex int
+}
+
+var mockUploadBatchIndex int
+
+func (stream MockStreamUnmixedBatchServer) SendAndClose(*messages.Ack) error {
+	if len(stream.batch.Slots) == mockUploadBatchIndex {
+		return nil
+	}
+	return errors.Errorf("stream closed without all slots being received."+
+		"\n\tMockStreamSlotIndex: %v\n\tstream.batch.slots: %v",
+		stream.mockStreamUnmixedBatchSlotIndex, len(stream.batch.Slots))
+}
+
+func (stream MockStreamUnmixedBatchServer) Recv() (*mixmessages.Slot, error) {
+	if mockUploadBatchIndex >= len(stream.batch.Slots) {
+		return nil, io.EOF
+	}
+	slot := stream.batch.Slots[mockUploadBatchIndex]
+	mockUploadBatchIndex++
+	return slot, nil
+}
+
+func (MockStreamUnmixedBatchServer) SetHeader(metadata.MD) error {
+	return nil
+}
+
+func (MockStreamUnmixedBatchServer) SendHeader(metadata.MD) error {
+	return nil
+}
+
+func (MockStreamUnmixedBatchServer) SetTrailer(metadata.MD) {
+}
+
+func (stream MockStreamUnmixedBatchServer) Context() context.Context {
+	// Create mock batch info from mock batch
+	mockBatch := stream.batch
+	mockBatchInfo := mixmessages.BatchInfo{
+		Round:     mockBatch.Round,
+		FromPhase: mockBatch.FromPhase,
+		BatchSize: uint32(len(mockBatch.Slots)),
+	}
+
+	// Create an incoming context from batch info metadata
+	ctx, _ := context.WithCancel(context.Background())
+
+	m := make(map[string]string)
+	m[mixmessages.UnmixedBatchHeader] = base64.StdEncoding.EncodeToString([]byte(mockBatchInfo.String()))
+
+	md := metadata.New(m)
+	ctx = metadata.NewIncomingContext(ctx, md)
+
+	return ctx
+}
+
+func (MockStreamUnmixedBatchServer) SendMsg(m interface{}) error {
+	return nil
+}
+
+func (MockStreamUnmixedBatchServer) RecvMsg(m interface{}) error {
+	return nil
+}
 
 var postPhase = func(p phase.Phase, batch *mixmessages.Batch) error {
 	return nil
@@ -55,7 +128,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// Well, this round needs to at least be on the precomp queue?
 	// If it's not on the precomp queue,
 	// that would let us test the error being returned.
-	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetStorage(), roundID,
 		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		nil, "0.0.0.0", nil, nil)
@@ -69,9 +142,17 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	for _, tempId := range tempTopology {
 		nodeIds = append(nodeIds, tempId.Marshal())
 	}
-	// Build a fake batch for the reception handler
-	// This emulates what the gateway would send to the comm
-	batch := &mixmessages.Batch{
+
+	params := connect.GetDefaultHostParams()
+	params.AuthEnabled = false
+	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          h,
+	}
+
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{
 		Round: &mixmessages.RoundInfo{
 			ID:       roundID + 10,
 			Topology: nodeIds,
@@ -88,18 +169,22 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 			},
 		},
 	}
-
-	params := connect.GetDefaultHostParams()
-	params.AuthEnabled = false
-	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
-	auth := &connect.Auth{
-		IsAuthenticated: true,
-		Sender:          h,
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
 	}
 
-	err = ReceivePostNewBatch(instance, batch, postPhase, auth)
+	mockStreamServer := MockStreamUnmixedBatchServer{
+		batch:                           mockBatch,
+		mockStreamUnmixedBatchSlotIndex: 0,
+	}
+
+	err = ReceiveUploadUnmixedBatchStream(instance, mockStreamServer, postPhase, auth)
 	if err == nil {
-		t.Error("ReceivePostNewBatch should have errored out if the round ID was not found")
+		t.Error("ReceiveUploadUnmixedBatchStream should have errored out if the round ID was not found")
 	}
 
 	// OK, let's put that round on the queue of completed precomps now,
@@ -115,7 +200,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		}
 	}()
 
-	batch = &mixmessages.Batch{
+	mockBatch = &mixmessages.Batch{
 		Round: &mixmessages.RoundInfo{
 			ID: roundID,
 		},
@@ -128,7 +213,15 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 		IsAuthenticated: true,
 		Sender:          h,
 	}
-	err = ReceivePostNewBatch(instance, batch, postPhase, auth)
+
+	mockUploadBatchIndex = 0
+	mockStreamServer = MockStreamUnmixedBatchServer{
+		batch:                           mockBatch,
+		mockStreamUnmixedBatchSlotIndex: 0,
+	}
+
+	err = ReceiveUploadUnmixedBatchStream(instance, mockStreamServer, postPhase, auth)
+
 }
 
 // Test error case in which sender of postnewbatch is not authenticated
@@ -137,7 +230,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 
 	const roundID = 2
 
-	batch := &mixmessages.Batch{
+	mockBatch := &mixmessages.Batch{
 		Round: &mixmessages.RoundInfo{
 			ID: roundID,
 		},
@@ -153,6 +246,23 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 			},
 		},
 	}
+	batchSize := uint32(32)
+	// Build a mock mockBatch to receive
+	mockPhase := testUtil.InitMockPhase(t)
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	mockStreamServer := MockStreamUnmixedBatchServer{
+		batch: mockBatch,
+	}
 
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
@@ -162,7 +272,7 @@ func TestReceivePostNewBatch_AuthError(t *testing.T) {
 		Sender:          h,
 	}
 
-	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
+	err := ReceiveUploadUnmixedBatchStream(instance, mockStreamServer, postPhase, auth)
 
 	if err == nil {
 		t.Error("Did not receive expected error")
@@ -180,9 +290,10 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 
 	const roundID = 2
 
-	batch := &mixmessages.Batch{
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{
 		Round: &mixmessages.RoundInfo{
-			ID: roundID,
+			ID: roundID + 10,
 		},
 		FromPhase: int32(phase.RealDecrypt),
 		Slots: []*mixmessages.Slot{
@@ -196,6 +307,21 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 			},
 		},
 	}
+	mockPhase := testUtil.InitMockPhase(t)
+	for i := uint32(0); i < 32; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
+	}
+
+	mockBatch.FromPhase = int32(mockPhase.GetType())
+	mockBatch.Round = &mixmessages.RoundInfo{ID: uint64(roundID)}
+
+	mockStreamServer := MockStreamUnmixedBatchServer{
+		batch: mockBatch,
+	}
 
 	newID := id.NewIdFromString("test", id.Node, t)
 
@@ -207,7 +333,7 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 		Sender:          h,
 	}
 
-	err := ReceivePostNewBatch(instance, batch, postPhase, auth)
+	err := ReceiveUploadUnmixedBatchStream(instance, mockStreamServer, postPhase, auth)
 
 	if err == nil {
 		t.Error("Did not receive expected error")
@@ -219,17 +345,24 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 	}
 }
 
-// Tests the happy path of ReceivePostNewBatch, demonstrating that it can start
+// Tests the happy path of ReceiveUploadUnmixedBatchStream, demonstrating that it can start
 // realtime processing with a new batch from the gateway.
 // Note: In this case, the happy path includes an error from one of the slots
 // that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
 	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
-	registry := instance.GetUserRegistry()
+	registry := instance.GetStorage()
 
 	// Make and register a user
-	sender := registry.NewUser(grp)
-	registry.UpsertUser(sender)
+	sender := &storage.Client{
+		Id:             id.NewIdFromString("test", id.User, &testing.T{}).Marshal(),
+		DhKey:          nil,
+		PublicKey:      nil,
+		Nonce:          nil,
+		NonceTimestamp: time.Time{},
+		IsRegistered:   false,
+	}
+	_ = registry.UpsertClient(sender)
 
 	const batchSize = 1
 	const roundID = 2
@@ -257,7 +390,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	})
 
 	// We need this round to be on the precomp queue
-	r, err := round.New(grp, instance.GetUserRegistry(), roundID,
+	r, err := round.New(grp, instance.GetStorage(), roundID,
 		[]phase.Phase{realDecrypt}, responseMap, topology,
 		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
 		nil, "0.0.0.0", nil, nil)
@@ -272,29 +405,6 @@ func TestReceivePostNewBatch(t *testing.T) {
 		nodeIds = append(nodeIds, tempId.Marshal())
 	}
 
-	// Build a fake batch for the reception handler
-	// This emulates what the gateway would send to the comm
-	batch := &mixmessages.Batch{
-		Round: &mixmessages.RoundInfo{
-			ID:       roundID,
-			Topology: nodeIds,
-		},
-		FromPhase: int32(phase.RealDecrypt),
-		Slots: []*mixmessages.Slot{
-			{
-				// Do the fields need to be populated?
-				// Yes, but only to check if the batch made it to the phase
-				SenderID: sender.ID.Bytes(),
-				PayloadA: []byte{2},
-				PayloadB: []byte{3},
-				// Because the salt is just one byte,
-				// this should fail in the Realtime Decrypt graph.
-				Salt:  make([]byte, 32),
-				KMACs: [][]byte{{5}},
-			},
-		},
-	}
-
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
 	h, _ := connect.NewHost(instance.GetGateway(), "test", nil, params)
@@ -303,10 +413,32 @@ func TestReceivePostNewBatch(t *testing.T) {
 		Sender:          h,
 	}
 
+	// Build a mock mockBatch to receive
+	mockBatch := &mixmessages.Batch{
+		Round: &mixmessages.RoundInfo{
+			ID:       roundID,
+			Topology: nodeIds,
+		},
+		FromPhase: int32(phase.RealDecrypt),
+		Slots:     []*mixmessages.Slot{},
+	}
+	for i := uint32(0); i < batchSize; i++ {
+		mockBatch.Slots = append(mockBatch.Slots,
+			&mixmessages.Slot{
+				Index:    i,
+				PayloadA: []byte{byte(i)},
+			})
+	}
+
+	mockStreamServer := MockStreamUnmixedBatchServer{
+		batch:                           mockBatch,
+		mockStreamUnmixedBatchSlotIndex: 0,
+	}
+
 	// Actually, this should return an error because the batch has a malformed
 	// slot in it, so once we implement per-slot errors we can test all the
 	// realtime decrypt error cases from this reception handler if we want
-	err = ReceivePostNewBatch(instance, batch, postPhase, auth)
+	err = ReceiveUploadUnmixedBatchStream(instance, mockStreamServer, postPhase, auth)
 	if err != nil {
 		t.Error(err)
 	}

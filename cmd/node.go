@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/cmd/conf"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -25,6 +24,7 @@ import (
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/crypto/csprng"
+	"gitlab.com/xx_network/primitives/hw"
 	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
@@ -36,7 +36,10 @@ import (
 func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	vip.Debug()
 
-	jww.INFO.Printf("Log Filename: %v\n", vip.GetString("node.paths.log"))
+	hw.LogHardware()
+
+	jww.INFO.Printf("Log Filename (node.paths.log): %v\n", vip.GetString("node.paths.log"))
+	jww.INFO.Printf("Log Filename (cmix.paths.log): %v\n", vip.GetString("cmix.paths.log"))
 	jww.INFO.Printf("Config Filename: %v\n", vip.ConfigFileUsed())
 
 	//Set the max number of processes
@@ -54,38 +57,21 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 
 	ps := fmt.Sprintf("Loaded params: %+v", params)
 	ps = strings.ReplaceAll(ps,
-		"Password:"+params.Database.Password,
-		"Password:[dbpass]")
+		"dbpassword:"+params.Database.Password,
+		"dbpassword:[dbpass]")
 	ps = strings.ReplaceAll(ps,
 		"RegistrationCode:"+params.RegistrationCode,
 		"RegistrationCode:[regcode]")
 	jww.INFO.Printf(ps)
 
-	// Initialize the backend
-	jww.INFO.Printf("Initalizing the backend...")
-	dbAddress := params.Database.Address
-
-	//Initialize the user database
-	userDatabase, err := globals.NewUserRegistry(params.Database.Username,
-		params.Database.Password, params.Database.Name, dbAddress)
-	if err != nil {
-		eMsg := fmt.Sprintf("Could not initialize database: "+
-			"psql://%s@%s/%s: %v", params.Database.Username,
-			params.Database.Address, params.Database.Name, err)
-
-		if params.DevMode {
-			jww.WARN.Printf(eMsg)
-		} else {
-			jww.FATAL.Panicf(eMsg)
-		}
-	}
+	RecordPrivateKeyAndCertPaths(params.Node.Paths.Key,
+		params.Node.Paths.Cert)
 
 	jww.INFO.Printf("Converting params to server definition...")
 	def, err := params.ConvertToDefinition()
 	if err != nil {
 		return nil, errors.Errorf("Failed to convert params to definition: %+v", err)
 	}
-	def.UserRegistry = userDatabase
 	def.ResourceMonitor = resourceMonitor
 
 	def.DisableStreaming = disableStreaming
@@ -147,16 +133,14 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 	// Check if the error recovery file exists
 	if _, err := os.Stat(params.RecoveredErrPath); os.IsNotExist(err) {
 		// If not, start normally
-		instance, err = internal.CreateServerInstance(def,
-			io.NewImplementation, ourMachine, currentVersion)
+		instance, err = internal.CreateServerInstance(def, io.NewImplementation, ourMachine, currentVersion)
 		if err != nil {
 			return instance, errors.Errorf("Could not create server instance: %v", err)
 		}
 	} else {
 		// Otherwise, start in recovery mode
 		jww.INFO.Println("Server has recovered from an error")
-		instance, err = internal.RecoverInstance(def, io.NewImplementation,
-			ourMachine, currentVersion)
+		instance, err = internal.RecoverInstance(def, io.NewImplementation, ourMachine, currentVersion)
 		if err != nil {
 			return instance, errors.WithMessage(err, "Could not recover server instance")
 		}

@@ -15,6 +15,14 @@ import (
 	"encoding/binary"
 	"encoding/pem"
 	"fmt"
+	"math/big"
+	"math/rand"
+	"net"
+	"runtime"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -27,7 +35,6 @@ import (
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
-	"gitlab.com/elixxir/server/globals"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -37,6 +44,7 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/signature"
@@ -46,14 +54,6 @@ import (
 	"gitlab.com/xx_network/crypto/tls"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
-	"math/big"
-	"math/rand"
-	"net"
-	"runtime"
-	"strings"
-	"sync"
-	"testing"
-	"time"
 )
 
 var errWg = sync.WaitGroup{}
@@ -102,22 +102,8 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		baseKeys = append(baseKeys, baseKey)
 	}
 
-	// Build the registries for every node
-	for i := 0; i < numNodes; i++ {
-		var registry globals.UserRegistry
-		registry = &globals.UserMap{}
-		user := globals.User{
-			ID:           userID,
-			BaseKey:      baseKeys[i],
-			IsRegistered: true,
-		}
-		registry.UpsertUser(&user)
-		defsLst[i].UserRegistry = registry
-	}
-
 	// Build the instances
 	var instances []*internal.Instance
-
 	t.Logf("Building instances for %v nodes", numNodes)
 
 	resourceMonitor := measure.ResourceMonitor{}
@@ -170,9 +156,17 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 		sm := state.NewMachine(testStates)
 
-		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm,
-			"1.1.0")
-		err := instance.GetConsensus().UpdateNodeConnections()
+		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, "1.1.0")
+		client := storage.Client{
+			Id:           userID.Marshal(),
+			DhKey:        baseKeys[i].Bytes(),
+			IsRegistered: true,
+		}
+		err := instance.GetStorage().UpsertClient(&client)
+		if err != nil {
+			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
+		}
+		err = instance.GetConsensus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
@@ -266,12 +260,16 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 	// Wait for last node to be ready to receive the batch
 	completedBatch := &mixmessages.Batch{Slots: make([]*mixmessages.Slot, 0)}
 
-	cr, err := instances[numNodes-1].GetCompletedBatchQueue().Receive()
-	if err != nil && !strings.Contains(err.Error(), "Did not receive a completed round") {
-		t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
-	}
-	if cr != nil {
-		completedBatch.Slots = cr.Round
+	if !errorPhase {
+		rid, err := instances[numNodes-1].GetCompletedBatchRID()
+		if err != nil {
+			t.Errorf("Unable to receive from CompletedBatchQueue: %+v", err)
+		}
+
+		cr, _ := instances[numNodes-1].GetCompletedBatch(rid)
+		if cr != nil {
+			completedBatch.Slots = cr.Round
+		}
 	}
 	// --- BUILD PROBING TOOLS -------------------------------------------------
 
@@ -661,7 +659,6 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 				TlsCert: nil,
 				Address: "",
 			},
-			UserRegistry:       &globals.UserMap{},
 			ResourceMonitor:    &measure.ResourceMonitor{},
 			FullNDF:            networkDef,
 			PartialNDF:         networkDef,
@@ -671,6 +668,7 @@ func makeMultiInstanceParams(numNodes, portStart int, grp *cyclic.Group, useGPU 
 			GraphGenerator:     services.NewGraphGenerator(4, 1, 4, 1.0),
 			RngStreamGen: fastRNG.NewStreamGenerator(10000,
 				uint(runtime.NumCPU()), csprng.NewSystemRNG),
+			DevMode: true,
 		}
 
 		cryptoPrivRSAKey, _ := tls.LoadRSAPrivateKey(string(privKey))
@@ -746,6 +744,6 @@ func signRoundInfo(ri *pb.RoundInfo) error {
 
 	ourPrivateKey := &rsa.PrivateKey{PrivateKey: *pk}
 
-	signature.Sign(ri, ourPrivateKey)
+	signature.SignRsa(ri, ourPrivateKey)
 	return nil
 }
