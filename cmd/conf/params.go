@@ -57,8 +57,9 @@ type Params struct {
 	OverrideRound    int
 	RecoveredErrPath string
 
-	DevMode     bool
-	RawPermAddr bool
+	DevMode       bool
+	RawPermAddr   bool
+	UsePrecanKeys bool
 }
 
 // NewParams gets elements of the viper object
@@ -243,6 +244,7 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 
 	params.DevMode = viper.GetBool("devMode")
 	params.RawPermAddr = viper.GetBool("rawPermAddr")
+	params.UsePrecanKeys = viper.GetBool("usePrecanKeys")
 
 	return &params, nil
 }
@@ -419,6 +421,11 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 
 	def.DevMode = p.DevMode
 	def.RawPermAddr = p.RawPermAddr
+	def.UsePrecanKeys = p.UsePrecanKeys
+	if def.UsePrecanKeys && !def.DevMode {
+		jww.FATAL.Panicf("Cannot use precanned keys without being in DevMode")
+	}
+
 	return def, nil
 }
 

@@ -19,6 +19,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -214,7 +215,7 @@ func NotStarted(instance *internal.Instance) error {
 	cmixGrp := instance.GetConsensus().GetCmixGroup()
 
 	userDatabase := instance.GetStorage()
-	if instance.GetDefinition().DevMode {
+	if instance.GetDefinition().DevMode && instance.GetDefinition().UsePrecanKeys {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
 		PopulateDummyUsers(userDatabase, cmixGrp)
@@ -587,6 +588,7 @@ func isRegistered(serverInstance *internal.Instance) bool {
 
 // PopulateDummyUsers creates dummy users to be manually inserted into the database
 func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
+	_, key := registration.GetPrecannedKeyPair()
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
 		h := sha256.New()
@@ -601,6 +603,7 @@ func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
 			Id:           usrID.Marshal(),
 			DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
 			IsRegistered: true,
+			PublicKey:    []byte(key),
 		})
 	}
 	return
