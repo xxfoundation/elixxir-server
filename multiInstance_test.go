@@ -114,7 +114,9 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 		// Add handler for instance
 		impl := func(i *internal.Instance) *nodeComms.Implementation {
-			return io.NewImplementation(i)
+			impl := io.NewImplementation(i)
+
+			return impl
 		}
 
 		// Construct the state machine
@@ -227,6 +229,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 				t.Errorf("uh-oh spaghetti-O's: %+v", err)
 			}
 			wg.Done()
+
 		}()
 	}
 	wg.Wait()
@@ -253,7 +256,6 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 	}
 
 	done := make(chan time.Time)
-
 	go iterate(done, instances, t, ecrBatch, roundInfoMsg, errorPhase)
 	start := <-done
 	elapsed := time.Now().Sub(start)
@@ -272,7 +274,6 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		}
 	}
 	// --- BUILD PROBING TOOLS -------------------------------------------------
-
 	// Get round buffers for probing
 	var roundBuffs []*round.Buffer
 	for _, instance := range instances {
@@ -292,14 +293,11 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 	// --- CHECK OUTPUTS -------------------------------------------------------
 	found := 0
-
 	for i := 0; i < batchSize; i++ {
 
 		inputSlot := expectedBatch.Slots[i]
 		outputSlot := completedBatch.Slots[permutationMapping[i]]
-
 		success := true
-
 		if grp.NewIntFromBytes(inputSlot.PayloadA).Cmp(grp.NewIntFromBytes(outputSlot.PayloadA)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload A did "+
 				"not match; \n Expected: %s \n Received: %s", i, permutationMapping[i],
@@ -322,7 +320,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 	}
 
 	if found < batchSize {
-		t.Errorf("%v/%v of messages came out incorrect",
+		t.Fatalf("%v/%v of messages came out incorrect",
 			batchSize-found, batchSize)
 	} else {
 		t.Logf("All messages received, passed")
