@@ -87,6 +87,18 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 		return errors.Errorf("Failed to close stream for round %d: %v", roundID, err)
 	}
 
+	// Form completed round object
+	complete := &round.CompletedRound{
+		RoundID: roundID,
+		Round:   slots,
+	}
+
+	// Ensure gateway gets completed batch on next poll
+	err = instance.AddCompletedBatch(complete)
+	if err != nil {
+		return errors.Errorf("Failed to add completed batch: %+v", err)
+	}
+
 	p.Measure(measure.TagVerification)
 	go func() {
 		p.UpdateFinalStates()
@@ -116,18 +128,6 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 				roundID)
 		}
 	}()
-
-	// Form completed round object
-	complete := &round.CompletedRound{
-		RoundID: roundID,
-		Round:   slots,
-	}
-
-	// Ensure gateway gets completed batch on next poll
-	err = instance.AddCompletedBatch(complete)
-	if err != nil {
-		return errors.Errorf("Failed to add completed batch: %+v", err)
-	}
 
 	jww.INFO.Printf("[%v]: RID %d ReceiveFinishRealtime END", instance,
 		roundID)
