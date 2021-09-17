@@ -68,8 +68,9 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return err
 	}
 
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		err := ReceiveFinishRealtime(instance, message, auth)
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo,
+		streamServer pb.Node_FinishRealtimeServer, auth *connect.Auth) error {
+		err := ReceiveFinishRealtime(instance, message, streamServer, auth)
 		if err != nil {
 			jww.ERROR.Printf("ReceiveFinishRealtime error: %+v, %+v", auth, err)
 		}

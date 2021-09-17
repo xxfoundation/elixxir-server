@@ -66,9 +66,8 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 		measureFunc(measure.TagTransmitLastSlot)
 	}
 
-	// signal to all nodes except the first node that the round has been
-	// completed. Skip the first node and do it after to ensure all measurements
-	// are stored before it polls for the measurement data
+	// signal to all team members that the round has been
+	// completed by sending the completed batch.
 	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)
@@ -77,9 +76,9 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 			recipient := topology.GetHostAtIndex(localIndex)
 			// Send the message to that particular node
 			ack, err := instance.GetNetwork().SendFinishRealtime(recipient,
-				&mixmessages.RoundInfo{
-					ID: uint64(roundID),
-				})
+				&mixmessages.RoundInfo{ID: uint64(roundID)},
+				&mixmessages.CompletedBatch{Slots: complete.Round},
+			)
 
 			if ack != nil && ack.Error != "" {
 				err = errors.Errorf("Remote Server Error: %s", ack.Error)

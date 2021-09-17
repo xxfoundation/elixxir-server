@@ -114,7 +114,9 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 		// Add handler for instance
 		impl := func(i *internal.Instance) *nodeComms.Implementation {
-			return io.NewImplementation(i)
+			impl := io.NewImplementation(i)
+
+			return impl
 		}
 
 		// Construct the state machine
@@ -297,9 +299,8 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 		inputSlot := expectedBatch.Slots[i]
 		outputSlot := completedBatch.Slots[permutationMapping[i]]
-
+		fmt.Printf("completed batc: %v", completedBatch)
 		success := true
-
 		if grp.NewIntFromBytes(inputSlot.PayloadA).Cmp(grp.NewIntFromBytes(outputSlot.PayloadA)) != 0 {
 			t.Errorf("Input slot %v permuted to slot %v payload A did "+
 				"not match; \n Expected: %s \n Received: %s", i, permutationMapping[i],
