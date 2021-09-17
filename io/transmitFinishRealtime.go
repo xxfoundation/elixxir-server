@@ -36,9 +36,7 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 		return errors.Errorf("Could not retrieve round %d from manager  %s", roundID, err)
 	}
 
-	var wg sync.WaitGroup
 	topology := r.GetTopology()
-	errChan := make(chan error, topology.Len())
 
 	// Form completed round object & push to gateway handler
 	complete := &round.CompletedRound{
@@ -68,6 +66,8 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 
 	// signal to all team members that the round has been
 	// completed by sending the completed batch.
+	var wg sync.WaitGroup
+	errChan := make(chan error, topology.Len())
 	for index := 0; index < topology.Len(); index++ {
 		localIndex := index
 		wg.Add(1)
