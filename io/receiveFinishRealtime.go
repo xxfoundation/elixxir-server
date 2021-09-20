@@ -17,15 +17,18 @@ import (
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
+	"io"
 	"time"
 )
 
 // ReceiveFinishRealtime handles the state checks and edge checks of
 // receiving the signal that the realtime has completed
 func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundInfo,
-	auth *connect.Auth) error {
+	streamServer mixmessages.Node_FinishRealtimeServer, auth *connect.Auth) error {
 	// Get round from round manager
 	roundID := id.Round(msg.ID)
 	rm := instance.GetRoundManager()
@@ -62,6 +65,40 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 			instance, err)
 		return roundErr
 	}
+
+	// Handle reception of back
+	slots := make([]*mixmessages.Slot, 0)
+	slot, err := streamServer.Recv()
+	for ; err == nil; slot, err = streamServer.Recv() {
+		slots = append(slots, slot)
+	}
+	if err != io.EOF { // Any error outside of EOF denotes a failure to stream a slot
+		return errors.Errorf("Unexpected FinishRealtime error on round %d: %v",
+			msg.ID, err)
+	}
+
+	// Ensure received batch is expected batch size
+	if uint32(len(slots)) != r.GetBatchSize() {
+		return errors.Errorf("Did not receive enough slots (%d/%d)", len(slots), r.GetBatchSize())
+	}
+
+	errClose := streamServer.SendAndClose(&messages.Ack{})
+	if errClose != nil {
+		return errors.Errorf("Failed to close stream for round %d: %v", roundID, err)
+	}
+
+	// Form completed round object
+	complete := &round.CompletedRound{
+		RoundID: roundID,
+		Round:   slots,
+	}
+
+	// Ensure gateway gets completed batch on next poll
+	err = instance.AddCompletedBatch(complete)
+	if err != nil {
+		return errors.Errorf("Failed to add completed batch: %+v", err)
+	}
+
 	p.Measure(measure.TagVerification)
 	go func() {
 		p.UpdateFinalStates()

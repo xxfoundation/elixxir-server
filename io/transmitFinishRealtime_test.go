@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
@@ -23,13 +24,17 @@ import (
 
 var receivedFinishRealtime = make(chan *mixmessages.RoundInfo, 100)
 var getMessage = func(index uint32) *mixmessages.Slot {
-	return &mixmessages.Slot{}
+	return &mixmessages.Slot{
+		Index: 24,
+	}
 }
 
 func MockFinishRealtimeImplementation() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo,
+		streamServer mixmessages.Node_FinishRealtimeServer, auth *connect.Auth) error {
 		receivedFinishRealtime <- message
+		streamServer.SendAndClose(&messages.Ack{})
 		return nil
 	}
 	return impl
@@ -89,8 +94,8 @@ func TestSendFinishRealtime(t *testing.T) {
 		errCH <- err
 	}()
 
-	for i := 0; i < numChunks; i++ {
-		chunkInputChan <- services.NewChunk(uint32(i*2), uint32(i*2+1))
+	for i := 0; i < numSlots; i++ {
+		chunkInputChan <- services.NewChunk(uint32(i), uint32(i+1))
 	}
 
 	close(chunkInputChan)
@@ -136,7 +141,8 @@ Loop:
 
 func MockFinishRealtimeImplementation_Error() *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo,
+		streamServer mixmessages.Node_FinishRealtimeServer, auth *connect.Auth) error {
 		return errors.New("Test error")
 	}
 	return impl
