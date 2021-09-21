@@ -14,6 +14,7 @@ import (
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/primitives/current"
@@ -34,6 +35,7 @@ import (
 	"gitlab.com/xx_network/primitives/utils"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -648,6 +650,9 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 
 func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
+
+	cnt++
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
@@ -661,7 +666,10 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
 		},
-		DevMode: true,
+		ListeningAddress: nodeAddr,
+		DevMode:          true,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
 	def.ID = topology.GetNodeAtIndex(instIndex)
 

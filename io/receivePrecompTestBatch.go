@@ -26,7 +26,7 @@ import (
 // test batch of random data from the last node in order to verify the data
 // can be sent over the connection because a similar set fo data will be
 // sent on the last leg of realtime. It will denote in the round object
-// if the transmission was successful. Is called by TransmitPrecompTestBatch
+// if the transmission was successful. Is called by TransmitPrecompTestBatch.
 func ReceivePrecompTestBatch(instance *internal.Instance, stream pb.Node_PrecompTestBatchServer, message *pb.RoundInfo, auth *connect.Auth) error {
 	//check that the round is in the correct state to receive this transmission
 	curActivity, err := instance.GetStateMachine().WaitFor(2000*time.Millisecond, current.PRECOMPUTING)

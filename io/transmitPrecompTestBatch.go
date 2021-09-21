@@ -12,10 +12,15 @@ import (
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/xx_network/primitives/id"
 	"sync"
 )
 
+// TransmitPrecompTestBatch is a streaming transmitter which transmits a
+// test batch of random data from the last node in order to verify the data
+// can be sent over the connection because a similar set of data will be
+// sent on the last leg of realtime. It is called in the Precomputing change handler.
 func TransmitPrecompTestBatch(roundId id.Round, serverInstance phase.GenericInstance) error {
 	instance, ok := serverInstance.(*internal.Instance)
 	if !ok {
@@ -32,23 +37,10 @@ func TransmitPrecompTestBatch(roundId id.Round, serverInstance phase.GenericInst
 
 	primesize := instance.GetNetworkStatus().GetCmixGroup().GetP().ByteLen()
 
-	rng := instance.GetRngStreamGen().GetStream()
-	slots := make([]*pb.Slot, 0, r.GetBatchSize())
-	for i := 0; i < int(r.GetBatchSize()); i++ {
-		slot := &pb.Slot{
-			Index:    uint32(i),
-			PayloadA: make([]byte, primesize),
-			PayloadB: make([]byte, primesize),
-		}
-		_, errA := rng.Read(slot.PayloadA)
-		_, errB := rng.Read(slot.PayloadB)
-
-		if errA != nil || errB != nil {
-			return errors.WithMessagef(err, "Failed to generate random data for slot %d", i)
-		}
-		slots = append(slots, slot)
+	slots, err := makePrecompTestBatch(instance, r, primesize)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to construct random test batch")
 	}
-	rng.Close()
 
 	// Send mock batch to all nodes in team
 	var wg sync.WaitGroup
@@ -87,4 +79,31 @@ func TransmitPrecompTestBatch(roundId id.Round, serverInstance phase.GenericInst
 	}
 
 	return errs
+}
+
+// Helper function which generates a batch with slots containing random data.
+// This mocks the completed batch sent over realtime.
+func makePrecompTestBatch(instance *internal.Instance,
+	r *round.Round, primeSize int) ([]*pb.Slot, error) {
+	rng := instance.GetRngStreamGen().GetStream()
+	slots := make([]*pb.Slot, 0, r.GetBatchSize())
+	for i := 0; i < int(r.GetBatchSize()); i++ {
+		slot := &pb.Slot{
+			Index:    uint32(i),
+			PayloadA: make([]byte, primeSize),
+			PayloadB: make([]byte, primeSize),
+		}
+		_, errA := rng.Read(slot.PayloadA)
+		_, errB := rng.Read(slot.PayloadB)
+
+		if errA != nil {
+			return nil, errors.WithMessagef(errA, "Failed to generate random data for slot %d", i)
+		} else if errB != nil {
+			return nil, errors.WithMessagef(errB, "Failed to generate random data for slot %d", i)
+		}
+		slots = append(slots, slot)
+	}
+	rng.Close()
+
+	return slots, nil
 }
