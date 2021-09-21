@@ -58,6 +58,9 @@ type Round struct {
 	rtStarted   bool
 	rtStartTime time.Time
 	rtEndTime   time.Time
+
+	//denotes if last node -> all nodes broadcast test was successful
+	broadcastSuccess *uint32
 }
 
 // New creates and initializes a new round, including all phases, topology,
@@ -82,6 +85,10 @@ func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 	round.state = &state
 
 	round.phaseStateUpdateSignal = make(chan struct{}, 1)
+
+	//create the broadcast success round object
+	broadcastSuccess := uint32(0)
+	round.broadcastSuccess = &broadcastSuccess
 
 	for index, p := range phases {
 		if p.GetGraph() != nil {
@@ -257,6 +264,14 @@ func (r *Round) GetCurrentPhase() phase.Phase {
 
 func (r *Round) GetTopology() *connect.Circuit {
 	return r.topology
+}
+
+func (r *Round) DenotePrecompBroadcastSuccess() {
+	atomic.StoreUint32(r.broadcastSuccess, 1)
+}
+
+func (r *Round) PrecompBroadcastSuccess() bool {
+	return atomic.LoadUint32(r.broadcastSuccess) == 1
 }
 
 // HandleIncomingComm checks that the incoming state is valid for the round

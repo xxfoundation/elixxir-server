@@ -21,9 +21,7 @@ import (
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"reflect"
 	"testing"
-	"time"
 )
 
 func TestPostPrecompResult_Errors(t *testing.T) {
@@ -82,9 +80,8 @@ func TestPostPrecompResult(t *testing.T) {
 
 func MockPostPrecompResultImplementation(instance *internal.Instance) *node.Implementation {
 	impl := node.NewImplementation()
-	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
+	impl.Functions.PostPrecompResult = func(roundID uint64, numslots uint32, auth *connect.Auth) error {
 		roundReceiver <- roundID
-		precompReceiver <- slots
 		return nil
 	}
 
@@ -99,7 +96,6 @@ func getMockPostPrecompSlot(i uint32) *mixmessages.Slot {
 }
 
 var roundReceiver chan uint64
-var precompReceiver chan []*mixmessages.Slot
 
 // Tests happy path of the PostPrecompResult transmission handler
 func TestTransmitPostPrecompResult(t *testing.T) {
@@ -118,10 +114,7 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 
 	instance = instances[0]
 
-	numReceivedRounds := 0
-	numReceivedPrecomps := 0
 	roundReceiver = make(chan uint64, numNodes)
-	precompReceiver = make(chan []*mixmessages.Slot, numNodes)
 
 	rndID := id.Round(1)
 	batchSize := uint32(1)
@@ -178,36 +171,5 @@ func TestTransmitPostPrecompResult(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("TransmitPrecompResult: Unexpected error: %+v", err)
-	}
-
-	// Make sure that everything that was supposed to come through does come
-	// through
-Loop:
-	for {
-		select {
-		// TODO also receive from the precomp receiver
-		case receivedRoundID := <-roundReceiver:
-			if receivedRoundID != uint64(rndID) {
-				t.Errorf("TransmitPrecompResult: Incorrect round ID"+
-					"Expected: %v, Received: %v", rndID, receivedRoundID)
-			}
-			numReceivedRounds++
-		case receivedPrecomp := <-precompReceiver:
-			// Construct expected mock precomp result
-			expectedPrecompResults := make([]*mixmessages.Slot, numNodes)
-			for i := uint32(0); i < numNodes; i++ {
-				expectedPrecompResults[i] = getMockPostPrecompSlot(i)
-			}
-			if !reflect.DeepEqual(receivedPrecomp, expectedPrecompResults) {
-				t.Errorf("Precomps differed: Expected: %v\n\tReceived: %v", expectedPrecompResults, receivedPrecomp)
-			}
-			numReceivedPrecomps++
-		case <-time.After(5 * time.Second):
-			t.Errorf("Test timed out!")
-			break Loop
-		}
-		if numReceivedRounds >= numNodes && numReceivedPrecomps >= numNodes {
-			break Loop
-		}
 	}
 }

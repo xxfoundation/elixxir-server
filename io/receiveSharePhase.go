@@ -56,7 +56,7 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 	// and if the sender is the leader of the round
 	topology := r.GetTopology()
 	senderId := auth.Sender.GetId()
-	if !auth.IsAuthenticated || topology.GetNodeLocation(senderId) == -1 {
+	if !auth.IsAuthenticated || topology.GetNodeLocation(senderId) != 0 {
 		jww.WARN.Printf("ReceiveStartSharePhase Error: "+
 			"Attempted communication by %+v has not been authenticated: %s",
 			auth.Sender, auth.Reason)
@@ -84,7 +84,7 @@ func ReceiveStartSharePhase(ri *pb.RoundInfo, auth *connect.Auth,
 
 	// If first, generate our piece off of grp and our key
 	// and add ourselves to the participant list
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	msg := &pb.SharePiece{
 		Piece:        grp.GetG().Bytes(),
 		Participants: make([][]byte, 0),
@@ -259,7 +259,7 @@ func updateFinalKeys(piece *pb.SharePiece, r *round.Round, originID *id.ID,
 	}
 
 	// Add the key with all shares to our state
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	roundKey := grp.NewIntFromBytes(piece.Piece)
 	// Check that this node hasn't already sent a final key
 	if err := r.AddFinalShareMessage(piece, originID); err != nil {
@@ -300,7 +300,7 @@ func finalizeKeyGeneration(instance *internal.Instance, r *round.Round,
 	finalKey := finalKeys[0].Bytes()
 
 	// Double check that key is inside of group
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	inside := grp.BytesInside(finalKey)
 	if !inside {
 		return services.ErrOutsideOfGroup

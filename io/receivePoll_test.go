@@ -111,19 +111,19 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	}
 
 	// Push ndf updates to our instance so we can retrieve them from poll function
-	err = instance.GetConsensus().UpdateFullNdf(&f)
+	err = instance.GetNetworkStatus().UpdateFullNdf(&f)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
 	}
 
-	err = instance.GetConsensus().UpdatePartialNdf(&f)
+	err = instance.GetNetworkStatus().UpdatePartialNdf(&f)
 	if err != nil {
 		t.Log(err)
 		t.Fail()
 	}
 
-	fullHash1 := instance.GetConsensus().GetFullNdf().GetHash()
+	fullHash1 := instance.GetNetworkStatus().GetFullNdf().GetHash()
 
 	// Push a round update that can be used for the test:
 	poll := pb.ServerPoll{
@@ -418,7 +418,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		t.Fail()
 	}
 
-	err = instance.GetConsensus().RoundUpdate(newRound)
+	err = instance.GetNetworkStatus().RoundUpdate(newRound)
 	if err != nil {
 		t.Errorf("Round update failed: %s", err)
 	}

@@ -285,8 +285,8 @@ func (i *Instance) GetDefinition() *Definition {
 	return i.definition
 }
 
-// GetTopology returns the consensus object
-func (i *Instance) GetConsensus() *network.Instance {
+// GetNetworkStatus returns the consensus object
+func (i *Instance) GetNetworkStatus() *network.Instance {
 	return i.consensus
 }
 

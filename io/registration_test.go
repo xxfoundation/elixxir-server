@@ -339,7 +339,7 @@ func TestConfirmRegistration(t *testing.T) {
 	h := sha256.New()
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
-	bk := serverInstance.GetConsensus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
+	bk := serverInstance.GetNetworkStatus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
 
 	user := &storage.Client{
 		Id:             userID.Marshal(),
@@ -550,7 +550,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	h := sha256.New()
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
-	bk := serverInstance.GetConsensus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
+	bk := serverInstance.GetNetworkStatus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {

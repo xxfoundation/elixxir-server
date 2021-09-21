@@ -141,7 +141,7 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 func TestKeygenStreamInGraph(t *testing.T) {
 	instance := mockServerInstance(t)
 	registry := instance.GetStorage()
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
 
 	h := sha256.New()
@@ -269,7 +269,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 	instance := mockServerInstance(t)
 	registry := instance.GetStorage()
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
 
 	h := sha256.New()
@@ -391,7 +391,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	instance := mockServerInstance(t)
 	registry := instance.GetStorage()
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
 
 	h := sha256.New()

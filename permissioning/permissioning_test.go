@@ -158,13 +158,13 @@ func TestPoll(t *testing.T) {
 	}
 
 	// Fetch the full ndf
-	receivedFullNdf, err := instance.GetConsensus().GetFullNdf().Get().Marshal()
+	receivedFullNdf, err := instance.GetNetworkStatus().GetFullNdf().Get().Marshal()
 	if err != nil {
 		t.Errorf("Failed to marshall full ndf: %+v", err)
 	}
 
 	// Fetch the partial ndf
-	receivedPartialNdf, err := instance.GetConsensus().GetPartialNdf().Get().Marshal()
+	receivedPartialNdf, err := instance.GetNetworkStatus().GetPartialNdf().Get().Marshal()
 	if err != nil {
 		t.Errorf("Failed to marshall partial ndf: %+v", err)
 	}
@@ -357,7 +357,7 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 
 	// Fetch the instance's full ndf
-	receivedFullNdf, err := instance.GetConsensus().GetFullNdf().Get().Marshal()
+	receivedFullNdf, err := instance.GetNetworkStatus().GetFullNdf().Get().Marshal()
 	if err != nil {
 		t.Errorf("Failed to marshal internal full ndf: %+v", err)
 	}
@@ -370,7 +370,7 @@ func TestUpdateInternalState(t *testing.T) {
 	}
 
 	// Fetch the instance's partial ndf
-	receivedPartialNdf, err := instance.GetConsensus().GetPartialNdf().Get().Marshal()
+	receivedPartialNdf, err := instance.GetNetworkStatus().GetPartialNdf().Get().Marshal()
 	if err != nil {
 		t.Errorf("Failed to marshal internal full ndf: %+v", err)
 	}

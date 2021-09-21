@@ -168,7 +168,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
-		err = instance.GetConsensus().UpdateNodeConnections()
+		err = instance.GetNetworkStatus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
@@ -489,7 +489,7 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	start := time.Now()
 
 	for index, nodeInstance := range nodes {
-		err := nodeInstance.GetConsensus().RoundUpdate(roundInfoMsg)
+		err := nodeInstance.GetNetworkStatus().RoundUpdate(roundInfoMsg)
 		if err != nil {
 			t.Errorf("Failed to updated network instance for new round info: %v", err)
 		}

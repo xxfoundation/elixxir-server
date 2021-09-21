@@ -217,7 +217,7 @@ func TestPrecomputing(t *testing.T) {
 		t.Errorf("failed to sign round info")
 	}
 
-	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
+	err = instance.GetNetworkStatus().RoundUpdate(newRoundInfo)
 	if err != nil {
 		t.Errorf("Failed to updated network instance for new round info: %v", err)
 	}
@@ -288,7 +288,7 @@ func TestPrecomputing_override(t *testing.T) {
 		t.Errorf("failed to sign round info")
 	}
 
-	err = instance.GetConsensus().RoundUpdate(newRoundInfo)
+	err = instance.GetNetworkStatus().RoundUpdate(newRoundInfo)
 	if err != nil {
 		t.Errorf("Failed to updated network instance for new round info: %v", err)
 	}
