@@ -8,6 +8,7 @@
 package io
 
 import (
+	cryptoRand "crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -673,6 +674,12 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		RngStreamGen: fastRNG.NewStreamGenerator(10000,
 			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
+
+	privKey, err := rsa.GenerateKey(cryptoRand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("Failed to generate priv key: %v", err)
+	}
+	def.PrivateKey = privKey
 	def.ID = topology.GetNodeAtIndex(instIndex)
 
 	m := state.NewTestMachine(dummyStates, s, t)

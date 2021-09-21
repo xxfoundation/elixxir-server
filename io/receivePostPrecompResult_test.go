@@ -8,6 +8,7 @@
 package io
 
 import (
+	"crypto/rand"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -16,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
@@ -122,6 +124,12 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 			DevMode:         true,
 		}
+		privKey, err := rsa.GenerateKey(rand.Reader, 1024)
+		if err != nil {
+			t.Fatalf("Failed to generate priv key: %v", err)
+		}
+
+		def.PrivateKey = privKey
 		def.ID = topology.GetNodeAtIndex(1)
 		def.Gateway.ID = def.ID.DeepCopy()
 		def.Gateway.ID.SetType(id.Gateway)
@@ -160,6 +168,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
+		rnd.DenotePrecompBroadcastSuccess()
 		instances[i].GetRoundManager().AddRound(rnd)
 	}
 
