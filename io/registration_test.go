@@ -116,6 +116,8 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 		PartialNDF:       testUtil.NDF,
 		ListeningAddress: nodeAddr,
 		DevMode:          true,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
 
 	def.Network.PublicKey = regPKey.GetPublic()
