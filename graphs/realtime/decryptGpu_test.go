@@ -32,7 +32,7 @@ import (
 func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	registry := instance.GetStorage()
 	h := sha256.New()
 

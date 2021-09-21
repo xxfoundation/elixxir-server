@@ -164,7 +164,7 @@ func TestStartLocalPrecomp_HappyPath(t *testing.T) {
 	// Mocking permissioning server signing message
 	signRoundInfo(newRoundInfo)
 
-	err := instance.GetConsensus().RoundUpdate(newRoundInfo)
+	err := instance.GetNetworkStatus().RoundUpdate(newRoundInfo)
 	if err != nil {
 		t.Errorf("Failed to updated network instance for new round info: %v", err)
 	}

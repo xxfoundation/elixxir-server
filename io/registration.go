@@ -41,7 +41,7 @@ func RequestNonce(instance *internal.Instance,
 
 	// get the group, if it cant be found return an error because we are not
 	// ready
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	if grp == nil {
 		return &pb.Nonce{}, errors.New(ndf.NO_NDF)
 	}
@@ -183,7 +183,7 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 	}*/
 
 	// Hash the basekey
-	hashedData := cmix.GenerateClientGatewayKey(client.GetDhKey(instance.GetConsensus().GetCmixGroup()))
+	hashedData := cmix.GenerateClientGatewayKey(client.GetDhKey(instance.GetNetworkStatus().GetCmixGroup()))
 	//update the client's state to registered
 	client.IsRegistered = true
 	err = instance.GetStorage().UpsertClient(client)

@@ -8,12 +8,14 @@
 package io
 
 import (
+	cryptoRand "crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/registration"
 	"gitlab.com/elixxir/primitives/current"
@@ -34,6 +36,7 @@ import (
 	"gitlab.com/xx_network/primitives/utils"
 	"math/rand"
 	"os"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -114,6 +117,8 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 		PartialNDF:       testUtil.NDF,
 		ListeningAddress: nodeAddr,
 		DevMode:          true,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
 
 	def.Network.PublicKey = regPKey.GetPublic()
@@ -339,7 +344,7 @@ func TestConfirmRegistration(t *testing.T) {
 	h := sha256.New()
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
-	bk := serverInstance.GetConsensus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
+	bk := serverInstance.GetNetworkStatus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
 
 	user := &storage.Client{
 		Id:             userID.Marshal(),
@@ -550,7 +555,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	h := sha256.New()
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
-	bk := serverInstance.GetConsensus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
+	bk := serverInstance.GetNetworkStatus().GetCmixGroup().NewIntFromBytes(h.Sum(nil))
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {
@@ -648,6 +653,9 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 
 func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
+
+	cnt++
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
@@ -661,8 +669,17 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 		MetricsHandler: func(i *internal.Instance, roundID id.Round) error {
 			return nil
 		},
-		DevMode: true,
+		ListeningAddress: nodeAddr,
+		DevMode:          true,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG),
 	}
+
+	privKey, err := rsa.GenerateKey(cryptoRand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("Failed to generate priv key: %v", err)
+	}
+	def.PrivateKey = privKey
 	def.ID = topology.GetNodeAtIndex(instIndex)
 
 	m := state.NewTestMachine(dummyStates, s, t)

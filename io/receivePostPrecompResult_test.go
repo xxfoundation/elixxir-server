@@ -8,7 +8,7 @@
 package io
 
 import (
-	"gitlab.com/elixxir/comms/mixmessages"
+	"crypto/rand"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -17,6 +17,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
@@ -44,7 +45,7 @@ func TestPostPrecompResultFunc_Error_NoRound(t *testing.T) {
 
 	// We haven't set anything up,
 	// so this should panic because the round can't be found
-	err = ReceivePostPrecompResult(instance, 1, []*mixmessages.Slot{}, auth)
+	err = ReceivePostPrecompResult(instance, 1, 3, auth)
 
 	if err == nil {
 		t.Error("Didn't get an error from a nonexistent round")
@@ -96,7 +97,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 
 	// This should give an error because we give it fewer slots than are in the
 	// batch
-	err = ReceivePostPrecompResult(instance, uint64(roundID), []*mixmessages.Slot{}, auth)
+	err = ReceivePostPrecompResult(instance, uint64(roundID), 3, auth)
 
 	if err == nil {
 		t.Error("Didn't get an error from the wrong number of slots")
@@ -123,6 +124,12 @@ func TestPostPrecompResultFunc(t *testing.T) {
 			Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 			DevMode:         true,
 		}
+		privKey, err := rsa.GenerateKey(rand.Reader, 1024)
+		if err != nil {
+			t.Fatalf("Failed to generate priv key: %v", err)
+		}
+
+		def.PrivateKey = privKey
 		def.ID = topology.GetNodeAtIndex(1)
 		def.Gateway.ID = def.ID.DeepCopy()
 		def.Gateway.ID.SetType(id.Gateway)
@@ -161,6 +168,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
+		rnd.DenotePrecompBroadcastSuccess()
 		instances[i].GetRoundManager().AddRound(rnd)
 	}
 
@@ -189,16 +197,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		inst := instances[i]
 		err := ReceivePostPrecompResult(inst, uint64(roundID),
-			[]*mixmessages.Slot{{
-				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
-				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
-			}, {
-				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
-				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
-			}, {
-				PartialPayloadACypherText: grp.NewInt(3).Bytes(),
-				PartialPayloadBCypherText: grp.NewInt(4).Bytes(),
-			}}, auth)
+			3, auth)
 
 		if err != nil {
 			t.Errorf("Error posting precomp on node %v: %v", i, err)
@@ -225,7 +224,7 @@ func TestReceivePostPrecompResult_NoAuth(t *testing.T) {
 		IsAuthenticated: false,
 		Sender:          fakeHost,
 	}
-	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, &auth)
+	err = ReceivePostPrecompResult(instance, 0, 3, &auth)
 
 	if err == nil {
 		t.Errorf("ReceivePostPrecompResult: did not error with IsAuthenticated false")
@@ -248,7 +247,7 @@ func TestPostPrecompResult_WrongSender(t *testing.T) {
 		IsAuthenticated: true,
 		Sender:          fakeHost,
 	}
-	err = ReceivePostPrecompResult(instance, 0, []*mixmessages.Slot{}, &auth)
+	err = ReceivePostPrecompResult(instance, 0, 3, &auth)
 
 	if err == nil {
 		t.Errorf("ReceivePostPrecompResult: did not error with wrong host")

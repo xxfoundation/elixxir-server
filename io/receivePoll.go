@@ -41,7 +41,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
-		network := instance.GetConsensus()
+		network := instance.GetNetworkStatus()
 
 		//Compare partial NDF hash with instance and return the new one if they do not match
 		isSame := network.GetPartialNdf().CompareHash(poll.GetPartial().Hash)

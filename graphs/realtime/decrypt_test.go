@@ -51,7 +51,7 @@ func TestDecryptStream_GetName(t *testing.T) {
 func TestDecryptStream_Link(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 
 	stream := KeygenDecryptStream{}
 
@@ -96,7 +96,7 @@ func TestDecryptStream_Link(t *testing.T) {
 func TestDecryptStream_Input(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	batchSize := uint32(100)
 
 	stream := &KeygenDecryptStream{}
@@ -158,7 +158,7 @@ func TestDecryptStream_Input(t *testing.T) {
 func TestDecryptStream_Input_OutOfBatch(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -228,7 +228,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -263,7 +263,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -310,7 +310,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -357,7 +357,7 @@ func TestDecryptStream_Input_SaltLength(t *testing.T) {
 func TestDecryptStream_Output(t *testing.T) {
 
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 
 	batchSize := uint32(100)
 
@@ -443,7 +443,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	viper.Set("useGPU", false)
 	rid := id.Round(42)
 	instance := mockServerInstance(t)
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	registry := instance.GetStorage()
 	h := sha256.New()
 

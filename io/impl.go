@@ -94,8 +94,8 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		}
 		return response, err
 	}
-	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
-		err := ReceivePostPrecompResult(instance, roundID, slots, auth)
+	impl.Functions.PostPrecompResult = func(roundID uint64, numslots uint32, auth *connect.Auth) error {
+		err := ReceivePostPrecompResult(instance, roundID, numslots, auth)
 		if err != nil {
 			jww.ERROR.Printf("ReceivePostPrecompResult error: %+v, %+v", auth, err)
 		}
@@ -162,6 +162,10 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl.Functions.ShareFinalKey = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
 		return ReceiveFinalKey(sharedPiece, auth, instance)
+	}
+
+	impl.Functions.PrecompTestBatch = func(stream pb.Node_PrecompTestBatchServer, message *pb.RoundInfo, auth *connect.Auth) error {
+		return ReceivePrecompTestBatch(instance, stream, message, auth)
 	}
 
 	return impl

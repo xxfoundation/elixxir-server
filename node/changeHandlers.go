@@ -174,7 +174,7 @@ func NotStarted(instance *internal.Instance) error {
 				// find certs in NDF in order to detect that permissioning views
 				// this server as online
 				if err == nil && !permissioning.FindSelfInNdf(ourDef,
-					instance.GetConsensus().GetFullNdf().Get()) {
+					instance.GetNetworkStatus().GetFullNdf().Get()) {
 					err = errors.New("Waiting to be included in the " +
 						"network")
 				}
@@ -211,7 +211,7 @@ func NotStarted(instance *internal.Instance) error {
 	}
 
 	//init the database
-	cmixGrp := instance.GetConsensus().GetCmixGroup()
+	cmixGrp := instance.GetNetworkStatus().GetCmixGroup()
 
 	userDatabase := instance.GetStorage()
 	if instance.GetDefinition().DevMode {
@@ -356,7 +356,7 @@ func Precomputing(instance *internal.Instance) error {
 
 	//Build the round
 	rnd, err := round.New(
-		instance.GetConsensus().GetCmixGroup(),
+		instance.GetNetworkStatus().GetCmixGroup(),
 		instance.GetStorage(),
 		roundID, phases, phaseResponses,
 		circuit,
@@ -385,10 +385,19 @@ func Precomputing(instance *internal.Instance) error {
 	}
 
 	if circuit.IsFirstNode(instance.GetID()) {
-		err := StartLocalPrecomp(instance, roundID)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to TransmitCreateNewRound")
-		}
+		go func() {
+			if firstNodeErr := StartLocalPrecomp(instance, roundID); firstNodeErr != nil {
+				firstNodeErr =  errors.WithMessage(err, "Failed to TransmitCreateNewRound")
+				instance.ReportRoundFailure(firstNodeErr, instance.GetID(), roundID)
+			}
+		}()
+	} else if circuit.IsLastNode(instance.GetID()) {
+		go func() {
+			if lastNodeErr := io.TransmitPrecompTestBatch(roundID, instance); lastNodeErr != nil {
+				lastNodeErr = errors.WithMessage(lastNodeErr, "TransmitPrecompTestBatch: Failed to broadcast")
+				instance.ReportRoundFailure(lastNodeErr, instance.GetID(), roundID)
+			}
+		}()
 	}
 
 	return nil

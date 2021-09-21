@@ -60,9 +60,14 @@ func TransmitPrecompResult(roundID id.Round, serverInstance phase.GenericInstanc
 		measureFunc(measure.TagTransmitLastSlot)
 	}
 
-	// Send to all nodes but the first (including this one, which is the last node)
-	//panic(topology.Len())
-	for i := 1; i < topology.Len(); i++ {
+	//store the precomp result internally to be used in realtime
+	err = PostPrecompResult(r.GetBuffer(), instance.GetNetworkStatus().GetCmixGroup(), slots)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to finish precomputation")
+	}
+
+	// Send to all nodes
+	for i := 0; i < topology.Len(); i++ {
 		wg.Add(1)
 		go func(index int) {
 			var err error
@@ -70,7 +75,7 @@ func TransmitPrecompResult(roundID id.Round, serverInstance phase.GenericInstanc
 			recipient := topology.GetHostAtIndex(index)
 
 			ack, err := instance.GetNetwork().SendPostPrecompResult(
-				recipient, uint64(roundID), slots)
+				recipient, uint64(roundID), uint32(len(slots)))
 			if err != nil {
 				errChan <- errors.Wrapf(err, "")
 			}
@@ -98,20 +103,7 @@ func TransmitPrecompResult(roundID id.Round, serverInstance phase.GenericInstanc
 	if errs != nil {
 		return errs
 	}
-
-	// Pull the particular server host object from the commManager
-	recipient := topology.GetHostAtIndex(0)
-
-	//Send the message to that node
-	ack, err := instance.GetNetwork().SendPostPrecompResult(
-		recipient, uint64(roundID), slots)
-	if err != nil {
-		return err
-	} else if ack != nil && ack.Error != "" {
-		return errors.Errorf("Remote error: %v", ack.Error)
-	} else {
-		return nil
-	}
+	return nil
 }
 
 func PostPrecompResult(r *round.Buffer, grp *cyclic.Group,
@@ -121,16 +113,12 @@ func PostPrecompResult(r *round.Buffer, grp *cyclic.Group,
 		return errors.New("PostPrecompResult: The number of slots we got" +
 			" wasn't equal to the number of slots in the buffer")
 	}
-	overwritePrecomps(r, grp, slots)
-
-	return nil
-}
-
-func overwritePrecomps(buf *round.Buffer, grp *cyclic.Group, slots []*mixmessages.Slot) {
 	for i := uint32(0); i < uint32(len(slots)); i++ {
-		PayloadAPrecomputation := buf.PayloadAPrecomputation.Get(i)
-		PayloadBPrecomputation := buf.PayloadBPrecomputation.Get(i)
+		PayloadAPrecomputation := r.PayloadAPrecomputation.Get(i)
+		PayloadBPrecomputation := r.PayloadBPrecomputation.Get(i)
 		grp.SetBytes(PayloadAPrecomputation, slots[i].EncryptedPayloadAKeys)
 		grp.SetBytes(PayloadBPrecomputation, slots[i].EncryptedPayloadBKeys)
 	}
+
+	return nil
 }

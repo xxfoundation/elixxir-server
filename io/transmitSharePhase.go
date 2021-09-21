@@ -82,7 +82,7 @@ func TransmitStartSharePhase(roundID id.Round, instance *internal.Instance) erro
 func TransmitPhaseShare(instance *internal.Instance, r *round.Round,
 	theirPiece *pb.SharePiece) error {
 
-	grp := instance.GetConsensus().GetCmixGroup()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 
 	// Build the message to be sent to all other nodes
 	ourPiece, err := generateShare(theirPiece, grp,
