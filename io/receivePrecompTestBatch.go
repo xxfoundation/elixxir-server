@@ -16,6 +16,7 @@ import (
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
 	"io"
 	"strings"
@@ -77,6 +78,10 @@ func ReceivePrecompTestBatch(instance *internal.Instance, stream pb.Node_Precomp
 	for ; err == nil; slot, err = stream.Recv() {
 		slotsReceived++
 		size += len(slot.PayloadA) + len(slot.PayloadB)
+	}
+	errClose := stream.SendAndClose(&messages.Ack{})
+	if errClose != nil {
+		return errors.Errorf("Failed to close stream for round %d: %v", roundID, err)
 	}
 
 	//check the reception came through correctly
