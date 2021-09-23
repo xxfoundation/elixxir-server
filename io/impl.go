@@ -90,7 +90,8 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		auth *connect.Auth) (*pb.RegistrationConfirmation, error) {
 		response, err := ConfirmRegistration(instance, confirmationRequest, auth)
 		if err != nil {
-			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
+			jww.WARN.Printf("ConfirmRegistration failed: %+v, %+v",
+				auth, err)
 		}
 		return response, err
 	}
