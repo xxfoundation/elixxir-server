@@ -100,20 +100,6 @@ func TestSendFinishRealtime(t *testing.T) {
 
 	close(chunkInputChan)
 
-	var cr *round.CompletedRound
-
-	for cr == nil {
-		rid, _ := instance.GetCompletedBatchRID()
-		cr, _ = instance.GetCompletedBatch(rid)
-		time.Sleep(1 * time.Millisecond)
-	}
-
-	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
-			"number of chunks; expected: %v, received: %v", numSlots,
-			len(cr.Round))
-	}
-
 	goErr := <-errCH
 
 	if goErr != nil {
@@ -205,20 +191,6 @@ func TestTransmitFinishRealtime_Error(t *testing.T) {
 
 		close(chunkInputChan)
 	}()
-
-	var cr *round.CompletedRound
-
-	for cr == nil {
-		rid, _ := instance.GetCompletedBatchRID()
-		cr, _ = instance.GetCompletedBatch(rid)
-		time.Sleep(1 * time.Millisecond)
-	}
-
-	if len(cr.Round) != numSlots {
-		t.Errorf("TransmitFinishRealtime: did not receive the correct: "+
-			"number of chunks; expected: %v, received: %v", numSlots,
-			len(cr.Round))
-	}
 
 	goErr := <-errCH
 
