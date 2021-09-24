@@ -162,7 +162,9 @@ func ConfirmRegistration(instance *internal.Instance, confirmation *pb.RequestRe
 		return nil, err
 	}
 
-	err = rsa.Verify(pubKey, hash.CMixHash, data, Signature, nil)
+	opts := rsa.NewDefaultOptions()
+	opts.Hash = hash.CMixHash
+	err = rsa.Verify(pubKey, hash.CMixHash, data, Signature, opts)
 	if err != nil {
 		return &pb.RegistrationConfirmation{},
 			errors.WithMessagef(err, "Unable to confirm registration with %s, signature invalid: %+v", client.Id, err)
