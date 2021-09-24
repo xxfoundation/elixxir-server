@@ -387,7 +387,7 @@ func Precomputing(instance *internal.Instance) error {
 	if circuit.IsFirstNode(instance.GetID()) {
 		go func() {
 			if firstNodeErr := StartLocalPrecomp(instance, roundID); firstNodeErr != nil {
-				firstNodeErr =  errors.WithMessage(err, "Failed to TransmitCreateNewRound")
+				firstNodeErr = errors.WithMessage(err, "Failed to TransmitCreateNewRound")
 				instance.ReportRoundFailure(firstNodeErr, instance.GetID(), roundID)
 			}
 		}()
