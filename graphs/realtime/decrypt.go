@@ -31,6 +31,7 @@ const (
 type KeygenDecryptStream struct {
 	Grp        *cyclic.Group
 	StreamPool *gpumaths.StreamPool
+	PrivKeyPem []byte
 
 	// Link to round object
 	R *cyclic.IntBuffer
@@ -57,21 +58,28 @@ func (s *KeygenDecryptStream) GetName() string {
 //Link creates the stream's internal buffers and
 func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuf := source[RoundBuff].(*round.Buffer)
+	// todo: have nodeSecret be hardcoded at this index once
+	//  testing of databaseless client registration has been done
+	//  This involves removing search for nodeSecret while
+	//  iterating over source below
 	userRegistry := source[Registry].(*storage.Storage)
 	users := make([]*id.ID, batchSize)
 	var clientReporter *round.ClientReport
 	var roundID id.Round
+	nodeSecret := storage.NewNodeSecretManager()
 	// Find the client error reporter and the roundID (if it exists)
 	var ok bool
 	for _, face := range source {
-		_, ok = face.(*round.ClientReport)
-		if ok {
+		if _, ok = face.(*round.ClientReport); ok {
 			clientReporter = face.(*round.ClientReport)
 		}
 
-		_, ok = face.(id.Round)
-		if ok {
+		if _, ok = face.(id.Round); ok {
 			roundID = face.(id.Round)
+		}
+
+		if _, ok = face.(*storage.NodeSecretManager); ok {
+			nodeSecret = face.(*storage.NodeSecretManager)
 		}
 	}
 
@@ -81,22 +89,30 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 
 	var streamPool *gpumaths.StreamPool
 	if len(source) >= 4 {
-		// All arguments are being passed from the Link call, which should include the stream pool
+		// All arguments are being passed from the Link call,
+		// which should include the stream pool
 		streamPool = source[3].(*gpumaths.StreamPool)
 	}
 
-	s.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, streamPool, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users,
-		make([][]byte, batchSize), make([][][]byte, batchSize),
-		clientReporter, roundID)
+	// todo: pass nodeSecret in place of userRegistry, refactor down the stack
+	//  once testing of databaseless client registration has been done
+	s.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry,
+		streamPool, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		users, make([][]byte, batchSize), make([][][]byte, batchSize),
+		clientReporter, roundID, nodeSecret)
 }
 
 //Connects the internal buffers in the stream to the passed
-func (s *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batchSize uint32,
-	round *round.Buffer, storage *storage.Storage, pool *gpumaths.StreamPool, ecrPayloadA, ecrPayloadB,
-	keysPayloadA, keysPayloadB *cyclic.IntBuffer, users []*id.ID, salts [][]byte, kmacs [][][]byte,
-	clientReporter *round.ClientReport, roundId id.Round) {
+func (s *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group,
+	batchSize uint32, round *round.Buffer, storage *storage.Storage,
+	pool *gpumaths.StreamPool,
+	ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
+	users []*id.ID, salts [][]byte, kmacs [][][]byte,
+	clientReporter *round.ClientReport, roundId id.Round,
+	nodeSecrets *storage.NodeSecretManager) {
 
 	s.Grp = grp
 	s.StreamPool = pool
@@ -111,9 +127,10 @@ func (s *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group, batch
 	s.Users = users
 	s.Salts = salts
 	s.KMACS = kmacs
+	s.NodeSecrets = nodeSecrets
 
 	s.KeygenSubStream.LinkStream(s.Grp, storage, s.Salts, s.KMACS, s.Users, s.KeysPayloadA,
-		s.KeysPayloadB, clientReporter, roundId, batchSize)
+		s.KeysPayloadB, clientReporter, roundId, batchSize, nodeSecrets)
 }
 
 // PermuteStream conforms to this interface.

@@ -24,6 +24,7 @@ import (
 // DbTimeout determines maximum runtime (in seconds) of specific DB queries
 const DbTimeout = 1
 
+// TODO: Remove this once RequestClientKey is properly tested
 // Interface declaration for storage methods
 type database interface {
 	GetClient(id *id.ID) (*Client, error)

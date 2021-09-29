@@ -148,13 +148,13 @@ func TestRequestNonceFailAuthId(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := RequestNonce(serverInstance, &pb.NonceRequest{}, &connect.Auth{
+	_, err2 := RequestRequestClientKey(serverInstance, &pb.NonceRequest{}, &connect.Auth{
 		IsAuthenticated: true, // True for this test, we want bad sender ID
 		Sender:          gwHost,
 	})
 
 	if !connect.IsAuthError(err2) {
-		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
+		t.Errorf("Expected auth error in RequestRequestClientKey: %+v", err2)
 	}
 }
 
@@ -168,13 +168,13 @@ func TestRequestNonceFailAuth(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := RequestNonce(serverInstance, &pb.NonceRequest{}, &connect.Auth{
+	_, err2 := RequestRequestClientKey(serverInstance, &pb.NonceRequest{}, &connect.Auth{
 		IsAuthenticated: false, // This is the crux of the test
 		Sender:          gwHost,
 	})
 
 	if !connect.IsAuthError(err2) {
-		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
+		t.Errorf("Expected auth error in RequestRequestClientKey: %+v", err2)
 	}
 }
 
@@ -194,7 +194,7 @@ func TestRequestNonce(t *testing.T) {
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {
-		t.Fatalf("RequestNonce error: "+
+		t.Fatalf("RequestRequestClientKey error: "+
 			"Could not parse precanned time: %v", err.Error())
 	}
 	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(), regPrivKey, testTime.UnixNano(), string(clientRSAPubKeyPEM))
@@ -230,13 +230,13 @@ func TestRequestNonce(t *testing.T) {
 		TimeStamp:            testTime.UnixNano(),
 	}
 
-	result, err2 := RequestNonce(serverInstance, request, &connect.Auth{
+	result, err2 := RequestRequestClientKey(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
 	t.Logf("err2: %v", err2)
 	if result == nil || err2 != nil {
-		t.Errorf("Error in RequestNonce: %+v", err2)
+		t.Errorf("Error in RequestRequestClientKey: %+v", err2)
 	}
 }
 
@@ -278,13 +278,13 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 		RequestSignature:     &messages.RSASignature{Signature: sigClient},
 	}
 
-	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
+	_, err2 := RequestRequestClientKey(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
 
 	if err2 == nil {
-		t.Errorf("Error in RequestNonce, did not fail with bad "+
+		t.Errorf("Error in RequestRequestClientKey, did not fail with bad "+
 			"registartion signature: %+v", err2)
 	}
 }
@@ -300,7 +300,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {
-		t.Fatalf("RequestNonce error: "+
+		t.Fatalf("RequestRequestClientKey error: "+
 			"Could not parse precanned time: %v", err.Error())
 	}
 	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(), regPrivKey,
@@ -325,13 +325,13 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 		RequestSignature:     &messages.RSASignature{Signature: sigClient},
 		TimeStamp:            testTime.UnixNano(),
 	}
-	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
+	_, err2 := RequestRequestClientKey(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
 	t.Logf("err2: %v", err2)
 	if err2 == nil {
-		t.Errorf("Error in RequestNonce, did not fail with bad "+
+		t.Errorf("Error in RequestRequestClientKey, did not fail with bad "+
 			"registartion signature: %+v", err2)
 	}
 }
@@ -559,7 +559,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {
-		t.Fatalf("RequestNonce error: "+
+		t.Fatalf("RequestRequestClientKey error: "+
 			"Could not parse precanned time: %v", err.Error())
 	}
 	user := &storage.Client{
@@ -685,9 +685,7 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 	m := state.NewTestMachine(dummyStates, s, t)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
-	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
-		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0), make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

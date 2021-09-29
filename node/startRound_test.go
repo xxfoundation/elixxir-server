@@ -137,9 +137,7 @@ func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *r
 
 	top := connect.NewCircuit(list)
 
-	r, err := round.New(grp, &storage.Storage{}, roundId, []phase.Phase{mockPhase},
-		responseMap, top, top.GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	r, err := round.New(grp, &storage.Storage{}, roundId, []phase.Phase{mockPhase}, responseMap, top, top.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)

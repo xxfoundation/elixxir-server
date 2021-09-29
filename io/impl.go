@@ -78,15 +78,24 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
-	impl.Functions.RequestNonce = func(nonceRequest *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
-		nonce, err := RequestNonce(instance, nonceRequest, auth)
+	impl.Functions.RequestClientKey = func(request *pb.SignedClientKeyRequest,
+		auth *connect.Auth) (*pb.SignedKeyResponse, error) {
+		response, err := RequestRequestClientKey(instance, request, auth)
 		if err != nil {
-			jww.ERROR.Printf("RequestNonce error: %+v, %+v", auth, err)
+			jww.ERROR.Printf("RequestRequestClientKey error: %+v, %+v", auth, err)
 		}
-		return nonce, err
+		return response, err
 	}
 
-	impl.Functions.ConfirmRegistration = func(confirmationRequest *pb.RequestRegistrationConfirmation,
+	impl.Functions.RequestNonce = func(nonceRequest *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
+		response, err := RequestNonce(instance, nonceRequest, auth)
+		if err != nil {
+			jww.ERROR.Printf("RequestRequestClientKey error: %+v, %+v", auth, err)
+		}
+		return response, err
+	}
+
+	impl.Functions.ConfirmNonce = func(confirmationRequest *pb.RequestRegistrationConfirmation,
 		auth *connect.Auth) (*pb.RegistrationConfirmation, error) {
 		response, err := ConfirmRegistration(instance, confirmationRequest, auth)
 		if err != nil {

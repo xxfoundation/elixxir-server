@@ -13,6 +13,7 @@ package internal
 import (
 	"encoding/base64"
 	"fmt"
+	"gitlab.com/elixxir/crypto/hash"
 	"os"
 	"strings"
 	"sync"
@@ -58,7 +59,11 @@ type Instance struct {
 	phaseStateMachine state.GenericMachine
 
 	// Persistent storage object
+	// todo: remove once testing of databaseless client registration has completed
 	storage *storage.Storage
+
+	// RAM storage of rotating node secrets
+	nodeSecretManager *storage.NodeSecretManager
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -154,6 +159,25 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		} else {
 			jww.FATAL.Panicf(eMsg)
 		}
+	}
+
+	// Create node secret manager
+	instance.nodeSecretManager = storage.NewNodeSecretManager()
+
+	// Create hardcoded node secret
+	// todo: remove this once a mechanism is implemented for
+	//  creating and rotating node secrets.
+	h, err := hash.NewCMixHash()
+	if err != nil {
+		return nil, err
+	}
+
+	h.Write(instance.definition.TlsKey)
+	nodeSecret := h.Sum(nil)
+
+	err = instance.nodeSecretManager.UpsertSecret(0, nodeSecret)
+	if err != nil {
+		return nil, errors.Errorf("Could not insert into node secret manager: %v", err)
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -311,6 +335,10 @@ func (i *Instance) GetStorage() *storage.Storage {
 	return i.storage
 }
 
+func (i *Instance) GetSecretManager() *storage.NodeSecretManager {
+	return i.nodeSecretManager
+}
+
 // GetRoundManager returns the round manager
 func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager
@@ -346,7 +374,7 @@ func (i *Instance) GetPubKey() *rsa.PublicKey {
 	return i.definition.PublicKey
 }
 
-// GetPrivKey returns the server DSA private key
+// GetPrivKey returns the server RSA private key
 func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }

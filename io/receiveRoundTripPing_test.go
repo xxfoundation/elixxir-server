@@ -56,9 +56,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	batchSize := uint32(11)
 
-	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
-		responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase}, responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 		return

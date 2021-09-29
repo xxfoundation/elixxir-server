@@ -65,11 +65,15 @@ type Round struct {
 
 // New creates and initializes a new round, including all phases, topology,
 // and batch size
+// todo: remove storage from signature, only have nodeSecretManager. This is to be done
+//  once testing for databaseless client registration has completed
 func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 	phases []phase.Phase, responses phase.ResponseMap,
 	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
-	localIP string, errorHandler services.ErrorCallback, clientErr *ClientReport) (*Round, error) {
+	localIP string, errorHandler services.ErrorCallback,
+	clientErr *ClientReport,
+	nodeSecretManager *storage.NodeSecretManager) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
@@ -171,7 +175,8 @@ func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 		// If in realDecrypt, we need to handle client specific errors
 		if p.GetGraph() != nil {
 			if p.GetType() == phase.RealDecrypt {
-				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool, clientErr, id)
+				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen,
+					streamPool, clientErr, id, nodeSecretManager)
 			} else {
 				// Other phases can operate normally
 				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool)
