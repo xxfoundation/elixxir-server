@@ -111,7 +111,10 @@ func RequestRequestClientKey(instance *internal.Instance,
 	// Retrieve node secret
 	//TODO: replace hardcoding of keyID once multiple rotating node secrets
 	// is supported
-	nodeSecret := instance.GetSecretManager().GetSecret(0)
+	nodeSecret, err := instance.GetSecretManager().GetSecret(0)
+	if err != nil {
+		return nil, err
+	}
 
 	// Construct client key
 	h.Reset()

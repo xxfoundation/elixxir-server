@@ -49,94 +49,14 @@ var clientDHPub *cyclic.Int
 var regPrivKey *rsa.PrivateKey
 var nodeId *id.ID
 
-func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.ID, string) {
-	switch v := t.(type) {
-	case *testing.T:
-	case *testing.M:
-		break
-	default:
-		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
-	}
-
-	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
-		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
-		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
-		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
-		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
-		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
-		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
-		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
-		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
-		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
-		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
-
-	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
-	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
-
-	nid := internal.GenerateId(t)
-	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
-		large.NewInt(2))
-
-	var err error
-
-	//make client rsa key pair
-	cRsaPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
-	if err != nil {
-		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
-	}
-
-	cRsaPub := cRsaPriv.GetPublic()
-
-	//make client DH key
-	clintDHPriv := grp.RandomCoprime(grp.NewInt(1))
-	cDhPub := grp.ExpG(clintDHPriv, grp.NewInt(1))
-
-	//make registration rsa key pair
-	regPKey, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
-	if err != nil {
-		panic(fmt.Sprintf("Could not generate registration private key: %+v", err))
-	}
-
-	//make server rsa key pair
-	serverRSAPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
-	if err != nil {
-		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
-	}
-
-	serverRSAPub := serverRSAPriv.GetPublic()
-	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
-	cnt++
-	def := internal.Definition{
-		ID:               nid,
-		ResourceMonitor:  &measure.ResourceMonitor{},
-		PrivateKey:       serverRSAPriv,
-		PublicKey:        serverRSAPub,
-		TlsCert:          cert,
-		TlsKey:           key,
-		FullNDF:          testUtil.NDF,
-		PartialNDF:       testUtil.NDF,
-		ListeningAddress: nodeAddr,
-		DevMode:          true,
-		RngStreamGen: fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG),
-	}
-
-	def.Network.PublicKey = regPKey.GetPublic()
-	nodeIDs := make([]*id.ID, 0)
-	nodeIDs = append(nodeIDs, nid)
-	def.Gateway.ID = &id.TempGateway
-
-	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
-
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, mach, "1.1.0")
-
-	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid, nodeAddr
-}
-
 func TestMain(m *testing.M) { // TODO: TestMain is bad make this go away
 	serverInstance, clientRSAPub, clientRSAPriv, clientDHPub, regPrivKey, nodeId, _ = setup(m)
 	os.Exit(m.Run())
 }
+
+// ---------------------- Start of deprecated fields ----------- //
+// todo these testing function will be removed once Confirm/RequestNonce is removed
+//  This will be done once databaseless registration has been fully tested.
 
 // Test request nonce with good auth boolean but bad ID
 func TestRequestNonceFailAuthId(t *testing.T) {
@@ -148,13 +68,13 @@ func TestRequestNonceFailAuthId(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := RequestRequestClientKey(serverInstance, &pb.NonceRequest{}, &connect.Auth{
+	_, err2 := RequestNonce(serverInstance, &pb.NonceRequest{}, &connect.Auth{
 		IsAuthenticated: true, // True for this test, we want bad sender ID
 		Sender:          gwHost,
 	})
 
 	if !connect.IsAuthError(err2) {
-		t.Errorf("Expected auth error in RequestRequestClientKey: %+v", err2)
+		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
 	}
 }
 
@@ -168,13 +88,13 @@ func TestRequestNonceFailAuth(t *testing.T) {
 		t.Errorf("Unable to create gateway host: %+v", err)
 	}
 
-	_, err2 := RequestRequestClientKey(serverInstance, &pb.NonceRequest{}, &connect.Auth{
+	_, err2 := RequestNonce(serverInstance, &pb.NonceRequest{}, &connect.Auth{
 		IsAuthenticated: false, // This is the crux of the test
 		Sender:          gwHost,
 	})
 
 	if !connect.IsAuthError(err2) {
-		t.Errorf("Expected auth error in RequestRequestClientKey: %+v", err2)
+		t.Errorf("Expected auth error in RequestNonce: %+v", err2)
 	}
 }
 
@@ -194,7 +114,7 @@ func TestRequestNonce(t *testing.T) {
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {
-		t.Fatalf("RequestRequestClientKey error: "+
+		t.Fatalf("RequestNonce error: "+
 			"Could not parse precanned time: %v", err.Error())
 	}
 	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(), regPrivKey, testTime.UnixNano(), string(clientRSAPubKeyPEM))
@@ -230,13 +150,13 @@ func TestRequestNonce(t *testing.T) {
 		TimeStamp:            testTime.UnixNano(),
 	}
 
-	result, err2 := RequestRequestClientKey(serverInstance, request, &connect.Auth{
+	result, err2 := RequestNonce(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
 	t.Logf("err2: %v", err2)
 	if result == nil || err2 != nil {
-		t.Errorf("Error in RequestRequestClientKey: %+v", err2)
+		t.Errorf("Error in RequestNonce: %+v", err2)
 	}
 }
 
@@ -278,13 +198,13 @@ func TestRequestNonce_BadRegSignature(t *testing.T) {
 		RequestSignature:     &messages.RSASignature{Signature: sigClient},
 	}
 
-	_, err2 := RequestRequestClientKey(serverInstance, request, &connect.Auth{
+	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
 
 	if err2 == nil {
-		t.Errorf("Error in RequestRequestClientKey, did not fail with bad "+
+		t.Errorf("Error in RequestNonce, did not fail with bad "+
 			"registartion signature: %+v", err2)
 	}
 }
@@ -300,7 +220,7 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {
-		t.Fatalf("RequestRequestClientKey error: "+
+		t.Fatalf("RequestNonce error: "+
 			"Could not parse precanned time: %v", err.Error())
 	}
 	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(), regPrivKey,
@@ -325,13 +245,13 @@ func TestRequestNonce_BadClientSignature(t *testing.T) {
 		RequestSignature:     &messages.RSASignature{Signature: sigClient},
 		TimeStamp:            testTime.UnixNano(),
 	}
-	_, err2 := RequestRequestClientKey(serverInstance, request, &connect.Auth{
+	_, err2 := RequestNonce(serverInstance, request, &connect.Auth{
 		IsAuthenticated: true,
 		Sender:          gwHost,
 	})
 	t.Logf("err2: %v", err2)
 	if err2 == nil {
-		t.Errorf("Error in RequestRequestClientKey, did not fail with bad "+
+		t.Errorf("Error in RequestNonce, did not fail with bad "+
 			"registartion signature: %+v", err2)
 	}
 }
@@ -559,7 +479,7 @@ func TestConfirmRegistration_Expired(t *testing.T) {
 	testTime, err := time.Parse(time.RFC3339,
 		"2012-12-21T22:08:41+00:00")
 	if err != nil {
-		t.Fatalf("RequestRequestClientKey error: "+
+		t.Fatalf("RequestNonce error: "+
 			"Could not parse precanned time: %v", err.Error())
 	}
 	user := &storage.Client{
@@ -651,6 +571,90 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 	}
 }
 
+func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.ID, string) {
+	switch v := t.(type) {
+	case *testing.T:
+	case *testing.M:
+		break
+	default:
+		panic(fmt.Sprintf("Cannot use outside of test environment; %+v", v))
+	}
+
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
+	cert, _ := utils.ReadFile(testkeys.GetNodeCertPath())
+	key, _ := utils.ReadFile(testkeys.GetNodeKeyPath())
+
+	nid := internal.GenerateId(t)
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
+		large.NewInt(2))
+
+	var err error
+
+	//make client rsa key pair
+	cRsaPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
+	}
+
+	cRsaPub := cRsaPriv.GetPublic()
+
+	//make client DH key
+	clintDHPriv := grp.RandomCoprime(grp.NewInt(1))
+	cDhPub := grp.ExpG(clintDHPriv, grp.NewInt(1))
+
+	//make registration rsa key pair
+	regPKey, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate registration private key: %+v", err))
+	}
+
+	//make server rsa key pair
+	serverRSAPriv, err := rsa.GenerateKey(csprng.NewSystemRNG(), 1024)
+	if err != nil {
+		panic(fmt.Sprintf("Could not generate node private key: %+v", err))
+	}
+
+	serverRSAPub := serverRSAPriv.GetPublic()
+	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
+	cnt++
+	def := internal.Definition{
+		ID:               nid,
+		ResourceMonitor:  &measure.ResourceMonitor{},
+		PrivateKey:       serverRSAPriv,
+		PublicKey:        serverRSAPub,
+		TlsCert:          cert,
+		TlsKey:           key,
+		FullNDF:          testUtil.NDF,
+		PartialNDF:       testUtil.NDF,
+		ListeningAddress: nodeAddr,
+		DevMode:          true,
+		RngStreamGen: fastRNG.NewStreamGenerator(10000,
+			uint(runtime.NumCPU()), csprng.NewSystemRNG),
+	}
+
+	def.Network.PublicKey = regPKey.GetPublic()
+	nodeIDs := make([]*id.ID, 0)
+	nodeIDs = append(nodeIDs, nid)
+	def.Gateway.ID = &id.TempGateway
+
+	mach := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
+
+	instance, _ := internal.CreateServerInstance(&def, NewImplementation, mach, "1.1.0")
+
+	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid, nodeAddr
+}
+
 func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {
 	grp := initImplGroup()
 	nodeAddr := fmt.Sprintf("0.0.0.0:%d", 7000+rand.Intn(1000)+cnt)
@@ -685,7 +689,9 @@ func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*inter
 	m := state.NewTestMachine(dummyStates, s, t)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
-	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0), make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
+	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
+		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
+		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, instance.GetSecretManager())
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
