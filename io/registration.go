@@ -39,14 +39,6 @@ func RequestRequestClientKey(instance *internal.Instance,
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
 	}
 
-	// Parse serialized data into message
-	msg := &pb.ClientKeyRequest{}
-	err := proto.Unmarshal(request.ClientKeyRequest, msg)
-	if err != nil {
-		errMsg := errors.Errorf("Couldn't parse client key request: %v", err)
-		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
-	}
-
 	// get the group, if it cant be found return an error because we are not
 	// ready
 	grp := instance.GetNetworkStatus().GetCmixGroup()
@@ -55,11 +47,39 @@ func RequestRequestClientKey(instance *internal.Instance,
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
 	}
 
+	// Parse serialized data into messageNoSecretExistsError
+	msg := &pb.ClientKeyRequest{}
+	err := proto.Unmarshal(request.ClientKeyRequest, msg)
+	if err != nil {
+		errMsg := errors.Errorf("Couldn't parse client key request: %v", err)
+		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
+	}
+
+	// Construct hash
+	opts := rsa.NewDefaultOptions()
+	opts.Hash = hash.CMixHash
+	h := opts.Hash.New()
+
+	// Parse serialized transmission confirmation into message
+	clientTransmissionConfirmation := &pb.ClientRegistrationConfirmation{}
+	err = proto.Unmarshal(msg.ClientTransmissionConfirmation.
+		ClientRegistrationConfirmation, clientTransmissionConfirmation)
+	if err != nil {
+		errMsg := errors.Errorf("Couldn't parse client registration confirmation: %v", err)
+		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
+	}
+
+	// Extract RSA pubkey
+	clientRsaPub := clientTransmissionConfirmation.RSAPubKey
+
+	// Retrieve client registrar public key
 	regPubKey := instance.GetRegServerPubKey()
-	clientPubKey := msg.GetClientDHPubKey()
+
 	// Verify the registration signedResponse provided by the user
 	err = registration.VerifyWithTimestamp(regPubKey, msg.RegistrationTimestamp,
-		string(clientPubKey), msg.ClientTransmissionConfirmation.ClientRegistrationConfirmation)
+		clientRsaPub,
+		msg.GetClientTransmissionConfirmation().GetRegistrarSignature().
+			GetSignature())
 	if err != nil {
 		// Invalid signed Client public key, return an error
 		errMsg := errors.Errorf("verification of public key signedResponse "+
@@ -69,16 +89,14 @@ func RequestRequestClientKey(instance *internal.Instance,
 	}
 
 	// Assemble Client public key
-	userPublicKey, err := rsa.LoadPublicKeyFromPem(clientPubKey)
+	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(clientRsaPub))
 	if err != nil {
 		errMsg := errors.Errorf("Unable to decode client RSA Pub Key: %+v", err)
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
 	}
 
 	// Reconstruct hashed data for signedResponse verification
-	opts := rsa.NewDefaultOptions()
-	opts.Hash = hash.CMixHash
-	h := opts.Hash.New()
+	h.Reset()
 	h.Write(request.ClientKeyRequest)
 	data := h.Sum(nil)
 
@@ -98,6 +116,7 @@ func RequestRequestClientKey(instance *internal.Instance,
 
 	// Generate user CMIX baseKey
 	h.Reset()
+
 	sessionKey := registration.GenerateBaseKey(grp, clientDHPub, DHPriv, h)
 
 	// Generate UserID
@@ -137,7 +156,8 @@ func RequestRequestClientKey(instance *internal.Instance,
 
 	// Construct HMAC
 	h.Reset()
-	encryptedClientKeyHMAC := registration.CreateClientHMAC(sessionKey.Bytes(), encryptedClientKey, h)
+	encryptedClientKeyHMAC := registration.CreateClientHMAC(sessionKey.Bytes(),
+		encryptedClientKey, h)
 
 	// Construct response
 	resp := &pb.ClientKeyResponse{
