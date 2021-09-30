@@ -126,7 +126,8 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	cancel()
 
 	if err != nil {
-		return err
+		return errors.WithMessagef(err,"Failed to stream on round %d to %s",
+			roundID, recipient.GetId())
 	}
 
 	// Make sure the comm doesn't return an Ack with an error message
