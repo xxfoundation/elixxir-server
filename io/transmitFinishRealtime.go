@@ -12,6 +12,7 @@ package io
 
 import (
 	"github.com/pkg/errors"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -92,7 +93,9 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 	// Return all node comms or ack errors if any
 	// as a single error message
 	var errs error
+	numerrors := 0
 	for len(errChan) > 0 {
+		numerrors++
 		err := <-errChan
 		if errs != nil {
 			errs = errors.Wrap(errs, err.Error())
@@ -101,5 +104,11 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 		}
 	}
 
-	return errs
+	if numerrors>0{
+		jww.ERROR.Printf("Streaming batch to other nodes failed in " +
+			"round %d for %d/%d nodes: %+v", roundID, numerrors, topology.Len(),
+			errs)
+	}
+
+	return nil
 }
