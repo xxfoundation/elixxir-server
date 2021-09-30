@@ -116,14 +116,13 @@ var Keygen = services.Module{
 			if kss.users[i].Cmp(&id.ID{}) {
 				continue
 			}
-
 			// Retrieve the node secret
 			// todo: KeyID will not be hardcoded once multiple rotating
 			//  secrets is supported.
 			nodeSecret, err := kss.NodeSecrets.GetSecret(0)
 			if err != nil {
 				if errors.Is(err, errors.New(storage.NoSecretExistsError)) {
-					jww.INFO.Printf("No secret for key ID %s with user %v found for slot %d",
+					jww.INFO.Printf("No secret for key ID %d with user %v found for slot %d",
 						0, kss.users[i], i)
 					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
@@ -175,15 +174,13 @@ var Keygen = services.Module{
 			//  RequestClientKey has been properly tested
 			success, isContinue := false, false
 			if !newRegPathSuccess {
-				if !newRegPathSuccess {
-					success, isContinue, err = oldRegPath(kss, kmacHash, saltHash, keygen, i)
-					if err != nil {
-						return err
-					}
+				success, isContinue, err = oldRegPath(kss, kmacHash, saltHash, keygen, i)
+				if err != nil {
+					return err
 				}
-				if isContinue {
-					continue
-				}
+			}
+			if isContinue {
+				continue
 			}
 
 			//pop the used KMAC
@@ -269,8 +266,6 @@ func oldRegPath(kss *KeygenSubStream, kmacHash, saltHash goHash.Hash,
 				kss.kmacs[index][0], cmix.GenerateKMAC(kss.salts[index],
 					clientBaseKey, kss.RoundId, kmacHash))
 		}
-		//pop the used KMAC
-		kss.kmacs[index] = kss.kmacs[index][1:]
 	}
 
 	return success, false, nil

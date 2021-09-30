@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -55,7 +56,7 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		round.NewClientFailureReport(instance.GetID()), 0,
-		batchSize, storage.NewNodeSecretManager())
+		batchSize, instance.GetSecretManager())
 }
 
 func (s *KeygenTestStream) Input(index uint32,
@@ -142,7 +143,10 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraph(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, err := mockServerInstance(t)
+	if err != nil {
+		t.Fatalf("Failed to initialize mock instance: %v", err)
+	}
 	registry := instance.GetStorage()
 	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
@@ -270,7 +274,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t)
 	registry := instance.GetStorage()
 	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
@@ -392,7 +396,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
-	instance := mockServerInstance(t)
+	instance, _ := mockServerInstance(t)
 	registry := instance.GetStorage()
 	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
@@ -516,7 +520,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	}
 }
 
-func mockServerInstance(i interface{}) *internal.Instance {
+func mockServerInstance(i interface{}) (*internal.Instance, error) {
 
 	nid := internal.GenerateId(i)
 
@@ -561,5 +565,10 @@ func mockServerInstance(i interface{}) *internal.Instance {
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, "1.1.0")
 
-	return instance
+	err := instance.GetSecretManager().UpsertSecret(0, []byte("testData"))
+	if err != nil {
+		return nil, errors.Errorf("Failed to initialize secret manager: %v", err)
+	}
+
+	return instance, nil
 }

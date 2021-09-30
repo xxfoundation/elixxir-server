@@ -505,7 +505,8 @@ func TestDecryptStreamInGraph(t *testing.T) {
 
 	clientReport := round.NewClientFailureReport(instance.GetID())
 
-	g.Link(grp, roundBuffer, registry, clientReport)
+	var streamPool *gpumaths.StreamPool
+	g.Link(grp, roundBuffer, registry, clientReport, streamPool, instance.GetSecretManager())
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 
@@ -639,6 +640,8 @@ func mockServerInstance(i interface{}) *internal.Instance {
 	sm := state.NewMachine(stateChanges)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, "1.1.0")
+
+	instance.GetSecretManager().UpsertSecret(0, []byte("test123"))
 
 	return instance
 }
