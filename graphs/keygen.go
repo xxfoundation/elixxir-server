@@ -120,7 +120,28 @@ var Keygen = services.Module{
 			// Retrieve the node secret
 			// todo: KeyID will not be hardcoded once multiple rotating
 			//  secrets is supported.
-			nodeSecret := kss.NodeSecrets.GetSecret(0)
+			nodeSecret, err := kss.NodeSecrets.GetSecret(0)
+			if err != nil {
+				if errors.Is(err, errors.New(storage.NoSecretExistsError)) {
+					jww.INFO.Printf("No secret for key ID %s with user %v found for slot %d",
+						0, kss.users[i], i)
+					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
+					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
+					errMsg := fmt.Sprintf("%s [%v] in storage:%v",
+						services.SecretNotFound, kss.users[i], err)
+					clientError := &pb.ClientError{
+						ClientId: kss.users[i].Bytes(),
+						Error:    errMsg,
+					}
+
+					err = kss.userErrors.Send(kss.RoundId, clientError)
+					if err != nil {
+						return err
+					}
+
+				}
+				continue
+			}
 
 			// Generate node key
 			nodeSecretHash.Reset()
