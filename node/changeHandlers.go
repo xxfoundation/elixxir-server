@@ -379,7 +379,7 @@ func Precomputing(instance *internal.Instance) error {
 	// If the other servers in the round do not respond in under 2 seconds
 	// then fail the round.
 	err = io.VerifyServersOnline(instance.GetNetwork(), circuit,
-		2*time.Second)
+		4*time.Second)
 	if err != nil {
 		return err
 	}
