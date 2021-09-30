@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
 	"sync"
 )
@@ -71,17 +72,24 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 			// Pull the particular server host object from the commManager
 			recipient := topology.GetHostAtIndex(localIndex)
 			// Send the message to that particular node
-			ack, err := instance.GetNetwork().SendFinishRealtime(recipient,
-				&mixmessages.RoundInfo{ID: uint64(roundID)},
-				&mixmessages.CompletedBatch{Slots: complete.Round},
-			)
+			var streamErr error
+			var ack *messages.Ack
+			for i:=0;i<3;i++{
+				ack, streamErr = instance.GetNetwork().SendFinishRealtime(recipient,
+					&mixmessages.RoundInfo{ID: uint64(roundID)},
+					&mixmessages.CompletedBatch{Slots: complete.Round},
+				)
 
-			if ack != nil && ack.Error != "" {
-				err = errors.Errorf("Remote Server Error: %s", ack.Error)
+				if ack != nil && ack.Error != "" {
+					streamErr = errors.Errorf("Remote Server Error: %s", ack.Error)
+				}
+				if streamErr!=nil{
+					jww.WARN.Printf("failed to stream TransmitFinishRealtime to " +
+						"%s attempt %d/3: %+v", recipient.GetId(), i,err)
+				}
 			}
-
-			if err != nil {
-				errChan <- err
+			if streamErr != nil {
+				errChan <- streamErr
 			}
 			wg.Done()
 		}()
