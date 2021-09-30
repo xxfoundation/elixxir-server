@@ -13,9 +13,26 @@ import (
 	"sync"
 )
 
+// Error constants
+const (
+	BadSecretSizeError  = "Secret exceeds secret size"
+	ManagerFullError    = "Manager is full"
+	NoSecretExistsError = "No secret exists for key ID"
+)
+
+// Secret manager constants
+const (
+	// SecretSize is the defined size fo a node secret in bytes.
+	SecretSize = 32
+
+	// MaxNodeSecrets is the maximum amount of node secrets that will be stored in
+	// RAM.
+	MaxNodeSecrets = 256
+)
+
 // Secret represents the data within a NodeSecret. This is defined as a
 // 32 byte (256 bit) byte array.
-type Secret [32]byte
+type Secret [SecretSize]byte
 
 // NodeSecret contains a Secret. This will be used for:
 // client registration (io/registration.go), and realtime keygen (graphs/keygen.go).
@@ -25,16 +42,12 @@ type NodeSecret struct {
 	//TimeCreated time.Time  // Left as a stub
 }
 
-// MaxNodeSecrets is the maximum amount of node secrets that will be stored in
-// RAM.
-const MaxNodeSecrets = 256
-
 // NodeSecretManager will manage and rotate node secrets for client
 // registration.
 // fixme: this is only partially implemented, will need to have
 //  rotating secrets
 type NodeSecretManager struct {
-	secrets map[int]NodeSecret
+	secrets map[int]*NodeSecret
 	mux     sync.Mutex
 }
 
@@ -43,24 +56,22 @@ type NodeSecretManager struct {
 // of MaxNodeSecrets.
 func NewNodeSecretManager() *NodeSecretManager {
 	return &NodeSecretManager{
-		secrets: make(map[int]NodeSecret, MaxNodeSecrets),
+		secrets: make(map[int]*NodeSecret, MaxNodeSecrets),
 	}
 
 }
 
 // GetSecret retrieves the Secret data associated with the given key ID
 // from the map.
-func (nsm *NodeSecretManager) GetSecret(keyId int) Secret {
+func (nsm *NodeSecretManager) GetSecret(keyId int) (Secret, error) {
 	nsm.mux.Lock()
 	defer nsm.mux.Unlock()
-	return nsm.secrets[keyId].Secret
-}
+	val, ok := nsm.secrets[keyId]
+	if !ok {
+		return Secret{}, errors.Errorf(NoSecretExistsError)
+	}
 
-// getNodeSecret returns the entire NodeSecret object from the map.
-func (nsm *NodeSecretManager) getNodeSecret(keyId int) NodeSecret {
-	nsm.mux.Lock()
-	defer nsm.mux.Unlock()
-	return nsm.secrets[keyId]
+	return val.Secret, nil
 }
 
 // UpsertSecret inserts a node secret into the NodeSecretManager.
@@ -69,8 +80,11 @@ func (nsm *NodeSecretManager) UpsertSecret(keyId int, data []byte) error {
 	nsm.mux.Lock()
 	defer nsm.mux.Unlock()
 	if len(nsm.secrets) == MaxNodeSecrets {
-		return errors.Errorf("Could not insert secret %v with keyId %d "+
-			"into nodeSecretManager: Manager is full", data, keyId)
+		return errors.Errorf(ManagerFullError)
+	}
+
+	if len(data) > SecretSize {
+		return errors.Errorf(BadSecretSizeError)
 	}
 
 	// Copy data into secret
@@ -78,9 +92,38 @@ func (nsm *NodeSecretManager) UpsertSecret(keyId int, data []byte) error {
 	copy(secret[:], data)
 
 	// Place secret in map
-	nsm.secrets[keyId] = NodeSecret{
+	nsm.secrets[keyId] = &NodeSecret{
 		Secret: secret,
 	}
+
+	return nil
+}
+
+// getNodeSecret returns the entire NodeSecret object from the map.
+// This function is meant to be called by the manager in its management thread.
+func (nsm *NodeSecretManager) getNodeSecret(keyId int) (*NodeSecret, error) {
+	nsm.mux.Lock()
+	defer nsm.mux.Unlock()
+
+	val, ok := nsm.secrets[keyId]
+	if !ok {
+		return &NodeSecret{}, errors.Errorf(NoSecretExistsError)
+	}
+
+	return val, nil
+}
+
+// delete is a deletion operation. This function is meant to be called by
+// the manager in its management thread.
+func (nsm *NodeSecretManager) delete(keyId int) error {
+	nsm.mux.Lock()
+	defer nsm.mux.Unlock()
+
+	if _, ok := nsm.secrets[keyId]; !ok {
+		return errors.Errorf(NoSecretExistsError)
+	}
+
+	delete(nsm.secrets, keyId)
 
 	return nil
 }
