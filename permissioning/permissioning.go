@@ -100,14 +100,22 @@ func Poll(instance *internal.Instance) error {
 	reportedActivity := instance.GetStateMachine().GetActivityToReport()
 
 	// Ping permissioning for updated information
-	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
-	if err != nil {
-		if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
-			strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
-			strings.Contains(err.Error(), "requires the Node be assigned a round") ||
-			strings.Contains(err.Error(), "invalid transition") {
-			instance.ReportNodeFailure(err)
+	err := errors.New("dummy")
+	var permResponse *pb.PermissionPollResponse
+	for i:= 0; i<3 && err!=nil; i++ {
+		permResponse, err = PollPermissioning(permHost, instance, reportedActivity)
+		if err != nil &&( strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
+				strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
+				strings.Contains(err.Error(), "requires the Node be assigned a round") ||
+				strings.Contains(err.Error(), "invalid transition")) {
+				instance.ReportNodeFailure(err)
 		}
+		if err!=nil{
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	if err!=nil{
 		return err
 	}
 
