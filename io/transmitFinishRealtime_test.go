@@ -43,7 +43,7 @@ func MockFinishRealtimeImplementation() *node.Implementation {
 // Test that TransmitFinishRealtime correctly broadcasts message
 // to all other nodes
 func TestSendFinishRealtime(t *testing.T) {
-	instance, _, _, _, _, _, _ := setup(t)
+	instance, _, _, _, _, _, _, _ := setup(t)
 
 	//Setup the network
 	numNodes := 4
@@ -133,7 +133,7 @@ func MockFinishRealtimeImplementation_Error() *node.Implementation {
 }
 
 func TestTransmitFinishRealtime_Error(t *testing.T) {
-	instance, _, _, _, _, _, _ := setup(t)
+	instance, _, _, _, _, _, _, _ := setup(t)
 
 	//Setup the network
 	comms, topology := buildTestNetworkComponents(

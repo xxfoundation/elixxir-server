@@ -11,6 +11,7 @@ import (
 	cryptoRand "crypto/rand"
 	"crypto/sha256"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/crypto/cmix"
@@ -42,6 +43,128 @@ import (
 	"time"
 )
 
+// Happy path
+func TestRequestRequestClientKey(t *testing.T) {
+	instance, userRsaPub, userRsaPriv, userDhPrivKey, userDhPubKey, clientRegistrarPrivKey, _, _ := setup(t)
+
+	// Construct host for auth
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	// Construct auth
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	}
+
+	// Generate a pre-canned time for consistent testing
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
+	// Convert public key to PEM
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(userRsaPub)
+
+	// Sign timestamp
+	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(),
+		clientRegistrarPrivKey, testTime.UnixNano(), string(clientRSAPubKeyPEM))
+	if err != nil {
+		t.Errorf("Could not sign client's RSA key with registration's "+
+			"key: %+v", err)
+	}
+
+	regConfirm := &pb.ClientRegistrationConfirmation{
+		RSAPubKey: string(clientRSAPubKeyPEM),
+		Timestamp: testTime.UnixNano(),
+	}
+
+	regConfirmBytes, err := proto.Marshal(regConfirm)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	salt := make([]byte, 32)
+	copy(salt, "saltData")
+	// Construct request
+	request := &pb.ClientKeyRequest{
+		Salt: salt,
+		ClientTransmissionConfirmation: &pb.SignedRegistrationConfirmation{
+			ClientRegistrationConfirmation: regConfirmBytes,
+			RegistrarSignature:             &messages.RSASignature{Signature: sigReg},
+		},
+		RegistrationTimestamp: testTime.UnixNano(),
+		ClientDHPubKey:        userDhPubKey.Bytes(),
+	}
+
+	requestBytes, err := proto.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	opts := rsa.NewDefaultOptions()
+	h := opts.Hash.New()
+	h.Write(requestBytes)
+	hashedData := h.Sum(nil)
+	requestSig, err := rsa.Sign(csprng.NewSystemRNG(), userRsaPriv, opts.Hash, hashedData, opts)
+	if err != nil {
+		t.Fatalf("Sign error: %v", err)
+	}
+
+	// Construct signed request
+	signedRequest := &pb.SignedClientKeyRequest{
+		ClientKeyRequest:          requestBytes,
+		ClientKeyRequestSignature: &messages.RSASignature{Signature: requestSig},
+	}
+
+	// Request key with mock message
+	signedKeyResp, err := RequestRequestClientKey(instance, signedRequest, auth)
+	if err != nil {
+		t.Fatalf("RequestRequestClientKey error: %v", err)
+	}
+
+	h.Reset()
+	h.Write(signedKeyResp.KeyResponse)
+	hashedData = h.Sum(nil)
+
+	// Verify signature on response
+	err = rsa.Verify(instance.GetPubKey(), opts.Hash, hashedData,
+		signedKeyResp.KeyResponseSignedByNode.Signature, opts)
+	if err != nil {
+		t.Errorf("Verify error: "+
+			"Should be able to verify signed response using node's public key: %v", err)
+	}
+
+	// Unmarshal response
+	keyResponse := &pb.ClientKeyResponse{}
+	err = proto.Unmarshal(signedKeyResp.KeyResponse, keyResponse)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal message: %v", err)
+	}
+
+	// Construct the session key
+	h.Reset()
+	grp := instance.GetNetworkStatus().GetCmixGroup()
+	nodeDHPub := grp.NewIntFromBytes(keyResponse.NodeDHPubKey)
+	sessionKey := registration.GenerateBaseKey(grp,
+		nodeDHPub, userDhPrivKey, h)
+
+	// Verify the HMAC
+	h.Reset()
+	if !registration.VerifyClientHMAC(sessionKey.Bytes(), keyResponse.EncryptedClientKey,
+		h, keyResponse.EncryptedClientKeyHMAC) {
+		t.Fatalf("Failed to verify client HMAC")
+	}
+
+}
+
+// ---------------------- Start of deprecated fields ----------- //
+// todo these testing function will be removed once Confirm/RequestNonce is removed
+//  This will be done once databaseless registration has been fully tested.
+
 var serverInstance *internal.Instance
 var clientRSAPub *rsa.PublicKey
 var clientRSAPriv *rsa.PrivateKey
@@ -50,13 +173,9 @@ var regPrivKey *rsa.PrivateKey
 var nodeId *id.ID
 
 func TestMain(m *testing.M) { // TODO: TestMain is bad make this go away
-	serverInstance, clientRSAPub, clientRSAPriv, clientDHPub, regPrivKey, nodeId, _ = setup(m)
+	serverInstance, clientRSAPub, clientRSAPriv, clientDHPub, _, regPrivKey, nodeId, _ = setup(m)
 	os.Exit(m.Run())
 }
-
-// ---------------------- Start of deprecated fields ----------- //
-// todo these testing function will be removed once Confirm/RequestNonce is removed
-//  This will be done once databaseless registration has been fully tested.
 
 // Test request nonce with good auth boolean but bad ID
 func TestRequestNonceFailAuthId(t *testing.T) {
@@ -571,7 +690,7 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 	}
 }
 
-func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *rsa.PrivateKey, *id.ID, string) {
+func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *cyclic.Int, *rsa.PrivateKey, *id.ID, string) {
 	switch v := t.(type) {
 	case *testing.T:
 	case *testing.M:
@@ -652,7 +771,7 @@ func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, 
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, mach, "1.1.0")
 
-	return instance, cRsaPub, cRsaPriv, cDhPub, regPKey, nid, nodeAddr
+	return instance, cRsaPub, cRsaPriv, clintDHPriv, cDhPub, regPKey, nid, nodeAddr
 }
 
 func createMockInstance(t *testing.T, instIndex int, s current.Activity) (*internal.Instance, *connect.Circuit, *cyclic.Group) {

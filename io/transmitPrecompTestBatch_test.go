@@ -21,7 +21,7 @@ import (
 )
 
 func TestTransmitPrecompTestBatch(t *testing.T) {
-	instance, _, _, _, _, _, _ := setup(t)
+	instance, _, _, _, _, _, _, _ := setup(t)
 
 	//Setup the network
 	numNodes := 4
