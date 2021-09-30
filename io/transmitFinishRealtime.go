@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -21,6 +22,7 @@ import (
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
 	"sync"
+	"time"
 )
 
 // TransmitFinishRealtime broadcasts the finish realtime message to all other nodes
@@ -75,6 +77,24 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 			var streamErr error
 			var ack *messages.Ack
 			for i:=0;i<3;i++{
+				localR, rnderr := instance.GetNetworkStatus().GetRound(roundID)
+				if rnderr!=nil{
+					streamErr = errors.Errorf("Could not get status of round %d in " +
+						"transmitFinishRealtime to %s on attempt %d/3",
+						roundID, recipient.GetId(), i)
+					jww.WARN.Printf(streamErr.Error())
+					time.Sleep(150*time.Millisecond)
+					continue
+				}
+				if states.Round(localR.State) != states.REALTIME{
+					streamErr = errors.Errorf("The status of round %d in " +
+						"transmitFinishRealtime to %s on attempt %d/3 was not %s, instead was %s",
+						roundID, recipient.GetId(), i, states.REALTIME, states.Round(localR.State))
+					jww.WARN.Printf(streamErr.Error())
+					time.Sleep(150*time.Millisecond)
+					continue
+				}
+
 				ack, streamErr = instance.GetNetwork().SendFinishRealtime(recipient,
 					&mixmessages.RoundInfo{ID: uint64(roundID)},
 					&mixmessages.CompletedBatch{Slots: complete.Round},
