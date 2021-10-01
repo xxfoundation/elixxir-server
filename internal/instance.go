@@ -339,6 +339,17 @@ func (i *Instance) GetSecretManager() *storage.NodeSecretManager {
 	return i.nodeSecretManager
 }
 
+func (i *Instance) SetSecretManagerTesting(face interface{}, manager *storage.NodeSecretManager) {
+	switch face.(type) {
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
+		break
+	default:
+		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
+	}
+
+	i.nodeSecretManager = manager
+}
+
 // GetRoundManager returns the round manager
 func (i *Instance) GetRoundManager() *round.Manager {
 	return i.roundManager

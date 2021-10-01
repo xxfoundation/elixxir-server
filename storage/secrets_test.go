@@ -198,7 +198,7 @@ func TestNodeSecretManager_GetSecret_NoEntry(t *testing.T) {
 	_, err := testManager.GetSecret(0)
 
 	// Check that expected error received
-	if err == nil || !strings.HasSuffix(err.Error(), NoSecretExistsError) {
+	if err == nil || !strings.ContainsAny(err.Error(), NoSecretExistsError) {
 		t.Fatalf("GetSecret expected error: Should error when requesting a non-existant entry."+
 			"\n\tError expected: %v"+
 			"\n\tError received: %v", err, NoSecretExistsError)
@@ -228,7 +228,7 @@ func TestNodeSecretManager_delete(t *testing.T) {
 
 	// Check that expected error received
 	_, err = testManager.GetSecret(keyId)
-	if err == nil || !strings.HasSuffix(err.Error(), NoSecretExistsError) {
+	if err == nil || !strings.ContainsAny(err.Error(), NoSecretExistsError) {
 		t.Fatalf("GetSecret expected error: Should error when requesting a non-existant entry."+
 			"\n\tError expected: %v"+
 			"\n\tError received: %v", err, NoSecretExistsError)
@@ -245,7 +245,7 @@ func TestNodeSecretManager_delete_NoEntry(t *testing.T) {
 	err := testManager.delete(0)
 
 	// Check that expected error received
-	if err == nil || !strings.HasSuffix(err.Error(), NoSecretExistsError) {
+	if err == nil || !strings.ContainsAny(err.Error(), NoSecretExistsError) {
 		t.Fatalf("GetSecret expected error: Should error when requesting a non-existant entry."+
 			"\n\tError expected: %v"+
 			"\n\tError received: %v", err, NoSecretExistsError)
@@ -293,7 +293,7 @@ func TestNodeSecretManager_getNodeSecret_NonExistingEntry(t *testing.T) {
 
 	// Retrieve value from manager
 	_, err := testManager.getNodeSecret(0)
-	if err == nil || !strings.HasSuffix(err.Error(), NoSecretExistsError) {
+	if err == nil || !strings.ContainsAny(err.Error(), NoSecretExistsError) {
 		t.Fatalf("getNodeSecret expected error: "+
 			"Should error when requesting non existant entry."+
 			"\n\tExpected error: %v"+

@@ -23,6 +23,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 	"gorm.io/gorm"
 	goHash "hash"
+	"strings"
 )
 
 // Module that implements Keygen, along with helper methods
@@ -121,7 +122,7 @@ var Keygen = services.Module{
 			//  secrets is supported.
 			nodeSecret, err := kss.NodeSecrets.GetSecret(0)
 			if err != nil {
-				if errors.Is(err, errors.New(storage.NoSecretExistsError)) {
+				if strings.HasSuffix(err.Error(), storage.NoSecretExistsError) {
 					jww.INFO.Printf("No secret for key ID %d with user %v found for slot %d",
 						0, kss.users[i], i)
 					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)

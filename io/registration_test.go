@@ -9,6 +9,7 @@ package io
 
 import (
 	cryptoRand "crypto/rand"
+	gorsa "crypto/rsa"
 	"crypto/sha256"
 	"fmt"
 	"github.com/golang/protobuf/proto"
@@ -39,12 +40,13 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
 
 // Happy path
-func TestRequestRequestClientKey(t *testing.T) {
+func TestRequestClientKey(t *testing.T) {
 	instance, userRsaPub, userRsaPriv, userDhPrivKey, userDhPubKey, clientRegistrarPrivKey, _, _ := setup(t)
 
 	// Construct host for auth
@@ -100,15 +102,19 @@ func TestRequestRequestClientKey(t *testing.T) {
 		ClientDHPubKey:        userDhPubKey.Bytes(),
 	}
 
+	// Marshal request
 	requestBytes, err := proto.Marshal(request)
 	if err != nil {
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
+	// Hash request
 	opts := rsa.NewDefaultOptions()
 	h := opts.Hash.New()
 	h.Write(requestBytes)
 	hashedData := h.Sum(nil)
+
+	// Sign the request with the user's private key
 	requestSig, err := rsa.Sign(csprng.NewSystemRNG(), userRsaPriv, opts.Hash, hashedData, opts)
 	if err != nil {
 		t.Fatalf("Sign error: %v", err)
@@ -121,9 +127,9 @@ func TestRequestRequestClientKey(t *testing.T) {
 	}
 
 	// Request key with mock message
-	signedKeyResp, err := RequestRequestClientKey(instance, signedRequest, auth)
+	signedKeyResp, err := RequestClientKey(instance, signedRequest, auth)
 	if err != nil {
-		t.Fatalf("RequestRequestClientKey error: %v", err)
+		t.Fatalf("RequestClientKey error: %v", err)
 	}
 
 	h.Reset()
@@ -161,9 +167,403 @@ func TestRequestRequestClientKey(t *testing.T) {
 
 }
 
+// Error path: bad auth passed
+func TestRequestClientKey_BadAuth(t *testing.T) {
+	instance, _, _, _, _, _, _, _ := setup(t)
+
+	newID := id.NewIdFromString("Jonathan", id.Node, t)
+
+	// The incorrect ID here is the crux of the test
+	gwHost, err := connect.NewHost(newID, "", make([]byte, 0), connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	_, err = RequestClientKey(instance, &pb.SignedClientKeyRequest{}, &connect.Auth{
+		IsAuthenticated: true, // True for this test, we want bad sender ID
+		Sender:          gwHost,
+	})
+
+	if !connect.IsAuthError(err) {
+		t.Errorf("Expected auth error in RequestNonce: %+v", err)
+	}
+}
+
+// Error path: In testing setup, construct registrar signature w/
+// an unexpected private key, which should cause a verification failure.
+func TestRequestClientKey_BadClientRegistrarSignature(t *testing.T) {
+	instance, userRsaPub, _, _, _, _, _, _ := setup(t)
+
+	// Construct host for auth
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	// Construct auth
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	}
+
+	// Generate a pre-canned time for consistent testing
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
+	// Convert public key to PEM
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(userRsaPub)
+
+	// Sign timestamp incorrectly with server private key
+	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(),
+		instance.GetPrivKey(), testTime.UnixNano(), string(clientRSAPubKeyPEM))
+	if err != nil {
+		t.Errorf("Could not sign client's RSA key with registration's "+
+			"key: %+v", err)
+	}
+
+	regConfirm := &pb.ClientRegistrationConfirmation{
+		RSAPubKey: string(clientRSAPubKeyPEM),
+		Timestamp: testTime.UnixNano(),
+	}
+
+	regConfirmBytes, err := proto.Marshal(regConfirm)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	// Construct request
+	request := &pb.ClientKeyRequest{
+		ClientTransmissionConfirmation: &pb.SignedRegistrationConfirmation{
+			ClientRegistrationConfirmation: regConfirmBytes,
+			RegistrarSignature:             &messages.RSASignature{Signature: sigReg},
+		},
+		RegistrationTimestamp: testTime.UnixNano(),
+	}
+
+	requestBytes, err := proto.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	// Construct signed request
+	signedRequest := &pb.SignedClientKeyRequest{
+		ClientKeyRequest: requestBytes,
+	}
+
+	_, err = RequestClientKey(instance, signedRequest, auth)
+	if err == nil ||
+		!strings.HasSuffix(err.Error(), gorsa.ErrVerification.Error()) {
+		t.Errorf("Expected error case: " +
+			"Registration signature should have failed.")
+	}
+
+}
+
+func TestRequestClientKey_BadClientSignature(t *testing.T) {
+	instance, userRsaPub, _, _, userDhPubKey, clientRegistrarPrivKey, _, _ := setup(t)
+
+	// Construct host for auth
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	// Construct auth
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	}
+
+	// Generate a pre-canned time for consistent testing
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
+	// Convert public key to PEM
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(userRsaPub)
+
+	// Sign timestamp
+	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(),
+		clientRegistrarPrivKey, testTime.UnixNano(), string(clientRSAPubKeyPEM))
+	if err != nil {
+		t.Errorf("Could not sign client's RSA key with registration's "+
+			"key: %+v", err)
+	}
+
+	regConfirm := &pb.ClientRegistrationConfirmation{
+		RSAPubKey: string(clientRSAPubKeyPEM),
+		Timestamp: testTime.UnixNano(),
+	}
+
+	regConfirmBytes, err := proto.Marshal(regConfirm)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	salt := make([]byte, 32)
+	copy(salt, "saltData")
+	// Construct request
+	request := &pb.ClientKeyRequest{
+		Salt: salt,
+		ClientTransmissionConfirmation: &pb.SignedRegistrationConfirmation{
+			ClientRegistrationConfirmation: regConfirmBytes,
+			RegistrarSignature:             &messages.RSASignature{Signature: sigReg},
+		},
+		RegistrationTimestamp: testTime.UnixNano(),
+		ClientDHPubKey:        userDhPubKey.Bytes(),
+	}
+
+	// Marshal request
+	requestBytes, err := proto.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	// Hash request
+	opts := rsa.NewDefaultOptions()
+	h := opts.Hash.New()
+	h.Write(requestBytes)
+	hashedData := h.Sum(nil)
+
+	// Sign the request incorrectly with the registrar's private key
+	requestSig, err := rsa.Sign(csprng.NewSystemRNG(), clientRegistrarPrivKey,
+		opts.Hash, hashedData, opts)
+	if err != nil {
+		t.Fatalf("Sign error: %v", err)
+	}
+
+	// Construct signed request
+	signedRequest := &pb.SignedClientKeyRequest{
+		ClientKeyRequest:          requestBytes,
+		ClientKeyRequestSignature: &messages.RSASignature{Signature: requestSig},
+	}
+
+	// Request key with mock message
+	_, err = RequestClientKey(instance, signedRequest, auth)
+	if err == nil ||
+		!strings.HasSuffix(err.Error(), gorsa.ErrVerification.Error()) {
+		t.Errorf("Expected error case: " +
+			"Registration signature should have failed.")
+	}
+
+}
+
+// Error path: Construct a SignedClientKeyRequest message
+// with bad marshal data in the ClientKeyRequest field.
+func TestRequestClientKey_UnmarshalRequestError(t *testing.T) {
+	instance, _, _, _, _, _, _, _ := setup(t)
+
+	// Construct host for auth
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	// Construct auth
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	}
+
+	// Construct signed request with bad marshal data
+	badMarshal := []byte("bad marshal data ")
+	signedRequest := &pb.SignedClientKeyRequest{
+		ClientKeyRequest: badMarshal,
+	}
+
+	// Request key with mock message
+	_, err = RequestClientKey(instance, signedRequest, auth)
+	if err == nil {
+		t.Fatalf("Expected errror case: Should not be able to unmarshal ClientKeyRequest")
+	}
+
+}
+
+// Error path: Construct a ClientRegistrationConfirmation message
+// with bad marshal data in the ClientTransmissionConfirmation field.
+func TestRequestClientKey_UnmarshalRegistrationConfirmError(t *testing.T) {
+	instance, userRsaPub, userRsaPriv, _, userDhPubKey, clientRegistrarPrivKey, _, _ := setup(t)
+
+	// Construct host for auth
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	// Construct auth
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	}
+
+	// Generate a pre-canned time for consistent testing
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
+	// Convert public key to PEM
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(userRsaPub)
+
+	// Sign timestamp
+	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(),
+		clientRegistrarPrivKey, testTime.UnixNano(), string(clientRSAPubKeyPEM))
+	if err != nil {
+		t.Errorf("Could not sign client's RSA key with registration's "+
+			"key: %+v", err)
+	}
+
+	badMarshal := []byte("bad marshal data")
+
+	salt := make([]byte, 32)
+	copy(salt, "saltData")
+	// Construct request
+	request := &pb.ClientKeyRequest{
+		Salt: salt,
+		ClientTransmissionConfirmation: &pb.SignedRegistrationConfirmation{
+			ClientRegistrationConfirmation: badMarshal,
+			RegistrarSignature:             &messages.RSASignature{Signature: sigReg},
+		},
+		RegistrationTimestamp: testTime.UnixNano(),
+		ClientDHPubKey:        userDhPubKey.Bytes(),
+	}
+
+	// Marshal request
+	requestBytes, err := proto.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	// Hash request
+	opts := rsa.NewDefaultOptions()
+	h := opts.Hash.New()
+	h.Write(requestBytes)
+	hashedData := h.Sum(nil)
+
+	// Sign the request with the user's private key
+	requestSig, err := rsa.Sign(csprng.NewSystemRNG(), userRsaPriv, opts.Hash, hashedData, opts)
+	if err != nil {
+		t.Fatalf("Sign error: %v", err)
+	}
+
+	// Construct signed request
+	signedRequest := &pb.SignedClientKeyRequest{
+		ClientKeyRequest:          requestBytes,
+		ClientKeyRequestSignature: &messages.RSASignature{Signature: requestSig},
+	}
+
+	// Request key with mock message
+	_, err = RequestClientKey(instance, signedRequest, auth)
+	if err == nil {
+		t.Fatalf("Expected errror case: " +
+			"Should not be able to unmarshal ClientRegistrationConfirmation")
+	}
+}
+
+// Error path: Attempt register when node secret manager is empty.
+func TestRequestClientKey_NoNodeSecret(t *testing.T) {
+	instance, userRsaPub, userRsaPriv, _, userDhPubKey, clientRegistrarPrivKey, _, _ := setup(t)
+
+	// Construct host for auth
+	gwHost, err := connect.NewHost(&id.TempGateway, "", make([]byte, 0), connect.GetDefaultHostParams())
+	if err != nil {
+		t.Errorf("Unable to create gateway host: %+v", err)
+	}
+
+	// Construct auth
+	auth := &connect.Auth{
+		IsAuthenticated: true,
+		Sender:          gwHost,
+	}
+
+	// Generate a pre-canned time for consistent testing
+	testTime, err := time.Parse(time.RFC3339,
+		"2012-12-21T22:08:41+00:00")
+	if err != nil {
+		t.Fatalf("RequestNonce error: "+
+			"Could not parse precanned time: %v", err.Error())
+	}
+	// Convert public key to PEM
+	clientRSAPubKeyPEM := rsa.CreatePublicKeyPem(userRsaPub)
+
+	// Sign timestamp
+	sigReg, err := registration.SignWithTimestamp(csprng.NewSystemRNG(),
+		clientRegistrarPrivKey, testTime.UnixNano(), string(clientRSAPubKeyPEM))
+	if err != nil {
+		t.Errorf("Could not sign client's RSA key with registration's "+
+			"key: %+v", err)
+	}
+
+	regConfirm := &pb.ClientRegistrationConfirmation{
+		RSAPubKey: string(clientRSAPubKeyPEM),
+		Timestamp: testTime.UnixNano(),
+	}
+
+	regConfirmBytes, err := proto.Marshal(regConfirm)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	salt := make([]byte, 32)
+	copy(salt, "saltData")
+	// Construct request
+	request := &pb.ClientKeyRequest{
+		Salt: salt,
+		ClientTransmissionConfirmation: &pb.SignedRegistrationConfirmation{
+			ClientRegistrationConfirmation: regConfirmBytes,
+			RegistrarSignature:             &messages.RSASignature{Signature: sigReg},
+		},
+		RegistrationTimestamp: testTime.UnixNano(),
+		ClientDHPubKey:        userDhPubKey.Bytes(),
+	}
+
+	// Marshal request
+	requestBytes, err := proto.Marshal(request)
+	if err != nil {
+		t.Fatalf("Failed to marshal message: %v", err)
+	}
+
+	// Hash request
+	opts := rsa.NewDefaultOptions()
+	h := opts.Hash.New()
+	h.Write(requestBytes)
+	hashedData := h.Sum(nil)
+
+	// Sign the request with the user's private key
+	requestSig, err := rsa.Sign(csprng.NewSystemRNG(), userRsaPriv, opts.Hash, hashedData, opts)
+	if err != nil {
+		t.Fatalf("Sign error: %v", err)
+	}
+
+	// Construct signed request
+	signedRequest := &pb.SignedClientKeyRequest{
+		ClientKeyRequest:          requestBytes,
+		ClientKeyRequestSignature: &messages.RSASignature{Signature: requestSig},
+	}
+
+	// Set up empty manager
+	err = instance.SetSecretManagerTesting(t, storage.NewNodeSecretManager())
+	if err != nil {
+
+	}
+	// Request key with mock message
+	_, err = RequestClientKey(instance, signedRequest, auth)
+	if err == nil || !strings.ContainsAny(err.Error(), storage.NoSecretExistsError) {
+		t.Fatalf("RequestClientKey error: %v", err)
+	}
+
+}
+
 // ---------------------- Start of deprecated fields ----------- //
-// todo these testing function will be removed once Confirm/RequestNonce is removed
-//  This will be done once databaseless registration has been fully tested.
+// todo these testing function will be removed once Confirm/RequestNonce
+//  is removed. This will be done once databaseless registration has
+//  been fully tested.
 
 var serverInstance *internal.Instance
 var clientRSAPub *rsa.PublicKey
@@ -689,6 +1089,8 @@ func TestConfirmRegistration_BadSignature(t *testing.T) {
 		t.Errorf("ConfirmRegistration: Expected bad signature!")
 	}
 }
+
+// ---------------------- End of deprecated fields ----------- //
 
 func setup(t interface{}) (*internal.Instance, *rsa.PublicKey, *rsa.PrivateKey, *cyclic.Int, *cyclic.Int, *rsa.PrivateKey, *id.ID, string) {
 	switch v := t.(type) {

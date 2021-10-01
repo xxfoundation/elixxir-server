@@ -29,8 +29,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// RequestRequestClientKey handles a client request for a nonce during the client registration process
-func RequestRequestClientKey(instance *internal.Instance,
+// RequestClientKey handles a client request for a nonce during the
+// client registration process.
+func RequestClientKey(instance *internal.Instance,
 	request *pb.SignedClientKeyRequest, auth *connect.Auth) (*pb.SignedKeyResponse, error) {
 
 	// Verify the sender is the authenticated gateway for this node
@@ -88,7 +89,7 @@ func RequestRequestClientKey(instance *internal.Instance,
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
 	}
 
-	// Assemble Client public key
+	// Assemble Client public key into rsa.PublicKey
 	userPublicKey, err := rsa.LoadPublicKeyFromPem([]byte(clientRsaPub))
 	if err != nil {
 		errMsg := errors.Errorf("Unable to decode client RSA Pub Key: %+v", err)
@@ -104,7 +105,8 @@ func RequestRequestClientKey(instance *internal.Instance,
 	err = rsa.Verify(userPublicKey, hash.CMixHash, data,
 		request.GetClientKeyRequestSignature().GetSignature(), opts)
 	if err != nil {
-		errMsg := errors.Errorf("Client signedResponse on DH key could not be verified: %+v", err)
+		errMsg := errors.Errorf("Client signedResponse on client public key "+
+			"could not be verified: %+v", err)
 
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
 	}
@@ -116,7 +118,6 @@ func RequestRequestClientKey(instance *internal.Instance,
 
 	// Generate user CMIX baseKey
 	h.Reset()
-
 	sessionKey := registration.GenerateBaseKey(grp, clientDHPub, DHPriv, h)
 
 	// Generate UserID
@@ -128,8 +129,8 @@ func RequestRequestClientKey(instance *internal.Instance,
 	}
 
 	// Retrieve node secret
-	//TODO: replace hardcoding of keyID once multiple rotating node secrets
-	// is supported
+	// TODO: replace hardcoding of keyID once multiple rotating node secrets
+	//  is supported
 	nodeSecret, err := instance.GetSecretManager().GetSecret(0)
 	if err != nil {
 		return nil, err
@@ -188,8 +189,8 @@ func RequestRequestClientKey(instance *internal.Instance,
 	hashedResponse := h.Sum(nil)
 
 	// Sign the response
-	signedResponse, err := rsa.Sign(instance.GetRngStreamGen().GetStream(), instance.GetPrivKey(),
-		opts.Hash, hashedResponse, opts)
+	signedResponse, err := rsa.Sign(instance.GetRngStreamGen().GetStream(),
+		instance.GetPrivKey(), opts.Hash, hashedResponse, opts)
 	if err != nil {
 		errMsg := errors.Errorf("Could not sign key response: %v", err)
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg

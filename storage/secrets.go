@@ -17,7 +17,7 @@ import (
 const (
 	BadSecretSizeError  = "Secret exceeds secret size"
 	ManagerFullError    = "Manager is full"
-	NoSecretExistsError = "No secret exists for key ID"
+	NoSecretExistsError = "No secret exists for key ID %d"
 )
 
 // Secret manager constants
@@ -68,7 +68,7 @@ func (nsm *NodeSecretManager) GetSecret(keyId int) (Secret, error) {
 	defer nsm.mux.Unlock()
 	val, ok := nsm.secrets[keyId]
 	if !ok {
-		return Secret{}, errors.Errorf(NoSecretExistsError)
+		return Secret{}, errors.Errorf(NoSecretExistsError, keyId)
 	}
 
 	return val.Secret, nil
@@ -107,7 +107,7 @@ func (nsm *NodeSecretManager) getNodeSecret(keyId int) (*NodeSecret, error) {
 
 	val, ok := nsm.secrets[keyId]
 	if !ok {
-		return &NodeSecret{}, errors.Errorf(NoSecretExistsError)
+		return &NodeSecret{}, errors.Errorf(NoSecretExistsError, keyId)
 	}
 
 	return val, nil
@@ -120,7 +120,7 @@ func (nsm *NodeSecretManager) delete(keyId int) error {
 	defer nsm.mux.Unlock()
 
 	if _, ok := nsm.secrets[keyId]; !ok {
-		return errors.Errorf(NoSecretExistsError)
+		return errors.Errorf(NoSecretExistsError, keyId)
 	}
 
 	delete(nsm.secrets, keyId)
