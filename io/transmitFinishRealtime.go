@@ -86,10 +86,11 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 					time.Sleep(150*time.Millisecond)
 					continue
 				}
-				if states.Round(localR.State) != states.REALTIME{
+				roundState := states.Round(localR.State)
+				if  roundState != states.QUEUED && roundState != states.REALTIME  {
 					streamErr = errors.Errorf("The status of round %d in " +
-						"transmitFinishRealtime to %s on attempt %d/3 was not %s, instead was %s",
-						roundID, recipient.GetId(), i, states.REALTIME, states.Round(localR.State))
+						"transmitFinishRealtime to %s on attempt %d/3 was not %s or %s, instead was %s",
+						roundID, recipient.GetId(), i, states.REALTIME, states.QUEUED, roundState)
 					jww.WARN.Printf(streamErr.Error())
 					time.Sleep(150*time.Millisecond)
 					continue
@@ -106,6 +107,8 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 				if streamErr!=nil{
 					jww.WARN.Printf("failed to stream TransmitFinishRealtime to " +
 						"%s attempt %d/3: %+v", recipient.GetId(), i,err)
+				}else{
+					break
 				}
 			}
 			if streamErr != nil {
