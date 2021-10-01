@@ -548,10 +548,8 @@ func TestRequestClientKey_NoNodeSecret(t *testing.T) {
 	}
 
 	// Set up empty manager
-	err = instance.SetSecretManagerTesting(t, storage.NewNodeSecretManager())
-	if err != nil {
+	instance.SetSecretManagerTesting(t, storage.NewNodeSecretManager())
 
-	}
 	// Request key with mock message
 	_, err = RequestClientKey(instance, signedRequest, auth)
 	if err == nil || !strings.ContainsAny(err.Error(), storage.NoSecretExistsError) {
