@@ -60,7 +60,8 @@ type Instance struct {
 	phaseStateMachine state.GenericMachine
 
 	// Persistent storage object
-	// todo: remove once testing of databaseless client registration has completed
+	// todo: remove once testing of databaseless client registration has completed.
+	//  Remove this and all references
 	storage *storage.Storage
 
 	// RAM storage of rotating node secrets
@@ -335,6 +336,7 @@ func (i *Instance) GetGateway() *id.ID {
 }
 
 // GetStorage returns the user registry used by the server
+// todo: remove this
 func (i *Instance) GetStorage() *storage.Storage {
 	return i.storage
 }

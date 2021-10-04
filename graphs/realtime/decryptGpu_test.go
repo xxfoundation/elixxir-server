@@ -98,7 +98,10 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g.Link(grp, roundBuffer, registry, round.NewClientFailureReport(instance.GetID()), streamPool, instance.GetSecretManager())
+	instance.PopulateDummyUsers(grp)
+
+	g.Link(grp, roundBuffer, registry, round.NewClientFailureReport(instance.GetID()),
+		streamPool, instance.GetSecretManager(), instance.GetPrecanStore())
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 

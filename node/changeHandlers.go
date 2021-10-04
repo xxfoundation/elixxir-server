@@ -216,8 +216,9 @@ func NotStarted(instance *internal.Instance) error {
 	userDatabase := instance.GetStorage()
 	if instance.GetDefinition().DevMode {
 		//populate the dummy precanned users
-		jww.INFO.Printf("Adding dummy users to registry")
+		jww.INFO.Printf("Adding dummy users")
 		instance.PopulateDummyUsers(cmixGrp)
+		// todo: remove this call and function
 		PopulateDummyUsers(userDatabase, cmixGrp)
 	}
 
@@ -589,6 +590,7 @@ func isRegistered(serverInstance *internal.Instance) bool {
 }
 
 // PopulateDummyUsers creates dummy users to be manually inserted into the database
+// todo: remove this function
 func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
@@ -599,6 +601,7 @@ func PopulateDummyUsers(ur *storage.Storage, grp *cyclic.Group) {
 		binary.BigEndian.PutUint64(usrID[:], uint64(i))
 		usrID.SetType(id.User)
 
+		// todo: remove this storage interrface
 		// Generate user parameters
 		ur.UpsertClient(&storage.Client{
 			Id:           usrID.Marshal(),
