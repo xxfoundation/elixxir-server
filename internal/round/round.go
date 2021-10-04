@@ -73,7 +73,8 @@ func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
 	localIP string, errorHandler services.ErrorCallback,
 	clientErr *ClientReport,
-	nodeSecretManager *storage.NodeSecretManager) (*Round, error) {
+	nodeSecretManager *storage.NodeSecretManager,
+	precanStore *storage.PrecanStore) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
@@ -176,7 +177,7 @@ func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 		if p.GetGraph() != nil {
 			if p.GetType() == phase.RealDecrypt {
 				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen,
-					streamPool, clientErr, id, nodeSecretManager)
+					streamPool, clientErr, id, nodeSecretManager, precanStore)
 			} else {
 				// Other phases can operate normally
 				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool)

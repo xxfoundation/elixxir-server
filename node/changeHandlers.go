@@ -217,6 +217,7 @@ func NotStarted(instance *internal.Instance) error {
 	if instance.GetDefinition().DevMode {
 		//populate the dummy precanned users
 		jww.INFO.Printf("Adding dummy users to registry")
+		instance.PopulateDummyUsers(cmixGrp)
 		PopulateDummyUsers(userDatabase, cmixGrp)
 	}
 
@@ -358,8 +359,8 @@ func Precomputing(instance *internal.Instance) error {
 	rnd, err := round.New(instance.GetNetworkStatus().GetCmixGroup(),
 		instance.GetStorage(), roundID, phases, phaseResponses, circuit,
 		instance.GetID(), roundInfo.GetBatchSize(), instance.GetRngStreamGen(),
-		instance.GetStreamPool(), instance.GetIP(),
-		GetDefaultPanicHandler(instance, roundID), instance.GetClientReport(), instance.GetSecretManager())
+		instance.GetStreamPool(), instance.GetIP(), GetDefaultPanicHandler(instance, roundID),
+		instance.GetClientReport(), instance.GetSecretManager(), instance.GetPrecanStore())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}

@@ -165,6 +165,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 			DhKey:        baseKeys[i].Bytes(),
 			IsRegistered: true,
 		}
+
 		err := instance.GetStorage().UpsertClient(&client)
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
@@ -214,6 +215,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
+		instance.PopulateDummyUsers(grp)
 
 	}
 

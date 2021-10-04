@@ -13,6 +13,7 @@ package internal
 import (
 	"encoding/base64"
 	"fmt"
+	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
 	"os"
 	"strings"
@@ -64,6 +65,9 @@ type Instance struct {
 
 	// RAM storage of rotating node secrets
 	nodeSecretManager *storage.NodeSecretManager
+
+	// RAM storage of precanned IDs and keys
+	precanStore *storage.PrecanStore
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -337,6 +341,14 @@ func (i *Instance) GetStorage() *storage.Storage {
 
 func (i *Instance) GetSecretManager() *storage.NodeSecretManager {
 	return i.nodeSecretManager
+}
+
+func (i *Instance) GetPrecanStore() *storage.PrecanStore {
+	return i.precanStore
+}
+
+func (i *Instance) PopulateDummyUsers(grp *cyclic.Group) {
+	i.precanStore = storage.NewPrecanStore(grp)
 }
 
 func (i *Instance) SetSecretManagerTesting(face interface{}, manager *storage.NodeSecretManager) {

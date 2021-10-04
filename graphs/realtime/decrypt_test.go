@@ -506,7 +506,8 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	clientReport := round.NewClientFailureReport(instance.GetID())
 
 	var streamPool *gpumaths.StreamPool
-	g.Link(grp, roundBuffer, registry, clientReport, streamPool, instance.GetSecretManager())
+	instance.PopulateDummyUsers(grp)
+	g.Link(grp, roundBuffer, registry, clientReport, streamPool, instance.GetSecretManager(), instance.GetPrecanStore())
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 

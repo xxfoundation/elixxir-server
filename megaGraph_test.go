@@ -374,7 +374,19 @@ func buildAndStartGraph3(batchSize uint32, grp *cyclic.Group,
 func TestEndToEndCryptops(t *testing.T) {
 	// Init, we use a small prime to make it easier to run the numbers
 	// when debugging
-	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(4))
 
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
@@ -567,9 +579,19 @@ func TestEndToEndCryptops(t *testing.T) {
 
 // TestBatchSize3 runs the End to End test with 3 messages instead of 1
 func TestBatchSize3(t *testing.T) {
-	// Init, we use a small prime to make it easier to run the numbers
-	// when debugging
-	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(4))
 
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
@@ -800,7 +822,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, userRegistry, nil, ecrPayloadA, ecrPayloadB,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize),
-		make([][][]byte, batchSize), testReport, 0, storage.NewNodeSecretManager())
+		make([][][]byte, batchSize), testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(grp))
 
 	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)
@@ -1256,7 +1278,19 @@ func Test_DbgGraph(t *testing.T) {
 func Test3NodeE2E(t *testing.T) {
 	//nodeCount := 3
 	batchSize := uint32(1)
-	grp := cyclic.NewGroup(large.NewIntFromString(TinyStrongPrime, 16),
+	primeString := "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+		"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+		"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+		"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+		"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+		"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+		"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+		"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+		"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+		"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+		"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
+
+	grp := cyclic.NewGroup(large.NewIntFromString(primeString, 16),
 		large.NewInt(4))
 	rngStreamGen := fastRNG.NewStreamGenerator(10000,
 		uint(runtime.NumCPU()), csprng.NewSystemRNG)

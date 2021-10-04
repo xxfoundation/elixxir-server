@@ -66,7 +66,8 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 	users := make([]*id.ID, batchSize)
 	var clientReporter *round.ClientReport
 	var roundID id.Round
-	nodeSecret := storage.NewNodeSecretManager()
+	var nodeSecret *storage.NodeSecretManager
+	var precanStore *storage.PrecanStore
 	// Find the client error reporter and the roundID (if it exists)
 	var ok bool
 	for _, face := range source {
@@ -80,6 +81,10 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 
 		if _, ok = face.(*storage.NodeSecretManager); ok {
 			nodeSecret = face.(*storage.NodeSecretManager)
+		}
+
+		if _, ok = face.(*storage.PrecanStore); ok {
+			precanStore = face.(*storage.PrecanStore)
 		}
 	}
 
@@ -102,7 +107,7 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		users, make([][]byte, batchSize), make([][][]byte, batchSize),
-		clientReporter, roundID, nodeSecret)
+		clientReporter, roundID, nodeSecret, precanStore)
 }
 
 //Connects the internal buffers in the stream to the passed
@@ -112,7 +117,7 @@ func (s *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group,
 	ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
 	users []*id.ID, salts [][]byte, kmacs [][][]byte,
 	clientReporter *round.ClientReport, roundId id.Round,
-	nodeSecrets *storage.NodeSecretManager) {
+	nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
 
 	s.Grp = grp
 	s.StreamPool = pool
@@ -130,7 +135,7 @@ func (s *KeygenDecryptStream) LinkRealtimeDecryptStream(grp *cyclic.Group,
 	s.NodeSecrets = nodeSecrets
 
 	s.KeygenSubStream.LinkStream(s.Grp, storage, s.Salts, s.KMACS, s.Users, s.KeysPayloadA,
-		s.KeysPayloadB, clientReporter, roundId, batchSize, nodeSecrets)
+		s.KeysPayloadB, clientReporter, roundId, batchSize, nodeSecrets, precanStore)
 }
 
 // PermuteStream conforms to this interface.

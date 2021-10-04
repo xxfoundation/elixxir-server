@@ -75,7 +75,7 @@ func TestReceiveGetMeasure(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
+	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

@@ -71,7 +71,7 @@ func TestPostPrecompResultFunc_Error_WrongNumSlots(t *testing.T) {
 	// This is quite a bit of setup...
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.PrecompReveal
-	rnd, err := round.New(grp, instance.GetStorage(), roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
+	rnd, err := round.New(grp, instance.GetStorage(), roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -134,7 +134,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		m := state.NewTestMachine(dummyStates, current.PRECOMPUTING, t)
 
 		instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
-		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0), make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
+		rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0), make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}
@@ -155,7 +155,7 @@ func TestPostPrecompResultFunc(t *testing.T) {
 		// This is quite a bit of setup...
 		p := testUtil.InitMockPhase(t)
 		p.Ptype = phase.PrecompReveal
-		rnd, err := round.New(grp, instances[i].GetStorage(), roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3, instances[i].GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil)
+		rnd, err := round.New(grp, instances[i].GetStorage(), roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(i), 3, instances[i].GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 		if err != nil {
 			t.Errorf("Failed to create new round: %+v", err)
 		}

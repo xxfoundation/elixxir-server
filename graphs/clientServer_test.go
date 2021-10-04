@@ -133,7 +133,8 @@ func TestClientServer(t *testing.T) {
 	kmacs := make([][][]byte, 1)
 	reporter := round.NewClientFailureReport(nid)
 	nsm := storage.NewNodeSecretManager()
-	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32, nsm)
+	precanStore := storage.NewPrecanStore(grp)
+	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32, nsm, precanStore)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)

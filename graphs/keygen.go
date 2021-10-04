@@ -8,6 +8,7 @@
 package graphs
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
@@ -31,6 +32,7 @@ type KeygenSubStream struct {
 	// Server state that's needed for key generation
 	Grp         *cyclic.Group
 	NodeSecrets *storage.NodeSecretManager
+	Precanned   *storage.PrecanStore
 	// todo: remove storage once databaseless implementation is fully tested
 	storage *storage.Storage
 
@@ -56,7 +58,7 @@ type KeygenSubStream struct {
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, storage *storage.Storage,
 	inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID,
 	outKeysA, outKeysB *cyclic.IntBuffer, reporter *round.ClientReport,
-	roundID id.Round, batchSize uint32, nodeSecrets *storage.NodeSecretManager) {
+	roundID id.Round, batchSize uint32, nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
 	k.Grp = grp
 	k.storage = storage
 	k.salts = inSalts
@@ -68,6 +70,7 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, storage *storage.Storage
 	k.RoundId = roundID
 	k.batchSize = batchSize
 	k.NodeSecrets = nodeSecrets
+	k.Precanned = precanStore
 }
 
 //Returns the substream, used to return an embedded struct off an interface
@@ -143,11 +146,16 @@ var Keygen = services.Module{
 				continue
 			}
 
-			// Generate node key
-			nodeSecretHash.Reset()
-			nodeSecretHash.Write(kss.users[i].Bytes())
-			nodeSecretHash.Write(nodeSecret.Bytes())
-			clientKeyBytes := nodeSecretHash.Sum(nil)
+			var clientKeyBytes []byte
+			if precanKey, isPrecan := kss.Precanned.Get(kss.users[i]); isPrecan {
+				clientKeyBytes = precanKey
+			} else {
+				// Generate node key
+				nodeSecretHash.Reset()
+				nodeSecretHash.Write(kss.users[i].Bytes())
+				nodeSecretHash.Write(nodeSecret.Bytes())
+				clientKeyBytes = nodeSecretHash.Sum(nil)
+			}
 
 			newRegPathSuccess := false
 
@@ -164,8 +172,8 @@ var Keygen = services.Module{
 						clientKey, kss.KeysB.Get(i))
 					newRegPathSuccess = true
 				} else {
-					jww.INFO.Printf("KMAC ERR: %v not the same as %v",
-						kss.kmacs[i][0], cmix.GenerateKMAC(kss.salts[i],
+					jww.INFO.Printf("KMAC ERR with key %v\n: %v not the same as %v",
+						base64.StdEncoding.EncodeToString(clientKey.Bytes()), kss.kmacs[i][0], cmix.GenerateKMAC(kss.salts[i],
 							clientKey, kss.RoundId, kmacHash))
 				}
 			}
