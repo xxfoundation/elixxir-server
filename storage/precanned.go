@@ -36,6 +36,12 @@ func NewPrecanStore(grp *cyclic.Group) *PrecanStore {
 		mux:   sync.Mutex{},
 	}
 
+	// Generate junk message dummy user
+	dummyId := id.DummyUser.DeepCopy()
+	dummyKey := grp.NewIntFromBytes(dummyId.Marshal()[:]).Bytes()
+	ps.store[*dummyId] = dummyKey
+
+
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
 		h := sha256.New()
