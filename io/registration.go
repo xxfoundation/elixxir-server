@@ -33,7 +33,7 @@ import (
 // client registration process.
 func RequestClientKey(instance *internal.Instance,
 	request *pb.SignedClientKeyRequest, auth *connect.Auth) (*pb.SignedKeyResponse, error) {
-
+	jww.WARN.Printf("received client key req")
 	// Verify the sender is the authenticated gateway for this node
 	if !auth.IsAuthenticated || !auth.Sender.GetId().Cmp(instance.GetGateway()) {
 		errMsg := connect.AuthError(auth.Sender.GetId())
@@ -79,11 +79,11 @@ func RequestClientKey(instance *internal.Instance,
 	// Verify the registration signedResponse provided by the user
 	err = registration.VerifyWithTimestamp(regPubKey, msg.RegistrationTimestamp,
 		clientRsaPub,
-		msg.GetClientTransmissionConfirmation().GetRegistrarSignature().
+		msg.ClientTransmissionConfirmation.RegistrarSignature.
 			GetSignature())
 	if err != nil {
 		// Invalid signed Client public key, return an error
-		errMsg := errors.Errorf("verification of public key signedResponse "+
+		errMsg := errors.Errorf("verification of public key signature "+
 			"from registration failed: %+v", err)
 
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
