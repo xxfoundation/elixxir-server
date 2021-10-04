@@ -183,25 +183,11 @@ func RequestClientKey(instance *internal.Instance,
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
 	}
 
-	// Hash serialized response
-	h.Reset()
-	h.Write(serializedResponse)
-	hashedResponse := h.Sum(nil)
-
-	// Sign the response
-	signedResponse, err := rsa.Sign(instance.GetRngStreamGen().GetStream(),
-		instance.GetPrivKey(), opts.Hash, hashedResponse, opts)
-	if err != nil {
-		errMsg := errors.Errorf("Could not sign key response: %v", err)
-		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
-	}
-
 	// Return signed key response to Client with empty error field
 	return &pb.SignedKeyResponse{
-		KeyResponse:             serializedResponse,
-		KeyResponseSignedByNode: &messages.RSASignature{Signature: signedResponse},
-		ClientGatewayKey:        clientGatewayKey,
-		Error:                   "",
+		KeyResponse:      serializedResponse,
+		ClientGatewayKey: clientGatewayKey,
+		Error:            "",
 	}, nil
 }
 

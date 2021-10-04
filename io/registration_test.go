@@ -132,18 +132,6 @@ func TestRequestClientKey(t *testing.T) {
 		t.Fatalf("RequestClientKey error: %v", err)
 	}
 
-	h.Reset()
-	h.Write(signedKeyResp.KeyResponse)
-	hashedData = h.Sum(nil)
-
-	// Verify signature on response
-	err = rsa.Verify(instance.GetPubKey(), opts.Hash, hashedData,
-		signedKeyResp.KeyResponseSignedByNode.Signature, opts)
-	if err != nil {
-		t.Errorf("Verify error: "+
-			"Should be able to verify signed response using node's public key: %v", err)
-	}
-
 	// Unmarshal response
 	keyResponse := &pb.ClientKeyResponse{}
 	err = proto.Unmarshal(signedKeyResp.KeyResponse, keyResponse)
