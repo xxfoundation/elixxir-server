@@ -86,7 +86,6 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		}
 
 		if _, ok = face.(*gpumaths.StreamPool); ok {
-			jww.WARN.Printf("GPU DEBUG: Stream set in realtimeDecrypt: %v", streamPool)
 			streamPool = face.(*gpumaths.StreamPool)
 		}
 	}

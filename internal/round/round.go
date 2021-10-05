@@ -76,7 +76,6 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase,
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
 	}
-	jww.WARN.Printf("GPU DEBUG: Stream in round.New: %v", streamPool)
 	roundMetrics := measure.NewRoundMetrics(id, batchSize)
 	roundMetrics.IP = localIP
 	round := Round{id: id, roundMetrics: roundMetrics, streamPool: streamPool}
