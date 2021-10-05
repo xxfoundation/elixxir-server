@@ -87,22 +87,6 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return response, err
 	}
 
-	impl.Functions.RequestNonce = func(nonceRequest *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
-		response, err := RequestNonce(instance, nonceRequest, auth)
-		if err != nil {
-			jww.ERROR.Printf("RequestClientKey error: %+v, %+v", auth, err)
-		}
-		return response, err
-	}
-
-	impl.Functions.ConfirmNonce = func(confirmationRequest *pb.RequestRegistrationConfirmation,
-		auth *connect.Auth) (*pb.RegistrationConfirmation, error) {
-		response, err := ConfirmRegistration(instance, confirmationRequest, auth)
-		if err != nil {
-			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
-		}
-		return response, err
-	}
 	impl.Functions.PostPrecompResult = func(roundID uint64, numslots uint32, auth *connect.Auth) error {
 		err := ReceivePostPrecompResult(instance, roundID, numslots, auth)
 		if err != nil {

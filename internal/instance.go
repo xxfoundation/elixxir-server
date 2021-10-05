@@ -59,11 +59,6 @@ type Instance struct {
 	machine           state.Machine
 	phaseStateMachine state.GenericMachine
 
-	// Persistent storage object
-	// todo: remove once testing of databaseless client registration has completed.
-	//  Remove this and all references
-	storage *storage.Storage
-
 	// RAM storage of rotating node secrets
 	nodeSecretManager *storage.NodeSecretManager
 
@@ -150,27 +145,11 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		phaseStateMachine: state.NewGenericMachine(),
 	}
 
-	// Initialize the backend
-	jww.INFO.Printf("Initializing the backend...")
-	instance.storage, err = storage.NewStorage(
-		def.DbUsername, def.DbPassword, def.DbName,
-		def.DbAddress, def.DbPort, def.DevMode)
-	if err != nil {
-		eMsg := fmt.Sprintf("Could not initialize database: psql://%s@%s:%s/%s: %v",
-			def.DbUsername, def.DbAddress, def.DbPort, def.DbName, err)
-
-		if def.DevMode {
-			jww.WARN.Printf(eMsg)
-		} else {
-			jww.FATAL.Panicf(eMsg)
-		}
-	}
-
 	// Create node secret manager
 	instance.nodeSecretManager = storage.NewNodeSecretManager()
 
 	// Create hardcoded node secret
-	// todo: remove this once a mechanism is implemented for
+	// todo: refactor this once a mechanism is implemented for
 	//  creating and rotating node secrets.
 	h, err := hash.NewCMixHash()
 	if err != nil {
@@ -335,12 +314,6 @@ func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
-// GetStorage returns the user registry used by the server
-// todo: remove this
-func (i *Instance) GetStorage() *storage.Storage {
-	return i.storage
-}
-
 func (i *Instance) GetSecretManager() *storage.NodeSecretManager {
 	return i.nodeSecretManager
 }
@@ -351,6 +324,25 @@ func (i *Instance) GetPrecanStore() *storage.PrecanStore {
 
 func (i *Instance) PopulateDummyUsers(grp *cyclic.Group) {
 	i.precanStore = storage.NewPrecanStore(grp)
+}
+
+func (i *Instance) AddDummyUserTesting(userId *id.ID, key []byte, grp *cyclic.Group, face interface{}) {
+	if i.precanStore == nil {
+		i.precanStore = storage.NewPrecanStore(grp)
+	}
+	i.precanStore.AddTesting(userId, key, face)
+}
+
+func (i *Instance) SetPrecanStoreTesting(grp *cyclic.Group, face interface{}) {
+	switch face.(type) {
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
+		break
+	default:
+		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
+	}
+
+	i.precanStore = storage.NewPrecanStore(grp)
+
 }
 
 func (i *Instance) SetSecretManagerTesting(face interface{}, manager *storage.NodeSecretManager) {

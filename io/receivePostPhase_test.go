@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
@@ -51,7 +50,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
+	r, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -139,7 +138,7 @@ func TestPostPhase_NoAuth(t *testing.T) {
 
 	grp := initImplGroup()
 	instance, topology := mockServerInstance(t, current.PRECOMPUTING)
-	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0), make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
+	rnd, err := round.New(grp, id.Round(0), make([]phase.Phase, 0), make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -345,7 +344,7 @@ func TestNewImplementation_StreamPostPhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
+	r, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

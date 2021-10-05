@@ -104,16 +104,7 @@ func TestClientServer(t *testing.T) {
 		return nil
 	}
 
-	sm := state.NewMachine(stateChanges)
-
-	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, "1.1.0")
-	registry := instance.GetStorage()
-	usr := &storage.Client{
-		Id:           nil,
-		DhKey:        grp.NewInt(5).Bytes(),
-		IsRegistered: false,
-	}
-	_ = registry.UpsertClient(usr)
+	dhKey := grp.NewInt(5)
 
 	//Generate the user's key
 	var chunk services.Chunk
@@ -126,15 +117,15 @@ func TestClientServer(t *testing.T) {
 	testSalts = append(testSalts, testSalt)
 	//Generate an array of users for linking
 	usrs := make([]*id.ID, 0)
-	usrId, _ := usr.GetId()
-	usrs = append(usrs, usrId)
+	uid := id.NewIdFromString("test", id.User, t)
+	usrs = append(usrs, uid)
 	//generate an array of keys for linking
-	keys := grp.NewIntBuffer(1, usr.GetDhKey(grp))
+	keys := grp.NewIntBuffer(1, dhKey)
 	kmacs := make([][][]byte, 1)
 	reporter := round.NewClientFailureReport(nid)
 	nsm := storage.NewNodeSecretManager()
 	precanStore := storage.NewPrecanStore(grp)
-	stream.LinkStream(grp, registry, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32, nsm, precanStore)
+	stream.LinkStream(grp, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32, nsm, precanStore)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)
@@ -142,7 +133,7 @@ func TestClientServer(t *testing.T) {
 	//Create an array of basekeys to prepare for encryption
 	userBaseKeys := make([]*cyclic.Int, 0)
 	//FIXME: This is probably wrong
-	userBaseKeys = append(userBaseKeys, usr.GetDhKey(grp))
+	userBaseKeys = append(userBaseKeys, dhKey)
 
 	//Generate a mock message
 	inputMsg := makeMsg(grp)

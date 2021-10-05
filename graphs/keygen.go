@@ -9,7 +9,6 @@ package graphs
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -22,8 +21,6 @@ import (
 	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
-	"gorm.io/gorm"
-	goHash "hash"
 	"strings"
 )
 
@@ -33,8 +30,6 @@ type KeygenSubStream struct {
 	Grp         *cyclic.Group
 	NodeSecrets *storage.NodeSecretManager
 	Precanned   *storage.PrecanStore
-	// todo: remove storage once databaseless implementation is fully tested
-	storage *storage.Storage
 
 	// Inputs: user IDs and salts (required for key generation)
 	users []*id.ID
@@ -55,12 +50,11 @@ type KeygenSubStream struct {
 // For salts and users: the slices don't have to point to valid underlying data
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
-func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, storage *storage.Storage,
-	inSalts [][]byte, inKMACS [][][]byte, inUsers []*id.ID,
-	outKeysA, outKeysB *cyclic.IntBuffer, reporter *round.ClientReport,
-	roundID id.Round, batchSize uint32, nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
+func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, inSalts [][]byte,
+	inKMACS [][][]byte, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
+	reporter *round.ClientReport, roundID id.Round, batchSize uint32,
+	nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
 	k.Grp = grp
-	k.storage = storage
 	k.salts = inSalts
 	k.users = inUsers
 	k.kmacs = inKMACS
@@ -115,7 +109,6 @@ var Keygen = services.Module{
 		}
 
 		kss.userErrors.InitErrorChan(kss.RoundId, kss.batchSize)
-
 		for i := chunk.Begin(); i < chunk.End() && i < kss.batchSize; i++ {
 			if kss.users[i].Cmp(&id.ID{}) {
 				continue
@@ -157,7 +150,7 @@ var Keygen = services.Module{
 				clientKeyBytes = nodeSecretHash.Sum(nil)
 			}
 
-			newRegPathSuccess := false
+			success := false
 
 			clientKey := kss.Grp.NewIntFromBytes(clientKeyBytes)
 			if len(kss.kmacs[i]) != 0 {
@@ -170,7 +163,7 @@ var Keygen = services.Module{
 
 					keygen(kss.Grp, saltHash.Sum(nil), kss.RoundId,
 						clientKey, kss.KeysB.Get(i))
-					newRegPathSuccess = true
+					success = true
 				} else {
 					jww.INFO.Printf("KMAC ERR with key %v\n: %v not the same as %v",
 						base64.StdEncoding.EncodeToString(clientKey.Bytes()), kss.kmacs[i][0], cmix.GenerateKMAC(kss.salts[i],
@@ -178,24 +171,10 @@ var Keygen = services.Module{
 				}
 			}
 
-			// todo: this remains for backwards compatibility purposes
-			//  while testing new registration path. Rip this out when
-			//  RequestClientKey has been properly tested
-			success, isContinue := false, false
-			if !newRegPathSuccess {
-				success, isContinue, err = oldRegPath(kss, kmacHash, saltHash, keygen, i)
-				if err != nil {
-					return err
-				}
-			}
-			if isContinue {
-				continue
-			}
-
 			//pop the used KMAC
 			kss.kmacs[i] = kss.kmacs[i][1:]
 
-			if !success && !newRegPathSuccess {
+			if !success {
 				kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
 				kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
 				jww.DEBUG.Printf("User: %#v", kss.users[i])
@@ -224,59 +203,4 @@ var Keygen = services.Module{
 	InputSize:  services.AutoInputSize,
 	Name:       "Keygen",
 	NumThreads: services.AutoNumThreads,
-}
-
-// todo: this remains for backwards compatibility purposes
-//  while testing new registration path. Rip this out when
-//  RequestClientKey has been properly tested
-func oldRegPath(kss *KeygenSubStream, kmacHash, saltHash goHash.Hash,
-	keygen cryptops.KeygenPrototype, index uint32) (success, isContinue bool, err error) {
-	jww.WARN.Printf("DEPRECATED: Attempting old keyGen path with user %v", kss.users[index])
-
-	user, err := kss.storage.GetClient(kss.users[index])
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			jww.INFO.Printf("No user %s found for slot %d",
-				kss.users[index], index)
-			kss.Grp.SetUint64(kss.KeysA.Get(index), 1)
-			kss.Grp.SetUint64(kss.KeysB.Get(index), 1)
-			errMsg := fmt.Sprintf("%s [%v] in storage:%v",
-				services.UserNotFound, kss.users[index], err)
-			clientError := &pb.ClientError{
-				ClientId: kss.users[index].Bytes(),
-				Error:    errMsg,
-			}
-
-			err = kss.userErrors.Send(kss.RoundId, clientError)
-			if err != nil {
-				return false, false, err
-			}
-
-		}
-		return false, true, nil
-	}
-
-	if user.IsRegistered && len(kss.kmacs[index]) != 0 {
-		clientBaseKey := user.GetDhKey(kss.Grp)
-		//check the KMAC
-		if cmix.VerifyKMAC(kss.kmacs[index][0], kss.salts[index], clientBaseKey,
-			kss.RoundId, kmacHash) {
-			keygen(kss.Grp, kss.salts[index], kss.RoundId,
-				clientBaseKey, kss.KeysA.Get(index))
-
-			saltHash.Reset()
-			saltHash.Write(kss.salts[index])
-
-			keygen(kss.Grp, saltHash.Sum(nil), kss.RoundId,
-				clientBaseKey, kss.KeysB.Get(index))
-			success = true
-		} else {
-			jww.INFO.Printf("KMAC ERR: %v not the same as %v",
-				kss.kmacs[index][0], cmix.GenerateKMAC(kss.salts[index],
-					clientBaseKey, kss.RoundId, kmacHash))
-		}
-	}
-
-	return success, false, nil
-
 }

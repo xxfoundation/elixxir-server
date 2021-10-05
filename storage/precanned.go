@@ -10,10 +10,12 @@ package storage
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/xx_network/primitives/id"
 	"strconv"
 	"sync"
+	"testing"
 )
 
 // Number of hard-coded users to create
@@ -36,11 +38,14 @@ func NewPrecanStore(grp *cyclic.Group) *PrecanStore {
 		mux:   sync.Mutex{},
 	}
 
+	jww.INFO.Printf("Adding dummy gateway sending user")
+
 	// Generate junk message dummy user
 	dummyId := id.DummyUser.DeepCopy()
 	dummyKey := grp.NewIntFromBytes(dummyId.Marshal()[:]).Bytes()
 	ps.store[*dummyId] = dummyKey
 
+	jww.INFO.Printf("Adding dummy users")
 
 	// Deterministically create named users for demo
 	for i := 1; i < numDemoUsers; i++ {
@@ -66,4 +71,18 @@ func (ps *PrecanStore) Get(userId *id.ID) ([]byte, bool) {
 
 	val, ok := ps.store[*userId]
 	return val, ok
+}
+
+func (ps *PrecanStore) AddTesting(userId *id.ID, key []byte, face interface{}) {
+	switch face.(type) {
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
+		break
+	default:
+		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
+	}
+
+	ps.mux.Lock()
+	defer ps.mux.Unlock()
+
+	ps.store[*userId] = key
 }

@@ -12,11 +12,9 @@ import (
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/large"
 
-	//"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -137,7 +135,7 @@ func createRound(roundId id.Round, instance *internal.Instance, t *testing.T) *r
 
 	top := connect.NewCircuit(list)
 
-	r, err := round.New(grp, &storage.Storage{}, roundId, []phase.Phase{mockPhase}, responseMap, top, top.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
+	r, err := round.New(grp, roundId, []phase.Phase{mockPhase}, responseMap, top, top.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)

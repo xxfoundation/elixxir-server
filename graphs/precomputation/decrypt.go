@@ -54,7 +54,7 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 	var streamPool *gpumaths.StreamPool
 	if len(source) >= 4 {
 		// All arguments are being passed from the Link call, which should include the stream pool
-		streamPool = source[3].(*gpumaths.StreamPool)
+		streamPool = source[2].(*gpumaths.StreamPool)
 	}
 
 	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer, streamPool,

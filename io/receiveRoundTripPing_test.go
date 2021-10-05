@@ -16,7 +16,6 @@ import (
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/primitives/id"
 	"testing"
@@ -56,7 +55,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 
 	batchSize := uint32(11)
 
-	r, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase}, responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
+	r, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, newRound.GetTopology(), newRound.GetTopology().GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 		return
