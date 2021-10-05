@@ -111,7 +111,7 @@ func Poll(instance *internal.Instance) error {
 				strings.Contains(err.Error(), "invalid transition") {
 				instance.ReportNodeFailure(err)
 			}else if strings.Contains(err.Error(),"Node cannot submit a rounderror when it is not" ){
-				break
+				err = nil
 			}
 		}
 		if err!=nil{
