@@ -56,6 +56,7 @@ func (s *KeygenDecryptStream) GetName() string {
 //Link creates the stream's internal buffers and
 func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuf := source[RoundBuff].(*round.Buffer)
+	streamPool := source[2].(*gpumaths.StreamPool)
 	// todo: have nodeSecret be hardcoded at this index once
 	//  testing of databaseless client registration has been done
 	//  This involves removing search for nodeSecret while
@@ -67,7 +68,6 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 	var precanStore *storage.PrecanStore
 	// Find the client error reporter and the roundID (if it exists)
 	var ok bool
-	var streamPool *gpumaths.StreamPool
 	for _, face := range source {
 		if _, ok = face.(*round.ClientReport); ok {
 			clientReporter = face.(*round.ClientReport)
@@ -83,10 +83,6 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 
 		if _, ok = face.(*storage.PrecanStore); ok {
 			precanStore = face.(*storage.PrecanStore)
-		}
-
-		if _, ok = face.(*gpumaths.StreamPool); ok {
-			streamPool = face.(*gpumaths.StreamPool)
 		}
 	}
 

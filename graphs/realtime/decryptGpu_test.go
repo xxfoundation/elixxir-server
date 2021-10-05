@@ -34,7 +34,6 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 	grp := instance.GetNetworkStatus().GetCmixGroup()
 	h := sha256.New()
 	instance.SetPrecanStoreTesting(grp, t)
-
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
 	bk := grp.NewIntFromBytes(h.Sum(nil))
