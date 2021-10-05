@@ -5,9 +5,9 @@
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
 
-package realtime
-
 //+build linux,cgo,gpu
+
+package realtime
 
 import (
 	"crypto/sha256"
