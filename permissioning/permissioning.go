@@ -110,7 +110,9 @@ func Poll(instance *internal.Instance) error {
 				strings.Contains(err.Error(), "invalid transition")) {
 				instance.ReportNodeFailure(err)
 		}
+
 		if err!=nil{
+			jww.INFO.Printf("poll of permissioning retrying due to: %+v", err)
 			time.Sleep(1 * time.Second)
 		}
 	}
