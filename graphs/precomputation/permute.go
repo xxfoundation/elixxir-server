@@ -55,9 +55,12 @@ func (ps *PermuteStream) GetName() string {
 func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 	var streamPool *gpumaths.StreamPool
-	if len(source) >= 4 {
-		// All arguments are being passed from the Link call, which should include the stream pool
-		streamPool = source[3].(*gpumaths.StreamPool)
+	var ok bool
+	for _, face := range source {
+
+		if _, ok = face.(gpumaths.StreamPool); ok {
+			streamPool = face.(*gpumaths.StreamPool)
+		}
 	}
 
 	ps.LinkPrecompPermuteStream(grp, batchSize, roundBuffer, streamPool,
