@@ -391,6 +391,9 @@ func (m Machine) stateChange(nextState current.Activity) (bool, error) {
 	oldState := *m.Activity
 	*m.Activity = nextState
 
+	tmp := errors.Errorf("I an writing %s to the changeBuffer", nextState)
+	jww.INFO.Printf("%+v", tmp)
+
 	select {
 	case m.changebuffer <- nextState:
 	default:
