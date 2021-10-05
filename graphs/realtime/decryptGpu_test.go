@@ -7,6 +7,8 @@
 
 package realtime
 
+//+build linux,cgo,gpu
+
 import (
 	"crypto/sha256"
 	"fmt"
