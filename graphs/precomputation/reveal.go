@@ -44,12 +44,9 @@ func (s *RevealStream) GetName() string {
 func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 	var streamPool *gpumaths.StreamPool
-	var ok bool
-	for _, face := range source {
-
-		if _, ok = face.(*gpumaths.StreamPool); ok {
-			streamPool = face.(*gpumaths.StreamPool)
-		}
+	if len(source) >= 4 {
+		// All arguments are being passed from the Link call, which should include the stream pool
+		streamPool = source[2].(*gpumaths.StreamPool)
 	}
 
 	s.LinkStream(grp, batchSize, roundBuffer, streamPool,
