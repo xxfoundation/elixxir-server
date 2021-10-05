@@ -54,8 +54,8 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 	var streamPool *gpumaths.StreamPool
 	var ok bool
 	for _, face := range source {
-
 		if _, ok = face.(gpumaths.StreamPool); ok {
+			jww.WARN.Printf("GPU DEBUG: Stream set in precompDecrypt: %v", streamPool)
 			streamPool = face.(*gpumaths.StreamPool)
 		}
 	}

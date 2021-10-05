@@ -48,6 +48,8 @@ func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source ...in
 	var ok bool
 	for _, face := range source {
 		if _, ok = face.(gpumaths.StreamPool); ok {
+			jww.WARN.Printf("GPU DEBUG: Stream set in realtimeIdentify: %v", streamPool)
+
 			streamPool = face.(*gpumaths.StreamPool)
 		}
 	}
