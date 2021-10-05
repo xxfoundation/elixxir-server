@@ -19,11 +19,9 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
-	"strconv"
 	"testing"
 )
 
@@ -33,27 +31,16 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 	instance := mockServerInstance(t)
 	grp := instance.GetNetworkStatus().GetCmixGroup()
-	registry := instance.GetStorage()
 	h := sha256.New()
+	instance.SetPrecanStoreTesting(grp, t)
 
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
 	bk := grp.NewIntFromBytes(h.Sum(nil))
+	uid := id.NewIdFromString("test", id.User, t)
+	dhKey := bk.Bytes()
+	instance.AddDummyUserTesting(uid, dhKey, grp, t)
 
-	u := &storage.Client{
-		Id:           id.NewIdFromString("test", id.User, t).Marshal(),
-		DhKey:        bk.Bytes(),
-		IsRegistered: true,
-	}
-	_ = registry.UpsertClient(u)
-
-	// Reception base key should be around 256 bits long,
-	// depending on generation, to feed the 256-bit hash
-	if u.GetDhKey(grp).BitLen() < 248 || u.GetDhKey(grp).BitLen() > 256 {
-		t.Errorf("Base key has wrong number of bits. "+
-			"Had %v bits in reception base key",
-			u.GetDhKey(grp).BitLen())
-	}
 
 	//var stream DecryptStream
 	batchSize := uint32(32)
@@ -100,7 +87,7 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 	instance.PopulateDummyUsers(grp)
 
-	g.Link(grp, roundBuffer, registry, round.NewClientFailureReport(instance.GetID()),
+	g.Link(grp, roundBuffer, round.NewClientFailureReport(instance.GetID()),
 		streamPool, instance.GetSecretManager(), instance.GetPrecanStore())
 
 	stream := g.GetStream().(*KeygenDecryptStream)
@@ -127,9 +114,10 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		grp.SetUint64(expectedPayloadA.Get(uint32(i)), uint64(i+1))
 		grp.SetUint64(expectedPayloadB.Get(uint32(i)), uint64(1000+i))
 
-		uid, _ := u.GetId()
 		stream.Salts[i] = testSalt
 		stream.Users[i] = uid
+		stream.Precanned = instance.GetPrecanStore()
+		stream.NodeSecrets = instance.GetSecretManager()
 		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.GetDhKey(grp),
 			stream.RoundId, kmacHash)}
 	}
