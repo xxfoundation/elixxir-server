@@ -112,6 +112,7 @@ func Poll(instance *internal.Instance) error {
 				instance.ReportNodeFailure(err)
 			}else if strings.Contains(err.Error(),"Node cannot submit a rounderror when it is not" ){
 				err = nil
+				break
 			}
 		}
 		if err!=nil{
