@@ -463,7 +463,8 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	clientReport := round.NewClientFailureReport(instance.GetID())
 
 	var streamPool *gpumaths.StreamPool
-	g.Link(grp, roundBuffer, clientReport, streamPool, instance.GetSecretManager(), instance.GetPrecanStore())
+	g.Link(grp, roundBuffer, clientReport, streamPool,
+		instance.GetSecretManager(), instance.GetPrecanStore())
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 
@@ -481,7 +482,6 @@ func TestDecryptStreamInGraph(t *testing.T) {
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
-		// Necessary to avoid crashing
 		// Not necessary to avoid crashing
 		stream.Salts[i] = []byte{}
 

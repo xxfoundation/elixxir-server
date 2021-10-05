@@ -86,8 +86,8 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 	}
 
 	instance.PopulateDummyUsers(grp)
-
-	g.Link(grp, roundBuffer, round.NewClientFailureReport(instance.GetID()),
+	clientReport := round.NewClientFailureReport(instance.GetID())
+	g.Link(grp, roundBuffer, clientReport,
 		streamPool, instance.GetSecretManager(), instance.GetPrecanStore())
 
 	stream := g.GetStream().(*KeygenDecryptStream)
@@ -103,8 +103,6 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
-		// Necessary to avoid crashing
-		stream.Users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.Salts[i] = []byte{}
 
@@ -113,11 +111,11 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 		grp.SetUint64(expectedPayloadA.Get(uint32(i)), uint64(i+1))
 		grp.SetUint64(expectedPayloadB.Get(uint32(i)), uint64(1000+i))
+		stream.Precanned = instance.GetPrecanStore()
+		stream.NodeSecrets = instance.GetSecretManager()
 
 		stream.Salts[i] = testSalt
 		stream.Users[i] = uid
-		stream.Precanned = instance.GetPrecanStore()
-		stream.NodeSecrets = instance.GetSecretManager()
 		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, grp.NewIntFromBytes(dhKey),
 			stream.RoundId, kmacHash)}
 	}
