@@ -110,7 +110,7 @@ func Poll(instance *internal.Instance) error {
 				strings.Contains(err.Error(), "requires the Node be assigned a round") ||
 				strings.Contains(err.Error(), "invalid transition") {
 				instance.ReportNodeFailure(err)
-			}else if strings.Contains(err.Error(),"Node cannot submit a rounderror when it is not" {
+			}else if strings.Contains(err.Error(),"Node cannot submit a rounderror when it is not" ){
 				break
 			}
 		}
