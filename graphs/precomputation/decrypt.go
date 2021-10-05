@@ -52,7 +52,7 @@ func (ds *DecryptStream) GetName() string {
 func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 	var streamPool *gpumaths.StreamPool
-	if len(source) >= 4 {
+	if len(source) >= 3 {
 		// All arguments are being passed from the Link call, which should include the stream pool
 		streamPool = source[2].(*gpumaths.StreamPool)
 	}
