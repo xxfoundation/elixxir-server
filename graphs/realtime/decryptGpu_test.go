@@ -22,6 +22,7 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
+	"strconv"
 	"testing"
 )
 
@@ -40,7 +41,6 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 	uid := id.NewIdFromString("test", id.User, t)
 	dhKey := bk.Bytes()
 	instance.AddDummyUserTesting(uid, dhKey, grp, t)
-
 
 	//var stream DecryptStream
 	batchSize := uint32(32)
@@ -118,7 +118,7 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		stream.Users[i] = uid
 		stream.Precanned = instance.GetPrecanStore()
 		stream.NodeSecrets = instance.GetSecretManager()
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.GetDhKey(grp),
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, grp.NewIntFromBytes(dhKey),
 			stream.RoundId, kmacHash)}
 	}
 	// Here's the actual data for the test
@@ -137,15 +137,13 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 			keyA := grp.NewInt(1)
 			keyB := grp.NewInt(1)
 
-			user, _ := registry.GetClient(stream.Users[i])
-
-			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.GetDhKey(grp),
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, grp.NewIntFromBytes(dhKey),
 				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.GetDhKey(grp),
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, grp.NewIntFromBytes(dhKey),
 				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA
