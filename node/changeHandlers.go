@@ -336,7 +336,11 @@ func Precomputing(instance *internal.Instance) error {
 	}
 
 	//Build the round
-	rnd, err := round.New(instance.GetNetworkStatus().GetCmixGroup(), roundID, phases, phaseResponses, circuit, instance.GetID(), roundInfo.GetBatchSize(), instance.GetRngStreamGen(), instance.GetStreamPool(), instance.GetIP(), GetDefaultPanicHandler(instance, roundID), instance.GetClientReport(), instance.GetSecretManager(), instance.GetPrecanStore())
+	rnd, err := round.New(instance.GetNetworkStatus().GetCmixGroup(), roundID, phases,
+		phaseResponses, circuit, instance.GetID(), roundInfo.GetBatchSize(),
+		instance.GetRngStreamGen(), instance.GetStreamPool(), instance.GetIP(),
+		GetDefaultPanicHandler(instance, roundID), instance.GetClientReport(),
+		instance.GetSecretManager(), instance.GetPrecanStore())
 	if err != nil {
 		return errors.WithMessage(err, "Failed to create new round")
 	}
