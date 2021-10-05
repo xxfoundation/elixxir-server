@@ -46,7 +46,7 @@ func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 	var ok bool
 	for _, face := range source {
 
-		if _, ok = face.(gpumaths.StreamPool); ok {
+		if _, ok = face.(*gpumaths.StreamPool); ok {
 			streamPool = face.(*gpumaths.StreamPool)
 		}
 	}

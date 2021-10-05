@@ -47,7 +47,7 @@ func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...inter
 	var ok bool
 	for _, face := range source {
 
-		if _, ok = face.(gpumaths.StreamPool); ok {
+		if _, ok = face.(*gpumaths.StreamPool); ok {
 			streamPool = face.(*gpumaths.StreamPool)
 		}
 	}

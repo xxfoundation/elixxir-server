@@ -56,7 +56,7 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 	var ok bool
 	for _, face := range source {
 
-		if _, ok = face.(gpumaths.StreamPool); ok {
+		if _, ok = face.(*gpumaths.StreamPool); ok {
 			streamPool = face.(*gpumaths.StreamPool)
 		}
 	}
