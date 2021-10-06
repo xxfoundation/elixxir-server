@@ -83,7 +83,6 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	instance.PopulateDummyUsers(grp)
 	clientReport := round.NewClientFailureReport(instance.GetID())
 	g.Link(grp, roundBuffer, clientReport,
 		streamPool, instance.GetSecretManager(), instance.GetPrecanStore())
