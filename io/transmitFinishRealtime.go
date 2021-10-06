@@ -77,26 +77,22 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 			var streamErr error
 			var ack *messages.Ack
 			for i:=0;i<3;i++{
-				localR, rnderr := instance.GetNetworkStatus().GetRound(roundID)
-				if rnderr!=nil{
-					streamErr = errors.Errorf("Could not get status of round %d in " +
-						"transmitFinishRealtime to %s on attempt %d/3",
-						roundID, recipient.GetId(), i)
-					jww.WARN.Printf(streamErr.Error())
-					time.Sleep(150*time.Millisecond)
-					continue
-				}
+
 
 				currentRound := instance.GetRoundManager().GetCurrentRound()
-				roundState := states.Round(localR.State)
 
-				if currentRound == roundID{
-					if roundState == states.FAILED{
-						jww.ERROR.Printf("Could not transmitFinishRealtime to %s " +
-							"due to round %d having failed", recipient, roundID)
-						return
+
+				if currentRound != roundID{
+					localR, rnderr := instance.GetNetworkStatus().GetRound(roundID)
+					roundState := states.Round(localR.State)
+					if rnderr!=nil{
+						streamErr = errors.Errorf("Could not get status of round %d in " +
+							"transmitFinishRealtime to %s on attempt %d/3",
+							roundID, recipient.GetId(), i)
+						jww.WARN.Printf(streamErr.Error())
+						time.Sleep(150*time.Millisecond)
+						continue
 					}
-				}else{
 					if  roundState != states.QUEUED && roundState != states.REALTIME  {
 						streamErr = errors.Errorf("The status of round %d in " +
 							"transmitFinishRealtime to %s on attempt %d/3 was not %s or %s according to the network, " +
