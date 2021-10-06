@@ -81,7 +81,7 @@ func Send(sender Sender, instance *internal.Instance, authHost *connect.Host) (r
 	jww.WARN.Printf("Failed to send %s to permissioning "+
 		"due to potential authorization error, attempting to authorize...", sender.String())
 
-	for err = Authorize(instance, authHost); err != nil; {
+	for err = Authorize(instance, authHost); err != nil; err = Authorize(instance, authHost) {
 		jww.WARN.Printf("Failed to authorize with %s, trying again: %+v", authHost.GetAddress(), err)
 		time.Sleep(time.Second)
 	}

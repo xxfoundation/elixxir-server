@@ -85,6 +85,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 			msg := getMessage(i)
 			err = streamClient.Send(msg)
 			if err != nil {
+				eofAck, eofErr := streamClient.CloseAndRecv()
+				if eofErr != nil {
+					err = errors.Wrap(err, eofErr.Error())
+				} else {
+					err = errors.Wrap(err, eofAck.Error)
+				}
 				return errors.Errorf("Error on comm, not able to send "+
 					"slot: %+v", err)
 			}
@@ -120,7 +126,8 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	cancel()
 
 	if err != nil {
-		return err
+		return errors.WithMessagef(err,"Failed to stream on round %d to %s",
+			roundID, recipient.GetId())
 	}
 
 	// Make sure the comm doesn't return an Ack with an error message

@@ -130,7 +130,6 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 					current.NOT_STARTED, err)
 			}
 
-			jww.DEBUG.Printf("Updating to WAITING")
 			ok, err := instance.GetStateMachine().Update(current.WAITING)
 			if !ok || err != nil {
 				t.Errorf("Unable to transition to %v state: %+v",
@@ -522,16 +521,17 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-	for _, nodeInstance := range nodes {
+	for i := len(nodes)-1;i>=0;i--{
+		nodeInstance:= nodes[i]
 		// Send info to the realtime round queue
 		err := nodeInstance.GetRealtimeRoundQueue().Send(roundInfoMsg)
 		if err != nil {
-			jww.FATAL.Printf("Unable to send to RealtimeRoundQueue: %+v", err)
+			t.Errorf("Unable to send to RealtimeRoundQueue: %+v", err)
 		}
-
 		ok, err := nodeInstance.GetStateMachine().Update(current.REALTIME)
 		if !ok || err != nil {
-			jww.FATAL.Printf("Failed to update to realtime: %+v", err)
+			t.Errorf("Failed to update to realtime: %+v", err)
+			fmt.Printf("Failed to update to realtime: %+v\n", err)
 		}
 	}
 

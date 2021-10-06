@@ -262,6 +262,10 @@ func NotStarted(instance *internal.Instance) error {
 
 					jww.ERROR.Printf("Your node is not online: %s", err.Error())
 					time.Sleep(pollDelay)
+				}else if strings.Contains(err.Error(), "connection reset by peer"){
+					jww.ERROR.Printf("Failed to poll permission due to connection " +
+						"being reset by peer: %s", err.Error())
+					time.Sleep(pollDelay)
 				} else {
 					// If we receive an error polling here, panic this thread
 					roundErr := errors.Errorf("Received error polling for permisioning: %+v", err)
@@ -353,7 +357,7 @@ func Precomputing(instance *internal.Instance) error {
 	// If the other servers in the round do not respond in under 2 seconds
 	// then fail the round.
 	err = io.VerifyServersOnline(instance.GetNetwork(), circuit,
-		2*time.Second)
+		4*time.Second)
 	if err != nil {
 		return err
 	}

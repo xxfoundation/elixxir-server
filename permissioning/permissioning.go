@@ -100,14 +100,27 @@ func Poll(instance *internal.Instance) error {
 	reportedActivity := instance.GetStateMachine().GetActivityToReport()
 
 	// Ping permissioning for updated information
-	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
-	if err != nil {
-		if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
-			strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
-			strings.Contains(err.Error(), "requires the Node be assigned a round") ||
-			strings.Contains(err.Error(), "invalid transition") {
-			instance.ReportNodeFailure(err)
+	err := errors.New("dummy")
+	var permResponse *pb.PermissionPollResponse
+	for i:= 0; i<3 && err!=nil; i++ {
+		permResponse, err = PollPermissioning(permHost, instance, reportedActivity)
+		if err != nil{
+			if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
+				strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
+				strings.Contains(err.Error(), "requires the Node be assigned a round") ||
+				strings.Contains(err.Error(), "invalid transition") {
+				instance.ReportNodeFailure(err)
+			}else if strings.Contains(err.Error(),"Node cannot submit a rounderror when it is not" ){
+				err = nil
+				break
+			}
 		}
+		if err!=nil{
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	if err!=nil{
 		return err
 	}
 
@@ -207,10 +220,12 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		pollMsg.Error = instance.GetRecoveredError()
 		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
 		instance.ClearRecoveredError()
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if err != nil || !ok {
-			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
-			return nil, err
+		if instance.GetStateMachine().Get() == current.ERROR{
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if err != nil || !ok {
+				err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
+				return nil, err
+			}
 		}
 	}
 

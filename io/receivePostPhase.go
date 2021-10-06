@@ -33,7 +33,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 	_, _ = instance.GetStateMachine().WaitFor(5*time.Second, current.WAITING)
 
 	// Wait until acceptable state to start post phase
-	curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, current.PRECOMPUTING, current.REALTIME)
+	curActivity, err := instance.GetStateMachine().WaitFor(5*time.Second, current.PRECOMPUTING, current.REALTIME)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, "from: "+phase.Type(batch.FromPhase).String())
 	}

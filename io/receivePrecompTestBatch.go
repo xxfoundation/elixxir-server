@@ -30,7 +30,7 @@ import (
 // if the transmission was successful. Is called by TransmitPrecompTestBatch.
 func ReceivePrecompTestBatch(instance *internal.Instance, stream pb.Node_PrecompTestBatchServer, message *pb.RoundInfo, auth *connect.Auth) error {
 	//check that the round is in the correct state to receive this transmission
-	curActivity, err := instance.GetStateMachine().WaitFor(2000*time.Millisecond, current.PRECOMPUTING)
+	curActivity, err := instance.GetStateMachine().WaitFor(5*time.Second, current.PRECOMPUTING)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, current.PRECOMPUTING.String())
 	}

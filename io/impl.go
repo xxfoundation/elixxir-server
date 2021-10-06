@@ -78,6 +78,7 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
+
 	impl.Functions.RequestClientKey = func(request *pb.SignedClientKeyRequest,
 		auth *connect.Auth) (*pb.SignedKeyResponse, error) {
 		response, err := RequestClientKey(instance, request, auth)
