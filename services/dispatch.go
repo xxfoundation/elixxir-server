@@ -19,6 +19,7 @@ var (
 	InvalidTypeAssert = errors.New("type assert failed")
 	InvalidMAC        = "User could not be validated"
 	UserNotFound      = "Could not find user"
+	SecretNotFound    = "Could not find secret"
 	ErrorDelimiter    = "; "
 	IdDelimiter       = "[]"
 )

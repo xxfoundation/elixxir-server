@@ -19,7 +19,6 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/signature"
@@ -50,9 +49,7 @@ func TestStartSharePhase(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	rnd, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -101,9 +98,7 @@ func TestReceiveStartSharePhase_BadAuth(t *testing.T) {
 		phase.NewResponse(phase.ResponseDefinition{mockPhase.GetType(),
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
-	rnd, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -186,9 +181,7 @@ func TestSharePhaseRound(t *testing.T) {
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
 	// Build round and add it to the manager
-	rnd, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -277,9 +270,7 @@ func TestReceiveSharePhasePiece_BadAuth(t *testing.T) {
 			[]phase.State{phase.Active}, mockPhase.GetType()})
 
 	// Build round and add it to the manager
-	rnd, err := round.New(grp, &storage.Storage{}, roundID, []phase.Phase{mockPhase},
-		responseMap, topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{mockPhase}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -346,9 +337,7 @@ func TestSharePhaseRound_FinalKey(t *testing.T) {
 
 	phases := []phase.Phase{mockPhaseShare, mockPhaseDecrypt}
 
-	rnd, err := round.New(grp, &storage.Storage{}, roundID, phases,
-		responseMap, topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, phases, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -423,9 +412,7 @@ func TestReceiveFinalKey(t *testing.T) {
 
 	phases := []phase.Phase{mockPhaseShare, mockPhaseDecrypt}
 
-	rnd, err := round.New(grp, &storage.Storage{}, roundID, phases,
-		responseMap, topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, phases, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -496,9 +483,7 @@ func TestReceiveFinalKey_BadAuth(t *testing.T) {
 
 	phases := []phase.Phase{mockPhaseShare, mockPhaseDecrypt}
 
-	rnd, err := round.New(grp, &storage.Storage{}, roundID, phases,
-		responseMap, topology, topology.GetNodeAtIndex(0), 3,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, phases, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

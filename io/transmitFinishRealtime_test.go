@@ -43,7 +43,7 @@ func MockFinishRealtimeImplementation() *node.Implementation {
 // Test that TransmitFinishRealtime correctly broadcasts message
 // to all other nodes
 func TestSendFinishRealtime(t *testing.T) {
-	instance, _, _, _, _, _, _ := setup(t)
+	instance, _, _, _, _, _, _, _ := setup(t)
 
 	//Setup the network
 	numNodes := 4
@@ -73,9 +73,7 @@ func TestSendFinishRealtime(t *testing.T) {
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Error()
 	}

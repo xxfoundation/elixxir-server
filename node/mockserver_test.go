@@ -46,7 +46,7 @@ func (i *mockPermission) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, i.err
 }
 
-func (i *mockPermission) RegisterUser(*pb.UserRegistration) (*pb.UserRegistrationConfirmation, error) {
+func (i *mockPermission) RegisterUser(clientRegistration *pb.ClientRegistration) (*pb.SignedClientRegistrationConfirmations, error) {
 	return nil, i.err
 }
 

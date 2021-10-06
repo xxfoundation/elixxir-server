@@ -47,9 +47,7 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	batchSize := 3
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -104,9 +102,7 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	batchSize := 3
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -163,9 +159,7 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	batchSize := 3
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -227,9 +221,7 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	p.Ptype = phase.RealPermute
 
 	batchSize := 3
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

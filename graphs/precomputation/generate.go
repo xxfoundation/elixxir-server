@@ -49,7 +49,7 @@ func (gs *GenerateStream) GetName() string {
 // Link maps the round data to the Generate Stream data structure (the input)
 func (gs *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
-	rngStreamGen := source[2].(*fastRNG.StreamGenerator)
+	rngStreamGen := source[1].(*fastRNG.StreamGenerator)
 
 	gs.LinkGenerateStream(grp, batchSize, roundBuffer, rngStreamGen)
 }

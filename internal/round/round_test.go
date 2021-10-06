@@ -15,7 +15,6 @@ import (
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/primitives/id"
@@ -70,9 +69,8 @@ func TestNew(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.ID{{}})
 
-	round, err := New(grp, &storage.Storage{}, roundId, phases, nil, topology,
-		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
+	round, err := New(grp, roundId, phases, nil, topology, &id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -143,10 +141,8 @@ func TestRound_GetMeasurements(t *testing.T) {
 	nid := id.NewIdFromUInt(uint64(123), id.Node, t)
 	topology := connect.NewCircuit([]*id.ID{nid})
 
-	round, err := New(grp, &storage.Storage{}, roundId, phases, nil,
-		topology, nid, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil,
-		"0.0.0.0", nil, nil)
+	round, err := New(grp, roundId, phases, nil, topology, nid, 5, fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -192,9 +188,8 @@ func TestRound_StartRoundTrip(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.ID{{}})
 
-	round, err := New(grp, &storage.Storage{}, roundId, phases, nil, topology,
-		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
+	round, err := New(grp, roundId, phases, nil, topology, &id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -223,9 +218,8 @@ func TestRound_StopRoundTrip(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.ID{{}})
 
-	round, err := New(grp, &storage.Storage{}, roundId, phases, nil, topology,
-		&id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
-			uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil)
+	round, err := New(grp, roundId, phases, nil, topology, &id.ID{}, 5, fastRNG.NewStreamGenerator(10000,
+		uint(runtime.NumCPU()), csprng.NewSystemRNG), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

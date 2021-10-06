@@ -13,6 +13,8 @@ package internal
 import (
 	"encoding/base64"
 	"fmt"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/hash"
 	"os"
 	"strings"
 	"sync"
@@ -57,8 +59,11 @@ type Instance struct {
 	machine           state.Machine
 	phaseStateMachine state.GenericMachine
 
-	// Persistent storage object
-	storage *storage.Storage
+	// RAM storage of rotating node secrets
+	nodeSecretManager *storage.NodeSecretManager
+
+	// RAM storage of precanned IDs and keys
+	precanStore *storage.PrecanStore
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -140,20 +145,23 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		phaseStateMachine: state.NewGenericMachine(),
 	}
 
-	// Initialize the backend
-	jww.INFO.Printf("Initializing the backend...")
-	instance.storage, err = storage.NewStorage(
-		def.DbUsername, def.DbPassword, def.DbName,
-		def.DbAddress, def.DbPort, def.DevMode)
-	if err != nil {
-		eMsg := fmt.Sprintf("Could not initialize database: psql://%s@%s:%s/%s: %v",
-			def.DbUsername, def.DbAddress, def.DbPort, def.DbName, err)
+	// Create node secret manager
+	instance.nodeSecretManager = storage.NewNodeSecretManager()
 
-		if def.DevMode {
-			jww.WARN.Printf(eMsg)
-		} else {
-			jww.FATAL.Panicf(eMsg)
-		}
+	// Create hardcoded node secret
+	// todo: refactor this once a mechanism is implemented for
+	//  creating and rotating node secrets.
+	h, err := hash.NewCMixHash()
+	if err != nil {
+		return nil, err
+	}
+
+	h.Write(instance.definition.TlsKey)
+	nodeSecret := h.Sum(nil)
+
+	err = instance.nodeSecretManager.UpsertSecret(0, nodeSecret)
+	if err != nil {
+		return nil, errors.Errorf("Could not insert into node secret manager: %v", err)
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -306,9 +314,46 @@ func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
-// GetStorage returns the user registry used by the server
-func (i *Instance) GetStorage() *storage.Storage {
-	return i.storage
+func (i *Instance) GetSecretManager() *storage.NodeSecretManager {
+	return i.nodeSecretManager
+}
+
+func (i *Instance) GetPrecanStore() *storage.PrecanStore {
+	return i.precanStore
+}
+
+func (i *Instance) PopulateDummyUsers(grp *cyclic.Group) {
+	i.precanStore = storage.NewPrecanStore(grp)
+}
+
+func (i *Instance) AddDummyUserTesting(userId *id.ID, key []byte, grp *cyclic.Group, face interface{}) {
+	if i.precanStore == nil {
+		i.precanStore = storage.NewPrecanStore(grp)
+	}
+	i.precanStore.AddTesting(userId, key, face)
+}
+
+func (i *Instance) SetPrecanStoreTesting(grp *cyclic.Group, face interface{}) {
+	switch face.(type) {
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
+		break
+	default:
+		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
+	}
+
+	i.precanStore = storage.NewPrecanStore(grp)
+
+}
+
+func (i *Instance) SetSecretManagerTesting(face interface{}, manager *storage.NodeSecretManager) {
+	switch face.(type) {
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
+		break
+	default:
+		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
+	}
+
+	i.nodeSecretManager = manager
 }
 
 // GetRoundManager returns the round manager
@@ -346,7 +391,7 @@ func (i *Instance) GetPubKey() *rsa.PublicKey {
 	return i.definition.PublicKey
 }
 
-// GetPrivKey returns the server DSA private key
+// GetPrivKey returns the server RSA private key
 func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }

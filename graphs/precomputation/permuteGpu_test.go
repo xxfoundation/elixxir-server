@@ -67,7 +67,7 @@ func TestPermuteGpuGraph(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g.Link(grp, roundBuffer, nil, nil, streamPool)
+	g.Link(grp, roundBuffer, nil, streamPool)
 
 	permuteInverse := make([]uint32, g.GetBatchSize())
 	for i := uint32(0); i < uint32(len(permuteInverse)); i++ {

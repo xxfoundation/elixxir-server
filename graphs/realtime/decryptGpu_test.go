@@ -19,11 +19,9 @@ import (
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
-	"strconv"
 	"testing"
 )
 
@@ -33,27 +31,14 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 	instance := mockServerInstance(t)
 	grp := instance.GetNetworkStatus().GetCmixGroup()
-	registry := instance.GetStorage()
 	h := sha256.New()
-
+	instance.SetPrecanStoreTesting(grp, t)
 	h.Reset()
-	h.Write([]byte(strconv.Itoa(4000)))
+	ns, _ := instance.GetSecretManager().GetSecret(0)
+	h.Write(ns.Bytes())
 	bk := grp.NewIntFromBytes(h.Sum(nil))
-
-	u := &storage.Client{
-		Id:           id.NewIdFromString("test", id.User, t).Marshal(),
-		DhKey:        bk.Bytes(),
-		IsRegistered: true,
-	}
-	_ = registry.UpsertClient(u)
-
-	// Reception base key should be around 256 bits long,
-	// depending on generation, to feed the 256-bit hash
-	if u.GetDhKey(grp).BitLen() < 248 || u.GetDhKey(grp).BitLen() > 256 {
-		t.Errorf("Base key has wrong number of bits. "+
-			"Had %v bits in reception base key",
-			u.GetDhKey(grp).BitLen())
-	}
+	uid := id.NewIdFromString("test", id.User, t)
+	instance.AddDummyUserTesting(uid, bk.Bytes(), grp, t)
 
 	//var stream DecryptStream
 	batchSize := uint32(32)
@@ -98,7 +83,9 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g.Link(grp, roundBuffer, registry, round.NewClientFailureReport(instance.GetID()), streamPool)
+	clientReport := round.NewClientFailureReport(instance.GetID())
+	g.Link(grp, roundBuffer, clientReport,
+		streamPool, instance.GetSecretManager(), instance.GetPrecanStore())
 
 	stream := g.GetStream().(*KeygenDecryptStream)
 
@@ -113,8 +100,6 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 	// So, it's necessary to fill in the parts in the expanded batch with dummy
 	// data to avoid crashing, or we need to exclude those parts in the cryptop
 	for i := 0; i < int(g.GetExpandedBatchSize()); i++ {
-		// Necessary to avoid crashing
-		stream.Users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.Salts[i] = []byte{}
 
@@ -123,11 +108,12 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 
 		grp.SetUint64(expectedPayloadA.Get(uint32(i)), uint64(i+1))
 		grp.SetUint64(expectedPayloadB.Get(uint32(i)), uint64(1000+i))
+		stream.Precanned = instance.GetPrecanStore()
+		stream.NodeSecrets = instance.GetSecretManager()
 
-		uid, _ := u.GetId()
 		stream.Salts[i] = testSalt
 		stream.Users[i] = uid
-		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, u.GetDhKey(grp),
+		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, bk,
 			stream.RoundId, kmacHash)}
 	}
 	// Here's the actual data for the test
@@ -146,15 +132,13 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 			keyA := grp.NewInt(1)
 			keyB := grp.NewInt(1)
 
-			user, _ := registry.GetClient(stream.Users[i])
-
-			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, user.GetDhKey(grp),
+			cryptops.Keygen(grp, stream.Salts[i], stream.RoundId, bk,
 				keyA)
 
 			hash.Reset()
 			hash.Write(stream.Salts[i])
 
-			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, user.GetDhKey(grp),
+			cryptops.Keygen(grp, hash.Sum(nil), stream.RoundId, bk,
 				keyB)
 
 			// Verify expected KeyA matches actual KeyPayloadA

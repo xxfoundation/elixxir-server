@@ -142,9 +142,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	myGrp := cyclic.NewGroup(pPrime, g)
 
-	r, err := round.New(myGrp, instance.GetStorage(), roundID, []phase.Phase{p},
-		responseMap, topology, instance.GetID(), 1,
-		instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	r, err := round.New(myGrp, roundID, []phase.Phase{p}, responseMap, topology, instance.GetID(), 1, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

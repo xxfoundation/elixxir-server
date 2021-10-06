@@ -44,7 +44,6 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/elixxir/server/node"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/signature"
@@ -159,16 +158,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		sm := state.NewMachine(testStates)
 
 		instance, _ = internal.CreateServerInstance(defsLst[i], impl, sm, "1.1.0")
-		client := storage.Client{
-			Id:           userID.Marshal(),
-			DhKey:        baseKeys[i].Bytes(),
-			IsRegistered: true,
-		}
-		err := instance.GetStorage().UpsertClient(&client)
-		if err != nil {
-			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
-		}
-		err = instance.GetNetworkStatus().UpdateNodeConnections()
+		err := instance.GetNetworkStatus().UpdateNodeConnections()
 		if err != nil {
 			t.Errorf("Failed to update node connections for node %d: %+v", i, err)
 		}
@@ -203,7 +193,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 
 	t.Logf("Initilizing Network for %v nodes", numNodes)
 	// Initialize the network for every instance
-	for _, instance := range instances {
+	for i, instance := range instances {
 		instance.GetNetwork().DisableAuth()
 		instance.Online = true
 		params := connect.GetDefaultHostParams()
@@ -213,7 +203,8 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
-
+		instance.PopulateDummyUsers(grp)
+		instance.AddDummyUserTesting(userID, baseKeys[i].Bytes(), grp, t)
 	}
 
 	t.Logf("Running the Queue for %v nodes", numNodes)
