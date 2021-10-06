@@ -8,7 +8,6 @@
 package io
 
 import (
-	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -26,6 +25,7 @@ var receivedFinishRealtime = make(chan *mixmessages.RoundInfo, 100)
 var getMessage = func(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index: 24,
+
 	}
 }
 
@@ -122,79 +122,5 @@ Loop:
 			t.Errorf("Test timed out!")
 			break Loop
 		}
-	}
-}
-
-func MockFinishRealtimeImplementation_Error() *node.Implementation {
-	impl := node.NewImplementation()
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo,
-		streamServer mixmessages.Node_FinishRealtimeServer, auth *connect.Auth) error {
-		return errors.New("Test error")
-	}
-	return impl
-}
-
-func TestTransmitFinishRealtime_Error(t *testing.T) {
-	instance, _, _, _, _, _, _ := setup(t)
-
-	//Setup the network
-	comms, topology := buildTestNetworkComponents(
-		[]*node.Implementation{
-			MockFinishRealtimeImplementation_Error(),
-			MockFinishRealtimeImplementation_Error(),
-			MockFinishRealtimeImplementation_Error(),
-			MockFinishRealtimeImplementation_Error(),
-			MockFinishRealtimeImplementation_Error()}, 0, t)
-	defer Shutdown(comms)
-
-	const numSlots = 10
-	const numChunks = numSlots / 2
-
-	response := phase.NewResponse(phase.ResponseDefinition{
-		PhaseAtSource:  phase.RealPermute,
-		ExpectedStates: []phase.State{phase.Active},
-		PhaseToExecute: phase.RealPermute})
-
-	roundID := id.Round(0)
-	grp := initImplGroup()
-	p := testUtil.InitMockPhase(t)
-	p.Ptype = phase.RealPermute
-	responseMap := make(phase.ResponseMap)
-	responseMap["RealPermuteVerification"] = response
-
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), numSlots, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
-	if err != nil {
-		t.Error()
-	}
-
-	instance.GetRoundManager().AddRound(rnd)
-
-	chunkInputChan := make(chan services.Chunk, numChunks)
-
-	getChunk := func() (services.Chunk, bool) {
-		chunk, ok := <-chunkInputChan
-		return chunk, ok
-	}
-	errCH := make(chan error)
-
-	go func() {
-		err := TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
-		errCH <- err
-	}()
-
-	go func() {
-		for i := 0; i < numChunks; i++ {
-			chunkInputChan <- services.NewChunk(uint32(i*2), uint32(i*2+1))
-		}
-
-		close(chunkInputChan)
-	}()
-
-	goErr := <-errCH
-
-	if goErr == nil {
-		t.Error("SendFinishRealtime: error did not occur when provoked")
 	}
 }
