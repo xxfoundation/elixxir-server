@@ -191,7 +191,9 @@ func (m Machine) Update(nextState current.Activity) (bool, error) {
 		return true, nil
 	}
 
-	jww.INFO.Printf("Updating to %v", nextState)
+	e := errors.New("")
+
+	jww.INFO.Printf("Updating to %v - Source: %+v", nextState, e)
 
 	// check if the requested state change is valid
 	if !m.stateMap[*m.Activity][nextState] {
