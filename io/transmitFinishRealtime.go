@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -87,15 +86,26 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 					time.Sleep(150*time.Millisecond)
 					continue
 				}
+
+				currentRound := instance.GetRoundManager().GetCurrentRound()
 				roundState := states.Round(localR.State)
-				localState := instance.GetStateMachine().Get()
-				if  localState!=current.REALTIME || (roundState != states.QUEUED && roundState != states.REALTIME)  {
-					streamErr = errors.Errorf("The status of round %d in " +
-						"transmitFinishRealtime to %s on attempt %d/3 was not %s or %s, instead was %s",
-						roundID, recipient.GetId(), i, states.REALTIME, states.QUEUED, roundState)
-					jww.WARN.Printf(streamErr.Error())
-					time.Sleep(150*time.Millisecond)
-					continue
+
+				if currentRound == roundID{
+					if roundState == states.FAILED{
+						jww.ERROR.Printf("Could not transmitFinishRealtime to %s " +
+							"due to round %d having failed", recipient, roundID)
+						return
+					}
+				}else{
+					if  roundState != states.QUEUED && roundState != states.REALTIME  {
+						streamErr = errors.Errorf("The status of round %d in " +
+							"transmitFinishRealtime to %s on attempt %d/3 was not %s or %s according to the network, " +
+							"is %s, will try again",
+							roundID, recipient.GetId(), i, states.REALTIME, states.QUEUED, roundState)
+						jww.WARN.Printf(streamErr.Error())
+						time.Sleep(150*time.Millisecond)
+						continue
+					}
 				}
 
 				ack, streamErr = instance.GetNetwork().SendFinishRealtime(recipient,
