@@ -73,8 +73,8 @@ func ReceiveFinishRealtime(instance *internal.Instance, msg *mixmessages.RoundIn
 		slots = append(slots, slot)
 	}
 	if err != io.EOF { // Any error outside of EOF denotes a failure to stream a slot
-		return errors.Errorf("Unexpected FinishRealtime error on round %d: %v",
-			msg.ID, err)
+		return errors.Errorf("Unexpected FinishRealtime error on round %d, " +
+			"received %d slots beforehand: %v", msg.ID, len(slots), err)
 	}
 
 	// Ensure received batch is expected batch size
