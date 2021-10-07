@@ -188,7 +188,7 @@ func NotStarted(instance *internal.Instance) error {
 	// Then we ping ourselfs to make sure we can communicate
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
 	start := time.Now()
-	isOnline := host.IsOnline()
+	_, isOnline := host.IsOnline()
 	delta := time.Since(start)
 	if exists && isOnline {
 		if delta > 2*time.Second {
