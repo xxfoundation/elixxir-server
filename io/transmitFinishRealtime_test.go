@@ -25,7 +25,6 @@ var receivedFinishRealtime = make(chan *mixmessages.RoundInfo, 100)
 var getMessage = func(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index: 24,
-
 	}
 }
 

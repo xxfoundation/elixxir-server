@@ -521,8 +521,8 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-	for i := len(nodes)-1;i>=0;i--{
-		nodeInstance:= nodes[i]
+	for i := len(nodes) - 1; i >= 0; i-- {
+		nodeInstance := nodes[i]
 		// Send info to the realtime round queue
 		err := nodeInstance.GetRealtimeRoundQueue().Send(roundInfoMsg)
 		if err != nil {

@@ -102,25 +102,25 @@ func Poll(instance *internal.Instance) error {
 	// Ping permissioning for updated information
 	err := errors.New("dummy")
 	var permResponse *pb.PermissionPollResponse
-	for i:= 0; i<3 && err!=nil; i++ {
+	for i := 0; i < 3 && err != nil; i++ {
 		permResponse, err = PollPermissioning(permHost, instance, reportedActivity)
-		if err != nil{
+		if err != nil {
 			if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
 				strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
 				strings.Contains(err.Error(), "requires the Node be assigned a round") ||
 				strings.Contains(err.Error(), "invalid transition") {
 				instance.ReportNodeFailure(err)
-			}else if strings.Contains(err.Error(),"Node cannot submit a rounderror when it is not" ){
+			} else if strings.Contains(err.Error(), "Node cannot submit a rounderror when it is not") {
 				err = nil
 				break
 			}
 		}
-		if err!=nil{
+		if err != nil {
 			time.Sleep(1 * time.Second)
 		}
 	}
 
-	if err!=nil{
+	if err != nil {
 		return err
 	}
 
@@ -141,7 +141,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	//updates the NDF with changes
-	if permResponse !=nil{
+	if permResponse != nil {
 		err = UpdateNDf(permResponse, instance)
 		if err != nil {
 			return errors.WithMessage(err, "Failed to update the NDFs")
@@ -149,7 +149,7 @@ func Poll(instance *internal.Instance) error {
 
 		// Update the internal state of rounds and the state machine
 		err = UpdateRounds(permResponse, instance)
-	}else{
+	} else {
 		jww.WARN.Printf("Skipped processing poll due to nul permResponse")
 	}
 
@@ -225,7 +225,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		pollMsg.Error = instance.GetRecoveredError()
 		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
 		instance.ClearRecoveredError()
-		if instance.GetStateMachine().Get() == current.ERROR{
+		if instance.GetStateMachine().Get() == current.ERROR {
 			ok, err := instance.GetStateMachine().Update(current.WAITING)
 			if err != nil || !ok {
 				err = errors.WithMessage(err, "Could not move to waiting state to recover from error")

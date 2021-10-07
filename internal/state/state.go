@@ -184,15 +184,14 @@ func (m Machine) addStateTransition(from current.Activity, to ...current.Activit
 // UPDATE CANNOT BE CALLED WITHIN STATE CHANGE FUNCTIONS
 func (m Machine) Update(nextState current.Activity) (success bool, err error) {
 	m.Lock()
-	defer func(){
+	defer func() {
 		m.Unlock()
-		if success{
+		if success {
 			jww.INFO.Printf("Updated to %v successfully", nextState)
-		}else{
+		} else {
 			jww.INFO.Printf("Updating to %v failed: %+v", nextState, err)
 		}
 	}()
-
 
 	// Errors tend to cascade, so we should ignore attempts to transition into error from error
 	if nextState == current.ERROR && *m.Activity == current.ERROR {
