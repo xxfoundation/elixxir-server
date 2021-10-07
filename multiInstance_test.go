@@ -203,7 +203,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
-		instance.PopulateDummyUsers(grp)
+		instance.PopulateDummyUsers(true, grp)
 		instance.AddDummyUserTesting(userID, baseKeys[i].Bytes(), grp, t)
 	}
 

@@ -208,10 +208,8 @@ func NotStarted(instance *internal.Instance) error {
 	//init the database
 	cmixGrp := instance.GetNetworkStatus().GetCmixGroup()
 
-	if instance.GetDefinition().DevMode {
-		//populate the dummy precanned users
-		instance.PopulateDummyUsers(cmixGrp)
-	}
+	//populate the dummy precanned users
+	instance.PopulateDummyUsers( instance.GetDefinition().DevMode, cmixGrp)
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 
