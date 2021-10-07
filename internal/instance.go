@@ -322,13 +322,13 @@ func (i *Instance) GetPrecanStore() *storage.PrecanStore {
 	return i.precanStore
 }
 
-func (i *Instance) PopulateDummyUsers(grp *cyclic.Group) {
-	i.precanStore = storage.NewPrecanStore(grp)
+func (i *Instance) PopulateDummyUsers(allprecann bool, grp *cyclic.Group) {
+	i.precanStore = storage.NewPrecanStore(allprecann, grp)
 }
 
 func (i *Instance) AddDummyUserTesting(userId *id.ID, key []byte, grp *cyclic.Group, face interface{}) {
 	if i.precanStore == nil {
-		i.precanStore = storage.NewPrecanStore(grp)
+		i.precanStore = storage.NewPrecanStore(true, grp)
 	}
 	i.precanStore.AddTesting(userId, key, face)
 }
@@ -341,7 +341,7 @@ func (i *Instance) SetPrecanStoreTesting(grp *cyclic.Group, face interface{}) {
 		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
 	}
 
-	i.precanStore = storage.NewPrecanStore(grp)
+	i.precanStore = storage.NewPrecanStore(true, grp)
 
 }
 
