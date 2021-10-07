@@ -66,6 +66,9 @@ func NewPrecanStore(grp *cyclic.Group) *PrecanStore {
 // and the boolean returned is false. If it does exist, the precanned key
 // is returned and the boolean returned is true.
 func (ps *PrecanStore) Get(userId *id.ID) ([]byte, bool) {
+	if ps == nil{
+		return nil, false
+	}
 	ps.mux.Lock()
 	defer ps.mux.Unlock()
 

@@ -141,13 +141,18 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	//updates the NDF with changes
-	err = UpdateNDf(permResponse, instance)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to update the NDFs")
+	if permResponse !=nil{
+		err = UpdateNDf(permResponse, instance)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to update the NDFs")
+		}
+
+		// Update the internal state of rounds and the state machine
+		err = UpdateRounds(permResponse, instance)
+	}else{
+		jww.WARN.Printf("Skipped processing poll due to nul permResponse")
 	}
 
-	// Update the internal state of rounds and the state machine
-	err = UpdateRounds(permResponse, instance)
 	return err
 }
 
