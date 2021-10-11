@@ -134,7 +134,7 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 		GatewayAddress: "1.2.3.4:11420",
 	}
 
-	fullHash2, err := dataStructures.GenerateNDFHash(test2Ndf)
+	fullHash2, err := dataStructures.GenerateNDFHash(&pb.NDF{Ndf: testUtil.ExampleNDF})
 	if err != nil {
 		t.Logf("error generating hash for 2nd ndf")
 		t.Fail()
