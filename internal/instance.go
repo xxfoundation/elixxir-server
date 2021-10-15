@@ -78,6 +78,9 @@ type Instance struct {
 	realtimeRoundQueue round.Queue
 	clientErrors       *round.ClientReport
 
+	// Persistent storage object
+	storage *storage.Storage
+
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
@@ -143,6 +146,20 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayFirstPoll:  NewFirstTime(),
 		clientErrors:      round.NewClientFailureReport(def.ID),
 		phaseStateMachine: state.NewGenericMachine(),
+	}
+
+	instance.storage, err = storage.NewStorage(
+		def.DbUsername, def.DbPassword, def.DbName,
+		def.DbAddress, def.DbPort, def.DevMode)
+	if err != nil {
+		eMsg := fmt.Sprintf("Could not initialize database: psql://%s@%s:%s/%s: %v",
+			def.DbUsername, def.DbAddress, def.DbPort, def.DbName, err)
+
+		if def.DevMode {
+			jww.WARN.Printf(eMsg)
+		} else {
+			jww.FATAL.Panicf(eMsg)
+		}
 	}
 
 	// Create node secret manager
