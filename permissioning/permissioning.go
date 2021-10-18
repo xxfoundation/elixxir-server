@@ -128,6 +128,11 @@ func Poll(instance *internal.Instance) error {
 		permResponse.EarliestRound != instance.GetEarliestRound() {
 		instance.SetEarliestRound(permResponse.EarliestRound)
 	}
+	earliestRoundTs := time.Unix(0, int64(permResponse.GetEarliestRoundTimestamp()))
+	if !earliestRoundTs.IsZero() ||
+		!earliestRoundTs.Equal(instance.GetEarliestRoundTimestamp()) {
+		instance.SetEarliestRoundTimestamp(earliestRoundTs)
+	}
 
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {

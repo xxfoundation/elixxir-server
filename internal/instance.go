@@ -109,7 +109,9 @@ type Instance struct {
 	completedBatch    map[id.Round]*round.CompletedRound
 	completedBatchMux sync.RWMutex
 
-	earliestRound *uint64
+	earliestRound             *uint64
+	earliestRoundTimestamp    time.Time
+	earliestRoundTimestampMux sync.Mutex
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -797,4 +799,16 @@ func (i *Instance) GetEarliestRound() uint64 {
 
 func (i *Instance) SetEarliestRound(newEarliestTracked uint64) {
 	atomic.StoreUint64(i.earliestRound, newEarliestTracked)
+}
+
+func (i *Instance) GetEarliestRoundTimestamp() time.Time {
+	i.earliestRoundTimestampMux.Lock()
+	defer i.earliestRoundTimestampMux.Unlock()
+	return i.earliestRoundTimestamp
+}
+
+func (i *Instance) SetEarliestRoundTimestamp(newEarliestTrackedTimestamp time.Time) {
+	i.earliestRoundTimestampMux.Lock()
+	defer i.earliestRoundTimestampMux.Unlock()
+	i.earliestRoundTimestamp = newEarliestTrackedTimestamp
 }

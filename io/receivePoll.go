@@ -40,7 +40,7 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 	instance.GetGatewayFirstContact().Send()
 
 	res.EarliestRound = instance.GetEarliestRound()
-
+	res.EarliestRoundTimestamp = uint64(instance.GetEarliestRoundTimestamp().UnixNano())
 	// Node is only ready for a response once it has polled permissioning
 	if instance.IsReadyForGateway() {
 		network := instance.GetNetworkStatus()
