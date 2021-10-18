@@ -108,6 +108,8 @@ type Instance struct {
 	// Map containing completed batches to pass back to gateway
 	completedBatch    map[id.Round]*round.CompletedRound
 	completedBatchMux sync.RWMutex
+
+	earliestRound *uint64
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -123,6 +125,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
 	firstPoll := uint32(0)
+	earliestRound := uint64(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -146,6 +149,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		gatewayFirstPoll:  NewFirstTime(),
 		clientErrors:      round.NewClientFailureReport(def.ID),
 		phaseStateMachine: state.NewGenericMachine(),
+		earliestRound:     &earliestRound,
 	}
 
 	instance.storage, err = storage.NewStorage(
@@ -785,4 +789,12 @@ func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
 	}
 
 	return 0, errors.New(NoCompletedBatch)
+}
+
+func (i *Instance) GetEarliestRound() uint64 {
+	return atomic.LoadUint64(i.earliestRound)
+}
+
+func (i *Instance) SetEarliestRound(newEarliestTracked uint64) {
+	atomic.StoreUint64(i.earliestRound, newEarliestTracked)
 }

@@ -124,6 +124,11 @@ func Poll(instance *internal.Instance) error {
 		return err
 	}
 
+	if permResponse.EarliestRound != 0 &&
+		permResponse.EarliestRound != instance.GetEarliestRound() {
+		instance.SetEarliestRound(permResponse.EarliestRound)
+	}
+
 	// Once done and in a completed state, manually switch back into waiting
 	if reportedActivity == current.COMPLETED {
 		// Sends the signal that this node is no longer in a round,
