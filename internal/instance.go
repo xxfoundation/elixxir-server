@@ -49,8 +49,8 @@ import (
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
 type EarliestRound struct {
-	earliestTrackedRound          uint64
-	earliestTrackedRoundTimestamp uint64
+	ID        uint64
+	Timestamp uint64
 }
 
 // Instance holds long-lived server state
@@ -801,13 +801,13 @@ func (i *Instance) GetEarliestRound() (uint64, uint64, error) {
 		return 0, 0, errors.New("Earliest round state does not exist, try again")
 	}
 
-	return earliestRound.earliestTrackedRound, earliestRound.earliestTrackedRoundTimestamp, nil
+	return earliestRound.ID, earliestRound.Timestamp, nil
 }
 
 func (i *Instance) SetEarliestRound(newEarliestTimestamp, newEarliestRoundId uint64) {
 	newEarliestRound := &EarliestRound{
-		earliestTrackedRound:          newEarliestRoundId,
-		earliestTrackedRoundTimestamp: newEarliestTimestamp,
+		ID:        newEarliestRoundId,
+		Timestamp: newEarliestTimestamp,
 	}
 
 	i.earliestRoundTracker.Store(newEarliestRound)
