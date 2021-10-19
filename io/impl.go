@@ -68,8 +68,9 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 		return err
 	}
 
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo, auth *connect.Auth) error {
-		err := ReceiveFinishRealtime(instance, message, auth)
+	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo,
+		streamServer pb.Node_FinishRealtimeServer, auth *connect.Auth) error {
+		err := ReceiveFinishRealtime(instance, message, streamServer, auth)
 		if err != nil {
 			jww.ERROR.Printf("ReceiveFinishRealtime error: %+v, %+v", auth, err)
 		}
@@ -77,24 +78,17 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	}
 
-	impl.Functions.RequestNonce = func(nonceRequest *pb.NonceRequest, auth *connect.Auth) (*pb.Nonce, error) {
-		nonce, err := RequestNonce(instance, nonceRequest, auth)
+	impl.Functions.RequestClientKey = func(request *pb.SignedClientKeyRequest,
+		auth *connect.Auth) (*pb.SignedKeyResponse, error) {
+		response, err := RequestClientKey(instance, request, auth)
 		if err != nil {
-			jww.ERROR.Printf("RequestNonce error: %+v, %+v", auth, err)
-		}
-		return nonce, err
-	}
-
-	impl.Functions.ConfirmRegistration = func(confirmationRequest *pb.RequestRegistrationConfirmation,
-		auth *connect.Auth) (*pb.RegistrationConfirmation, error) {
-		response, err := ConfirmRegistration(instance, confirmationRequest, auth)
-		if err != nil {
-			jww.ERROR.Printf("ConfirmRegistration failed auth: %+v, %+v", auth, err)
+			jww.ERROR.Printf("RequestClientKey error: %+v, %+v", auth, err)
 		}
 		return response, err
 	}
-	impl.Functions.PostPrecompResult = func(roundID uint64, slots []*mixmessages.Slot, auth *connect.Auth) error {
-		err := ReceivePostPrecompResult(instance, roundID, slots, auth)
+
+	impl.Functions.PostPrecompResult = func(roundID uint64, numslots uint32, auth *connect.Auth) error {
+		err := ReceivePostPrecompResult(instance, roundID, numslots, auth)
 		if err != nil {
 			jww.ERROR.Printf("ReceivePostPrecompResult error: %+v, %+v", auth, err)
 		}
@@ -161,6 +155,10 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 
 	impl.Functions.ShareFinalKey = func(sharedPiece *pb.SharePiece, auth *connect.Auth) error {
 		return ReceiveFinalKey(sharedPiece, auth, instance)
+	}
+
+	impl.Functions.PrecompTestBatch = func(stream pb.Node_PrecompTestBatchServer, message *pb.RoundInfo, auth *connect.Auth) error {
+		return ReceivePrecompTestBatch(instance, stream, message, auth)
 	}
 
 	return impl

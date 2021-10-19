@@ -182,16 +182,21 @@ func (m Machine) addStateTransition(from current.Activity, to ...current.Activit
 // It moves the next state and updates any go routines waiting on the state update.
 // returns a boolean if the update cannot be done and an error explaining why
 // UPDATE CANNOT BE CALLED WITHIN STATE CHANGE FUNCTIONS
-func (m Machine) Update(nextState current.Activity) (bool, error) {
+func (m Machine) Update(nextState current.Activity) (success bool, err error) {
 	m.Lock()
-	defer m.Unlock()
+	defer func() {
+		m.Unlock()
+		if success {
+			jww.INFO.Printf("Updated to %v successfully", nextState)
+		} else {
+			jww.INFO.Printf("Updating to %v failed: %+v", nextState, err)
+		}
+	}()
 
 	// Errors tend to cascade, so we should ignore attempts to transition into error from error
 	if nextState == current.ERROR && *m.Activity == current.ERROR {
 		return true, nil
 	}
-
-	jww.INFO.Printf("Updating to %v", nextState)
 
 	// check if the requested state change is valid
 	if !m.stateMap[*m.Activity][nextState] {
@@ -201,7 +206,7 @@ func (m Machine) Update(nextState current.Activity) (bool, error) {
 	}
 
 	//execute the state change
-	success, err := m.stateChange(nextState)
+	success, err = m.stateChange(nextState)
 	if !success {
 		return false, err
 	}

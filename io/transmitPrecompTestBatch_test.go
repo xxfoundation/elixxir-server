@@ -12,7 +12,6 @@ import (
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
-	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
@@ -21,27 +20,7 @@ import (
 	"time"
 )
 
-var receivedFinishRealtime = make(chan *mixmessages.RoundInfo, 100)
-var getMessage = func(index uint32) *mixmessages.Slot {
-	return &mixmessages.Slot{
-		Index: 24,
-	}
-}
-
-func MockFinishRealtimeImplementation() *node.Implementation {
-	impl := node.NewImplementation()
-	impl.Functions.FinishRealtime = func(message *mixmessages.RoundInfo,
-		streamServer mixmessages.Node_FinishRealtimeServer, auth *connect.Auth) error {
-		receivedFinishRealtime <- message
-		streamServer.SendAndClose(&messages.Ack{})
-		return nil
-	}
-	return impl
-}
-
-// Test that TransmitFinishRealtime correctly broadcasts message
-// to all other nodes
-func TestSendFinishRealtime(t *testing.T) {
+func TestTransmitPrecompTestBatch(t *testing.T) {
 	instance, _, _, _, _, _, _, _ := setup(t)
 
 	//Setup the network
@@ -49,11 +28,11 @@ func TestSendFinishRealtime(t *testing.T) {
 	numRecv := 0
 	comms, topology := buildTestNetworkComponents(
 		[]*node.Implementation{
-			MockFinishRealtimeImplementation(),
-			MockFinishRealtimeImplementation(),
-			MockFinishRealtimeImplementation(),
-			MockFinishRealtimeImplementation(),
-			MockFinishRealtimeImplementation()}, 0, t)
+			MockPrecompTestBatchImplementation(),
+			MockPrecompTestBatchImplementation(),
+			MockPrecompTestBatchImplementation(),
+			MockPrecompTestBatchImplementation(),
+			MockPrecompTestBatchImplementation()}, 0, t)
 	defer Shutdown(comms)
 
 	const numSlots = 10
@@ -61,14 +40,14 @@ func TestSendFinishRealtime(t *testing.T) {
 	const numChunks = numSlots / 2
 
 	response := phase.NewResponse(phase.ResponseDefinition{
-		PhaseAtSource:  phase.RealPermute,
+		PhaseAtSource:  phase.PrecompDecrypt,
 		ExpectedStates: []phase.State{phase.Active},
-		PhaseToExecute: phase.RealPermute})
+		PhaseToExecute: phase.PrecompDecrypt})
 
 	roundID := id.Round(0)
 	grp := initImplGroup()
 	p := testUtil.InitMockPhase(t)
-	p.Ptype = phase.RealPermute
+	p.Ptype = phase.PrecompDecrypt
 	responseMap := make(phase.ResponseMap)
 	responseMap["RealPermuteVerification"] = response
 
@@ -78,24 +57,11 @@ func TestSendFinishRealtime(t *testing.T) {
 	}
 	instance.GetRoundManager().AddRound(rnd)
 
-	chunkInputChan := make(chan services.Chunk, numChunks)
-
-	getChunk := func() (services.Chunk, bool) {
-		chunk, ok := <-chunkInputChan
-		return chunk, ok
-	}
 	errCH := make(chan error)
-
 	go func() {
-		err = TransmitFinishRealtime(roundID, instance, getChunk, getMessage)
+		err = TransmitPrecompTestBatch(roundID, instance)
 		errCH <- err
 	}()
-
-	for i := 0; i < numSlots; i++ {
-		chunkInputChan <- services.NewChunk(uint32(i), uint32(i+1))
-	}
-
-	close(chunkInputChan)
 
 	goErr := <-errCH
 
@@ -106,9 +72,9 @@ func TestSendFinishRealtime(t *testing.T) {
 Loop:
 	for {
 		select {
-		case msg := <-receivedFinishRealtime:
+		case msg := <-receivedPrecompTestBatch:
 			if id.Round(msg.ID) != roundID {
-				t.Errorf("TransmitFinishRealtime: Incorrect round ID"+
+				t.Errorf("TransmitPrecompTestBatch: Incorrect round ID"+
 					"Expected: %v, Received: %v", roundID, msg.ID)
 			}
 			numRecv++
@@ -120,4 +86,19 @@ Loop:
 			break Loop
 		}
 	}
+
+}
+
+var receivedPrecompTestBatch = make(chan *mixmessages.RoundInfo, 100)
+
+func MockPrecompTestBatchImplementation() *node.Implementation {
+	impl := node.NewImplementation()
+
+	impl.Functions.PrecompTestBatch = func(streamServer mixmessages.Node_PrecompTestBatchServer,
+		message *mixmessages.RoundInfo, auth *connect.Auth) error {
+		receivedPrecompTestBatch <- message
+		streamServer.SendAndClose(&messages.Ack{})
+		return nil
+	}
+	return impl
 }

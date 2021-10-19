@@ -92,7 +92,7 @@ func (i *mockPermission) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, nil
 }
 
-func (i *mockPermission) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+func (i *mockPermission) RegisterUser(clientRegistration *mixmessages.ClientRegistration) (*mixmessages.SignedClientRegistrationConfirmations, error) {
 	return nil, nil
 }
 
@@ -146,7 +146,7 @@ func (i *mockPermission_ConnectionError) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, errors.Errorf("connection refused")
 }
 
-func (i *mockPermission_ConnectionError) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+func (i *mockPermission_ConnectionError) RegisterUser(clientRegistration *mixmessages.ClientRegistration) (*mixmessages.SignedClientRegistrationConfirmations, error) {
 	return nil, errors.Errorf("connection refused")
 }
 
@@ -187,7 +187,7 @@ func (i *mockPermission_ConnectionErrorOnce) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, nil
 }
 
-func (i *mockPermission_ConnectionErrorOnce) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+func (i *mockPermission_ConnectionErrorOnce) RegisterUser(clientRegistration *mixmessages.ClientRegistration) (*mixmessages.SignedClientRegistrationConfirmations, error) {
 	if i.count == 0 {
 		i.count++
 		return nil, errors.Errorf("connection refused")
@@ -245,7 +245,7 @@ func (i *mockPermissionMultipleRounds) PollNdf([]byte) (*pb.NDF, error) {
 	return nil, nil
 }
 
-func (i *mockPermissionMultipleRounds) RegisterUser(*mixmessages.UserRegistration) (*mixmessages.UserRegistrationConfirmation, error) {
+func (i *mockPermissionMultipleRounds) RegisterUser(clientRegistration *mixmessages.ClientRegistration) (*mixmessages.SignedClientRegistrationConfirmations, error) {
 	return nil, nil
 }
 

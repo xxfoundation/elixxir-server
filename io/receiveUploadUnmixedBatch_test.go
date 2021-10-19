@@ -17,7 +17,6 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
@@ -128,10 +127,7 @@ func TestReceivePostNewBatch_Errors(t *testing.T) {
 	// Well, this round needs to at least be on the precomp queue?
 	// If it's not on the precomp queue,
 	// that would let us test the error being returned.
-	r, err := round.New(grp, instance.GetStorage(), roundID,
-		[]phase.Phase{precompReveal, realDecrypt}, responseMap, topology,
-		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0", nil, nil)
+	r, err := round.New(grp, roundID, []phase.Phase{precompReveal, realDecrypt}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -351,18 +347,6 @@ func TestReceivePostNewBatch_BadSender(t *testing.T) {
 // that has cryptographically incorrect data.
 func TestReceivePostNewBatch(t *testing.T) {
 	instance, topology, grp := createMockInstance(t, 0, current.REALTIME)
-	registry := instance.GetStorage()
-
-	// Make and register a user
-	sender := &storage.Client{
-		Id:             id.NewIdFromString("test", id.User, &testing.T{}).Marshal(),
-		DhKey:          nil,
-		PublicKey:      nil,
-		Nonce:          nil,
-		NonceTimestamp: time.Time{},
-		IsRegistered:   false,
-	}
-	_ = registry.UpsertClient(sender)
 
 	const batchSize = 1
 	const roundID = 2
@@ -390,10 +374,7 @@ func TestReceivePostNewBatch(t *testing.T) {
 	})
 
 	// We need this round to be on the precomp queue
-	r, err := round.New(grp, instance.GetStorage(), roundID,
-		[]phase.Phase{realDecrypt}, responseMap, topology,
-		topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(),
-		nil, "0.0.0.0", nil, nil)
+	r, err := round.New(grp, roundID, []phase.Phase{realDecrypt}, responseMap, topology, topology.GetNodeAtIndex(0), batchSize, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

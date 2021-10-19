@@ -45,7 +45,7 @@ func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {
 		newBatch.Slots[i] = &mixmessages.Slot{}
 	}
 
-	ourRoundInfo, err := instance.GetConsensus().GetRound(rid)
+	ourRoundInfo, err := instance.GetNetworkStatus().GetRound(rid)
 	if err != nil {
 		roundErr := errors.Errorf("Could not get round info from instance: %v", err)
 		instance.ReportRoundFailure(roundErr, instance.GetID(), rid)

@@ -8,6 +8,7 @@
 package io
 
 import (
+	"context"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -15,7 +16,10 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
+	"google.golang.org/grpc/metadata"
+	"io"
 	"testing"
 )
 
@@ -42,9 +46,8 @@ func TestReceiveFinishRealtime(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	batchSize := 3
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -67,7 +70,9 @@ func TestReceiveFinishRealtime(t *testing.T) {
 		Sender:          fakeHost,
 	}
 
-	err = ReceiveFinishRealtime(instance, &info, &auth)
+	mockStreamServer := newMockFinishRealtimeStream(batchSize)
+
+	err = ReceiveFinishRealtime(instance, &info, &mockStreamServer, &auth)
 
 	if err != nil {
 		t.Errorf("ReceiveFinishRealtime: errored: %+v", err)
@@ -96,9 +101,8 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	batchSize := 3
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -121,7 +125,9 @@ func TestReceiveFinishRealtime_NoAuth(t *testing.T) {
 		Sender:          fakeHost,
 	}
 
-	err = ReceiveFinishRealtime(instance, &info, &auth)
+	mockStreamServer := newMockFinishRealtimeStream(batchSize)
+
+	err = ReceiveFinishRealtime(instance, &info, &mockStreamServer, &auth)
 	if err == nil {
 		t.Errorf("ReceiveFinishRealtime: did not error with IsAuthenticated false")
 	}
@@ -152,9 +158,8 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	batchSize := 3
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -178,7 +183,9 @@ func TestReceiveFinishRealtime_WrongSender(t *testing.T) {
 		Sender:          fakeHost,
 	}
 
-	err = ReceiveFinishRealtime(instance, &info, &auth)
+	mockStreamServer := newMockFinishRealtimeStream(batchSize)
+
+	err = ReceiveFinishRealtime(instance, &info, &mockStreamServer, &auth)
 	if err == nil {
 		t.Errorf("ReceiveFinishRealtime: did not error with wrong host")
 	}
@@ -213,9 +220,8 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	batchSize := 3
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), uint32(batchSize), instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -239,10 +245,59 @@ func TestReceiveFinishRealtime_GetMeasureHandler(t *testing.T) {
 		Sender:          fakeHost,
 	}
 
-	err = ReceiveFinishRealtime(instance, &info, &auth)
+	mockStreamServer := newMockFinishRealtimeStream(batchSize)
+
+	err = ReceiveFinishRealtime(instance, &info, &mockStreamServer, &auth)
 
 	if err != nil {
 		t.Errorf("ReceiveFinishRealtime: errored: %+v", err)
 	}
 
+}
+
+type testStreamFinishRealtime struct {
+	batchSize int
+	sent      int
+}
+
+func newMockFinishRealtimeStream(batchSize int) testStreamFinishRealtime {
+	return testStreamFinishRealtime{
+		batchSize: batchSize,
+	}
+}
+
+func (t testStreamFinishRealtime) SendAndClose(ack *messages.Ack) error {
+	return nil
+}
+
+func (t *testStreamFinishRealtime) Recv() (*mixmessages.Slot, error) {
+	t.sent++
+	if t.sent == t.batchSize+1 {
+		return nil, io.EOF
+	}
+	return &mixmessages.Slot{}, nil
+}
+
+func (t testStreamFinishRealtime) SetHeader(md metadata.MD) error {
+	return nil
+}
+
+func (t testStreamFinishRealtime) SendHeader(md metadata.MD) error {
+	return nil
+}
+
+func (t testStreamFinishRealtime) SetTrailer(md metadata.MD) {
+	return
+}
+
+func (t testStreamFinishRealtime) Context() context.Context {
+	return nil
+}
+
+func (t testStreamFinishRealtime) SendMsg(m interface{}) error {
+	return nil
+}
+
+func (t testStreamFinishRealtime) RecvMsg(m interface{}) error {
+	return nil
 }

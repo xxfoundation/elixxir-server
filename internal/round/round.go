@@ -58,20 +58,24 @@ type Round struct {
 	rtStarted   bool
 	rtStartTime time.Time
 	rtEndTime   time.Time
+
+	//denotes if last node -> all nodes broadcast test was successful
+	broadcastSuccess *uint32
 }
 
 // New creates and initializes a new round, including all phases, topology,
 // and batch size
-func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
-	phases []phase.Phase, responses phase.ResponseMap,
-	circuit *connect.Circuit, nodeID *id.ID, batchSize uint32,
-	rngStreamGen *fastRNG.StreamGenerator, streamPool *gpumaths.StreamPool,
-	localIP string, errorHandler services.ErrorCallback, clientErr *ClientReport) (*Round, error) {
+func New(grp *cyclic.Group, id id.Round, phases []phase.Phase,
+	responses phase.ResponseMap, circuit *connect.Circuit, nodeID *id.ID,
+	batchSize uint32, rngStreamGen *fastRNG.StreamGenerator,
+	streamPool *gpumaths.StreamPool, localIP string,
+	errorHandler services.ErrorCallback, clientErr *ClientReport,
+	nodeSecretManager *storage.NodeSecretManager,
+	precanStore *storage.PrecanStore) (*Round, error) {
 
 	if batchSize <= 0 {
 		return nil, errors.New("Cannot make a round with a <=0 batch size")
 	}
-
 	roundMetrics := measure.NewRoundMetrics(id, batchSize)
 	roundMetrics.IP = localIP
 	round := Round{id: id, roundMetrics: roundMetrics, streamPool: streamPool}
@@ -82,6 +86,10 @@ func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 	round.state = &state
 
 	round.phaseStateUpdateSignal = make(chan struct{}, 1)
+
+	//create the broadcast success round object
+	broadcastSuccess := uint32(0)
+	round.broadcastSuccess = &broadcastSuccess
 
 	for index, p := range phases {
 		if p.GetGraph() != nil {
@@ -164,10 +172,11 @@ func New(grp *cyclic.Group, storage *storage.Storage, id id.Round,
 		// If in realDecrypt, we need to handle client specific errors
 		if p.GetGraph() != nil {
 			if p.GetType() == phase.RealDecrypt {
-				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool, clientErr, id)
+				p.GetGraph().Link(grp, round.GetBuffer(), rngStreamGen,
+					streamPool, clientErr, id, nodeSecretManager, precanStore)
 			} else {
 				// Other phases can operate normally
-				p.GetGraph().Link(grp, round.GetBuffer(), storage, rngStreamGen, streamPool)
+				p.GetGraph().Link(grp, round.GetBuffer(), rngStreamGen, streamPool)
 
 			}
 		}
@@ -257,6 +266,14 @@ func (r *Round) GetCurrentPhase() phase.Phase {
 
 func (r *Round) GetTopology() *connect.Circuit {
 	return r.topology
+}
+
+func (r *Round) DenotePrecompBroadcastSuccess() {
+	atomic.StoreUint32(r.broadcastSuccess, 1)
+}
+
+func (r *Round) PrecompBroadcastSuccess() bool {
+	return atomic.LoadUint32(r.broadcastSuccess) == 1
 }
 
 // HandleIncomingComm checks that the incoming state is valid for the round

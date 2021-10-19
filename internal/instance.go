@@ -13,6 +13,8 @@ package internal
 import (
 	"encoding/base64"
 	"fmt"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/hash"
 	"os"
 	"strings"
 	"sync"
@@ -57,8 +59,11 @@ type Instance struct {
 	machine           state.Machine
 	phaseStateMachine state.GenericMachine
 
-	// Persistent storage object
-	storage *storage.Storage
+	// RAM storage of rotating node secrets
+	nodeSecretManager *storage.NodeSecretManager
+
+	// RAM storage of precanned IDs and keys
+	precanStore *storage.PrecanStore
 
 	consensus *network.Instance
 	// Denotes that gateway is ready for repeated polling
@@ -72,6 +77,9 @@ type Instance struct {
 	killInstance       chan chan struct{}
 	realtimeRoundQueue round.Queue
 	clientErrors       *round.ClientReport
+
+	// Persistent storage object
+	storage *storage.Storage
 
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
@@ -140,8 +148,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		phaseStateMachine: state.NewGenericMachine(),
 	}
 
-	// Initialize the backend
-	jww.INFO.Printf("Initializing the backend...")
 	instance.storage, err = storage.NewStorage(
 		def.DbUsername, def.DbPassword, def.DbName,
 		def.DbAddress, def.DbPort, def.DevMode)
@@ -154,6 +160,25 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		} else {
 			jww.FATAL.Panicf(eMsg)
 		}
+	}
+
+	// Create node secret manager
+	instance.nodeSecretManager = storage.NewNodeSecretManager()
+
+	// Create hardcoded node secret
+	// todo: refactor this once a mechanism is implemented for
+	//  creating and rotating node secrets.
+	h, err := hash.NewCMixHash()
+	if err != nil {
+		return nil, err
+	}
+
+	h.Write(instance.definition.TlsKey)
+	nodeSecret := h.Sum(nil)
+
+	err = instance.nodeSecretManager.UpsertSecret(0, nodeSecret)
+	if err != nil {
+		return nil, errors.Errorf("Could not insert into node secret manager: %v", err)
 	}
 
 	// Create stream pool if instructed to use GPU
@@ -285,8 +310,8 @@ func (i *Instance) GetDefinition() *Definition {
 	return i.definition
 }
 
-// GetTopology returns the consensus object
-func (i *Instance) GetConsensus() *network.Instance {
+// GetNetworkStatus returns the consensus object
+func (i *Instance) GetNetworkStatus() *network.Instance {
 	return i.consensus
 }
 
@@ -306,9 +331,46 @@ func (i *Instance) GetGateway() *id.ID {
 	return i.definition.Gateway.ID
 }
 
-// GetStorage returns the user registry used by the server
-func (i *Instance) GetStorage() *storage.Storage {
-	return i.storage
+func (i *Instance) GetSecretManager() *storage.NodeSecretManager {
+	return i.nodeSecretManager
+}
+
+func (i *Instance) GetPrecanStore() *storage.PrecanStore {
+	return i.precanStore
+}
+
+func (i *Instance) PopulateDummyUsers(allprecann bool, grp *cyclic.Group) {
+	i.precanStore = storage.NewPrecanStore(allprecann, grp)
+}
+
+func (i *Instance) AddDummyUserTesting(userId *id.ID, key []byte, grp *cyclic.Group, face interface{}) {
+	if i.precanStore == nil {
+		i.precanStore = storage.NewPrecanStore(true, grp)
+	}
+	i.precanStore.AddTesting(userId, key, face)
+}
+
+func (i *Instance) SetPrecanStoreTesting(grp *cyclic.Group, face interface{}) {
+	switch face.(type) {
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
+		break
+	default:
+		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
+	}
+
+	i.precanStore = storage.NewPrecanStore(true, grp)
+
+}
+
+func (i *Instance) SetSecretManagerTesting(face interface{}, manager *storage.NodeSecretManager) {
+	switch face.(type) {
+	case *testing.T, *testing.M, *testing.B, *testing.PB:
+		break
+	default:
+		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
+	}
+
+	i.nodeSecretManager = manager
 }
 
 // GetRoundManager returns the round manager
@@ -346,7 +408,7 @@ func (i *Instance) GetPubKey() *rsa.PublicKey {
 	return i.definition.PublicKey
 }
 
-// GetPrivKey returns the server DSA private key
+// GetPrivKey returns the server RSA private key
 func (i *Instance) GetPrivKey() *rsa.PrivateKey {
 	return i.definition.PrivateKey
 }

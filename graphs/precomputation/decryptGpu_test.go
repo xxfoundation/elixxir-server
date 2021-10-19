@@ -59,7 +59,7 @@ func TestDecryptGPUGraph(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g.Link(grp, roundBuffer, nil, nil, streamPool)
+	g.Link(grp, roundBuffer, nil, streamPool)
 
 	stream := g.GetStream().(*DecryptStream)
 

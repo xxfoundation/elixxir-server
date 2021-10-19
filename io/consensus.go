@@ -14,5 +14,5 @@ import (
 // our consensus platform
 
 func GetNdf(instance *internal.Instance) ([]byte, error) {
-	return instance.GetConsensus().GetFullNdf().Get().Marshal()
+	return instance.GetNetworkStatus().GetFullNdf().GetPb().GetNdf(), nil
 }

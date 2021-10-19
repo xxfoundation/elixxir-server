@@ -10,14 +10,6 @@
 
 package storage
 
-import (
-	"gitlab.com/elixxir/crypto/cyclic"
-	"gitlab.com/xx_network/crypto/nonce"
-	"gitlab.com/xx_network/crypto/signature/rsa"
-	"gitlab.com/xx_network/primitives/id"
-	"time"
-)
-
 // Storage API for the storage layer
 type Storage struct {
 	// Stored database interface
@@ -30,26 +22,4 @@ func NewStorage(username, password, dbName, address, port string, devMode bool) 
 	db, err := newDatabase(username, password, dbName, address, port, devMode)
 	storage := &Storage{db}
 	return storage, err
-}
-
-func (c *Client) GetId() (*id.ID, error) {
-	return id.Unmarshal(c.Id)
-}
-
-func (c *Client) GetDhKey(grp *cyclic.Group) *cyclic.Int {
-	return grp.NewIntFromBytes(c.DhKey)
-}
-
-func (c *Client) GetPublicKey() (*rsa.PublicKey, error) {
-	return rsa.LoadPublicKeyFromPem(c.PublicKey)
-}
-
-func (c *Client) GetNonce() nonce.Nonce {
-	n := nonce.Nonce{
-		GenTime:    c.NonceTimestamp,
-		ExpiryTime: c.NonceTimestamp.Add(nonce.RegistrationTTL * time.Second),
-		TTL:        nonce.RegistrationTTL * time.Second,
-	}
-	copy(n.Value[:], c.Nonce)
-	return n
 }

@@ -46,9 +46,7 @@ func TestReceiveRoundError(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -131,9 +129,7 @@ func TestReceiveRoundError_Auth(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -188,9 +184,7 @@ func TestReceiveRoundError_BadNodeId(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -245,9 +239,7 @@ func TestReceiveRoundError_BadRound(t *testing.T) {
 	p := testUtil.InitMockPhase(t)
 	p.Ptype = phase.RealPermute
 
-	rnd, err := round.New(grp, nil, roundID, []phase.Phase{p}, responseMap, topology,
-		topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil,
-		"0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, roundID, []phase.Phase{p}, responseMap, topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}
@@ -305,9 +297,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 	m := state.NewTestMachine(dummyStates, s, t)
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, m, "1.1.0")
-	rnd, err := round.New(grp, nil, id.Round(0), make([]phase.Phase, 0),
-		make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0),
-		3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil)
+	rnd, err := round.New(grp, id.Round(0), make([]phase.Phase, 0), make(phase.ResponseMap), topology, topology.GetNodeAtIndex(0), 3, instance.GetRngStreamGen(), nil, "0.0.0.0", nil, nil, nil, nil)
 	if err != nil {
 		t.Errorf("Failed to create new round: %+v", err)
 	}

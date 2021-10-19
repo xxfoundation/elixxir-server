@@ -74,7 +74,7 @@ func TestStripGPU_Graph(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	g.Link(grp, roundBuffer, nil, nil, streamPool)
+	g.Link(grp, roundBuffer, nil, streamPool)
 
 	stream := g.GetStream().(*StripStream)
 

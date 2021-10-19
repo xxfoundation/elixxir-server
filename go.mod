@@ -19,18 +19,19 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20210914232530-b0e625b49552
-	gitlab.com/elixxir/crypto v0.0.7-0.20210914232212-42464d16fff3
-	gitlab.com/elixxir/gpumathsgo v0.1.1-0.20210524170529-eb336d81a1c8
-	gitlab.com/elixxir/primitives v0.0.3-0.20210914232041-6edc82b7e58e
-	gitlab.com/xx_network/comms v0.0.4-0.20210914232007-b82fc7baa23c
-	gitlab.com/xx_network/crypto v0.0.5-0.20210914231859-c309efac46c4
-	gitlab.com/xx_network/primitives v0.0.4-0.20210913211733-42dc24dd47df
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	gitlab.com/elixxir/comms v0.0.4-0.20211014164523-495493efb970
+	gitlab.com/elixxir/crypto v0.0.7-0.20211014164205-95915de2ac0d
+	gitlab.com/elixxir/gpumathsgo v0.1.1-0.20211011234437-3b89486f8ec4
+	gitlab.com/elixxir/primitives v0.0.3-0.20211014164029-06022665b576
+	gitlab.com/xx_network/comms v0.0.4-0.20211014163953-e774276b83ae
+	gitlab.com/xx_network/crypto v0.0.5-0.20211014163843-57b345890686
+	gitlab.com/xx_network/primitives v0.0.4-0.20211014163031-53405cf191fb
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	google.golang.org/genproto v0.0.0-20210105202744-fe13368bc0e1 // indirect
 	google.golang.org/grpc v1.38.0
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/postgres v1.0.8
-	gorm.io/gorm v1.21.7
+	gorm.io/driver/postgres v1.1.2
+	gorm.io/gorm v1.21.16
 )

@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cryptops"
@@ -22,7 +23,6 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
-	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
@@ -49,10 +49,10 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.KeygenSubStream.LinkStream(grp, instance.GetStorage(), make([][]byte, batchSize),
-		make([][][]byte, batchSize), make([]*id.ID, batchSize),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		round.NewClientFailureReport(instance.GetID()), 0, batchSize)
+	s.KeygenSubStream.LinkStream(grp, make([][]byte, batchSize), make([][][]byte, batchSize),
+		make([]*id.ID, batchSize), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)), round.NewClientFailureReport(instance.GetID()), 0,
+		batchSize, instance.GetSecretManager(), instance.GetPrecanStore())
 }
 
 func (s *KeygenTestStream) Input(index uint32,
@@ -139,31 +139,29 @@ var MockKeygenOp cryptops.KeygenPrototype = func(grp *cyclic.Group, salt []byte,
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraph(t *testing.T) {
-	instance := mockServerInstance(t)
-	registry := instance.GetStorage()
-	grp := instance.GetConsensus().GetCmixGroup()
+	instance, err := mockServerInstance(t)
+	if err != nil {
+		t.Fatalf("Failed to initialize mock instance: %v", err)
+	}
+	grp := instance.GetNetworkStatus().GetCmixGroup()
+	instance.SetPrecanStoreTesting(grp, t)
+
 	uid := id.NewIdFromString("test", id.User, t)
 
 	h := sha256.New()
-
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
+	dhKey := grp.NewIntFromBytes(h.Sum(nil))
 
-	u := &storage.Client{
-		Id:           uid.Marshal(),
-		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
-		IsRegistered: true,
-	}
-	_ = registry.UpsertClient(u)
-
+	instance.AddDummyUserTesting(uid, dhKey.Bytes(), grp, t)
 	rid := id.Round(42)
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
+	if dhKey.BitLen() < 250 || dhKey.BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.GetDhKey(grp).BitLen())
+			dhKey.BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -194,7 +192,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		t.Errorf("Could not get a hash for kmacs: %+v", err)
 	}
 
-	kmac := cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, cmixHash)
+	kmac := cmix.GenerateKMAC(testSalt, dhKey, rid, cmixHash)
 
 	gc := services.NewGraphGenerator(4, uint8(runtime.NumCPU()), 1, 1.0)
 
@@ -218,7 +216,8 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		stream.users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.salts[i] = []byte{}
-
+		stream.Precanned = instance.GetPrecanStore()
+		stream.NodeSecrets = instance.GetSecretManager()
 		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
 		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
 		stream.salts[i] = testSalt
@@ -252,11 +251,11 @@ func TestKeygenStreamInGraph(t *testing.T) {
 			}
 
 			// Check result and base key. They should be equal
-			if !bytes.Equal(resultABytes, u.DhKey) {
+			if !bytes.Equal(resultABytes, dhKey.Bytes()) {
 				t.Error("Keygen: Base key and result key A weren't equal")
 			}
 
-			if !bytes.Equal(resultBBytes, u.DhKey) {
+			if !bytes.Equal(resultBBytes, dhKey.Bytes()) {
 				t.Error("Keygen: Base key and result key B weren't equal")
 			}
 		}
@@ -267,29 +266,24 @@ func TestKeygenStreamInGraph(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
-	instance := mockServerInstance(t)
-	registry := instance.GetStorage()
-	grp := instance.GetConsensus().GetCmixGroup()
+	instance, _ := mockServerInstance(t)
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
-
-	h := sha256.New()
+	instance.SetPrecanStoreTesting(grp, t)
+	h, _ := hash.NewCMixHash()
 
 	h.Reset()
-	h.Write([]byte(strconv.Itoa(4000)))
-
-	u := &storage.Client{
-		Id:           uid.Marshal(),
-		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
-		IsRegistered: false,
-	}
-	_ = registry.UpsertClient(u)
+	h.Write(uid.Bytes())
+	ns, _ := instance.GetSecretManager().GetSecret(0)
+	h.Write(ns.Bytes())
+	clientKey := grp.NewIntFromBytes(h.Sum(nil))
 	rid := id.Round(42)
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
+	if clientKey.BitLen() < 250 || clientKey.BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.GetDhKey(grp).BitLen())
+			clientKey.BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -314,7 +308,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		t.Errorf("Could not get a hash for kmacs: %+v", err)
 	}
 
-	kmac := cmix.GenerateKMAC(testSalt, u.GetDhKey(grp), rid, cmixHash)
+	kmac := cmix.GenerateKMAC(testSalt, clientKey, rid, cmixHash)
 
 	PanicHandler := func(g, m string, err error) {
 		panic(fmt.Sprintf("Error in module %s of graph %s: %s", g, m, err.Error()))
@@ -339,7 +333,8 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		stream.users[i] = &id.ZeroUser
 		// Not necessary to avoid crashing
 		stream.salts[i] = []byte{}
-
+		stream.Precanned = instance.GetPrecanStore()
+		stream.NodeSecrets = instance.GetSecretManager()
 		grp.SetUint64(stream.KeysA.Get(uint32(i)), uint64(i))
 		grp.SetUint64(stream.KeysB.Get(uint32(i)), uint64(1000+i))
 		stream.salts[i] = testSalt
@@ -389,28 +384,21 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 // Also demonstrates how it can be part of a graph that could potentially also
 // do other things
 func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
-	instance := mockServerInstance(t)
-	registry := instance.GetStorage()
-	grp := instance.GetConsensus().GetCmixGroup()
+	instance, _ := mockServerInstance(t)
+	grp := instance.GetNetworkStatus().GetCmixGroup()
 	uid := id.NewIdFromString("test", id.User, t)
-
+	instance.SetPrecanStoreTesting(grp, t)
 	h := sha256.New()
 	h.Reset()
 	h.Write([]byte(strconv.Itoa(4000)))
-
-	u := &storage.Client{
-		Id:           uid.Marshal(),
-		DhKey:        grp.NewIntFromBytes(h.Sum(nil)).Bytes(),
-		IsRegistered: true,
-	}
-	_ = registry.UpsertClient(u)
+	dhKey := grp.NewIntFromBytes(h.Sum(nil))
 
 	// Reception base key should be around 256 bits long,
 	// depending on generation, to feed the 256-bit hash
-	if u.GetDhKey(grp).BitLen() < 250 || u.GetDhKey(grp).BitLen() > 256 {
+	if dhKey.BitLen() < 250 || dhKey.BitLen() > 256 {
 		t.Errorf("Base key has wrong number of bits. "+
 			"Had %v bits in reception base key",
-			u.GetDhKey(grp).BitLen())
+			dhKey.BitLen())
 	}
 
 	var stream KeygenTestStream
@@ -513,7 +501,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 	}
 }
 
-func mockServerInstance(i interface{}) *internal.Instance {
+func mockServerInstance(i interface{}) (*internal.Instance, error) {
 
 	nid := internal.GenerateId(i)
 
@@ -558,5 +546,10 @@ func mockServerInstance(i interface{}) *internal.Instance {
 
 	instance, _ := internal.CreateServerInstance(&def, NewImplementation, sm, "1.1.0")
 
-	return instance
+	err := instance.GetSecretManager().UpsertSecret(0, []byte("testData"))
+	if err != nil {
+		return nil, errors.Errorf("Failed to initialize secret manager: %v", err)
+	}
+
+	return instance, nil
 }

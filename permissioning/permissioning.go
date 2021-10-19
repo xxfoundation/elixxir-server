@@ -100,14 +100,27 @@ func Poll(instance *internal.Instance) error {
 	reportedActivity := instance.GetStateMachine().GetActivityToReport()
 
 	// Ping permissioning for updated information
-	permResponse, err := PollPermissioning(permHost, instance, reportedActivity)
-	if err != nil {
-		if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
-			strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
-			strings.Contains(err.Error(), "requires the Node be assigned a round") ||
-			strings.Contains(err.Error(), "invalid transition") {
-			instance.ReportNodeFailure(err)
+	err := errors.New("dummy")
+	var permResponse *pb.PermissionPollResponse
+	for i := 0; i < 3 && err != nil; i++ {
+		permResponse, err = PollPermissioning(permHost, instance, reportedActivity)
+		if err != nil {
+			if strings.Contains(err.Error(), "requires the Node not be assigned a round") ||
+				strings.Contains(err.Error(), "requires the Node's be assigned a round") ||
+				strings.Contains(err.Error(), "requires the Node be assigned a round") ||
+				strings.Contains(err.Error(), "invalid transition") {
+				instance.ReportNodeFailure(err)
+			} else if strings.Contains(err.Error(), "Node cannot submit a rounderror when it is not") {
+				err = nil
+				break
+			}
 		}
+		if err != nil {
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	if err != nil {
 		return err
 	}
 
@@ -128,13 +141,18 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	//updates the NDF with changes
-	err = UpdateNDf(permResponse, instance)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to update the NDFs")
+	if permResponse != nil {
+		err = UpdateNDf(permResponse, instance)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to update the NDFs")
+		}
+
+		// Update the internal state of rounds and the state machine
+		err = UpdateRounds(permResponse, instance)
+	} else {
+		jww.WARN.Printf("Skipped processing poll due to nul permResponse")
 	}
 
-	// Update the internal state of rounds and the state machine
-	err = UpdateRounds(permResponse, instance)
 	return err
 }
 
@@ -144,17 +162,17 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	var fullNdfHash, partialNdfHash []byte
 
 	// Get the ndf hashes for the full ndf if available
-	if instance.GetConsensus().GetFullNdf() != nil {
-		fullNdfHash = instance.GetConsensus().GetFullNdf().GetHash()
+	if instance.GetNetworkStatus().GetFullNdf() != nil {
+		fullNdfHash = instance.GetNetworkStatus().GetFullNdf().GetHash()
 	}
 
 	// Get the ndf hashes for the partial ndf if available
-	if instance.GetConsensus().GetPartialNdf() != nil {
-		partialNdfHash = instance.GetConsensus().GetPartialNdf().GetHash()
+	if instance.GetNetworkStatus().GetPartialNdf() != nil {
+		partialNdfHash = instance.GetNetworkStatus().GetPartialNdf().GetHash()
 	}
 
 	// Get the update id and activity of the state machine
-	lastUpdateId := instance.GetConsensus().GetLastUpdateID()
+	lastUpdateId := instance.GetNetworkStatus().GetLastUpdateID()
 
 	// The ring buffer returns negative none but message type doesn't support signed numbers
 	// fixme: maybe make proto have signed ints
@@ -207,10 +225,12 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		pollMsg.Error = instance.GetRecoveredError()
 		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)
 		instance.ClearRecoveredError()
-		ok, err := instance.GetStateMachine().Update(current.WAITING)
-		if err != nil || !ok {
-			err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
-			return nil, err
+		if instance.GetStateMachine().Get() == current.ERROR {
+			ok, err := instance.GetStateMachine().Update(current.WAITING)
+			if err != nil || !ok {
+				err = errors.WithMessage(err, "Could not move to waiting state to recover from error")
+				return nil, err
+			}
 		}
 	}
 
@@ -276,7 +296,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
-		err := instance.GetConsensus().RoundUpdate(roundInfo)
+		err := instance.GetNetworkStatus().RoundUpdate(roundInfo)
 		if err != nil {
 			if strings.Contains(err.Error(), "id is older than first tracked") {
 				continue
@@ -406,24 +426,24 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
 		// Update the full ndf
-		err := instance.GetConsensus().UpdateFullNdf(permissioningResponse.FullNDF)
+		err := instance.GetNetworkStatus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {
 			return errors.Errorf("Could not update full ndf: %+v", err)
 		}
 
 		// Save the list of node IP addresses to file
-		err = SaveNodeIpList(instance.GetConsensus().GetFullNdf().Get(),
+		err = SaveNodeIpList(instance.GetNetworkStatus().GetFullNdf().Get(),
 			instance.GetDefinition().IpListOutput, instance.GetDefinition().ID)
 		if err != nil {
 			jww.ERROR.Printf("Failed to save list of IP addresses from NDF: %v", err)
 		}
 
-		jww.INFO.Printf("New NDF Received, hash: %s", base64.StdEncoding.EncodeToString(instance.GetConsensus().GetFullNdf().GetHash()))
+		jww.INFO.Printf("New NDF Received, hash: %s", base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetFullNdf().GetHash()))
 	}
 
 	if permissioningResponse.PartialNDF != nil {
 		// Update the partial ndf
-		err := instance.GetConsensus().UpdatePartialNdf(permissioningResponse.PartialNDF)
+		err := instance.GetNetworkStatus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 		if err != nil {
 			return errors.Errorf("Could not update partial ndf: %+v", err)
 		}
@@ -432,7 +452,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
 
 		// Update the nodes in the network.Instance with the new ndf
-		err := instance.GetConsensus().UpdateNodeConnections()
+		err := instance.GetNetworkStatus().UpdateNodeConnections()
 		if err != nil {
 			return errors.Errorf("Could not update node connections: %+v", err)
 		}
