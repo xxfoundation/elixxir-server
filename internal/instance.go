@@ -48,6 +48,11 @@ import (
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
+type EarliestRound struct {
+	earliestTrackedRound          uint64
+	earliestTrackedRoundTimestamp uint64
+}
+
 // Instance holds long-lived server state
 type Instance struct {
 	Online            bool
@@ -109,9 +114,7 @@ type Instance struct {
 	completedBatch    map[id.Round]*round.CompletedRound
 	completedBatchMux sync.RWMutex
 
-	earliestRound             *uint64
-	earliestRoundTimestamp    time.Time
-	earliestRoundTimestampMux sync.Mutex
+	earliestRoundTracker atomic.Value
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -127,7 +130,6 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	isGwReady := uint32(0)
 	firstRun := uint32(0)
 	firstPoll := uint32(0)
-	earliestRound := uint64(0)
 	instance := &Instance{
 		Online:               false,
 		definition:           def,
@@ -145,13 +147,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion:     version,
-		firstRun:          &firstRun,
-		firstPoll:         &firstPoll,
-		gatewayFirstPoll:  NewFirstTime(),
-		clientErrors:      round.NewClientFailureReport(def.ID),
-		phaseStateMachine: state.NewGenericMachine(),
-		earliestRound:     &earliestRound,
+		serverVersion:        version,
+		firstRun:             &firstRun,
+		firstPoll:            &firstPoll,
+		gatewayFirstPoll:     NewFirstTime(),
+		clientErrors:         round.NewClientFailureReport(def.ID),
+		phaseStateMachine:    state.NewGenericMachine(),
+		earliestRoundTracker: atomic.Value{},
 	}
 
 	instance.storage, err = storage.NewStorage(
@@ -793,22 +795,20 @@ func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
 	return 0, errors.New(NoCompletedBatch)
 }
 
-func (i *Instance) GetEarliestRound() uint64 {
-	return atomic.LoadUint64(i.earliestRound)
+func (i *Instance) GetEarliestRound() (uint64, uint64, error) {
+	earliestRound, ok := i.earliestRoundTracker.Load().(*EarliestRound)
+	if !ok || earliestRound == nil {
+		return 0, 0, errors.New("Earliest round state does not exist, try again")
+	}
+
+	return earliestRound.earliestTrackedRound, earliestRound.earliestTrackedRoundTimestamp, nil
 }
 
-func (i *Instance) SetEarliestRound(newEarliestTracked uint64) {
-	atomic.StoreUint64(i.earliestRound, newEarliestTracked)
-}
+func (i *Instance) SetEarliestRound(newEarliestTimestamp, newEarliestRoundId uint64) {
+	newEarliestRound := &EarliestRound{
+		earliestTrackedRound:          newEarliestRoundId,
+		earliestTrackedRoundTimestamp: newEarliestTimestamp,
+	}
 
-func (i *Instance) GetEarliestRoundTimestamp() time.Time {
-	i.earliestRoundTimestampMux.Lock()
-	defer i.earliestRoundTimestampMux.Unlock()
-	return i.earliestRoundTimestamp
-}
-
-func (i *Instance) SetEarliestRoundTimestamp(newEarliestTrackedTimestamp time.Time) {
-	i.earliestRoundTimestampMux.Lock()
-	defer i.earliestRoundTimestampMux.Unlock()
-	i.earliestRoundTimestamp = newEarliestTrackedTimestamp
+	i.earliestRoundTracker.Store(newEarliestRound)
 }
