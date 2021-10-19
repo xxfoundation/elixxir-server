@@ -11,7 +11,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/internal/round"

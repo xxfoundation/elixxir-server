@@ -14,7 +14,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
