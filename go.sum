@@ -353,6 +353,8 @@ gitlab.com/elixxir/gpumathsgo v0.1.1-0.20211019210328-a0cd9c4af5b9 h1:tnCtuHZ/xD
 gitlab.com/elixxir/gpumathsgo v0.1.1-0.20211019210328-a0cd9c4af5b9/go.mod h1:+aHjLKdafyVaMop59tEsBEyI5PjDY32xOelKeC9yZco=
 gitlab.com/elixxir/gpumathsgo v0.1.1-0.20211020001517-d8690d7f1ccb h1:QZsi0pUdbxYPOR7wmUQdELYtDsIJXE3Fh38ZSvL3mOI=
 gitlab.com/elixxir/gpumathsgo v0.1.1-0.20211020001517-d8690d7f1ccb/go.mod h1:+aHjLKdafyVaMop59tEsBEyI5PjDY32xOelKeC9yZco=
+gitlab.com/elixxir/gpumathsgo v0.1.1-0.20211020195535-72d2966f2d71 h1:unwFQuhHVrmqc6SKCld8LlACsZ4pwkf16+RZYUqA+yU=
+gitlab.com/elixxir/gpumathsgo v0.1.1-0.20211020195535-72d2966f2d71/go.mod h1:+aHjLKdafyVaMop59tEsBEyI5PjDY32xOelKeC9yZco=
 gitlab.com/elixxir/primitives v0.0.0-20200731184040-494269b53b4d/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
 gitlab.com/elixxir/primitives v0.0.0-20200804170709-a1896d262cd9/go.mod h1:p0VelQda72OzoUckr1O+vPW0AiFe0nyKQ6gYcmFSuF8=
 gitlab.com/elixxir/primitives v0.0.0-20200804182913-788f47bded40/go.mod h1:tzdFFvb1ESmuTCOl1z6+yf6oAICDxH2NPUemVgoNLxc=
