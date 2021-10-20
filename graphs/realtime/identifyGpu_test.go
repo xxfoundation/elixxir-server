@@ -11,7 +11,7 @@ package realtime
 
 import (
 	"fmt"
-	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/shuffle"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
