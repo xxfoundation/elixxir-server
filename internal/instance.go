@@ -49,8 +49,9 @@ import (
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
 type EarliestRound struct {
-	ID        uint64
-	Timestamp uint64
+	ClientRoundId    uint64
+	GwRoundId        uint64
+	GwRoundTimestamp int64
 }
 
 // Instance holds long-lived server state
@@ -795,19 +796,22 @@ func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
 	return 0, errors.New(NoCompletedBatch)
 }
 
-func (i *Instance) GetEarliestRound() (uint64, uint64, error) {
-	earliestRound, ok := i.earliestRoundTracker.Load().(*EarliestRound)
-	if !ok || earliestRound == nil {
-		return 0, 0, errors.New("Earliest round state does not exist, try again")
+func (i *Instance) GetEarliestRound() (uint64, uint64, int64, error) {
+	earliestRound, ok := i.earliestRoundTracker.Load().(EarliestRound)
+	if !ok {
+		return 0, 0, 0, errors.New("Earliest round state does not exist, try again")
 	}
 
-	return earliestRound.ID, earliestRound.Timestamp, nil
+	return earliestRound.ClientRoundId,
+		earliestRound.GwRoundId, earliestRound.GwRoundTimestamp, nil
 }
 
-func (i *Instance) SetEarliestRound(newEarliestTimestamp, newEarliestRoundId uint64) {
-	newEarliestRound := &EarliestRound{
-		ID:        newEarliestRoundId,
-		Timestamp: newEarliestTimestamp,
+func (i *Instance) SetEarliestRound(newEarliestClientRoundId,
+	newEarliestGwRoundId uint64, newGwEarliestTs int64) {
+	newEarliestRound := EarliestRound{
+		ClientRoundId:    newEarliestClientRoundId,
+		GwRoundId:        newEarliestGwRoundId,
+		GwRoundTimestamp: newGwEarliestTs,
 	}
 
 	i.earliestRoundTracker.Store(newEarliestRound)

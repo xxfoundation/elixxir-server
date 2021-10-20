@@ -125,7 +125,7 @@ func Poll(instance *internal.Instance) error {
 	}
 
 	if permResponse.EarliestRoundErr == "" {
-		instance.SetEarliestRound(permResponse.EarliestRound,
+		instance.SetEarliestRound(permResponse.EarliestClientRound, permResponse.EarliestGatewayRound,
 			permResponse.EarliestRoundTimestamp)
 	}
 

@@ -39,12 +39,13 @@ func ReceivePoll(poll *mixmessages.ServerPoll, instance *internal.Instance,
 	// its node
 	instance.GetGatewayFirstContact().Send()
 
-	earliestRoundId, earliestRoundTs, err := instance.GetEarliestRound()
+	earliestClientRoundId, earliestGwRoundId, earliestRoundTs, err := instance.GetEarliestRound()
 	if err != nil {
 		res.EarliestRoundErr = err.Error()
 	} else {
 		res.EarliestRoundTimestamp = earliestRoundTs
-		res.EarliestRound = earliestRoundId
+		res.EarliestGatewayRound = earliestGwRoundId
+		res.EarliestClientRound = earliestClientRoundId
 	}
 
 	// Node is only ready for a response once it has polled permissioning
