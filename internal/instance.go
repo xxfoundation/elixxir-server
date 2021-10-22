@@ -48,6 +48,12 @@ import (
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
+type EarliestRound struct {
+	ClientRoundId    uint64
+	GwRoundId        uint64
+	GwRoundTimestamp int64
+}
+
 // Instance holds long-lived server state
 type Instance struct {
 	Online            bool
@@ -108,6 +114,8 @@ type Instance struct {
 	// Map containing completed batches to pass back to gateway
 	completedBatch    map[id.Round]*round.CompletedRound
 	completedBatchMux sync.RWMutex
+
+	earliestRoundTracker atomic.Value
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -140,12 +148,13 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion:     version,
-		firstRun:          &firstRun,
-		firstPoll:         &firstPoll,
-		gatewayFirstPoll:  NewFirstTime(),
-		clientErrors:      round.NewClientFailureReport(def.ID),
-		phaseStateMachine: state.NewGenericMachine(),
+		serverVersion:        version,
+		firstRun:             &firstRun,
+		firstPoll:            &firstPoll,
+		gatewayFirstPoll:     NewFirstTime(),
+		clientErrors:         round.NewClientFailureReport(def.ID),
+		phaseStateMachine:    state.NewGenericMachine(),
+		earliestRoundTracker: atomic.Value{},
 	}
 
 	instance.storage, err = storage.NewStorage(
@@ -785,4 +794,25 @@ func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
 	}
 
 	return 0, errors.New(NoCompletedBatch)
+}
+
+func (i *Instance) GetEarliestRound() (uint64, uint64, int64, error) {
+	earliestRound, ok := i.earliestRoundTracker.Load().(EarliestRound)
+	if !ok {
+		return 0, 0, 0, errors.New("Earliest round state does not exist, try again")
+	}
+
+	return earliestRound.ClientRoundId,
+		earliestRound.GwRoundId, earliestRound.GwRoundTimestamp, nil
+}
+
+func (i *Instance) SetEarliestRound(newEarliestClientRoundId,
+	newEarliestGwRoundId uint64, newGwEarliestTs int64) {
+	newEarliestRound := EarliestRound{
+		ClientRoundId:    newEarliestClientRoundId,
+		GwRoundId:        newEarliestGwRoundId,
+		GwRoundTimestamp: newGwEarliestTs,
+	}
+
+	i.earliestRoundTracker.Store(newEarliestRound)
 }

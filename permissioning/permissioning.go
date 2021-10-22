@@ -149,6 +149,12 @@ func Poll(instance *internal.Instance) error {
 
 		// Update the internal state of rounds and the state machine
 		err = UpdateRounds(permResponse, instance)
+
+		// Update the earliest round store for gateway passage
+		if permResponse.EarliestRoundErr == "" {
+			instance.SetEarliestRound(permResponse.EarliestClientRound, permResponse.EarliestGatewayRound,
+				permResponse.EarliestRoundTimestamp)
+		}
 	} else {
 		jww.WARN.Printf("Skipped processing poll due to nul permResponse")
 	}
