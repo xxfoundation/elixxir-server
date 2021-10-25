@@ -13,7 +13,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/server/graphs"

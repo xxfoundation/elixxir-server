@@ -208,10 +208,8 @@ func NotStarted(instance *internal.Instance) error {
 	//init the database
 	cmixGrp := instance.GetNetworkStatus().GetCmixGroup()
 
-	if instance.GetDefinition().DevMode {
-		//populate the dummy precanned users
-		instance.PopulateDummyUsers(cmixGrp)
-	}
+	//populate the dummy precanned users
+	instance.PopulateDummyUsers(instance.GetDefinition().DevMode, cmixGrp)
 
 	jww.INFO.Printf("Waiting on communication from gateway to continue")
 
@@ -262,8 +260,8 @@ func NotStarted(instance *internal.Instance) error {
 
 					jww.ERROR.Printf("Your node is not online: %s", err.Error())
 					time.Sleep(pollDelay)
-				}else if strings.Contains(err.Error(), "connection reset by peer"){
-					jww.ERROR.Printf("Failed to poll permission due to connection " +
+				} else if strings.Contains(err.Error(), "connection reset by peer") {
+					jww.ERROR.Printf("Failed to poll permission due to connection "+
 						"being reset by peer: %s", err.Error())
 					time.Sleep(pollDelay)
 				} else {

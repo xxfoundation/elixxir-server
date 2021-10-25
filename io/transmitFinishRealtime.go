@@ -76,30 +76,28 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 			// Send the message to that particular node
 			var streamErr error
 			var ack *messages.Ack
-			for i:=0;i<3;i++{
-
+			for i := 0; i < 3; i++ {
 
 				currentRound := instance.GetRoundManager().GetCurrentRound()
 
-
-				if currentRound != roundID{
+				if currentRound != roundID {
 					localR, rnderr := instance.GetNetworkStatus().GetRound(roundID)
 					roundState := states.Round(localR.State)
-					if rnderr!=nil{
-						streamErr = errors.Errorf("Could not get status of round %d in " +
+					if rnderr != nil {
+						streamErr = errors.Errorf("Could not get status of round %d in "+
 							"transmitFinishRealtime to %s on attempt %d/3",
 							roundID, recipient.GetId(), i)
 						jww.WARN.Printf(streamErr.Error())
-						time.Sleep(150*time.Millisecond)
+						time.Sleep(150 * time.Millisecond)
 						continue
 					}
-					if  roundState != states.QUEUED && roundState != states.REALTIME  {
-						streamErr = errors.Errorf("The status of round %d in " +
-							"transmitFinishRealtime to %s on attempt %d/3 was not %s or %s according to the network, " +
+					if roundState != states.QUEUED && roundState != states.REALTIME {
+						streamErr = errors.Errorf("The status of round %d in "+
+							"transmitFinishRealtime to %s on attempt %d/3 was not %s or %s according to the network, "+
 							"is %s, will try again",
 							roundID, recipient.GetId(), i, states.REALTIME, states.QUEUED, roundState)
 						jww.WARN.Printf(streamErr.Error())
-						time.Sleep(150*time.Millisecond)
+						time.Sleep(150 * time.Millisecond)
 						continue
 					}
 				}
@@ -112,10 +110,10 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 				if ack != nil && ack.Error != "" {
 					streamErr = errors.Errorf("Remote Server Error: %s", ack.Error)
 				}
-				if streamErr!=nil{
-					jww.WARN.Printf("failed to stream TransmitFinishRealtime to " +
-						"%s attempt %d/3: %+v", recipient.GetId(), i,err)
-				}else{
+				if streamErr != nil {
+					jww.WARN.Printf("failed to stream TransmitFinishRealtime to "+
+						"%s attempt %d/3: %+v", recipient.GetId(), i, err)
+				} else {
 					break
 				}
 			}
@@ -143,8 +141,8 @@ func TransmitFinishRealtime(roundID id.Round, serverInstance phase.GenericInstan
 		}
 	}
 
-	if numerrors>0{
-		jww.ERROR.Printf("Streaming batch to other nodes failed in " +
+	if numerrors > 0 {
+		jww.ERROR.Printf("Streaming batch to other nodes failed in "+
 			"round %d for %d/%d nodes: %+v", roundID, numerrors, topology.Len(),
 			errs)
 	}

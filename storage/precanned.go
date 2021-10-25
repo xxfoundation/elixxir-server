@@ -31,7 +31,9 @@ type PrecanStore struct {
 
 // NewPrecanStore builds a PrecanStore object prepopulated
 // with precanned values.
-func NewPrecanStore(grp *cyclic.Group) *PrecanStore {
+// the boolean selects if it is the entire store, or just
+// the dummy gateway identity
+func NewPrecanStore(allPrecanned bool, grp *cyclic.Group) *PrecanStore {
 	store := make(map[id.ID][]byte, numDemoUsers)
 	ps := &PrecanStore{
 		store: store,
@@ -45,17 +47,19 @@ func NewPrecanStore(grp *cyclic.Group) *PrecanStore {
 	dummyKey := grp.NewIntFromBytes(dummyId.Marshal()[:]).Bytes()
 	ps.store[*dummyId] = dummyKey
 
-	jww.INFO.Printf("Adding dummy users")
+	if allPrecanned {
+		jww.INFO.Printf("Adding dummy users")
 
-	// Deterministically create named users for demo
-	for i := 1; i < numDemoUsers; i++ {
-		h := sha256.New()
-		h.Reset()
-		h.Write([]byte(strconv.Itoa(4000 + i)))
-		usrID := new(id.ID)
-		binary.BigEndian.PutUint64(usrID[:], uint64(i))
-		usrID.SetType(id.User)
-		ps.store[*usrID] = grp.NewIntFromBytes(h.Sum(nil)).Bytes()
+		// Deterministically create named users for demo
+		for i := 1; i < numDemoUsers; i++ {
+			h := sha256.New()
+			h.Reset()
+			h.Write([]byte(strconv.Itoa(4000 + i)))
+			usrID := new(id.ID)
+			binary.BigEndian.PutUint64(usrID[:], uint64(i))
+			usrID.SetType(id.User)
+			ps.store[*usrID] = grp.NewIntFromBytes(h.Sum(nil)).Bytes()
+		}
 	}
 
 	return ps
@@ -66,9 +70,6 @@ func NewPrecanStore(grp *cyclic.Group) *PrecanStore {
 // and the boolean returned is false. If it does exist, the precanned key
 // is returned and the boolean returned is true.
 func (ps *PrecanStore) Get(userId *id.ID) ([]byte, bool) {
-	if ps == nil{
-		return nil, false
-	}
 	ps.mux.Lock()
 	defer ps.mux.Unlock()
 

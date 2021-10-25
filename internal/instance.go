@@ -48,6 +48,12 @@ import (
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
 
+type EarliestRound struct {
+	ClientRoundId    uint64
+	GwRoundId        uint64
+	GwRoundTimestamp int64
+}
+
 // Instance holds long-lived server state
 type Instance struct {
 	Online            bool
@@ -78,6 +84,9 @@ type Instance struct {
 	realtimeRoundQueue round.Queue
 	clientErrors       *round.ClientReport
 
+	// Persistent storage object
+	storage *storage.Storage
+
 	gatewayPoll          *FirstTime
 	requestNewBatchQueue round.Queue
 
@@ -105,6 +114,8 @@ type Instance struct {
 	// Map containing completed batches to pass back to gateway
 	completedBatch    map[id.Round]*round.CompletedRound
 	completedBatchMux sync.RWMutex
+
+	earliestRoundTracker atomic.Value
 }
 
 // CreateServerInstance creates a server instance. To actually kick off the server,
@@ -137,12 +148,27 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		panicWrapper: func(s string) {
 			jww.FATAL.Panic(s)
 		},
-		serverVersion:     version,
-		firstRun:          &firstRun,
-		firstPoll:         &firstPoll,
-		gatewayFirstPoll:  NewFirstTime(),
-		clientErrors:      round.NewClientFailureReport(def.ID),
-		phaseStateMachine: state.NewGenericMachine(),
+		serverVersion:        version,
+		firstRun:             &firstRun,
+		firstPoll:            &firstPoll,
+		gatewayFirstPoll:     NewFirstTime(),
+		clientErrors:         round.NewClientFailureReport(def.ID),
+		phaseStateMachine:    state.NewGenericMachine(),
+		earliestRoundTracker: atomic.Value{},
+	}
+
+	instance.storage, err = storage.NewStorage(
+		def.DbUsername, def.DbPassword, def.DbName,
+		def.DbAddress, def.DbPort, def.DevMode)
+	if err != nil {
+		eMsg := fmt.Sprintf("Could not initialize database: psql://%s@%s:%s/%s: %v",
+			def.DbUsername, def.DbAddress, def.DbPort, def.DbName, err)
+
+		if def.DevMode {
+			jww.WARN.Printf(eMsg)
+		} else {
+			jww.FATAL.Panicf(eMsg)
+		}
 	}
 
 	// Create node secret manager
@@ -322,13 +348,13 @@ func (i *Instance) GetPrecanStore() *storage.PrecanStore {
 	return i.precanStore
 }
 
-func (i *Instance) PopulateDummyUsers(grp *cyclic.Group) {
-	i.precanStore = storage.NewPrecanStore(grp)
+func (i *Instance) PopulateDummyUsers(allprecann bool, grp *cyclic.Group) {
+	i.precanStore = storage.NewPrecanStore(allprecann, grp)
 }
 
 func (i *Instance) AddDummyUserTesting(userId *id.ID, key []byte, grp *cyclic.Group, face interface{}) {
 	if i.precanStore == nil {
-		i.precanStore = storage.NewPrecanStore(grp)
+		i.precanStore = storage.NewPrecanStore(true, grp)
 	}
 	i.precanStore.AddTesting(userId, key, face)
 }
@@ -341,7 +367,7 @@ func (i *Instance) SetPrecanStoreTesting(grp *cyclic.Group, face interface{}) {
 		jww.FATAL.Panicf("SetSecretManagerTesting is restricted to testing only. Got %T", face)
 	}
 
-	i.precanStore = storage.NewPrecanStore(grp)
+	i.precanStore = storage.NewPrecanStore(true, grp)
 
 }
 
@@ -768,4 +794,25 @@ func (i *Instance) GetCompletedBatchRID() (id.Round, error) {
 	}
 
 	return 0, errors.New(NoCompletedBatch)
+}
+
+func (i *Instance) GetEarliestRound() (uint64, uint64, int64, error) {
+	earliestRound, ok := i.earliestRoundTracker.Load().(EarliestRound)
+	if !ok {
+		return 0, 0, 0, errors.New("Earliest round state does not exist, try again")
+	}
+
+	return earliestRound.ClientRoundId,
+		earliestRound.GwRoundId, earliestRound.GwRoundTimestamp, nil
+}
+
+func (i *Instance) SetEarliestRound(newEarliestClientRoundId,
+	newEarliestGwRoundId uint64, newGwEarliestTs int64) {
+	newEarliestRound := EarliestRound{
+		ClientRoundId:    newEarliestClientRoundId,
+		GwRoundId:        newEarliestGwRoundId,
+		GwRoundTimestamp: newGwEarliestTs,
+	}
+
+	i.earliestRoundTracker.Store(newEarliestRound)
 }

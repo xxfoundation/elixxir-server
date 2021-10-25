@@ -203,7 +203,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		if err != nil {
 			t.Errorf("Failed to add permissioning host: %v", err)
 		}
-		instance.PopulateDummyUsers(grp)
+		instance.PopulateDummyUsers(true, grp)
 		instance.AddDummyUserTesting(userID, baseKeys[i].Bytes(), grp, t)
 	}
 
@@ -521,8 +521,8 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	}
 
 	wg.Wait()
-	for i := len(nodes)-1;i>=0;i--{
-		nodeInstance:= nodes[i]
+	for i := len(nodes) - 1; i >= 0; i-- {
+		nodeInstance := nodes[i]
 		// Send info to the realtime round queue
 		err := nodeInstance.GetRealtimeRoundQueue().Send(roundInfoMsg)
 		if err != nil {
