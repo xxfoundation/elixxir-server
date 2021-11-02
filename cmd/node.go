@@ -173,7 +173,15 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 		}
 	}
 
-	jww.INFO.Printf("~~~~~~~~~~~~~~~~~~~~~~~~\nServer Definition:\n%#v\n~~~~~~~~~~~~~~~~~~~~~~~~", def)
+	serverDef := fmt.Sprintf("~~~~~~~~~~~~~~~~~~~~~~~~\nServer Definition:\n%#v\n~~~~~~~~~~~~~~~~~~~~~~~~", def)
+	serverDef = strings.ReplaceAll(serverDef,
+		"DbPassword:\"\""+params.Database.Password,
+		"DbPassword:\"\"[dbpass]")
+	serverDef = strings.ReplaceAll(serverDef,
+		"RegistrationCode:"+params.RegistrationCode,
+		"RegistrationCode:[regcode]")
+
+	jww.INFO.Printf(serverDef)
 
 	// initialize the network
 	instance.Online = true
