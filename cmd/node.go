@@ -57,8 +57,8 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 
 	ps := fmt.Sprintf("Loaded params: %+v", params)
 	ps = strings.ReplaceAll(ps,
-		"dbpassword:"+params.Database.Password,
-		"dbpassword:[dbpass]")
+		"Password:"+params.Database.Password,
+		"Password:[dbpass]")
 	ps = strings.ReplaceAll(ps,
 		"RegistrationCode:"+params.RegistrationCode,
 		"RegistrationCode:[regcode]")
