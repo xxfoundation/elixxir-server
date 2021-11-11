@@ -18,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/chacha"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/crypto/xx"
 	"gitlab.com/xx_network/primitives/id"
@@ -110,6 +111,12 @@ func RequestClientKey(instance *internal.Instance,
 	//Generate an ephemeral DH key pair
 	DHPriv := grp.RandomCoprime(grp.NewInt(1))
 	DHPub := grp.ExpG(DHPriv, grp.NewInt(1))
+
+	if !csprng.InGroup(msg.GetClientDHPubKey(),grp.GetPBytes()){
+		return nil, errors.Errorf("Cannot process client request, " +
+			"DH pub key is out of group: %v", msg.GetClientDHPubKey())
+	}
+
 	clientDHPub := grp.NewIntFromBytes(msg.GetClientDHPubKey())
 
 	// Generate user CMIX baseKey

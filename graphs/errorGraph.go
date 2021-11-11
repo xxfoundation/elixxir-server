@@ -10,7 +10,7 @@ package graphs
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/crypto/cryptops"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/server/services"
 )
