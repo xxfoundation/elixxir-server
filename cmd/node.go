@@ -175,8 +175,8 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 
 	serverDef := fmt.Sprintf("~~~~~~~~~~~~~~~~~~~~~~~~\nServer Definition:\n%#v\n~~~~~~~~~~~~~~~~~~~~~~~~", def)
 	serverDef = strings.ReplaceAll(serverDef,
-		"DbPassword:\"\""+params.Database.Password,
-		"DbPassword:\"\"[dbpass]")
+		"DbPassword:\""+params.Database.Password+"\"",
+		"DbPassword:[dbpass]")
 	serverDef = strings.ReplaceAll(serverDef,
 		"RegistrationCode:"+params.RegistrationCode,
 		"RegistrationCode:[regcode]")
