@@ -8,10 +8,11 @@ package graphs
 
 /**/
 import (
+	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/format"
 	"gitlab.com/elixxir/server/internal"
@@ -21,30 +22,20 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"math/rand"
+	"os"
 	"reflect"
 	"testing"
 )
 
-//TODO: make makeMsg it NOT random
-
-// Fill part of message with random payloads
-// Fill part of message with random payloads
-func makeMsg(grp *cyclic.Group) *format.Message {
-	primeLegnth := len(grp.GetPBytes())
-	rng := rand.New(rand.NewSource(21))
-	payloadA := make([]byte, primeLegnth)
-	payloadB := make([]byte, primeLegnth)
-	rng.Read(payloadA)
-	rng.Read(payloadB)
-	msg := format.NewMessage(primeLegnth)
-	msg.SetPayloadA(payloadA)
-	msg.SetPayloadB(payloadB)
-
-	return &msg
+func TestMain(m *testing.M) {
+	jww.SetStdoutThreshold(jww.LevelTrace)
+	connect.TestingOnlyDisableTLS = true
+	os.Exit(m.Run())
 }
 
 func TestClientServer(t *testing.T) {
@@ -187,4 +178,22 @@ func NewImplementation(instance *internal.Instance) *node.Implementation {
 	impl := node.NewImplementation()
 
 	return impl
+}
+
+//TODO: make makeMsg it NOT random
+
+// Fill part of message with random payloads
+// Fill part of message with random payloads
+func makeMsg(grp *cyclic.Group) *format.Message {
+	primeLegnth := len(grp.GetPBytes())
+	rng := rand.New(rand.NewSource(21))
+	payloadA := make([]byte, primeLegnth)
+	payloadB := make([]byte, primeLegnth)
+	rng.Read(payloadA)
+	rng.Read(payloadB)
+	msg := format.NewMessage(primeLegnth)
+	msg.SetPayloadA(payloadA)
+	msg.SetPayloadB(payloadB)
+
+	return &msg
 }

@@ -8,6 +8,7 @@ package io
 
 import (
 	"bytes"
+	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/testkeys"
 	"gitlab.com/elixxir/primitives/current"
@@ -16,8 +17,15 @@ import (
 	"gitlab.com/xx_network/comms/signature"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
+	"os"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	jww.SetStdoutThreshold(jww.LevelTrace)
+	connect.TestingOnlyDisableTLS = true
+	os.Exit(m.Run())
+}
 
 func TestGetNdf(t *testing.T) {
 	instance, _, _ := createMockInstance(t, 0, current.REALTIME)
