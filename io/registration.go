@@ -112,8 +112,8 @@ func RequestClientKey(instance *internal.Instance,
 	DHPriv := grp.RandomCoprime(grp.NewInt(1))
 	DHPub := grp.ExpG(DHPriv, grp.NewInt(1))
 
-	if !csprng.InGroup(msg.GetClientDHPubKey(),grp.GetPBytes()){
-		return nil, errors.Errorf("Cannot process client request, " +
+	if !csprng.InGroup(msg.GetClientDHPubKey(), grp.GetPBytes()) {
+		return nil, errors.Errorf("Cannot process client request, "+
 			"DH pub key is out of group: %v", msg.GetClientDHPubKey())
 	}
 

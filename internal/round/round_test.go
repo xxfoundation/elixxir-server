@@ -9,9 +9,9 @@ package round
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
-	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/services"

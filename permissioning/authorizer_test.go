@@ -9,6 +9,7 @@ package permissioning
 
 import (
 	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
@@ -23,9 +24,16 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
+	"os"
 	"runtime"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	jww.SetStdoutThreshold(jww.LevelTrace)
+	connect.TestingOnlyDisableTLS = true
+	os.Exit(m.Run())
+}
 
 // Happy path
 func TestAuthorize(t *testing.T) {
