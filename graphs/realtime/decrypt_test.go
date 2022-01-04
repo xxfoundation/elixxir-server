@@ -10,14 +10,15 @@ package realtime
 import (
 	"crypto/sha256"
 	"fmt"
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cmix"
-	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/crypto/fastRNG"
 	hash2 "gitlab.com/elixxir/crypto/hash"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
@@ -26,14 +27,22 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
+	"os"
 	"reflect"
 	"runtime"
 	"strconv"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	jww.SetStdoutThreshold(jww.LevelTrace)
+	connect.TestingOnlyDisableTLS = true
+	os.Exit(m.Run())
+}
 
 // Test that DecryptStream.GetName() returns the correct name
 func TestDecryptStream_GetName(t *testing.T) {

@@ -12,8 +12,8 @@ package precomputation
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/gpumathsgo"
+	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
