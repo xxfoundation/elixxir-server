@@ -143,7 +143,7 @@ func TestRequestClientKey(t *testing.T) {
 	// Verify the HMAC
 	h.Reset()
 	if !registration.VerifyClientHMAC(sessionKey.Bytes(), keyResponse.EncryptedClientKey,
-		h, keyResponse.EncryptedClientKeyHMAC) {
+		opts.Hash.New, keyResponse.EncryptedClientKeyHMAC) {
 		t.Fatalf("Failed to verify client HMAC")
 	}
 

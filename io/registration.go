@@ -161,7 +161,7 @@ func RequestClientKey(instance *internal.Instance,
 	// Construct HMAC
 	h.Reset()
 	encryptedClientKeyHMAC := registration.CreateClientHMAC(sessionKey.Bytes(),
-		encryptedClientKey, h)
+		encryptedClientKey, opts.Hash.New)
 
 	// Construct response
 	resp := &pb.ClientKeyResponse{
