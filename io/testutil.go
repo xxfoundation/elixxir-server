@@ -256,7 +256,7 @@ func PushNRoundUpdates(n int, instance internal.Instance, key *rsa.PrivateKey, t
 
 		//t.Logf("ROUND: %v", newRound)
 
-		err = instance.GetNetworkStatus().RoundUpdate(newRound)
+		_, err = instance.GetNetworkStatus().RoundUpdate(newRound)
 		if err != nil {
 			t.Logf("error pushing round %v", err)
 			t.Fail()

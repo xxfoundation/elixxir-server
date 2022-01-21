@@ -480,7 +480,7 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 	start := time.Now()
 
 	for index, nodeInstance := range nodes {
-		err := nodeInstance.GetNetworkStatus().RoundUpdate(roundInfoMsg)
+		_, err := nodeInstance.GetNetworkStatus().RoundUpdate(roundInfoMsg)
 		if err != nil {
 			t.Errorf("Failed to updated network instance for new round info: %v", err)
 		}

@@ -418,7 +418,7 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 		t.Fail()
 	}
 
-	err = instance.GetNetworkStatus().RoundUpdate(newRound)
+	_, err = instance.GetNetworkStatus().RoundUpdate(newRound)
 	if err != nil {
 		t.Errorf("Round update failed: %s", err)
 	}

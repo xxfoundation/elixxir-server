@@ -302,7 +302,7 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 	// Parse the round info updates if they exist
 	for _, roundInfo := range newUpdates {
 		// Add the new information to the network instance
-		err := instance.GetNetworkStatus().RoundUpdate(roundInfo)
+		_, err := instance.GetNetworkStatus().RoundUpdate(roundInfo)
 		if err != nil {
 			if strings.Contains(err.Error(), "id is older than first tracked") {
 				continue
