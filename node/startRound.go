@@ -8,7 +8,6 @@
 package node
 
 import (
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -19,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/xx_network/comms/messages"
 	"gitlab.com/xx_network/primitives/id"
+	"google.golang.org/protobuf/proto"
 )
 
 func StartLocalPrecomp(instance *internal.Instance, rid id.Round) error {

@@ -12,7 +12,6 @@ package node
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
@@ -27,6 +26,7 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
+	"google.golang.org/protobuf/proto"
 	"strings"
 	"time"
 )
