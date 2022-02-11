@@ -8,19 +8,19 @@
 package io
 
 import (
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/xx_network/primitives/id"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // TransmitRoundTripPing sends a round trip ping and starts
 func TransmitRoundTripPing(network *node.Comms, id *id.ID, r *round.Round,
 	payload proto.Message, payloadInfo string, ri *mixmessages.RoundInfo) error {
-	any, err := anypb.New(payload)
+	any, err := ptypes.MarshalAny(payload)
 	if err != nil {
 		err = errors.Errorf("TransmitRoundTripPing: failed attempting to marshall any type: %+v", err)
 		return err

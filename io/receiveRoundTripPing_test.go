@@ -9,6 +9,7 @@ package io
 
 import (
 	"crypto/rand"
+	"github.com/golang/protobuf/ptypes"
 	pb "gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
@@ -17,7 +18,6 @@ import (
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/primitives/id"
-	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 )
 
@@ -88,7 +88,7 @@ func TestReceiveRoundTripPing(t *testing.T) {
 			},
 		},
 	}
-	any, _ := anypb.New(anyPayload)
+	any, _ := ptypes.MarshalAny(anyPayload)
 
 	msg := &pb.RoundTripPing{
 		Payload: any,

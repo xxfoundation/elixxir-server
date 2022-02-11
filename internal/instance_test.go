@@ -10,6 +10,7 @@ package internal
 import (
 	"crypto/rand"
 	"errors"
+	"github.com/golang/protobuf/proto"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/primitives/current"
@@ -23,7 +24,6 @@ import (
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
-	"google.golang.org/protobuf/proto"
 	"os"
 	"reflect"
 	"runtime"
