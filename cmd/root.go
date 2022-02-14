@@ -91,7 +91,7 @@ var rootCmd = &cobra.Command{
 		case <-stopCh:
 			jww.INFO.Printf(
 				"Received Exit (SIGTERM or SIGINT) signal...\n")
-			instance.WaitUntilRoundCompletes(60 * time.Second)
+			instance.WaitUntilRoundCompletes(30 * time.Second)
 			if profileOut != "" {
 				pprof.StopCPUProfile()
 			}
@@ -134,7 +134,8 @@ func init() {
 
 	rootCmd.Flags().String("profile-cpu", "",
 		"Enable cpu profiling to this file")
-	viper.BindPFlag("profile-cpu", rootCmd.Flags().Lookup("profile-cpu"))
+	err = viper.BindPFlag("profile-cpu", rootCmd.Flags().Lookup("profile-cpu"))
+	handleBindingError(err, "profile-cpu")
 
 	rootCmd.Flags().String("registrationCode", "",
 		"Registration code used for first time registration. This is a unique "+
