@@ -777,9 +777,9 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	//Link precomputation
 	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngStreamGen)
-	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, nil, keysPayloadA,
+	ds.LinkDecryptStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB)
-	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, nil, keysPayloadA,
+	ds.LinkPermuteStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB, keysPayloadAPermuted, cypherPayloadAPermuted,
 		keysPayloadBPermuted, cypherPayloadBPermuted)
 	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, nil, cypherPayloadA,
@@ -802,7 +802,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	testReport := round.NewClientFailureReport(fakeNodeID)
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
+	ds.LinkDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
 
 	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)
@@ -1200,11 +1200,11 @@ func Test_DebugStream(t *testing.T) {
 			"getting 'GenerateSubstreamInterface'")
 	}
 
-	_, ok = stream.(precomputation.PrecompDecryptSubstreamInterface)
+	_, ok = stream.(precomputation.DecryptSubstreamInterface)
 
 	if !ok {
 		t.Errorf("DebugStream: type assert failed when " +
-			"getting 'PrecompDecryptSubstreamInterface'")
+			"getting 'DecryptSubstreamInterface'")
 	}
 
 }

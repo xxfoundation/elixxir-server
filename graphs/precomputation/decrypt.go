@@ -20,10 +20,10 @@ import (
 )
 
 // This file implements the Graph for the Precomputation Decrypt phase
-// Decrypt phase transforms first unpermuted internode keys
-// and partial cypher texts into the data that the permute phase needs
+// The Decrypt phase transforms first unpermuted internode keys
+// and partial cypher texts into the data that the Permute phase needs
 
-// DecryptStream holds data containing keys and inputs used by decrypt
+// DecryptStream holds data containing keys and inputs used by Decrypt
 type DecryptStream struct {
 	Grp             *cyclic.Group
 	PublicCypherKey *cyclic.Int
@@ -48,7 +48,7 @@ func (ds *DecryptStream) GetName() string {
 	return "PrecompDecryptStream"
 }
 
-// Link binds stream to state objects in round
+// Link binds stream to local state objects in round
 func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 	var streamPool *gpumaths.StreamPool
@@ -57,7 +57,7 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 		streamPool = source[2].(*gpumaths.StreamPool)
 	}
 
-	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuffer, streamPool,
+	ds.LinkDecryptStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
@@ -65,7 +65,8 @@ func (ds *DecryptStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 	)
 }
 
-func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
+// LinkDecryptStream binds stream to local state objects in round
+func (ds *DecryptStream) LinkDecryptStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
 	pool *gpumaths.StreamPool, keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer) {
 
 	ds.Grp = grp
@@ -81,19 +82,18 @@ func (ds *DecryptStream) LinkPrecompDecryptStream(grp *cyclic.Group, batchSize u
 	ds.CypherPayloadA = cypherPayloadA
 	ds.KeysPayloadB = keysPayloadB
 	ds.CypherPayloadB = cypherPayloadB
-
 }
 
-type PrecompDecryptSubstreamInterface interface {
-	GetPrecompDecryptSubStream() *DecryptStream
+type DecryptSubstreamInterface interface {
+	GetDecryptSubStream() *DecryptStream
 }
 
-// getSubStream implements reveal interface to return stream object
-func (ds *DecryptStream) GetPrecompDecryptSubStream() *DecryptStream {
+// GetDecryptSubStream implements reveal interface to return stream object
+func (ds *DecryptStream) GetDecryptSubStream() *DecryptStream {
 	return ds
 }
 
-// Input initializes stream inputs from slot
+// Input initializes stream inputs from slot received from IO
 func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ds.KeysPayloadA.Len()) {
@@ -113,7 +113,7 @@ func (ds *DecryptStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-// Output returns a cmix slot message
+// Output a cmix slot message for IO
 func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index:                     index,
@@ -124,18 +124,18 @@ func (ds *DecryptStream) Output(index uint32) *mixmessages.Slot {
 	}
 }
 
-// DecryptElgamal is the sole module in Precomputation Decrypt implementing cryptops.Elgamal
+// DecryptElgamal is the CPU module in Precomputation Decrypt implementing cryptops.Elgamal
 var DecryptElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := streamInput.(PrecompDecryptSubstreamInterface)
+		dssi, ok := streamInput.(DecryptSubstreamInterface)
 		elgamal, ok2 := cryptop.(cryptops.ElGamalPrototype)
 
 		if !ok || !ok2 {
 			return errors.WithStack(services.InvalidTypeAssert)
 		}
 
-		ds := dssi.GetPrecompDecryptSubStream()
+		ds := dssi.GetDecryptSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 
@@ -153,16 +153,17 @@ var DecryptElgamal = services.Module{
 	Name:       "DecryptElgamal",
 }
 
+// DecryptElgamalChunk is the GPU module in Precomputation Decrypt implementing cryptops.Elgamal
 var DecryptElgamalChunk = services.Module{
 	Adapt: func(s services.Stream, c cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := s.(PrecompDecryptSubstreamInterface)
+		dssi, ok := s.(DecryptSubstreamInterface)
 		ec, ok2 := c.(gpumaths.ElGamalChunkPrototype)
 		if !ok || !ok2 {
 			return errors.WithStack(services.InvalidTypeAssert)
 		}
 
 		// Execute elgamal on the keys for the first payload
-		ds := dssi.GetPrecompDecryptSubStream()
+		ds := dssi.GetDecryptSubStream()
 		gpuStreams := ds.StreamPool
 		R := ds.R.GetSubBuffer(chunk.Begin(), chunk.End())
 		yR := ds.Y_R.GetSubBuffer(chunk.Begin(), chunk.End())
@@ -190,7 +191,7 @@ var DecryptElgamalChunk = services.Module{
 	NumThreads: 2,
 }
 
-// InitDecryptGraph is called to initialize the graph. Conforms to graphs.Initialize function type
+// InitDecryptGraph is called to initialize the CPU Graph. Conforms to Graph.Initialize function type
 func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGPU") {
 		jww.FATAL.Panicf("Using precomp decrypt graph running on CPU instead of equivalent GPU graph")
@@ -205,6 +206,7 @@ func InitDecryptGraph(gc services.GraphGenerator) *services.Graph {
 	return g
 }
 
+// InitDecryptGPUGraph is called to initialize the GPU Graph. Conforms to Graph.Initialize function type
 func InitDecryptGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using precomp decrypt graph running on GPU instead of equivalent CPU graph")

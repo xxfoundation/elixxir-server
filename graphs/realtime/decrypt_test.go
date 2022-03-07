@@ -202,7 +202,7 @@ func TestSubAccess(t *testing.T) {
 		t.Errorf("realtimeDecrypt: Could not access keygenStream")
 	}
 
-	_, ok2 := stream.(RealtimeDecryptSubStreamInterface)
+	_, ok2 := stream.(DecryptSubStreamInterface)
 
 	if !ok2 {
 		t.Errorf("realtimeDecrypt: Could not access decryptStream")
