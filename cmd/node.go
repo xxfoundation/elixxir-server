@@ -159,7 +159,7 @@ func StartServer(vip *viper.Viper) (*internal.Instance, error) {
 			jww.ERROR.Println(fmt.Sprintf("Overriding phase %d", i))
 			p := phase.New(phase.Definition{
 				Graph:               g,
-				Type:                i,
+				Type:                phase.Type(i),
 				TransmissionHandler: th,
 				Timeout:             1 * time.Minute,
 				DoVerification:      false,

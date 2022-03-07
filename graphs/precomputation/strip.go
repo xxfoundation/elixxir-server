@@ -82,8 +82,7 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	ss.CypherPayloadA = cypherPayloadA
 	ss.CypherPayloadB = cypherPayloadB
 
-	ss.RevealStream.LinkRevealStream(grp, batchSize, roundBuf, pool, ss.CypherPayloadA,
-		ss.CypherPayloadB)
+	ss.RevealStream.LinkRevealStream(grp, roundBuf, pool, ss.CypherPayloadA, ss.CypherPayloadB)
 }
 
 type stripSubstreamInterface interface {
