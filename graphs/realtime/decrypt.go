@@ -130,13 +130,13 @@ func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 		s.KeysPayloadB, clientReporter, roundId, batchSize, nodeSecrets, precanStore)
 }
 
-// DecryptSubStreamInterface creates an interface for KeygenDecryptStream to conform to
-type DecryptSubStreamInterface interface {
-	GetDecryptSubStream() *KeygenDecryptStream
+// KeygenDecryptSubStreamInterface creates an interface for KeygenDecryptStream to conform to
+type KeygenDecryptSubStreamInterface interface {
+	GetKeygenDecryptSubStream() *KeygenDecryptStream
 }
 
-// GetDecryptSubStream returns the sub-stream, used to return an embedded struct off an interface.
-func (s *KeygenDecryptStream) GetDecryptSubStream() *KeygenDecryptStream {
+// GetKeygenDecryptSubStream returns the sub-stream, used to return an embedded struct off an interface.
+func (s *KeygenDecryptStream) GetKeygenDecryptSubStream() *KeygenDecryptStream {
 	return s
 }
 
@@ -191,14 +191,14 @@ func (s *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
 var DecryptMul3 = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := streamInput.(DecryptSubStreamInterface)
+		dssi, ok := streamInput.(KeygenDecryptSubStreamInterface)
 		mul3, ok2 := cryptop.(cryptops.Mul3Prototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
-		ds := dssi.GetDecryptSubStream()
+		ds := dssi.GetKeygenDecryptSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			//Do mul3 ecrPayloadA=payloadAKey*R*ecrPayloadA%p
@@ -218,14 +218,14 @@ var DecryptMul3 = services.Module{
 var DecryptMul3Chunk = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
-		dssi, ok := streamInput.(DecryptSubStreamInterface)
+		dssi, ok := streamInput.(KeygenDecryptSubStreamInterface)
 		mul3Chunk, ok2 := cryptop.(gpumaths.Mul3ChunkPrototype)
 
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
 
-		ds := dssi.GetDecryptSubStream()
+		ds := dssi.GetKeygenDecryptSubStream()
 
 		kpa := ds.KeysPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
 		kpb := ds.KeysPayloadB.GetSubBuffer(chunk.Begin(), chunk.End())
