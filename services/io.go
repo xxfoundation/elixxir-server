@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 )
 
-type IO_Notify chan Chunk
+type IoNotify chan Chunk
 
 type moduleInput struct {
-	input  IO_Notify
+	input  IoNotify
 	isOpen *uint32
 }
 
@@ -28,5 +28,5 @@ func (mi *moduleInput) closeInput() {
 func (mi *moduleInput) open(size uint32) {
 	open := uint32(1)
 	mi.isOpen = &open
-	mi.input = make(IO_Notify, size)
+	mi.input = make(IoNotify, size)
 }

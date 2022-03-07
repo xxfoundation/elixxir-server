@@ -25,10 +25,9 @@ import (
 
 // NewRoundComponents sets up the transitions of different phases in the round
 func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
-	nodeID *id.ID, instance *internal.Instance, batchSize uint32,
+	nodeID *id.ID, instance *internal.Instance,
 	newRoundTimeout time.Duration, pool *gpumaths.StreamPool,
-	disableStreaming bool, roundID id.Round) (
-	[]phase.Phase, phase.ResponseMap) {
+	disableStreaming bool, roundID id.Round) ([]phase.Phase, phase.ResponseMap) {
 
 	responses := make(phase.ResponseMap)
 
@@ -133,7 +132,7 @@ func NewRoundComponents(gc services.GraphGenerator, topology *connect.Circuit,
 	}
 
 	// TRANSITION: the transition out of decrypt phase is done on the first
-	// node after every node finishes precomp decrypt and it receives the
+	// node after every node finishes precomp decrypt, and it receives the
 	// transmission from the last node.  It transitions into the permute phase
 	if topology.IsFirstNode(nodeID) {
 		DecryptResponse.PhaseToExecute = phase.PrecompPermute

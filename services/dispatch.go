@@ -18,10 +18,8 @@ import (
 var (
 	InvalidTypeAssert = errors.New("type assert failed")
 	InvalidMAC        = "User could not be validated"
-	UserNotFound      = "Could not find user"
 	SecretNotFound    = "Could not find secret"
-	ErrorDelimiter    = "; "
-	IdDelimiter       = "[]"
+	timeoutDuration   = 2 * time.Minute
 )
 
 // AdaptMeasureName is the name used to measure how long the adapt function
@@ -33,22 +31,19 @@ const AdaptMeasureName = "Adapt"
 const OutModsMeasureName = "Mod"
 
 func dispatch(g *Graph, m *Module, threadID uint64) {
-
 	s := g.stream
 
-	// We measure the adapt and the mod
+	// We measure the adapt function and the mod
 	atID := fmt.Sprintf("%s%d", AdaptMeasureName, threadID)
 	omID := fmt.Sprintf("%s%d", OutModsMeasureName, threadID)
 
-	// Time out that channel read in the loop, since it sometimes blocks forever
-	// for unknown reasons
 	var chunk Chunk
 	var ok bool
-	timeoutDuration := 2 * time.Minute
 	timeout := time.NewTimer(timeoutDuration)
 	keepLooping := true
 	for keepLooping {
 		select {
+		// Time out that channel read in the loop to prevent it getting stuck
 		case <-timeout.C:
 			keepLooping = false
 			jww.WARN.Printf("Graph %v in module %v timed out thread %v", g.GetName(), m.Name, threadID)

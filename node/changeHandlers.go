@@ -318,7 +318,6 @@ func Precomputing(instance *internal.Instance) error {
 		circuit,
 		instance.GetID(),
 		instance,
-		roundInfo.GetBatchSize(),
 		roundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming(),
 		roundID)
