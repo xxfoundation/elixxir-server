@@ -93,7 +93,7 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		users[i] = &id.ID{}
 	}
 
-	s.LinkDecryptStream(grp, batchSize, roundBuf,
+	s.LinkKeygenDecryptStream(grp, batchSize, roundBuf,
 		streamPool, grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
@@ -102,8 +102,8 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		clientReporter, roundID, nodeSecret, precanStore)
 }
 
-// LinkDecryptStream creates stream internal buffers and binds stream to local state objects in round
-func (s *KeygenDecryptStream) LinkDecryptStream(grp *cyclic.Group,
+// LinkKeygenDecryptStream creates stream internal buffers and binds stream to local state objects in round
+func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	batchSize uint32, round *round.Buffer, pool *gpumaths.StreamPool,
 	ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
 	users []*id.ID, salts [][]byte, kmacs [][][]byte,
