@@ -782,7 +782,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 	ds.LinkPermuteStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB, keysPayloadAPermuted, cypherPayloadAPermuted,
 		keysPayloadBPermuted, cypherPayloadBPermuted)
-	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, nil, cypherPayloadA,
+	ds.LinkStripStream(grp, batchSize, roundBuf, nil, cypherPayloadA,
 		cypherPayloadB)
 
 	//Generate Passthroughs for realtime
