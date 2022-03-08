@@ -340,8 +340,8 @@ github.com/zeebo/blake3 v0.1.1/go.mod h1:G9pM4qQwjRzF1/v7+vabMj/c5mWpGZ2Wzo3Eb4z
 github.com/zeebo/pcg v0.0.0-20181207190024-3cdc6b625a05/go.mod h1:Gr+78ptB0MwXxm//LBaEvBiaXY7hXJ6KGe2V32X2F6E=
 github.com/zeebo/pcg v1.0.0/go.mod h1:09F0S9iiKrwn9rlI5yjLkmrug154/YRW6KnnXVDM/l4=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
-gitlab.com/elixxir/comms v0.0.4-0.20220302214218-7cef54bc0c37 h1:VifEG3xpMq8bKkOyIL3KvEeyWCBmPvadKc7Mss5TZ1A=
-gitlab.com/elixxir/comms v0.0.4-0.20220302214218-7cef54bc0c37/go.mod h1:4yMdU+Jee5W9lqkZGHJAuipEhW7FloT0eyVEFUJza+E=
+gitlab.com/elixxir/comms v0.0.4-0.20220308183624-c2183e687a03 h1:4eNjO3wCyHgxpGeq2zgDb5SsdTcQaG5IZjBOuEL6KgM=
+gitlab.com/elixxir/comms v0.0.4-0.20220308183624-c2183e687a03/go.mod h1:4yMdU+Jee5W9lqkZGHJAuipEhW7FloT0eyVEFUJza+E=
 gitlab.com/elixxir/crypto v0.0.0-20200804182833-984246dea2c4/go.mod h1:ucm9SFKJo+K0N2GwRRpaNr+tKXMIOVWzmyUD0SbOu2c=
 gitlab.com/elixxir/crypto v0.0.3/go.mod h1:ZNgBOblhYToR4m8tj4cMvJ9UsJAUKq+p0gCp07WQmhA=
 gitlab.com/elixxir/crypto v0.0.7-0.20210309193114-8a6225c667e2/go.mod h1:TMZMB24OsjF6y3LCyBMzDucbOx1cGQCCeuKV9lJA/DU=
