@@ -60,7 +60,7 @@ func (rm *Manager) GetRound(id id.Round) (*Round, error) {
 // as it is intended to be called from network handlers
 func (rm *Manager) GetPhase(id id.Round, phaseTy int32) (phase.Phase, error) {
 	// First, check that the phase type id # is valid
-	if phaseTy < 0 || phase.Type(phaseTy) >= phase.NUM_PHASES {
+	if phaseTy < 0 || phase.Type(phaseTy) >= phase.NumPhases {
 		return nil, errors.Errorf("Invalid phase Type Number: %d",
 			phaseTy)
 	}
