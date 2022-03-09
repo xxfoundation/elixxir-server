@@ -30,6 +30,8 @@ const AdaptMeasureName = "Adapt"
 // processing loop takes in the dispatch function.
 const OutModsMeasureName = "Mod"
 
+// dispatch runs a Module while taking measurements for the Graph
+// and forwards the output of this Module to its output Modules
 func dispatch(g *Graph, m *Module, threadID uint64) {
 	s := g.stream
 
@@ -52,6 +54,7 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 				g.Lock()
 				g.metrics.Measure(atID)
 				g.Unlock()
+				// Run the Module for each chunk
 				err := m.Adapt(s, m.Cryptop, chunk)
 				g.Lock()
 				g.metrics.Measure(atID)
@@ -74,9 +77,8 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 						return
 					}
 
+					// Send output chunks of this Module to inputs of the output Modules
 					for _, r := range chunkList {
-						/*fmt.Printf( "%s sending (%v - %v) to %s \n",
-						m.Name, r.begin, r.end, om.Name)*/
 						om.input <- r
 					}
 
