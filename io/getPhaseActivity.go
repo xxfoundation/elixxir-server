@@ -12,7 +12,7 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 )
 
-// getPhaseActivity determines what current.Activity corresponds to the given phase.Type
+// getPhaseActivity determines what current.Activity the given phase.Type needs to wait for
 func getPhaseActivity(p phase.Type) current.Activity {
 	if p == phase.PrecompShare || p == phase.PrecompGeneration ||
 		p == phase.PrecompDecrypt || p == phase.PrecompReveal ||
