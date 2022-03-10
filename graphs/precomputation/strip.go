@@ -7,6 +7,8 @@
 
 package precomputation
 
+// Precomp Strip
+
 import (
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
@@ -23,8 +25,7 @@ import (
 // homomorphic encryption from the encrypted keys, revealing completed
 // precomputation
 
-// StripStream holds data containing private key from encrypt and
-// inputs used by strip
+// StripStream holds data containing private key from encrypt and inputs used by strip
 type StripStream struct {
 	Grp        *cyclic.Group
 	StreamPool *gpumaths.StreamPool
@@ -47,7 +48,7 @@ func (ss *StripStream) GetName() string {
 	return "PrecompStripStream"
 }
 
-// Link binds stream to state objects in round
+// Link binds stream to local state objects in round
 func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 	source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
@@ -58,13 +59,14 @@ func (ss *StripStream) Link(grp *cyclic.Group, batchSize uint32,
 		streamPool = source[2].(*gpumaths.StreamPool)
 	}
 
-	ss.LinkPrecompStripStream(grp, batchSize, roundBuffer, streamPool,
+	ss.LinkStripStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 
 }
 
-func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
+// LinkStripStream binds stream to local state objects in round
+func (ss *StripStream) LinkStripStream(grp *cyclic.Group,
 	batchSize uint32, roundBuf *round.Buffer, pool *gpumaths.StreamPool,
 	cypherPayloadA, cypherPayloadB *cyclic.IntBuffer) {
 
@@ -82,20 +84,19 @@ func (ss *StripStream) LinkPrecompStripStream(grp *cyclic.Group,
 	ss.CypherPayloadA = cypherPayloadA
 	ss.CypherPayloadB = cypherPayloadB
 
-	ss.RevealStream.LinkStream(grp, batchSize, roundBuf, pool, ss.CypherPayloadA,
-		ss.CypherPayloadB)
+	ss.RevealStream.LinkRevealStream(grp, roundBuf, pool, ss.CypherPayloadA, ss.CypherPayloadB)
 }
 
 type stripSubstreamInterface interface {
 	GetStripSubStream() *StripStream
 }
 
-// getSubStream implements reveal interface to return stream object
+// GetStripSubStream implements reveal interface to return stream object
 func (ss *StripStream) GetStripSubStream() *StripStream {
 	return ss
 }
 
-// Input initializes stream inputs from slot
+// Input initializes stream inputs from slot received from IO
 func (ss *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ss.CypherPayloadA.Len()) {
@@ -114,7 +115,7 @@ func (ss *StripStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-// Output returns a cmix slot message
+// Output a cmix slot message for IO
 func (ss *StripStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index: index,
@@ -124,8 +125,7 @@ func (ss *StripStream) Output(index uint32) *mixmessages.Slot {
 	}
 }
 
-// StripInverse is a module in precomputation strip implementing
-// cryptops.Inverse
+// StripInverse is a module in precomputation strip implementing cryptops.Inverse
 var StripInverse = services.Module{
 	// Runs root coprime for cypher texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop,
@@ -192,7 +192,7 @@ var StripMul2 = services.Module{
 	Name:       "StripMul2",
 }
 
-// InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
+// InitStripGraph is called to initialize the CPU Graph. Conforms to Graph.Initialize function type
 func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGPU") {
 		jww.FATAL.Panicf("Using precomp strip graph running on CPU instead of equivalent GPU graph")
@@ -211,7 +211,7 @@ func InitStripGraph(gc services.GraphGenerator) *services.Graph {
 	return graph
 }
 
-// InitStripGraph to initialize the graph. Conforms to graphs.Initialize function type
+// InitStripGPUGraph is called to initialize the GPU Graph. Conforms to Graph.Initialize function type
 func InitStripGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using precomp strip graph running on GPU instead of equivalent CPU graph")

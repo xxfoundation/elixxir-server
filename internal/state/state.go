@@ -11,8 +11,8 @@
 // (https://docs.google.com/document/d/1qKeJVrerYmUmlwOgc2grhcS2Z4qdITcFB8xr49AGPKw/edit?usp=sharing)
 //
 // This requires a table of state conversion functions to function.
-// An example implementation with state conversion functions can be found in state loop is implemented in loop_test.go and and example implementation
-// business logic is as follows:
+// An example implementation with state conversion functions can be found in state loop is implemented in loop_test.go
+// and example implementation business logic is as follows:
 
 /*
 func main() {
@@ -98,11 +98,11 @@ import (
 
 /*///State Machine Object/////////////////////////////////////////////////////*/
 
-// function which does a state change.  It should operate quickly, and cannot
+// Change describes a function that performs a state change.  It should operate quickly, and cannot
 // instruct state changes itself without creating a deadlock
 type Change func(from current.Activity) error
 
-//core state machine object
+// Machine is the core state machine object
 type Machine struct {
 	//holds the state
 	*current.Activity
@@ -116,7 +116,7 @@ type Machine struct {
 	//holds valid state transitions
 	stateMap [][]bool
 	//changeChan
-	changebuffer chan current.Activity
+	changeBuffer chan current.Activity
 }
 
 func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activity, t interface{}) Machine {
@@ -134,7 +134,7 @@ func NewTestMachine(changeList [current.NUM_STATES]Change, start current.Activit
 	return m
 }
 
-// builds the stateObj  and sets valid transitions
+// NewMachine builds the stateObj and sets valid transitions
 func NewMachine(changeList [current.NUM_STATES]Change) Machine {
 	ss := current.NOT_STARTED
 
@@ -212,7 +212,7 @@ func (m Machine) Update(nextState current.Activity) (success bool, err error) {
 	}
 
 	// notify threads waiting for state update until there are no more to notify by returning until there
-	// are non waiting on the channel
+	// are non-waiting on the channel
 	for signal := true; signal; {
 		select {
 		case m.signal <- *m.Activity:
@@ -223,35 +223,33 @@ func (m Machine) Update(nextState current.Activity) (success bool, err error) {
 	return true, nil
 }
 
-// gets the current state under a read lock
+// Get the current state under a read lock
 func (m Machine) Get() current.Activity {
 	m.RLock()
 	defer m.RUnlock()
 	return *m.Activity
 }
 
-// Server can update state internally faster than it informs permissioning. This
-// buffers all updates to ensure none are missed by permissioning, and returns
-// the current state if there are no buffered changes
+// GetActivityToReport buffers all updates to ensure none are missed by permissioning,
+// and returns the current state if there are no buffered changes
+// because server can update state internally faster than it informs permissioning.
 func (m Machine) GetActivityToReport() current.Activity {
 	m.RLock()
 	defer m.RUnlock()
 	var reportedActivity current.Activity
 
 	select {
-	case reportedActivity = <-m.changebuffer:
+	case reportedActivity = <-m.changeBuffer:
 	default:
 		reportedActivity = *m.Activity
 	}
 	return reportedActivity
 }
 
-// if the the passed state is the next state update, waits until that update
-// happens. return true if the waited state is the current state. returns an
-// error after the timeout expires
+// WaitFor waits until given update happens if the passed state is the next state update.
+// Return true if the waited state is the current state. Returns an error after the timeout expires
 func (m Machine) WaitFor(timeout time.Duration, expected ...current.Activity) (current.Activity, error) {
-	// take the read lock to ensure state does not change during intital
-	// checks
+	// take the read lock to ensure state does not change during initial checks
 	m.RLock()
 
 	// channels to control and receive from the worker thread
@@ -264,9 +262,9 @@ func (m Machine) WaitFor(timeout time.Duration, expected ...current.Activity) (c
 		expectedMap[val] = true
 	}
 
-	// start a thread to reserve a spot to get a notification on state updates
+	// start a thread to reserve a spot to get a notification on state updates.
 	// state updates cannot happen until the state read lock is released, so
-	// this wont do anything until the initial checks are done, but will ensure
+	// this won't do anything until the initial checks are done, but will ensure
 	// there are no laps in being ready to receive a notifications
 	timer := time.NewTimer(timeout)
 	go func() {
@@ -305,7 +303,6 @@ func (m Machine) WaitFor(timeout time.Duration, expected ...current.Activity) (c
 		if m.stateMap[*m.Activity][activity] {
 			validTransition = true
 		}
-
 	}
 
 	if !validTransition {
@@ -328,7 +325,7 @@ func (m Machine) WaitFor(timeout time.Duration, expected ...current.Activity) (c
 	return *m.Activity, err
 }
 
-// Waits until an update to the given expected state happens.
+// WaitForUnsafe waits until an update to the given expected state happens.
 // return true if the waited state is the current state. returns an
 // error after the timeout expires.  Only for use in testing.
 func (m Machine) WaitForUnsafe(expected current.Activity, timeout time.Duration,
@@ -397,7 +394,7 @@ func (m Machine) stateChange(nextState current.Activity) (bool, error) {
 	*m.Activity = nextState
 
 	select {
-	case m.changebuffer <- nextState:
+	case m.changeBuffer <- nextState:
 	default:
 		return false, errors.New("State change buffer full")
 	}

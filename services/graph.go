@@ -23,8 +23,6 @@ const (
 	AutoNumThreads = 0
 )
 
-var ErrNonexistantUser = errors.New("user not found in user registry")
-var errTooManySalts = "user %v must rekey, has stored too many salts"
 var ErrSaltIncorrectLength = errors.New("salt of incorrect length, must be 256 bits")
 var ErrUserIDTooShort = errors.New("User id length too short")
 
@@ -48,7 +46,7 @@ type Graph struct {
 	built  bool
 	linked bool
 
-	outputChannel IO_Notify
+	outputChannel IoNotify
 
 	sentInputs *uint32
 
@@ -64,7 +62,7 @@ type Graph struct {
 	errorHandler ErrorCallback
 }
 
-// This is too long of a function
+// Build the initialized Graph for a Phase
 func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 
 	if g.overrideBatchSize != 0 {
@@ -73,13 +71,13 @@ func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 
 	g.errorHandler = errorHandler
 
-	//Checks graph is properly formatted
+	// Checks graph is properly formatted
 	err := g.checkGraph()
 	if err != nil {
 		jww.FATAL.Printf("CheckGraph failed : %+v", err)
 	}
 
-	//Find expanded batch size
+	// Find expanded batch size
 	var integers []uint32
 
 	for _, m := range g.modules {
@@ -98,7 +96,7 @@ func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 	g.batchSize = batchSize
 	g.expandBatchSize = expandBatchSize
 
-	/*setup output module*/
+	// setup output module
 	g.outputModule = &Module{
 		InputSize:      g.outputSize,
 		StartThreshold: g.outputThreshold,
@@ -110,7 +108,7 @@ func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 	g.lastModule.outputModules = append(g.lastModule.outputModules, g.outputModule)
 	g.add(g.outputModule)
 
-	/*build assignments*/
+	// build assignments for each module
 	for _, m := range g.modules {
 		m.buildAssignments(expandBatchSize)
 	}
@@ -126,7 +124,7 @@ func (g *Graph) Build(batchSize uint32, errorHandler ErrorCallback) {
 			m.open(g.expandBatchSize)
 		}
 	}
-	/*finish setting up output*/
+	// finish setting up output
 	g.outputChannel = g.outputModule.input
 
 	delete(g.modules, g.outputModule.id)
@@ -227,6 +225,7 @@ func (g *Graph) checkDAG(mod *Module, visited []uint64) error {
 	return nil
 }
 
+// Run each of the modules in the Graph via the dispatcher
 func (g *Graph) Run() {
 	if !g.built {
 		jww.FATAL.Panicf("graph not built")
@@ -244,6 +243,7 @@ func (g *Graph) Run() {
 	}
 }
 
+// Connect the output of one Module in the Graph to the input of the second Module
 func (g *Graph) Connect(a, b *Module) {
 
 	g.add(a)
@@ -293,24 +293,25 @@ func (g *Graph) OverrideBatchSize(b uint32) {
 
 type Measure func(tag string)
 
+// Send combines Chunks into a size described by the firstModule.assignmentList
+// and sends the resized Chunks into firstModule.input
 func (g *Graph) Send(chunk Chunk, measureObj Measure) {
-
+	// Retrieve Chunks of the proper size as described by the assignmentList
 	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
-
-	//fmt.Println(g.name,"sending", chunk, "srList", srList)
 
 	if err != nil {
 		g.errorHandler(g.name, "input", err)
 	}
 
+	// Send resized Chunks into the input of firstModule
 	for _, r := range srList {
 		g.firstModule.input <- r
 	}
 
-	//If the entire batch has been sent then send the difference between batchsize and expanded batchsize
+	// If the entire batch has been sent then send the difference between batchSize and expanded batchSize
 	numSent := atomic.AddUint32(g.sentInputs, chunk.Len())
-
 	if numSent == g.batchSize && g.batchSize < g.expandBatchSize {
+		// Build the final chunk accounting for the difference in batchSize and expandBatchSize
 		endChunk := NewChunk(g.batchSize, g.expandBatchSize)
 		srList, err = g.firstModule.assignmentList.PrimeOutputs(endChunk)
 
@@ -324,13 +325,11 @@ func (g *Graph) Send(chunk Chunk, measureObj Measure) {
 	}
 
 	done, err := g.firstModule.assignmentList.DenoteCompleted(len(srList))
-
 	if err != nil {
 		g.errorHandler(g.name, "input", err)
 	}
 
 	if done {
-		//fmt.Println(g.name,"done sending to graph")
 		// FIXME: Perhaps not the correct place to close the channel.
 		// Ideally, only the sender closes, and only if there's one sender.
 		// Does commenting this fix the double close?
@@ -342,7 +341,7 @@ func (g *Graph) Send(chunk Chunk, measureObj Measure) {
 	}
 }
 
-// outputs from the last op in the graph get sent on this channel.
+// GetOutput from the last op in the graph get sent on this channel.
 func (g *Graph) GetOutput() (Chunk, bool) {
 	var chunk Chunk
 	var ok bool
@@ -372,7 +371,7 @@ func (g *Graph) GetName() string {
 	return g.name
 }
 
-//Returns all modules with the passed name. used for testing.
+// GetModuleByName returns all modules with the passed name. used for testing.
 func (g *Graph) GetModuleByName(name string) []*Module {
 	var moduleList []*Module
 

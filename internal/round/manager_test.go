@@ -78,7 +78,7 @@ func TestManager_GetPhase(t *testing.T) {
 	// Smoke test
 
 	// We have to make phases with fake graphs...
-	phases := make([]phase.Phase, int(phase.NUM_PHASES))
+	phases := make([]phase.Phase, int(phase.NumPhases))
 	for i := 0; i < len(phases); i++ {
 		gc := services.NewGraphGenerator(1,
 			1, 1, 1)

@@ -61,7 +61,7 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 
 	// Waiting for correct phase
 	ptype := r.GetCurrentPhaseType()
-	toWait := shouldWait(ptype)
+	toWait := getPhaseActivity(ptype)
 	if toWait == current.ERROR {
 		return errors.Errorf("Phase %+s has not associated node activity", ptype)
 	} else if toWait != curActivity {
@@ -103,11 +103,11 @@ func ReceivePostPhase(batch *mixmessages.Batch, instance *internal.Instance, aut
 }
 
 // ReceiveStreamPostPhase handles the state checks and edge checks of
-// receiving a phase operation
+// receiving a phase operation when streaming is enabled
 func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	instance *internal.Instance, auth *connect.Auth) error {
 
-	// Get batch info
+	// Get batch and round info
 	batchInfo, err := node.GetPostPhaseStreamHeader(streamServer)
 	if err != nil {
 		return errors.WithMessage(err, "Could not get post phase stream header")
@@ -130,30 +130,27 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 
 		jww.ERROR.Println(errMsg)
 		return errMsg
-
 	}
 
-	// Waiting for correct phase
+	// Wait for correct Round state
 	ptype := r.GetCurrentPhaseType()
-	toWait := shouldWait(ptype)
-
-	curActivity, err := instance.GetStateMachine().WaitFor(3*time.Second, toWait)
+	toWait := getPhaseActivity(ptype)
+	activityWaitTimeout := 3 * time.Second
+	curActivity, err := instance.GetStateMachine().WaitFor(activityWaitTimeout, toWait)
 	if err != nil {
 		return errors.WithMessagef(err, errFailedToWait, ptype)
-	}
-
-	if toWait == current.ERROR {
-		return errors.Errorf("Phase %+s has not associated node activity", ptype)
+	} else if toWait == current.ERROR {
+		return errors.Errorf("Phase %s has not associated node activity", ptype)
 	} else if toWait != curActivity {
 		return errors.Errorf("System in wrong state. Expected state: %s\nActual state: %s\n Current phase: %s",
 			toWait, curActivity, ptype)
 	}
 
-	phaseTy := phase.Type(batchInfo.FromPhase).String()
+	// Get the tag of the phase.Type of the received Batch header
+	phaseTag := phase.Type(batchInfo.FromPhase).String()
 
-	// Check if the operation can be done and get the correct
-	// phase if it can
-	_, p, err := rm.HandleIncomingComm(roundID, phaseTy)
+	// If the operation can be done, get the correct Phase object for the received Batch
+	_, p, err := rm.HandleIncomingComm(roundID, phaseTag)
 	if err != nil {
 		roundErr := errors.Errorf("[%v]: Error on reception of "+
 			"StreamPostPhase comm, should be able to return: \n %+v",
@@ -163,11 +160,12 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 	p.Measure(measure.TagReceiveOnReception)
 
 	jww.INFO.Printf("[%v]: RID %d StreamPostPhase FROM \"%s\" TO \"%s\" RECEIVE/START", instance,
-		roundID, phaseTy, p.GetType())
+		roundID, phaseTag, p.GetType())
 
-	//queue the phase to be operated on if it is not queued yet
+	// Queue the Phase to be operated on if it is not queued yet
 	p.AttemptToQueue(instance.GetResourceQueue().GetPhaseQueue())
 
+	// Begin receiving data from the IO stream while sending each piece into the Phase
 	streamInfo, strmErr := StreamPostPhase(p, batchInfo.BatchSize, streamServer)
 
 	jww.INFO.Printf("\tbwLogging: Round %d, "+
@@ -176,11 +174,10 @@ func ReceiveStreamPostPhase(streamServer mixmessages.Node_StreamPostPhaseServer,
 		"started: %v, "+
 		"ended: %v, "+
 		"duration: %d,",
-		roundID, phaseTy,
+		roundID, phaseTag,
 		auth.Sender.GetId().String(), instance.GetID(),
 		streamInfo.Start, streamInfo.End,
 		streamInfo.End.Sub(streamInfo.Start).Milliseconds())
 
 	return strmErr
-
 }

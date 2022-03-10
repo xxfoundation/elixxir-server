@@ -13,10 +13,10 @@ import (
 	"fmt"
 )
 
-// Response defines how a round should handle an incoming communication
-// That communication describes itself as being the completion on a phase
 type ResponseMap map[string]Response
 
+// Response defines how a round should handle an incoming communication
+// That communication describes itself as being the completion on a phase
 type Response interface {
 	CheckState(State) bool
 	GetPhaseLookup() Type
@@ -81,13 +81,13 @@ func (r ResponseDefinition) String() string {
 }
 
 //deepCopy Creates a deep copy of the ResponseDefinition
-func (rd ResponseDefinition) deepCopy() ResponseDefinition {
+func (r ResponseDefinition) deepCopy() ResponseDefinition {
 	rdNew := ResponseDefinition{
-		PhaseAtSource:  rd.PhaseAtSource,
-		PhaseToExecute: rd.PhaseToExecute,
-		ExpectedStates: make([]State, len(rd.ExpectedStates)),
+		PhaseAtSource:  r.PhaseAtSource,
+		PhaseToExecute: r.PhaseToExecute,
+		ExpectedStates: make([]State, len(r.ExpectedStates)),
 	}
 
-	copy(rdNew.ExpectedStates, rd.ExpectedStates)
+	copy(rdNew.ExpectedStates, r.ExpectedStates)
 	return rdNew
 }

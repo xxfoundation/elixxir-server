@@ -20,8 +20,7 @@ import (
 	"time"
 )
 
-//An interface which phase adheres to.  For use within
-//Handler testing to allow the interface to be overwritten
+// Phase is for use within Handler testing to allow the interface to be overwritten
 type Phase interface {
 	ConnectToRound(id id.Round, setState Transition,
 		getState GetState)
@@ -106,6 +105,7 @@ func (p *phase) ConnectToRound(id id.Round, setState Transition,
 }
 
 /*Getters*/
+
 // GetGraph gets the graph associated with the phase
 func (p *phase) GetGraph() *services.Graph {
 	return p.graph
@@ -190,6 +190,7 @@ func (p *phase) GetTimeout() time.Duration {
 }
 
 /*Utility*/
+
 // Cmp checks if two phases are the same
 func (p *phase) Cmp(p2 Phase) bool {
 	return p.roundID == p2.GetRoundID() && p.phaseType == p2.GetType()
@@ -240,7 +241,7 @@ func getMeasureInfo(p *phase, tag string) string {
 	return result
 }
 
-// Wrapper function to log output to console
+// Measure wrapper function to log output to console
 func (p *phase) Measure(tag string) {
 	jww.DEBUG.Print(getMeasureInfo(p, tag))
 }

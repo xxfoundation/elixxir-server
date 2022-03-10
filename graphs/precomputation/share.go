@@ -47,7 +47,7 @@ func (ss *ShareStream) LinkShareStream(grp *cyclic.Group, batchSize uint32, roun
 	ss.PartialPublicCypherKey = ss.Grp.NewInt(1)
 }
 
-// getSubStream implements reveal interface to return stream object
+// getRevealSubStream implements reveal interface to return stream object
 func (ss *ShareStream) GetSubStream() *ShareStream {
 	return ss
 }

@@ -18,10 +18,8 @@ import (
 var (
 	InvalidTypeAssert = errors.New("type assert failed")
 	InvalidMAC        = "User could not be validated"
-	UserNotFound      = "Could not find user"
 	SecretNotFound    = "Could not find secret"
-	ErrorDelimiter    = "; "
-	IdDelimiter       = "[]"
+	timeoutDuration   = 2 * time.Minute
 )
 
 // AdaptMeasureName is the name used to measure how long the adapt function
@@ -32,23 +30,22 @@ const AdaptMeasureName = "Adapt"
 // processing loop takes in the dispatch function.
 const OutModsMeasureName = "Mod"
 
+// dispatch runs a Module while taking measurements for the Graph
+// and forwards the output of this Module to its output Modules
 func dispatch(g *Graph, m *Module, threadID uint64) {
-
 	s := g.stream
 
-	// We measure the adapt and the mod
+	// We measure the adapt function and the mod
 	atID := fmt.Sprintf("%s%d", AdaptMeasureName, threadID)
 	omID := fmt.Sprintf("%s%d", OutModsMeasureName, threadID)
 
-	// Time out that channel read in the loop, since it sometimes blocks forever
-	// for unknown reasons
 	var chunk Chunk
 	var ok bool
-	timeoutDuration := 2 * time.Minute
 	timeout := time.NewTimer(timeoutDuration)
 	keepLooping := true
 	for keepLooping {
 		select {
+		// Time out that channel read in the loop to prevent it getting stuck
 		case <-timeout.C:
 			keepLooping = false
 			jww.WARN.Printf("Graph %v in module %v timed out thread %v", g.GetName(), m.Name, threadID)
@@ -57,6 +54,7 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 				g.Lock()
 				g.metrics.Measure(atID)
 				g.Unlock()
+				// Run the Module for each chunk
 				err := m.Adapt(s, m.Cryptop, chunk)
 				g.Lock()
 				g.metrics.Measure(atID)
@@ -79,9 +77,8 @@ func dispatch(g *Graph, m *Module, threadID uint64) {
 						return
 					}
 
+					// Send output chunks of this Module to inputs of the output Modules
 					for _, r := range chunkList {
-						/*fmt.Printf( "%s sending (%v - %v) to %s \n",
-						m.Name, r.begin, r.end, om.Name)*/
 						om.input <- r
 					}
 

@@ -19,47 +19,48 @@ const (
 	AutoInputSize    = 0
 )
 
+// Declare the signature of the Module.Adapt function call
 type adapter func(stream Stream, cryptop cryptops.Cryptop, chunk Chunk) error
 
 type Module struct {
 	/*Public*/
-	// Function which is called by dispatcher and interfaces with the cryptop
+	// Function which is called by dispatcher which interfaces with and performs the cryptop
 	Adapt adapter
 	// Cryptographic code which is executed
 	Cryptop cryptops.Cryptop
 
-	//Number of slots an input subtends
+	// Number of slots an input subtends
 	InputSize uint32
-	//Percent of the batch which must be complete
+	// Percent of the batch which must be complete
 	StartThreshold float32
 
-	//Name of module. Used for debugging.
+	// Name of module. Used for debugging.
 	Name string
 
-	//Number of goroutines to execute the adapter and cryptops on
+	// Number of goroutines to execute the adapter and cryptops on
 	NumThreads uint8
 
 	/*Private*/
-	//Contains and controls the input channel
+	// Contains and controls the input channel
 	moduleInput
-	//Internal id of module used for tracking
+	// Internal id of module used for tracking
 	id uint64
-	//Slice of modules whose outputs feed into this modules input
+	// Slice of modules whose outputs feed into this modules input
 	inputModules []*Module
-	//Slice of modules who inputs are fed by this modules output
+	// Slice of modules whose inputs are fed by this modules output
 	outputModules []*Module
-	//Tracks inputs to the module and determines when they are ready to be processed
+	// Tracks inputs to the module and determines when they are ready to be processed
 	assignmentList assignmentList
 
-	//Tracks if the module is running
+	// Tracks if the module is running
 	initialized bool
-	//denotes if the module has been used
+	// denotes if the module has been used
 	used bool
-	//denoted if it is a copy
+	// denoted if this module is a copy
 	copy bool
 }
 
-//Checks inputs are correct and sets the inputsize if it is set to auto
+//Checks inputs are correct and sets the inputSize if it is set to auto
 func (m *Module) checkParameters(minInputSize uint32, defaultNumThreads uint8) {
 	if m.NumThreads == AutoNumThreads {
 		m.NumThreads = defaultNumThreads
@@ -77,21 +78,21 @@ func (m *Module) checkParameters(minInputSize uint32, defaultNumThreads uint8) {
 }
 
 //Builds assignments
-func (m *Module) buildAssignments(batchsize uint32) {
+func (m *Module) buildAssignments(batchSize uint32) {
 
-	m.assignmentList.threshold = threshold(batchsize, m.StartThreshold)
+	m.assignmentList.threshold = threshold(batchSize, m.StartThreshold)
 
 	if m.InputSize == InputIsBatchSize {
-		m.InputSize = batchsize
+		m.InputSize = batchSize
 	}
 
-	if batchsize%m.InputSize != 0 {
+	if batchSize%m.InputSize != 0 {
 		jww.FATAL.Panicf("%v expanded batch size incorrect: "+
 			"module input size is not factor; BatchSize: %v, Module Input: %v ",
-			m.Name, batchsize, m.InputSize)
+			m.Name, batchSize, m.InputSize)
 	}
 
-	numJobs := uint32(batchsize / m.InputSize)
+	numJobs := batchSize / m.InputSize
 
 	numInputModules := uint32(len(m.inputModules))
 	if numInputModules < 1 {
@@ -111,17 +112,17 @@ func (m *Module) buildAssignments(batchsize uint32) {
 	m.assignmentList.waiting = make([]Chunk, numJobs)
 
 	for j := uint32(0); j < numJobs; j++ {
-		m.assignmentList.assignments[j] = newAssignment(uint32(j * m.InputSize))
+		m.assignmentList.assignments[j] = newAssignment(j * m.InputSize)
 	}
 }
 
 //Get the threshold number
-func threshold(batchsize uint32, thresh float32) uint32 {
+func threshold(batchSize uint32, thresh float32) uint32 {
 	if thresh < 0 || thresh > 1 {
-		jww.FATAL.Panicf("utput threshold was %v, "+
+		jww.FATAL.Panicf("output threshold was %v, "+
 			"must be between 0 and 1", thresh)
 	}
-	return uint32(float64(thresh) * float64(batchsize))
+	return uint32(float64(thresh) * float64(batchSize))
 }
 
 func (m Module) DeepCopy() *Module {

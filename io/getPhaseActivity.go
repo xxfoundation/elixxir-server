@@ -12,7 +12,8 @@ import (
 	"gitlab.com/elixxir/server/internal/phase"
 )
 
-func shouldWait(p phase.Type) current.Activity {
+// getPhaseActivity determines what current.Activity the given phase.Type needs to wait for
+func getPhaseActivity(p phase.Type) current.Activity {
 	if p == phase.PrecompShare || p == phase.PrecompGeneration ||
 		p == phase.PrecompDecrypt || p == phase.PrecompReveal ||
 		p == phase.PrecompPermute {
