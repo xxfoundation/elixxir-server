@@ -7,7 +7,7 @@
 
 package services
 
-// Chunks are groups of slots that must be completely done before they're ready
+// Chunk are groups of slots that must be completely done before they're ready
 // for processing in the next phase of the graph.
 // Soon we'll also have a Few type, which will allow a Chunk to be subdivided into
 // multiple smaller pieces for processing by multiple threads. This is useful

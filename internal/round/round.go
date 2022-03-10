@@ -250,6 +250,7 @@ func (r *Round) GetPhase(p phase.Type) (phase.Phase, error) {
 	return r.phases[i], nil
 }
 
+// GetCurrentPhaseType returns the phase.Type corresponding to the current state of the Round
 func (r *Round) GetCurrentPhaseType() phase.Type {
 	return phase.Type((atomic.LoadUint32(r.state) - 1) /
 		(uint32(phase.NumStates) - 2))

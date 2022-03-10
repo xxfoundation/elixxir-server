@@ -138,12 +138,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	return nil
 }
 
-// StreamPostPhase implements the server gRPC handler for posting a
-// phase from another node
+// StreamPostPhase implements the server gRPC handler for receiving a
+// phase from another node and sending the data into the Phase
 func StreamPostPhase(p phase.Phase, batchSize uint32,
 	stream mixmessages.Node_StreamPostPhaseServer) (*streamInfo, error) {
 	// Send a chunk for each slot received along with
-	// its index until an error is received
+	// its index until all slots or an error is received
 	slot, err := stream.Recv()
 	var start, end time.Time
 	slotsReceived := uint32(0)
@@ -155,6 +155,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		}
 		index := slot.Index
 
+		// Input the slot into the current Phase
 		phaseErr := p.Input(index, slot)
 		if phaseErr != nil {
 			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
@@ -162,6 +163,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 			return &streamInfo{Start: start, End: end}, phaseErr
 		}
 
+		// Build a Chunk corresponding to the slot and send it to the Phase
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
 

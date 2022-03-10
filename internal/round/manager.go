@@ -85,7 +85,7 @@ func (rm *Manager) DeleteRound(id id.Round) {
 }
 
 // HandleIncomingComm looks up if a comm is valid and if it is, returns
-// the associated round, phase (according to the round's response table)
+// the associated round and phase (according to the round's response table),
 // otherwise returns an error
 func (rm *Manager) HandleIncomingComm(roundID id.Round, tag string) (*Round, phase.Phase, error) {
 	// Get the round (with error checking) from the round manager
@@ -93,7 +93,8 @@ func (rm *Manager) HandleIncomingComm(roundID id.Round, tag string) (*Round, pha
 	if err != nil {
 		return nil, nil, err
 	}
-	//Get the correct phase from the round based upon the response table
+
+	// Get the correct phase from the round based upon the response table
 	p, err := r.HandleIncomingComm(tag)
 	if err != nil {
 		return nil, nil, err

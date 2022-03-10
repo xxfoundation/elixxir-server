@@ -16,6 +16,8 @@ import (
 var ErrOutsideOfGroup = errors.New("cyclic int is outside of the prescribed group")
 var ErrOutsideOfBatch = errors.New("cyclic int is outside of the prescribed batch")
 
+// Stream defines the interface that Graphs must adhere to in order to be interfaced with,
+// which functionally describes how IO and local data goes in and out of self-contained Graphs
 type Stream interface {
 	GetName() string
 	Link(grp *cyclic.Group, BatchSize uint32, source ...interface{})

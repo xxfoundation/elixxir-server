@@ -293,24 +293,25 @@ func (g *Graph) OverrideBatchSize(b uint32) {
 
 type Measure func(tag string)
 
+// Send combines Chunks into a size described by the firstModule.assignmentList
+// and sends the resized Chunks into firstModule.input
 func (g *Graph) Send(chunk Chunk, measureObj Measure) {
-
+	// Retrieve Chunks of the proper size as described by the assignmentList
 	srList, err := g.firstModule.assignmentList.PrimeOutputs(chunk)
-
-	//fmt.Println(g.name,"sending", chunk, "srList", srList)
 
 	if err != nil {
 		g.errorHandler(g.name, "input", err)
 	}
 
+	// Send resized Chunks into the input of firstModule
 	for _, r := range srList {
 		g.firstModule.input <- r
 	}
 
-	//If the entire batch has been sent then send the difference between batchsize and expanded batchsize
+	// If the entire batch has been sent then send the difference between batchSize and expanded batchSize
 	numSent := atomic.AddUint32(g.sentInputs, chunk.Len())
-
 	if numSent == g.batchSize && g.batchSize < g.expandBatchSize {
+		// Build the final chunk accounting for the difference in batchSize and expandBatchSize
 		endChunk := NewChunk(g.batchSize, g.expandBatchSize)
 		srList, err = g.firstModule.assignmentList.PrimeOutputs(endChunk)
 
@@ -324,13 +325,11 @@ func (g *Graph) Send(chunk Chunk, measureObj Measure) {
 	}
 
 	done, err := g.firstModule.assignmentList.DenoteCompleted(len(srList))
-
 	if err != nil {
 		g.errorHandler(g.name, "input", err)
 	}
 
 	if done {
-		//fmt.Println(g.name,"done sending to graph")
 		// FIXME: Perhaps not the correct place to close the channel.
 		// Ideally, only the sender closes, and only if there's one sender.
 		// Does commenting this fix the double close?
