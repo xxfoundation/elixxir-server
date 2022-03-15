@@ -94,8 +94,8 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 	return err
 }
 
-// PostPhase implements the server gRPC handler for posting a
-// phase from another node
+// PostPhase implements the server gRPC handler for receiving a
+// phase from another node and sending the data into the Phase
 func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 	// Send a chunk per slot
 	for index, message := range batch.Slots {

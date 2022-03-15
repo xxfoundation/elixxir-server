@@ -7,7 +7,7 @@
 
 package io
 
-// transmitPhasestream.go contains the logic for streaming a phase comm
+// transmitPhaseStream.go contains the logic for streaming a phase comm
 
 import (
 	"fmt"
@@ -56,7 +56,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	}
 
 	// get the current phase
-	// get this here to use down below to record the measurment to stop a race
+	// get this here to use down below to record the measurement to stop a race
 	// conditions where other nodes finish their works and get this node to
 	// iterate phase before the measure code runs
 	currentPhase := r.GetCurrentPhase()
@@ -70,16 +70,17 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		return errors.Errorf("Error on comm, unable to get streaming "+
 			"client: %+v", err)
 	}
+	defer cancel()
 
-	//pull the first chunk reception out so it can be timestmaped
+	//pull the first chunk reception out so that it can be timestamped
 	chunk, finish := getChunk()
 	var start time.Time
-	numslots := 0
+	numSlots := 0
 	// For each message chunk (slot) stream it out
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			numslots++
-			if numslots == 1 {
+			numSlots++
+			if numSlots == 1 {
 				start = time.Now()
 			}
 			msg := getMessage(i)
@@ -122,8 +123,6 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		roundID, currentPhase.GetType(),
 		instance.GetID(), recipientID,
 		start, end, end.Sub(start).Milliseconds())
-
-	cancel()
 
 	if err != nil {
 		return errors.WithMessagef(err, "Failed to stream on round %d to %s",
