@@ -4,6 +4,7 @@
 // Use of this source code is governed by a license that can be found in the //
 // LICENSE file                                                              //
 ///////////////////////////////////////////////////////////////////////////////
+
 package round
 
 import (
@@ -16,15 +17,14 @@ import (
 // Contains logic that handles an invalid client error within realtime
 // Reports this error through a channel to permissioning
 
-// Client report maps a channel containing a series of client errors
-// to a round ID
+// ClientReport maps a channel containing a series of client errors to a round ID
 type ClientReport struct {
 	ErrorTracker map[id.Round]chan *pb.ClientError
 	SourceId     *id.ID // Node ID of the source of the error
 	sync.RWMutex
 }
 
-// Initiates a new client failure reporter.
+// NewClientFailureReport initiates a new client failure reporter.
 func NewClientFailureReport(sourceID *id.ID) *ClientReport {
 	m := make(map[id.Round]chan *pb.ClientError)
 	return &ClientReport{
@@ -40,7 +40,7 @@ func NewClientFailureReport(sourceID *id.ID) *ClientReport {
 	// }
 }
 
-// Initializes a channel within the client error map
+// InitErrorChan initializes a channel within the client error map
 func (cr *ClientReport) InitErrorChan(rndID id.Round, batchSize uint32) {
 	cr.RWMutex.Lock()
 	newChan := make(chan *pb.ClientError, batchSize)
@@ -49,7 +49,7 @@ func (cr *ClientReport) InitErrorChan(rndID id.Round, batchSize uint32) {
 
 }
 
-// Sends a client error through the channel if possible
+// Send a client error through the channel if possible
 func (cr *ClientReport) Send(rndID id.Round, clientError *pb.ClientError) error {
 	cr.RWMutex.RLock()
 	tracker := cr.ErrorTracker[rndID]
