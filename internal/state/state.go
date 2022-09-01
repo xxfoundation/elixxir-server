@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 // This package holds the server's state object. It defines what states exist
 // and what state transitions are allowable within the NewMachine() function.
