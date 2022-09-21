@@ -34,8 +34,9 @@ build_gpumaths:
     - git clean -ffdx
     # Clone a specific gpumaths branch if the pipeline has variable set
     # Otherwise clone release gpumathsnative
-    - mkdir -p /opt/xxnetwork/lib
-    - mkdir -p /opt/xxnetwork/include
+    - sudo mkdir -p /opt/xxnetwork/lib
+    - sudo mkdir -p /opt/xxnetwork/include
+    - sudo chown -R npuser /opt/xxnetwork
     - GPUMATHS_CLONE_VERSION=${GPUMATHS_VERSION-release}
     # If server pipeline branch is master, get master branch of gpumathsnative
     - if [ "$CI_COMMIT_BRANCH" == "master" ]; then
@@ -76,7 +77,8 @@ build:
   tags:
     - gpu
   script:
-    - mkdir -p /opt/xxnetwork
+    - sudo mkdir -p /opt/xxnetwork
+    - sudo chown -R npuser /opt/xxnetwork
     - cp -ra libraries/* /opt/xxnetwork/
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' ./...
     - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags '-w -s' -o release/server.linux64 main.go
@@ -105,7 +107,8 @@ test:
   tags:
     - gpu
   script:
-    - mkdir -p /opt/xxnetwork
+    - sudo mkdir -p /opt/xxnetwork
+    - sudo chown -R npuser /opt/xxnetwork
     - cp -ra libraries/* /opt/xxnetwork/
     - mkdir -p testdata
 
