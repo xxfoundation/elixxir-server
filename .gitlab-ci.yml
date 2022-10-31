@@ -27,7 +27,7 @@ stages:
 
 build_gpumaths:
   stage: gpumaths
-  image: $DOCKER_IMAGE
+  image: docker-registry.xx.network/elixxir/sysadmin/backend-ci:go1.19-cuda11.1.1
   tags:
     - gpu
   script:
@@ -72,7 +72,7 @@ build_gpumaths:
 
 build:
   stage: release
-  image: $DOCKER_IMAGE
+  image: docker-registry.xx.network/elixxir/sysadmin/backend-ci:go1.19-cuda11.1.1
   tags:
     - gpu
   script:
@@ -101,7 +101,7 @@ build:
 
 test:
   stage: release
-  image: $DOCKER_IMAGE
+  image: docker-registry.xx.network/elixxir/sysadmin/backend-ci:go1.19-cuda11.1.1
   tags:
     - gpu
   script:
