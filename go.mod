@@ -1,6 +1,6 @@
 module gitlab.com/elixxir/server
 
-go 1.17
+go 1.19
 
 require (
 	github.com/InfiniteLoopSpace/go_S-MIME v0.0.0-20181221134359-3f58f9a4b2b6
