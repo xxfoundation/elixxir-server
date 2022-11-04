@@ -87,7 +87,8 @@ func RegisterNode(def *internal.Definition, instance *internal.Instance) error {
 }
 
 // Poll is used to retrieve updated state information from permissioning
-//  and update our internal state accordingly
+//
+//	and update our internal state accordingly
 func Poll(instance *internal.Instance) error {
 
 	// Fetch the host information from the network
@@ -186,14 +187,8 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		lastUpdateId = 0
 	}
 
-	port, err := strconv.Atoi(strings.Split(instance.GetNetwork().ListeningAddr, ":")[1])
-	if err != nil {
-		jww.ERROR.Printf("Could not get port number out of server's address. " +
-			"Likely this is because the address is an IPv6 address")
-		return nil, err
-	}
-
 	var clientReport []*pb.ClientError
+	var err error
 	latestRound := instance.GetRoundManager().GetCurrentRound()
 	if reportedActivity == current.COMPLETED {
 		clientReport, err = instance.GetClientReport().Receive(latestRound)
@@ -223,9 +218,6 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		ServerVersion: instance.GetServerVersion(),
 		ClientErrors:  clientReport,
 	}
-
-	jww.TRACE.Printf("Sending Poll Msg: %s, %d", gatewayAddr,
-		uint32(port))
 
 	if reportedActivity == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
