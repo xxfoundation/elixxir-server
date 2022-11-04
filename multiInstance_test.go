@@ -15,6 +15,7 @@ import (
 	"encoding/binary"
 	"encoding/pem"
 	"fmt"
+	"gitlab.com/elixxir/primitives/states"
 	"math/big"
 	"math/rand"
 	"net"
@@ -239,6 +240,7 @@ func MultiInstanceTest(numNodes, batchSize int, grp *cyclic.Group, useGPU, error
 		BatchSize:                  uint32(batchSize),
 		Topology:                   ourTopology,
 		ResourceQueueTimeoutMillis: 5000,
+		Timestamps:                 make([]uint64, states.NUM_STATES),
 	}
 
 	expectedBatch, ecrBatch, err := buildMockBatch(batchSize, grp, baseKeys, userID, roundInfoMsg)
@@ -550,7 +552,8 @@ func iterate(done chan time.Time, nodes []*internal.Instance, t *testing.T,
 
 // generateCert eturns a self-signed cert and key for dummy tls comms,
 // this is mostly cribbed from:
-//   https://golang.org/src/crypto/tls/generate_cert.go
+//
+//	https://golang.org/src/crypto/tls/generate_cert.go
 func generateCert() ([]byte, []byte) {
 	priv, err := gorsa.GenerateKey(crand.Reader, 2048)
 	if err != nil {

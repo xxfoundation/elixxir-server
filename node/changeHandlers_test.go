@@ -13,6 +13,7 @@ import (
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/primitives/current"
+	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -217,6 +218,7 @@ func TestPrecomputing(t *testing.T) {
 		Topology:                   top,
 		BatchSize:                  32,
 		ResourceQueueTimeoutMillis: 2000,
+		Timestamps:                 make([]uint64, states.NUM_STATES),
 	}
 
 	// Mocking permissioning server signing message
@@ -286,9 +288,10 @@ func TestPrecomputing_override(t *testing.T) {
 	}
 
 	newRoundInfo := &mixmessages.RoundInfo{
-		ID:        1,
-		Topology:  top,
-		BatchSize: 32,
+		ID:         1,
+		Topology:   top,
+		BatchSize:  32,
+		Timestamps: make([]uint64, states.NUM_STATES),
 	}
 	// Mocking permissioning server signing message
 	err = signRoundInfo(newRoundInfo)

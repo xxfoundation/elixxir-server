@@ -8,6 +8,7 @@
 package io
 
 import (
+	"gitlab.com/elixxir/primitives/states"
 	"testing"
 	"time"
 
@@ -409,7 +410,8 @@ func TestReceivePoll_GetBatchMessage(t *testing.T) {
 	}
 
 	newRound := &pb.RoundInfo{
-		ID: uint64(23),
+		ID:         uint64(23),
+		Timestamps: make([]uint64, states.NUM_STATES),
 	}
 
 	err = signature.SignRsa(newRound, privKey)
