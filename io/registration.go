@@ -163,6 +163,10 @@ func RequestClientKey(instance *internal.Instance,
 	encryptedClientKeyHMAC := registration.CreateClientHMAC(sessionKey.Bytes(),
 		encryptedClientKey, opts.Hash.New)
 
+	jww.TRACE.Printf("[ClientKeyHMAC] Session Key Bytes: %+v", sessionKey.Bytes())
+	jww.TRACE.Printf("[ClientKeyHMAC] EncryptedClientKey: %+v", encryptedClientKey)
+	jww.TRACE.Printf("[ClientKeyHMAC] EncryptedClientKeyHMAC: %+v", encryptedClientKeyHMAC)
+
 	// Construct response
 	resp := &pb.ClientKeyResponse{
 		EncryptedClientKey:     encryptedClientKey,
