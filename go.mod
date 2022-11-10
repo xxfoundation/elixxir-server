@@ -11,13 +11,13 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20221108183306-7c473bca3cd6
-	gitlab.com/elixxir/crypto v0.0.7-0.20221108183134-3f4a29c68e97
+	gitlab.com/elixxir/comms v0.0.4-0.20221110181420-84bca6216fe4
+	gitlab.com/elixxir/crypto v0.0.7-0.20221110181326-dd7e5293feb0
 	gitlab.com/elixxir/gpumathsgo v0.1.1-0.20220901223158-f0f1496060cb
-	gitlab.com/elixxir/primitives v0.0.3-0.20221108183049-7bdff545bf8e
-	gitlab.com/xx_network/comms v0.0.4-0.20221108183032-8732b403e506
-	gitlab.com/xx_network/crypto v0.0.5-0.20221108182939-05998dc093e9
-	gitlab.com/xx_network/primitives v0.0.4-0.20221104175439-f0d440beacd9
+	gitlab.com/elixxir/primitives v0.0.3-0.20221110181119-e83320a48b13
+	gitlab.com/xx_network/comms v0.0.4-0.20221110181111-4f0694876936
+	gitlab.com/xx_network/crypto v0.0.5-0.20221110181048-76f0c556fe95
+	gitlab.com/xx_network/primitives v0.0.4-0.20221110180011-fd6ea3058225
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
