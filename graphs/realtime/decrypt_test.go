@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package realtime
 
@@ -202,7 +202,7 @@ func TestSubAccess(t *testing.T) {
 		t.Errorf("realtimeDecrypt: Could not access keygenStream")
 	}
 
-	_, ok2 := stream.(RealtimeDecryptSubStreamInterface)
+	_, ok2 := stream.(KeygenDecryptSubStreamInterface)
 
 	if !ok2 {
 		t.Errorf("realtimeDecrypt: Could not access decryptStream")

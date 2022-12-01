@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
@@ -19,7 +19,7 @@ import (
 )
 
 // This file implements the Graph for the Precomputation Reveal phase.
-// The reveal phase removes cypher keys from both payload's cypher texts,
+// The Reveal phase removes cypher keys from both payload's cypher texts,
 // revealing the private keys for the round.
 
 // RevealStream holds data containing private key from encrypt and inputs used by strip
@@ -40,7 +40,7 @@ func (s *RevealStream) GetName() string {
 	return "PrecompRevealStream"
 }
 
-// Link binds stream to state objects in round
+// Link binds stream to local state objects in round
 func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 	var streamPool *gpumaths.StreamPool
@@ -49,13 +49,13 @@ func (s *RevealStream) Link(grp *cyclic.Group, batchSize uint32, source ...inter
 		streamPool = source[2].(*gpumaths.StreamPool)
 	}
 
-	s.LinkStream(grp, batchSize, roundBuffer, streamPool,
+	s.LinkRevealStream(grp, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)))
 }
 
-// LinkStream is called by Link other stream objects from round
-func (s *RevealStream) LinkStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, streamPool *gpumaths.StreamPool, CypherPayloadA, CypherPayloadB *cyclic.IntBuffer) {
+// LinkRevealStream binds stream to local state objects in round
+func (s *RevealStream) LinkRevealStream(grp *cyclic.Group, roundBuffer *round.Buffer, streamPool *gpumaths.StreamPool, CypherPayloadA, CypherPayloadB *cyclic.IntBuffer) {
 	s.Grp = grp
 	s.StreamPool = streamPool
 
@@ -65,7 +65,7 @@ func (s *RevealStream) LinkStream(grp *cyclic.Group, batchSize uint32, roundBuff
 	s.CypherPayloadB = CypherPayloadB
 }
 
-// Input initializes stream inputs from slot
+// Input initializes stream inputs from slot received from IO
 func (s *RevealStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(s.CypherPayloadA.Len()) {
@@ -81,7 +81,7 @@ func (s *RevealStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-// Output returns a cmix slot message
+// Output a cmix slot message for IO
 func (s *RevealStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index:                     index,
@@ -91,15 +91,15 @@ func (s *RevealStream) Output(index uint32) *mixmessages.Slot {
 }
 
 type revealSubstreamInterface interface {
-	getSubStream() *RevealStream
+	getRevealSubStream() *RevealStream
 }
 
 // getSubStream implements reveal interface to return stream object
-func (s *RevealStream) getSubStream() *RevealStream {
+func (s *RevealStream) getRevealSubStream() *RevealStream {
 	return s
 }
 
-// RevealRootCoprime is a module in precomputation reveeal implementing cryptops.RootCoprimePrototype
+// RevealRootCoprime is a CPU module in precomputation reveal implementing cryptops.RootCoprimePrototype
 var RevealRootCoprime = services.Module{
 	// Runs root coprime for cypher texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -110,7 +110,7 @@ var RevealRootCoprime = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		rs := s.getSubStream()
+		rs := s.getRevealSubStream()
 		tmp := rs.Grp.NewMaxInt()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
@@ -135,6 +135,7 @@ var RevealRootCoprime = services.Module{
 	Name:       "RevealRootCoprime",
 }
 
+// RevealRootCoprimeChunk is a GPU module in precomputation reveal implementing cryptops.RootCoprimePrototype
 var RevealRootCoprimeChunk = services.Module{
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
 		rssi, ok := streamInput.(revealSubstreamInterface)
@@ -142,7 +143,7 @@ var RevealRootCoprimeChunk = services.Module{
 		if !ok || !ok2 {
 			return services.InvalidTypeAssert
 		}
-		rs := rssi.getSubStream()
+		rs := rssi.getRevealSubStream()
 		gpuStreams := rs.StreamPool
 		cpa := rs.CypherPayloadA.GetSubBuffer(chunk.Begin(), chunk.End())
 		err := rc(gpuStreams, rs.Grp, rs.Z, cpa, cpa)
@@ -163,7 +164,7 @@ var RevealRootCoprimeChunk = services.Module{
 	NumThreads: 2,
 }
 
-// InitRevealGraph called to initialize the graph. Conforms to graphs.Initialize function type
+// InitRevealGraph called to initialize the CPU Graph. Conforms to graphs.Initialize function type
 func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGPU") {
 		jww.FATAL.Panicf("Using precomp reveal graph running on CPU instead of equivalent GPU graph")
@@ -178,16 +179,17 @@ func InitRevealGraph(gc services.GraphGenerator) *services.Graph {
 	return graph
 }
 
+// InitRevealGPUGraph called to initialize the GPU Graph. Conforms to graphs.Initialize function type
 func InitRevealGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using precomp reveal graph running on GPU instead of equivalent CPU graph")
 	}
 	g := gc.NewGraph("PrecompRevealGPU", &RevealStream{})
 
-	RevealRootCoprimeChunk := RevealRootCoprimeChunk.DeepCopy()
+	revealRootCoprimeChunk := RevealRootCoprimeChunk.DeepCopy()
 
-	g.First(RevealRootCoprimeChunk)
-	g.Last(RevealRootCoprimeChunk)
+	g.First(revealRootCoprimeChunk)
+	g.Last(revealRootCoprimeChunk)
 
 	return g
 }

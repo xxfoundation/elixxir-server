@@ -1,13 +1,13 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package services
 
-// Chunks are groups of slots that must be completely done before they're ready
+// Chunk are groups of slots that must be completely done before they're ready
 // for processing in the next phase of the graph.
 // Soon we'll also have a Few type, which will allow a Chunk to be subdivided into
 // multiple smaller pieces for processing by multiple threads. This is useful

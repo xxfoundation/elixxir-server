@@ -1,11 +1,13 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package realtime
+
+// Realtime Identify
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
@@ -18,6 +20,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
+// IdentifyStream holds data containing keys and inputs used by Identify
 type IdentifyStream struct {
 	Grp        *cyclic.Group
 	StreamPool *gpumaths.StreamPool
@@ -35,12 +38,12 @@ type IdentifyStream struct {
 	PermuteStream
 }
 
-// GetName returns the name of the stream for debugging purposes.
+// GetName returns stream name
 func (is *IdentifyStream) GetName() string {
 	return "RealtimeIdentifyStream"
 }
 
-// Link binds stream data to state objects in round.
+// Link binds stream to local state objects in round
 func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
@@ -57,7 +60,7 @@ func (is *IdentifyStream) Link(grp *cyclic.Group, batchSize uint32, source ...in
 		make([]*cyclic.Int, batchSize))
 }
 
-// LinkRealtimePermuteStreams binds stream data.
+// LinkIdentifyStreams binds stream to local state objects in round
 func (is *IdentifyStream) LinkIdentifyStreams(grp *cyclic.Group, batchSize uint32, round *round.Buffer, pool *gpumaths.StreamPool,
 	ecrPayloadA, ecrPayloadB *cyclic.IntBuffer, permPayloadA, permPayloadB []*cyclic.Int) {
 
@@ -73,7 +76,7 @@ func (is *IdentifyStream) LinkIdentifyStreams(grp *cyclic.Group, batchSize uint3
 	is.EcrPayloadAPermuted = permPayloadA
 	is.EcrPayloadBPermuted = permPayloadB
 
-	is.LinkRealtimePermuteStreams(grp, batchSize, round, pool,
+	is.LinkPermuteStreams(grp, batchSize, round, pool,
 		is.EcrPayloadA,
 		is.EcrPayloadB,
 		is.EcrPayloadAPermuted,
@@ -89,7 +92,7 @@ func (is *IdentifyStream) getIdentifyStream() *IdentifyStream {
 	return is
 }
 
-// Input initializes stream inputs from slot.
+// Input initializes stream inputs from slot received from IO
 func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(is.EcrPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
@@ -105,7 +108,7 @@ func (is *IdentifyStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-// Output returns a message with the stream data.
+// Output a cmix slot message for IO
 func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
 	byteLen := uint64(len(is.Grp.GetPBytes()))
 	return &mixmessages.Slot{
@@ -115,7 +118,7 @@ func (is *IdentifyStream) Output(index uint32) *mixmessages.Slot {
 	}
 }
 
-// Module implementing cryptops.Mul2.
+// IdentifyMul2 is the CPU module in realtime Decrypt implementing cryptops.Mul2
 var IdentifyMul2 = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -143,7 +146,7 @@ var IdentifyMul2 = services.Module{
 	Name:           "Identify",
 }
 
-// Module implementing cryptops.Mul2.
+// IdentifyMul2Chunk is the GPU module in realtime Decrypt implementing cryptops.Mul2
 var IdentifyMul2Chunk = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -183,7 +186,7 @@ var IdentifyMul2Chunk = services.Module{
 	Name:           "Identify",
 }
 
-// InitIdentifyGraph initializes and returns a new graph.
+// InitIdentifyGraph is called to initialize the CPU Graph. Conforms to Graph.Initialize function type
 func InitIdentifyGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGPU") {
 		jww.FATAL.Panicf("Using realtime identify graph running on CPU instead of equivalent GPU graph")
@@ -200,7 +203,7 @@ func InitIdentifyGraph(gc services.GraphGenerator) *services.Graph {
 	return g
 }
 
-// InitIdentifyGraph initializes and returns a new graph.
+// InitIdentifyGPUGraph is called to initialize the GPU Graph. Conforms to Graph.Initialize function type
 func InitIdentifyGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using realtime identify graph running on GPU instead of equivalent CPU graph")

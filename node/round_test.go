@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package node
 
@@ -30,8 +30,7 @@ func TestNewRoundComponents_FirstNode(t *testing.T) {
 	// Dummy instance to prevent segfault
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, false, 0)
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -60,8 +59,7 @@ func TestNewRoundComponents_MiddleNode(t *testing.T) {
 	// Dummy instance to prevent segfault
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, false, 0)
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -89,8 +87,7 @@ func TestNewRoundComponents_LastNode(t *testing.T) {
 	// Dummy instance to prevent segfault
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, false, 0)
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance, 2*time.Second, nil, false, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -118,8 +115,7 @@ func TestNewRoundComponents_FirstNode_Streaming(t *testing.T) {
 	// Dummy instance to prevent segfault
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, true, 0)
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -148,8 +144,7 @@ func TestNewRoundComponents_MiddleNode_Streaming(t *testing.T) {
 	// Dummy instance to prevent segfault
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, true, 0)
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+
@@ -177,8 +172,7 @@ func TestNewRoundComponents_LastNode_Streaming(t *testing.T) {
 	// Dummy instance to prevent segfault
 	instance, _, _, _, _, _, _ := createServerInstance(t)
 
-	phases, responses := NewRoundComponents(gc, topology, nodeID, instance,
-		100, 2*time.Second, nil, true, 0)
+	phases, responses := NewRoundComponents(gc, topology, nodeID, instance, 2*time.Second, nil, true, 0)
 
 	if len(phases) != expectedNumPhases {
 		t.Errorf("NewRoundComponents: incorrect number for phases for "+

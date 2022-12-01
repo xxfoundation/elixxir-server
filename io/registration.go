@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 // Package io registration.go handles the endpoints for registration
 
@@ -162,6 +162,10 @@ func RequestClientKey(instance *internal.Instance,
 	h.Reset()
 	encryptedClientKeyHMAC := registration.CreateClientHMAC(sessionKey.Bytes(),
 		encryptedClientKey, opts.Hash.New)
+
+	jww.TRACE.Printf("[ClientKeyHMAC] Session Key Bytes: %+v", sessionKey.Bytes())
+	jww.TRACE.Printf("[ClientKeyHMAC] EncryptedClientKey: %+v", encryptedClientKey)
+	jww.TRACE.Printf("[ClientKeyHMAC] EncryptedClientKeyHMAC: %+v", encryptedClientKeyHMAC)
 
 	// Construct response
 	resp := &pb.ClientKeyResponse{

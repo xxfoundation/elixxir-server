@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -15,7 +15,7 @@ import (
 
 // A generic function for testing shouldwait, when passing in a phase it should return the expected activity
 func testPhaseForActivity(p phase.Type, a current.Activity, t *testing.T) {
-	expectedActivity := shouldWait(p)
+	expectedActivity := getPhaseActivity(p)
 	if expectedActivity != a {
 		t.Logf("Phase %v not returning %v", p, a)
 		t.Fail()

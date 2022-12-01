@@ -1,15 +1,16 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package node
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/xx_network/comms/connect"
@@ -152,9 +153,10 @@ func TestStartLocalPrecomp_HappyPath(t *testing.T) {
 	instance.GetRoundManager().AddRound(r)
 
 	newRoundInfo := &mixmessages.RoundInfo{
-		ID:        0,
-		Topology:  [][]byte{instance.GetID().Marshal()},
-		BatchSize: 32,
+		ID:         0,
+		Topology:   [][]byte{instance.GetID().Marshal()},
+		BatchSize:  32,
+		Timestamps: make([]uint64, states.NUM_STATES),
 	}
 
 	// Mocking permissioning server signing message

@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
@@ -18,7 +18,7 @@ import (
 )
 
 // This file implements the Graph for the Precomputation Generate phase
-// Generate phase transforms first unpermuted internode keys
+// The Generate phase transforms first unpermuted internode keys
 // and partial cypher texts into the data that the permute phase needs
 
 // GenerateStream holds the inputs for the Generate operation
@@ -46,7 +46,7 @@ func (gs *GenerateStream) GetName() string {
 	return "PrecompGenerateStream"
 }
 
-// Link maps the round data to the Generate Stream data structure (the input)
+// Link maps the local round data to the Generate Stream data structure (the input)
 func (gs *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 	rngStreamGen := source[1].(*fastRNG.StreamGenerator)
@@ -54,7 +54,7 @@ func (gs *GenerateStream) Link(grp *cyclic.Group, batchSize uint32, source ...in
 	gs.LinkGenerateStream(grp, batchSize, roundBuffer, rngStreamGen)
 }
 
-// Link maps the round data to the Generate Stream data structure (the input)
+// LinkGenerateStream maps the local round data to the Generate Stream data structure (the input)
 func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32,
 	roundBuffer *round.Buffer, rngStreamGen *fastRNG.StreamGenerator) {
 
@@ -75,17 +75,16 @@ func (gs *GenerateStream) LinkGenerateStream(grp *cyclic.Group, batchSize uint32
 	gs.YV = roundBuffer.Y_V.GetSubBuffer(0, batchSize)
 }
 
-// substream
 type GenerateSubstreamInterface interface {
 	GetGenerateSubStream() *GenerateStream
 }
 
-// getSubStream implements reveal interface to return stream object
+// GetGenerateSubStream implements reveal interface to return stream object
 func (gs *GenerateStream) GetGenerateSubStream() *GenerateStream {
 	return gs
 }
 
-// Input function pulls things from the mixmessage
+// Input initializes stream inputs from slot received from IO
 func (gs *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(gs.R.Len()) {
 		return services.ErrOutsideOfBatch
@@ -93,7 +92,7 @@ func (gs *GenerateStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-// Output returns an empty cMixSlot message
+// Output returns an empty cMixSlot message for IO
 func (gs *GenerateStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{}
 }
@@ -137,7 +136,7 @@ var Generate = services.Module{
 	Name:       "Generate",
 }
 
-// InitGenerateGraph initializes a new generate graph
+// InitGenerateGraph is called to initialize the Generate Graph. Conforms to Graph.Initialize function type
 func InitGenerateGraph(gc services.GraphGenerator) *services.Graph {
 	g := gc.NewGraph("PrecompGenerate", &GenerateStream{})
 

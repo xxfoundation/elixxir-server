@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package round
 
@@ -63,8 +63,7 @@ type Round struct {
 	broadcastSuccess *uint32
 }
 
-// New creates and initializes a new round, including all phases, topology,
-// and batch size
+// New creates and initializes a new Round, including all phases, topology, and batch size
 func New(grp *cyclic.Group, id id.Round, phases []phase.Phase,
 	responses phase.ResponseMap, circuit *connect.Circuit, nodeID *id.ID,
 	batchSize uint32, rngStreamGen *fastRNG.StreamGenerator,
@@ -100,7 +99,7 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase,
 		}
 
 		// the NumStates-2 exists because the Initialized and verified states
-		// are done implicitly as less then available / greater then computed
+		// are done implicitly as less than available / greater than computed
 		// the +1 exists because the system needs an initialized state for the
 		// first phase
 		localStateOffset := uint32(index)*uint32(phase.NumStates-2) + 1
@@ -112,12 +111,9 @@ func New(grp *cyclic.Group, id id.Round, phases []phase.Phase,
 					from, to)
 				return false
 			}
-			// 1 is subtracted because Initialized doesnt hold a true state
+			// 1 is subtracted because Initialized doesn't hold a true state
 			newState := localStateOffset + uint32(to) - 1
 			expectedOld := localStateOffset + uint32(from) - 1
-
-			//fmt.Printf("ExpectedOld: %v, ExpectedNew: %v, ActualOld: %v\n",
-			//	expectedOld, newState, atomic.LoadUint32(round.state))
 
 			success := atomic.CompareAndSwapUint32(round.state, expectedOld, newState)
 
@@ -208,7 +204,7 @@ func NewDummyRound(roundId id.Round, batchSize uint32, t *testing.T) *Round {
 	if t == nil {
 		panic("Can not use NewDummyRound out side of testing")
 	}
-	list := []*id.ID{}
+	var list []*id.ID
 
 	for i := uint64(0); i < 8; i++ {
 		node := id.NewIdFromUInt(i, id.Node, t)
@@ -249,12 +245,12 @@ func (r *Round) GetBatchSize() uint32 {
 func (r *Round) GetPhase(p phase.Type) (phase.Phase, error) {
 	i, ok := r.phaseMap[p]
 	if !ok || i >= len(r.phases) || r.phases[i] == nil {
-		return nil, errors.Errorf("Round %s missing phase type %s",
-			r, p)
+		return nil, errors.Errorf("Round %s missing phase type %s", r, p)
 	}
 	return r.phases[i], nil
 }
 
+// GetCurrentPhaseType returns the phase.Type corresponding to the current state of the Round
 func (r *Round) GetCurrentPhaseType() phase.Type {
 	return phase.Type((atomic.LoadUint32(r.state) - 1) /
 		(uint32(phase.NumStates) - 2))
@@ -319,7 +315,7 @@ func (r *Round) HandleIncomingComm(commTag string) (phase.Phase, error) {
 
 }
 
-// Return a RoundMetrics objects for this round
+// GetMeasurements returns the RoundMetrics object for this round
 func (r *Round) GetMeasurements(nid *id.ID, numNodes, index int,
 	resourceMetric measure.ResourceMetric) measure.RoundMetrics {
 

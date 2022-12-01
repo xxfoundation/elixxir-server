@@ -1,11 +1,13 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package realtime
+
+// Realtime Permute
 
 import (
 	jww "github.com/spf13/jwalterweatherman"
@@ -19,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 )
 
+// PermuteStream holds data containing keys and inputs used by Permute
 type PermuteStream struct {
 	Grp        *cyclic.Group
 	StreamPool *gpumaths.StreamPool
@@ -33,12 +36,12 @@ type PermuteStream struct {
 	PayloadBPermuted []*cyclic.Int
 }
 
-// GetName returns the name of the stream for debugging purposes.
+// GetName returns stream name
 func (ps *PermuteStream) GetName() string {
 	return "RealtimePermuteStream"
 }
 
-// Link binds stream data to state objects in round.
+// Link binds stream to local state objects in round
 func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 
@@ -48,17 +51,16 @@ func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 		streamPool = source[2].(*gpumaths.StreamPool)
 	}
 
-	ps.LinkRealtimePermuteStreams(grp, batchSize, roundBuffer, streamPool,
+	ps.LinkPermuteStreams(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		make([]*cyclic.Int, batchSize),
 		make([]*cyclic.Int, batchSize))
 }
 
-// LinkPermuteStreams binds stream data.
-func (ps *PermuteStream) LinkRealtimePermuteStreams(grp *cyclic.Group,
-	batchSize uint32, roundBuffer *round.Buffer, pool *gpumaths.StreamPool, msg, ad *cyclic.IntBuffer, msgPerm,
-	adPerm []*cyclic.Int) {
+// LinkPermuteStreams binds stream to local state objects in round
+func (ps *PermuteStream) LinkPermuteStreams(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer,
+	pool *gpumaths.StreamPool, msg, ad *cyclic.IntBuffer, msgPerm, adPerm []*cyclic.Int) {
 	ps.Grp = grp
 	ps.StreamPool = pool
 
@@ -77,18 +79,17 @@ func (ps *PermuteStream) LinkRealtimePermuteStreams(grp *cyclic.Group,
 
 }
 
-// PermuteStream conforms to this interface.
+// permuteSubStreamInterface creates an interface for PermuteStream to conform to
 type permuteSubStreamInterface interface {
 	getPermuteSubStream() *PermuteStream
 }
 
-// getPermuteSubStream returns the sub-stream, used to return an embedded struct
-// off an interface.
+// getPermuteSubStream returns the sub-stream, used to return an embedded struct off an interface.
 func (ps *PermuteStream) getPermuteSubStream() *PermuteStream {
 	return ps
 }
 
-// Input initializes stream inputs from slot.
+// Input initializes stream inputs from slot received from IO
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 	if index >= uint32(ps.EcrPayloadA.Len()) {
 		return services.ErrOutsideOfBatch
@@ -104,7 +105,7 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-// Output returns a message with the stream data.
+// Output a cmix slot message for IO
 func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index:    index,
@@ -113,7 +114,7 @@ func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	}
 }
 
-// Module implementing cryptops.Mul2.
+// PermuteMul2 is the CPU module in realtime Permute implementing cryptops.Mul2
 var PermuteMul2 = services.Module{
 	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
@@ -140,7 +141,7 @@ var PermuteMul2 = services.Module{
 	NumThreads: services.AutoNumThreads,
 }
 
-// Module implementing gpumaths.Mul2Chunk
+// PermuteMul2Chunk is the GPU module in realtime Permute implementing gpumaths.Mul2Chunk
 var PermuteMul2Chunk = services.Module{
 	Adapt: func(stream services.Stream, cryptop cryptops.Cryptop,
 		chunk services.Chunk) error {
@@ -175,7 +176,7 @@ var PermuteMul2Chunk = services.Module{
 	NumThreads: 2,
 }
 
-// InitPermuteGraph initializes and returns a new graph.
+// InitPermuteGraph is called to initialize the CPU Graph. Conforms to Graph.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGPU") {
 		jww.FATAL.Panicf("Using realtime permute graph running on CPU instead of equivalent GPU graph")
@@ -191,7 +192,7 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	return g
 }
 
-// InitPermuteGPUGraph initializes a graph that uses the GPU
+// InitPermuteGPUGraph is called to initialize the GPU Graph. Conforms to Graph.Initialize function type
 func InitPermuteGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using realtime permute graph running on GPU instead of equivalent CPU graph")

@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package io
 
@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"gitlab.com/elixxir/primitives/states"
 	"io"
 	"reflect"
 	"runtime"
@@ -244,8 +245,9 @@ func PushNRoundUpdates(n int, instance internal.Instance, key *rsa.PrivateKey, t
 
 	for i := 1; i < n+1; i++ {
 		newRound := &mixmessages.RoundInfo{
-			ID:       uint64(i),
-			UpdateID: uint64(i),
+			ID:         uint64(i),
+			UpdateID:   uint64(i),
+			Timestamps: make([]uint64, states.NUM_STATES),
 		}
 
 		err := signature.SignRsa(newRound, key)

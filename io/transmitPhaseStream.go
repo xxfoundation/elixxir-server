@@ -1,13 +1,13 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package io
 
-// transmitPhasestream.go contains the logic for streaming a phase comm
+// transmitPhaseStream.go contains the logic for streaming a phase comm
 
 import (
 	"fmt"
@@ -56,7 +56,7 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	}
 
 	// get the current phase
-	// get this here to use down below to record the measurment to stop a race
+	// get this here to use down below to record the measurement to stop a race
 	// conditions where other nodes finish their works and get this node to
 	// iterate phase before the measure code runs
 	currentPhase := r.GetCurrentPhase()
@@ -70,16 +70,17 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		return errors.Errorf("Error on comm, unable to get streaming "+
 			"client: %+v", err)
 	}
+	defer cancel()
 
-	//pull the first chunk reception out so it can be timestmaped
+	//pull the first chunk reception out so that it can be timestamped
 	chunk, finish := getChunk()
 	var start time.Time
-	numslots := 0
+	numSlots := 0
 	// For each message chunk (slot) stream it out
 	for ; finish; chunk, finish = getChunk() {
 		for i := chunk.Begin(); i < chunk.End(); i++ {
-			numslots++
-			if numslots == 1 {
+			numSlots++
+			if numSlots == 1 {
 				start = time.Now()
 			}
 			msg := getMessage(i)
@@ -123,8 +124,6 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 		instance.GetID(), recipientID,
 		start, end, end.Sub(start).Milliseconds())
 
-	cancel()
-
 	if err != nil {
 		return errors.WithMessagef(err, "Failed to stream on round %d to %s",
 			roundID, recipient.GetId())
@@ -138,12 +137,12 @@ func StreamTransmitPhase(roundID id.Round, serverInstance phase.GenericInstance,
 	return nil
 }
 
-// StreamPostPhase implements the server gRPC handler for posting a
-// phase from another node
+// StreamPostPhase implements the server gRPC handler for receiving a
+// phase from another node and sending the data into the Phase
 func StreamPostPhase(p phase.Phase, batchSize uint32,
 	stream mixmessages.Node_StreamPostPhaseServer) (*streamInfo, error) {
 	// Send a chunk for each slot received along with
-	// its index until an error is received
+	// its index until all slots or an error is received
 	slot, err := stream.Recv()
 	var start, end time.Time
 	slotsReceived := uint32(0)
@@ -155,6 +154,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 		}
 		index := slot.Index
 
+		// Input the slot into the current Phase
 		phaseErr := p.Input(index, slot)
 		if phaseErr != nil {
 			err = errors.Errorf("Failed on phase input %v for slot %v: %+v",
@@ -162,6 +162,7 @@ func StreamPostPhase(p phase.Phase, batchSize uint32,
 			return &streamInfo{Start: start, End: end}, phaseErr
 		}
 
+		// Build a Chunk corresponding to the slot and send it to the Phase
 		chunk := services.NewChunk(index, index+1)
 		p.Send(chunk)
 

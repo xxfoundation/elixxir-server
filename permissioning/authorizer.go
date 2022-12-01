@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package permissioning
 
@@ -80,15 +80,14 @@ func Send(sender Sender, instance *internal.Instance, authHost *connect.Host) (r
 	// Attempt to authorize
 	jww.WARN.Printf("Failed to send %s to permissioning "+
 		"due to potential authorization error, attempting to authorize...", sender.String())
-
-	for err = Authorize(instance, authHost); err != nil; err = Authorize(instance, authHost) {
-		jww.WARN.Printf("Failed to authorize with %s, trying again: %+v", authHost.GetAddress(), err)
-		time.Sleep(time.Second)
+	err = Authorize(instance, authHost)
+	if err != nil {
+		jww.WARN.Printf("Failed to authorize with %s: %+v", authHost.GetAddress(), err)
+	} else {
+		// If we had to authorize, retry the comm again
+		// now that authorization was successful
+		jww.WARN.Printf("Resending %s after successful authorization", sender.String())
 	}
-
-	// If we had to authorize, retry the comm again
-	// now that authorization was successful
-	jww.WARN.Printf("Resending %s after successful authorization", sender.String())
 
 	return sender.Send(permHost)
 }

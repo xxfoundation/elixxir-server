@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package main
 
@@ -310,8 +310,8 @@ func buildAndStartGraph(batchSize uint32, grp *cyclic.Group,
 	streams map[string]*DebugStream, t *testing.T) *services.Graph {
 	//make the graph
 	PanicHandler := func(g, m string, err error) {
-		panic(fmt.Sprintf("Error in module %s of graph %s: %s",
-			g, m, err.Error()))
+		panic(fmt.Sprintf("Error in module %s of graph %s: %+v",
+			g, m, err))
 	}
 	// NOTE: input size greater than 1 would necessarily cause a hang here
 	// since we never send more than 1 message through.
@@ -777,12 +777,12 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	//Link precomputation
 	ds.LinkGenerateStream(grp, batchSize, roundBuf, rngStreamGen)
-	ds.LinkPrecompDecryptStream(grp, batchSize, roundBuf, nil, keysPayloadA,
+	ds.LinkDecryptStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB)
-	ds.LinkPrecompPermuteStream(grp, batchSize, roundBuf, nil, keysPayloadA,
+	ds.LinkPermuteStream(grp, batchSize, roundBuf, nil, keysPayloadA,
 		cypherPayloadA, keysPayloadB, cypherPayloadB, keysPayloadAPermuted, cypherPayloadAPermuted,
 		keysPayloadBPermuted, cypherPayloadBPermuted)
-	ds.LinkPrecompStripStream(grp, batchSize, roundBuf, nil, cypherPayloadA,
+	ds.LinkStripStream(grp, batchSize, roundBuf, nil, cypherPayloadA,
 		cypherPayloadB)
 
 	//Generate Passthroughs for realtime
@@ -802,7 +802,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	testReport := round.NewClientFailureReport(fakeNodeID)
 
-	ds.LinkRealtimeDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
+	ds.LinkKeygenDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
 
 	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)
@@ -1200,11 +1200,11 @@ func Test_DebugStream(t *testing.T) {
 			"getting 'GenerateSubstreamInterface'")
 	}
 
-	_, ok = stream.(precomputation.PrecompDecryptSubstreamInterface)
+	_, ok = stream.(precomputation.DecryptSubstreamInterface)
 
 	if !ok {
 		t.Errorf("DebugStream: type assert failed when " +
-			"getting 'PrecompDecryptSubstreamInterface'")
+			"getting 'DecryptSubstreamInterface'")
 	}
 
 }

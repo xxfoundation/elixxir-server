@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
@@ -20,7 +20,7 @@ import (
 )
 
 // This file implements the Graph for the Precomputation Permute phase
-// Permute phase permutes the keys for both payloads with their cypher
+// The Permute phase permutes the keys for both payloads with their cypher
 // texts, while multiplying in its own keys.
 
 // PermuteStream holds data containing keys and inputs used by Permute
@@ -51,7 +51,7 @@ func (ps *PermuteStream) GetName() string {
 	return "PrecompPermuteStream"
 }
 
-// Link binds stream to state objects in round
+// Link binds stream to local state objects in round
 func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...interface{}) {
 	roundBuffer := source[0].(*round.Buffer)
 	var streamPool *gpumaths.StreamPool
@@ -60,7 +60,7 @@ func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 		streamPool = source[2].(*gpumaths.StreamPool)
 	}
 
-	ps.LinkPrecompPermuteStream(grp, batchSize, roundBuffer, streamPool,
+	ps.LinkPermuteStream(grp, batchSize, roundBuffer, streamPool,
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
@@ -71,8 +71,8 @@ func (ps *PermuteStream) Link(grp *cyclic.Group, batchSize uint32, source ...int
 		make([]*cyclic.Int, batchSize))
 }
 
-// Link binds stream to state objects in round
-func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, pool *gpumaths.StreamPool,
+// LinkPermuteStream binds stream to state objects in round
+func (ps *PermuteStream) LinkPermuteStream(grp *cyclic.Group, batchSize uint32, roundBuffer *round.Buffer, pool *gpumaths.StreamPool,
 	keysPayloadA, cypherPayloadA, keysPayloadB, cypherPayloadB *cyclic.IntBuffer,
 	keysPayloadAPermuted, cypherPayloadAPermuted, keysPayloadBPermuted, cypherPayloadBPermuted []*cyclic.Int) {
 
@@ -125,15 +125,15 @@ func (ps *PermuteStream) LinkPrecompPermuteStream(grp *cyclic.Group, batchSize u
 }
 
 type permuteSubstreamInterface interface {
-	GetPrecompPermuteSubStream() *PermuteStream
+	GetPermuteSubStream() *PermuteStream
 }
 
-// getSubStream implements reveal interface to return stream object
-func (ps *PermuteStream) GetPrecompPermuteSubStream() *PermuteStream {
+// GetPermuteSubStream implements reveal interface to return stream object
+func (ps *PermuteStream) GetPermuteSubStream() *PermuteStream {
 	return ps
 }
 
-// Input initializes stream inputs from slot
+// Input initializes stream inputs from slot received from IO
 func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 
 	if index >= uint32(ps.KeysPayloadA.Len()) {
@@ -152,7 +152,7 @@ func (ps *PermuteStream) Input(index uint32, slot *mixmessages.Slot) error {
 	return nil
 }
 
-// Output returns a cmix slot message
+// Output a cmix slot message for IO
 func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	return &mixmessages.Slot{
 		Index:                     index,
@@ -163,7 +163,7 @@ func (ps *PermuteStream) Output(index uint32) *mixmessages.Slot {
 	}
 }
 
-// PermuteElgamal is a module in precomputation permute implementing cryptops.Elgamal
+// PermuteElgamal is the GPU module in Precomputation Decrypt implementing cryptops.Elgamal
 var PermuteElgamal = services.Module{
 	// Multiplies in own Encrypted Keys and Partial Cypher Texts
 	Adapt: func(streamInput services.Stream, cryptop cryptops.Cryptop, chunk services.Chunk) error {
@@ -174,7 +174,7 @@ var PermuteElgamal = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		ps := pssi.GetPrecompPermuteSubStream()
+		ps := pssi.GetPermuteSubStream()
 
 		for i := chunk.Begin(); i < chunk.End(); i++ {
 			// Execute elgamal on the keys for the message
@@ -217,7 +217,7 @@ var PermuteElgamalChunk = services.Module{
 			return services.InvalidTypeAssert
 		}
 
-		ps := pssi.GetPrecompPermuteSubStream()
+		ps := pssi.GetPermuteSubStream()
 		gpuStreams := ps.StreamPool
 		S := ps.S.GetSubBuffer(chunk.Begin(), chunk.End())
 		yS := ps.Y_S.GetSubBuffer(chunk.Begin(), chunk.End())
@@ -246,7 +246,7 @@ var PermuteElgamalChunk = services.Module{
 	Name: "PermuteElgamalChunk",
 }
 
-// InitPermuteGraph is called to initialize the graph. Conforms to graphs.Initialize function type
+// InitPermuteGraph is called to initialize the CPU Graph. Conforms to graphs.Initialize function type
 func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	if viper.GetBool("useGPU") {
 		jww.FATAL.Panicf("Using precomp permute graph running on CPU instead of equivalent GPU graph")
@@ -254,15 +254,15 @@ func InitPermuteGraph(gc services.GraphGenerator) *services.Graph {
 	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
 	g := gcPermute.NewGraph("PrecompPermute", &PermuteStream{})
 
-	PermuteElgamal := PermuteElgamal.DeepCopy()
+	permuteElgamal := PermuteElgamal.DeepCopy()
 
-	g.First(PermuteElgamal)
-	g.Last(PermuteElgamal)
+	g.First(permuteElgamal)
+	g.Last(permuteElgamal)
 
 	return g
 }
 
-// InitPermuteGPUGraph creates a graph that runs cryptops for Permute on the GPU
+// InitPermuteGPUGraph creates a GPU Graph that runs cryptops for Permute on the GPU
 func InitPermuteGPUGraph(gc services.GraphGenerator) *services.Graph {
 	if !viper.GetBool("useGPU") {
 		jww.WARN.Printf("Using precomp permute graph running on GPU instead of equivalent CPU graph")
@@ -270,10 +270,10 @@ func InitPermuteGPUGraph(gc services.GraphGenerator) *services.Graph {
 	gcPermute := graphs.ModifyGraphGeneratorForPermute(gc)
 	g := gcPermute.NewGraph("PrecompPermuteGPU", &PermuteStream{})
 
-	PermuteElgamalChunk := PermuteElgamalChunk.DeepCopy()
+	permuteElgamalChunk := PermuteElgamalChunk.DeepCopy()
 
-	g.First(PermuteElgamalChunk)
-	g.Last(PermuteElgamalChunk)
+	g.First(permuteElgamalChunk)
+	g.Last(permuteElgamalChunk)
 
 	return g
 }

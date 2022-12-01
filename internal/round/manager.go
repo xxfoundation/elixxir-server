@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 // Package round manager.go provides a manager that keeps track of the
 // round objects
@@ -60,7 +60,7 @@ func (rm *Manager) GetRound(id id.Round) (*Round, error) {
 // as it is intended to be called from network handlers
 func (rm *Manager) GetPhase(id id.Round, phaseTy int32) (phase.Phase, error) {
 	// First, check that the phase type id # is valid
-	if phaseTy < 0 || phaseTy >= phase.NUM_PHASES {
+	if phaseTy < 0 || phase.Type(phaseTy) >= phase.NumPhases {
 		return nil, errors.Errorf("Invalid phase Type Number: %d",
 			phaseTy)
 	}
@@ -85,7 +85,7 @@ func (rm *Manager) DeleteRound(id id.Round) {
 }
 
 // HandleIncomingComm looks up if a comm is valid and if it is, returns
-// the associated round, phase (according to the round's response table)
+// the associated round and phase (according to the round's response table),
 // otherwise returns an error
 func (rm *Manager) HandleIncomingComm(roundID id.Round, tag string) (*Round, phase.Phase, error) {
 	// Get the round (with error checking) from the round manager
@@ -93,7 +93,8 @@ func (rm *Manager) HandleIncomingComm(roundID id.Round, tag string) (*Round, pha
 	if err != nil {
 		return nil, nil, err
 	}
-	//Get the correct phase from the round based upon the response table
+
+	// Get the correct phase from the round based upon the response table
 	p, err := r.HandleIncomingComm(tag)
 	if err != nil {
 		return nil, nil, err

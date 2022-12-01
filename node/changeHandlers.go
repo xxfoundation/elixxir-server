@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package node
 
@@ -39,9 +39,6 @@ const authorizerPrefix = "auth."
 // network address in the config in order to connect to the scheduling server
 const schedulingPrefix = "scheduling."
 
-// Number of hard-coded users to create
-var numDemoUsers = int(256)
-
 func Dummy(from current.Activity) error {
 	return nil
 }
@@ -53,9 +50,11 @@ func NotStarted(instance *internal.Instance) error {
 	network := instance.GetNetwork()
 	var err error
 
-	// Request network access via the authorizer server
 	params := connect.GetDefaultHostParams()
 	params.AuthEnabled = false
+	params.MaxRetries = 3
+
+	// Request network access via the authorizer server
 	if !instance.GetDefinition().RawPermAddr &&
 		!strings.HasPrefix(ourDef.Network.Address, "permissioning.") &&
 		!utils.IsIP(ourDef.Network.Address) { // Only have a valid authorizer in mainNet
@@ -64,15 +63,11 @@ func NotStarted(instance *internal.Instance) error {
 			ourDef.Network.TlsCert,
 			params)
 		if err != nil {
-			return errors.Errorf("Unable to connect to registration server: %+v", err)
+			return errors.Errorf("Unable to add auth host: %+v", err)
 		}
 	}
 
 	// Connect to the Permissioning Server without authentication
-	params = connect.GetDefaultHostParams()
-	params.AuthEnabled = false
-	params.MaxRetries = 3
-
 	var permAddr string
 	if instance.GetDefinition().RawPermAddr || strings.Contains(ourDef.Network.Address, "permissioning.") {
 		// If we are running/testing a local network, no prepending is
@@ -127,9 +122,9 @@ func NotStarted(instance *internal.Instance) error {
 	network.RemoveHost(permHost.GetId())
 
 	// Connect to the Permissioning Server with authentication enabled
-	// the server does not have a signed cert, but the pemrissioning has its cert,
+	// the server does not have a signed cert, but the permissioning has its cert,
 	// reverse authentication on connections just use the public key inside certs,
-	// not the entire key chain, so even through the server does have a signed
+	// not the entire keychain, so even through the server does have a signed
 	// cert, it can reverse auth with permissioning, allowing it to get the
 	// full NDF
 	// do this even if you have the certs to ensure the permissioning server is
@@ -185,7 +180,7 @@ func NotStarted(instance *internal.Instance) error {
 		time.Sleep(pollDelay)
 	}
 
-	// Then we ping ourselfs to make sure we can communicate
+	// Then we ping ourselves to make sure we can communicate
 	host, exists := instance.GetNetwork().GetHost(instance.GetID())
 	start := time.Now()
 	_, isOnline := host.IsOnline()
@@ -318,7 +313,6 @@ func Precomputing(instance *internal.Instance) error {
 		circuit,
 		instance.GetID(),
 		instance,
-		roundInfo.GetBatchSize(),
 		roundTimeout, instance.GetStreamPool(),
 		instance.GetDisableStreaming(),
 		roundID)
@@ -532,8 +526,6 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
-const regCheckError = "Check could not be processed"
-
 /// Checks with permissioning whether we are a network member already
 func isRegistered(serverInstance *internal.Instance) bool {
 	regCheck := &mixmessages.RegisteredNodeCheck{
@@ -554,8 +546,7 @@ func isRegistered(serverInstance *internal.Instance) bool {
 	// Determine if node is registered
 	authHost, _ := serverInstance.GetNetwork().GetHost(&id.Authorizer)
 	face, err := permissioning.Send(sender, serverInstance, authHost)
-	for err != nil &&
-		!strings.Contains(strings.ToLower(err.Error()), "check could not be processed") {
+	for err != nil && !strings.Contains(strings.ToLower(err.Error()), "check could not be processed") {
 		jww.WARN.Printf("Error received while performing registration check, retrying: %+v", err)
 		face, err = permissioning.Send(sender, serverInstance, authHost)
 	}

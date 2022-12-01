@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package round
 
@@ -78,7 +78,7 @@ func TestManager_GetPhase(t *testing.T) {
 	// Smoke test
 
 	// We have to make phases with fake graphs...
-	phases := make([]phase.Phase, int(phase.NUM_PHASES))
+	phases := make([]phase.Phase, int(phase.NumPhases))
 	for i := 0; i < len(phases); i++ {
 		gc := services.NewGraphGenerator(1,
 			1, 1, 1)

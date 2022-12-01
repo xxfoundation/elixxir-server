@@ -1,9 +1,10 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
+
 package state
 
 import (
@@ -19,7 +20,7 @@ const (
 	NUM_STATUS
 )
 
-// Stringer to get the name of the activity, primarily for for error prints
+// Stringer to get the name of the activity, primarily for error prints
 func (s Status) String() string {
 	switch s {
 	case NOT_STARTED:

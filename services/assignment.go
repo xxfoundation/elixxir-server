@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package services
 
@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 )
 
-//Defines a unit of work for a module
+// assignment defines a unit of work for a module
 type assignment struct {
 	//Beginning of the region defined by the chunk
 	start uint32
@@ -22,7 +22,7 @@ type assignment struct {
 	count *uint32
 }
 
-//Defines a set of assignments to be processed by a module
+// assignmentList defines a set of assignments to be processed by a module
 type assignmentList struct {
 	//List of assignments
 	assignments []*assignment
@@ -46,7 +46,7 @@ type assignmentList struct {
 	waiting []Chunk
 }
 
-//creats and assignment
+// newAssignment creates an assignment
 func newAssignment(start uint32) *assignment {
 	var count uint32
 
@@ -56,7 +56,7 @@ func newAssignment(start uint32) *assignment {
 	}
 }
 
-//Denotes that a portion of an assignment is complete
+// Enqueue denotes that a portion of an assignment is complete
 func (a *assignment) Enqueue(weight, maxCount uint32) (bool, error) {
 
 	cnt := atomic.AddUint32(a.count, weight)
@@ -69,12 +69,12 @@ func (a *assignment) Enqueue(weight, maxCount uint32) (bool, error) {
 	return cnt == maxCount, nil
 }
 
-// Gets the chunk represented by the assignment
+// GetChunk represented by the assignment
 func (a *assignment) GetChunk(size uint32) Chunk {
 	return Chunk{a.start, a.start + size}
 }
 
-// Denotes all assignments which have completed based upon an incoming chunk
+// PrimeOutputs denotes all assignments which have completed based upon an incoming chunk
 func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, error) {
 	position := c.Begin()
 
@@ -125,11 +125,10 @@ func (al *assignmentList) PrimeOutputs(c Chunk) ([]Chunk, error) {
 	return cList, nil
 }
 
-//Checks if all assignments within a chunk are complete
+// DenoteCompleted checks if all assignments within a chunk are complete
 func (al *assignmentList) DenoteCompleted(numCompleted int) (bool, error) {
 
 	result := atomic.AddUint32(al.completed, uint32(numCompleted))
-	//fmt.Println("denoting complete:", result, "/", len(al.assignments))
 	if result > uint32(len(al.assignments)) {
 		return false, errors.New(fmt.Sprintf("completed more assignments then possible:"+
 			" %d > %d", result, len(al.assignments)))

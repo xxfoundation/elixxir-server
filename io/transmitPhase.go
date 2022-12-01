@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 // Package io transmitPhase.go handles the endpoints and helper functions for
 // receiving and sending batches of cMix messages through phases.
@@ -94,8 +94,8 @@ func TransmitPhase(roundID id.Round, serverInstance phase.GenericInstance, getCh
 	return err
 }
 
-// PostPhase implements the server gRPC handler for posting a
-// phase from another node
+// PostPhase implements the server gRPC handler for receiving a
+// phase from another node and sending the data into the Phase
 func PostPhase(p phase.Phase, batch *mixmessages.Batch) error {
 	// Send a chunk per slot
 	for index, message := range batch.Slots {

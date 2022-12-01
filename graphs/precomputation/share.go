@@ -1,9 +1,9 @@
-///////////////////////////////////////////////////////////////////////////////
-// Copyright © 2020 xx network SEZC                                          //
-//                                                                           //
-// Use of this source code is governed by a license that can be found in the //
-// LICENSE file                                                              //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2022 xx foundation                                             //
+//                                                                            //
+// Use of this source code is governed by a license that can be found in the  //
+// LICENSE file.                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 package precomputation
 
@@ -47,7 +47,7 @@ func (ss *ShareStream) LinkShareStream(grp *cyclic.Group, batchSize uint32, roun
 	ss.PartialPublicCypherKey = ss.Grp.NewInt(1)
 }
 
-// getSubStream implements reveal interface to return stream object
+// getRevealSubStream implements reveal interface to return stream object
 func (ss *ShareStream) GetSubStream() *ShareStream {
 	return ss
 }
