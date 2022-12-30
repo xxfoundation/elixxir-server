@@ -103,6 +103,7 @@ func TestRequestClientKey(t *testing.T) {
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
+	// Test both with and without sha hashing
 	for _, useSha := range []bool{false, true} {
 		t.Run(fmt.Sprintf("TestRequestClientKey[useSha=%+v]", useSha), func(t *testing.T) {
 			// Hash request

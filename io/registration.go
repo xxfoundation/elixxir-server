@@ -56,7 +56,7 @@ func RequestClientKey(instance *internal.Instance,
 
 	// Construct hash
 	opts := rsa.NewDefaultOptions()
-	if request.UseSHA {
+	if request.UseSHA { // Use sha256 if client requests it
 		opts.Hash = crypto.SHA256
 	} else {
 		opts.Hash = hash.CMixHash
