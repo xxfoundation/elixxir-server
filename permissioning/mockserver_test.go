@@ -11,6 +11,7 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"gitlab.com/elixxir/comms/authorizer"
+	"gitlab.com/xx_network/comms/messages"
 	"sync"
 	"testing"
 	"time"
@@ -48,10 +49,26 @@ func (a *mockAuthorizer) Authorize(auth *pb.AuthorizerAuth, ipAddr string) (err 
 	return nil
 }
 
+func (a *mockAuthorizer) RequestCert(msg *pb.AuthorizerCertRequest) (*messages.Ack, error) {
+	return &messages.Ack{}, nil
+}
+
+func (a *mockAuthorizer) RequestEABCredentials(msg *pb.EABCredentialRequest) (*pb.EABCredentialResponse, error) {
+	return &pb.EABCredentialResponse{}, nil
+}
+
 type mockAuthorizerErrorPath struct{}
 
 func (a *mockAuthorizerErrorPath) Authorize(auth *pb.AuthorizerAuth, ipAddr string) (err error) {
 	return errors.Errorf("Could not authorize")
+}
+
+func (a *mockAuthorizerErrorPath) RequestCert(msg *pb.AuthorizerCertRequest) (*messages.Ack, error) {
+	return &messages.Ack{}, nil
+}
+
+func (a *mockAuthorizerErrorPath) RequestEABCredentials(msg *pb.EABCredentialRequest) (*pb.EABCredentialResponse, error) {
+	return &pb.EABCredentialResponse{}, nil
 }
 
 func startAuthorizer(addr, nAddr string, nodeId *id.ID, cert, key []byte) (*authorizer.Comms, error) {
