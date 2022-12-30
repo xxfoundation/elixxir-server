@@ -8,6 +8,7 @@
 package io
 
 import (
+	"crypto"
 	cryptoRand "crypto/rand"
 	gorsa "crypto/rsa"
 	"fmt"
@@ -102,51 +103,59 @@ func TestRequestClientKey(t *testing.T) {
 		t.Fatalf("Failed to marshal message: %v", err)
 	}
 
-	// Hash request
-	opts := rsa.NewDefaultOptions()
-	h := opts.Hash.New()
-	h.Write(requestBytes)
-	hashedData := h.Sum(nil)
+	for _, useSha := range []bool{false, true} {
+		t.Run(fmt.Sprintf("TestRequestClientKey[useSha=%+v]", useSha), func(t *testing.T) {
+			// Hash request
+			opts := rsa.NewDefaultOptions()
+			if useSha {
+				opts.Hash = crypto.SHA256
+			}
+			h := opts.Hash.New()
+			h.Write(requestBytes)
+			hashedData := h.Sum(nil)
 
-	// Sign the request with the user's private key
-	requestSig, err := rsa.Sign(csprng.NewSystemRNG(), userRsaPriv, opts.Hash, hashedData, opts)
-	if err != nil {
-		t.Fatalf("Sign error: %v", err)
+			// Sign the request with the user's private key
+			requestSig, err := rsa.Sign(csprng.NewSystemRNG(), userRsaPriv, opts.Hash, hashedData, opts)
+			if err != nil {
+				t.Fatalf("Sign error: %v", err)
+			}
+
+			// Construct signed request
+			signedRequest := &pb.SignedClientKeyRequest{
+				ClientKeyRequest:          requestBytes,
+				ClientKeyRequestSignature: &messages.RSASignature{Signature: requestSig},
+				UseSHA:                    useSha,
+			}
+
+			// Request key with mock message
+			signedKeyResp, err := RequestClientKey(instance, signedRequest, auth)
+			if err != nil {
+				t.Fatalf("RequestClientKey error: %v", err)
+			}
+
+			// Unmarshal response
+			keyResponse := &pb.ClientKeyResponse{}
+			err = proto.Unmarshal(signedKeyResp.KeyResponse, keyResponse)
+			if err != nil {
+				t.Fatalf("Failed to unmarshal message: %v", err)
+			}
+
+			// Construct the session key
+			h.Reset()
+			grp := instance.GetNetworkStatus().GetCmixGroup()
+			nodeDHPub := grp.NewIntFromBytes(keyResponse.NodeDHPubKey)
+			sessionKey := registration.GenerateBaseKey(grp,
+				nodeDHPub, userDhPrivKey, h)
+
+			// Verify the HMAC
+			h.Reset()
+			if !registration.VerifyClientHMAC(sessionKey.Bytes(), keyResponse.EncryptedClientKey,
+				opts.Hash.New, keyResponse.EncryptedClientKeyHMAC) {
+				t.Fatalf("Failed to verify client HMAC")
+			}
+
+		})
 	}
-
-	// Construct signed request
-	signedRequest := &pb.SignedClientKeyRequest{
-		ClientKeyRequest:          requestBytes,
-		ClientKeyRequestSignature: &messages.RSASignature{Signature: requestSig},
-	}
-
-	// Request key with mock message
-	signedKeyResp, err := RequestClientKey(instance, signedRequest, auth)
-	if err != nil {
-		t.Fatalf("RequestClientKey error: %v", err)
-	}
-
-	// Unmarshal response
-	keyResponse := &pb.ClientKeyResponse{}
-	err = proto.Unmarshal(signedKeyResp.KeyResponse, keyResponse)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal message: %v", err)
-	}
-
-	// Construct the session key
-	h.Reset()
-	grp := instance.GetNetworkStatus().GetCmixGroup()
-	nodeDHPub := grp.NewIntFromBytes(keyResponse.NodeDHPubKey)
-	sessionKey := registration.GenerateBaseKey(grp,
-		nodeDHPub, userDhPrivKey, h)
-
-	// Verify the HMAC
-	h.Reset()
-	if !registration.VerifyClientHMAC(sessionKey.Bytes(), keyResponse.EncryptedClientKey,
-		opts.Hash.New, keyResponse.EncryptedClientKeyHMAC) {
-		t.Fatalf("Failed to verify client HMAC")
-	}
-
 }
 
 // Error path: bad auth passed
