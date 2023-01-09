@@ -10,6 +10,7 @@
 package io
 
 import (
+	"crypto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -55,7 +56,11 @@ func RequestClientKey(instance *internal.Instance,
 
 	// Construct hash
 	opts := rsa.NewDefaultOptions()
-	opts.Hash = hash.CMixHash
+	if request.UseSHA { // Use sha256 if client requests it
+		opts.Hash = crypto.SHA256
+	} else {
+		opts.Hash = hash.CMixHash
+	}
 	h := opts.Hash.New()
 
 	// Parse serialized transmission confirmation into message
@@ -99,7 +104,7 @@ func RequestClientKey(instance *internal.Instance,
 	data := h.Sum(nil)
 
 	// Verify the signedResponse
-	err = rsa.Verify(userPublicKey, hash.CMixHash, data,
+	err = rsa.Verify(userPublicKey, opts.Hash, data,
 		request.GetClientKeyRequestSignature().GetSignature(), opts)
 	if err != nil {
 		errMsg := errors.Errorf("Client signedResponse on client public key "+
