@@ -13,6 +13,7 @@ cloud.google.com/go/storage v1.0.0/go.mod h1:IhtSnM/ZTZV8YYJWCY8RULGVqBDmpoyjwiy
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 git.xx.network/elixxir/grpc-web-go-client v0.0.0-20221221203224-436c7ab720af h1:ogiu6sKbFjsKaMnmYSlflJDf973v4TVtBDSnUR2vEPQ=
 git.xx.network/elixxir/grpc-web-go-client v0.0.0-20221221203224-436c7ab720af/go.mod h1:uFKw2wmgtlYMdiIm08dM0Vj4XvX9ZKVCj71c8O7SAPo=
+git.xx.network/elixxir/grpc-web-go-client v0.0.0-20221221204132-2ed1fec765f1 h1:kR5YB37nBpPj1L3QWBzR57maHzLnoXuU/8S2jqlhfc8=
 git.xx.network/elixxir/grpc-web-go-client v0.0.0-20221221204132-2ed1fec765f1/go.mod h1:uFKw2wmgtlYMdiIm08dM0Vj4XvX9ZKVCj71c8O7SAPo=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
@@ -517,6 +518,8 @@ gitlab.com/elixxir/comms v0.0.4-0.20230109184457-e10f20295430 h1:OydFdoBbLz5iFzC
 gitlab.com/elixxir/comms v0.0.4-0.20230109184457-e10f20295430/go.mod h1:aFnxDpIxEEFHdAa2dEeydzo00u/IAcfrqPSEnmeffbY=
 gitlab.com/elixxir/comms v0.0.4-0.20230109232529-22aec03d005e h1:HyEEpyrq7W5+SUz1KXbjOVCjyQTO4Al5TXsGwygbWgk=
 gitlab.com/elixxir/comms v0.0.4-0.20230109232529-22aec03d005e/go.mod h1:NXmfPF+QB0jJ5F6AR7wohVKdaisAhRqXqETf1Y3hGnc=
+gitlab.com/elixxir/comms v0.0.4-0.20230109233320-a0c90d3324a0 h1:jMmI+j4P5e+nmf82xKs679M6EzeuUhQJjOwXhXi6Cl0=
+gitlab.com/elixxir/comms v0.0.4-0.20230109233320-a0c90d3324a0/go.mod h1:x28Ko3YthOCnfd0V47db45NyF78GBBl3sa00E9dF8mo=
 gitlab.com/elixxir/crypto v0.0.0-20200804182833-984246dea2c4/go.mod h1:ucm9SFKJo+K0N2GwRRpaNr+tKXMIOVWzmyUD0SbOu2c=
 gitlab.com/elixxir/crypto v0.0.3/go.mod h1:ZNgBOblhYToR4m8tj4cMvJ9UsJAUKq+p0gCp07WQmhA=
 gitlab.com/elixxir/crypto v0.0.7-0.20210309193114-8a6225c667e2/go.mod h1:TMZMB24OsjF6y3LCyBMzDucbOx1cGQCCeuKV9lJA/DU=
