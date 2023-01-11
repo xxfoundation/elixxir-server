@@ -145,15 +145,16 @@ func RequestClientKey(instance *internal.Instance,
 	}
 
 	// Construct client key
-	h.Reset()
-	h.Write(userId.Bytes())
+	cmixH := hash.CMixHash.New()
+	cmixH.Reset()
+	cmixH.Write(userId.Bytes())
 	h.Write(nodeSecret.Bytes())
-	clientKey := h.Sum(nil)
+	clientKey := cmixH.Sum(nil)
 
 	// Construct client gateway key
-	h.Reset()
-	h.Write(clientKey)
-	clientGatewayKey := h.Sum(nil)
+	cmixH.Reset()
+	cmixH.Write(clientKey)
+	clientGatewayKey := cmixH.Sum(nil)
 
 	// Encrypt the client key using the session key
 	encryptedClientKey, err := chacha.Encrypt(sessionKey.Bytes(), clientKey,
