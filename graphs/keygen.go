@@ -113,7 +113,7 @@ var Keygen = services.Module{
 
 		kss.userErrors.InitErrorChan(kss.RoundId, kss.batchSize)
 		for i := chunk.Begin(); i < chunk.End() && i < kss.batchSize; i++ {
-			isEphemeral := kss.EphemeralKeys[i]
+			isEphemeral := kss.EphemeralKeys != nil && kss.EphemeralKeys[i]
 			if kss.users[i].Cmp(&id.ID{}) {
 				continue
 			}
