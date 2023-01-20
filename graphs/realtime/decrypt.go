@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nike/ecdh"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/server/graphs"
@@ -172,6 +173,16 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 
 	s.Grp.SetBytes(s.EcrPayloadA.Get(index), slot.PayloadA)
 	s.Grp.SetBytes(s.EcrPayloadB.Get(index), slot.PayloadB)
+
+	if slot.Ed25519 != nil {
+		var err error
+		s.ClientEphemeralEd, err = ecdh.ECDHNIKE.UnmarshalBinaryPublicKey(slot.Ed25519)
+		if err != nil {
+			return err
+		}
+	}
+	s.EphemeralKeys = slot.EphemeralKeys
+
 	return nil
 }
 

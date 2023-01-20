@@ -217,6 +217,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		ServerAddress: instance.GetIP(),
 		ServerVersion: instance.GetServerVersion(),
 		ClientErrors:  clientReport,
+		Ed25519:       instance.GetEd25519Key().Bytes(),
 	}
 
 	if reportedActivity == current.ERROR {

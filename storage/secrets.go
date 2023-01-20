@@ -10,6 +10,7 @@ package storage
 import (
 	"encoding/base64"
 	"github.com/pkg/errors"
+	"gitlab.com/elixxir/crypto/nike"
 	"sync"
 )
 
@@ -45,10 +46,13 @@ type NodeSecret struct {
 // NodeSecretManager will manage and rotate node secrets for client
 // registration.
 // fixme: this is only partially implemented, will need to have
-//  rotating secrets
+//
+//	rotating secrets
 type NodeSecretManager struct {
-	secrets map[int]*NodeSecret
-	mux     sync.Mutex
+	secrets      map[int]*NodeSecret
+	mux          sync.Mutex
+	ephemeralKey nike.PrivateKey
+	ephemeralPub nike.PublicKey
 }
 
 // NewNodeSecretManager is the constructor for a NodeSecretManager. This will
@@ -58,7 +62,15 @@ func NewNodeSecretManager() *NodeSecretManager {
 	return &NodeSecretManager{
 		secrets: make(map[int]*NodeSecret, MaxNodeSecrets),
 	}
+}
 
+func (nsm *NodeSecretManager) UpsertEphemerals(pub nike.PublicKey, priv nike.PrivateKey) {
+	nsm.ephemeralKey = priv
+	nsm.ephemeralPub = pub
+}
+
+func (nsm *NodeSecretManager) GetEphemerals() (nike.PublicKey, nike.PrivateKey) {
+	return nsm.ephemeralPub, nsm.ephemeralKey
 }
 
 // GetSecret retrieves the Secret data associated with the given key ID
