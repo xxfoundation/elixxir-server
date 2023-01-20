@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/graphs"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -21,6 +22,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/utils"
@@ -170,6 +172,7 @@ func mockServerDef(i interface{}) *Definition {
 	resourceMonitor.Set(resourceMetric)
 
 	def := Definition{
+		RngStreamGen:    fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		ID:              nid,
 		ResourceMonitor: &resourceMonitor,
 		FullNDF:         testUtil.NDF,

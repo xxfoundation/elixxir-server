@@ -10,6 +10,8 @@ package node
 import (
 	crand "crypto/rand"
 	"fmt"
+	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/xx_network/crypto/csprng"
 	"sync"
 	"testing"
 	"time"
@@ -159,6 +161,8 @@ func createServerInstance(t *testing.T) (instance *internal.Instance, pAddr,
 	emptyNdf := builEmptydMockNdf()
 	// Initialize definition
 	def := &internal.Definition{
+		RngStreamGen: fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
+
 		Flags:            internal.Flags{},
 		ID:               nodeId,
 		PublicKey:        nil,

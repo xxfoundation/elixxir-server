@@ -11,6 +11,8 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"fmt"
+	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/xx_network/crypto/csprng"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -34,7 +36,7 @@ import (
 	"gitlab.com/xx_network/primitives/utils"
 )
 
-//// Full-stack happy path test for the node registration logic
+// // Full-stack happy path test for the node registration logic
 func TestRegisterNode(t *testing.T) {
 
 	cert, err := utils.ReadFile(testkeys.GetNodeCertPath())
@@ -64,6 +66,7 @@ func TestRegisterNode(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
+		RngStreamGen:     fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		Flags:            internal.Flags{},
 		ID:               nodeId,
 		PublicKey:        nil,
@@ -631,7 +634,7 @@ func TestUpdateInternalState_Error(t *testing.T) {
 
 }
 
-//Full-stack happy path test for the node registration logic
+// Full-stack happy path test for the node registration logic
 func TestRegistration(t *testing.T) {
 
 	gwConnected := make(chan struct{})
@@ -663,6 +666,8 @@ func TestRegistration(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
+		RngStreamGen: fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
+
 		Flags:            internal.Flags{},
 		ID:               nodeId,
 		PublicKey:        nil,
@@ -896,6 +901,8 @@ func TestUpdateRounds_Failed(t *testing.T) {
 
 	// Initialize definition
 	def := &internal.Definition{
+		RngStreamGen: fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
+
 		Flags:            internal.Flags{},
 		ID:               nodeId,
 		PublicKey:        nil,

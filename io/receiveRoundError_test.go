@@ -9,6 +9,8 @@ package io
 
 import (
 	"crypto/rand"
+	"gitlab.com/elixxir/crypto/fastRNG"
+	"gitlab.com/xx_network/crypto/csprng"
 	"strings"
 	"testing"
 	"time"
@@ -111,7 +113,8 @@ func TestReceiveRoundError(t *testing.T) {
 }
 
 // Error path: Check that if passed a round error with a node not in topology
-//  it returns an error and does not transition to the error state
+//
+//	it returns an error and does not transition to the error state
 func TestReceiveRoundError_Auth(t *testing.T) {
 	instance, topology, grp := setup_rounderror(t, 1, current.PRECOMPUTING)
 
@@ -279,6 +282,7 @@ func setup_rounderror(t *testing.T, instIndex int, s current.Activity) (*interna
 
 	topology := connect.NewCircuit(BuildMockNodeIDs(5, t))
 	def := internal.Definition{
+		RngStreamGen:    fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,

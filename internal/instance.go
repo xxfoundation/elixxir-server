@@ -23,6 +23,7 @@ import (
 	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/crypto/nike"
+	"gitlab.com/elixxir/crypto/nike/ecdh"
 	gpumaths "gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -173,6 +174,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Create node secret manager
 	instance.nodeSecretManager = storage.NewNodeSecretManager()
+
+	ephPriv, ephPub := ecdh.ECDHNIKE.NewKeypair(instance.GetRngStreamGen().GetStream())
+	instance.nodeSecretManager.UpsertEphemerals(ephPub, ephPriv)
 
 	// Create hardcoded node secret
 	// todo: refactor this once a mechanism is implemented for
