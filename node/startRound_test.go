@@ -10,10 +10,12 @@ package node
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal/phase"
 	"gitlab.com/elixxir/server/io"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
 
 	"gitlab.com/elixxir/primitives/current"
@@ -57,6 +59,7 @@ func setupStartNode(t *testing.T) *internal.Instance {
 
 	// We need to create a server.Definition so we can create a server instance.
 	def := internal.Definition{
+		RngStreamGen:    fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		ID:              id.NewIdFromUInt(0, id.Node, t),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testNdf,
