@@ -37,7 +37,7 @@ type KeygenSubStream struct {
 	salts             [][]byte
 	kmacs             [][][]byte
 	ClientEphemeralEd nike.PublicKey
-	EphemeralKeys     []bool
+	EphemeralKeys     [][]bool
 
 	// Output: keys
 	KeysA *cyclic.IntBuffer
@@ -54,13 +54,14 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, inSalts [][]byte,
-	inKMACS [][][]byte, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
+	inKMACS [][][]byte, inEphKeys [][]bool, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
 	reporter *round.ClientReport, roundID id.Round, batchSize uint32,
 	nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
 	k.Grp = grp
 	k.salts = inSalts
 	k.users = inUsers
 	k.kmacs = inKMACS
+	k.EphemeralKeys = inEphKeys
 	k.KeysA = outKeysA
 	k.KeysB = outKeysB
 	k.userErrors = reporter
@@ -113,41 +114,41 @@ var Keygen = services.Module{
 
 		kss.userErrors.InitErrorChan(kss.RoundId, kss.batchSize)
 		for i := chunk.Begin(); i < chunk.End() && i < kss.batchSize; i++ {
-			isEphemeral := kss.EphemeralKeys != nil && kss.EphemeralKeys[i]
 			if kss.users[i].Cmp(&id.ID{}) {
 				continue
 			}
+			isEphemeral := kss.EphemeralKeys != nil && kss.EphemeralKeys[i] != nil && kss.EphemeralKeys[i][0]
 			// Retrieve the node secret
 			// todo: KeyID will not be hardcoded once multiple rotating
 			//  secrets is supported.
 			var nodeSecretBytes []byte
+			nodeSecret, err := kss.NodeSecrets.GetSecret(0)
+			if err != nil {
+				if strings.HasSuffix(err.Error(), storage.NoSecretExistsError) {
+					jww.INFO.Printf("No secret for key ID %d with user %v found for slot %d",
+						0, kss.users[i], i)
+					kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
+					kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
+					errMsg := fmt.Sprintf("%s [%v] in storage:%v",
+						services.SecretNotFound, kss.users[i], err)
+					clientError := &pb.ClientError{
+						ClientId: kss.users[i].Bytes(),
+						Error:    errMsg,
+					}
+
+					err = kss.userErrors.Send(kss.RoundId, clientError)
+					if err != nil {
+						return err
+					}
+
+				}
+				continue
+			}
+			nodeSecretBytes = nodeSecret.Bytes()
+
 			if isEphemeral {
 				_, ephemeralKey := kss.NodeSecrets.GetEphemerals()
 				nodeSecretBytes = ephemeralKey.DeriveSecret(kss.ClientEphemeralEd)
-			} else {
-				nodeSecret, err := kss.NodeSecrets.GetSecret(0)
-				if err != nil {
-					if strings.HasSuffix(err.Error(), storage.NoSecretExistsError) {
-						jww.INFO.Printf("No secret for key ID %d with user %v found for slot %d",
-							0, kss.users[i], i)
-						kss.Grp.SetUint64(kss.KeysA.Get(i), 1)
-						kss.Grp.SetUint64(kss.KeysB.Get(i), 1)
-						errMsg := fmt.Sprintf("%s [%v] in storage:%v",
-							services.SecretNotFound, kss.users[i], err)
-						clientError := &pb.ClientError{
-							ClientId: kss.users[i].Bytes(),
-							Error:    errMsg,
-						}
-
-						err = kss.userErrors.Send(kss.RoundId, clientError)
-						if err != nil {
-							return err
-						}
-
-					}
-					continue
-				}
-				nodeSecretBytes = nodeSecret.Bytes()
 			}
 
 			var clientKeyBytes []byte
@@ -184,6 +185,7 @@ var Keygen = services.Module{
 
 			//pop the used KMAC
 			kss.kmacs[i] = kss.kmacs[i][1:]
+			kss.EphemeralKeys[i] = kss.EphemeralKeys[i][1:]
 
 			if !success {
 				kss.Grp.SetUint64(kss.KeysA.Get(i), 1)

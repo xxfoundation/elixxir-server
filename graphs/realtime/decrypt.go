@@ -100,14 +100,15 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		users, make([][]byte, batchSize), make([][][]byte, batchSize),
-		clientReporter, roundID, nodeSecret, precanStore)
+		make([][]bool, batchSize), clientReporter, roundID,
+		nodeSecret, precanStore)
 }
 
 // LinkKeygenDecryptStream creates stream internal buffers and binds stream to local state objects in round
 func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	batchSize uint32, round *round.Buffer, pool *gpumaths.StreamPool,
 	ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
-	users []*id.ID, salts [][]byte, kmacs [][][]byte,
+	users []*id.ID, salts [][]byte, kmacs [][][]byte, ephKeys [][]bool,
 	clientReporter *round.ClientReport, roundId id.Round,
 	nodeSecrets *storage.NodeSecretManager,
 	precanStore *storage.PrecanStore) {
@@ -126,9 +127,11 @@ func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	s.Salts = salts
 	s.KMACS = kmacs
 	s.NodeSecrets = nodeSecrets
+	s.EphemeralKeys = ephKeys
 
-	s.KeygenSubStream.LinkStream(s.Grp, s.Salts, s.KMACS, s.Users, s.KeysPayloadA,
-		s.KeysPayloadB, clientReporter, roundId, batchSize, nodeSecrets, precanStore)
+	s.KeygenSubStream.LinkStream(s.Grp, s.Salts, s.KMACS, s.EphemeralKeys,
+		s.Users, s.KeysPayloadA, s.KeysPayloadB, clientReporter, roundId,
+		batchSize, nodeSecrets, precanStore)
 }
 
 // KeygenDecryptSubStreamInterface creates an interface for KeygenDecryptStream to conform to
@@ -181,7 +184,7 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 			return err
 		}
 	}
-	s.EphemeralKeys = slot.EphemeralKeys
+	s.EphemeralKeys[index] = slot.EphemeralKeys
 
 	return nil
 }
