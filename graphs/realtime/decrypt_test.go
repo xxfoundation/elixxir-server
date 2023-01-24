@@ -505,6 +505,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 		stream.Salts[i] = testSalt
 		stream.Users[i] = uid
 		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, grp.NewIntFromBytes(dhKey), rid, kmacHash)}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.KMACS[i]))
 	}
 	// Here's the actual data for the test
 

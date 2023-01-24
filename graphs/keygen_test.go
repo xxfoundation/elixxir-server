@@ -228,6 +228,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		stream.salts[i] = testSalt
 		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.kmacs[i]))
 	}
 	// Here's the actual data for the test
 
@@ -345,6 +346,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		stream.salts[i] = testSalt
 		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.kmacs[i]))
 	}
 	// Here's the actual data for the test
 
@@ -455,6 +457,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 		stream.salts[i] = testSalt
 		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.kmacs[i]))
 	}
 	// Here's the actual data for the test
 
