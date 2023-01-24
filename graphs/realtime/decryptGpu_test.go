@@ -5,7 +5,8 @@
 // LICENSE file.                                                              //
 ////////////////////////////////////////////////////////////////////////////////
 
-//+build linux,cgo,gpu
+//go:build linux && cgo && gpu
+// +build linux,cgo,gpu
 
 package realtime
 
@@ -115,6 +116,7 @@ func TestDecryptStreamInGraphGPU(t *testing.T) {
 		stream.Users[i] = uid
 		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, bk,
 			stream.RoundId, kmacHash)}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.KMACS[i]))
 	}
 	// Here's the actual data for the test
 
