@@ -434,6 +434,7 @@ func buildMockBatch(batchSize int, grp *cyclic.Group, baseKeys []*cyclic.Int,
 		ecrSlot.SenderID = userID.Bytes()
 		ecrSlot.Salt = salt
 		ecrSlot.KMACs = kmacs
+		ecrSlot.EphemeralKeys = make([]bool, len(kmacs))
 
 		ecrBatch.Slots = append(ecrBatch.Slots, ecrSlot)
 		ecrBatch.Round = ri
