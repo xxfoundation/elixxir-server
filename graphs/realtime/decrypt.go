@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nike"
 	"gitlab.com/elixxir/crypto/nike/ecdh"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/gpumathsgo/cryptops"
@@ -100,7 +101,7 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		users, make([][]byte, batchSize), make([][][]byte, batchSize),
-		make([][]bool, batchSize), clientReporter, roundID,
+		make([][]bool, batchSize), s.ClientEphemeralEd, clientReporter, roundID,
 		nodeSecret, precanStore)
 }
 
@@ -108,7 +109,7 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	batchSize uint32, round *round.Buffer, pool *gpumaths.StreamPool,
 	ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
-	users []*id.ID, salts [][]byte, kmacs [][][]byte, ephKeys [][]bool,
+	users []*id.ID, salts [][]byte, kmacs [][][]byte, ephKeys [][]bool, clientEphemeralEd nike.PublicKey,
 	clientReporter *round.ClientReport, roundId id.Round,
 	nodeSecrets *storage.NodeSecretManager,
 	precanStore *storage.PrecanStore) {
@@ -128,8 +129,9 @@ func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	s.KMACS = kmacs
 	s.NodeSecrets = nodeSecrets
 	s.EphemeralKeys = ephKeys
+	s.ClientEphemeralEd = clientEphemeralEd
 
-	s.KeygenSubStream.LinkStream(s.Grp, s.Salts, s.KMACS, s.EphemeralKeys,
+	s.KeygenSubStream.LinkStream(s.Grp, s.Salts, s.KMACS, s.EphemeralKeys, s.ClientEphemeralEd,
 		s.Users, s.KeysPayloadA, s.KeysPayloadB, clientReporter, roundId,
 		batchSize, nodeSecrets, precanStore)
 }
@@ -191,13 +193,19 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 
 // Output a cmix slot message for IO
 func (s *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
+	var edBytes []byte
+	if s.ClientEphemeralEd != nil {
+		edBytes = s.ClientEphemeralEd.Bytes()
+	}
 	return &mixmessages.Slot{
-		Index:    index,
-		SenderID: (*s.Users[index])[:],
-		Salt:     s.Salts[index],
-		PayloadA: s.EcrPayloadA.Get(index).Bytes(),
-		PayloadB: s.EcrPayloadB.Get(index).Bytes(),
-		KMACs:    s.KMACS[index],
+		Index:         index,
+		SenderID:      (*s.Users[index])[:],
+		Salt:          s.Salts[index],
+		PayloadA:      s.EcrPayloadA.Get(index).Bytes(),
+		PayloadB:      s.EcrPayloadB.Get(index).Bytes(),
+		KMACs:         s.KMACS[index],
+		EphemeralKeys: s.EphemeralKeys[index],
+		Ed25519:       edBytes,
 	}
 }
 

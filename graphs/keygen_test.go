@@ -52,7 +52,7 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
 	s.KeygenSubStream.LinkStream(grp, make([][]byte, batchSize),
-		make([][][]byte, batchSize), make([][]bool, batchSize),
+		make([][][]byte, batchSize), make([][]bool, batchSize), nil,
 		make([]*id.ID, batchSize),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),

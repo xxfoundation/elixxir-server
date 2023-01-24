@@ -54,7 +54,7 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, inSalts [][]byte,
-	inKMACS [][][]byte, inEphKeys [][]bool, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
+	inKMACS [][][]byte, inEphKeys [][]bool, clEphemeralEd nike.PublicKey, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
 	reporter *round.ClientReport, roundID id.Round, batchSize uint32,
 	nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
 	k.Grp = grp
@@ -69,6 +69,7 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, inSalts [][]byte,
 	k.batchSize = batchSize
 	k.NodeSecrets = nodeSecrets
 	k.Precanned = precanStore
+	k.ClientEphemeralEd = clEphemeralEd
 }
 
 // Returns the substream, used to return an embedded struct off an interface

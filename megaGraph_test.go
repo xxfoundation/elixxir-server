@@ -803,7 +803,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	testReport := round.NewClientFailureReport(fakeNodeID)
 
-	ds.LinkKeygenDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), make([][]bool, batchSize), testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
+	ds.LinkKeygenDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), make([][]bool, batchSize), nil, testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
 
 	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)
