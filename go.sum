@@ -304,8 +304,8 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.3/go.mod h1:T0+1ngSBFLxv
 github.com/kr/fs v0.1.0/go.mod h1:FFnZGqtBN9Gxj7eW1uZ42v5BccTP0vu6NEaFoC2HwRg=
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
+github.com/kr/pretty v0.2.1 h1:Fmg33tUaq4/8ym9TJN1x7sLJnHVwhP33CNkpYV/7rwI=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
-github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/pty v1.1.8/go.mod h1:O1sed60cT9XZ5uDucP5qwvh+TE3NnUj51EiZO/lmSfw=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
@@ -434,8 +434,6 @@ github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 h1:OdAsTTz6O
 github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
-github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZVejAe8=
-github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rs/cors v1.7.0/go.mod h1:gFx+x8UowdsKA9AchylcLynDq+nNFfI8FkUZdN/jGCU=
 github.com/rs/cors v1.8.2 h1:KCooALfAYGs415Cwu5ABvv9n9509fSiG5SQJn/AQo4U=
 github.com/rs/cors v1.8.2/go.mod h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU=
@@ -497,7 +495,7 @@ github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81P
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
+github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
@@ -514,13 +512,13 @@ github.com/zeebo/assert v1.1.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN
 github.com/zeebo/blake3 v0.0.4/go.mod h1:YOZo8A49yNqM0X/Y+JmDUZshJWLt1laHsNSn5ny2i34=
 github.com/zeebo/pcg v0.0.0-20181207190024-3cdc6b625a05/go.mod h1:Gr+78ptB0MwXxm//LBaEvBiaXY7hXJ6KGe2V32X2F6E=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
-gitlab.com/elixxir/comms v0.0.4-0.20230119163743-5d47a80088f4 h1:jAc9l1j8UcpNtlw87LqNR59NUxH2sln2KlKWWfsadeU=
-gitlab.com/elixxir/comms v0.0.4-0.20230119163743-5d47a80088f4/go.mod h1:Bb6XF9bC9TmuiklC4eWTeqSiZ0zMOTcMs5UFOp5DZlg=
+gitlab.com/elixxir/comms v0.0.4-0.20230125155939-d94858d69e3a h1:htZgbMTbOyktP9LStVmJMYsNyRy6Y5Mtsa2Hy5uAZ0s=
+gitlab.com/elixxir/comms v0.0.4-0.20230125155939-d94858d69e3a/go.mod h1:yDq6XLeUgoTZQ9IvriijBsuh0PrXpqIP+DfMjmC292Y=
 gitlab.com/elixxir/crypto v0.0.0-20200804182833-984246dea2c4/go.mod h1:ucm9SFKJo+K0N2GwRRpaNr+tKXMIOVWzmyUD0SbOu2c=
 gitlab.com/elixxir/crypto v0.0.3/go.mod h1:ZNgBOblhYToR4m8tj4cMvJ9UsJAUKq+p0gCp07WQmhA=
 gitlab.com/elixxir/crypto v0.0.7-0.20210309193114-8a6225c667e2/go.mod h1:TMZMB24OsjF6y3LCyBMzDucbOx1cGQCCeuKV9lJA/DU=
-gitlab.com/elixxir/crypto v0.0.7-0.20230113231934-c833bffda448 h1:baI0MCmtMvpFaTrYMLTaoyBzhF55cKWIb+c3DL9MmjA=
-gitlab.com/elixxir/crypto v0.0.7-0.20230113231934-c833bffda448/go.mod h1:TCGxer3KJ7jnwgxwZoOv3Y9J6y8moHHWwYy9jj+3/E8=
+gitlab.com/elixxir/crypto v0.0.7-0.20230120181912-b9c6cae57f5b h1:I5fQRTmKVs9pY6MXjBGgto3huFyYEwhy4axEohxsVFw=
+gitlab.com/elixxir/crypto v0.0.7-0.20230120181912-b9c6cae57f5b/go.mod h1:YK+YnOpPKWV3FTW6XiBVLy6RfEHaYcioxj1BD8DLhdc=
 gitlab.com/elixxir/gpumathsgo v0.1.1-0.20220901223158-f0f1496060cb h1:QCtm+5D+Ld+Lqs2mOWPP5rQY3PwFMj4yIvWrxgomkvI=
 gitlab.com/elixxir/gpumathsgo v0.1.1-0.20220901223158-f0f1496060cb/go.mod h1:hG1bApmRNUUCzKxjRk7aEzn/IabOvzIKT7zcNpiAmbA=
 gitlab.com/elixxir/primitives v0.0.0-20200731184040-494269b53b4d/go.mod h1:OQgUZq7SjnE0b+8+iIAT2eqQF+2IFHn73tOo+aV11mg=
@@ -543,8 +541,8 @@ gitlab.com/xx_network/primitives v0.0.0-20200804183002-f99f7a7284da/go.mod h1:OK
 gitlab.com/xx_network/primitives v0.0.2/go.mod h1:cs0QlFpdMDI6lAo61lDRH2JZz+3aVkHy+QogOB6F/qc=
 gitlab.com/xx_network/primitives v0.0.4-0.20210309173740-eb8cd411334a/go.mod h1:9imZHvYwNFobxueSvVtHneZLk9wTK7HQTzxPm+zhFhE=
 gitlab.com/xx_network/primitives v0.0.4-0.20211014163031-53405cf191fb/go.mod h1:9imZHvYwNFobxueSvVtHneZLk9wTK7HQTzxPm+zhFhE=
-gitlab.com/xx_network/primitives v0.0.4-0.20221219230308-4b5550a9247d h1:D9hEtiQ7xj0yFBkDkb4X4S95RfNoeXxtB1eE4UuFHtk=
-gitlab.com/xx_network/primitives v0.0.4-0.20221219230308-4b5550a9247d/go.mod h1:wUxbEBGOBJZ/RkAiVAltlC1uIlIrU0dE113Nq7HiOhw=
+gitlab.com/xx_network/primitives v0.0.4-0.20230120192639-f457e2ff15d7 h1:rOHSOuUOvRJ6PgJFCVtgPK3F0G2gAZ0767+HnXIEUSI=
+gitlab.com/xx_network/primitives v0.0.4-0.20230120192639-f457e2ff15d7/go.mod h1:ABtt5oK+Sl1Q9l3qWK9efxmLKtNMSskpIjbe6IvB9sQ=
 gitlab.com/xx_network/ring v0.0.3-0.20220902183151-a7d3b15bc981 h1:1s0vX9BbkiD0IVXwr3LOaTBcq1wBrWcUWMBK0s8r0Z0=
 gitlab.com/xx_network/ring v0.0.3-0.20220902183151-a7d3b15bc981/go.mod h1:aLzpP2TiZTQut/PVHR40EJAomzugDdHXetbieRClXIM=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

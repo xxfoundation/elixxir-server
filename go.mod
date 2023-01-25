@@ -11,13 +11,13 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20230119163743-5d47a80088f4
-	gitlab.com/elixxir/crypto v0.0.7-0.20230113231934-c833bffda448
+	gitlab.com/elixxir/comms v0.0.4-0.20230125155939-d94858d69e3a
+	gitlab.com/elixxir/crypto v0.0.7-0.20230120181912-b9c6cae57f5b
 	gitlab.com/elixxir/gpumathsgo v0.1.1-0.20220901223158-f0f1496060cb
 	gitlab.com/elixxir/primitives v0.0.3-0.20230109222259-f62b2a90b62c
 	gitlab.com/xx_network/comms v0.0.4-0.20230113193654-a3a18c6bbb90
 	gitlab.com/xx_network/crypto v0.0.5-0.20230113190331-06f2eb12b97f
-	gitlab.com/xx_network/primitives v0.0.4-0.20221219230308-4b5550a9247d
+	gitlab.com/xx_network/primitives v0.0.4-0.20230120192639-f457e2ff15d7
 	golang.org/x/crypto v0.5.0
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
@@ -55,7 +55,6 @@ require (
 	github.com/mitchellh/mapstructure v1.4.0 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
-	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect

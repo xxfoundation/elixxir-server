@@ -167,7 +167,10 @@ var Keygen = services.Module{
 
 			clientKey := kss.Grp.NewIntFromBytes(clientKeyBytes)
 			if len(kss.kmacs[i]) != 0 {
-				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], clientKey, kss.RoundId, kmacHash) {
+				if isEphemeral || cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], clientKey, kss.RoundId, kmacHash) {
+					if isEphemeral {
+						jww.WARN.Printf("Ephemeral user will not have KMAC to verify")
+					}
 					keygen(kss.Grp, kss.salts[i], kss.RoundId,
 						clientKey, kss.KeysA.Get(i))
 

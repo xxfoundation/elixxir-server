@@ -203,6 +203,8 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 	}
 
 	gatewayAddr, gatewayVer := instance.GetGatewayData()
+	ed := instance.GetEd25519Key().Bytes()
+	jww.INFO.Printf("Adding server ed %+v to poll", ed)
 
 	// Construct a message for permissioning with above information
 	pollMsg := &pb.PermissioningPoll{
@@ -217,7 +219,7 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		ServerAddress: instance.GetIP(),
 		ServerVersion: instance.GetServerVersion(),
 		ClientErrors:  clientReport,
-		Ed25519:       instance.GetEd25519Key().Bytes(),
+		Ed25519:       ed,
 	}
 
 	if reportedActivity == current.ERROR {
