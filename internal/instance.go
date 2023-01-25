@@ -822,6 +822,6 @@ func (i *Instance) SetEarliestRound(newEarliestClientRoundId,
 }
 
 func (i *Instance) GetEd25519Key() nike.PublicKey {
-	pub, _ := i.nodeSecretManager.GetEphemerals()
+	pub, _ := i.nodeSecretManager.GetEphemeralEd()
 	return pub
 }

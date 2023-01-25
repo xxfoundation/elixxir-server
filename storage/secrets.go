@@ -49,10 +49,10 @@ type NodeSecret struct {
 //
 //	rotating secrets
 type NodeSecretManager struct {
-	secrets      map[int]*NodeSecret
-	mux          sync.Mutex
-	ephemeralKey nike.PrivateKey
-	ephemeralPub nike.PublicKey
+	secrets         map[int]*NodeSecret
+	mux             sync.Mutex
+	ephemeralEdPriv nike.PrivateKey
+	ephemeralEdPub  nike.PublicKey
 }
 
 // NewNodeSecretManager is the constructor for a NodeSecretManager. This will
@@ -65,12 +65,12 @@ func NewNodeSecretManager() *NodeSecretManager {
 }
 
 func (nsm *NodeSecretManager) UpsertEphemerals(pub nike.PublicKey, priv nike.PrivateKey) {
-	nsm.ephemeralKey = priv
-	nsm.ephemeralPub = pub
+	nsm.ephemeralEdPriv = priv
+	nsm.ephemeralEdPub = pub
 }
 
-func (nsm *NodeSecretManager) GetEphemerals() (nike.PublicKey, nike.PrivateKey) {
-	return nsm.ephemeralPub, nsm.ephemeralKey
+func (nsm *NodeSecretManager) GetEphemeralEd() (nike.PublicKey, nike.PrivateKey) {
+	return nsm.ephemeralEdPub, nsm.ephemeralEdPriv
 }
 
 // GetSecret retrieves the Secret data associated with the given key ID

@@ -148,7 +148,7 @@ var Keygen = services.Module{
 			nodeSecretBytes = nodeSecret.Bytes()
 
 			if isEphemeral {
-				_, ephemeralKey := kss.NodeSecrets.GetEphemerals()
+				_, ephemeralKey := kss.NodeSecrets.GetEphemeralEd()
 				nodeSecretBytes = ephemeralKey.DeriveSecret(kss.ClientEphemeralEd)
 			}
 
