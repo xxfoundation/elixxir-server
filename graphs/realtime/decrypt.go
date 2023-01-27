@@ -179,12 +179,17 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 	s.Grp.SetBytes(s.EcrPayloadA.Get(index), slot.PayloadA)
 	s.Grp.SetBytes(s.EcrPayloadB.Get(index), slot.PayloadB)
 
+	// Link to client ephemeral ED pubkey if relevant
 	if slot.Ed25519 != nil {
 		var err error
 		s.ClientEphemeralEd[index], err = ecdh.ECDHNIKE.UnmarshalBinaryPublicKey(slot.Ed25519)
 		if err != nil {
 			return err
 		}
+	}
+	// Link to ephemeralKeys.  If ephemeralkeys is not set, add an array of all false
+	if slot.EphemeralKeys == nil || len(slot.EphemeralKeys) == 0 {
+		slot.EphemeralKeys = make([]bool, len(slot.KMACs))
 	}
 	s.EphemeralKeys[index] = slot.EphemeralKeys
 
