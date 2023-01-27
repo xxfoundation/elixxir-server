@@ -36,7 +36,7 @@ type KeygenSubStream struct {
 	users             []*id.ID
 	salts             [][]byte
 	kmacs             [][][]byte
-	ClientEphemeralEd nike.PublicKey
+	ClientEphemeralEd []nike.PublicKey
 	EphemeralKeys     [][]bool
 
 	// Output: keys
@@ -54,7 +54,7 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, inSalts [][]byte,
-	inKMACS [][][]byte, inEphKeys [][]bool, clEphemeralEd nike.PublicKey, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
+	inKMACS [][][]byte, inEphKeys [][]bool, clEphemeralEd []nike.PublicKey, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
 	reporter *round.ClientReport, roundID id.Round, batchSize uint32,
 	nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
 	k.Grp = grp
@@ -118,7 +118,6 @@ var Keygen = services.Module{
 			if kss.users[i].Cmp(&id.ID{}) {
 				continue
 			}
-			isEphemeral := kss.EphemeralKeys != nil && kss.EphemeralKeys[i] != nil && kss.EphemeralKeys[i][0]
 			// Retrieve the node secret
 			// todo: KeyID will not be hardcoded once multiple rotating
 			//  secrets is supported.
@@ -147,9 +146,12 @@ var Keygen = services.Module{
 			}
 			nodeSecretBytes = nodeSecret.Bytes()
 
+			// If an unregistered client used an ephemeral ED key for this node,
+			// derive secret based on our ED priv key & the client ED pub key
+			isEphemeral := kss.EphemeralKeys != nil && kss.EphemeralKeys[i] != nil && kss.EphemeralKeys[i][0]
 			if isEphemeral {
 				_, ephemeralKey := kss.NodeSecrets.GetEphemeralEd()
-				nodeSecretBytes = ephemeralKey.DeriveSecret(kss.ClientEphemeralEd)
+				nodeSecretBytes = ephemeralKey.DeriveSecret(kss.ClientEphemeralEd[i])
 			}
 
 			var clientKeyBytes []byte
@@ -168,8 +170,10 @@ var Keygen = services.Module{
 			clientKey := kss.Grp.NewIntFromBytes(clientKeyBytes)
 			if len(kss.kmacs[i]) != 0 {
 				if isEphemeral || cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], clientKey, kss.RoundId, kmacHash) {
+					// If the client wasn't registered with this node, don't
+					// bother trying to verify the KMAC
 					if isEphemeral {
-						jww.WARN.Printf("Ephemeral user will not have KMAC to verify")
+						jww.WARN.Printf("Unregistered client using ephemeral ED keys; no KMAC to verify")
 					}
 					keygen(kss.Grp, kss.salts[i], kss.RoundId,
 						clientKey, kss.KeysA.Get(i))

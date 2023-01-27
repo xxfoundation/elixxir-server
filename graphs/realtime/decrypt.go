@@ -101,7 +101,7 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		users, make([][]byte, batchSize), make([][][]byte, batchSize),
-		make([][]bool, batchSize), s.ClientEphemeralEd, clientReporter, roundID,
+		make([][]bool, batchSize), make([]nike.PublicKey, batchSize), clientReporter, roundID,
 		nodeSecret, precanStore)
 }
 
@@ -109,7 +109,7 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	batchSize uint32, round *round.Buffer, pool *gpumaths.StreamPool,
 	ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
-	users []*id.ID, salts [][]byte, kmacs [][][]byte, ephKeys [][]bool, clientEphemeralEd nike.PublicKey,
+	users []*id.ID, salts [][]byte, kmacs [][][]byte, ephKeys [][]bool, clientEphemeralEd []nike.PublicKey,
 	clientReporter *round.ClientReport, roundId id.Round,
 	nodeSecrets *storage.NodeSecretManager,
 	precanStore *storage.PrecanStore) {
@@ -181,7 +181,7 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 
 	if slot.Ed25519 != nil {
 		var err error
-		s.ClientEphemeralEd, err = ecdh.ECDHNIKE.UnmarshalBinaryPublicKey(slot.Ed25519)
+		s.ClientEphemeralEd[index], err = ecdh.ECDHNIKE.UnmarshalBinaryPublicKey(slot.Ed25519)
 		if err != nil {
 			return err
 		}
@@ -194,8 +194,8 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 // Output a cmix slot message for IO
 func (s *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
 	var edBytes []byte
-	if s.ClientEphemeralEd != nil {
-		edBytes = s.ClientEphemeralEd.Bytes()
+	if s.ClientEphemeralEd != nil && s.ClientEphemeralEd[index] != nil {
+		edBytes = s.ClientEphemeralEd[index].Bytes()
 	}
 	return &mixmessages.Slot{
 		Index:         index,
