@@ -169,11 +169,11 @@ var Keygen = services.Module{
 
 			clientKey := kss.Grp.NewIntFromBytes(clientKeyBytes)
 			if len(kss.kmacs[i]) != 0 {
-				if isEphemeral || cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], clientKey, kss.RoundId, kmacHash) {
+				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], clientKey, kss.RoundId, kmacHash) {
 					// If the client wasn't registered with this node, don't
 					// bother trying to verify the KMAC
 					if isEphemeral {
-						jww.WARN.Printf("Unregistered client using ephemeral ED keys; no KMAC to verify")
+						jww.WARN.Printf("Unregistered client using ephemeral ED keys")
 					}
 					keygen(kss.Grp, kss.salts[i], kss.RoundId,
 						clientKey, kss.KeysA.Get(i))
