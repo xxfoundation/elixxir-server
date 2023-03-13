@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/graphs"
@@ -25,6 +26,7 @@ import (
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/comms/messages"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/primitives/id"
 	"os"
 	"runtime"
@@ -65,6 +67,7 @@ func setup(t *testing.T) (*internal.Instance, *connect.Circuit) {
 			Address: "127.0.0.1:11420",
 		},
 		ListeningAddress: "127.0.0.1:11421",
+		RngStreamGen:     fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 	}
 	def.ID = topology.GetNodeAtIndex(0)
 	def.Gateway.ID = def.ID.DeepCopy()

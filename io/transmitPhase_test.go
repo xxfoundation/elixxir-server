@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/comms/testkeys"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -197,6 +198,7 @@ func mockInstance(t interface{}, impl func(instance *internal.Instance) *node.Im
 	cnt++
 
 	def := internal.Definition{
+		RngStreamGen:     fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		ID:               nid,
 		ResourceMonitor:  &measure.ResourceMonitor{},
 		PrivateKey:       privKey,

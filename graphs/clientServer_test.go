@@ -114,10 +114,11 @@ func TestClientServer(t *testing.T) {
 	//generate an array of keys for linking
 	keys := grp.NewIntBuffer(1, dhKey)
 	kmacs := make([][][]byte, 1)
+	ephKeys := make([][]bool, 1)
 	reporter := round.NewClientFailureReport(nid)
 	nsm := storage.NewNodeSecretManager()
 	precanStore := storage.NewPrecanStore(true, grp)
-	stream.LinkStream(grp, testSalts, kmacs, usrs, keys, keys, reporter, 0, 32, nsm, precanStore)
+	stream.LinkStream(grp, testSalts, kmacs, ephKeys, nil, usrs, keys, keys, reporter, 0, 32, nsm, precanStore)
 	err := Keygen.Adapt(&stream, cryptops.Keygen, chunk)
 	if err != nil {
 		t.Error(err)

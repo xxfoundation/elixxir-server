@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
 	"gitlab.com/elixxir/crypto/hash"
+	"gitlab.com/elixxir/crypto/nike"
 	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/server/internal/round"
 	"gitlab.com/elixxir/server/services"
@@ -32,9 +33,11 @@ type KeygenSubStream struct {
 	Precanned   *storage.PrecanStore
 
 	// Inputs: user IDs and salts (required for key generation)
-	users []*id.ID
-	salts [][]byte
-	kmacs [][][]byte
+	users             []*id.ID
+	salts             [][]byte
+	kmacs             [][][]byte
+	ClientEphemeralEd []nike.PublicKey
+	EphemeralKeys     [][]bool
 
 	// Output: keys
 	KeysA *cyclic.IntBuffer
@@ -51,13 +54,14 @@ type KeygenSubStream struct {
 // at Link time, but they should represent an area that'll be filled with valid
 // data or space for data when the cryptop runs
 func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, inSalts [][]byte,
-	inKMACS [][][]byte, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
+	inKMACS [][][]byte, inEphKeys [][]bool, clEphemeralEd []nike.PublicKey, inUsers []*id.ID, outKeysA, outKeysB *cyclic.IntBuffer,
 	reporter *round.ClientReport, roundID id.Round, batchSize uint32,
 	nodeSecrets *storage.NodeSecretManager, precanStore *storage.PrecanStore) {
 	k.Grp = grp
 	k.salts = inSalts
 	k.users = inUsers
 	k.kmacs = inKMACS
+	k.EphemeralKeys = inEphKeys
 	k.KeysA = outKeysA
 	k.KeysB = outKeysB
 	k.userErrors = reporter
@@ -65,9 +69,10 @@ func (k *KeygenSubStream) LinkStream(grp *cyclic.Group, inSalts [][]byte,
 	k.batchSize = batchSize
 	k.NodeSecrets = nodeSecrets
 	k.Precanned = precanStore
+	k.ClientEphemeralEd = clEphemeralEd
 }
 
-//Returns the substream, used to return an embedded struct off an interface
+// Returns the substream, used to return an embedded struct off an interface
 func (k *KeygenSubStream) GetKeygenSubStream() *KeygenSubStream {
 	return k
 }
@@ -116,6 +121,7 @@ var Keygen = services.Module{
 			// Retrieve the node secret
 			// todo: KeyID will not be hardcoded once multiple rotating
 			//  secrets is supported.
+			var nodeSecretBytes []byte
 			nodeSecret, err := kss.NodeSecrets.GetSecret(0)
 			if err != nil {
 				if strings.HasSuffix(err.Error(), storage.NoSecretExistsError) {
@@ -138,6 +144,15 @@ var Keygen = services.Module{
 				}
 				continue
 			}
+			nodeSecretBytes = nodeSecret.Bytes()
+
+			// If an unregistered client used an ephemeral ED key for this node,
+			// derive secret based on our ED priv key & the client ED pub key
+			isEphemeral := kss.EphemeralKeys != nil && kss.EphemeralKeys[i] != nil && kss.EphemeralKeys[i][0]
+			if isEphemeral {
+				_, ephemeralKey := kss.NodeSecrets.GetEphemeralEd()
+				nodeSecretBytes = ephemeralKey.DeriveSecret(kss.ClientEphemeralEd[i])
+			}
 
 			var clientKeyBytes []byte
 			if precanKey, isPrecan := kss.Precanned.Get(kss.users[i]); isPrecan {
@@ -146,7 +161,7 @@ var Keygen = services.Module{
 				// Generate node key
 				nodeSecretHash.Reset()
 				nodeSecretHash.Write(kss.users[i].Bytes())
-				nodeSecretHash.Write(nodeSecret.Bytes())
+				nodeSecretHash.Write(nodeSecretBytes)
 				clientKeyBytes = nodeSecretHash.Sum(nil)
 			}
 
@@ -155,6 +170,11 @@ var Keygen = services.Module{
 			clientKey := kss.Grp.NewIntFromBytes(clientKeyBytes)
 			if len(kss.kmacs[i]) != 0 {
 				if cmix.VerifyKMAC(kss.kmacs[i][0], kss.salts[i], clientKey, kss.RoundId, kmacHash) {
+					// If the client wasn't registered with this node, don't
+					// bother trying to verify the KMAC
+					if isEphemeral {
+						jww.WARN.Printf("Unregistered client using ephemeral ED keys")
+					}
 					keygen(kss.Grp, kss.salts[i], kss.RoundId,
 						clientKey, kss.KeysA.Get(i))
 
@@ -173,6 +193,7 @@ var Keygen = services.Module{
 
 			//pop the used KMAC
 			kss.kmacs[i] = kss.kmacs[i][1:]
+			kss.EphemeralKeys[i] = kss.EphemeralKeys[i][1:]
 
 			if !success {
 				kss.Grp.SetUint64(kss.KeysA.Get(i), 1)

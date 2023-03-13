@@ -11,13 +11,13 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/viper v1.7.1
-	gitlab.com/elixxir/comms v0.0.4-0.20230214180204-3aba2e6795af
+	gitlab.com/elixxir/comms v0.0.4-0.20230215185442-4f3e75a1d704
 	gitlab.com/elixxir/crypto v0.0.7-0.20230214180106-72841fd1e426
 	gitlab.com/elixxir/gpumathsgo v0.1.1-0.20220901223158-f0f1496060cb
 	gitlab.com/elixxir/primitives v0.0.3-0.20230214180039-9a25e2d3969c
 	gitlab.com/xx_network/comms v0.0.4-0.20230214180029-5387fb85736d
 	gitlab.com/xx_network/crypto v0.0.5-0.20230214003943-8a09396e95dd
-	gitlab.com/xx_network/primitives v0.0.4-0.20230203173415-81c2cb07da44
+	gitlab.com/xx_network/primitives v0.0.4-0.20230215185311-cb80e2bfbfeb
 	golang.org/x/crypto v0.5.0
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
@@ -27,6 +27,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.0.0 // indirect
 	git.xx.network/elixxir/grpc-web-go-client v0.0.0-20230214175953-5b5a8c33d28a // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect

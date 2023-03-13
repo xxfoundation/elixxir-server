@@ -219,6 +219,11 @@ func PollPermissioning(permHost *connect.Host, instance *internal.Instance,
 		ClientErrors:  clientReport,
 	}
 
+	ed := instance.GetEd25519Key()
+	if ed != nil {
+		pollMsg.Ed25519 = ed.Bytes()
+	}
+
 	if reportedActivity == current.ERROR {
 		pollMsg.Error = instance.GetRecoveredError()
 		jww.INFO.Printf("Reporting error to permissioning: %+v", pollMsg.Error)

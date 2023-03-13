@@ -10,6 +10,7 @@ package io
 import (
 	"encoding/json"
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -17,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/primitives/id"
 	"sync"
 	"testing"
@@ -49,6 +51,8 @@ func TestReceiveGetMeasure(t *testing.T) {
 	monitor.Set(metric)
 	//nid := server.GenerateId(t)
 	def := internal.Definition{
+		RngStreamGen: fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
+
 		ID:              topology.GetNodeAtIndex(0),
 		ResourceMonitor: &monitor,
 		FullNDF:         testUtil.NDF,

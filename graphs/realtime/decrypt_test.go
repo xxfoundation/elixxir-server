@@ -28,6 +28,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
@@ -251,7 +252,7 @@ func TestDecryptStream_Input_OutOfGroup(t *testing.T) {
 	}
 }
 
-//  Tests that Input errors correct when the user id is invalid
+// Tests that Input errors correct when the user id is invalid
 func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 	instance := mockServerInstance(t)
@@ -294,7 +295,7 @@ func TestDecryptStream_Input_NonExistantUser(t *testing.T) {
 
 }
 
-//  Tests that Input errors correct when the salt is invalid
+// Tests that Input errors correct when the salt is invalid
 func TestDecryptStream_Input_SaltLength(t *testing.T) {
 
 	instance := mockServerInstance(t)
@@ -504,6 +505,7 @@ func TestDecryptStreamInGraph(t *testing.T) {
 		stream.Salts[i] = testSalt
 		stream.Users[i] = uid
 		stream.KMACS[i] = [][]byte{cmix.GenerateKMAC(testSalt, grp.NewIntFromBytes(dhKey), rid, kmacHash)}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.KMACS[i]))
 	}
 	// Here's the actual data for the test
 
@@ -564,6 +566,7 @@ func mockServerInstance(i interface{}) *internal.Instance {
 
 	nid := internal.GenerateId(i)
 	def := internal.Definition{
+		RngStreamGen:    fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,

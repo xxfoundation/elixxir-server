@@ -9,6 +9,7 @@ package io
 
 import (
 	"gitlab.com/elixxir/comms/mixmessages"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/current"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/measure"
@@ -17,6 +18,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/primitives/id"
 	"testing"
 	"time"
@@ -30,6 +32,7 @@ func TestNewImplementation_PostPhase(t *testing.T) {
 	topology := connect.NewCircuit(BuildMockNodeIDs(2, t))
 
 	def := internal.Definition{
+		RngStreamGen:    fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
 		PartialNDF:      testUtil.NDF,
@@ -181,7 +184,7 @@ func TestPostPhase_NoAuth(t *testing.T) {
 	}
 }
 
-//Error path
+// Error path
 func TestPostPhase_WrongSender(t *testing.T) { // Defer to a success when PostPhase call panics
 	defer func() {
 		if r := recover(); r != nil {

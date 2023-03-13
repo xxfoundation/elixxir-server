@@ -12,6 +12,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/comms/node"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/server/internal/measure"
 	"gitlab.com/elixxir/server/internal/phase"
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
 	"gitlab.com/xx_network/comms/connect"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/large"
 	"gitlab.com/xx_network/primitives/id"
 	"runtime"
@@ -117,6 +119,7 @@ func TestResourceQueue_RunOne(t *testing.T) {
 
 	topology := connect.NewCircuit([]*id.ID{nid})
 	def := Definition{
+		RngStreamGen:    fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testUtil.NDF,
