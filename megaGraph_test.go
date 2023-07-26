@@ -87,7 +87,8 @@ func ComputeSingleNodePrecomputation(grp *cyclic.Group, round *round.Buffer) (
 
 // Compute Precomputation for N nodes
 // NOTE: This does not handle precomputation under permutation, but it will
-//       handle multi-node precomputation checks.
+//
+//	handle multi-node precomputation checks.
 func ComputePrecomputation(grp *cyclic.Group, rounds []*round.Buffer,
 	t *testing.T) (
 	*cyclic.Int, *cyclic.Int) {
@@ -802,7 +803,7 @@ func (ds *DebugStream) Link(grp *cyclic.Group, batchSize uint32,
 
 	testReport := round.NewClientFailureReport(fakeNodeID)
 
-	ds.LinkKeygenDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
+	ds.LinkKeygenDecryptStream(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB, grp.NewIntBuffer(batchSize, grp.NewInt(1)), grp.NewIntBuffer(batchSize, grp.NewInt(1)), users, make([][]byte, batchSize), make([][][]byte, batchSize), make([][]bool, batchSize), nil, testReport, 0, storage.NewNodeSecretManager(), storage.NewPrecanStore(true, grp))
 
 	ds.LinkIdentifyStreams(grp, batchSize, roundBuf, nil, ecrPayloadA, ecrPayloadB,
 		ecrPayloadAPermuted, ecrPayloadBPermuted)

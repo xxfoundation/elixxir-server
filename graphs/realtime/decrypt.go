@@ -14,6 +14,8 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/nike"
+	"gitlab.com/elixxir/crypto/nike/ecdh"
 	"gitlab.com/elixxir/gpumathsgo"
 	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/server/graphs"
@@ -99,14 +101,15 @@ func (s *KeygenDecryptStream) Link(grp *cyclic.Group, batchSize uint32, source .
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
 		users, make([][]byte, batchSize), make([][][]byte, batchSize),
-		clientReporter, roundID, nodeSecret, precanStore)
+		make([][]bool, batchSize), make([]nike.PublicKey, batchSize), clientReporter, roundID,
+		nodeSecret, precanStore)
 }
 
 // LinkKeygenDecryptStream creates stream internal buffers and binds stream to local state objects in round
 func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	batchSize uint32, round *round.Buffer, pool *gpumaths.StreamPool,
 	ecrPayloadA, ecrPayloadB, keysPayloadA, keysPayloadB *cyclic.IntBuffer,
-	users []*id.ID, salts [][]byte, kmacs [][][]byte,
+	users []*id.ID, salts [][]byte, kmacs [][][]byte, ephKeys [][]bool, clientEphemeralEd []nike.PublicKey,
 	clientReporter *round.ClientReport, roundId id.Round,
 	nodeSecrets *storage.NodeSecretManager,
 	precanStore *storage.PrecanStore) {
@@ -125,9 +128,12 @@ func (s *KeygenDecryptStream) LinkKeygenDecryptStream(grp *cyclic.Group,
 	s.Salts = salts
 	s.KMACS = kmacs
 	s.NodeSecrets = nodeSecrets
+	s.EphemeralKeys = ephKeys
+	s.ClientEphemeralEd = clientEphemeralEd
 
-	s.KeygenSubStream.LinkStream(s.Grp, s.Salts, s.KMACS, s.Users, s.KeysPayloadA,
-		s.KeysPayloadB, clientReporter, roundId, batchSize, nodeSecrets, precanStore)
+	s.KeygenSubStream.LinkStream(s.Grp, s.Salts, s.KMACS, s.EphemeralKeys, s.ClientEphemeralEd,
+		s.Users, s.KeysPayloadA, s.KeysPayloadB, clientReporter, roundId,
+		batchSize, nodeSecrets, precanStore)
 }
 
 // KeygenDecryptSubStreamInterface creates an interface for KeygenDecryptStream to conform to
@@ -172,18 +178,39 @@ func (s *KeygenDecryptStream) Input(index uint32, slot *mixmessages.Slot) error 
 
 	s.Grp.SetBytes(s.EcrPayloadA.Get(index), slot.PayloadA)
 	s.Grp.SetBytes(s.EcrPayloadB.Get(index), slot.PayloadB)
+
+	// Link to client ephemeral ED pubkey if relevant
+	if slot.Ed25519 != nil {
+		var err error
+		s.ClientEphemeralEd[index], err = ecdh.ECDHNIKE.UnmarshalBinaryPublicKey(slot.Ed25519)
+		if err != nil {
+			return err
+		}
+	}
+	// Link to ephemeralKeys.  If ephemeralkeys is not set, add an array of all false
+	if slot.EphemeralKeys == nil || len(slot.EphemeralKeys) == 0 {
+		slot.EphemeralKeys = make([]bool, len(slot.KMACs))
+	}
+	s.EphemeralKeys[index] = slot.EphemeralKeys
+
 	return nil
 }
 
 // Output a cmix slot message for IO
 func (s *KeygenDecryptStream) Output(index uint32) *mixmessages.Slot {
+	var edBytes []byte
+	if s.ClientEphemeralEd != nil && s.ClientEphemeralEd[index] != nil {
+		edBytes = s.ClientEphemeralEd[index].Bytes()
+	}
 	return &mixmessages.Slot{
-		Index:    index,
-		SenderID: (*s.Users[index])[:],
-		Salt:     s.Salts[index],
-		PayloadA: s.EcrPayloadA.Get(index).Bytes(),
-		PayloadB: s.EcrPayloadB.Get(index).Bytes(),
-		KMACs:    s.KMACS[index],
+		Index:         index,
+		SenderID:      (*s.Users[index])[:],
+		Salt:          s.Salts[index],
+		PayloadA:      s.EcrPayloadA.Get(index).Bytes(),
+		PayloadB:      s.EcrPayloadB.Get(index).Bytes(),
+		KMACs:         s.KMACS[index],
+		EphemeralKeys: s.EphemeralKeys[index],
+		Ed25519:       edBytes,
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"gitlab.com/elixxir/comms/mixmessages"
 	"gitlab.com/elixxir/crypto/cmix"
 	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/crypto/hash"
 	"gitlab.com/elixxir/gpumathsgo/cryptops"
 	"gitlab.com/elixxir/primitives/current"
@@ -24,6 +25,7 @@ import (
 	"gitlab.com/elixxir/server/internal/state"
 	"gitlab.com/elixxir/server/services"
 	"gitlab.com/elixxir/server/testUtil"
+	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/primitives/id"
 	"golang.org/x/crypto/blake2b"
 	"runtime"
@@ -49,9 +51,12 @@ func (s *KeygenTestStream) Link(grp *cyclic.Group, batchSize uint32, source ...i
 	// You may have to create these elsewhere and pass them to
 	// KeygenSubStream's Link so they can be populated in-place by the
 	// CommStream for the graph
-	s.KeygenSubStream.LinkStream(grp, make([][]byte, batchSize), make([][][]byte, batchSize),
-		make([]*id.ID, batchSize), grp.NewIntBuffer(batchSize, grp.NewInt(1)),
-		grp.NewIntBuffer(batchSize, grp.NewInt(1)), round.NewClientFailureReport(instance.GetID()), 0,
+	s.KeygenSubStream.LinkStream(grp, make([][]byte, batchSize),
+		make([][][]byte, batchSize), make([][]bool, batchSize), nil,
+		make([]*id.ID, batchSize),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		grp.NewIntBuffer(batchSize, grp.NewInt(1)),
+		round.NewClientFailureReport(instance.GetID()), 0,
 		batchSize, instance.GetSecretManager(), instance.GetPrecanStore())
 }
 
@@ -223,6 +228,7 @@ func TestKeygenStreamInGraph(t *testing.T) {
 		stream.salts[i] = testSalt
 		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.kmacs[i]))
 	}
 	// Here's the actual data for the test
 
@@ -340,6 +346,7 @@ func TestKeygenStreamInGraphUnRegistered(t *testing.T) {
 		stream.salts[i] = testSalt
 		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.kmacs[i]))
 	}
 	// Here's the actual data for the test
 
@@ -450,6 +457,7 @@ func TestKeygenStreamInGraph_InvalidKMAC(t *testing.T) {
 		stream.salts[i] = testSalt
 		stream.users[i] = uid
 		stream.kmacs[i] = [][]byte{kmac}
+		stream.EphemeralKeys[i] = make([]bool, len(stream.kmacs[i]))
 	}
 	// Here's the actual data for the test
 
@@ -512,6 +520,7 @@ func mockServerInstance(i interface{}) (*internal.Instance, error) {
 		PartialNDF:      testUtil.NDF,
 		Flags:           internal.Flags{OverrideInternalIP: "0.0.0.0"},
 		DevMode:         true,
+		RngStreamGen:    fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
 	}
 	def.Gateway.ID = def.ID.DeepCopy()
 	def.Gateway.ID.SetType(id.Gateway)

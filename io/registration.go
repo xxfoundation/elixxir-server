@@ -148,7 +148,7 @@ func RequestClientKey(instance *internal.Instance,
 	cmixH := hash.CMixHash.New()
 	cmixH.Reset()
 	cmixH.Write(userId.Bytes())
-	h.Write(nodeSecret.Bytes())
+	cmixH.Write(nodeSecret.Bytes())
 	clientKey := cmixH.Sum(nil)
 
 	// Construct client gateway key
@@ -157,15 +157,16 @@ func RequestClientKey(instance *internal.Instance,
 	clientGatewayKey := cmixH.Sum(nil)
 
 	// Encrypt the client key using the session key
+	s := instance.GetRngStreamGen().GetStream()
 	encryptedClientKey, err := chacha.Encrypt(sessionKey.Bytes(), clientKey,
-		instance.GetRngStreamGen().GetStream())
+		s)
+	s.Close()
 	if err != nil {
 		errMsg := errors.Errorf("Unable to encrypt key: %v", err)
 		return &pb.SignedKeyResponse{Error: errMsg.Error()}, errMsg
 	}
 
 	// Construct HMAC
-	h.Reset()
 	encryptedClientKeyHMAC := registration.CreateClientHMAC(sessionKey.Bytes(),
 		encryptedClientKey, opts.Hash.New)
 

@@ -8,7 +8,9 @@
 package io
 
 import (
+	"gitlab.com/elixxir/crypto/fastRNG"
 	"gitlab.com/elixxir/primitives/states"
+	"gitlab.com/xx_network/crypto/csprng"
 	"testing"
 	"time"
 
@@ -56,6 +58,8 @@ func setupTests(t *testing.T, testState current.Activity) (internal.Instance, *p
 	// We need to create a server.Definition so we can create a server instance.
 	nid := internal.GenerateId(t)
 	def := internal.Definition{
+		RngStreamGen: fastRNG.NewStreamGenerator(8, 8, csprng.NewSystemRNG),
+
 		ID:              nid,
 		ResourceMonitor: &measure.ResourceMonitor{},
 		FullNDF:         testNdf,
