@@ -13,6 +13,13 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
 	pb "gitlab.com/elixxir/comms/mixmessages"
@@ -23,11 +30,98 @@ import (
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
-	"net"
-	"strconv"
-	"strings"
-	"time"
 )
+
+// Cache path constants for NDF caching
+const (
+	fullNdfCachePath    = "/opt/xxnetwork/cache/full_ndf.json"
+	partialNdfCachePath = "/opt/xxnetwork/cache/partial_ndf.json"
+)
+
+// GetFullNdfCachePath returns the full NDF cache file path
+func GetFullNdfCachePath() string {
+	return fullNdfCachePath
+}
+
+// GetPartialNdfCachePath returns the partial NDF cache file path
+func GetPartialNdfCachePath() string {
+	return partialNdfCachePath
+}
+
+// saveNdfToCache saves NDF data to disk cache atomically using temp file + rename pattern
+func saveNdfToCache(ndfData []byte, cachePath string) error {
+	// Extract directory from cache path
+	dir := filepath.Dir(cachePath)
+
+	// Log directory creation attempt
+	jww.DEBUG.Printf("CACHENDF-Checking cache directory: %s", dir)
+
+	// Create directory if it doesn't exist
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		jww.WARN.Printf("CACHENDF-Failed to create cache directory: %+v", err)
+		return errors.WithMessage(err, "failed to create cache directory")
+	}
+
+	// Create temporary file path
+	tmpPath := cachePath + ".tmp"
+	jww.DEBUG.Printf("CACHENDF-Writing to temp file: %s", tmpPath)
+
+	// Write NDF data to temp file with permissions 0644
+	err = os.WriteFile(tmpPath, ndfData, 0644)
+	if err != nil {
+		jww.WARN.Printf("CACHENDF-Failed to write temp file: %+v", err)
+		return errors.WithMessage(err, "failed to write temp cache file")
+	}
+
+	jww.DEBUG.Printf("CACHENDF-Wrote %d bytes to temp file", len(ndfData))
+
+	// Atomically rename temp file to final cache path
+	err = os.Rename(tmpPath, cachePath)
+	if err != nil {
+		// Clean up temp file on failure
+		os.Remove(tmpPath)
+		jww.WARN.Printf("CACHENDF-Failed to rename temp file to cache path: %+v", err)
+		return errors.WithMessage(err, "failed to atomically rename cache file")
+	}
+
+	jww.INFO.Printf("CACHENDF-Successfully cached NDF to %s (%d bytes)", cachePath, len(ndfData))
+	return nil
+}
+
+// LoadNdfFromCache loads NDF data from disk cache
+func LoadNdfFromCache(cachePath string) ([]byte, error) {
+	jww.DEBUG.Printf("CACHENDF-Attempting to load NDF from cache: %s", cachePath)
+
+	// Check if file exists
+	fileInfo, err := os.Stat(cachePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			jww.DEBUG.Printf("CACHENDF-Cache file does not exist: %s", cachePath)
+		} else {
+			jww.DEBUG.Printf("CACHENDF-Cache miss for %s: %+v", cachePath, err)
+		}
+		return nil, err
+	}
+
+	jww.DEBUG.Printf("CACHENDF-Cache file found: %s (%d bytes)", cachePath, fileInfo.Size())
+
+	// Read entire file
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		jww.DEBUG.Printf("CACHENDF-Failed to read cache file: %+v", err)
+		return nil, errors.WithMessage(err, "failed to read cache file")
+	}
+
+	// Validate non-empty
+	if len(data) == 0 {
+		jww.DEBUG.Printf("CACHENDF-Cache file is empty: %s", cachePath)
+		return nil, errors.New("cache file is empty")
+	}
+
+	jww.INFO.Printf("CACHENDF-Successfully loaded NDF from cache: %s (%d bytes)", cachePath, len(data))
+	return data, nil
+}
 
 // RegisterNode performs the Node registration with the network
 func RegisterNode(def *internal.Definition, instance *internal.Instance) error {
@@ -434,6 +528,14 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 			return errors.Errorf("Could not update full ndf: %+v", err)
 		}
 
+		// Cache the full NDF
+		jww.DEBUG.Printf("CACHENDF-Caching full NDF after successful update")
+		err = saveNdfToCache(permissioningResponse.FullNDF.Ndf, fullNdfCachePath)
+		if err != nil {
+			jww.WARN.Printf("CACHENDF-Failed to cache full NDF: %+v", err)
+			// Continue execution - cache failure is non-fatal
+		}
+
 		// Save the list of node IP addresses to file
 		err = SaveNodeIpList(instance.GetNetworkStatus().GetFullNdf().Get(),
 			instance.GetDefinition().IpListOutput, instance.GetDefinition().ID)
@@ -449,6 +551,14 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		err := instance.GetNetworkStatus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 		if err != nil {
 			return errors.Errorf("Could not update partial ndf: %+v", err)
+		}
+
+		// Cache the partial NDF
+		jww.DEBUG.Printf("CACHENDF-Caching partial NDF after successful update")
+		err = saveNdfToCache(permissioningResponse.PartialNDF.Ndf, partialNdfCachePath)
+		if err != nil {
+			jww.WARN.Printf("CACHENDF-Failed to cache partial NDF: %+v", err)
+			// Continue execution - cache failure is non-fatal
 		}
 	}
 

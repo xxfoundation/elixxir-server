@@ -13,6 +13,13 @@ package internal
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -38,13 +45,8 @@ import (
 	"gitlab.com/xx_network/crypto/csprng"
 	"gitlab.com/xx_network/crypto/signature/rsa"
 	"gitlab.com/xx_network/primitives/id"
+	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
-	"os"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"testing"
-	"time"
 )
 
 type RoundErrBroadcastFunc func(host *connect.Host, message *mixmessages.RoundError) (*messages.Ack, error)
@@ -172,6 +174,17 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		}
 	}
 
+	// Pre-create cache directory to fail fast if there are permission issues
+	cacheDir := "/opt/xxnetwork/cache"
+	jww.INFO.Printf("CACHENDF-Pre-creating cache directory: %s", cacheDir)
+	err = os.MkdirAll(cacheDir, 0755)
+	if err != nil {
+		jww.WARN.Printf("CACHENDF-Failed to pre-create cache directory (cache will be disabled): %+v", err)
+		// Continue without caching - non-fatal
+	} else {
+		jww.INFO.Printf("CACHENDF-Cache directory ready: %s", cacheDir)
+	}
+
 	// Create node secret manager
 	instance.nodeSecretManager = storage.NewNodeSecretManager()
 
@@ -221,9 +234,65 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 		instance.definition.TlsCert, instance.definition.TlsKey)
 	instance.roundErrFunc = instance.network.SendRoundError
 
+	// Try to load cached NDFs before creating network instance
+	var cachedFullNdf, cachedPartialNdf *ndf.NetworkDefinition
+
+	jww.INFO.Printf("CACHENDF-Attempting to load cached NDFs")
+
+	// Cache paths (must match permissioning package constants)
+	fullNdfCachePath := "/opt/xxnetwork/cache/full_ndf.json"
+	partialNdfCachePath := "/opt/xxnetwork/cache/partial_ndf.json"
+
+	// Attempt to load full NDF from cache
+	fullNdfData, err := loadNdfFromCache(fullNdfCachePath)
+	if err == nil && len(fullNdfData) > 0 {
+		jww.DEBUG.Printf("CACHENDF-Unmarshaling full NDF from cache (%d bytes)", len(fullNdfData))
+		cachedFullNdf, err = ndf.Unmarshal(fullNdfData)
+		if err != nil {
+			jww.WARN.Printf("CACHENDF-Failed to unmarshal cached full NDF, will download fresh: %+v", err)
+			cachedFullNdf = nil
+		} else {
+			jww.INFO.Printf("CACHENDF-Successfully loaded and unmarshaled full NDF from cache")
+		}
+	} else if err != nil {
+		jww.DEBUG.Printf("CACHENDF-No cached full NDF available: %+v", err)
+	}
+
+	// Attempt to load partial NDF from cache
+	partialNdfData, err := loadNdfFromCache(partialNdfCachePath)
+	if err == nil && len(partialNdfData) > 0 {
+		jww.DEBUG.Printf("CACHENDF-Unmarshaling partial NDF from cache (%d bytes)", len(partialNdfData))
+		cachedPartialNdf, err = ndf.Unmarshal(partialNdfData)
+		if err != nil {
+			jww.WARN.Printf("CACHENDF-Failed to unmarshal cached partial NDF, will download fresh: %+v", err)
+			cachedPartialNdf = nil
+		} else {
+			jww.INFO.Printf("CACHENDF-Successfully loaded and unmarshaled partial NDF from cache")
+		}
+	} else if err != nil {
+		jww.DEBUG.Printf("CACHENDF-No cached partial NDF available: %+v", err)
+	}
+
+	// Use cached NDFs if available, otherwise fall back to definition NDFs
+	fullNdfToUse := def.FullNDF
+	if cachedFullNdf != nil {
+		fullNdfToUse = cachedFullNdf
+		jww.INFO.Printf("CACHENDF-Using cached full NDF for network instance")
+	} else {
+		jww.DEBUG.Printf("CACHENDF-Using definition full NDF for network instance")
+	}
+
+	partialNdfToUse := def.PartialNDF
+	if cachedPartialNdf != nil {
+		partialNdfToUse = cachedPartialNdf
+		jww.INFO.Printf("CACHENDF-Using cached partial NDF for network instance")
+	} else {
+		jww.DEBUG.Printf("CACHENDF-Using definition partial NDF for network instance")
+	}
+
 	// Initializes the network state tracking on this server instance
 	instance.consensus, err = network.NewInstance(instance.network.ProtoComms,
-		def.PartialNDF, def.FullNDF, nil, network.Strict, false)
+		partialNdfToUse, fullNdfToUse, nil, network.Strict, false)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
@@ -824,4 +893,38 @@ func (i *Instance) SetEarliestRound(newEarliestClientRoundId,
 func (i *Instance) GetEd25519Key() nike.PublicKey {
 	pub, _ := i.nodeSecretManager.GetEphemeralEd()
 	return pub
+}
+
+// loadNdfFromCache loads NDF data from disk cache (internal helper to avoid import cycle)
+func loadNdfFromCache(cachePath string) ([]byte, error) {
+	jww.DEBUG.Printf("CACHENDF-Attempting to load NDF from cache: %s", cachePath)
+
+	// Check if file exists
+	fileInfo, err := os.Stat(cachePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			jww.DEBUG.Printf("CACHENDF-Cache file does not exist: %s", cachePath)
+		} else {
+			jww.DEBUG.Printf("CACHENDF-Cache miss for %s: %+v", cachePath, err)
+		}
+		return nil, err
+	}
+
+	jww.DEBUG.Printf("CACHENDF-Cache file found: %s (%d bytes)", cachePath, fileInfo.Size())
+
+	// Read entire file
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		jww.DEBUG.Printf("CACHENDF-Failed to read cache file: %+v", err)
+		return nil, errors.WithMessage(err, "failed to read cache file")
+	}
+
+	// Validate non-empty
+	if len(data) == 0 {
+		jww.DEBUG.Printf("CACHENDF-Cache file is empty: %s", cachePath)
+		return nil, errors.New("cache file is empty")
+	}
+
+	jww.INFO.Printf("CACHENDF-Successfully loaded NDF from cache: %s (%d bytes)", cachePath, len(data))
+	return data, nil
 }
