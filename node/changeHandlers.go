@@ -12,6 +12,9 @@ package node
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
@@ -27,8 +30,6 @@ import (
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 	"gitlab.com/xx_network/primitives/utils"
-	"strings"
-	"time"
 )
 
 // Partial address of authorizer. Prepended to the provided
@@ -153,20 +154,29 @@ func NotStarted(instance *internal.Instance) error {
 		// Blocking call: Request ndf from permissioning
 		permResponse, err = permissioning.PollPermissioning(permHost, instance, current.NOT_STARTED)
 		if err == nil {
-			//check if an NDF is returned
-			if permResponse == nil || permResponse.FullNDF == nil || len(permResponse.FullNDF.Ndf) == 0 {
+			// Check if an NDF is returned or if we have a valid cached NDF and connectivity is confirmed.
+			// If Updates are present, it implies connectivity verification passed on permissioning side.
+			hasNdf := permResponse != nil && permResponse.FullNDF != nil && len(permResponse.FullNDF.Ndf) > 0
+			hasCachedNdf := instance.GetNetworkStatus().GetFullNdf() != nil
+			hasUpdates := permResponse != nil && len(permResponse.Updates) > 0
+
+			if !hasNdf && (!hasCachedNdf || !hasUpdates) {
 				err = errors.New("The NDF was not returned, " +
 					"'permissioning is likely in the process of vetting the " +
 					"node")
 			} else {
-				//update NDF
+				// Update NDF (and register hosts if triggered)
 				err = permissioning.UpdateNDf(permResponse, instance)
-				// find certs in NDF in order to detect that permissioning views
-				// this server as online
-				if err == nil && !permissioning.FindSelfInNdf(ourDef,
-					instance.GetNetworkStatus().GetFullNdf().Get()) {
-					err = errors.New("Waiting to be included in the " +
-						"network")
+
+				// If we have an NDF (either new or cached), verify we are in it
+				if err == nil {
+					fullNdf := instance.GetNetworkStatus().GetFullNdf()
+					if fullNdf == nil {
+						// Should be unreachable if above logic is correct, but safe guard
+						err = errors.New("NDF is nil after update attempt")
+					} else if !permissioning.FindSelfInNdf(ourDef, fullNdf.Get()) {
+						err = errors.New("Waiting to be included in the network")
+					}
 				}
 			}
 		}
@@ -526,7 +536,7 @@ func NewStateChanges() [current.NUM_STATES]state.Change {
 	return stateChanges
 }
 
-/// Checks with permissioning whether we are a network member already
+// / Checks with permissioning whether we are a network member already
 func isRegistered(serverInstance *internal.Instance) bool {
 	regCheck := &mixmessages.RegisteredNodeCheck{
 		ID: serverInstance.GetID().Bytes(),

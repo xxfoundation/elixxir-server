@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -517,11 +518,20 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 	return nil
 }
 
+// hostsRegistered tracks whether hosts have been registered from the NDF (0 = not yet, 1 = done)
+var hostsRegistered uint32
+
 // UpdateNDf processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes. Also saves
 // a list of node addresses found in the NDF to a separate file.
 func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *internal.Instance) error {
 	if permissioningResponse.FullNDF != nil {
+		// Log that cached hash doesn't match - new NDF is being downloaded
+		if instance.GetNetworkStatus().GetFullNdf() != nil {
+			oldHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetFullNdf().GetHash())
+			jww.INFO.Printf("CACHENDF-Cached full NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
+		}
+
 		// Update the full ndf
 		err := instance.GetNetworkStatus().UpdateFullNdf(permissioningResponse.FullNDF)
 		if err != nil {
@@ -544,9 +554,21 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		}
 
 		jww.INFO.Printf("New NDF Received, hash: %s", base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetFullNdf().GetHash()))
+	} else {
+		// No new NDF sent - cached hash matched current NDF
+		if instance.GetNetworkStatus().GetFullNdf() != nil {
+			currentHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetFullNdf().GetHash())
+			jww.DEBUG.Printf("CACHENDF-Cached full NDF hash matches current NDF - Skipping download (hash: %s)", currentHash)
+		}
 	}
 
 	if permissioningResponse.PartialNDF != nil {
+		// Log that cached hash doesn't match - new partial NDF is being downloaded
+		if instance.GetNetworkStatus().GetPartialNdf() != nil {
+			oldHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetPartialNdf().GetHash())
+			jww.INFO.Printf("CACHENDF-Cached partial NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
+		}
+
 		// Update the partial ndf
 		err := instance.GetNetworkStatus().UpdatePartialNdf(permissioningResponse.PartialNDF)
 		if err != nil {
@@ -560,14 +582,70 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 			jww.WARN.Printf("CACHENDF-Failed to cache partial NDF: %+v", err)
 			// Continue execution - cache failure is non-fatal
 		}
+	} else {
+		// No new partial NDF sent - cached hash matched current NDF
+		if instance.GetNetworkStatus().GetPartialNdf() != nil {
+			currentHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetPartialNdf().GetHash())
+			jww.DEBUG.Printf("CACHENDF-Cached partial NDF hash matches current NDF - Skipping download (hash: %s)", currentHash)
+		}
 	}
 
-	if permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil {
+	// If we have a new NDF or if updates are present (implying successful connectivity check),
+	// we should update connections and register hosts if needed.
+	hasNdf := permissioningResponse.PartialNDF != nil || permissioningResponse.FullNDF != nil
+	hasUpdates := len(permissioningResponse.Updates) > 0
+
+	if hasNdf || hasUpdates {
 
 		// Update the nodes in the network.Instance with the new ndf
 		err := instance.GetNetworkStatus().UpdateNodeConnections()
 		if err != nil {
 			return errors.Errorf("Could not update node connections: %+v", err)
+		}
+
+		// LAZY HOST REGISTRATION FIX:
+		// After the first successful poll that returns an NDF (connectivity verified),
+		// register hosts from the current NDF. This is done using atomic compare-and-swap
+		// to ensure it only happens once.
+		// By deferring host registration until after connectivity passes (when permissioning
+		// actually returns an NDF), we prevent network saturation during the vetting process
+		// that can cause checkConnectivity to timeout.
+		if atomic.CompareAndSwapUint32(&hostsRegistered, 0, 1) {
+			fullNdf := instance.GetNetworkStatus().GetFullNdf()
+			if fullNdf != nil && fullNdf.Get() != nil {
+				ndfData := fullNdf.Get()
+				jww.INFO.Printf("LAZY-HOST-REG: First NDF received (connectivity verified) - registering hosts from current NDF (%d nodes)", len(ndfData.Nodes))
+
+				registered := 0
+				for _, node := range ndfData.Nodes {
+					nodeId, err := id.Unmarshal(node.ID)
+					if err != nil {
+						jww.DEBUG.Printf("LAZY-HOST-REG: Could not unmarshal node ID: %v", err)
+						continue
+					}
+
+					// Skip our own node - it's already added separately
+					if nodeId.Cmp(instance.GetDefinition().ID) {
+						continue
+					}
+
+					// Add host to the network's host manager
+					_, err = instance.GetNetwork().AddHost(nodeId, node.Address, []byte(node.TlsCertificate),
+						connect.GetDefaultHostParams())
+					if err != nil {
+						// Log but continue - some hosts might be unreachable or already added
+						jww.DEBUG.Printf("LAZY-HOST-REG: Could not add host %s at %s: %v",
+							nodeId, node.Address, err)
+						continue
+					}
+					registered++
+				}
+
+				jww.INFO.Printf("LAZY-HOST-REG: Successfully registered %d/%d hosts from NDF after connectivity verification",
+					registered, len(ndfData.Nodes))
+			} else {
+				jww.WARN.Printf("LAZY-HOST-REG: First NDF received but full NDF is not available for host registration")
+			}
 		}
 	}
 

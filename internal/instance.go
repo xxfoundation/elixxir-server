@@ -236,6 +236,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	// Try to load cached NDFs before creating network instance
 	var cachedFullNdf, cachedPartialNdf *ndf.NetworkDefinition
+	var fullNdfData, partialNdfData []byte
 
 	jww.INFO.Printf("CACHENDF-Attempting to load cached NDFs")
 
@@ -244,13 +245,14 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	partialNdfCachePath := "/opt/xxnetwork/cache/partial_ndf.json"
 
 	// Attempt to load full NDF from cache
-	fullNdfData, err := loadNdfFromCache(fullNdfCachePath)
+	fullNdfData, err = loadNdfFromCache(fullNdfCachePath)
 	if err == nil && len(fullNdfData) > 0 {
 		jww.DEBUG.Printf("CACHENDF-Unmarshaling full NDF from cache (%d bytes)", len(fullNdfData))
 		cachedFullNdf, err = ndf.Unmarshal(fullNdfData)
 		if err != nil {
 			jww.WARN.Printf("CACHENDF-Failed to unmarshal cached full NDF, will download fresh: %+v", err)
 			cachedFullNdf = nil
+			fullNdfData = nil
 		} else {
 			jww.INFO.Printf("CACHENDF-Successfully loaded and unmarshaled full NDF from cache")
 		}
@@ -259,13 +261,14 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Attempt to load partial NDF from cache
-	partialNdfData, err := loadNdfFromCache(partialNdfCachePath)
+	partialNdfData, err = loadNdfFromCache(partialNdfCachePath)
 	if err == nil && len(partialNdfData) > 0 {
 		jww.DEBUG.Printf("CACHENDF-Unmarshaling partial NDF from cache (%d bytes)", len(partialNdfData))
 		cachedPartialNdf, err = ndf.Unmarshal(partialNdfData)
 		if err != nil {
 			jww.WARN.Printf("CACHENDF-Failed to unmarshal cached partial NDF, will download fresh: %+v", err)
 			cachedPartialNdf = nil
+			partialNdfData = nil
 		} else {
 			jww.INFO.Printf("CACHENDF-Successfully loaded and unmarshaled partial NDF from cache")
 		}
@@ -277,6 +280,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	fullNdfToUse := def.FullNDF
 	if cachedFullNdf != nil {
 		fullNdfToUse = cachedFullNdf
+		// Log the hash of the cached full NDF (computed from raw bytes)
+		h, _ := hash.NewCMixHash()
+		h.Write(fullNdfData)
+		fullHash := h.Sum(nil)
+		jww.INFO.Printf("CACHENDF-Cached full NDF hash: %s",
+			base64.StdEncoding.EncodeToString(fullHash))
 		jww.INFO.Printf("CACHENDF-Using cached full NDF for network instance")
 	} else {
 		jww.DEBUG.Printf("CACHENDF-Using definition full NDF for network instance")
@@ -285,6 +294,12 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	partialNdfToUse := def.PartialNDF
 	if cachedPartialNdf != nil {
 		partialNdfToUse = cachedPartialNdf
+		// Log the hash of the cached partial NDF (computed from raw bytes)
+		h, _ := hash.NewCMixHash()
+		h.Write(partialNdfData)
+		partialHash := h.Sum(nil)
+		jww.INFO.Printf("CACHENDF-Cached partial NDF hash: %s",
+			base64.StdEncoding.EncodeToString(partialHash))
 		jww.INFO.Printf("CACHENDF-Using cached partial NDF for network instance")
 	} else {
 		jww.DEBUG.Printf("CACHENDF-Using definition partial NDF for network instance")
@@ -296,6 +311,56 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	if err != nil {
 		return nil, errors.WithMessage(err, "Could not initialize network instance")
 	}
+
+	// LAZY HOST REGISTRATION FIX:
+	// DO NOT register hosts from cached NDF here at startup.
+	// Host registration will happen AFTER the first successful connectivity check
+	// in permissioning/poll.go. This prevents network saturation during vetting
+	// that can cause checkConnectivity to timeout.
+	//
+	// The hosts will be registered from the current NDF (whether cached or freshly
+	// downloaded) after the first poll's connectivity verification passes.
+	if cachedFullNdf != nil {
+		jww.INFO.Printf("CACHENDF-Loaded cached full NDF (%d nodes) - host registration deferred until after connectivity check",
+			len(cachedFullNdf.Nodes))
+	}
+
+	// Populate hash fields for cached NDFs to avoid unnecessary re-downloads
+	if cachedFullNdf != nil && len(fullNdfData) > 0 {
+		err = instance.consensus.SetFullNdfHashFromBytes(fullNdfData)
+		if err != nil {
+			jww.WARN.Printf("CACHENDF-Failed to set full NDF hash from cached bytes: %+v", err)
+		} else {
+			jww.DEBUG.Printf("CACHENDF-Successfully populated full NDF hash from cached bytes")
+		}
+	}
+
+	if cachedPartialNdf != nil && len(partialNdfData) > 0 {
+		err = instance.consensus.SetPartialNdfHashFromBytes(partialNdfData)
+		if err != nil {
+			jww.WARN.Printf("CACHENDF-Failed to set partial NDF hash from cached bytes: %+v", err)
+		} else {
+			jww.DEBUG.Printf("CACHENDF-Successfully populated partial NDF hash from cached bytes")
+		}
+	}
+
+	// NOTE ON NDF HASH INITIALIZATION:
+	// The hash fields are now properly populated when loading from cache, which prevents
+	// unnecessary re-downloads on the first poll after restart. Previously, these fields
+	// remained uninitialized (zeros) because:
+	// 1. The wrapper is created with ds.NewNdf() which calls GenerateNDFHash(nil), returning zeros
+	// 2. We cannot call Update() to set the hash because it requires RSA signature verification
+	// 3. We don't have the permissioning public key available at startup
+	//
+	// This means the first poll after restart will see hash mismatch (zeros vs actual) and
+	// will re-download the NDF from permissioning. However, this one-time download cost is
+	// acceptable because:
+	// - The downloaded NDF will be cached and verified with proper hash
+	// - All subsequent polls will correctly use the cache without re-downloading
+	// - This is still vastly better than downloading on every poll (which was the original problem)
+	//
+	// The hash will be properly set after the first poll's UpdateFullNdf/UpdatePartialNdf
+	// calls in permissioning.UpdateNDf(), and then cached for the next restart.
 
 	// Handle overriding local IP
 	if instance.GetDefinition().OverrideInternalIP != "" {
