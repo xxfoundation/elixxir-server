@@ -14,6 +14,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -175,7 +176,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Pre-create cache directory to fail fast if there are permission issues
-	cacheDir := "/opt/xxnetwork/cache"
+	cacheDir := def.CacheDir
 	jww.INFO.Printf("CACHENDF-Pre-creating cache directory: %s", cacheDir)
 	err = os.MkdirAll(cacheDir, 0755)
 	if err != nil {
@@ -240,9 +241,9 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 
 	jww.INFO.Printf("CACHENDF-Attempting to load cached NDFs")
 
-	// Cache paths (must match permissioning package constants)
-	fullNdfCachePath := "/opt/xxnetwork/cache/full_ndf.json"
-	partialNdfCachePath := "/opt/xxnetwork/cache/partial_ndf.json"
+	// Cache paths
+	fullNdfCachePath := filepath.Join(def.CacheDir, "full_ndf.json")
+	partialNdfCachePath := filepath.Join(def.CacheDir, "partial_ndf.json")
 
 	// Attempt to load full NDF from cache
 	fullNdfData, err = loadNdfFromCache(fullNdfCachePath)

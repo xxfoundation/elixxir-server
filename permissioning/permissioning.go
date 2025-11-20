@@ -33,21 +33,7 @@ import (
 	"gitlab.com/xx_network/primitives/ndf"
 )
 
-// Cache path constants for NDF caching
-const (
-	fullNdfCachePath    = "/opt/xxnetwork/cache/full_ndf.json"
-	partialNdfCachePath = "/opt/xxnetwork/cache/partial_ndf.json"
-)
-
-// GetFullNdfCachePath returns the full NDF cache file path
-func GetFullNdfCachePath() string {
-	return fullNdfCachePath
-}
-
-// GetPartialNdfCachePath returns the partial NDF cache file path
-func GetPartialNdfCachePath() string {
-	return partialNdfCachePath
-}
+// Cache path constants are defined dynamically from configuration
 
 // saveNdfToCache saves NDF data to disk cache atomically using temp file + rename pattern
 func saveNdfToCache(ndfData []byte, cachePath string) error {
@@ -540,7 +526,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 
 		// Cache the full NDF
 		jww.DEBUG.Printf("CACHENDF-Caching full NDF after successful update")
-		err = saveNdfToCache(permissioningResponse.FullNDF.Ndf, fullNdfCachePath)
+		err = saveNdfToCache(permissioningResponse.FullNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json"))
 		if err != nil {
 			jww.WARN.Printf("CACHENDF-Failed to cache full NDF: %+v", err)
 			// Continue execution - cache failure is non-fatal
@@ -577,7 +563,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 
 		// Cache the partial NDF
 		jww.DEBUG.Printf("CACHENDF-Caching partial NDF after successful update")
-		err = saveNdfToCache(permissioningResponse.PartialNDF.Ndf, partialNdfCachePath)
+		err = saveNdfToCache(permissioningResponse.PartialNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json"))
 		if err != nil {
 			jww.WARN.Printf("CACHENDF-Failed to cache partial NDF: %+v", err)
 			// Continue execution - cache failure is non-fatal

@@ -160,6 +160,14 @@ func NewParams(vip *viper.Viper) (*Params, error) {
 		params.Node.Paths.Log = "log/cmix.log"
 	}
 
+	if vip.IsSet("cmix.paths.cache") {
+		params.Node.Paths.Cache = vip.GetString("cmix.paths.cache")
+	} else if vip.IsSet("node.paths.cache") {
+		params.Node.Paths.Cache = vip.GetString("node.paths.cache")
+	} else {
+		params.Node.Paths.Cache = "/opt/xxnetwork/cache"
+	}
+
 	if vip.IsSet("cmix.paths.errOutput") {
 		params.RecoveredErrPath = vip.GetString("cmix.paths.errOutput")
 	} else if vip.IsSet("node.paths.errOutput") {
@@ -283,6 +291,7 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 	def.MetricLogPath = p.Metrics.Log
 	def.RecoveredErrorPath = p.RecoveredErrPath
 	def.IpListOutput = p.Node.Paths.ipListOutput
+	def.CacheDir = p.Node.Paths.Cache
 	def.Flags.OverrideInternalIP = p.OverrideInternalIP
 	def.DbUsername = p.Database.Username
 	def.DbPassword = p.Database.Password
@@ -423,7 +432,8 @@ func (p *Params) ConvertToDefinition() (*internal.Definition, error) {
 }
 
 // createNdf is a helper function which builds a network ndf based off of the
-//  server.Definition
+//
+//	server.Definition
 func createNdf(def *internal.Definition, params *Params) *ndf.NetworkDefinition {
 	// Build our node
 	ourNode := ndf.Node{

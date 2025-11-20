@@ -15,4 +15,5 @@ type Paths struct {
 	Key          string
 	Log          string
 	ipListOutput string
+	Cache        string
 }

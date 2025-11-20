@@ -24,6 +24,8 @@ cmix:
     key: "/opt/xxnetwork/cred/cmix-key.key"
     # Path where log file will be saved. (Default "log/cmix.log")
     log: "/opt/xxnetwork/log/cmix.log"
+    # Directory where NDF cache files will be stored. (Default "/opt/xxnetwork/cache")
+    cache: "/opt/xxnetwork/cache"
   # Port that cMix will communicate on. (Required)
   port: 11420
   # Local IP address of the Node, used for internal listening. Expects an IPv4

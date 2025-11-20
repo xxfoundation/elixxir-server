@@ -59,6 +59,8 @@ type Definition struct {
 	// Path where the Server and Gateway certificates will be stored
 	ServerCertPath  string
 	GatewayCertPath string
+	// Cache directory for NDF caching
+	CacheDir string
 	//Information about the node's gateway
 	Gateway GW
 
@@ -109,7 +111,7 @@ type Flags struct {
 	OverrideInternalIP string
 }
 
-//Holds information about another node in the network
+// Holds information about another node in the network
 type Node struct {
 	// ID of the other node
 	ID *id.ID
