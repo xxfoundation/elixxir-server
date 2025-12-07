@@ -249,7 +249,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	partialNdfCachePath := filepath.Join(def.CacheDir, "partial_ndf.json")
 
 	// Attempt to load full NDF from cache
-	fullNdfData, err = storage.LoadNdfFromCache(fullNdfCachePath)
+	fullNdfData, err = storage.LoadNdfFromCache(fullNdfCachePath, nodeSecret)
 	if err == nil && len(fullNdfData) > 0 {
 		jww.DEBUG.Printf("Unmarshaling full NDF from cache (%d bytes)", len(fullNdfData))
 		cachedFullNdf, err = ndf.Unmarshal(fullNdfData)
@@ -265,7 +265,7 @@ func CreateServerInstance(def *Definition, makeImplementation func(*Instance) *n
 	}
 
 	// Attempt to load partial NDF from cache
-	partialNdfData, err = storage.LoadNdfFromCache(partialNdfCachePath)
+	partialNdfData, err = storage.LoadNdfFromCache(partialNdfCachePath, nodeSecret)
 	if err == nil && len(partialNdfData) > 0 {
 		jww.DEBUG.Printf("Unmarshaling partial NDF from cache (%d bytes)", len(partialNdfData))
 		cachedPartialNdf, err = ndf.Unmarshal(partialNdfData)

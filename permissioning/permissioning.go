@@ -445,10 +445,17 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 
 		// Cache the full NDF
 		jww.DEBUG.Printf("Caching full NDF after successful update")
-		err = storage.SaveNdfToCache(permissioningResponse.FullNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json"))
+		nodeSecret, err := instance.GetSecretManager().GetSecret(0)
 		if err != nil {
-			jww.WARN.Printf("Failed to cache full NDF: %+v", err)
-			// Continue execution - cache failure is non-fatal
+			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
+		} else {
+			err = storage.SaveNdfToCache(permissioningResponse.FullNDF.Ndf,
+				filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json"),
+				nodeSecret.Bytes(), instance.GetRngStreamGen().GetStream())
+			if err != nil {
+				jww.WARN.Printf("Failed to cache full NDF: %+v", err)
+				// Continue execution - cache failure is non-fatal
+			}
 		}
 
 		// Save the list of node IP addresses to file
@@ -482,10 +489,17 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 
 		// Cache the partial NDF
 		jww.DEBUG.Printf("Caching partial NDF after successful update")
-		err = storage.SaveNdfToCache(permissioningResponse.PartialNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json"))
+		nodeSecret, err := instance.GetSecretManager().GetSecret(0)
 		if err != nil {
-			jww.WARN.Printf("Failed to cache partial NDF: %+v", err)
-			// Continue execution - cache failure is non-fatal
+			jww.WARN.Printf("Failed to get node secret for NDF caching: %+v", err)
+		} else {
+			err = storage.SaveNdfToCache(permissioningResponse.PartialNDF.Ndf,
+				filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json"),
+				nodeSecret.Bytes(), instance.GetRngStreamGen().GetStream())
+			if err != nil {
+				jww.WARN.Printf("Failed to cache partial NDF: %+v", err)
+				// Continue execution - cache failure is non-fatal
+			}
 		}
 	} else {
 		// No new partial NDF sent - cached hash matched current NDF

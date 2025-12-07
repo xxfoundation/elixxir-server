@@ -13,10 +13,12 @@ import (
 
 	"github.com/pkg/errors"
 	jww "github.com/spf13/jwalterweatherman"
+	"gitlab.com/xx_network/crypto/chacha"
+	"gitlab.com/xx_network/crypto/csprng"
 )
 
 // SaveNdfToCache saves NDF data to disk cache atomically using temp file + rename pattern
-func SaveNdfToCache(ndfData []byte, cachePath string) error {
+func SaveNdfToCache(ndfData []byte, cachePath string, key []byte, rng csprng.Source) error {
 	// Extract directory from cache path
 	dir := filepath.Dir(cachePath)
 
@@ -30,8 +32,15 @@ func SaveNdfToCache(ndfData []byte, cachePath string) error {
 	// Create temporary file path
 	tmpPath := cachePath + ".tmp"
 
+	// Encrypt the NDF data
+	encryptedData, err := chacha.Encrypt(key, ndfData, rng)
+	if err != nil {
+		jww.WARN.Printf("Failed to encrypt NDF data: %+v", err)
+		return errors.WithMessage(err, "failed to encrypt NDF data")
+	}
+
 	// Write NDF data to temp file with permissions 0644
-	err = os.WriteFile(tmpPath, ndfData, 0644)
+	err = os.WriteFile(tmpPath, encryptedData, 0644)
 	if err != nil {
 		jww.WARN.Printf("Failed to write temp file: %+v", err)
 		return errors.WithMessage(err, "failed to write temp cache file")
@@ -51,7 +60,7 @@ func SaveNdfToCache(ndfData []byte, cachePath string) error {
 }
 
 // LoadNdfFromCache loads NDF data from disk cache
-func LoadNdfFromCache(cachePath string) ([]byte, error) {
+func LoadNdfFromCache(cachePath string, key []byte) ([]byte, error) {
 	// Check if file exists
 	fileInfo, err := os.Stat(cachePath)
 	if err != nil {
@@ -78,6 +87,13 @@ func LoadNdfFromCache(cachePath string) ([]byte, error) {
 		return nil, errors.New("cache file is empty")
 	}
 
-	jww.INFO.Printf("Successfully loaded NDF from cache: %s (%d bytes)", cachePath, len(data))
-	return data, nil
+	// Decrypt the NDF data
+	decryptedData, err := chacha.Decrypt(key, data)
+	if err != nil {
+		jww.DEBUG.Printf("Failed to decrypt cache file: %+v", err)
+		return nil, errors.WithMessage(err, "failed to decrypt cache file")
+	}
+
+	jww.INFO.Printf("Successfully loaded NDF from cache: %s (%d bytes)", cachePath, len(decryptedData))
+	return decryptedData, nil
 }
