@@ -14,11 +14,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -28,87 +26,11 @@ import (
 	"gitlab.com/elixxir/primitives/states"
 	"gitlab.com/elixxir/server/internal"
 	"gitlab.com/elixxir/server/internal/phase"
+	"gitlab.com/elixxir/server/storage"
 	"gitlab.com/xx_network/comms/connect"
 	"gitlab.com/xx_network/primitives/id"
 	"gitlab.com/xx_network/primitives/ndf"
 )
-
-// Cache path constants are defined dynamically from configuration
-
-// saveNdfToCache saves NDF data to disk cache atomically using temp file + rename pattern
-func saveNdfToCache(ndfData []byte, cachePath string) error {
-	// Extract directory from cache path
-	dir := filepath.Dir(cachePath)
-
-	// Log directory creation attempt
-	jww.DEBUG.Printf("CACHENDF-Checking cache directory: %s", dir)
-
-	// Create directory if it doesn't exist
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		jww.WARN.Printf("CACHENDF-Failed to create cache directory: %+v", err)
-		return errors.WithMessage(err, "failed to create cache directory")
-	}
-
-	// Create temporary file path
-	tmpPath := cachePath + ".tmp"
-	jww.DEBUG.Printf("CACHENDF-Writing to temp file: %s", tmpPath)
-
-	// Write NDF data to temp file with permissions 0644
-	err = os.WriteFile(tmpPath, ndfData, 0644)
-	if err != nil {
-		jww.WARN.Printf("CACHENDF-Failed to write temp file: %+v", err)
-		return errors.WithMessage(err, "failed to write temp cache file")
-	}
-
-	jww.DEBUG.Printf("CACHENDF-Wrote %d bytes to temp file", len(ndfData))
-
-	// Atomically rename temp file to final cache path
-	err = os.Rename(tmpPath, cachePath)
-	if err != nil {
-		// Clean up temp file on failure
-		os.Remove(tmpPath)
-		jww.WARN.Printf("CACHENDF-Failed to rename temp file to cache path: %+v", err)
-		return errors.WithMessage(err, "failed to atomically rename cache file")
-	}
-
-	jww.INFO.Printf("CACHENDF-Successfully cached NDF to %s (%d bytes)", cachePath, len(ndfData))
-	return nil
-}
-
-// LoadNdfFromCache loads NDF data from disk cache
-func LoadNdfFromCache(cachePath string) ([]byte, error) {
-	jww.DEBUG.Printf("CACHENDF-Attempting to load NDF from cache: %s", cachePath)
-
-	// Check if file exists
-	fileInfo, err := os.Stat(cachePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			jww.DEBUG.Printf("CACHENDF-Cache file does not exist: %s", cachePath)
-		} else {
-			jww.DEBUG.Printf("CACHENDF-Cache miss for %s: %+v", cachePath, err)
-		}
-		return nil, err
-	}
-
-	jww.DEBUG.Printf("CACHENDF-Cache file found: %s (%d bytes)", cachePath, fileInfo.Size())
-
-	// Read entire file
-	data, err := os.ReadFile(cachePath)
-	if err != nil {
-		jww.DEBUG.Printf("CACHENDF-Failed to read cache file: %+v", err)
-		return nil, errors.WithMessage(err, "failed to read cache file")
-	}
-
-	// Validate non-empty
-	if len(data) == 0 {
-		jww.DEBUG.Printf("CACHENDF-Cache file is empty: %s", cachePath)
-		return nil, errors.New("cache file is empty")
-	}
-
-	jww.INFO.Printf("CACHENDF-Successfully loaded NDF from cache: %s (%d bytes)", cachePath, len(data))
-	return data, nil
-}
 
 // RegisterNode performs the Node registration with the network
 func RegisterNode(def *internal.Definition, instance *internal.Instance) error {
@@ -504,9 +426,6 @@ func UpdateRounds(permissioningResponse *pb.PermissionPollResponse, instance *in
 	return nil
 }
 
-// hostsRegistered tracks whether hosts have been registered from the NDF (0 = not yet, 1 = done)
-var hostsRegistered uint32
-
 // UpdateNDf processes the polling response from permissioning for ndf updates,
 // installing any ndf changes if needed and connecting to new nodes. Also saves
 // a list of node addresses found in the NDF to a separate file.
@@ -515,7 +434,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// Log that cached hash doesn't match - new NDF is being downloaded
 		if instance.GetNetworkStatus().GetFullNdf() != nil {
 			oldHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetFullNdf().GetHash())
-			jww.INFO.Printf("CACHENDF-Cached full NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
+			jww.INFO.Printf("Cached full NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
 		}
 
 		// Update the full ndf
@@ -525,10 +444,10 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		}
 
 		// Cache the full NDF
-		jww.DEBUG.Printf("CACHENDF-Caching full NDF after successful update")
-		err = saveNdfToCache(permissioningResponse.FullNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json"))
+		jww.DEBUG.Printf("Caching full NDF after successful update")
+		err = storage.SaveNdfToCache(permissioningResponse.FullNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "full_ndf.json"))
 		if err != nil {
-			jww.WARN.Printf("CACHENDF-Failed to cache full NDF: %+v", err)
+			jww.WARN.Printf("Failed to cache full NDF: %+v", err)
 			// Continue execution - cache failure is non-fatal
 		}
 
@@ -544,7 +463,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// No new NDF sent - cached hash matched current NDF
 		if instance.GetNetworkStatus().GetFullNdf() != nil {
 			currentHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetFullNdf().GetHash())
-			jww.DEBUG.Printf("CACHENDF-Cached full NDF hash matches current NDF - Skipping download (hash: %s)", currentHash)
+			jww.DEBUG.Printf("Cached full NDF hash matches current NDF - Skipping download (hash: %s)", currentHash)
 		}
 	}
 
@@ -552,7 +471,7 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// Log that cached hash doesn't match - new partial NDF is being downloaded
 		if instance.GetNetworkStatus().GetPartialNdf() != nil {
 			oldHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetPartialNdf().GetHash())
-			jww.INFO.Printf("CACHENDF-Cached partial NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
+			jww.INFO.Printf("Cached partial NDF hash does not match current NDF - Downloading (cached: %s)", oldHash)
 		}
 
 		// Update the partial ndf
@@ -562,17 +481,17 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		}
 
 		// Cache the partial NDF
-		jww.DEBUG.Printf("CACHENDF-Caching partial NDF after successful update")
-		err = saveNdfToCache(permissioningResponse.PartialNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json"))
+		jww.DEBUG.Printf("Caching partial NDF after successful update")
+		err = storage.SaveNdfToCache(permissioningResponse.PartialNDF.Ndf, filepath.Join(instance.GetDefinition().CacheDir, "partial_ndf.json"))
 		if err != nil {
-			jww.WARN.Printf("CACHENDF-Failed to cache partial NDF: %+v", err)
+			jww.WARN.Printf("Failed to cache partial NDF: %+v", err)
 			// Continue execution - cache failure is non-fatal
 		}
 	} else {
 		// No new partial NDF sent - cached hash matched current NDF
 		if instance.GetNetworkStatus().GetPartialNdf() != nil {
 			currentHash := base64.StdEncoding.EncodeToString(instance.GetNetworkStatus().GetPartialNdf().GetHash())
-			jww.DEBUG.Printf("CACHENDF-Cached partial NDF hash matches current NDF - Skipping download (hash: %s)", currentHash)
+			jww.DEBUG.Printf("Cached partial NDF hash matches current NDF - Skipping download (hash: %s)", currentHash)
 		}
 	}
 
@@ -596,17 +515,17 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 		// By deferring host registration until after connectivity passes (when permissioning
 		// actually returns an NDF), we prevent network saturation during the vetting process
 		// that can cause checkConnectivity to timeout.
-		if atomic.CompareAndSwapUint32(&hostsRegistered, 0, 1) {
+		if instance.SetHostsRegistered() {
 			fullNdf := instance.GetNetworkStatus().GetFullNdf()
 			if fullNdf != nil && fullNdf.Get() != nil {
 				ndfData := fullNdf.Get()
-				jww.INFO.Printf("LAZY-HOST-REG: First NDF received (connectivity verified) - registering hosts from current NDF (%d nodes)", len(ndfData.Nodes))
+				jww.INFO.Printf("First NDF received (connectivity verified) - registering hosts from current NDF (%d nodes)", len(ndfData.Nodes))
 
 				registered := 0
 				for _, node := range ndfData.Nodes {
 					nodeId, err := id.Unmarshal(node.ID)
 					if err != nil {
-						jww.DEBUG.Printf("LAZY-HOST-REG: Could not unmarshal node ID: %v", err)
+						jww.DEBUG.Printf("Could not unmarshal node ID: %v", err)
 						continue
 					}
 
@@ -620,17 +539,17 @@ func UpdateNDf(permissioningResponse *pb.PermissionPollResponse, instance *inter
 						connect.GetDefaultHostParams())
 					if err != nil {
 						// Log but continue - some hosts might be unreachable or already added
-						jww.DEBUG.Printf("LAZY-HOST-REG: Could not add host %s at %s: %v",
+						jww.DEBUG.Printf("Could not add host %s at %s: %v",
 							nodeId, node.Address, err)
 						continue
 					}
 					registered++
 				}
 
-				jww.INFO.Printf("LAZY-HOST-REG: Successfully registered %d/%d hosts from NDF after connectivity verification",
+				jww.INFO.Printf("Successfully registered %d/%d hosts from NDF after connectivity verification",
 					registered, len(ndfData.Nodes))
 			} else {
-				jww.WARN.Printf("LAZY-HOST-REG: First NDF received but full NDF is not available for host registration")
+				jww.WARN.Printf("First NDF received but full NDF is not available for host registration")
 			}
 		}
 	}
